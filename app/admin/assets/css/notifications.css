@@ -1,0 +1,29 @@
+/* Notifications Dropdown Styling */
+
+/* Panel width stays fixed, but responsive */
+#notification-panel {
+  width: 520px;           /* or whatever it is now */
+  max-width: 92vw;
+  box-sizing: border-box;
+}
+
+/* Each item stacks vertically and wraps text */
+#notification-panel .notif-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Wrap long notes/messages, including very long unbroken strings */
+#notification-panel .notif-text {
+  white-space: pre-wrap;     /* respect \n, allow wrap */
+  overflow-wrap: anywhere;   /* modern soft wrap */
+  word-break: break-word;    /* legacy fallback */
+  hyphens: auto;             /* optional: hyphenation */
+}
+
+/* Optional: keep absurdly long notes scrollable instead of
+   making the dropdown super tall. Remove if you want unlimited height */
+#notification-panel .notif-text--limit {
+  max-height: 14rem;
+  overflow: auto;
+}
