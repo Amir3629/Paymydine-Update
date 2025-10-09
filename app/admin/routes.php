@@ -92,11 +92,12 @@ App::before(function () {
                         return null;
                     }
 
-                    $frontendUrl = env('FRONTEND_URL', config('app.url'));
-                    $date = date('Y-m-d');
-                    $time = date('H:i');
+                $request = request();
+                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+                $date = date('Y-m-d');
+                $time = date('H:i');
 
-                    $tableNumber = ($cashierTable->table_no > 0) ? $cashierTable->table_no : $cashierTableId;
+                $tableNumber = ($cashierTable->table_no > 0) ? $cashierTable->table_no : $cashierTableId;
                 
                     return rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
                         'location' => $locationId,
@@ -162,7 +163,7 @@ App::before(function () {
             try {
                 $locationId = (int) $request->get('location_id', 1);
                 
-                $frontendUrl = env('FRONTEND_URL', config('app.url'));
+                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
                 $url = rtrim($frontendUrl, '/').'/cashier?'.http_build_query([
                     'location' => $locationId,
                     'mode'     => 'cashier',
@@ -325,7 +326,8 @@ App::before(function () {
             $time = date('H:i');
 
             // Build QR code URL (same logic as in tables/edit.blade.php)
-            $frontendUrl = env('FRONTEND_URL', config('app.url'));
+            $request = request();
+            $frontendUrl = $request->getScheme() . '://' . $request->getHost();
                 
             $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
                 
