@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 App::before(function () {
+    
     /*
      * Register Admin app routes
      *
@@ -19,95 +20,96 @@ App::before(function () {
     ], function () {
         // Utility functions for Cashier table management
         if (!function_exists('resolveCashierTableId')) {
-            function resolveCashierTableId($locationId = 1) {
-            try {
+            function resolveCashierTableId($locationId = 1)
+            {
+                try {
                     // Look for existing Cashier table
                     $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
                 
-                if ($cashierTable) {
-                    // Check if it's linked to the location
-                    $locationLink = DB::table('locationables')
-                        ->where('locationable_id', $cashierTable->table_id)
-                        ->where('locationable_type', 'tables')
-                        ->where('location_id', $locationId)
-                        ->first();
+                    if ($cashierTable) {
+                        // Check if it's linked to the location
+                        $locationLink = DB::table('locationables')
+                            ->where('locationable_id', $cashierTable->table_id)
+                            ->where('locationable_type', 'tables')
+                            ->where('location_id', $locationId)
+                            ->first();
                     
-                    if (!$locationLink) {
+                        if (!$locationLink) {
+                            // Link to the location
+                            DB::table('locationables')->insert([
+                                'location_id' => $locationId,
+                                'locationable_id' => $cashierTable->table_id,
+                                'locationable_type' => 'tables',
+                                'options' => null,
+                            ]);
+                        }
+                    
+                        return $cashierTable->table_id;
+                    } else {
+                        // Create Cashier table if it doesn't exist
+                        $cashierTableId = DB::table('tables')->insertGetId([
+                            'table_name' => 'Cashier',
+                            'min_capacity' => 1,
+                            'max_capacity' => 1,
+                            'table_status' => 1,
+                            'extra_capacity' => 0,
+                            'is_joinable' => 0,
+                            'priority' => 999,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                            'qr_code' => 'cashier',
+                        ]);
+
                         // Link to the location
                         DB::table('locationables')->insert([
                             'location_id' => $locationId,
-                            'locationable_id' => $cashierTable->table_id,
+                            'locationable_id' => $cashierTableId,
                             'locationable_type' => 'tables',
                             'options' => null,
                         ]);
+
+                        return $cashierTableId;
                     }
-                    
-                    return $cashierTable->table_id;
-                } else {
-                        // Create Cashier table if it doesn't exist
-                        $cashierTableId = DB::table('tables')->insertGetId([
-                        'table_name' => 'Cashier',
-                        'min_capacity' => 1,
-                        'max_capacity' => 1,
-                        'table_status' => 1,
-                        'extra_capacity' => 0,
-                        'is_joinable' => 0,
-                        'priority' => 999,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                        'qr_code' => 'cashier',
-                    ]);
-
-                    // Link to the location
-                    DB::table('locationables')->insert([
-                        'location_id' => $locationId,
-                        'locationable_id' => $cashierTableId,
-                        'locationable_type' => 'tables',
-                        'options' => null,
-                    ]);
-
-                    return $cashierTableId;
+                } catch (\Throwable $e) {
+                    \Log::error('Failed to resolve Cashier table: ' . $e->getMessage());
+                    return null;
                 }
-            } catch (\Throwable $e) {
-                \Log::error('Failed to resolve Cashier table: ' . $e->getMessage());
-                return null;
-            }
             }
         }
 
         if (!function_exists('buildCashierTableUrl')) {
-            function buildCashierTableUrl($locationId = 1) {
-            try {
-                $cashierTableId = resolveCashierTableId($locationId);
-                if (!$cashierTableId) {
-                    return null;
-                }
+            function buildCashierTableUrl($locationId = 1)
+            {
+                try {
+                    $cashierTableId = resolveCashierTableId($locationId);
+                    if (!$cashierTableId) {
+                        return null;
+                    }
 
                     // Get table_no for the cashier table
                     $cashierTable = DB::table('tables')->where('table_id', $cashierTableId)->first();
-                if (!$cashierTable) {
+                    if (!$cashierTable) {
+                        return null;
+                    }
+
+                    $frontendUrl = env('FRONTEND_URL', config('app.url'));
+                    $date = date('Y-m-d');
+                    $time = date('H:i');
+
+                    $tableNumber = ($cashierTable->table_no > 0) ? $cashierTable->table_no : $cashierTableId;
+                
+                    return rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
+                        'location' => $locationId,
+                        'guest' => 1,
+                        'date' => $date,
+                        'time' => $time,
+                        'qr' => 'cashier',
+                        'table' => $tableNumber
+                    ]);
+                } catch (\Throwable $e) {
+                    \Log::error('Failed to build Cashier table URL: ' . $e->getMessage());
                     return null;
                 }
-
-                $request = request();
-                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
-                $date = date('Y-m-d');
-                $time = date('H:i');
-
-                $tableNumber = ($cashierTable->table_no > 0) ? $cashierTable->table_no : $cashierTableId;
-                
-                return rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
-                    'location' => $locationId,
-                    'guest' => 1,
-                    'date' => $date,
-                    'time' => $time,
-                    'qr' => 'cashier',
-                    'table' => $tableNumber
-                ]);
-            } catch (\Throwable $e) {
-                \Log::error('Failed to build Cashier table URL: ' . $e->getMessage());
-                return null;
-            }
             }
         }
 
@@ -124,14 +126,14 @@ App::before(function () {
                         'tables.table_name',
                         'statuses.status_name',
                         DB::raw('CASE 
-                            WHEN statuses.status_name = "Preparation" THEN "preparing"
-                            WHEN statuses.status_name = "Received" THEN "received"
-                            WHEN statuses.status_name = "Pending" THEN "pending"
-                            WHEN statuses.status_name = "Delivery" THEN "delivery"
-                            WHEN statuses.status_name = "Completed" THEN "completed"
-                            WHEN statuses.status_name = "Canceled" THEN "canceled"
-                            WHEN statuses.status_name = "Paid" THEN "paid"
-                            ELSE LOWER(REPLACE(statuses.status_name, " ", "-"))
+                            WHEN ti_statuses.status_name = "Preparation" THEN "preparing"
+                            WHEN ti_statuses.status_name = "Received" THEN "received"
+                            WHEN ti_statuses.status_name = "Pending" THEN "pending"
+                            WHEN ti_statuses.status_name = "Delivery" THEN "delivery"
+                            WHEN ti_statuses.status_name = "Completed" THEN "completed"
+                            WHEN ti_statuses.status_name = "Canceled" THEN "canceled"
+                            WHEN ti_statuses.status_name = "Paid" THEN "paid"
+                            ELSE LOWER(REPLACE(ti_statuses.status_name, " ", "-"))
                         END as status_class')
                     )
                     ->where('orders.status_id', '!=', 10) // Exclude paid orders
@@ -160,7 +162,7 @@ App::before(function () {
             try {
                 $locationId = (int) $request->get('location_id', 1);
                 
-                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+                $frontendUrl = env('FRONTEND_URL', config('app.url'));
                 $url = rtrim($frontendUrl, '/').'/cashier?'.http_build_query([
                     'location' => $locationId,
                     'mode'     => 'cashier',
@@ -212,40 +214,40 @@ App::before(function () {
         ->middleware('superadmin.auth') // Protect this route
         ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
-        Route::get('/index', [SuperAdminController::class, 'showIndex'])
-        ->name('superadmin.index')
-        ->middleware('superadmin.auth') // Protect this route
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    Route::get('/index', [SuperAdminController::class, 'showIndex'])
+    ->name('superadmin.index')
+    ->middleware('superadmin.auth') // Protect this route
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
-        Route::get('/settings', [SuperAdminController::class, 'settings'])
-        ->name('superadmin.settings')
-        ->middleware('superadmin.auth') // Protect this route
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    Route::get('/settings', [SuperAdminController::class, 'settings'])
+    ->name('superadmin.settings')
+    ->middleware('superadmin.auth') // Protect this route
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
 
-        Route::match(['get', 'post'], '/new/store', [SuperAdminController::class, 'store'])
-        ->name('superadmin.store')
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-
-        Route::match(['get', 'post'], '/tenants/update', [SuperAdminController::class, 'update'])
-        ->name('tenants.update')
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-    
-        Route::get('/tenants/delete/{id}', [SuperAdminController::class, 'delete'])
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-
-        Route::get('/superadmin/login', [SuperAdminController::class, 'login'])
-        ->name('login.new')
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-    
-        
-Route::post('/superadmin/sign', [SuperAdminController::class, 'sign'])
-->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-
-Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
+    Route::match(['get', 'post'], '/new/store', [SuperAdminController::class, 'store'])
+    ->name('superadmin.store')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
-    Route::post('/superadmin/settings/update', [SuperAdminController::class, 'updateSettings'])->name('superadmin.update') 
+    Route::match(['get', 'post'], '/tenants/update', [SuperAdminController::class, 'update'])
+    ->name('tenants.update')
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    
+    Route::get('/tenants/delete/{id}', [SuperAdminController::class, 'delete'])
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    Route::get('/superadmin/login', [SuperAdminController::class, 'login'])
+    ->name('login.new')
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    
+    
+    Route::post('/superadmin/sign', [SuperAdminController::class, 'sign'])
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
+        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    Route::post('/superadmin/settings/update', [SuperAdminController::class, 'updateSettings'])->name('superadmin.update')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     Route::post('/tenant/update-status', function (Request $request) {
         $id = $request->input('id');
@@ -289,82 +291,82 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
                 'error' => $e->getMessage()
             ]);
         }
-                })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
-        // Get table QR code URL for frontend menu integration
-        Route::get('/orders/get-table-qr-url', function (Request $request) {
-            try {
-                $tableId = $request->get('table_id');
-                if (!$tableId) {
-                    return response()->json([
-                        'success' => false,
-                        'error' => 'table_id is required'
-                    ]);
-                }
+    // Get table QR code URL for frontend menu integration
+    Route::get('/orders/get-table-qr-url', function (Request $request) {
+        try {
+            $tableId = $request->get('table_id');
+            if (!$tableId) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'table_id is required'
+                ]);
+            }
 
-                // Get table data
-                $table = DB::table('tables')->where('table_id', $tableId)->first();
-                if (!$table) {
-                    return response()->json([
-                        'success' => false,
-                        'error' => 'Table not found'
-                    ]);
-                }
+            // Get table data
+            $table = DB::table('tables')->where('table_id', $tableId)->first();
+            if (!$table) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Table not found'
+                ]);
+            }
 
-                // Get location data
-                $locationData = DB::table('locationables')
-                    ->where('locationable_id', $tableId)
-                    ->where('locationable_type', 'tables')
-                    ->first();
+            // Get location data
+            $locationData = DB::table('locationables')
+                ->where('locationable_id', $tableId)
+                ->where('locationable_type', 'tables')
+                ->first();
                 
-                $locationId = $locationData ? $locationData->location_id : 1;
-                $maxCapacity = $table->max_capacity ?? 3;
-                $date = date('Y-m-d');
-                $time = date('H:i');
+            $locationId = $locationData ? $locationData->location_id : 1;
+            $maxCapacity = $table->max_capacity ?? 3;
+            $date = date('Y-m-d');
+            $time = date('H:i');
 
             // Build QR code URL (same logic as in tables/edit.blade.php)
-            $request = request();
-            $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+            $frontendUrl = env('FRONTEND_URL', config('app.url'));
                 
             $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
                 
-                $qrUrl = rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
-                    'location' => $locationId,
-                    'guest' => $maxCapacity,
-                    'date' => $date,
-                    'time' => $time,
-                    'qr' => $table->qr_code,
-                    'table' => $tableNumber
-                ]);
+            $qrUrl = rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
+                'location' => $locationId,
+                'guest' => $maxCapacity,
+                'date' => $date,
+                'time' => $time,
+                'qr' => $table->qr_code,
+                'table' => $tableNumber
+            ]);
 
-                return response()->json([
-                    'success' => true,
-                    'qr_url' => $qrUrl,
-                    'table_data' => [
-                        'table_id' => $table->table_id,
-                        'table_name' => $table->table_name,
-                        'qr_code' => $table->qr_code,
-                        'location_id' => $locationId,
-                        'max_capacity' => $maxCapacity
-                    ]
-                ]);
-            } catch (Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-        });
+            return response()->json([
+                'success' => true,
+                'qr_url' => $qrUrl,
+                'table_data' => [
+                    'table_id' => $table->table_id,
+                    'table_name' => $table->table_name,
+                    'qr_code' => $table->qr_code,
+                    'location_id' => $locationId,
+                    'max_capacity' => $maxCapacity
+                ]
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+});
 
 // Frontend API Routes - These are loaded by TastyIgniter's routing system
 Route::group([
     'prefix' => 'api/v1',
     'namespace' => 'Admin\Controllers\Api',
-    'middleware' => ['api', 'detect.tenant']
+    'middleware' => ['api']
 ], function () {
     Route::get('restaurant/{locationId}', 'RestaurantController@getRestaurantInfo');
     Route::get('restaurant/{locationId}/menu', 'RestaurantController@getMenu');
+    Route::post('webhooks/pos', 'PosWebhookController@handle');
     
     // Order endpoints
     Route::post('restaurant/{locationId}/order', 'OrderController@createOrder');
@@ -372,10 +374,10 @@ Route::group([
     Route::post('restaurant/{locationId}/waiter', 'OrderController@requestWaiter');
 });
 
-// Custom API Routes for frontend (TENANT REQUIRED)
+// Custom API Routes for frontend (no tenant required)
 Route::group([
     'prefix' => 'api/v1',
-    'middleware' => ['web', 'detect.tenant']
+    'middleware' => ['web']
 ], function () {
     // === Payments (read-only) ===
     Route::get('/payments', function () {
@@ -430,7 +432,7 @@ Route::group([
             // Get all enabled categories
             $categoriesQuery = "
                 SELECT category_id as id, name, priority 
-                FROM {$p}categories 
+                FROM categories 
                 WHERE status = 1 
                 ORDER BY priority ASC, name ASC
             ";
@@ -585,9 +587,9 @@ Route::group([
             // Validate request data to match frontend structure
             $isCashier = $request->has('is_cashier') && $request->is_cashier;
             
-                // Also check if this is a cashier table order
-                if (!$isCashier && $request->has('table_id')) {
-                    $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+            // Also check if this is a cashier table order
+            if (!$isCashier && $request->has('table_id')) {
+                $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
                 if ($cashierTable && $request->table_id == $cashierTable->table_id) {
                     $isCashier = true;
                 }
@@ -919,134 +921,166 @@ Route::group([
         }
     });
 
-    // Waiter call endpoint
-    Route::post('/waiter-call', function (Request $request) {
-        $request->validate([
-            'table_id' => 'required|string',
-            'message' => 'required|string|max:500'
-        ]);
-        
-        try {
-            // For testing, use a default tenant ID
-            $tenantId = 1;
-            
-            // Use transaction for data consistency
-            return DB::transaction(function() use ($request, $tenantId) {
-                // Store waiter call
-                $callId = DB::table('waiter_calls')->insertGetId([
-                    'table_id' => $request->table_id,
-                    'message' => $request->message,
-                    'status' => 'new',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-                
-                // Get table info for notification
-                $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
-                $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
-                
-                // Create notification directly
-                DB::table('notifications')->insert([
-                    'type'       => 'waiter_call',
-                    'title'      => "Waiter called from {$tableName}",
-                    'table_id'   => (string)$request->table_id,
-                    'table_name' => $tableName,
-                    'payload'    => json_encode(['message' => $request->message]),
-                    'status'     => 'new',
-                    'created_at' => \Carbon\Carbon::now(),
-                    'updated_at' => \Carbon\Carbon::now(),
-                ]);
-                
-                return response()->json([
-                    'ok' => true,
-                    'message' => 'Waiter called successfully',
-                    'id' => $callId,
-                    'created_at' => now()->toISOString()
-                ], 201);
-            });
-            
-        } catch (\Exception $e) {
-            \Log::error('Waiter call failed', [
-                'error' => $e->getMessage(),
-                'table_id' => $request->table_id,
-                'tenant' => $tenantId ?? 'unknown'
-            ]);
-            
-            return response()->json([
-                'ok' => false,
-                'error' => 'Failed to process waiter call'
-            ], 500);
-        }
+
+    // ------------ Admin JSON API for Notifications ------------
+    Route::group([
+        'prefix' => 'admin',
+        'middleware' => ['web', 'AdminAuthenticate'], // reuse existing admin auth alias
+    ], function () {
+        // Notifications API routes moved to bottom of file to avoid duplicates
+
     });
+
+    // --- Public API Routes (outside admin group) ---
+    Route::group(['prefix' => 'api/v1', 'middleware' => ['web']], function () {
+        // Waiter call endpoint
+        Route::post('/waiter-call', function (Request $request) {
+            $request->validate([
+                'table_id' => 'required|string',
+                'message' => 'required|string|max:500'
+            ]);
+        
+            try {
+                // For testing, use a default tenant ID
+                $tenantId = 1;
+            
+                // Use transaction for data consistency
+                return DB::transaction(function () use ($request, $tenantId) {
+                    // Store waiter call
+                    $callId = DB::table('waiter_calls')->insertGetId([
+                        'table_id' => $request->table_id,
+                        'message' => $request->message,
+                        'status' => 'new',
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                
+                    // Get table info for notification
+                    $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
+                    $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
+                
+                    // Create notification directly
+                    DB::table('notifications')->insert([
+                        'type'       => 'waiter_call',
+                        'title'      => "Waiter called from {$tableName}",
+                        'table_id'   => (string)$request->table_id,
+                        'table_name' => $tableName,
+                        'payload'    => json_encode(['message' => $request->message]),
+                        'status'     => 'new',
+                        'created_at' => \Carbon\Carbon::now(),
+                        'updated_at' => \Carbon\Carbon::now(),
+                    ]);
+                
+                    return response()->json([
+                        'ok' => true,
+                        'message' => 'Waiter called successfully',
+                        'id' => $callId,
+                        'created_at' => now()->toISOString()
+                    ], 201);
+                });
+            
+            } catch (\Exception $e) {
+                \Log::error('Waiter call failed', [
+                    'error' => $e->getMessage(),
+                    'table_id' => $request->table_id,
+                    'tenant' => $tenantId ?? 'unknown'
+                ]);
+            
+                return response()->json([
+                    'ok' => false,
+                    'error' => 'Failed to process waiter call'
+                ], 500);
+            }
+        });
     
-    // Table notes endpoint
-    Route::post('/table-notes', function (Request $request) {
-        $request->validate([
-            'table_id' => 'required|string',
-            'note' => 'required|string|max:500',
-            'timestamp' => 'required|date'
-        ]);
-        
-        try {
-            // For testing, use a default tenant ID
-            $tenantId = 1;
-            
-            // Use transaction for data consistency
-            return DB::transaction(function() use ($request, $tenantId) {
-                // Store table note
-                $noteId = DB::table('table_notes')->insertGetId([
-                    'table_id' => $request->table_id,
-                    'note' => $request->note,
-                    'timestamp' => $request->timestamp,
-                    'status' => 'new',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-                
-                // Get table info for notification
-                $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
-                $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
-                
-                // Create notification directly
-                DB::table('notifications')->insert([
-                    'type'       => 'table_note',
-                    'title'      => "Note from {$tableName}",
-                    'table_id'   => (string)$request->table_id,
-                    'table_name' => $tableName,
-                    'payload'    => json_encode(['note' => $request->note]),
-                    'status'     => 'new',
-                    'created_at' => \Carbon\Carbon::now(),
-                    'updated_at' => \Carbon\Carbon::now(),
-                ]);
-                
-                return response()->json([
-                    'ok' => true,
-                    'message' => 'Note submitted successfully',
-                    'id' => $noteId,
-                    'created_at' => now()->toISOString()
-                ], 201);
-            });
-            
-        } catch (\Exception $e) {
-            \Log::error('Table note failed', [
-                'error' => $e->getMessage(),
-                'table_id' => $request->table_id,
-                'tenant' => $tenantId ?? 'unknown'
+    
+        // Table notes endpoint
+        Route::post('/table-notes', function (Request $request) {
+            $request->validate([
+                'table_id' => 'required|string',
+                'note' => 'required|string|max:500',
+                'timestamp' => 'required|date'
             ]);
+        
+            try {
+                // For testing, use a default tenant ID
+                $tenantId = 1;
             
-            return response()->json([
-                'ok' => false,
-                'error' => 'Failed to process table note'
-            ], 500);
-        }
+                // Use transaction for data consistency
+                return DB::transaction(function () use ($request, $tenantId) {
+                    // Store table note
+                    $noteId = DB::table('table_notes')->insertGetId([
+                        'table_id' => $request->table_id,
+                        'note' => $request->note,
+                        'timestamp' => $request->timestamp,
+                        'status' => 'new',
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                
+                    // Get table info for notification
+                    $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
+                    $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
+                
+                    // Create notification directly
+                    DB::table('notifications')->insert([
+                        'type'       => 'table_note',
+                        'title'      => "Note from {$tableName}",
+                        'table_id'   => (string)$request->table_id,
+                        'table_name' => $tableName,
+                        'payload'    => json_encode(['note' => $request->note]),
+                        'status'     => 'new',
+                        'created_at' => \Carbon\Carbon::now(),
+                        'updated_at' => \Carbon\Carbon::now(),
+                    ]);
+                
+                    return response()->json([
+                        'ok' => true,
+                        'message' => 'Note submitted successfully',
+                        'id' => $noteId,
+                        'created_at' => now()->toISOString()
+                    ], 201);
+                });
+            
+            } catch (\Exception $e) {
+                \Log::error('Table note failed', [
+                    'error' => $e->getMessage(),
+                    'table_id' => $request->table_id,
+                    'tenant' => $tenantId ?? 'unknown'
+                ]);
+            
+                return response()->json([
+                    'ok' => false,
+                    'error' => 'Failed to process table note'
+                ], 500);
+            }
+        });
+
+        // Sales → History
+        Route::get('history', [\Admin\Controllers\History::class, 'index'])
+            ->name('admin.history');
     });
 
-});  // End of api/v1 tenant-scoped group
+    // === Admin Notifications API (JSON) ===
+    // Place AFTER the closing brace of the large Route::group([...]) in this file.
+    Route::group(['prefix' => 'admin/notifications-api'], function () {
+        Route::get('count', [\Admin\Controllers\NotificationsApi::class, 'count']);
+        Route::get('/', [\Admin\Controllers\NotificationsApi::class, 'index']);
+        Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);
+        Route::patch('mark-all-seen', [\Admin\Controllers\NotificationsApi::class, 'markAllSeen']);
+    });
 
-// Admin Notifications API (JSON) - Secured with admin auth and tenant detection
-Route::middleware(['web', 'admin', 'detect.tenant'])->prefix('admin/notifications-api')->group(function () {
+}); // Close App::before function
+
+// Back-compat for admin bell widget (no api/v1 prefix)
+Route::middleware(['web'])->prefix('admin/notifications-api')->group(function () {
     Route::get('count', [\Admin\Controllers\NotificationsApi::class, 'count']);
-    Route::get('/',     [\Admin\Controllers\NotificationsApi::class, 'index']);
+    Route::get('/', [\Admin\Controllers\NotificationsApi::class, 'index']);
     Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);
     Route::patch('mark-all-seen', [\Admin\Controllers\NotificationsApi::class, 'markAllSeen']);
+});
+
+// Order notifications toggle route
+Route::middleware(['web', 'admin'])->group(function () {
+    Route::post('/admin/statuses/toggle-order-notifications', [\Admin\Controllers\Statuses::class, 'toggleOrderNotifications']);
 });
