@@ -89,9 +89,12 @@ App::before(function () {
                     return null;
                 }
 
-                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
-                    ?? config('app.url') 
-                    ?? (request()->getScheme().'://'.request()->getHost()), '/');
+                // Tenant-aware frontend URL (inline, no helper class):
+                // Priority: tenant.frontend_url (DB) → config('app.url') → request scheme+host
+                $tenantFrontend = optional(app('tenant'))->frontend_url ?? null;
+                $configAppUrl   = config('app.url') ?? null;
+                $requestHost    = request()->getSchemeAndHttpHost();
+                $frontendUrl    = rtrim($tenantFrontend ?: $configAppUrl ?: $requestHost, '/');
                 $date = date('Y-m-d');
                 $time = date('H:i');
 
@@ -161,9 +164,12 @@ App::before(function () {
             try {
                 $locationId = (int) $request->get('location_id', 1);
                 
-                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
-                    ?? config('app.url') 
-                    ?? (request()->getScheme().'://'.request()->getHost()), '/');
+                // Tenant-aware frontend URL (inline, no helper class):
+                // Priority: tenant.frontend_url (DB) → config('app.url') → request scheme+host
+                $tenantFrontend = optional(app('tenant'))->frontend_url ?? null;
+                $configAppUrl   = config('app.url') ?? null;
+                $requestHost    = request()->getSchemeAndHttpHost();
+                $frontendUrl    = rtrim($tenantFrontend ?: $configAppUrl ?: $requestHost, '/');
                 $url = rtrim($frontendUrl, '/').'/cashier?'.http_build_query([
                     'location' => $locationId,
                     'mode'     => 'cashier',
@@ -326,9 +332,12 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
                 $time = date('H:i');
 
                 // Build QR code URL (same logic as in tables/edit.blade.php)
-                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
-                    ?? config('app.url') 
-                    ?? (request()->getScheme().'://'.request()->getHost()), '/');
+                // Tenant-aware frontend URL (inline, no helper class):
+                // Priority: tenant.frontend_url (DB) → config('app.url') → request scheme+host
+                $tenantFrontend = optional(app('tenant'))->frontend_url ?? null;
+                $configAppUrl   = config('app.url') ?? null;
+                $requestHost    = request()->getSchemeAndHttpHost();
+                $frontendUrl    = rtrim($tenantFrontend ?: $configAppUrl ?: $requestHost, '/');
                 
                 $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
                 
@@ -935,7 +944,8 @@ Route::group([
 });
 
 // --- Public API Routes (outside admin group) ---
-Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant']], function () {
+// Rate-limited public write endpoints
+Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
     // Waiter call endpoint
     Route::post('/waiter-call', function (Request $request) {
         $request->validate([

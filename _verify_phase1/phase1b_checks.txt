@@ -1,0 +1,34 @@
+=== PHASE 1B VERIFICATION ===
+
+1. Helper file removed:
+✅ app/Support/Url.php removed
+
+2. No helper references:
+✅ No helper references found
+
+3. Inline URL logic present (6 locations):
+routes.php:92:                // Tenant-aware frontend URL (inline, no helper class):
+routes.php:167:                // Tenant-aware frontend URL (inline, no helper class):
+routes.php:335:                // Tenant-aware frontend URL (inline, no helper class):
+app/admin/routes.php:95:                    // Tenant-aware frontend URL (inline, no helper class):
+app/admin/routes.php:170:                // Tenant-aware frontend URL (inline, no helper class):
+app/admin/routes.php:338:            // Tenant-aware frontend URL (inline, no helper class):
+
+4. Exactly 3 api/v1 groups in routes.php:
+375:    'prefix' => 'api/v1',
+391:    'prefix' => 'api/v1',
+948:Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
+
+5. No api/v1 in app/admin/routes.php:
+✅ No api/v1 groups in app/admin/routes.php
+
+6. Dynamic prefix in SQL:
+411:            $p = DB::connection()->getTablePrefix();
+420:                FROM {$p}menus m
+
+7. Throttle present:
+948:Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
+
+8. Syntax checks:
+No syntax errors detected in routes.php
+No syntax errors detected in app/admin/routes.php
