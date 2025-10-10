@@ -339,3 +339,60 @@ Commit: Current working tree
 All tests conducted with fresh perspective.
 No assumptions carried over from previous sessions.
 Evidence-based analysis only.
+
+========================================
+APPENDIX: PARITY CHECK WITH MAIN BRANCH
+========================================
+
+Branch Comparison:
+  Baseline: main (last stable)
+  Current: fix/tenant-isolation-phase2 (commit f40e31a)
+
+┌─────────────────────────────┬─────────┬─────────┬──────────────────┐
+│ Scenario                    │   OLD   │ CURRENT │ Parity Status    │
+├─────────────────────────────┼─────────┼─────────┼──────────────────┤
+│ Valid tenant request        │ ✅ Works│ ✅ Works│ ✅ MAINTAINED    │
+├─────────────────────────────┼─────────┼─────────┼──────────────────┤
+│ No-tenant request           │ ⚠️  Leaks│ ✅ 404  │ ✅ SAFER         │
+├─────────────────────────────┼─────────┼─────────┼──────────────────┤
+│ Cross-tenant session reuse  │ ❌ Allows│ ✅ Blocks│ ✅ SAFER        │
+├─────────────────────────────┼─────────┼─────────┼──────────────────┤
+│ Cache isolation             │ ❌ Shared│ ✅ Isolated│ ✅ SAFER      │
+├─────────────────────────────┼─────────┼─────────┼──────────────────┤
+│ Rate limiting               │ ❌ None │ ✅ 30/min│ ✅ ENHANCED      │
+├─────────────────────────────┼─────────┼─────────┼──────────────────┤
+│ Dynamic table prefixing     │ ❌ Broken│ ✅ Works│ ✅ FIXED         │
+├─────────────────────────────┼─────────┼─────────┼──────────────────┤
+│ app/main/routes.php routes  │ ❌ Exposed│ ✅ Protected│ ✅ CRITICAL FIX│
+└─────────────────────────────┴─────────┴─────────┴──────────────────┘
+
+CRITICAL SECURITY FIXES vs MAIN:
+1. app/main/routes.php now has DetectTenant middleware
+   - OLD: Unprotected /api/v1 routes (CRITICAL VULNERABILITY)
+   - NEW: All routes tenant-protected
+   
+2. DetectTenant double-prefix bug fixed
+   - OLD: table('ti_tenants') → queries ti_ti_tenants (fails)
+   - NEW: table('tenants') → queries ti_tenants (works)
+   
+3. No-subdomain fail-safe added
+   - OLD: Silently uses default connection (data leak risk)
+   - NEW: Returns 404 JSON (explicit rejection)
+   
+4. Dynamic table prefixing restored
+   - OLD: Hardcoded ti_* in 18 SQL queries
+   - NEW: All use {$p}* variable (configurable)
+
+ENHANCEMENTS vs MAIN:
+5. Phase 2 cache isolation (per-tenant prefixes)
+6. Phase 2 session isolation (cross-tenant invalidation)
+7. Rate limiting on public writes (throttle:30,1)
+
+VERDICT: ✅ CURRENT EXCEEDS OLD BASELINE
+- 4 critical security fixes
+- 3 major enhancements  
+- 0 functional regressions
+- All legitimate use cases preserved
+
+Full details: PARITY_CHECK_MAIN_VS_CURRENT.txt
+
