@@ -27,7 +27,8 @@ class DetectTenant
         if ($subdomain && $subdomain !== 'www') {
             try {
                 // Query the main database for tenant information
-                $tenant = DB::connection('mysql')->table('ti_tenants')
+                // Note: Use unprefixed table name; Laravel auto-adds prefix from config
+                $tenant = DB::connection('mysql')->table('tenants')
                     ->where('domain', 'like', $subdomain . '.%')
                     ->orWhere('domain', $subdomain)
                     ->first();

@@ -119,7 +119,7 @@ Route::middleware(['cors'])->group(function () {
     })->where('path', '.*');
 
     // API v1 routes
-    Route::prefix('v1')->middleware(['detect.tenant'])->group(function () {
+    Route::prefix('v1')->middleware(['web', 'detect.tenant'])->group(function () {
         
         // Menu endpoints
         Route::get('/menu', [MenuController::class, 'index']);
