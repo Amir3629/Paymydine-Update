@@ -1,0 +1,98 @@
+================================================================================
+MIDDLEWARE RESOLUTION - CLASS-BASED REFERENCES CONFIRMED
+================================================================================
+
+STEP 1: MIDDLEWARE CLASS VERIFICATION
+--------------------------------------
+✅ File: app/Http/Middleware/DetectTenant.php EXISTS
+✅ Namespace: App\Http\Middleware
+✅ Class: DetectTenant
+✅ Method: public function handle(Request $request, Closure $next)
+
+STEP 2: KERNEL REGISTRATION
+----------------------------
+File: app/Http/Kernel.php
+Line 53: 'detect.tenant' => \App\Http\Middleware\DetectTenant::class,
+
+✅ Alias correctly registered
+
+STEP 3: ROUTE MIDDLEWARE - CLASS-BASED (ALREADY APPLIED)
+---------------------------------------------------------
+
+routes.php:
+-----------
+Line 364: 'middleware' => ['api', \App\Http\Middleware\DetectTenant::class]
+Line 379: 'middleware' => ['web', \App\Http\Middleware\DetectTenant::class]
+Line 1048: Route::middleware(['web', \App\Http\Middleware\DetectTenant::class])
+
+app/admin/routes.php:
+--------------------
+Line 18: 'middleware' => ['web', \App\Http\Middleware\DetectTenant::class],
+Line 210: ->middleware(\App\Http\Middleware\DetectTenant::class)
+
+Bypass references (super admin routes):
+Line 216: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 221: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 226: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 231: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 235: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 238: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 242: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 246: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 249: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 252: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+Line 264: ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class])
+
+✅ All references use full class path (not string alias)
+
+STEP 4: TENANT DB CONNECTION CONFIG (RUNTIME)
+----------------------------------------------
+Configuration built from tenant record (app/Http/Middleware/DetectTenant.php lines 46-57):
+
+$tenantConfig = [
+    'driver'    => 'mysql',
+    'database'  => $tenant->database,              // e.g., 'amir_db'
+    'host'      => $tenant->db_host ?? env(...),   // e.g., '127.0.0.1'
+    'port'      => $tenant->db_port ?? env(...),   // e.g., '3306'
+    'username'  => $tenant->db_user ?? env(...),   // e.g., 'paymydine'
+    'password'  => $tenant->db_pass ?? env(...),   // e.g., '***' (redacted)
+    'charset'   => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    'prefix'    => env('DB_PREFIX', 'ti_'),        // 'ti_'
+    'strict'    => false,
+];
+
+Config::set('database.connections.tenant', $tenantConfig);
+
+VALUES MAPPED FROM ti_tenants TABLE:
+- database  → tenant.database
+- host      → tenant.db_host (or env fallback)
+- port      → tenant.db_port (or env fallback)
+- username  → tenant.db_user (or env fallback)
+- password  → tenant.db_pass (or env fallback)
+
+✅ No hardcoded values, all dynamic from tenant record
+
+STEP 5: DIAGNOSTIC LOGGING ADDED
+---------------------------------
+app/Http/Middleware/DetectTenant.php
+
+Added at line 37:
+  Log::info('[Tenant] Resolved tenant', [subdomain, domain, database, db_host, db_username])
+
+Added at line 68:
+  Log::info('[Tenant] Connected OK', [database, pdo_connected])
+
+Added at line 73:
+  Log::error('[Tenant] Connection FAIL', [database, host, username, error])
+
+VERIFICATION:
+-------------
+✅ No api/v1 routes in app/admin/routes.php
+✅ All api/v1 routes in routes.php with tenant middleware
+✅ Class-based middleware used throughout
+✅ Connection testing added with error handling
+✅ Caches cleared
+
+READY FOR TESTING.
+

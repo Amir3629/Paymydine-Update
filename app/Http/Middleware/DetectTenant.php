@@ -33,16 +33,56 @@ class DetectTenant
                     ->first();
 
                 if ($tenant && $tenant->database) {
+                    // Log resolved tenant details
+                    Log::info('[Tenant] Resolved tenant', [
+                        'subdomain' => $subdomain,
+                        'domain' => $tenant->domain ?? 'N/A',
+                        'database' => $tenant->database,
+                        'db_host' => $tenant->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')),
+                        'db_username' => $tenant->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')),
+                    ]);
+                    
                     // Configure tenant connection
-                    Config::set('database.connections.tenant.database', $tenant->database);
-                    Config::set('database.connections.tenant.host', $tenant->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')));
-                    Config::set('database.connections.tenant.port', $tenant->db_port ?? env('TENANT_DB_PORT', env('DB_PORT')));
-                    Config::set('database.connections.tenant.username', $tenant->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')));
-                    Config::set('database.connections.tenant.password', $tenant->db_pass ?? env('TENANT_DB_PASSWORD', env('DB_PASSWORD')));
+                    $tenantConfig = [
+                        'driver' => 'mysql',
+                        'database' => $tenant->database,
+                        'host' => $tenant->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')),
+                        'port' => $tenant->db_port ?? env('TENANT_DB_PORT', env('DB_PORT')),
+                        'username' => $tenant->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')),
+                        'password' => $tenant->db_pass ?? env('TENANT_DB_PASSWORD', env('DB_PASSWORD')),
+                        'charset' => 'utf8mb4',
+                        'collation' => 'utf8mb4_unicode_ci',
+                        'prefix' => env('DB_PREFIX', 'ti_'),
+                        'strict' => false,
+                    ];
+                    
+                    Config::set('database.connections.tenant', $tenantConfig);
                     
                     // Reconnect to tenant database
                     DB::purge('tenant');
-                    DB::reconnect('tenant');
+                    
+                    try {
+                        DB::reconnect('tenant');
+                        // Test connection
+                        $pdo = DB::connection('tenant')->getPdo();
+                        Log::info('[Tenant] Connected OK', [
+                            'database' => $tenant->database,
+                            'pdo_connected' => !is_null($pdo),
+                        ]);
+                    } catch (\Exception $connEx) {
+                        Log::error('[Tenant] Connection FAIL', [
+                            'database' => $tenant->database,
+                            'host' => $tenantConfig['host'],
+                            'username' => $tenantConfig['username'],
+                            'error' => $connEx->getMessage(),
+                        ]);
+                        
+                        return response()->json([
+                            'error' => 'Database Error',
+                            'message' => 'Unable to connect to tenant database.',
+                            'details' => $connEx->getMessage()
+                        ], 500);
+                    }
                     
                     // Set tenant as default connection for this request
                     Config::set('database.default', 'tenant');
