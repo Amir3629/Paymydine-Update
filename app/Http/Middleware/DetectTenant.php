@@ -19,10 +19,43 @@ class DetectTenant
      */
     public function handle(Request $request, Closure $next)
     {
+        $path = $request->path();
+        $host = $request->getHost();
+        
+        // Allow-list: Admin/central paths that don't require tenant context
+        $allowedPaths = [
+            'admin/login', 'admin/sign', 'admin/signout', 'admin/sessions',
+            'new', 'index', 'settings',
+            'superadmin', 'tenants',
+            'admin/_assets',
+        ];
+        
+        foreach ($allowedPaths as $allowed) {
+            if (str_starts_with($path, $allowed) || $path === 'admin') {
+                Log::debug('[DetectTenant] Skipping for admin/central path', [
+                    'path' => $path,
+                    'host' => $host
+                ]);
+                return $next($request);
+            }
+        }
+        
+        // Skip tenant detection for localhost without subdomain (development)
+        if (env('APP_ENV') !== 'production') {
+            $localHosts = ['localhost', '127.0.0.1', 'paymydine.test'];
+            if (in_array($host, $localHosts) || (strpos($host, ':') !== false && str_starts_with($host, '127.0.0.1'))) {
+                Log::debug('[DetectTenant] Skipping for localhost without subdomain', [
+                    'host' => $host,
+                    'path' => $path
+                ]);
+                return $next($request);
+            }
+        }
+        
         // Get subdomain from various possible headers
         $subdomain = $request->header('X-Tenant-Subdomain') 
                   ?? $request->header('X-Original-Host') 
-                  ?? $this->extractSubdomainFromHost($request->getHost());
+                  ?? $this->extractSubdomainFromHost($host);
 
         if ($subdomain && $subdomain !== 'www') {
             try {

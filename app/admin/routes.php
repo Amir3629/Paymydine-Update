@@ -15,7 +15,7 @@ App::before(function () {
      * prefixed with /admin.
      */
     Route::group([
-        'middleware' => ['web', \App\Http\Middleware\DetectTenant::class],
+        'middleware' => ['web'],
         'prefix' => config('system.adminUri', 'admin'),
     ], function () {
         // Utility functions for Cashier table management
@@ -117,8 +117,10 @@ App::before(function () {
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 
-        // Get table statuses for the order create page
-        Route::get('/orders/get-table-statuses', function () {
+        // Admin utility JSON endpoints that require tenant context
+        Route::group(['middleware' => [\App\Http\Middleware\DetectTenant::class]], function () {
+            // Get table statuses for the order create page
+            Route::get('/orders/get-table-statuses', function () {
             try {
                 $tableStatuses = DB::table('orders')
                     ->join('statuses', 'orders.status_id', '=', 'statuses.status_id')
@@ -198,6 +200,7 @@ App::before(function () {
                 return redirect(root_url());
             }
         })->name('admin.storefrontUrl');
+        }); // End tenant-required admin utility group
 
         // Other pages
         Route::any('{slug}', 'System\Classes\Controller@runAdmin')
