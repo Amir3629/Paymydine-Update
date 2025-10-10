@@ -72,8 +72,13 @@ class DetectTenant
                 ], 500);
             }
         } else {
-            // No subdomain provided, use default connection
-            Log::info("No subdomain detected, using default connection");
+            // No subdomain provided - for tenant-protected routes, this is an error
+            Log::warning("No subdomain detected for tenant-protected route: " . $request->path());
+            
+            return response()->json([
+                'error' => 'Tenant not found',
+                'message' => 'No tenant subdomain detected in request.'
+            ], 404);
         }
 
         return $next($request);

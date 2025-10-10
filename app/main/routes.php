@@ -129,6 +129,21 @@ App::before(function () {
                 }
             })->where('path', '.*');
 
+            /*
+             * RE-ENABLED: /api/v1 routes (NOW SECURED)
+             * 
+             * This group is now safe to use because:
+             * 1. DetectTenant middleware added (line below)
+             * 2. All hardcoded ti_* replaced with {$p} dynamic prefix
+             * 3. Returns 404 when no tenant detected
+             * 
+             * Note: This may create duplicates with routes.php and routes/api.php
+             * But now all three sources are tenant-protected, so it's safe
+             * (First registered route wins - they all have same middleware now)
+             * 
+             * Fixed: 2025-10-10 - See EMERGENCY_FIX_CODE_CHANGES.md
+             */
+            
             // API v1 routes  
             // Note: Must use full class name in App::before() context (middleware aliases not yet registered)
             Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class])->group(function () {

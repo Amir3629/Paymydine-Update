@@ -93,6 +93,14 @@ The application includes a comprehensive theme system with:
 - Theme settings
 - Payment gateway credentials
 
+**Multi-Tenant Configuration**:
+```bash
+# Required for subdomain-based multi-tenancy
+SESSION_DOMAIN=.paymydine.com  # Leading dot allows cookies across all subdomains
+```
+
+This setting enables session/cookie sharing across tenant subdomains (e.g., amir.paymydine.com, rosana.paymydine.com).
+
 ### Theme Configuration
 Themes can be customized in `frontend/lib/theme-system.ts` and `frontend/store/theme-store.ts`.
 
