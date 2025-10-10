@@ -1,0 +1,91 @@
+diff --git a/app/admin/routes.php b/app/admin/routes.php
+index 4306005..4745f0b 100644
+--- a/app/admin/routes.php
++++ b/app/admin/routes.php
+@@ -15,7 +15,7 @@ App::before(function () {
+      * prefixed with /admin.
+      */
+     Route::group([
+-        'middleware' => ['web', 'admin', 'detect.tenant'],
++        'middleware' => ['web', 'detect.tenant'],
+         'prefix' => config('system.adminUri', 'admin'),
+     ], function () {
+         // Utility functions for Cashier table management
+@@ -207,49 +207,49 @@ App::before(function () {
+     // Admin entry point
+     Route::any(config('system.adminUri', 'admin'), 'System\Classes\Controller@runAdmin');
+     Route::get('/redirect/qr', [QrRedirectController::class, 'handleRedirect'])
+-    ->middleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
++    ->middleware('detect.tenant');
+  
+     
+     Route::get('/new', [SuperAdminController::class, 'showNewPage'])
+         ->name('superadmin.new')
+         ->middleware('superadmin.auth') // Protect this route
+-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++        ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+     
+     Route::get('/index', [SuperAdminController::class, 'showIndex'])
+     ->name('superadmin.index')
+     ->middleware('superadmin.auth') // Protect this route
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+     
+     Route::get('/settings', [SuperAdminController::class, 'settings'])
+     ->name('superadmin.settings')
+     ->middleware('superadmin.auth') // Protect this route
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+     
+ 
+     Route::match(['get', 'post'], '/new/store', [SuperAdminController::class, 'store'])
+     ->name('superadmin.store')
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+ 
+     Route::match(['get', 'post'], '/tenants/update', [SuperAdminController::class, 'update'])
+     ->name('tenants.update')
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+     
+     Route::get('/tenants/delete/{id}', [SuperAdminController::class, 'delete'])
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+ 
+     Route::get('/superadmin/login', [SuperAdminController::class, 'login'])
+     ->name('login.new')
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+     
+     
+     Route::post('/superadmin/sign', [SuperAdminController::class, 'sign'])
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+ 
+     Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
+-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++        ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+ 
+     Route::post('/superadmin/settings/update', [SuperAdminController::class, 'updateSettings'])->name('superadmin.update')
+-    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+     Route::post('/tenant/update-status', function (Request $request) {
+         $id = $request->input('id');
+         $status = $request->input('status') === 'activate' ? 'active' : 'disabled';
+@@ -261,7 +261,7 @@ App::before(function () {
+         } else {
+             return response()->json(['success' => false, 'error' => 'Failed to update']);
+         }
+-    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class, \App\Http\Middleware\DetectTenant::class]);
++    })->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+ 
+ 
+ 
+@@ -361,6 +361,6 @@ App::before(function () {
+ });
+ 
+ // Order notifications toggle route
+-Route::middleware(['web', 'admin'])->group(function () {
++Route::middleware(['web'])->group(function () {
+     Route::post('/admin/statuses/toggle-order-notifications', [\Admin\Controllers\Statuses::class, 'toggleOrderNotifications']);
+ });
