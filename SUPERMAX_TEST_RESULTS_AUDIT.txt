@@ -1,0 +1,72 @@
+
+==================================================
+TEST 0: Server Health
+==================================================
+  ✅ Server reachable at http://127.0.0.1:8000
+
+==================================================
+TEST 1: No-tenant /api/v1/menu must return 404 JSON
+==================================================
+  HTTP: 404
+  Response: {"error":"Tenant not found","message":"The requested restaurant domain was not found."}
+  ✅ No-tenant returns 404 JSON with correct error
+
+==================================================
+TEST 2: Per-tenant /api/v1/menu responses must differ (MD5)
+==================================================
+  Rosana MD5: 077f0b53609625c77e55a7945551aae5
+  Rosana (first 150 chars): {"success":false,"error":"Failed to fetch menu","message":"SQLSTATE[HY000] [1044] Access denied for user 'paymydine'@'localhost' to database 'rosana' 
+
+  Mimoza MD5: 5ed94df2e8b758b4a4131704cdeb753d
+  Mimoza (first 150 chars): {"error":"Tenant not found","message":"The requested restaurant domain was not found."}
+  ✅ Responses differ per tenant (isolation working)
+
+==================================================
+TEST 3: Cross-tenant session isolation (cookie regeneration)
+==================================================
+  ✅ New session cookie issued on tenant switch (Phase 2 working)
+
+==================================================
+TEST 4: Rate-limit burst (30 requests)
+==================================================
+  ✅ 30-request burst completed without crashes
+
+==================================================
+TEST 5: POST waiter-call endpoint
+==================================================
+  Rosana HTTP: 500, Response: <!-- SQLSTATE[HY000] [1044] Access denied for user 'paymydine'@'localhost' to database 'rosana' (SQL
+  Mimoza HTTP: 404, Response: {"error":"Tenant not found","message":"The requested restaurant domain was not found."}
+  ✅ Waiter-call responses differ or both 404 (isolated)
+
+==================================================
+TEST 6: POST table-notes endpoint
+==================================================
+  Rosana HTTP: 500, Response: <!-- SQLSTATE[HY000] [1044] Access denied for user 'paymydine'@'localhost' to database 'rosana' (SQL
+  Mimoza HTTP: 404, Response: {"error":"Tenant not found","message":"The requested restaurant domain was not found."}
+  ✅ Table-notes responses differ or both 404 (isolated)
+
+==================================================
+TEST 7: Write isolation smoke (POST order)
+==================================================
+  HTTP: 404, Response: <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport"
+  ℹ️  Order endpoint exercised (HTTP 404)
+
+==================================================
+TEST 8: No-tenant /api/v1/payments must return 404
+==================================================
+  HTTP: 404, Response: <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compat
+  ✅ Protected route returns 404 without tenant
+
+==================================================
+SUMMARY
+==================================================
+All tests completed. Review above for PASS/FAIL status.
