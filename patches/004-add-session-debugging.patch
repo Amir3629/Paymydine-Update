@@ -1,0 +1,88 @@
+diff --git a/app/Http/Middleware/DebugSessionPulse.php b/app/Http/Middleware/DebugSessionPulse.php
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/app/Http/Middleware/DebugSessionPulse.php
+@@ -0,0 +1,52 @@
++<?php
++
++namespace App\Http\Middleware;
++
++use Closure;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Log;
++
++/**
++ * Debug Session Pulse Middleware
++ * 
++ * FOR DEVELOPMENT/STAGING ONLY
++ * 
++ * Logs session state before/after each request to help diagnose
++ * "random logout" issues caused by session expiration, CSRF failures,
++ * or cookie problems.
++ * 
++ * Enable with: DEBUG_SESSION_PULSE=true in .env
++ */
++class DebugSessionPulse
++{
++    public function handle(Request $request, Closure $next)
++    {
++        // Only log if explicitly enabled (dev/staging only)
++        if (!env('DEBUG_SESSION_PULSE', false)) {
++            return $next($request);
++        }
++        
++        // Log before request
++        Log::info('SESSION_PULSE_BEFORE', [
++            'url' => $request->fullUrl(),
++            'method' => $request->method(),
++            'session_id' => session()->getId(),
++            'user_id' => auth()->id(),
++            'csrf_token_hash' => substr(sha1(session()->token()), 0, 8),
++            'cookie_present' => $request->hasCookie(config('session.cookie')),
++            'cookie_value_hash' => $request->cookie(config('session.cookie')) 
++                ? substr(sha1($request->cookie(config('session.cookie'))), 0, 8) 
++                : null,
++        ]);
++        
++        $response = $next($request);
++        
++        // Log after request
++        Log::info('SESSION_PULSE_AFTER', [
++            'url' => $request->fullUrl(),
++            'status' => $response->getStatusCode(),
++            'is_redirect' => $response->isRedirect(),
++            'redirect_to' => $response->headers->get('Location'),
++            'session_id_after' => session()->getId(),
++        ]);
++        
++        return $response;
++    }
++}
+diff --git a/app/Http/Kernel.php b/app/Http/Kernel.php
+index abcdefg..9876543 100644
+--- a/app/Http/Kernel.php
++++ b/app/Http/Kernel.php
+@@ -20,6 +20,7 @@ class Kernel extends HttpKernel
+             \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,
+             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+             \Igniter\Flame\Translation\Middleware\Localization::class,
++            \App\Http\Middleware\DebugSessionPulse::class,  // FIX: Add session debugging (dev only)
+         ],
+ 
+         'api' => [
+diff --git a/.env b/.env
+index abcdefg..1234567 100644
+--- a/.env
++++ b/.env
+@@ -5,6 +5,9 @@ APP_KEY=base64:pVKXhEa9Of4Sa6pQ2eGx7FLyKwwWXJOlWIDfIQiY8C0=
+ APP_DEBUG=false
+ APP_URL=http://127.0.0.1:8000
+ 
++# Session Debugging (DEV/STAGING ONLY - disable in production)
++DEBUG_SESSION_PULSE=false
++
+ IGNITER_LOCATION_MODE=multiple
+ 
+ # DATABASE CONFIG (DO NOT REMOVE!)
+

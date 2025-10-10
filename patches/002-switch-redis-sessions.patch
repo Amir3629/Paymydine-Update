@@ -1,0 +1,24 @@
+diff --git a/.env b/.env
+index 1234567..abcdefg 100644
+--- a/.env
++++ b/.env
+@@ -19,7 +19,14 @@ DB_PREFIX=ti_
+ BROADCAST_DRIVER=log
+-CACHE_DRIVER=file
++CACHE_DRIVER=redis
+ QUEUE_CONNECTION=sync
+-SESSION_DRIVER=file
++SESSION_DRIVER=redis
++SESSION_CONNECTION=default
+ SESSION_LIFETIME=120
++SESSION_SECURE_COOKIE=false
++SESSION_HTTP_ONLY=true
++SESSION_SAME_SITE=lax
++SESSION_COOKIE=paymydine_admin_session
++# SESSION_DOMAIN=  # Leave empty to bind to exact host (recommended)
+ 
+ REDIS_HOST=127.0.0.1
+-REDIS_PASSWORD=null
++REDIS_PASSWORD=
+ REDIS_PORT=6379
+

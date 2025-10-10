@@ -1,0 +1,76 @@
++----------+------------------------------------------------+---------------------+--------------------------------------------------------------+------------+
+| Method   | URI                                            | Name                | Action                                                       | Middleware |
++----------+------------------------------------------------+---------------------+--------------------------------------------------------------+------------+
+| GET|HEAD | admin/notifications-api                        |                     | Admin\Controllers\NotificationsApi@index                     | web        |
+| GET|HEAD | admin/notifications-api/count                  |                     | Admin\Controllers\NotificationsApi@count                     | web        |
+| PATCH    | admin/notifications-api/mark-all-seen          |                     | Admin\Controllers\NotificationsApi@markAllSeen               | web        |
+| PATCH    | admin/notifications-api/{id}                   |                     | Admin\Controllers\NotificationsApi@update                    | web        |
+| POST     | admin/statuses/toggle-order-notifications      |                     | Admin\Controllers\Statuses@toggleOrderNotifications          | web        |
+|          |                                                |                     |                                                              | admin      |
+| GET|HEAD | api/v1/admin/notifications-api                 |                     | Admin\Controllers\NotificationsApi@index                     | web        |
+| GET|HEAD | api/v1/admin/notifications-api/count           |                     | Admin\Controllers\NotificationsApi@count                     | web        |
+| PATCH    | api/v1/admin/notifications-api/mark-all-seen   |                     | Admin\Controllers\NotificationsApi@markAllSeen               | web        |
+| PATCH    | api/v1/admin/notifications-api/{id}            |                     | Admin\Controllers\NotificationsApi@update                    | web        |
+| GET|HEAD | api/v1/api/v1/history                          | admin.history       | Admin\Controllers\History@index                              | web        |
+| POST     | api/v1/api/v1/table-notes                      |                     | Closure                                                      | web        |
+| POST     | api/v1/api/v1/waiter-call                      |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/categories                              |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/current-table                           |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/images                                  |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/menu                                    |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/order-status                            |                     | Closure                                                      | web        |
+| POST     | api/v1/order-status                            |                     | Closure                                                      | web        |
+| POST     | api/v1/orders                                  |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/payments                                |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/restaurant                              |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/restaurant/{locationId}                 |                     | Admin\Controllers\Api\RestaurantController@getRestaurantInfo | api        |
+| GET|HEAD | api/v1/restaurant/{locationId}/menu            |                     | Admin\Controllers\Api\RestaurantController@getMenu           | api        |
+| POST     | api/v1/restaurant/{locationId}/order           |                     | Admin\Controllers\Api\OrderController@createOrder            | api        |
+| GET|HEAD | api/v1/restaurant/{locationId}/order/{orderId} |                     | Admin\Controllers\Api\OrderController@getOrderStatus         | api        |
+| POST     | api/v1/restaurant/{locationId}/waiter          |                     | Admin\Controllers\Api\OrderController@requestWaiter          | api        |
+| GET|HEAD | api/v1/settings                                |                     | Closure                                                      | web        |
+| GET|HEAD | api/v1/table-info                              |                     | Closure                                                      | web        |
+| POST     | api/v1/webhooks/pos                            |                     | Admin\Controllers\Api\PosWebhookController@handle            | api        |
+| GET|HEAD | superadmin/index                               | superadmin.index    | Admin\Controllers\SuperAdminController@showIndex             | web        |
+| GET|HEAD | superadmin/new                                 | superadmin.new      | Admin\Controllers\SuperAdminController@showNewPage           | web        |
+| GET|HEAD | superadmin/settings                            | superadmin.settings | Admin\Controllers\SuperAdminController@settings              | web        |
+| POST     | superadmin/sign                                |                     | Admin\Controllers\SuperAdminController@sign                  | web        |
+| GET|HEAD | superadmin/signout                             |                     | Admin\Controllers\SuperAdminController@signOut               | web        |
++----------+------------------------------------------------+---------------------+--------------------------------------------------------------+------------+
+
+
+=== MYSQL CONNECTION USAGE ===
+app//admin/old_routes.php:76:        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+app//admin/routes.php:257:        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+app//admin/controllers/SuperAdminController.php:18: $superadmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:38:        $superAdmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:76: $superadmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:88:        $tenants = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:129:        DB::connection('mysql')->table('tenants')->insert([
+app//admin/controllers/SuperAdminController.php:148:        $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
+app//admin/controllers/SuperAdminController.php:154:            $createTableResult = DB::connection('mysql')->select("SHOW CREATE TABLE `$templateDb`.`$tableName`");
+app//admin/controllers/SuperAdminController.php:167:            DB::connection('mysql')->statement("USE `$databaseName`");
+app//admin/controllers/SuperAdminController.php:168:            DB::connection('mysql')->statement($createTableQuery);
+app//admin/controllers/SuperAdminController.php:171:            $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
+app//admin/controllers/SuperAdminController.php:173:                DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
+app//admin/controllers/SuperAdminController.php:249:        DB::connection('mysql')->table('tenants')
+app//admin/controllers/SuperAdminController.php:273:        $tenant = DB::connection('mysql')->table('tenants')->where('id', $id)->first();
+app//admin/controllers/SuperAdminController.php:283:        DB::connection('mysql')->table('tenants')->where('id', $id)->delete();
+app//admin/controllers/SuperAdminController.php:293: $superadmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:309:    DB::connection('mysql')
+app//admin/views/index.blade.php:85:$totalToday = DB::connection('mysql')->table('tenants')->whereDate('start', '=', $today)->count();
+app//admin/views/index.blade.php:86:$totalYesterday = DB::connection('mysql')->table('tenants')->whereDate('start', '=', $yesterday)->count();
+app//admin/views/index.blade.php:88:$totalThisWeek = DB::connection('mysql')->table('tenants')->whereDate('start', '>=', $startOfWeek)->count();
+app//admin/views/index.blade.php:89:$totalLastWeek = DB::connection('mysql')->table('tenants')->whereBetween('start', [$startOfLastWeek, $endOfLastWeek])->count();
+app//admin/views/index.blade.php:91:$totalThisMonth = DB::connection('mysql')->table('tenants')->whereDate('start', '>=', $startOfMonth)->count();
+app//admin/views/index.blade.php:92:$totalLastMonth = DB::connection('mysql')->table('tenants')->whereBetween('start', [$startOfLastMonth, $endOfLastMonth])->count();
+app//admin/views/index.blade.php:94:$totalThisYear = DB::connection('mysql')->table('tenants')->whereDate('start', '>=', $startOfYear)->count();
+app//admin/views/index.blade.php:95:$totalLastYear = DB::connection('mysql')->table('tenants')->whereBetween('start', [$startOfLastYear, $endOfLastYear])->count();
+app//admin/views/index.blade.php:180:$tns = DB::connection('mysql')
+app//admin/views/index.blade.php:359:$recentTenants = DB::connection('mysql')
+app//admin/views/new.blade.php:197:$tns = DB::connection('mysql')
+app//admin/views/new.blade.php:399:        $tenantStatus = DB::connection('mysql')->table('tenants')->where('id', $tenant->id)->value('status');
+app//admin/views/settings.blade.php:142:$tns = DB::connection('mysql')
+app//Http/Middleware/TenantDatabaseMiddleware.php:19:            $tenantInfo = DB::connection('mysql')->table('ti_tenants')
+app//Http/Middleware/DetectTenant.php:30:                $tenant = DB::connection('mysql')->table('ti_tenants')
+routes//api.php:145:                'db_mysql' => \DB::connection('mysql')->getDatabaseName(),

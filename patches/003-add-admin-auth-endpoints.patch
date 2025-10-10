@@ -1,0 +1,39 @@
+diff --git a/app/admin/routes.php b/app/admin/routes.php
+index 1234567..abcdefg 100644
+--- a/app/admin/routes.php
++++ b/app/admin/routes.php
+@@ -116,9 +116,14 @@ App::before(function () {
+         // Register Assets Combiner routes
+         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
+ 
++        // FIX: Group admin API endpoints under authentication
++        // ISSUE: These endpoints were missing AdminAuthenticate, allowing unauthenticated access
++        //        and causing confusing redirect behavior during session issues.
++        Route::middleware(['AdminAuthenticate'])->group(function () {
++
+         // Get table statuses for the order create page
+         Route::get('/orders/get-table-statuses', function () {
+             try {
+                 $tableStatuses = DB::table('orders')
+                     ->join('statuses', 'orders.status_id', '=', 'statuses.status_id')
+                     ->join('tables', 'orders.order_type', '=', 'tables.table_id')
+@@ -157,6 +162,7 @@ App::before(function () {
+             }
+         });
+ 
+         // Get cashier URL for frontend cashier mode
+         Route::get('/orders/get-cashier-url', function (Request $request) {
+@@ -199,6 +205,11 @@ App::before(function () {
+             }
+         })->name('admin.storefrontUrl');
+ 
++        }); // End AdminAuthenticate group for admin API endpoints
++        
++        // NOTE: Additional unauthenticated admin routes were found:
++        // - /admin/orders/save-table-layout (line 268)
++        // - /admin/orders/get-table-qr-url (line 297)
++        // These should also be moved inside an AdminAuthenticate group or have auth added.
++
+         // Other pages
+         Route::any('{slug}', 'System\Classes\Controller@runAdmin')
+

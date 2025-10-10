@@ -1,0 +1,35 @@
+diff --git a/app/Http/Kernel.php b/app/Http/Kernel.php
+index 1234567..abcdefg 100644
+--- a/app/Http/Kernel.php
++++ b/app/Http/Kernel.php
+@@ -6,6 +6,28 @@ use Illuminate\Foundation\Http\Kernel as HttpKernel;
+ 
+ class Kernel extends HttpKernel
+ {
++    /**
++     * The application's route middleware groups.
++     * OVERRIDE to enable CSRF protection (disabled in vendor/tastyigniter/flame).
++     *
++     * @var array
++     */
++    protected $middlewareGroups = [
++        'web' => [
++            \Igniter\Flame\Foundation\Http\Middleware\EncryptCookies::class,
++            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
++            \Illuminate\Session\Middleware\StartSession::class,
++            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
++            \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,  // FIX: Enable CSRF
++            \Illuminate\Routing\Middleware\SubstituteBindings::class,
++            \Igniter\Flame\Translation\Middleware\Localization::class,
++        ],
++
++        'api' => [
++            'throttle:api',
++            \Illuminate\Routing\Middleware\SubstituteBindings::class,
++        ],
++    ];
++
+     /**
+      * The application's route middleware.
+      *
+

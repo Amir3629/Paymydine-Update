@@ -1,0 +1,21 @@
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Field	Type	Null	Key	Default	Extra
+id	int	NO	PRI	NULL	auto_increment
+name	varchar(255)	NO		NULL	
+domain	varchar(255)	NO	UNI	NULL	
+database	varchar(255)	NO	UNI	NULL	
+email	varchar(255)	NO		NULL	
+phone	varchar(20)	NO		NULL	
+start	date	NO		NULL	
+end	date	NO		NULL	
+type	varchar(255)	YES		NULL	
+country	varchar(255)	NO		NULL	
+description	varchar(1000)	NO		NULL	
+status	varchar(255)	NO		NULL	
+created_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', status, db_host, db_user FROM ti_tenants LIMIT 20' at line 1
+mysql: [Warning] Using a password on the command line interface can be insecure.
+id	name	domain	database	status
+23	rosana	rosana.paymydine.com	rosana	active

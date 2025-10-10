@@ -15,7 +15,7 @@ App::before(function () {
      * prefixed with /admin.
      */
     Route::group([
-        'middleware' => ['web', 'detect.tenant'],
+        'middleware' => ['web', \App\Http\Middleware\DetectTenant::class],
         'prefix' => config('system.adminUri', 'admin'),
     ], function () {
         // Utility functions for Cashier table management
@@ -207,7 +207,7 @@ App::before(function () {
     // Admin entry point
     Route::any(config('system.adminUri', 'admin'), 'System\Classes\Controller@runAdmin');
     Route::get('/redirect/qr', [QrRedirectController::class, 'handleRedirect'])
-    ->middleware('detect.tenant');
+    ->middleware(\App\Http\Middleware\DetectTenant::class);
  
     
     Route::get('/new', [SuperAdminController::class, 'showNewPage'])

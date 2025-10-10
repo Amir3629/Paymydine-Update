@@ -1,0 +1,44 @@
+--- a/app/Http/Kernel.php
++++ b/app/Http/Kernel.php
+@@ -2,10 +2,37 @@
+ 
+ namespace App\Http;
+ 
+-use Illuminate\Foundation\Http\Kernel as HttpKernel;
++use Igniter\Flame\Foundation\Http\Kernel as FlameKernel;
+ 
+-class Kernel extends HttpKernel
++/**
++ * Application HTTP Kernel
++ * 
++ * CRITICAL FIX: Override TastyIgniter's Flame Kernel to enable CSRF middleware.
++ * 
++ * Root Cause: vendor/tastyigniter/flame/src/Foundation/Http/Kernel.php:56
++ *             has CSRF middleware commented out, causing "random logout" issues
++ *             when CSRF tokens expire/mismatch.
++ * 
++ * Fix: Override $middlewareGroups to enable VerifyCsrfToken middleware.
++ */
++class Kernel extends FlameKernel
+ {
++    /**
++     * Override middleware groups to enable CSRF protection.
++     * 
++     * @var array
++     */
++    protected $middlewareGroups = [
++        'web' => [
++            \Igniter\Flame\Foundation\Http\Middleware\EncryptCookies::class,
++            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
++            \Illuminate\Session\Middleware\StartSession::class,
++            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
++            \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,  // FIX: Enabled (was commented in vendor)
++            \Illuminate\Routing\Middleware\SubstituteBindings::class,
++            \Igniter\Flame\Translation\Middleware\Localization::class,
++        ],
++    ];
++
+     /**
+      * The application's route middleware.
+      *
+

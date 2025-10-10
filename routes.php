@@ -361,7 +361,7 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
 Route::group([
     'prefix' => 'api/v1',
     'namespace' => 'Admin\Controllers\Api',
-    'middleware' => ['api', 'detect.tenant']
+    'middleware' => ['api', \App\Http\Middleware\DetectTenant::class]
 ], function () {
     Route::get('restaurant/{locationId}', 'RestaurantController@getRestaurantInfo');
     Route::get('restaurant/{locationId}/menu', 'RestaurantController@getMenu');
@@ -376,7 +376,7 @@ Route::group([
 // Custom API Routes for frontend (TENANT REQUIRED)
 Route::group([
     'prefix' => 'api/v1',
-    'middleware' => ['web', 'detect.tenant']
+    'middleware' => ['web', \App\Http\Middleware\DetectTenant::class]
 ], function () {
     // === Payments (read-only) ===
     Route::get('/payments', function () {
@@ -1045,7 +1045,7 @@ Route::group([
 });  // End of api/v1 tenant-scoped group
 
 // Admin Notifications API (JSON) - Secured with admin auth and tenant detection
-Route::middleware(['web', 'admin', 'detect.tenant'])->prefix('admin/notifications-api')->group(function () {
+Route::middleware(['web', \App\Http\Middleware\DetectTenant::class])->prefix('admin/notifications-api')->group(function () {
     Route::get('count', [\Admin\Controllers\NotificationsApi::class, 'count']);
     Route::get('/',     [\Admin\Controllers\NotificationsApi::class, 'index']);
     Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);

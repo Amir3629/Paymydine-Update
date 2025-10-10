@@ -1,0 +1,124 @@
+routes.php:                    $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+routes.php:                    $locationLink = DB::table('locationables')
+routes.php:                        DB::table('locationables')->insert([
+routes.php:                        $cashierTableId = DB::table('tables')->insertGetId([
+routes.php:                    DB::table('locationables')->insert([
+routes.php:                    $cashierTable = DB::table('tables')->where('table_id', $cashierTableId)->first();
+routes.php:                $tableStatuses = DB::table('orders')
+routes.php:        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+routes.php:                $table = DB::table('tables')->where('table_id', $tableId)->first();
+routes.php:                $locationData = DB::table('locationables')
+routes.php:            $p = DB::connection()->getTablePrefix();
+routes.php:            $items = DB::select($query);
+routes.php:            $categories = DB::select($categoriesQuery);
+routes.php:            $categories = DB::table('categories')
+routes.php:            $restaurant = DB::table('locations')->first();
+routes.php:            $settings = DB::table('settings')->get()->keyBy('item');
+routes.php:                    $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+routes.php:            $orderNumber = DB::table('orders')->max('order_id') + 1;
+routes.php:            $orderId = DB::table('orders')->insertGetId([
+routes.php:                $menuItem = DB::table('menus')
+routes.php:                DB::table('order_menus')->insert([
+routes.php:                DB::table('order_totals')->insert([
+routes.php:            DB::table('order_totals')->insert([
+routes.php:            $order = DB::table('orders')
+routes.php:            $updated = DB::table('orders')
+routes.php:            $table = DB::table('tables')
+routes.php:            $table = DB::table('tables')
+routes.php:                $callId = DB::table('waiter_calls')->insertGetId([
+routes.php:                DB::table('notifications')->insert([
+routes.php:                $noteId = DB::table('table_notes')->insertGetId([
+routes.php:                DB::table('notifications')->insert([
+app/admin/routes.php:                    $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+app/admin/routes.php:                        $locationLink = DB::table('locationables')
+app/admin/routes.php:                            DB::table('locationables')->insert([
+app/admin/routes.php:                        $cashierTableId = DB::table('tables')->insertGetId([
+app/admin/routes.php:                        DB::table('locationables')->insert([
+app/admin/routes.php:                    $cashierTable = DB::table('tables')->where('table_id', $cashierTableId)->first();
+app/admin/routes.php:                $tableStatuses = DB::table('orders')
+app/admin/routes.php:        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+app/admin/routes.php:            $table = DB::table('tables')->where('table_id', $tableId)->first();
+app/admin/routes.php:            $locationData = DB::table('locationables')
+app/admin/routes.php:            $p = DB::connection()->getTablePrefix();
+app/admin/routes.php:            $items = DB::select($query);
+app/admin/routes.php:            $categories = DB::select($categoriesQuery);
+app/admin/routes.php:            $categories = DB::table('categories')
+app/admin/routes.php:            $restaurant = DB::table('locations')->first();
+app/admin/routes.php:            $settings = DB::table('settings')->get()->keyBy('item');
+app/admin/routes.php:                $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+app/admin/routes.php:            $orderNumber = DB::table('orders')->max('order_id') + 1;
+app/admin/routes.php:            $orderId = DB::table('orders')->insertGetId([
+app/admin/routes.php:                $menuItem = DB::table('menus')
+app/admin/routes.php:                DB::table('order_menus')->insert([
+app/admin/routes.php:                DB::table('order_totals')->insert([
+app/admin/routes.php:            DB::table('order_totals')->insert([
+app/admin/routes.php:            $order = DB::table('orders')
+app/admin/routes.php:            $updated = DB::table('orders')
+app/admin/routes.php:            $table = DB::table('tables')
+app/admin/routes.php:            $table = DB::table('tables')
+app/admin/routes.php:                    $callId = DB::table('waiter_calls')->insertGetId([
+app/admin/routes.php:                    DB::table('notifications')->insert([
+app/admin/routes.php:                    $noteId = DB::table('table_notes')->insertGetId([
+app/admin/routes.php:                    DB::table('notifications')->insert([
+app/Http/Controllers//TenantApiController.php:            $settings = DB::table('settings')
+app/Http/Controllers//TenantApiController.php:            $location = DB::table('locations')
+app/Http/Controllers//TenantApiController.php:            $categories = DB::table('categories')
+app/Http/Controllers//TenantApiController.php:            $query = DB::table('menus')
+app/Http/Controllers//TenantApiController.php:                $categories = DB::table('menu_categories')
+app/Http/Controllers//TenantApiController.php:                $media = DB::table('media_attachments')
+app/Http/Controllers//TenantApiController.php:            $item = DB::table('menus')
+app/Http/Controllers//TenantApiController.php:                $categories = DB::table('menu_categories')
+app/Http/Controllers//TenantApiController.php:            $media = DB::table('media_attachments')
+app/Http/Controllers//TenantApiController.php:            $options = DB::table('menu_item_options')
+app/Http/Controllers//TenantApiController.php:                $values = DB::table('menu_option_values')
+app/Http/Controllers//TenantApiController.php:                $menuItem = DB::table('menus')
+app/Http/Controllers//TenantApiController.php:            $orderId = DB::table('orders')->insertGetId([
+app/Http/Controllers//TenantApiController.php:                DB::table('order_menus')->insert([
+app/Http/Controllers//TenantApiController.php:            DB::table('order_totals')->insert([
+app/Http/Controllers//TenantApiController.php:            DB::table('order_totals')->insert([
+app/Http/Controllers//TenantApiController.php:            $order = DB::table('orders')
+app/Http/Controllers//TenantApiController.php:            $items = DB::table('order_menus')
+app/Http/Controllers//TenantApiController.php:            $orders = DB::table('orders')
+app/Http/Controllers//Api/TableController.php:            $tables = DB::table('tables')
+app/Http/Controllers//Api/TableController.php:            $table = DB::table('tables')
+app/Http/Controllers//Api/TableController.php:                $table = DB::table('tables')
+app/Http/Controllers//Api/TableController.php:                $table = DB::table('tables')
+app/Http/Controllers//Api/TableController.php:            $location = DB::table('locations')->first();
+app/Http/Controllers//Api/TableController.php:            $table = DB::table('tables')
+app/Http/Controllers//Api/TableController.php:            $table = DB::table('tables')
+app/Http/Controllers//Api/TableController.php:            $location = DB::table('locations')->first();
+app/Http/Controllers//Api/MenuController.php:            $p = DB::connection()->getTablePrefix();
+app/Http/Controllers//Api/MenuController.php:            $items = DB::select($query);
+app/Http/Controllers//Api/MenuController.php:            $categories = DB::select($categoriesQuery);
+app/Http/Controllers//Api/MenuController.php:            $query = DB::table('menus')
+app/Http/Controllers//Api/MenuController.php:            $category = DB::table('categories')
+app/Http/Controllers//Api/MenuController.php:            $items = DB::table('menus')
+app/Http/Controllers//Api/MenuController.php:            $tableInfo = DB::table('tables')
+app/Http/Controllers//Api/MenuController.php:            $p = DB::connection()->getTablePrefix();
+app/Http/Controllers//Api/MenuController.php:            $options = DB::select($optionsQuery, [$menuId]);
+app/Http/Controllers//Api/MenuController.php:                $values = DB::select($valuesQuery, [$menuId, $option->id]);
+app/Http/Controllers//Api/OrderController.php:            $orderId = DB::table('orders')->insertGetId([
+app/Http/Controllers//Api/OrderController.php:                $menuItem = DB::table('menus')
+app/Http/Controllers//Api/OrderController.php:                DB::table('order_menus')->insert([
+app/Http/Controllers//Api/OrderController.php:                    DB::table('menus')
+app/Http/Controllers//Api/OrderController.php:                DB::table('order_totals')->insert([
+app/Http/Controllers//Api/OrderController.php:            DB::table('order_totals')->insert([
+app/Http/Controllers//Api/OrderController.php:            $order = DB::table('orders')
+app/Http/Controllers//Api/OrderController.php:            $items = DB::table('order_menus')
+app/Http/Controllers//Api/OrderController.php:            $updated = DB::table('orders')
+app/Http/Controllers//Api/OrderController.php:            $query = DB::table('orders')
+app/Http/Controllers//Api/OrderController.php:        $number = DB::table('orders')->max('order_id') + 1;
+app/Http/Controllers//Api/OrderController.php:            $order = DB::table('orders')
+app/Http/Controllers//Api/OrderController.php:            $updated = DB::table('orders')
+app/Http/Controllers//Api/CategoryController.php:            $categories = DB::table('categories')
+app/Http/Controllers//Api/CategoryController.php:            $category = DB::table('categories')
+app/Helpers//NotificationHelper.php:        return DB::table('notifications')->insertGetId([
+app/Helpers//NotificationHelper.php:        $currentDb = DB::connection()->getDatabaseName();
+app/Helpers//NotificationHelper.php:            $notificationId = DB::table('notifications')->insertGetId([
+app/Helpers//TableHelper.php:            $table = DB::table('tables')
+app/Helpers//TableHelper.php:        return DB::table('tables')
+app/Helpers//TenantHelper.php:            $database = DB::connection()->getDatabaseName();
+app/Helpers//SettingsHelper.php:            $setting = DB::table('settings')->where('item', $key)->first();
+app/Helpers//SettingsHelper.php:            $exists = DB::table('settings')->where('item', $key)->exists();
+app/Helpers//SettingsHelper.php:                return DB::table('settings')->where('item', $key)->update($data);
+app/Helpers//SettingsHelper.php:                return DB::table('settings')->insert($data);

@@ -1,0 +1,4 @@
+362:    'prefix' => 'api/v1',
+377:    'prefix' => 'api/v1',
+423:                    $item->image = "/api/media/" . $item->image;
+1044:});  // End of api/v1 tenant-scoped group
