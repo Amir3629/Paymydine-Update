@@ -1,0 +1,29 @@
+=== PHASE 2 VERIFICATION ===
+
+1. Confirm exactly 3 /api/v1 groups in routes.php:
+375:    'prefix' => 'api/v1',
+391:    'prefix' => 'api/v1',
+988:Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
+
+2. Confirm both detect.tenant groups contain inline middlewares:
+394:    // Inline cache prefixer (no new files): set a per-tenant cache prefix at runtime
+989:    // Inline cache prefixer (no new files): set a per-tenant cache prefix at runtime
+409:    // Inline session guard (no new files): tie session to tenant and prevent cross-tenant reuse
+1004:    // Inline session guard (no new files): tie session to tenant and prevent cross-tenant reuse
+
+3. Confirm NO /api/v1 in app/admin/routes.php:
+✅ No api/v1 groups in app/admin/routes.php
+
+4. Lint checks:
+No syntax errors detected in routes.php
+No syntax errors detected in app/admin/routes.php
+
+5. Dynamic prefix still present:
+451:            $p = DB::connection()->getTablePrefix();
+
+6. Throttle still present:
+988:Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
+
+7. Tenant-aware URL blocks still present (6 locations):
+routes.php:3
+app/admin/routes.php:3

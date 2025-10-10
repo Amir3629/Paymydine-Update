@@ -391,6 +391,46 @@ Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web', 'detect.tenant']
 ], function () {
+    // Inline cache prefixer (no new files): set a per-tenant cache prefix at runtime
+    Route::middleware(function ($request, $next) {
+        try {
+            $tenant = app('tenant'); // expect detect.tenant to have run before this closure
+            $slug   = optional($tenant)->slug ?: optional($tenant)->id ?: 'public';
+            $base   = config('cache.prefix') ?: 'laravel';
+            // Update runtime cache prefix to isolate keys: <base>:tenant:<slug>
+            // This affects all Cache operations for the current request lifecycle.
+            config(['cache.prefix' => $base.':tenant:'.$slug]);
+        } catch (\Throwable $e) {
+            // If no tenant, keep default; do not throw to avoid breaking public routes
+        }
+        return $next($request);
+    });
+
+    // Inline session guard (no new files): tie session to tenant and prevent cross-tenant reuse
+    Route::middleware(function ($request, $next) {
+        try {
+            $tenant = app('tenant'); // provided by detect.tenant
+            $tid    = optional($tenant)->id;
+
+            // Only enforce for actual tenant contexts
+            if ($tid) {
+                $bound = session('session_tenant_id');
+                if (!$bound) {
+                    // First bind for this browser session
+                    session(['session_tenant_id' => $tid]);
+                } elseif ((string)$bound !== (string)$tid) {
+                    // Cross-tenant reuse detected: reset session to avoid leakage
+                    session()->invalidate();
+                    session()->regenerateToken();
+                    session(['session_tenant_id' => $tid]); // rebind to the correct tenant
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fail-safe: do nothing to avoid blocking
+        }
+        return $next($request);
+    });
+
     // === Payments (read-only) ===
     Route::get('/payments', function () {
         // Only return enabled methods in priority order
@@ -946,6 +986,46 @@ Route::group([
 // --- Public API Routes (outside admin group) ---
 // Rate-limited public write endpoints
 Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
+    // Inline cache prefixer (no new files): set a per-tenant cache prefix at runtime
+    Route::middleware(function ($request, $next) {
+        try {
+            $tenant = app('tenant'); // expect detect.tenant to have run before this closure
+            $slug   = optional($tenant)->slug ?: optional($tenant)->id ?: 'public';
+            $base   = config('cache.prefix') ?: 'laravel';
+            // Update runtime cache prefix to isolate keys: <base>:tenant:<slug>
+            // This affects all Cache operations for the current request lifecycle.
+            config(['cache.prefix' => $base.':tenant:'.$slug]);
+        } catch (\Throwable $e) {
+            // If no tenant, keep default; do not throw to avoid breaking public routes
+        }
+        return $next($request);
+    });
+
+    // Inline session guard (no new files): tie session to tenant and prevent cross-tenant reuse
+    Route::middleware(function ($request, $next) {
+        try {
+            $tenant = app('tenant'); // provided by detect.tenant
+            $tid    = optional($tenant)->id;
+
+            // Only enforce for actual tenant contexts
+            if ($tid) {
+                $bound = session('session_tenant_id');
+                if (!$bound) {
+                    // First bind for this browser session
+                    session(['session_tenant_id' => $tid]);
+                } elseif ((string)$bound !== (string)$tid) {
+                    // Cross-tenant reuse detected: reset session to avoid leakage
+                    session()->invalidate();
+                    session()->regenerateToken();
+                    session(['session_tenant_id' => $tid]); // rebind to the correct tenant
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fail-safe: do nothing to avoid blocking
+        }
+        return $next($request);
+    });
+
     // Waiter call endpoint
     Route::post('/waiter-call', function (Request $request) {
         $request->validate([

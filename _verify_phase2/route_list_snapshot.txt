@@ -1,0 +1,11 @@
++--------+----------+-------------------------------------------+---------------------+-----------------------------------------------------+------------+
+| Domain | Method   | URI                                       | Name                | Action                                              | Middleware |
++--------+----------+-------------------------------------------+---------------------+-----------------------------------------------------+------------+
+|        | POST     | admin/statuses/toggle-order-notifications |                     | Admin\Controllers\Statuses@toggleOrderNotifications | web        |
+|        |          |                                           |                     |                                                     | admin      |
+|        | GET|HEAD | superadmin/index                          | superadmin.index    | Admin\Controllers\SuperAdminController@showIndex    | web        |
+|        | GET|HEAD | superadmin/new                            | superadmin.new      | Admin\Controllers\SuperAdminController@showNewPage  | web        |
+|        | GET|HEAD | superadmin/settings                       | superadmin.settings | Admin\Controllers\SuperAdminController@settings     | web        |
+|        | POST     | superadmin/sign                           |                     | Admin\Controllers\SuperAdminController@sign         | web        |
+|        | GET|HEAD | superadmin/signout                        |                     | Admin\Controllers\SuperAdminController@signOut      | web        |
++--------+----------+-------------------------------------------+---------------------+-----------------------------------------------------+------------+
