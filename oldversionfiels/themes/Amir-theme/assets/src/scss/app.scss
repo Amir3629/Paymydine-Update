@@ -1,0 +1,27 @@
+//
+// Helpers: Variables, Functions, Mixins
+@import "helpers/+import.helpers";
+//
+// Vendor Helpers: Bootstrap Variables, Functions, Mixins
+@import "vendor/bootstrap-helpers";
+//
+// Typical-theme:Customization
+@import "custom_typical";
+//
+// Vendors: Bootstrap
+@import "vendor/+import.vendor";
+//
+// Helpers and utilities: Bootstrap
+@import "vendor/+import.helpersbs";
+//
+// Components:
+@import "components/+import.components";
+//
+// Layouts:
+@import "layouts/+import.layouts";
+//
+// Pages: Home
+@import "pages/+import.pages";
+//
+// Utilities:
+@import "utilities/+import.utilities";

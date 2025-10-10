@@ -13,7 +13,7 @@ class CreateValetRequestsTable extends Migration
      */
     public function up()
     {
-        Schema::create('valet_requests', function (Blueprint $table) {
+        Schema::create('ti_valet_requests', function (Blueprint $table) {
             $table->id('request_id');
             $table->unsignedBigInteger('table_id');
             $table->string('customer_name', 255);

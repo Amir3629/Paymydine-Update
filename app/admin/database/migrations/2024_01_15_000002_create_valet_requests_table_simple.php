@@ -8,7 +8,7 @@ class CreateValetRequestsTableSimple extends Migration
 {
     public function up()
     {
-        Schema::create('valet_requests', function (Blueprint $table) {
+        Schema::create('ti_valet_requests', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('table_id')->unsigned();
             $table->string('customer_name');

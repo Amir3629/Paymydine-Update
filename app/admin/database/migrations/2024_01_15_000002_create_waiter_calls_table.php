@@ -13,7 +13,7 @@ class CreateWaiterCallsTable extends Migration
      */
     public function up()
     {
-        Schema::create('waiter_calls', function (Blueprint $table) {
+        Schema::create('ti_waiter_calls', function (Blueprint $table) {
             $table->id('call_id');
             $table->unsignedBigInteger('table_id');
             $table->text('message');

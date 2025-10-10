@@ -13,7 +13,7 @@ class CreateNotificationRecipientsTable extends Migration
      */
     public function up()
     {
-        Schema::create('notification_recipients', function (Blueprint $table) {
+        Schema::create('ti_notification_recipients', function (Blueprint $table) {
             $table->id('recipient_id');
             $table->unsignedBigInteger('notification_id');
             $table->unsignedBigInteger('staff_id');

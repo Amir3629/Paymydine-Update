@@ -1,0 +1,10 @@
+app//Http/Controllers/Api/MenuController.php:26:                FROM ti_menus m
+app//Http/Controllers/Api/MenuController.php:27:                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+app//Http/Controllers/Api/MenuController.php:28:                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+app//Http/Controllers/Api/MenuController.php:29:                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+app//Http/Controllers/Api/MenuController.php:53:                FROM ti_categories 
+routes.php:118:                FROM ti_menus m
+routes.php:119:                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+routes.php:120:                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+routes.php:121:                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+routes.php:145:                FROM ti_categories 

@@ -15,7 +15,6 @@ class MenuController extends Controller
     {
         try {
             // Get menu items with categories (matching old API structure)
-            $p = DB::connection()->getTablePrefix();
             $query = "
                 SELECT 
                     m.menu_id as id,
@@ -24,10 +23,10 @@ class MenuController extends Controller
                     CAST(m.menu_price AS DECIMAL(10,2)) as price,
                     COALESCE(c.name, 'Main') as category_name,
                     ma.name as image
-                FROM {$p}menus m
-                LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
-                LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
-                LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus' 
+                FROM ti_menus m
+                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
                     AND ma.attachment_id = m.menu_id 
                     AND ma.tag = 'thumb'
                 WHERE m.menu_status = 1
@@ -54,7 +53,7 @@ class MenuController extends Controller
             // Get all enabled categories
             $categoriesQuery = "
                 SELECT category_id as id, name, priority 
-                FROM {$p}categories 
+                FROM ti_categories 
                 WHERE status = 1 
                 ORDER BY priority ASC, name ASC
             ";
@@ -274,7 +273,6 @@ class MenuController extends Controller
     private function getMenuItemOptions($menuId)
     {
         try {
-            $p = DB::connection()->getTablePrefix();
             $optionsQuery = "
                 SELECT 
                     mo.option_id as id,
@@ -282,8 +280,8 @@ class MenuController extends Controller
                     mo.display_type,
                     mio.required,
                     mio.priority
-                FROM {$p}menu_options mo
-                INNER JOIN {$p}menu_item_options mio ON mo.option_id = mio.option_id
+                FROM ti_menu_options mo
+                INNER JOIN ti_menu_item_options mio ON mo.option_id = mio.option_id
                 WHERE mio.menu_id = ?
                 ORDER BY mio.priority ASC, mo.option_name ASC
             ";
@@ -298,9 +296,9 @@ class MenuController extends Controller
                         mov.value,
                         mov.new_price as price,
                         mov.is_default
-                    FROM {$p}menu_option_values mov
-                    INNER JOIN {$p}menu_item_option_values miov ON mov.option_value_id = miov.option_value_id
-                    INNER JOIN {$p}menu_item_options mio ON miov.menu_option_id = mio.menu_option_id
+                    FROM ti_menu_option_values mov
+                    INNER JOIN ti_menu_item_option_values miov ON mov.option_value_id = miov.option_value_id
+                    INNER JOIN ti_menu_item_options mio ON miov.menu_option_id = mio.menu_option_id
                     WHERE mio.menu_id = ? AND mio.option_id = ?
                     ORDER BY miov.priority ASC, mov.value ASC
                 ";

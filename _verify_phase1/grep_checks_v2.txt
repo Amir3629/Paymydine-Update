@@ -1,0 +1,21 @@
+=== 1. Ensure no unscoped api/v1 groups remain ===
+✅ All api/v1 groups have detect.tenant or are Frontend API (expected)
+
+=== 2. All api/v1 groups listed ===
+routes.php:366:    'prefix' => 'api/v1',
+routes.php:382:    'prefix' => 'api/v1',
+routes.php:938:Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant']], function () {
+
+=== 3. Confirm FRONTEND_URL usage (should show tenant-aware code) ===
+routes.php:92:                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+routes.php:164:                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+routes.php:329:                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+app/admin/routes.php:95:                    $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+app/admin/routes.php:167:                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+app/admin/routes.php:332:            $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+
+=== 4. Confirm no hardcoded ti_ in Query Builder ===
+✅ No hardcoded ti_ in DB::table() calls
+
+=== 5. Confirm no hardcoded ti_ in raw SQL ===
+✅ No hardcoded ti_ table names in raw SQL

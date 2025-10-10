@@ -39,7 +39,7 @@ class NotificationTest extends TestCase
     public function it_can_create_waiter_call_notification()
     {
         // Create a test table
-        $tableId = DB::table('tables')->insertGetId([
+        $tableId = DB::table('ti_tables')->insertGetId([
             'table_name' => 'Test Table',
             'min_capacity' => 2,
             'max_capacity' => 4,
@@ -66,7 +66,7 @@ class NotificationTest extends TestCase
     public function it_can_create_valet_request_notification()
     {
         // Create a test table
-        $tableId = DB::table('tables')->insertGetId([
+        $tableId = DB::table('ti_tables')->insertGetId([
             'table_name' => 'Test Table',
             'min_capacity' => 2,
             'max_capacity' => 4,
@@ -94,7 +94,7 @@ class NotificationTest extends TestCase
     public function it_can_create_table_note_notification()
     {
         // Create a test table
-        $tableId = DB::table('tables')->insertGetId([
+        $tableId = DB::table('ti_tables')->insertGetId([
             'table_name' => 'Test Table',
             'min_capacity' => 2,
             'max_capacity' => 4,
@@ -121,7 +121,7 @@ class NotificationTest extends TestCase
     public function it_prevents_duplicate_notifications()
     {
         // Create a test table
-        $tableId = DB::table('tables')->insertGetId([
+        $tableId = DB::table('ti_tables')->insertGetId([
             'table_name' => 'Test Table',
             'min_capacity' => 2,
             'max_capacity' => 4,
@@ -153,7 +153,7 @@ class NotificationTest extends TestCase
     public function it_enforces_rate_limiting()
     {
         // Create a test table
-        $tableId = DB::table('tables')->insertGetId([
+        $tableId = DB::table('ti_tables')->insertGetId([
             'table_name' => 'Test Table',
             'min_capacity' => 2,
             'max_capacity' => 4,

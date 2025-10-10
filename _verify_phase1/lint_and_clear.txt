@@ -1,0 +1,13 @@
+No syntax errors detected in routes.php
+---
+No syntax errors detected in app/admin/routes.php
+---
+No syntax errors detected in app/Support/Url.php
+---
+Cached events cleared!
+Compiled views cleared!
+Application cache cleared!
+Route cache cleared!
+Configuration cache cleared!
+Compiled services and packages files removed!
+Caches cleared successfully!

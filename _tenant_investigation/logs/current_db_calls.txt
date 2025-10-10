@@ -1,0 +1,416 @@
+app//admin/database/migrations/2020_02_21_000400_create_staff_roles_table.php:25:        DB::table('staff_groups')->get()->each(function ($model) {
+app//admin/database/migrations/2020_02_21_000400_create_staff_roles_table.php:27:                DB::table('staff_roles')->insert([
+app//admin/database/migrations/2022_04_27_000300_create_location_options_table.php:34:        DB::table('locations')->get()->each(function ($location) {
+app//admin/database/migrations/2022_04_27_000300_create_location_options_table.php:41:                DB::table('location_options')->insert([
+app//admin/database/migrations/2019_07_21_000300_change_sort_value_ratings_to_config_on_settings_table.php:12:        DB::table('settings')
+app//admin/database/migrations/2019_07_21_000300_change_sort_value_ratings_to_config_on_settings_table.php:16:        DB::table('menus_specials')
+app//admin/database/migrations/2022_09_03_000300_make_location_options_fields_unique.php:14:        $idsToKeep = DB::table('location_options')
+app//admin/database/migrations/2022_09_03_000300_make_location_options_fields_unique.php:20:        DB::table('location_options')->whereNotIn('id', $idsToKeep)->delete();
+app//admin/database/migrations/2023_06_06_000400_update_dashboard_widget_properties_on_user_preferences_table.php.php:27:        $widgets = DB::table('user_preferences')
+app//admin/database/migrations/2023_06_06_000400_update_dashboard_widget_properties_on_user_preferences_table.php.php:46:        DB::table('user_preferences')
+app//admin/database/migrations/2020_12_13_000300_merge_staffs_locations_into_locationables_table.php:13:        DB::table('staffs_locations')->get()->each(function ($model) {
+app//admin/database/migrations/2020_12_13_000300_merge_staffs_locations_into_locationables_table.php:14:            DB::table('locationables')->insert([
+app//admin/database/migrations/2019_07_16_000300_create_reservation_tables_table.php:23:        DB::table('reservations')->get()->each(function ($model) {
+app//admin/database/migrations/2019_07_16_000300_create_reservation_tables_table.php:24:            DB::table('reservation_tables')->insert([
+app//admin/database/migrations/2020_06_11_000300_create_menu_mealtimes_table.php:21:        DB::table('menus')->select('menu_id', 'mealtime_id')->get()->each(function ($menu) {
+app//admin/database/migrations/2020_06_11_000300_create_menu_mealtimes_table.php:25:            DB::table('menu_mealtimes')->insert([
+app//admin/database/migrations/2020_09_28_000300_add_refund_columns_to_payment_logs_table.php:20:        DB::table('payment_logs')->get()->each(function ($log) {
+app//admin/database/migrations/2020_09_28_000300_add_refund_columns_to_payment_logs_table.php:21:            $payment = DB::table('payments')->where('name', $log->payment_name)->first();
+app//admin/database/migrations/2020_09_28_000300_add_refund_columns_to_payment_logs_table.php:25:            DB::table('payment_logs')->where('payment_log_id', $log->payment_log_id)->update([
+app//admin/database/migrations/2021_05_26_010000_alter_order_type_columns.php:27:        DB::table('menus')->get()->each(function ($model) {
+app//admin/database/migrations/2021_05_26_010000_alter_order_type_columns.php:38:            DB::table('menus')
+app//admin/database/migrations/2021_05_29_010000_add_is_summable_on_order_totals_table.php:18:        DB::table('order_totals')
+app//admin/database/migrations/2025_01_27_000000_add_cashier_table.php:16:        $cashierTableId = DB::table('tables')->insertGetId([
+app//admin/database/migrations/2025_01_27_000000_add_cashier_table.php:30:        DB::table('locationables')->insert([
+app//admin/database/migrations/2025_01_27_000000_add_cashier_table.php:45:        $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+app//admin/database/migrations/2025_01_27_000000_add_cashier_table.php:48:            DB::table('locationables')
+app//admin/database/migrations/2025_01_27_000000_add_cashier_table.php:54:            DB::table('tables')->where('table_id', $cashierTable->table_id)->delete();
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:65:        DB::table('menus')->get()->each(function ($menuItem) {
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:69:            $locationIds = DB::table('locationables')
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:75:                $stockId = DB::table('stocks')->insertGetId([
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:85:                DB::table('stock_history')->insert([
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:98:        DB::table('menu_item_option_values')->get()->each(function ($optionValue) {
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:102:            $menuOption = DB::table('menu_item_options')
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:106:            $locationIds = DB::table('locationables')
+app//admin/database/migrations/2021_11_28_000300_create_stocks_table.php:112:                DB::table('stocks')->insert([
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:27:        DB::table('locations')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:30:                DB::table('locations')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:44:        DB::table('location_areas')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:47:                DB::table('location_areas')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:63:        DB::table('payments')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:66:                DB::table('payments')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:80:        DB::table('extension_settings')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:83:                DB::table('extension_settings')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:97:        DB::table('themes')
+app//admin/database/migrations/2021_09_03_010000_make_serialize_columns_json.php:100:                DB::table('themes')
+app//admin/database/migrations/2025_09_26_000001_add_columns_for_ti_tables_and_categories.php:33:            $exists = DB::select("SHOW INDEX FROM ti_tables WHERE Key_name='idx_tables_table_no'");
+app//admin/database/migrations/2022_06_30_010000_drop_foreign_key_constraints_on_all_tables.php:38:                $table->dropIndexIfExists(sprintf('%s%s_%s_foreign', DB::getTablePrefix(), $tableName, $foreignKey));
+app//admin/database/migrations/2020_02_18_000400_create_staffs_groups_and_locations_table.php:28:        DB::table('staffs')->get()->each(function ($model) {
+app//admin/database/migrations/2020_02_18_000400_create_staffs_groups_and_locations_table.php:30:                DB::table('staffs_groups')->insert([
+app//admin/database/migrations/2020_02_18_000400_create_staffs_groups_and_locations_table.php:37:                DB::table('staffs_locations')->insert([
+app//admin/database/migrations/2024_01_15_000005_seed_sample_notifications.php:22:                DB::table('notifications')->insert([
+app//admin/database/migrations/2024_01_15_000005_seed_sample_notifications.php:91:                DB::table('notifications')
+app//admin/database/migrations/2024_01_15_000005_seed_sample_notifications.php:108:            $dbName = DB::connection()->getDatabaseName();
+app//admin/database/migrations/2024_01_15_000005_seed_sample_notifications.php:116:            $tenant = DB::table('tenants')
+app//admin/database/migrations/2020_08_16_000300_modify_columns_on_tables_reservations_table.php:31:        DB::table('location_tables')->get()->each(function ($model) {
+app//admin/database/migrations/2020_08_16_000300_modify_columns_on_tables_reservations_table.php:32:            DB::table('locationables')->insert([
+app//admin/database/migrations/2020_05_31_000300_drop_more_unused_columns.php:51:        DB::table('locations')->get()->each(function ($model) {
+app//admin/database/migrations/2020_05_31_000300_drop_more_unused_columns.php:73:            DB::table('locations')->where('location_id', $model->location_id)->update([
+app//admin/traits/HasChartDatasets.php:92:            DB::raw('DATE_FORMAT('.$dateColumnName.', "%Y-%m-%d") as x'),
+app//admin/traits/HasChartDatasets.php:93:            DB::raw('count(*) as y')
+app//admin/traits/ManagesOrderItems.php:236:        return DB::table('order_menus');
+app//admin/traits/ManagesOrderItems.php:241:        return DB::table('order_menu_options');
+app//admin/traits/ManagesOrderItems.php:246:        return DB::table('order_totals');
+app//admin/classes/UserState.php:106:        DB::table(User_preferences_model::make()->getTable())
+app//admin/classes/UserState.php:122:                DB::table(User_preferences_model::make()->getTable())
+app//admin/old_routes.php:76:        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+app//admin/models/old_Orders_model.php:138:                $tableData = DB::table('tables')->where('table_id', $tableId)->first();
+app//admin/models/old_Orders_model.php:370:               $status = DB::table('statuses')->where('status_name', 'Paid')->first();
+app//admin/models/Orders_model.php:138:                $tableData = DB::table('tables')->where('table_id', $tableId)->first();
+app//admin/models/Orders_model.php:254:        $table = \DB::table('tables')->where('table_id', $orderType)->first();
+app//admin/models/Orders_model.php:396:               $status = DB::table('statuses')->where('status_name', 'Paid')->first();
+app//admin/models/Allergens_model.php:64:            $prefix = DB::getTablePrefix();
+app//admin/models/Allergens_model.php:65:            $q->select(DB::raw(1))
+app//admin/models/Categories_model.php:121:            $prefix = DB::getTablePrefix();
+app//admin/models/Categories_model.php:122:            $q->select(DB::raw(1))
+app//admin/formwidgets/Relation.php:183:                $result = $query->select($selectColumn, DB::raw($this->sqlSelect.' AS '.$nameFrom));
+app//admin/formwidgets/mediafinder/image_grid.blade.php:59:    $exists = DB::table('logos')->exists();
+app//admin/formwidgets/mediafinder/image_grid.blade.php:61:        DB::table('logos')->update(['loader_logo' => $_GET['loader']]);
+app//admin/formwidgets/mediafinder/image_grid.blade.php:63:        DB::table('logos')->insert(['loader_logo' => $_GET['loader']]);
+app//admin/formwidgets/mediafinder/image_grid.blade.php:67:    $imgSrcLoader = DB::table('logos')->value('loader_logo');
+app//admin/formwidgets/mediafinder/image_grid.blade.php:76:    $exists = DB::table('logos')->exists();
+app//admin/formwidgets/mediafinder/image_grid.blade.php:78:        DB::table('logos')->update(['dashboard_logo' => $_GET['dash']]);
+app//admin/formwidgets/mediafinder/image_grid.blade.php:80:        DB::table('logos')->insert(['dashboard_logo' => $_GET['dash']]);
+app//admin/formwidgets/mediafinder/image_grid.blade.php:84:    $imgSrcDashboard = DB::table('logos')->value('dashboard_logo');
+app//admin/routes.php:27:                    $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+app//admin/routes.php:31:                        $locationLink = DB::table('locationables')
+app//admin/routes.php:39:                            DB::table('locationables')->insert([
+app//admin/routes.php:50:                        $cashierTableId = DB::table('tables')->insertGetId([
+app//admin/routes.php:64:                        DB::table('locationables')->insert([
+app//admin/routes.php:90:                    $cashierTable = DB::table('tables')->where('table_id', $cashierTableId)->first();
+app//admin/routes.php:122:                $tableStatuses = DB::table('orders')
+app//admin/routes.php:128:                        DB::raw('CASE 
+app//admin/routes.php:256:        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+app//admin/routes.php:308:            $table = DB::table('tables')->where('table_id', $tableId)->first();
+app//admin/routes.php:317:            $locationData = DB::table('locationables')
+app//admin/routes.php:417:            $items = DB::select($query);
+app//admin/routes.php:438:            $categories = DB::select($categoriesQuery);
+app//admin/routes.php:460:            $categories = DB::table('categories')
+app//admin/routes.php:528:            $restaurant = DB::table('locations')->first();
+app//admin/routes.php:557:            $settings = DB::table('settings')->get()->keyBy('item');
+app//admin/routes.php:591:                $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+app//admin/routes.php:619:            $orderNumber = DB::table('orders')->max('order_id') + 1;
+app//admin/routes.php:639:            $orderId = DB::table('orders')->insertGetId([
+app//admin/routes.php:664:                $menuItem = DB::table('menus')
+app//admin/routes.php:673:                DB::table('order_menus')->insert([
+app//admin/routes.php:686:                DB::table('order_totals')->insert([
+app//admin/routes.php:696:            DB::table('order_totals')->insert([
+app//admin/routes.php:735:            $order = DB::table('orders')
+app//admin/routes.php:810:            $updated = DB::table('orders')
+app//admin/routes.php:849:            $table = DB::table('tables')
+app//admin/routes.php:893:            $table = DB::table('tables')
+app//admin/routes.php:949:                    $callId = DB::table('waiter_calls')->insertGetId([
+app//admin/routes.php:962:                    DB::table('notifications')->insert([
+app//admin/routes.php:1011:                    $noteId = DB::table('table_notes')->insertGetId([
+app//admin/routes.php:1025:                    DB::table('notifications')->insert([
+app//admin/controllers/SuperAdminController.php:18: $superadmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:38:        $superAdmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:76: $superadmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:88:        $tenants = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:124:        $databaseExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", [$databaseName]);
+app//admin/controllers/SuperAdminController.php:129:        DB::connection('mysql')->table('tenants')->insert([
+app//admin/controllers/SuperAdminController.php:148:        $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
+app//admin/controllers/SuperAdminController.php:154:            $createTableResult = DB::connection('mysql')->select("SHOW CREATE TABLE `$templateDb`.`$tableName`");
+app//admin/controllers/SuperAdminController.php:167:            DB::connection('mysql')->statement("USE `$databaseName`");
+app//admin/controllers/SuperAdminController.php:168:            DB::connection('mysql')->statement($createTableQuery);
+app//admin/controllers/SuperAdminController.php:171:            $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
+app//admin/controllers/SuperAdminController.php:173:                DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
+app//admin/controllers/SuperAdminController.php:183:            $existingCashier = DB::table('tables')->where('table_name', 'Cashier')->first();
+app//admin/controllers/SuperAdminController.php:185:                $cashierTableId = DB::table('tables')->insertGetId([
+app//admin/controllers/SuperAdminController.php:199:                DB::table('locationables')->insert([
+app//admin/controllers/SuperAdminController.php:249:        DB::connection('mysql')->table('tenants')
+app//admin/controllers/SuperAdminController.php:273:        $tenant = DB::connection('mysql')->table('tenants')->where('id', $id)->first();
+app//admin/controllers/SuperAdminController.php:283:        DB::connection('mysql')->table('tenants')->where('id', $id)->delete();
+app//admin/controllers/SuperAdminController.php:293: $superadmin = DB::connection('mysql')
+app//admin/controllers/SuperAdminController.php:309:    DB::connection('mysql')
+app//admin/controllers/NotificationsApi.php:15:            $new = \Illuminate\Support\Facades\DB::table('notifications')->where('status', 'new')->count();
+app//admin/controllers/NotificationsApi.php:29:            $rows = \Illuminate\Support\Facades\DB::table('notifications')
+app//admin/controllers/NotificationsApi.php:47:            \Illuminate\Support\Facades\DB::table('notifications')->where('id', $id)->update([
+app//admin/controllers/NotificationsApi.php:62:            \Illuminate\Support\Facades\DB::table('notifications')->where('status', 'new')->update([
+app//admin/controllers/QrRedirectController.php:21:        $table = DB::table('tables')->where('table_id', $table_id)->first();
+app//admin/controllers/QrRedirectController.php:27:        $orders = DB::table('orders')->where('order_type', $table->table_name)->get();
+app//admin/controllers/QrRedirectController.php:30:        $statuses = DB::table('statuses')
+app//admin/controllers/History.php:38:            'db'     => \DB::connection()->getDatabaseName(),
+app//admin/controllers/NotificationsApiController.php:13:        $new = DB::table('notifications')->where('status', 'new')->count();
+app//admin/controllers/NotificationsApiController.php:22:        $rows = DB::table('notifications')
+app//admin/controllers/NotificationsApiController.php:34:        DB::table('notifications')->where('id', $id)->update([
+app//admin/controllers/NotificationsApiController.php:43:        DB::table('notifications')->where('status', 'new')->update([
+app//admin/controllers/Notifications.php:264:        $currentDb = DB::connection()->getDatabaseName();
+app//admin/controllers/Notifications.php:280:            $currentDb = DB::connection()->getDatabaseName();
+app//admin/controllers/Notifications.php:288:            $tenant = DB::table('tenants')
+app//admin/controllers/Api/OrderController.php:34:                $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+app//admin/controllers/Api/OrderController.php:103:                \DB::table('order_totals')->insert([
+app//admin/controllers/Api/OrderController.php:115:            \DB::table('order_totals')->insert([
+app//admin/controllers/Api/OrderController.php:149:            \DB::table('waiter_requests')->insert([
+app//admin/controllers/Api/RestaurantController.php:73:            $items = \DB::select($query);
+app//admin/controllers/Api/RestaurantController.php:102:            $categories = \DB::select($categoriesQuery);
+app//admin/controllers/Api/RestaurantController.php:141:            $categories = \DB::select($categoriesQuery);
+app//admin/controllers/Api/RestaurantController.php:175:            $table = \DB::table('tables')
+app//admin/controllers/Api/RestaurantController.php:227:            $tableInfo = \DB::table('tables')
+app//admin/views/index.blade.php:85:$totalToday = DB::connection('mysql')->table('tenants')->whereDate('start', '=', $today)->count();
+app//admin/views/index.blade.php:86:$totalYesterday = DB::connection('mysql')->table('tenants')->whereDate('start', '=', $yesterday)->count();
+app//admin/views/index.blade.php:88:$totalThisWeek = DB::connection('mysql')->table('tenants')->whereDate('start', '>=', $startOfWeek)->count();
+app//admin/views/index.blade.php:89:$totalLastWeek = DB::connection('mysql')->table('tenants')->whereBetween('start', [$startOfLastWeek, $endOfLastWeek])->count();
+app//admin/views/index.blade.php:91:$totalThisMonth = DB::connection('mysql')->table('tenants')->whereDate('start', '>=', $startOfMonth)->count();
+app//admin/views/index.blade.php:92:$totalLastMonth = DB::connection('mysql')->table('tenants')->whereBetween('start', [$startOfLastMonth, $endOfLastMonth])->count();
+app//admin/views/index.blade.php:94:$totalThisYear = DB::connection('mysql')->table('tenants')->whereDate('start', '>=', $startOfYear)->count();
+app//admin/views/index.blade.php:95:$totalLastYear = DB::connection('mysql')->table('tenants')->whereBetween('start', [$startOfLastYear, $endOfLastYear])->count();
+app//admin/views/index.blade.php:180:$tns = DB::connection('mysql')
+app//admin/views/index.blade.php:359:$recentTenants = DB::connection('mysql')
+app//admin/views/tables/edit.blade.php:15:    $qr_code = DB::table('tables')->select('qr_code')->where('table_id', $id)->first();
+app//admin/views/tables/edit.blade.php:22:        $table_data = DB::table('tables')->where('qr_code', $qr_code->qr_code)->first();
+app//admin/views/tables/edit.blade.php:27:        $location_data = DB::table('locationables')
+app//admin/views/tables/edit.blade.php:40:        $location_id = DB::table('locationables')
+app//admin/views/tables/edit.blade.php:46:            ? DB::table('locations')->where('location_id', $location_id)->value('permalink_slug')
+app//admin/views/tables/old_edit.blade.php:15:    $qr_code = DB::table('tables')->select('qr_code')->where('table_id', $id)->first();
+app//admin/views/tables/old_edit.blade.php:21:        $table_data = DB::table('tables')->where('qr_code', $qr_code->qr_code)->first();
+app//admin/views/tables/old_edit.blade.php:26:        $location_data = DB::table('locationables')
+app//admin/views/new.blade.php:197:$tns = DB::connection('mysql')
+app//admin/views/new.blade.php:399:        $tenantStatus = DB::connection('mysql')->table('tenants')->where('id', $tenant->id)->value('status');
+app//admin/views/_partials/top_nav.blade.php:3:$imgSrcDashboard = DB::table('logos')->orderBy('id', 'desc')->value('dashboard_logo');
+app//admin/views/settings.blade.php:142:$tns = DB::connection('mysql')
+app//admin/views/orders/create.blade.php:58:            $total_price = DB::table('menu_option_values')
+app//admin/views/orders/create.blade.php:153:        DB::table('order_menus')->insert([
+app//admin/views/orders/create.blade.php:174:        $order_menu_id = DB::table('order_menus')
+app//admin/views/orders/create.blade.php:180:            $option = DB::table('menu_option_values')
+app//admin/views/orders/create.blade.php:185:                DB::table('order_menu_options')->insert([
+app//admin/views/orders/create.blade.php:211:    //         $order_menu_id = DB::table('order_menus')
+app//admin/views/orders/create.blade.php:216:    //             $option = DB::table('menu_option_values')
+app//admin/views/orders/create.blade.php:220:    //                 DB::table('order_menu_options')->insert([
+app//admin/views/orders/create.blade.php:236:    $total_option_price = DB::table('order_menu_options')
+app//admin/views/orders/create.blade.php:241:        DB::table('order_totals')->insert([
+app//admin/views/orders/create.blade.php:276:        //$menuData = DB::table('menus')->get();
+app//admin/views/orders/create.blade.php:278:        $menuOptions = DB::table('menu_item_options')
+app//admin/views/orders/create.blade.php:296:$statuses = DB::table('statuses')->where('status_name', 'Paid')->first();
+app//admin/views/orders/create.blade.php:298:$unavailableTables = DB::table('orders')
+app//admin/views/orders/create.blade.php:359:                        $tableOrder = DB::table('orders')
+app//admin/views/orders/create.blade.php:370:                            $statusInfo = DB::table('statuses')
+app//admin/views/orders/old_create.blade.php:24:            $total_price = DB::table('menu_option_values')
+app//admin/views/orders/old_create.blade.php:124:        DB::table('order_menus')->insert([
+app//admin/views/orders/old_create.blade.php:145:        $order_menu_id = DB::table('order_menus')
+app//admin/views/orders/old_create.blade.php:151:            $option = DB::table('menu_option_values')
+app//admin/views/orders/old_create.blade.php:156:                DB::table('order_menu_options')->insert([
+app//admin/views/orders/old_create.blade.php:182:    //         $order_menu_id = DB::table('order_menus')
+app//admin/views/orders/old_create.blade.php:187:    //             $option = DB::table('menu_option_values')
+app//admin/views/orders/old_create.blade.php:191:    //                 DB::table('order_menu_options')->insert([
+app//admin/views/orders/old_create.blade.php:207:    $total_option_price = DB::table('order_menu_options')
+app//admin/views/orders/old_create.blade.php:212:        DB::table('order_totals')->insert([
+app//admin/views/orders/old_create.blade.php:244:        $tableData = DB::table('tables')->get();
+app//admin/views/orders/old_create.blade.php:245:        //$menuData = DB::table('menus')->get();
+app//admin/views/orders/old_create.blade.php:247:        $menuOptions = DB::table('menu_item_options')
+app//admin/views/orders/old_create.blade.php:263:$statuses = DB::table('statuses')->where('status_name', 'Paid')->first();
+app//admin/views/orders/old_create.blade.php:265:$unavailableTables = DB::table('orders')
+app//admin/widgets/Lists.php:256:        return str_replace('@', DB::getTablePrefix().$table.'.', $sql);
+app//admin/widgets/Lists.php:281:                    $table = DB::getTablePrefix().$this->model->makeRelation($column->relation)->getTable();
+app//admin/widgets/Lists.php:283:                        ? DB::raw($this->parseTableName($column->sqlSelect, $table))
+app//admin/widgets/Lists.php:290:                        ? DB::raw($this->parseTableName($column->sqlSelect, $primaryTable))
+app//admin/widgets/Lists.php:291:                        : DB::getTablePrefix().$primaryTable.'.'.$column->columnName;
+app//admin/widgets/dashboardcontainer/dashboardcontainer.blade.php:21:$loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
+app//system/database/migrations/2020_04_16_000300_drop_stale_unused_columns.php:31:        DB::table('extensions')->where('type', '!=', 'module')->delete();
+app//system/database/migrations/2020_04_16_000300_drop_stale_unused_columns.php:48:        if (DB::table('themes')->count())
+app//system/database/migrations/2020_04_16_000300_drop_stale_unused_columns.php:51:        DB::table('extensions')->where('type', 'theme')->get()->each(function ($model) {
+app//system/database/migrations/2020_04_16_000300_drop_stale_unused_columns.php:52:            DB::table('themes')->insert([
+app//system/database/migrations/2020_04_16_000300_drop_stale_unused_columns.php:65:        if (DB::table('payments')->count())
+app//system/database/migrations/2020_04_16_000300_drop_stale_unused_columns.php:68:        DB::table('extensions')->where('type', 'payment')->get()->each(function ($model) {
+app//system/database/migrations/2020_04_16_000300_drop_stale_unused_columns.php:70:            DB::table('payments')->insert([
+app//system/database/migrations/2018_06_12_000300_rename_model_class_names_to_morph_map_custom_names.php:39:            DB::table($tableName)->get()->each(function ($model) use ($tableName, $columns) {
+app//system/database/migrations/2018_06_12_000300_rename_model_class_names_to_morph_map_custom_names.php:52:                DB::table($tableName)
+app//system/database/migrations/2021_07_20_000300_add_uuid_column_to_failed_jobs_table.php:22:        DB::table('failed_jobs')->whereNull('uuid')->cursor()->each(function ($job) {
+app//system/database/migrations/2021_07_20_000300_add_uuid_column_to_failed_jobs_table.php:23:            DB::table('failed_jobs')
+app//system/database/migrations/2022_06_30_010000_drop_foreign_key_constraints_on_all_tables.php:38:                $table->dropIndexIfExists(sprintf('%s%s_%s_foreign', DB::getTablePrefix(), $tableName, $foreignKey));
+app//system/database/seeds/InitialSchemaSeeder.php:41:        if (DB::table('countries')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:44:        DB::table('countries')->insert($this->getSeedRecords('countries', true));
+app//system/database/seeds/InitialSchemaSeeder.php:46:        DB::table('countries')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:48:        DB::table('countries')->update([
+app//system/database/seeds/InitialSchemaSeeder.php:56:        if (DB::table('currencies')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:62:            $query = DB::table('countries')->where('iso_code_3', $currency['iso_alpha3']);
+app//system/database/seeds/InitialSchemaSeeder.php:65:                DB::table('currencies')->insert($currency);
+app//system/database/seeds/InitialSchemaSeeder.php:69:        DB::table('currencies')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:74:        if (DB::table('customer_groups')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:77:        DB::table('customer_groups')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:82:        DB::table('customer_groups')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:87:        if (DB::table('languages')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:90:        DB::table('languages')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:98:        DB::table('languages')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:104:        if (DB::table('locations')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:109:        $locationId = DB::table('locations')->insertGetId($location);
+app//system/database/seeds/InitialSchemaSeeder.php:110:        DB::table('locations')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:117:        if (DB::table('tables')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:121:            $tableId = DB::table('tables')->insertGetId([
+app//system/database/seeds/InitialSchemaSeeder.php:128:            DB::table('locationables')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:135:        DB::table('tables')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:140:        if (DB::table('mealtimes')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:143:        DB::table('mealtimes')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:164:        DB::table('mealtimes')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:169:        if (DB::table('settings')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:172:        DB::table('settings')->insert($this->getSeedRecords('settings'));
+app//system/database/seeds/InitialSchemaSeeder.php:177:        if (DB::table('staff_groups')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:180:        DB::table('staff_groups')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:185:        DB::table('staff_groups')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:190:        DB::table('staff_groups')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:195:        DB::table('staff_groups')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:200:        DB::table('staff_groups')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:205:        if (DB::table('staff_roles')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:208:        DB::table('staff_roles')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:214:        DB::table('staff_roles')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:221:        DB::table('staff_roles')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:228:        DB::table('staff_roles')->insert([
+app//system/database/seeds/InitialSchemaSeeder.php:235:        DB::table('staff_roles')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/InitialSchemaSeeder.php:240:        if (DB::table('statuses')->count())
+app//system/database/seeds/InitialSchemaSeeder.php:243:        DB::table('statuses')->insert($this->getSeedRecords('statuses'));
+app//system/database/seeds/InitialSchemaSeeder.php:245:        DB::table('statuses')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/UpdateRecordsSeeder.php:31:        if (DB::table('status_history')->where('object_type', 'Admin\Models\Orders_model')->count())
+app//system/database/seeds/UpdateRecordsSeeder.php:39:        DB::table('status_history')->get()->each(function ($model) use ($morphs) {
+app//system/database/seeds/UpdateRecordsSeeder.php:40:            $status = DB::table('statuses')->where('status_id', $model->status_id)->first();
+app//system/database/seeds/UpdateRecordsSeeder.php:44:            DB::table('status_history')->where('status_history_id', $model->status_history_id)->update([
+app//system/database/seeds/UpdateRecordsSeeder.php:63:        DB::table('mail_templates')->update(['is_custom' => 1]);
+app//system/database/seeds/DemoSchemaSeeder.php:31:                DB::table('working_hours')->insert([
+app//system/database/seeds/DemoSchemaSeeder.php:45:        if (DB::table('categories')->count())
+app//system/database/seeds/DemoSchemaSeeder.php:48:        DB::table('categories')->insert($this->getSeedRecords('categories'));
+app//system/database/seeds/DemoSchemaSeeder.php:50:        DB::table('categories')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/DemoSchemaSeeder.php:55:        if (DB::table('menu_options')->count())
+app//system/database/seeds/DemoSchemaSeeder.php:59:            $optionId = DB::table('menu_options')->insertGetId(array_except($menuOption, 'option_values'));
+app//system/database/seeds/DemoSchemaSeeder.php:62:                DB::table('menu_option_values')->insert(array_merge($optionValue, [
+app//system/database/seeds/DemoSchemaSeeder.php:68:        DB::table('menu_options')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/DemoSchemaSeeder.php:73:        if (DB::table('menus')->count())
+app//system/database/seeds/DemoSchemaSeeder.php:77:            $menuId = DB::table('menus')->insertGetId(array_except($menu, 'menu_options'));
+app//system/database/seeds/DemoSchemaSeeder.php:80:                $option = DB::table('menu_options')->where('option_name', $name)->first();
+app//system/database/seeds/DemoSchemaSeeder.php:82:                $menuOptionId = DB::table('menu_item_options')->insertGetId([
+app//system/database/seeds/DemoSchemaSeeder.php:87:                $optionValues = DB::table('menu_option_values')->where('option_id', $option->option_id)->get();
+app//system/database/seeds/DemoSchemaSeeder.php:90:                    DB::table('menu_item_option_values')->insertGetId([
+app//system/database/seeds/DemoSchemaSeeder.php:100:        DB::table('menus')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/DemoSchemaSeeder.php:101:        DB::table('menu_item_options')->update(['updated_at' => now(), 'created_at' => now()]);
+app//system/database/seeds/DemoSchemaSeeder.php:102:        DB::table('menu_item_option_values')->update(['updated_at' => now(), 'created_at' => now()]);
+app//Http/Middleware/NotificationTenantGuard.php:21:        $currentDb = DB::connection()->getDatabaseName();
+app//Http/Middleware/TenantDatabaseMiddleware.php:19:            $tenantInfo = DB::connection('mysql')->table('ti_tenants')
+app//Http/Middleware/DetectTenant.php:30:                $tenant = DB::connection('mysql')->table('ti_tenants')
+app//Http/Controllers/TenantApiController.php:29:            $settings = DB::table('settings')
+app//Http/Controllers/TenantApiController.php:34:            $location = DB::table('locations')
+app//Http/Controllers/TenantApiController.php:62:            $categories = DB::table('categories')
+app//Http/Controllers/TenantApiController.php:82:            $query = DB::table('menus')
+app//Http/Controllers/TenantApiController.php:102:                $categories = DB::table('menu_categories')
+app//Http/Controllers/TenantApiController.php:113:                $media = DB::table('media_attachments')
+app//Http/Controllers/TenantApiController.php:134:            $item = DB::table('menus')
+app//Http/Controllers/TenantApiController.php:151:                $categories = DB::table('menu_categories')
+app//Http/Controllers/TenantApiController.php:162:            $media = DB::table('media_attachments')
+app//Http/Controllers/TenantApiController.php:171:            $options = DB::table('menu_item_options')
+app//Http/Controllers/TenantApiController.php:183:                $values = DB::table('menu_option_values')
+app//Http/Controllers/TenantApiController.php:223:                $menuItem = DB::table('menus')
+app//Http/Controllers/TenantApiController.php:245:            $orderId = DB::table('orders')->insertGetId([
+app//Http/Controllers/TenantApiController.php:259:                DB::table('order_menus')->insert([
+app//Http/Controllers/TenantApiController.php:270:            DB::table('order_totals')->insert([
+app//Http/Controllers/TenantApiController.php:278:            DB::table('order_totals')->insert([
+app//Http/Controllers/TenantApiController.php:307:            $order = DB::table('orders')
+app//Http/Controllers/TenantApiController.php:326:            $items = DB::table('order_menus')
+app//Http/Controllers/TenantApiController.php:348:            $orders = DB::table('orders')
+app//Http/Controllers/Api/TableController.php:17:            $tables = DB::table('tables')
+app//Http/Controllers/Api/TableController.php:49:            $table = DB::table('tables')
+app//Http/Controllers/Api/TableController.php:56:                $table = DB::table('tables')
+app//Http/Controllers/Api/TableController.php:64:                $table = DB::table('tables')
+app//Http/Controllers/Api/TableController.php:78:            $location = DB::table('locations')->first();
+app//Http/Controllers/Api/TableController.php:112:            $table = DB::table('tables')
+app//Http/Controllers/Api/TableController.php:169:            $table = DB::table('tables')
+app//Http/Controllers/Api/TableController.php:181:            $location = DB::table('locations')->first();
+app//Http/Controllers/Api/MenuController.php:36:            $items = DB::select($query);
+app//Http/Controllers/Api/MenuController.php:60:            $categories = DB::select($categoriesQuery);
+app//Http/Controllers/Api/MenuController.php:85:            $query = DB::table('menus')
+app//Http/Controllers/Api/MenuController.php:151:            $category = DB::table('categories')
+app//Http/Controllers/Api/MenuController.php:163:            $items = DB::table('menus')
+app//Http/Controllers/Api/MenuController.php:228:            $tableInfo = DB::table('tables')
+app//Http/Controllers/Api/MenuController.php:289:            $options = DB::select($optionsQuery, [$menuId]);
+app//Http/Controllers/Api/MenuController.php:306:                $values = DB::select($valuesQuery, [$menuId, $option->id]);
+app//Http/Controllers/Api/OrderController.php:50:            $orderId = DB::table('orders')->insertGetId([
+app//Http/Controllers/Api/OrderController.php:72:                $menuItem = DB::table('menus')
+app//Http/Controllers/Api/OrderController.php:81:                DB::table('order_menus')->insert([
+app//Http/Controllers/Api/OrderController.php:95:                    DB::table('menus')
+app//Http/Controllers/Api/OrderController.php:103:                DB::table('order_totals')->insert([
+app//Http/Controllers/Api/OrderController.php:115:            DB::table('order_totals')->insert([
+app//Http/Controllers/Api/OrderController.php:172:            $order = DB::table('orders')
+app//Http/Controllers/Api/OrderController.php:191:            $items = DB::table('order_menus')
+app//Http/Controllers/Api/OrderController.php:257:            $updated = DB::table('orders')
+app//Http/Controllers/Api/OrderController.php:286:            $query = DB::table('orders')
+app//Http/Controllers/Api/OrderController.php:333:        $number = DB::table('orders')->max('order_id') + 1;
+app//Http/Controllers/Api/OrderController.php:351:            $order = DB::table('orders')
+app//Http/Controllers/Api/OrderController.php:413:            $updated = DB::table('orders')
+app//Http/Controllers/Api/CategoryController.php:17:            $categories = DB::table('categories')
+app//Http/Controllers/Api/CategoryController.php:53:            $category = DB::table('categories')
+app//main/routes.php:20:        $options = DB::select($optionsQuery, [$menuId]);
+app//main/routes.php:37:            $values = DB::select($valuesQuery, [$menuId, $option->id]);
+app//main/routes.php:155:                        $items = DB::select($query);
+app//main/routes.php:179:                        $categories = DB::select($categoriesQuery);
+app//main/routes.php:208:                            $table = DB::table('tables')->where('qr_code', $qr_code)->first();
+app//main/routes.php:210:                            $table = DB::table('tables')->where('qr_code', $qr)->first();
+app//main/routes.php:212:                            $table = DB::table('tables')->where('table_no', $table_no)->first();
+app//main/routes.php:214:                            $table = DB::table('tables')->where('table_id', $table_id)->first();
+app//main/routes.php:230:                        $location = DB::table('locationables')
+app//main/routes.php:272:                        $orderId = DB::table('orders')->insertGetId([
+app//main/routes.php:300:                            $orderMenuId = DB::table('order_menus')->insertGetId([
+app//main/routes.php:315:                                    $optionValue = DB::table('menu_option_values')
+app//main/routes.php:321:                                        $menuOption = DB::table('menu_item_options')
+app//main/routes.php:332:                                            DB::table('order_menu_options')->insert([
+app//main/routes.php:349:                                DB::table('order_menus')
+app//main/routes.php:363:                                    $optionValue = DB::table('menu_option_values')
+app//main/routes.php:379:                            $serviceSetting = DB::table('location_options')
+app//main/routes.php:396:                        DB::table('order_totals')->insert([
+app//main/routes.php:406:                            DB::table('order_totals')->insert([
+app//main/routes.php:417:                            DB::table('order_totals')->insert([
+app//main/routes.php:427:                        DB::table('order_totals')->insert([
+app//main/routes.php:479:                        $items = DB::select($query);
+app//main/routes.php:503:                        $categories = DB::select($categoriesQuery);
+app//main/routes.php:524:                        $categories = DB::table('categories')
+app//main/routes.php:545:                    $restaurant = DB::table('locations')->first();
+app//main/routes.php:573:                    $requestId = DB::table('valet_requests')->insertGetId([
+app//main/routes.php:620:                    $id = DB::table('notifications')->insertGetId([
+app//main/routes.php:656:                    $id = DB::table('notifications')->insertGetId([
+app//main/routes.php:688:                    $candidate = DB::table($t['name'])->where('code', $t['code'])->select('data')->first();
+app//Helpers/NotificationHelper.php:137:        return DB::table('notifications')->insertGetId([
+app//Helpers/NotificationHelper.php:189:        $currentDb = DB::connection()->getDatabaseName();
+app//Helpers/NotificationHelper.php:240:            $notificationId = DB::table('notifications')->insertGetId([
+app//Helpers/TableHelper.php:22:            $table = DB::table('tables')
+app//Helpers/TableHelper.php:51:        return DB::table('tables')
+app//Helpers/TenantHelper.php:26:            $database = DB::connection()->getDatabaseName();
+app//Helpers/SettingsHelper.php:19:            $setting = DB::table('settings')->where('item', $key)->first();
+app//Helpers/SettingsHelper.php:59:            $exists = DB::table('settings')->where('item', $key)->exists();
+app//Helpers/SettingsHelper.php:62:                return DB::table('settings')->where('item', $key)->update($data);
+app//Helpers/SettingsHelper.php:64:                return DB::table('settings')->insert($data);
+routes.php:25:                $cashierTable = DB::table('ti_tables')->where('table_name', 'Cashier')->first();
+routes.php:29:                    $locationLink = DB::table('locationables')
+routes.php:37:                        DB::table('locationables')->insert([
+routes.php:48:                    $cashierTableId = DB::table('ti_tables')->insertGetId([
+routes.php:62:                    DB::table('locationables')->insert([
+routes.php:87:                $cashierTable = DB::table('ti_tables')->where('table_id', $cashierTableId)->first();
+routes.php:119:                $tableStatuses = DB::table('orders')
+routes.php:125:                        DB::raw('CASE 
+routes.php:253:        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+routes.php:305:                $table = DB::table('ti_tables')->where('table_id', $tableId)->first();
+routes.php:314:                $locationData = DB::table('locationables')
+routes.php:413:            $items = DB::select($query);
+routes.php:434:            $categories = DB::select($categoriesQuery);
+routes.php:456:            $categories = DB::table('categories')
+routes.php:524:            $restaurant = DB::table('locations')->first();
+routes.php:553:            $settings = DB::table('settings')->get()->keyBy('item');
+routes.php:587:                $cashierTable = DB::table('ti_tables')->where('table_name', 'Cashier')->first();
+routes.php:615:            $orderNumber = DB::table('orders')->max('order_id') + 1;
+routes.php:635:            $orderId = DB::table('orders')->insertGetId([
+routes.php:660:                $menuItem = DB::table('menus')
+routes.php:669:                DB::table('order_menus')->insert([
+routes.php:682:                DB::table('order_totals')->insert([
+routes.php:692:            DB::table('order_totals')->insert([
+routes.php:731:            $order = DB::table('orders')
+routes.php:806:            $updated = DB::table('orders')
+routes.php:845:            $table = DB::table('ti_tables')
+routes.php:889:            $table = DB::table('ti_tables')
+routes.php:945:                $callId = DB::table('waiter_calls')->insertGetId([
+routes.php:958:                DB::table('notifications')->insert([
+routes.php:1007:                $noteId = DB::table('table_notes')->insertGetId([
+routes.php:1021:                DB::table('notifications')->insert([

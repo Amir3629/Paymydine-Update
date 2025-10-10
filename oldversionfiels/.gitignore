@@ -1,0 +1,12 @@
+.DS_Store
+.idea
+.phpunit.result.cache
+
+*/node_modules
+# Ignore all vendor files included by composer and the lock file
+/vendor
+composer.lock
+# Next.js build
+.next/
+out/
+*.log

@@ -1,0 +1,13 @@
+--- a/app/admin/routes.php
++++ b/app/admin/routes.php
+@@ -92,12 +92,11 @@ App::before(function () {
+@@ -117,10 +116,8 @@ App::before(function () {
+-        Route::group(['middleware' => [\App\Http\Middleware\DetectTenant::class]], function () {
+@@ -165,7 +162,7 @@ App::before(function () {
+@@ -200,7 +197,6 @@ App::before(function () {
+@@ -210,49 +206,49 @@ App::before(function () {
+@@ -264,7 +260,7 @@ App::before(function () {
+@@ -295,7 +291,7 @@ App::before(function () {
+@@ -329,8 +325,7 @@ App::before(function () {
+@@ -360,10 +355,20 @@ App::before(function () {
++// REMOVED DUPLICATE API ROUTES

@@ -1,0 +1,36 @@
+=== ACCEPTANCE CRITERIA CHECKS ===
+
+1) All api/v1 groups in routes.php (expect exactly 3):
+360:    'prefix' => 'api/v1',
+376:    'prefix' => 'api/v1',
+933:Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
+
+2) Verify middleware on each group:
+    'prefix' => 'api/v1',
+    'middleware' => ['api']
+    'prefix' => 'api/v1',
+    'middleware' => ['web', 'detect.tenant']
+Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {
+
+3) No api/v1 groups in app/admin/routes.php (expect NO matches):
+✅ PASS: No api/v1 groups found
+
+4) No hardcoded ti_ in DB::table() (expect NO matches):
+✅ PASS: No hardcoded ti_ in DB::table()
+
+5) No hardcoded ti_ in raw SQL (expect NO matches):
+✅ PASS: No hardcoded ti_ table names in raw SQL
+
+6) All frontendUrl assignments use helper (expect 6 matches):
+routes.php:92:                $frontendUrl = \App\Support\Url::frontend();
+routes.php:162:                $frontendUrl = \App\Support\Url::frontend();
+routes.php:325:                $frontendUrl = \App\Support\Url::frontend();
+app/admin/routes.php:95:                    $frontendUrl = \App\Support\Url::frontend();
+app/admin/routes.php:165:                $frontendUrl = \App\Support\Url::frontend();
+app/admin/routes.php:328:            $frontendUrl = \App\Support\Url::frontend();
+
+7) Dynamic prefix variable in use (expect 1 match):
+routes.php:396:            $p = DB::connection()->getTablePrefix();
+
+8) Throttle on public endpoints (expect 1 match):
+routes.php:933:Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant', 'throttle:30,1']], function () {

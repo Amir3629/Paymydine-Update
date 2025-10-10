@@ -8,7 +8,7 @@ class CreateTableNotesTableSimple extends Migration
 {
     public function up()
     {
-        Schema::create('table_notes', function (Blueprint $table) {
+        Schema::create('ti_table_notes', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('table_id')->unsigned();
             $table->text('note');

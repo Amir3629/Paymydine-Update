@@ -92,12 +92,13 @@ App::before(function () {
                         return null;
                     }
 
-                $request = request();
-                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
-                $date = date('Y-m-d');
-                $time = date('H:i');
+                    $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+                        ?? config('app.url') 
+                        ?? (request()->getScheme().'://'.request()->getHost()), '/');
+                    $date = date('Y-m-d');
+                    $time = date('H:i');
 
-                $tableNumber = ($cashierTable->table_no > 0) ? $cashierTable->table_no : $cashierTableId;
+                    $tableNumber = ($cashierTable->table_no > 0) ? $cashierTable->table_no : $cashierTableId;
                 
                     return rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
                         'location' => $locationId,
@@ -117,10 +118,8 @@ App::before(function () {
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 
-        // Admin utility JSON endpoints that require tenant context
-        Route::group(['middleware' => [\App\Http\Middleware\DetectTenant::class]], function () {
-            // Get table statuses for the order create page
-            Route::get('/orders/get-table-statuses', function () {
+        // Get table statuses for the order create page
+        Route::get('/orders/get-table-statuses', function () {
             try {
                 $tableStatuses = DB::table('orders')
                     ->join('statuses', 'orders.status_id', '=', 'statuses.status_id')
@@ -165,7 +164,9 @@ App::before(function () {
             try {
                 $locationId = (int) $request->get('location_id', 1);
                 
-                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+                    ?? config('app.url') 
+                    ?? (request()->getScheme().'://'.request()->getHost()), '/');
                 $url = rtrim($frontendUrl, '/').'/cashier?'.http_build_query([
                     'location' => $locationId,
                     'mode'     => 'cashier',
@@ -200,7 +201,6 @@ App::before(function () {
                 return redirect(root_url());
             }
         })->name('admin.storefrontUrl');
-        }); // End tenant-required admin utility group
 
         // Other pages
         Route::any('{slug}', 'System\Classes\Controller@runAdmin')
@@ -210,49 +210,49 @@ App::before(function () {
     // Admin entry point
     Route::any(config('system.adminUri', 'admin'), 'System\Classes\Controller@runAdmin');
     Route::get('/redirect/qr', [QrRedirectController::class, 'handleRedirect'])
-    ->middleware(\App\Http\Middleware\DetectTenant::class);
+    ->middleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
  
     
     Route::get('/new', [SuperAdminController::class, 'showNewPage'])
         ->name('superadmin.new')
         ->middleware('superadmin.auth') // Protect this route
-        ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
     Route::get('/index', [SuperAdminController::class, 'showIndex'])
     ->name('superadmin.index')
     ->middleware('superadmin.auth') // Protect this route
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
     Route::get('/settings', [SuperAdminController::class, 'settings'])
     ->name('superadmin.settings')
     ->middleware('superadmin.auth') // Protect this route
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
 
     Route::match(['get', 'post'], '/new/store', [SuperAdminController::class, 'store'])
     ->name('superadmin.store')
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::match(['get', 'post'], '/tenants/update', [SuperAdminController::class, 'update'])
     ->name('tenants.update')
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
     Route::get('/tenants/delete/{id}', [SuperAdminController::class, 'delete'])
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::get('/superadmin/login', [SuperAdminController::class, 'login'])
     ->name('login.new')
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
     
     Route::post('/superadmin/sign', [SuperAdminController::class, 'sign'])
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
-        ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::post('/superadmin/settings/update', [SuperAdminController::class, 'updateSettings'])->name('superadmin.update')
-    ->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     Route::post('/tenant/update-status', function (Request $request) {
         $id = $request->input('id');
         $status = $request->input('status') === 'activate' ? 'active' : 'disabled';
@@ -264,7 +264,7 @@ App::before(function () {
         } else {
             return response()->json(['success' => false, 'error' => 'Failed to update']);
         }
-    })->withoutMiddleware([\App\Http\Middleware\DetectTenant::class]);
+    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
 
 
@@ -295,7 +295,7 @@ App::before(function () {
                 'error' => $e->getMessage()
             ]);
         }
-    });
+    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     // Get table QR code URL for frontend menu integration
     Route::get('/orders/get-table-qr-url', function (Request $request) {
@@ -329,8 +329,9 @@ App::before(function () {
             $time = date('H:i');
 
             // Build QR code URL (same logic as in tables/edit.blade.php)
-            $request = request();
-            $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+            $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+                ?? config('app.url') 
+                ?? (request()->getScheme().'://'.request()->getHost()), '/');
                 
             $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
                 
@@ -360,10 +361,20 @@ App::before(function () {
                 'error' => $e->getMessage()
             ]);
         }
-    });
+    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 });
 
+// ============================================================================
+// REMOVED DUPLICATE API ROUTES
+// All /api/v1 routes are now canonical in routes.php with detect.tenant middleware
+// All admin/notifications-api routes are canonical in routes.php
+// This file now contains only:
+//   1. Main admin UI routes (within App::before)
+//   2. Superadmin tenant management routes  
+//   3. Order notifications toggle route
+// ============================================================================
+
 // Order notifications toggle route
-Route::middleware(['web'])->group(function () {
+Route::middleware(['web', 'admin'])->group(function () {
     Route::post('/admin/statuses/toggle-order-notifications', [\Admin\Controllers\Statuses::class, 'toggleOrderNotifications']);
 });

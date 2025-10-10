@@ -1,0 +1,33 @@
+=== Exact Line Ranges Removed from app/admin/routes.php ===
+
+Original file: 1,085 lines
+New file: 374 lines
+Deleted: 711 lines
+
+Line ranges removed (from original numbering):
+
+1. Lines ~362-375: Frontend API Routes group
+   - Route::group with prefix 'api/v1', namespace 'Admin\Controllers\Api'
+   - restaurant/{locationId} routes
+   - webhooks/pos route
+
+2. Lines ~378-921: Custom API Routes group (544 lines)
+   - Route::group with prefix 'api/v1', middleware ['web'] (NO detect.tenant)
+   - /payments, /menu, /categories, /restaurant, /settings
+   - POST /orders, GET /order-status, /table-info, /current-table
+
+3. Lines ~925-931: Empty admin group
+
+4. Lines ~934-1061: Public API Routes nested group (128 lines)
+   - Route::group with prefix 'api/v1', middleware ['web']
+   - POST /waiter-call, /table-notes
+   - GET history route
+
+5. Lines ~1065-1070: Admin Notifications API group
+   - Route::group with prefix 'admin/notifications-api'
+   - count, index, update, mark-all-seen routes
+
+6. Lines ~1075-1080: Back-compat Notifications API
+   - Duplicate of above with different syntax
+
+All these routes are still available in routes.php with proper tenant middleware!

@@ -51,7 +51,6 @@ class RestaurantController extends BaseController
     {
         try {
             // Get menu items with categories (matching old API structure)
-            $p = \DB::connection()->getTablePrefix();
             $query = "
                 SELECT 
                     m.menu_id as id,
@@ -60,10 +59,10 @@ class RestaurantController extends BaseController
                     CAST(m.menu_price AS DECIMAL(10,2)) as price,
                     COALESCE(c.name, 'Main') as category_name,
                     ma.name as image
-                FROM {$p}menus m
-                LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
-                LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
-                LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus' 
+                FROM ti_menus m
+                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
                     AND ma.attachment_id = m.menu_id 
                     AND ma.tag = 'thumb'
                 WHERE m.menu_status = 1
@@ -92,9 +91,9 @@ class RestaurantController extends BaseController
                     c.name as category_name,
                     c.description,
                     c.frontend_visible
-                FROM {$p}categories c
-                INNER JOIN {$p}menu_categories mc ON c.category_id = mc.category_id
-                INNER JOIN {$p}menus m ON mc.menu_id = m.menu_id
+                FROM ti_categories c
+                INNER JOIN ti_menu_categories mc ON c.category_id = mc.category_id
+                INNER JOIN ti_menus m ON mc.menu_id = m.menu_id
                 WHERE c.status = 1 
                 AND (c.frontend_visible = 1 OR c.frontend_visible IS NULL)
                 AND m.menu_status = 1
@@ -125,16 +124,15 @@ class RestaurantController extends BaseController
     public function getCategories($locationId)
     {
         try {
-            $p = \DB::connection()->getTablePrefix();
             $categoriesQuery = "
                 SELECT DISTINCT 
                     c.category_id,
                     c.name as category_name,
                     c.description,
                     c.frontend_visible
-                FROM {$p}categories c
-                INNER JOIN {$p}menu_categories mc ON c.category_id = mc.category_id
-                INNER JOIN {$p}menus m ON mc.menu_id = m.menu_id
+                FROM ti_categories c
+                INNER JOIN ti_menu_categories mc ON c.category_id = mc.category_id
+                INNER JOIN ti_menus m ON mc.menu_id = m.menu_id
                 WHERE c.status = 1 
                 AND (c.frontend_visible = 1 OR c.frontend_visible IS NULL)
                 AND m.menu_status = 1

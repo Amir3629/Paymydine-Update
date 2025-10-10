@@ -21,8 +21,8 @@ App::before(function () {
         if (!function_exists('resolveCashierTableId')) {
             function resolveCashierTableId($locationId = 1) {
             try {
-                    // Look for existing Cashier table
-                    $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+                // Look for existing Cashier table
+                $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
                 
                 if ($cashierTable) {
                     // Check if it's linked to the location
@@ -44,8 +44,8 @@ App::before(function () {
                     
                     return $cashierTable->table_id;
                 } else {
-                        // Create Cashier table if it doesn't exist
-                        $cashierTableId = DB::table('tables')->insertGetId([
+                    // Create Cashier table if it doesn't exist
+                    $cashierTableId = DB::table('tables')->insertGetId([
                         'table_name' => 'Cashier',
                         'min_capacity' => 1,
                         'max_capacity' => 1,
@@ -83,14 +83,15 @@ App::before(function () {
                     return null;
                 }
 
-                    // Get table_no for the cashier table
-                    $cashierTable = DB::table('tables')->where('table_id', $cashierTableId)->first();
+                // Get table_no for the cashier table
+                $cashierTable = DB::table('tables')->where('table_id', $cashierTableId)->first();
                 if (!$cashierTable) {
                     return null;
                 }
 
-                $request = request();
-                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+                    ?? config('app.url') 
+                    ?? (request()->getScheme().'://'.request()->getHost()), '/');
                 $date = date('Y-m-d');
                 $time = date('H:i');
 
@@ -160,7 +161,9 @@ App::before(function () {
             try {
                 $locationId = (int) $request->get('location_id', 1);
                 
-                $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+                    ?? config('app.url') 
+                    ?? (request()->getScheme().'://'.request()->getHost()), '/');
                 $url = rtrim($frontendUrl, '/').'/cashier?'.http_build_query([
                     'location' => $locationId,
                     'mode'     => 'cashier',
@@ -322,11 +325,12 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
                 $date = date('Y-m-d');
                 $time = date('H:i');
 
-            // Build QR code URL (same logic as in tables/edit.blade.php)
-            $request = request();
-            $frontendUrl = $request->getScheme() . '://' . $request->getHost();
+                // Build QR code URL (same logic as in tables/edit.blade.php)
+                $frontendUrl = rtrim(optional(app('tenant'))->frontend_url 
+                    ?? config('app.url') 
+                    ?? (request()->getScheme().'://'.request()->getHost()), '/');
                 
-            $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
+                $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
                 
                 $qrUrl = rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
                     'location' => $locationId,
@@ -361,7 +365,7 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
 Route::group([
     'prefix' => 'api/v1',
     'namespace' => 'Admin\Controllers\Api',
-    'middleware' => ['api', \App\Http\Middleware\DetectTenant::class]
+    'middleware' => ['api']
 ], function () {
     Route::get('restaurant/{locationId}', 'RestaurantController@getRestaurantInfo');
     Route::get('restaurant/{locationId}/menu', 'RestaurantController@getMenu');
@@ -376,7 +380,7 @@ Route::group([
 // Custom API Routes for frontend (TENANT REQUIRED)
 Route::group([
     'prefix' => 'api/v1',
-    'middleware' => ['web', \App\Http\Middleware\DetectTenant::class]
+    'middleware' => ['web', 'detect.tenant']
 ], function () {
     // === Payments (read-only) ===
     Route::get('/payments', function () {
@@ -586,9 +590,9 @@ Route::group([
             // Validate request data to match frontend structure
             $isCashier = $request->has('is_cashier') && $request->is_cashier;
             
-                // Also check if this is a cashier table order
-                if (!$isCashier && $request->has('table_id')) {
-                    $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
+            // Also check if this is a cashier table order
+            if (!$isCashier && $request->has('table_id')) {
+                $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
                 if ($cashierTable && $request->table_id == $cashierTable->table_id) {
                     $isCashier = true;
                 }
@@ -920,6 +924,18 @@ Route::group([
         }
     });
 
+
+// ------------ Admin JSON API for Notifications ------------
+Route::group([
+    'prefix' => 'admin',
+    'middleware' => ['web', 'AdminAuthenticate'], // reuse existing admin auth alias
+], function () {
+    // Notifications API routes moved to bottom of file to avoid duplicates
+
+});
+
+// --- Public API Routes (outside admin group) ---
+Route::group(['prefix' => 'api/v1', 'middleware' => ['web', 'detect.tenant']], function () {
     // Waiter call endpoint
     Route::post('/waiter-call', function (Request $request) {
         $request->validate([
@@ -979,6 +995,7 @@ Route::group([
             ], 500);
         }
     });
+    
     
     // Table notes endpoint
     Route::post('/table-notes', function (Request $request) {
@@ -1042,10 +1059,24 @@ Route::group([
         }
     });
 
-});  // End of api/v1 tenant-scoped group
+    // Sales → History
+    Route::get('history', [\Admin\Controllers\History::class, 'index'])
+        ->name('admin.history');
+});
 
-// Admin Notifications API (JSON) - Secured with admin auth and tenant detection
-Route::middleware(['web', \App\Http\Middleware\DetectTenant::class])->prefix('admin/notifications-api')->group(function () {
+// === Admin Notifications API (JSON) ===
+// Place AFTER the closing brace of the large Route::group([...]) in this file.
+Route::group(['prefix' => 'admin/notifications-api'], function () {
+    Route::get('count', [\Admin\Controllers\NotificationsApi::class, 'count']);
+    Route::get('/',     [\Admin\Controllers\NotificationsApi::class, 'index']);
+    Route::patch('{id}',[\Admin\Controllers\NotificationsApi::class, 'update']);
+    Route::patch('mark-all-seen', [\Admin\Controllers\NotificationsApi::class, 'markAllSeen']);
+});
+
+}); // Close App::before function
+
+// Back-compat for admin bell widget (no api/v1 prefix)
+Route::middleware(['web'])->prefix('admin/notifications-api')->group(function () {
     Route::get('count', [\Admin\Controllers\NotificationsApi::class, 'count']);
     Route::get('/',     [\Admin\Controllers\NotificationsApi::class, 'index']);
     Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);

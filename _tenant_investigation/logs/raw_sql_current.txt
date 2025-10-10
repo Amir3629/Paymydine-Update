@@ -1,0 +1,53 @@
+app//admin/database/migrations/2025_09_26_000001_add_columns_for_ti_tables_and_categories.php:24:                  FROM ti_tables
+app//admin/database/migrations/2025_09_26_000001_add_columns_for_ti_tables_and_categories.php:27:                UPDATE ti_tables t
+app//admin/database/migrations/2025_09_26_000001_add_columns_for_ti_tables_and_categories.php:28:                JOIN d ON d.table_id = t.table_id
+app//admin/database/migrations/2025_09_26_000001_add_columns_for_ti_tables_and_categories.php:33:            $exists = DB::select("SHOW INDEX FROM ti_tables WHERE Key_name='idx_tables_table_no'");
+app//admin/routes.php:407:                FROM menus m
+app//admin/routes.php:408:                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+app//admin/routes.php:409:                LEFT JOIN categories c ON mc.category_id = c.category_id
+app//admin/routes.php:410:                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+app//admin/routes.php:434:                FROM categories 
+app//admin/controllers/SuperAdminController.php:124:        $databaseExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", [$databaseName]);
+app//admin/controllers/SuperAdminController.php:148:        $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
+app//admin/controllers/SuperAdminController.php:171:            $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
+app//admin/controllers/SuperAdminController.php:173:                DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
+app//admin/controllers/Api/RestaurantController.php:62:                FROM ti_menus m
+app//admin/controllers/Api/RestaurantController.php:63:                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+app//admin/controllers/Api/RestaurantController.php:64:                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+app//admin/controllers/Api/RestaurantController.php:65:                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+app//admin/controllers/Api/RestaurantController.php:94:                FROM ti_categories c
+app//admin/controllers/Api/RestaurantController.php:95:                INNER JOIN ti_menu_categories mc ON c.category_id = mc.category_id
+app//admin/controllers/Api/RestaurantController.php:96:                INNER JOIN ti_menus m ON mc.menu_id = m.menu_id
+app//admin/controllers/Api/RestaurantController.php:133:                FROM ti_categories c
+app//admin/controllers/Api/RestaurantController.php:134:                INNER JOIN ti_menu_categories mc ON c.category_id = mc.category_id
+app//admin/controllers/Api/RestaurantController.php:135:                INNER JOIN ti_menus m ON mc.menu_id = m.menu_id
+app//Http/Controllers/Api/MenuController.php:26:                FROM ti_menus m
+app//Http/Controllers/Api/MenuController.php:27:                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+app//Http/Controllers/Api/MenuController.php:28:                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+app//Http/Controllers/Api/MenuController.php:29:                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+app//Http/Controllers/Api/MenuController.php:56:                FROM ti_categories 
+app//Http/Controllers/Api/MenuController.php:283:                FROM ti_menu_options mo
+app//Http/Controllers/Api/MenuController.php:284:                INNER JOIN ti_menu_item_options mio ON mo.option_id = mio.option_id
+app//Http/Controllers/Api/MenuController.php:299:                    FROM ti_menu_option_values mov
+app//Http/Controllers/Api/MenuController.php:300:                    INNER JOIN ti_menu_item_option_values miov ON mov.option_value_id = miov.option_value_id
+app//Http/Controllers/Api/MenuController.php:301:                    INNER JOIN ti_menu_item_options mio ON miov.menu_option_id = mio.menu_option_id
+app//main/routes.php:14:            FROM ti_menu_options mo
+app//main/routes.php:15:            INNER JOIN ti_menu_item_options mio ON mo.option_id = mio.option_id
+app//main/routes.php:30:                FROM ti_menu_option_values mov
+app//main/routes.php:31:                INNER JOIN ti_menu_item_option_values miov ON mov.option_value_id = miov.option_value_id
+app//main/routes.php:32:                INNER JOIN ti_menu_item_options mio ON miov.menu_option_id = mio.menu_option_id
+app//main/routes.php:145:                            FROM ti_menus m
+app//main/routes.php:146:                            LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+app//main/routes.php:147:                            LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+app//main/routes.php:148:                            LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+app//main/routes.php:175:                            FROM ti_categories 
+app//main/routes.php:469:                            FROM ti_menus m
+app//main/routes.php:470:                            LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+app//main/routes.php:471:                            LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+app//main/routes.php:472:                            LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+app//main/routes.php:499:                            FROM ti_categories 
+routes.php:403:                FROM ti_menus m
+routes.php:404:                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
+routes.php:405:                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
+routes.php:406:                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
+routes.php:430:                FROM ti_categories 

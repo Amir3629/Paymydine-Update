@@ -13,7 +13,7 @@ class CreateTableNotesTable extends Migration
      */
     public function up()
     {
-        Schema::create('table_notes', function (Blueprint $table) {
+        Schema::create('ti_table_notes', function (Blueprint $table) {
             $table->id('note_id');
             $table->unsignedBigInteger('table_id');
             $table->text('note');

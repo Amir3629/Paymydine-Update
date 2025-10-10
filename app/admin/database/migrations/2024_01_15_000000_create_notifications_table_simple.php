@@ -8,7 +8,7 @@ class CreateNotificationsTableSimple extends Migration
 {
     public function up()
     {
-        Schema::create('notifications', function (Blueprint $table) {
+        Schema::create('ti_notifications', function (Blueprint $table) {
             $table->increments('notification_id');
             $table->integer('tenant_id')->unsigned(); // Explicit tenant_id
             $table->string('type'); // e.g., 'waiter_call', 'valet_request', 'table_note'

@@ -1,0 +1,6 @@
+routes.php:14:    Route::group([
+routes.php:87:Route::group([
+routes.php:102:Route::group([
+app/admin/routes.php:9:    Route::group([
+routes.php:88:    'prefix' => 'api/v1',
+routes.php:103:    'prefix' => 'api/v1',

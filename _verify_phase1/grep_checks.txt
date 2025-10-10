@@ -1,0 +1,10 @@
+=== API v1 route groups ===
+routes.php:360:    'prefix' => 'api/v1',
+routes.php:376:    'prefix' => 'api/v1',
+routes.php:931:Route::group(['prefix' => 'api/v1', 'middleware' => ['web']], function () {
+
+=== webhooks/pos route ===
+routes.php:366:    Route::post('webhooks/pos', 'PosWebhookController@handle');
+
+=== ti_statuses references (should be empty after fix) ===
+(no ti_statuses found - good!)

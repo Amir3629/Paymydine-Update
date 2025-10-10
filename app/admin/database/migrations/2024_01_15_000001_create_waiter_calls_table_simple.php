@@ -8,7 +8,7 @@ class CreateWaiterCallsTableSimple extends Migration
 {
     public function up()
     {
-        Schema::create('waiter_calls', function (Blueprint $table) {
+        Schema::create('ti_waiter_calls', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('table_id')->unsigned();
             $table->text('message')->nullable();

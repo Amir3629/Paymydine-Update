@@ -1,0 +1,39 @@
+=== app/admin/routes.php - Key Changes ===
+
+@@ -92,12 +92,11 @@ App::before(function () {
+@@ -117,10 +116,8 @@ App::before(function () {
+-        Route::group(['middleware' => [\App\Http\Middleware\DetectTenant::class]], function () {
+@@ -165,7 +162,7 @@ App::before(function () {
+@@ -200,7 +197,6 @@ App::before(function () {
+@@ -210,49 +206,49 @@ App::before(function () {
+-    ->middleware(\App\Http\Middleware\DetectTenant::class);
++    ->middleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+@@ -264,7 +260,7 @@ App::before(function () {
+@@ -295,7 +291,7 @@ App::before(function () {
+@@ -329,8 +325,7 @@ App::before(function () {
+@@ -360,10 +355,20 @@ App::before(function () {
++// REMOVED DUPLICATE API ROUTES
++// All /api/v1 routes are now canonical in routes.php with detect.tenant middleware
+-Route::middleware(['web'])->group(function () {
++Route::middleware(['web', 'admin'])->group(function () {
+
+
+=== routes.php - Key Changes ===
+
+@@ -21,8 +21,8 @@ App::before(function () {
+@@ -44,8 +44,8 @@ App::before(function () {
+@@ -83,14 +83,13 @@ App::before(function () {
+@@ -160,7 +159,7 @@ App::before(function () {
+@@ -303,7 +302,7 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
+@@ -322,11 +321,10 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
+@@ -361,7 +359,7 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
+@@ -376,7 +374,7 @@ Route::group([
+@@ -395,7 +393,6 @@ Route::group([
+@@ -404,10 +401,10 @@ Route::group([
+@@ -431,7 +428,7 @@ Route::group([
+@@ -586,9 +583,9 @@ Route::group([
+@@ -846,7 +843,7 @@ Route::group([
+@@ -890,7 +887,7 @@ Route::group([
+@@ -920,6 +917,18 @@ Route::group([
+@@ -980,6 +989,7 @@ Route::group([
+@@ -1042,10 +1052,24 @@ Route::group([

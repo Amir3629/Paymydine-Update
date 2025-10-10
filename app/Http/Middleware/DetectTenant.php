@@ -19,43 +19,10 @@ class DetectTenant
      */
     public function handle(Request $request, Closure $next)
     {
-        $path = $request->path();
-        $host = $request->getHost();
-        
-        // Allow-list: Admin/central paths that don't require tenant context
-        $allowedPaths = [
-            'admin/login', 'admin/sign', 'admin/signout', 'admin/sessions',
-            'new', 'index', 'settings',
-            'superadmin', 'tenants',
-            'admin/_assets',
-        ];
-        
-        foreach ($allowedPaths as $allowed) {
-            if (str_starts_with($path, $allowed) || $path === 'admin') {
-                Log::debug('[DetectTenant] Skipping for admin/central path', [
-                    'path' => $path,
-                    'host' => $host
-                ]);
-                return $next($request);
-            }
-        }
-        
-        // Skip tenant detection for localhost without subdomain (development)
-        if (env('APP_ENV') !== 'production') {
-            $localHosts = ['localhost', '127.0.0.1', 'paymydine.test'];
-            if (in_array($host, $localHosts) || (strpos($host, ':') !== false && str_starts_with($host, '127.0.0.1'))) {
-                Log::debug('[DetectTenant] Skipping for localhost without subdomain', [
-                    'host' => $host,
-                    'path' => $path
-                ]);
-                return $next($request);
-            }
-        }
-        
         // Get subdomain from various possible headers
         $subdomain = $request->header('X-Tenant-Subdomain') 
                   ?? $request->header('X-Original-Host') 
-                  ?? $this->extractSubdomainFromHost($host);
+                  ?? $this->extractSubdomainFromHost($request->getHost());
 
         if ($subdomain && $subdomain !== 'www') {
             try {
@@ -66,56 +33,16 @@ class DetectTenant
                     ->first();
 
                 if ($tenant && $tenant->database) {
-                    // Log resolved tenant details
-                    Log::info('[Tenant] Resolved tenant', [
-                        'subdomain' => $subdomain,
-                        'domain' => $tenant->domain ?? 'N/A',
-                        'database' => $tenant->database,
-                        'db_host' => $tenant->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')),
-                        'db_username' => $tenant->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')),
-                    ]);
-                    
                     // Configure tenant connection
-                    $tenantConfig = [
-                        'driver' => 'mysql',
-                        'database' => $tenant->database,
-                        'host' => $tenant->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')),
-                        'port' => $tenant->db_port ?? env('TENANT_DB_PORT', env('DB_PORT')),
-                        'username' => $tenant->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')),
-                        'password' => $tenant->db_pass ?? env('TENANT_DB_PASSWORD', env('DB_PASSWORD')),
-                        'charset' => 'utf8mb4',
-                        'collation' => 'utf8mb4_unicode_ci',
-                        'prefix' => env('DB_PREFIX', 'ti_'),
-                        'strict' => false,
-                    ];
-                    
-                    Config::set('database.connections.tenant', $tenantConfig);
+                    Config::set('database.connections.tenant.database', $tenant->database);
+                    Config::set('database.connections.tenant.host', $tenant->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')));
+                    Config::set('database.connections.tenant.port', $tenant->db_port ?? env('TENANT_DB_PORT', env('DB_PORT')));
+                    Config::set('database.connections.tenant.username', $tenant->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')));
+                    Config::set('database.connections.tenant.password', $tenant->db_pass ?? env('TENANT_DB_PASSWORD', env('DB_PASSWORD')));
                     
                     // Reconnect to tenant database
                     DB::purge('tenant');
-                    
-                    try {
-                        DB::reconnect('tenant');
-                        // Test connection
-                        $pdo = DB::connection('tenant')->getPdo();
-                        Log::info('[Tenant] Connected OK', [
-                            'database' => $tenant->database,
-                            'pdo_connected' => !is_null($pdo),
-                        ]);
-                    } catch (\Exception $connEx) {
-                        Log::error('[Tenant] Connection FAIL', [
-                            'database' => $tenant->database,
-                            'host' => $tenantConfig['host'],
-                            'username' => $tenantConfig['username'],
-                            'error' => $connEx->getMessage(),
-                        ]);
-                        
-                        return response()->json([
-                            'error' => 'Database Error',
-                            'message' => 'Unable to connect to tenant database.',
-                            'details' => $connEx->getMessage()
-                        ], 500);
-                    }
+                    DB::reconnect('tenant');
                     
                     // Set tenant as default connection for this request
                     Config::set('database.default', 'tenant');

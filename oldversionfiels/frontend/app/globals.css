@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Theme Variables - Will be dynamically set by theme system */
+    --theme-primary: #E7CBA9;
+    --theme-secondary: #EFC7B1;
+    --theme-accent: #3B3B3B;
+    --theme-background: #FAFAFA;
+    --theme-text-primary: #3B3B3B;
+    --theme-text-secondary: #7E7E7E;
+    --theme-text-muted: #9CA3AF;
+    --theme-border: #EDEDED;
+    --theme-input: #FFFFFF;
+    --theme-button: #E7CBA9;
+    --theme-button-hover: #D4B89A;
+    --theme-menu-item-bg: #FFFFFF;
+    --theme-menu-item-border: #F3F4F6;
+    --theme-category-active: #E7CBA9;
+    --theme-category-inactive: #9CA3AF;
+    --theme-price: #EFC7B1;
+    --theme-cart-bg: #FAFAFA;
+    --theme-cart-border: #EDEDED;
+    --theme-payment-button: #E7CBA9;
+    --theme-payment-button-hover: #D4B89A;
+    --theme-success: #10B981;
+    --theme-warning: #F59E0B;
+    --theme-error: #EF4444;
+    --theme-info: #3B82F6;
+    
+    /* Legacy variables for backward compatibility */
+    --paymydine-primary: var(--theme-primary);
+    --paymydine-secondary: var(--theme-secondary);
+    --paymydine-accent: var(--theme-accent);
+    --paymydine-background: var(--theme-background);
+    --paydine-champagne: var(--theme-primary);
+    --paydine-rose-beige: var(--theme-secondary);
+    --paydine-elegant-gray: var(--theme-text-primary);
+    --paydine-soft-white: var(--theme-background);
+    --paydine-muted-gray: var(--theme-text-secondary);
+    --paydine-border: var(--theme-border);
+    
+    /* Default CSS variables */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Theme utility classes */
+@layer utilities {
+  .text-theme-primary { color: var(--theme-primary); }
+  .text-theme-secondary { color: var(--theme-secondary); }
+  .text-theme-accent { color: var(--theme-accent); }
+  .text-theme-text-primary { color: var(--theme-text-primary); }
+  .text-theme-text-secondary { color: var(--theme-text-secondary); }
+  .text-theme-text-muted { color: var(--theme-text-muted); }
+  .text-theme-price { color: var(--theme-price); }
+  
+  .bg-theme-primary { background-color: var(--theme-primary); }
+  .bg-theme-secondary { background-color: var(--theme-secondary); }
+  .bg-theme-accent { background-color: var(--theme-accent); }
+  .bg-theme-background { background-color: var(--theme-background); }
+  .bg-theme-menu-item { background-color: var(--theme-menu-item-bg); }
+  .bg-theme-cart { background-color: var(--theme-cart-bg); }
+  
+  .border-theme-primary { border-color: var(--theme-primary); }
+  .border-theme-secondary { border-color: var(--theme-secondary); }
+  .border-theme-border { border-color: var(--theme-border); }
+  .border-theme-menu-item { border-color: var(--theme-menu-item-border); }
+  .border-theme-cart { border-color: var(--theme-cart-border); }
+  
+  .hover\:bg-theme-button-hover:hover { background-color: var(--theme-button-hover); }
+  .hover\:bg-theme-payment-button-hover:hover { background-color: var(--theme-payment-button-hover); }
+  
+  /* Legacy utility classes for backward compatibility */
+  .text-paydine-champagne { color: var(--paydine-champagne); }
+  .text-paydine-rose-beige { color: var(--paydine-rose-beige); }
+  .text-paydine-elegant-gray { color: var(--paydine-elegant-gray); }
+  .text-paydine-soft-white { color: var(--paydine-soft-white); }
+  .text-paydine-muted-gray { color: var(--paydine-muted-gray); }
+  
+  .bg-paydine-champagne { background-color: var(--paydine-champagne); }
+  .bg-paydine-rose-beige { background-color: var(--paydine-rose-beige); }
+  .bg-paydine-soft-white { background-color: var(--paydine-soft-white); }
+  
+  .border-paydine-champagne { border-color: var(--paydine-champagne); }
+  .border-paydine-border { border-color: var(--paydine-border); }
+}
+
+/* Existing utilities */
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .mask-gradient-left {
+    mask-image: linear-gradient(to right, transparent 0%, black 20%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%);
+  }
+  
+  .mask-gradient-right {
+    mask-image: linear-gradient(to left, transparent 0%, black 20%);
+    -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20%);
+  }
+  
+  .mask-gradient-both {
+    mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(242, 195, 195, 0.05);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-secondary);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-primary);
+}
+
+/* Remove number input arrows */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"],
+input[type="number"]:focus {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
