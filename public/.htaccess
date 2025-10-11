@@ -1,0 +1,30 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Serve Next.js static assets directly (prevent rewrite to index.php)
+    # This must come BEFORE the Laravel front-controller rule
+    RewriteCond %{REQUEST_URI} ^/_next/static/ [OR]
+    RewriteCond %{REQUEST_URI} ^/_next/image/ [OR]
+    RewriteCond %{REQUEST_URI} \.(js|css|map|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot)$
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller (Laravel)...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
