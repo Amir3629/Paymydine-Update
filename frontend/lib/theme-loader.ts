@@ -16,10 +16,11 @@ function tenantIdFromHost(hostname: string): string {
  * 1. Fetches theme from GET /simple-theme endpoint
  * 2. Applies admin-selected theme via applyTheme()
  * 3. Stores in tenant-scoped localStorage
+ * 4. Returns theme data for caching
  * 
  * Call this ONCE on app boot in ThemeProvider
  */
-export async function initThemeFromAdmin(): Promise<void> {
+export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides?: Record<string,string>}> {
   console.log('🎨 ThemeLoader: Fetching admin-selected theme...');
   
   try {
@@ -47,10 +48,14 @@ export async function initThemeFromAdmin(): Promise<void> {
         console.warn('Failed to store theme in localStorage:', e);
       }
     }
+    
+    // Return theme data for caching
+    return { themeId, overrides };
   } catch (e) {
     console.error('❌ ThemeLoader: Failed to load admin theme:', e);
     // Fallback to default theme
     applyTheme("clean-light");
+    return {};
   }
 }
 

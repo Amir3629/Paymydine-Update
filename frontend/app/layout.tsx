@@ -21,10 +21,29 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="theme-vars">
+    <html lang="en" className="theme-vars" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#E7CBA9" />
+        {/* Pre-hydration theme snap from localStorage (tenant-scoped) */}
+        <script dangerouslySetInnerHTML={{
+          __html: `(function(){try{
+            var h=window.location.hostname.split(".");
+            var tenant=(h.length>=3?h[0]:"default");
+            var themeKey=tenant+":paymydine-theme";
+            var ovKey=tenant+":paymydine-theme-overrides";
+            var t=localStorage.getItem(themeKey);
+            if(t){ document.documentElement.setAttribute("data-theme",t); }
+            var ov=null; try{ ov=JSON.parse(localStorage.getItem(ovKey)||"null"); }catch(e){}
+            if(ov && typeof ov==="object"){
+              var r=document.documentElement.style;
+              if(ov.primary)   r.setProperty("--theme-primary",ov.primary);
+              if(ov.secondary) r.setProperty("--theme-secondary",ov.secondary);
+              if(ov.accent)    r.setProperty("--theme-accent",ov.accent);
+              if(ov.background)r.setProperty("--theme-background",ov.background);
+            }
+          }catch(e){}})()`
+        }} />
         <style id="theme-vars-inline">{`
           /* Let CSS variables handle all backgrounds - no overrides */
           html, body { background: var(--theme-background); }
