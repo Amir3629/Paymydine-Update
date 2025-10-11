@@ -387,7 +387,7 @@ Route::group([
 ], function () {
     Route::get('restaurant/{locationId}', 'RestaurantController@getRestaurantInfo');
     Route::get('restaurant/{locationId}/menu', 'RestaurantController@getMenu');
-    Route::post('webhooks/pos', 'PosWebhookController@handle');
+    Route::post('webhooks/pos', 'PosWebhookController@handle')->middleware('throttle:10,1');
     
     // Order endpoints
     Route::post('restaurant/{locationId}/order', 'OrderController@createOrder');
