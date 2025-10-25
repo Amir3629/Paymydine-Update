@@ -28833,7 +28833,7 @@ a[data-request] {
   z-index: 2 !important;
 }
 
-/* Enhanced Primary Button */
+/* Enhanced Primary Button - FORCE OVERRIDE */
 .btn-primary {
   background: linear-gradient(135deg, #d8b686 0%, #c19a5a 100%) !important;
   border: 2px solid #d8b686 !important;
@@ -28847,6 +28847,114 @@ a[data-request] {
   overflow: hidden !important;
   backdrop-filter: blur(10px) !important;
   box-shadow: 0 8px 25px rgba(216, 182, 134, 0.4) !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  line-height: 1.5 !important;
+}
+
+/* FORCE BUTTON TEXT COLOR - NUCLEAR OPTION */
+button.btn-primary,
+input.btn-primary,
+.btn-primary {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+}
+
+button.btn-primary:hover,
+input.btn-primary:hover,
+.btn-primary:hover {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+button.btn-primary:focus,
+input.btn-primary:focus,
+.btn-primary:focus {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+button.btn-primary:active,
+input.btn-primary:active,
+.btn-primary:active {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+/* FORCE BUTTON SIZE AND STYLING - PREVENT CHANGES */
+button.btn-primary,
+input.btn-primary,
+.btn-primary {
+  min-height: 36px !important;
+  min-width: auto !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 8px 16px !important;
+  margin: 0 !important;
+  border: 2px solid #d8b686 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* PREVENT INLINE STYLE OVERRIDES */
+button.btn-primary[style*="color"],
+input.btn-primary[style*="color"],
+.btn-primary[style*="color"] {
+  color: #ffffff !important;
+}
+
+button.btn-primary[style*="font-size"],
+input.btn-primary[style*="font-size"],
+.btn-primary[style*="font-size"] {
+  font-size: 14px !important;
+}
+
+button.btn-primary[style*="padding"],
+input.btn-primary[style*="padding"],
+.btn-primary[style*="padding"] {
+  padding: 8px 16px !important;
+}
+
+/* ULTRA SPECIFIC OVERRIDE FOR ALL BUTTON TYPES */
+a.btn-primary,
+button.btn-primary,
+input.btn-primary,
+.btn-primary,
+.toolbar .btn-primary,
+.toolbar-action .btn-primary {
+  color: #ffffff !important;
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+  min-height: 36px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+
+a.btn-primary:hover,
+button.btn-primary:hover,
+input.btn-primary:hover,
+.btn-primary:hover,
+.toolbar .btn-primary:hover,
+.toolbar-action .btn-primary:hover {
+  color: #ffffff !important;
+  text-decoration: none !important;
 }
 
 .btn-primary::before {
@@ -29936,5 +30044,111 @@ html, body {
     width: 35px !important;
     height: 35px !important;
     font-size: 14px !important;
+  }
+}
+
+/* Flash Message Styling - Smooth and Beautiful */
+.alert {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) translateY(-100px) !important;
+  z-index: 99999 !important;
+  max-width: 500px !important;
+  min-width: 300px !important;
+  padding: 16px 20px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  opacity: 0 !important;
+  display: block !important;
+  visibility: visible !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: slideInFromTop 0.5s ease-out forwards, autoHide 4s ease-in-out 0.5s forwards !important;
+}
+
+.alert.show {
+  transform: translateX(-50%) translateY(0) !important;
+  opacity: 1 !important;
+}
+
+/* Success Alert Styling */
+.alert-success {
+  background: linear-gradient(135deg, rgba(25, 135, 84, 0.95), rgba(20, 110, 70, 0.95)) !important;
+  color: #ffffff !important;
+  border-left: 4px solid #28a745 !important;
+  border-top: 2px solid rgba(40, 167, 69, 0.3) !important;
+  border-right: 2px solid rgba(40, 167, 69, 0.3) !important;
+  border-bottom: 2px solid rgba(40, 167, 69, 0.3) !important;
+}
+
+/* Danger Alert Styling */
+.alert-danger {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.95), rgba(180, 35, 51, 0.95)) !important;
+  color: #ffffff !important;
+  border-left: 4px solid #dc3545 !important;
+  border-top: 2px solid rgba(220, 53, 69, 0.3) !important;
+  border-right: 2px solid rgba(220, 53, 69, 0.3) !important;
+  border-bottom: 2px solid rgba(220, 53, 69, 0.3) !important;
+}
+
+/* Hide Close Button - Auto Hide Only */
+.alert .btn-close {
+  display: none !important;
+}
+
+/* Hover Effects */
+.alert:hover {
+  transform: translateX(-50%) translateX(-5px) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Animation Keyframes */
+@keyframes slideInFromTop {
+  0% {
+    transform: translateX(-50%) translateY(-100px) !important;
+    opacity: 0 !important;
+  }
+  100% {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 1 !important;
+  }
+}
+
+@keyframes autoHide {
+  0% {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 1 !important;
+  }
+  80% {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 1 !important;
+  }
+  100% {
+    transform: translateX(-50%) translateY(-100px) !important;
+    opacity: 0 !important;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .alert {
+    left: 10px !important;
+    right: 10px !important;
+    transform: translateY(-100px) !important;
+    max-width: none !important;
+    min-width: auto !important;
+  }
+  
+  .alert.show {
+    transform: translateY(0) !important;
+  }
+  
+  .alert:hover {
+    transform: translateX(-5px) !important;
   }
 }

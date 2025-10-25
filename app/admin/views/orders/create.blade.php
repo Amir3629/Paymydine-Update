@@ -429,8 +429,6 @@ $unavailableTables = DB::table('orders')
     </div>
     
     <div class="w-100 ms-row card-body mt-5 order-form" style="background: linear-gradient(135deg, #fdf7dd, #fbedb1);padding: 4rem 2rem; display: none;">
-        
-        <input type="hidden" name="table_id" id="selected-table" required>
 
 <div class="wrapper w-100">
     <div class="row w-100">
@@ -1876,12 +1874,33 @@ body, html {
     transform: scale(1.1);
 }
 
+/* Selected item sides styling */
+.selected-item-sides {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.side-tag {
+    background: linear-gradient(135deg, #c19a5a, #d8b686);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+    display: inline-block;
+    box-shadow: 0 1px 3px rgba(193, 154, 90, 0.3);
+}
 
     </style>
 
 
 <script>
 
+
+// Global variables for table selection
+let selectedTableInput;
 
 document.addEventListener("DOMContentLoaded", function () {
             // FORCE toolbar positioning - override everything
@@ -2094,24 +2113,27 @@ document.addEventListener("DOMContentLoaded", function () {
             const basePrice = parseFloat(menuPrice);
             const totalPrice = basePrice + totalOptionsPrice;
             
-            if (!selectedItems.has(menuId)) {
-                selectedItems.set(menuId, {
+            // Create unique key that includes sides to allow multiple entries of same food with different sides
+            const optionsKey = selectedOptions.map(opt => opt.value).sort().join(',');
+            const uniqueKey = `${menuId}_${optionsKey}`;
+            console.log('Unique key for cart with sides:', uniqueKey);
+            
+            if (!selectedItems.has(uniqueKey)) {
+                selectedItems.set(uniqueKey, {
                     id: menuId,
+                    uniqueKey: uniqueKey, // Store the unique key
                     name: menuName,
                     price: totalPrice, // Use total price including options
                     basePrice: basePrice, // Keep original price
                     optionsPrice: totalOptionsPrice, // Price of selected options
                     image: menuImage,
                     quantity: 0,
-                    options: []
+                    options: selectedOptions
                 });
             }
             
-            const itemData = selectedItems.get(menuId);
+            const itemData = selectedItems.get(uniqueKey);
             itemData.quantity++;
-            itemData.options = selectedOptions; // Update with selected options
-            itemData.price = totalPrice; // Update total price
-            itemData.optionsPrice = totalOptionsPrice; // Update options price
             item.dataset.quantity = itemData.quantity;
             
             // Update UI
@@ -2145,9 +2167,14 @@ document.addEventListener("DOMContentLoaded", function () {
             const menuImage = item.dataset.image;
             console.log('Menu data:', { menuId, menuPrice, menuName, menuImage });
             
-            if (!selectedItems.has(menuId)) {
-                selectedItems.set(menuId, {
+            // Create unique key for items without sides (empty options)
+            const uniqueKey = `${menuId}_no_sides`;
+            console.log('Unique key for cart (no sides):', uniqueKey);
+            
+            if (!selectedItems.has(uniqueKey)) {
+                selectedItems.set(uniqueKey, {
                     id: menuId,
+                    uniqueKey: uniqueKey, // Store the unique key
                     name: menuName,
                     price: menuPrice,
                     image: menuImage,
@@ -2156,7 +2183,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             }
             
-            const itemData = selectedItems.get(menuId);
+            const itemData = selectedItems.get(uniqueKey);
             itemData.quantity++;
             item.dataset.quantity = itemData.quantity;
             
@@ -2183,13 +2210,22 @@ document.addEventListener("DOMContentLoaded", function () {
             const menuId = item.dataset.id;
             console.log('Removing menuId:', menuId);
             
-            if (selectedItems.has(menuId)) {
-                const itemData = selectedItems.get(menuId);
+            // Find the item in cart by menuId (since we don't know the exact unique key)
+            let foundKey = null;
+            for (let [key, itemData] of selectedItems.entries()) {
+                if (itemData.id === menuId) {
+                    foundKey = key;
+                    break;
+                }
+            }
+            
+            if (foundKey && selectedItems.has(foundKey)) {
+                const itemData = selectedItems.get(foundKey);
                 itemData.quantity--;
                 console.log('Reduced quantity to:', itemData.quantity);
                 
                 if (itemData.quantity <= 0) {
-                    selectedItems.delete(menuId);
+                    selectedItems.delete(foundKey);
                     quantityBadge.classList.remove('show');
                     item.dataset.quantity = '0';
                     console.log('Item completely removed from cart');
@@ -2367,33 +2403,46 @@ document.addEventListener("DOMContentLoaded", function () {
                         selectedItems.forEach((itemData, menuId) => {
                             const itemCard = document.createElement("div");
                             itemCard.classList.add("selected-item-card");
-                            itemCard.innerHTML = `
-                                <img src="${itemData.image}" alt="${itemData.name}" class="selected-item-image">
-                                <div class="selected-item-info">
-                                    <h4 class="selected-item-name">${itemData.name}</h4>
-                                    <p class="selected-item-price">$${itemData.price}</p>
+                             // Generate sides display
+                             let sidesDisplay = '';
+                             if (itemData.options && itemData.options.length > 0) {
+                                 console.log('Item has options, creating sides display');
+                                 sidesDisplay = '<div class="selected-item-sides">';
+                                 itemData.options.forEach(option => {
+                                     console.log('Adding side tag:', option.text);
+                                     sidesDisplay += `<span class="side-tag">${option.text}</span>`;
+                                 });
+                                 sidesDisplay += '</div>';
+                             }
+                             
+                             itemCard.innerHTML = `
+                                 <img src="${itemData.image}" alt="${itemData.name}" class="selected-item-image">
+                                 <div class="selected-item-info">
+                                     <h4 class="selected-item-name">${itemData.name}</h4>
+                                     <p class="selected-item-price">$${itemData.price}</p>
+                                     ${sidesDisplay}
     </div>
-                                <div class="selected-item-actions">
-                                    <div class="quantity-control">
-                                        <button class="qty-btn danger" onclick="decreaseQuantity('${menuId}')">-</button>
-                                        <span class="qty-display">${itemData.quantity}</span>
-                                        <button class="qty-btn" onclick="increaseQuantity('${menuId}')">+</button>
+                                 <div class="selected-item-actions">
+                                     <div class="quantity-control">
+                                         <button class="qty-btn danger" onclick="decreaseQuantity('${itemData.uniqueKey}')">-</button>
+                                         <span class="qty-display">${itemData.quantity}</span>
+                                         <button class="qty-btn" onclick="increaseQuantity('${itemData.uniqueKey}')">+</button>
 </div>
-                                </div>
-                            `;
+                                 </div>
+                             `;
                             selectedItemsContainer.appendChild(itemCard);
                         });
                     }
                 }
                 
                 // Global functions for quantity control
-                window.increaseQuantity = function(menuId) {
-                    if (selectedItems.has(menuId)) {
-                        const itemData = selectedItems.get(menuId);
+                window.increaseQuantity = function(uniqueKey) {
+                    if (selectedItems.has(uniqueKey)) {
+                        const itemData = selectedItems.get(uniqueKey);
                         itemData.quantity++;
                         
                         // Update card
-                        const card = document.querySelector(`[data-id="${menuId}"]`);
+                        const card = document.querySelector(`[data-id="${itemData.id}"]`);
                         if (card) {
                             card.dataset.quantity = itemData.quantity;
                             card.querySelector('.quantity-number').textContent = itemData.quantity;
@@ -2403,23 +2452,23 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 };
                 
-                window.decreaseQuantity = function(menuId) {
-                    if (selectedItems.has(menuId)) {
-                        const itemData = selectedItems.get(menuId);
+                window.decreaseQuantity = function(uniqueKey) {
+                    if (selectedItems.has(uniqueKey)) {
+                        const itemData = selectedItems.get(uniqueKey);
                         itemData.quantity--;
                         
                         if (itemData.quantity <= 0) {
-                            selectedItems.delete(menuId);
+                            selectedItems.delete(uniqueKey);
                             
                             // Update card
-                            const card = document.querySelector(`[data-id="${menuId}"]`);
+                            const card = document.querySelector(`[data-id="${itemData.id}"]`);
                             if (card) {
                                 card.dataset.quantity = '0';
                                 card.querySelector('.quantity-badge').style.display = 'none';
                             }
                         } else {
                             // Update card
-                            const card = document.querySelector(`[data-id="${menuId}"]`);
+                            const card = document.querySelector(`[data-id="${itemData.id}"]`);
                             if (card) {
                                 card.dataset.quantity = itemData.quantity;
                                 card.querySelector('.quantity-number').textContent = itemData.quantity;
@@ -2542,7 +2591,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Ensure table_id is set
                 const tableIdInput = form.querySelector('input[name="table_id"]');
                 if (tableIdInput) {
-                    tableIdInput.value = selectedTable.value;
+                    tableIdInput.value = selectedTableInput.value;
+                    console.log('Table ID being set to:', selectedTableInput.value);
                 }
                 
                 // Debug: Log form data before submission
@@ -2621,7 +2671,7 @@ setTimeout(() => {
 document.addEventListener("DOMContentLoaded", function () {
     const tableItems = document.querySelectorAll(".table-item");
     const orderForm = document.querySelector(".order-form");
-    const selectedTableInput = document.getElementById("selected-table");
+    selectedTableInput = document.getElementById("selected-table");
     const editLayoutBtn = document.getElementById("edit-layout-btn");
     const tableGrid = document.querySelector(".table-grid");
     const tableGridContainer = document.getElementById("table-grid");
@@ -2684,6 +2734,7 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Set the selected table for order processing
             selectedTableInput.value = tableName;
+            console.log('Table selected (Cashier):', tableName);
             
             // Show smooth transition to menu
             showMenuForTable(tableName, tableId, tableNo);
@@ -2715,6 +2766,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Set the selected table for order processing
                 const tableName = value.split('_')[0];
                 selectedTableInput.value = tableName;
+                console.log('Table selected (Regular):', tableName);
                 
                 // Show smooth transition to menu
                 showMenuForTable(tableName, tableId, tableNo);
@@ -3391,21 +3443,6 @@ document.addEventListener("DOMContentLoaded", function () {
         childList: true,
         subtree: true
     });
-    applyZoom();
-});
-</script>
-
-
-    <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
-
-        }, 500);
-    }
-    
-    // Back to tables button event listener
-    document.getElementById('back-to-tables').addEventListener('click', backToTables);
-
-    // Initialize zoom button states and load saved zoom
-    loadZoomLevel();
     applyZoom();
 });
 </script>
