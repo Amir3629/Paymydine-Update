@@ -29,19 +29,189 @@
     line-height: 1.2;
     margin-left: 8px;
 }
+
+/* Standard Admin Page Header Styling */
+.page-header {
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.page-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-title h4 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.page-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.selected-table-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badge.badge-primary {
+    background: linear-gradient(135deg, #08815e, #08815e);
+    color: #000329;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+}
+
+.table-status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-weight: 600;
+}
+
+/* Back to Tables Button - Override for Standard Size */
+#back-to-tables.btn-primary {
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+    min-height: 36px !important;
+    border-radius: 8px !important;
+    background: linear-gradient(135deg, #08815e 0%, #08815e 100%) !important;
+    border: 2px solid #08815e !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+    display: inline-block !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    white-space: nowrap !important;
+    line-height: 1.4 !important;
+}
+
+#back-to-tables.btn-primary:hover {
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: 0 8px 20px rgba(216, 182, 134, 0.4) !important;
+    border-color: #08815e !important;
+    color: #ffffff !important;
+}
+
+/* Fix Zoom Control Button Sizes */
+.zoom-btn {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 6px !important;
+    font-size: 12px !important;
+    border-radius: 6px !important;
+    border: 1px solid #08815e !important;
+    background: linear-gradient(135deg, #08815e, #08815e) !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+}
+
+.zoom-btn:hover {
+    background: linear-gradient(135deg, #08815e, #0bb87a) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(216, 182, 134, 0.3) !important;
+}
+
+.zoom-level-indicator {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #495057 !important;
+    padding: 4px 8px !important;
+    background: #f8f9fa !important;
+    border-radius: 4px !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+.zoom-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .page-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .page-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .zoom-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 10px !important;
+    }
+}
 </style>
 
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<div class="progress-indicator-container" style="padding: 18px 20px 0;">
-    <!-- Back to Tables Button -->
-    <div class="back-to-tables-container" style="margin-bottom: 1rem;">
-        <button type="button" id="back-to-tables" class="btn btn-secondary" style="display: none;">
-            <i class="fa fa-arrow-left"></i> Back to Tables
-        </button>
-        <div id="selected-table-info" class="selected-table-info" style="display: none;">
-            <h3>Ordering for <span id="current-table-name"></span></h3>
-            <p class="text-muted" style="display: none;">Table ID: <span id="current-table-id"></span> | Table No: <span id="current-table-no"></span></p>
-            <div class="table-status-badge" id="table-status-badge" style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 5px;"></div>
+
+<!-- Standard Admin Page Header -->
+<div class="page-header">
+    <div class="page-header-content">
+        <div class="page-title">
+            <button type="button" id="back-to-tables" class="btn btn-primary" style="display: none;" onclick="window.location.href='{{ admin_url('orders') }}'">
+                <i class="fa fa-arrow-left"></i> Back to Order
+            </button>
+        </div>
+        <div class="page-header-actions">
+            <div class="header-controls" style="display: none;" id="header-controls">
+                <div class="zoom-controls">
+                    <div class="zoom-level-indicator" id="zoom-level">100%</div>
+                    <button type="button" class="zoom-btn" id="zoom-in" style="opacity: 1 !important; cursor: pointer; pointer-events: auto !important; display: inline-block !important; visibility: visible !important; position: relative !important; z-index: 99999 !important;" aria-label="Zoom In (Ctrl + Scroll Up)" data-bs-original-title="Zoom In (Ctrl + Scroll Up)">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                    <button type="button" class="zoom-btn" id="zoom-out" style="opacity: 1 !important; cursor: pointer; pointer-events: auto !important; display: inline-block !important; visibility: visible !important; position: relative !important; z-index: 99999 !important;" aria-label="Zoom Out (Ctrl + Scroll Down)" data-bs-original-title="Zoom Out (Ctrl + Scroll Down)">
+                        <i class="fa fa-minus"></i>
+                    </button>
+                    <button type="button" class="zoom-btn" id="reset-zoom" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;" aria-label="Reset View" data-bs-original-title="Reset View">
+                        <i class="fa fa-home"></i>
+                    </button>
+                </div>
+                <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
+                    <i class="fa fa-edit"></i> Edit Layout
+                </button>
+            </div>
+            <div id="selected-table-info" class="selected-table-info" style="display: none;">
+                <span class="badge badge-primary">Ordering for <span id="current-table-name"></span></span>
+                <div class="table-status-badge" id="table-status-badge" style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-left: 10px;"></div>
+                <!-- Hidden elements for JavaScript to access -->
+                <span id="current-table-id" style="display: none;"></span>
+                <span id="current-table-no" style="display: none;"></span>
+            </div>
         </div>
     </div>
 </div>
@@ -326,26 +496,6 @@ $unavailableTables = DB::table('orders')
     
     <!-- Table Selection -->
     <div class="table-selection">
-        <div class="table-selection-header">
-            <label class="form-label">SELECT A TABLE</label>
-            <div class="header-controls">
-                <div class="zoom-controls">
-                    <div class="zoom-level-indicator" id="zoom-level">100%</div>
-                    <button type="button" class="zoom-btn" id="zoom-in" title="Zoom In (Ctrl + Scroll Up)">
-                        <i class="fa fa-plus"></i>
-                </button>
-                    <button type="button" class="zoom-btn" id="zoom-out" title="Zoom Out (Ctrl + Scroll Down)">
-                        <i class="fa fa-minus"></i>
-                    </button>
-                    <button type="button" class="zoom-btn" id="reset-zoom" title="Reset View">
-                        <i class="fa fa-home"></i>
-                    </button>
-                </div>
-                <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm">
-                    <i class="fa fa-edit"></i> Edit Layout
-                </button>
-            </div>
-        </div>
 
         <div class="table-grid-container" id="table-grid">
             <!-- Working Area Indicator -->
@@ -428,7 +578,7 @@ $unavailableTables = DB::table('orders')
         </div>
     </div>
     
-    <div class="w-100 ms-row card-body mt-5 order-form" style="background: linear-gradient(135deg, #fdf7dd, #fbedb1);padding: 4rem 2rem; display: none;">
+    <div class="w-100 ms-row card-body mt-5 order-form" style="background: linear-gradient(135deg, #ffffff, #ffffff);padding: 4rem 2rem; display: none;">
 
 <div class="wrapper w-100">
     <div class="row w-100">
@@ -575,8 +725,8 @@ $unavailableTables = DB::table('orders')
         .menu-info .menu-price {
     font-size: 0.8rem !important; 
     font-weight: 500 !important; 
-    color: #704f26 !important; /* Changed to dark brown */
-    background: linear-gradient(135deg, #fdf7dd, #fbedb1) !important; /* Changed to cream gradient */
+    color: #202938 !important; /* Changed to dark brown */
+    background: linear-gradient(135deg, #ffffff, #ffffff) !important; /* Changed to cream gradient */
     padding: 4px 8px !important; 
     border-radius: 6px !important;
     display: inline-block !important; 
@@ -586,7 +736,7 @@ $unavailableTables = DB::table('orders')
 
 .menu-price:hover {
     color: #fff !important; 
-    background: linear-gradient(135deg, #d8b686, #c19a5a) !important; /* Changed to brown gradient */
+    background: linear-gradient(135deg, #08815e, #08815e) !important; /* Changed to brown gradient */
     transform: scale(1.05) !important; 
     box-shadow: 0 4px 8px rgba(214, 182, 134, 0.3) !important; /* Brown shadow */
 }
@@ -607,12 +757,12 @@ $unavailableTables = DB::table('orders')
 }
 
 .form-control:focus {
-    border-color: #d8b686 !important;
+    border-color: #08815e !important;
     box-shadow: 0 0 5px rgba(214, 182, 134, 0.5) !important;
 }
 
 #menu-options-container {
-    background: linear-gradient(135deg, #fdf7dd, #fbedb1) !important;
+    background: linear-gradient(135deg, #ffffff, #ffffff) !important;
     padding: 15px !important;
     border-radius: 10px !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
@@ -650,8 +800,8 @@ $unavailableTables = DB::table('orders')
 }
 
 .menu-item:hover, .menu-item.selected {
-    border-color: #d8b686;
-    background: #fdf7dd;
+    border-color: #08815e;
+    background: #ffffff;
 }
 
 .menu-image {
@@ -669,7 +819,7 @@ $unavailableTables = DB::table('orders')
     font-size: 1.2rem !important;
     text-align: center !important;
     line-height: 1.4 !important;
-    color: #c19a5a !important;
+    color: #08815e !important;
 }
 
 
@@ -755,11 +905,11 @@ $unavailableTables = DB::table('orders')
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #d8b686;
+            border-bottom: 2px solid #08815e;
         }
 
         .flip-back-btn {
-            background: #c19a5a;
+            background: #08815e;
             color: white;
             border: none;
             border-radius: 50%;
@@ -775,13 +925,13 @@ $unavailableTables = DB::table('orders')
         }
 
         .flip-back-btn:hover {
-            background: #d8b686;
+            background: #08815e;
             transform: scale(1.1);
         }
 
         .back-header h4 {
             margin: 0;
-            color: #c19a5a;
+            color: #08815e;
             font-size: 1.1rem;
             font-weight: 600;
         }
@@ -797,11 +947,11 @@ $unavailableTables = DB::table('orders')
             gap: 10px;
             justify-content: center;
             padding-top: 10px;
-            border-top: 2px solid #d8b686;
+            border-top: 2px solid #08815e;
         }
 
         .flip-back-btn, .add-item-btn {
-            background: linear-gradient(135deg, #c19a5a, #d8b686) !important;
+            background: linear-gradient(135deg, #08815e, #08815e) !important;
             color: white !important;
             border: none !important;
             border-radius: 50% !important;
@@ -819,7 +969,7 @@ $unavailableTables = DB::table('orders')
         }
 
         .flip-back-btn:hover, .add-item-btn:hover {
-            background: linear-gradient(135deg, #d8b686, #c19a5a) !important;
+            background: linear-gradient(135deg, #08815e, #08815e) !important;
             transform: translateY(-2px) !important;
             box-shadow: 0 4px 12px rgba(193, 154, 90, 0.4) !important;
         }
@@ -843,7 +993,7 @@ $unavailableTables = DB::table('orders')
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 8px;
-            color: #c19a5a;
+            color: #08815e;
         }
 
         .form-check {
@@ -851,12 +1001,12 @@ $unavailableTables = DB::table('orders')
         }
 
         .form-check-input:checked {
-            background-color: #c19a5a;
-            border-color: #c19a5a;
+            background-color: #08815e;
+            border-color: #08815e;
         }
 
         .form-check-label {
-            color: #704f26;
+            color: #202938;
             font-weight: 500;
             cursor: pointer;
         }
@@ -899,7 +1049,7 @@ body, html {
 /* Modern Table Selection Styles - FULL PAGE WIDTH */
 .table-selection {
     margin: 0;
-    background: #fdf7de;
+    background: #ffffff;
     border-radius: 0;
     padding: 0;
     box-shadow: none;
@@ -916,8 +1066,8 @@ body, html {
     align-items: center;
     margin: 0;
     padding: 20px 30px;
-    border-bottom: 2px solid #d8b686;
-    background: #fdf7de;
+    border-bottom: 2px solid #08815e;
+    background: #ffffff;
     position: absolute;
     top: 0;
     left: 0;
@@ -942,7 +1092,7 @@ body, html {
 }
 
 #edit-layout-btn {
-    background: linear-gradient(135deg, #d8b686 0%, #c19a5a 100%);
+    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
     border: none;
     color: white;
     padding: 10px 20px;
@@ -958,7 +1108,7 @@ body, html {
 }
 
 #edit-layout-btn.active {
-    background: linear-gradient(135deg, #c19a5a 0%, #d8b686 100%);
+    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
     box-shadow: 0 4px 15px rgba(214, 182, 134, 0.3);
 }
 
@@ -1096,7 +1246,7 @@ body, html {
 }
 
 .table-circle.cashier {
-    background: linear-gradient(135deg, #d8b686 0%, #c19a5a 100%);
+    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
     color: white;
 }
 
@@ -1208,7 +1358,7 @@ body, html {
     position: absolute;
     top: -5px;
     right: -5px;
-    background: #d8b686;
+    background: #08815e;
     color: white;
     border-radius: 50%;
     width: 20px;
@@ -1224,7 +1374,7 @@ body, html {
 
 .table-item:hover .menu-link-icon {
     opacity: 1;
-    background: #c19a5a;
+    background: #08815e;
     transform: scale(1.1);
 }
 
@@ -1261,7 +1411,7 @@ body, html {
 }
 
 .table-item.edit-mode .table-circle {
-    border: 2px dashed #d8b686;
+    border: 2px dashed #08815e;
 }
 
 /* Ensure tables can be positioned freely */
@@ -1304,7 +1454,7 @@ body, html {
     border-radius: 8px;
     padding: 10px;
     font-size: 12px;
-    color: #d8b686;
+    color: #08815e;
     z-index: 1000;
     pointer-events: none;
 }
@@ -1371,7 +1521,7 @@ body, html {
     width: 35px;
     height: 35px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #d8b686 0%, #c19a5a 100%);
+    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
     border: none;
     color: white;
     display: flex;
@@ -1385,7 +1535,7 @@ body, html {
 }
 
 .zoom-btn:hover {
-    background: linear-gradient(135deg, #c19a5a 0%, #d8b686 100%);
+    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(214, 182, 134, 0.4);
 }
@@ -1401,7 +1551,7 @@ body, html {
     text-align: center;
     font-size: 12px;
     font-weight: bold;
-    color: #d8b686;
+    color: #08815e;
     padding: 8px;
     background: rgba(255, 255, 255, 0.8);
     border-radius: 15px;
@@ -1515,7 +1665,7 @@ body, html {
     padding: 15px;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-radius: 10px;
-    border-left: 4px solid #d8b686;
+    border-left: 4px solid #08815e;
 }
 
 .selected-table-info h3 {
@@ -1572,12 +1722,12 @@ body, html {
 }
 
 .table-status-badge.status-occupied {
-    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    background: linear-gradient(135deg, #dc3545 0%, #0bb87a 100%);
     color: white;
 }
 
 .table-status-badge.status-pending {
-    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%);
     color: white;
 }
 
@@ -1607,7 +1757,7 @@ body, html {
 }
 
 .btn-primary {
-    background-color: #d8b686 !important;
+    background-color: #08815e !important;
     border: none !important;
     padding: 12px 20px !important;
     font-size: 16px !important;
@@ -1617,7 +1767,7 @@ body, html {
 }
 
 .btn-primary:hover {
-    background-color: #c19a5a !important;
+    background-color: #08815e !important;
     box-shadow: 0 3px 10px rgba(214, 182, 134, 0.3) !important;
 }
 
@@ -1883,7 +2033,7 @@ body, html {
 }
 
 .side-tag {
-    background: linear-gradient(135deg, #c19a5a, #d8b686);
+    background: linear-gradient(135deg, #08815e, #08815e);
     color: white;
     padding: 2px 6px;
     border-radius: 10px;
@@ -1903,6 +2053,9 @@ body, html {
 let selectedTableInput;
 
 document.addEventListener("DOMContentLoaded", function () {
+            // Show header controls on page load
+            document.getElementById('header-controls').style.display = 'flex';
+            
             // FORCE toolbar positioning - override everything
             const floatingToolbar = document.getElementById("floating-toolbar");
             if (floatingToolbar) {
@@ -2376,16 +2529,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Show/hide toolbar based on items
                     if (totalItems === 0) {
                         // Hide toolbar smoothly
-                        floatingToolbar.style.opacity = '0';
-                        floatingToolbar.style.visibility = 'hidden';
-                        floatingToolbar.style.transform = 'translateX(-50%) translateY(100px)';
                         floatingToolbar.className = "floating-toolbar collapsed";
                         console.log("🔽 Toolbar hidden - no items selected");
                     } else {
                         // Show toolbar smoothly
-                        floatingToolbar.style.opacity = '1';
-                        floatingToolbar.style.visibility = 'visible';
-                        floatingToolbar.style.transform = 'translateX(-50%) translateY(0)';
                         floatingToolbar.classList.add('show');
                         
                         // Update toolbar state
@@ -2524,17 +2671,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Toolbar event listeners
         toggleToolbarBtn.addEventListener('click', function() {
-            if (toolbarState === "preview") {
+            console.log('Toggle button clicked, current state:', toolbarState);
+            if (toolbarState === "collapsed") {
+                // If collapsed, go to preview (shouldn't happen normally)
+                toolbarState = "preview";
+                floatingToolbar.className = "floating-toolbar preview show";
+                // Remove inline transform to let CSS handle it
+                floatingToolbar.style.transform = '';
+                toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            } else if (toolbarState === "preview") {
                 toolbarState = "expanded";
                 floatingToolbar.className = "floating-toolbar expanded show";
-                floatingToolbar.style.transform = 'translateX(-50%) translateY(0)';
+                // Remove inline transform to let CSS handle it
+                floatingToolbar.style.transform = '';
                 toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
             } else if (toolbarState === "expanded") {
                 toolbarState = "preview";
                 floatingToolbar.className = "floating-toolbar preview show";
-                floatingToolbar.style.transform = 'translateX(-50%) translateY(0)';
+                // Remove inline transform to let CSS handle it
+                floatingToolbar.style.transform = '';
                 toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
             }
+            console.log('New toolbar state:', toolbarState);
         });
 
 
@@ -2742,12 +2900,20 @@ document.addEventListener("DOMContentLoaded", function () {
     })();
 
     // Table selection functionality - NEW: Show menu directly in admin panel
+    console.log('Setting up table click handlers for', tableItems.length, 'tables');
     tableItems.forEach(item => {
         item.addEventListener("click", function (event) {
+            console.log('Table item clicked:', this);
+            console.log('Table element:', this);
+            console.log('Table classes:', this.className);
+            console.log('Table dataset:', this.dataset);
             event.preventDefault(); // Prevent any default behavior
             event.stopPropagation(); // Stop event bubbling
             
-            if (isEditMode) return; // Don't select tables in edit mode
+            if (isEditMode) {
+                console.log('Edit mode active, ignoring table click');
+                return; // Don't select tables in edit mode
+            }
             
             const value = this.dataset.value;
             const tableId = this.dataset.tableId;
@@ -2769,6 +2935,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log('Table selected (Regular):', tableName);
                 
                 // Show smooth transition to menu
+                console.log('Calling showMenuForTable with:', tableName, tableId, tableNo);
                 showMenuForTable(tableName, tableId, tableNo);
             }
         });
@@ -3275,6 +3442,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // NEW: Show menu for selected table with smooth transition
     function showMenuForTable(tableName, tableId, tableNo) {
+        console.log('=== showMenuForTable called ===');
+        console.log('Parameters:', { tableName, tableId, tableNo });
         console.log('Showing menu for table:', tableName, tableId, tableNo);
         
         // Update table info display
@@ -3308,6 +3477,11 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Show order form with smooth animation
             const orderForm = document.querySelector('.order-form');
+            console.log('Order form found:', orderForm);
+            if (!orderForm) {
+                console.error('Order form not found!');
+                return;
+            }
             orderForm.style.display = 'block';
             orderForm.style.opacity = '0';
             orderForm.style.transform = 'translateY(20px)';
@@ -3315,6 +3489,7 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Show back button and table info
             document.getElementById('back-to-tables').style.display = 'inline-block';
+            document.getElementById('header-controls').style.display = 'none';
             document.getElementById('selected-table-info').style.display = 'block';
             
             // Change button text to "Back to Tables" when table is selected
@@ -3343,9 +3518,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // Hide floating toolbar and clear selected items
         const floatingToolbar = document.getElementById('floating-toolbar');
         if (floatingToolbar) {
-            floatingToolbar.style.opacity = '0';
-            floatingToolbar.style.visibility = 'hidden';
-            floatingToolbar.style.transform = 'translateX(-50%) translateY(100px)';
             floatingToolbar.className = "floating-toolbar collapsed";
             console.log("🔽 Toolbar hidden - back to tables clicked");
         }

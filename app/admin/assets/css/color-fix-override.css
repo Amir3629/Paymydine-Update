@@ -1,0 +1,159 @@
+/* FORCE OVERRIDE ALL OLD COLORS - EMERGENCY FIX */
+/* This file will override any remaining old colors */
+
+/* Form Controls - Force White Backgrounds */
+.form-control,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+    color: #111827 !important;
+}
+
+/* Form Controls Focus States */
+.form-control:focus,
+input:focus,
+textarea:focus,
+select:focus {
+    background-color: #ffffff !important;
+    border-color: #08815e !important;
+    box-shadow: 0 0 0 0.2rem rgba(8, 129, 94, 0.25) !important;
+}
+
+/* Form Groups */
+.form-group {
+    background-color: transparent !important;
+}
+
+/* Help Blocks */
+.help-block {
+    color: #6b7280 !important;
+}
+
+/* Labels */
+.form-label,
+label {
+    color: #111827 !important;
+}
+
+/* Buttons - Force Green */
+.btn-primary {
+    background-color: #08815e !important;
+    border-color: #08815e !important;
+    color: #ffffff !important;
+}
+
+.btn-primary:hover {
+    background-color: #065a42 !important;
+    border-color: #065a42 !important;
+}
+
+/* Remove any gold/yellow/cream colors */
+* {
+    background-color: inherit !important;
+}
+
+/* Force override any inline styles */
+input[style*="background"],
+textarea[style*="background"],
+select[style*="background"] {
+    background-color: #ffffff !important;
+}
+
+input[style*="color"],
+textarea[style*="color"],
+select[style*="color"] {
+    color: #111827 !important;
+}
+
+input[style*="border"],
+textarea[style*="border"],
+select[style*="border"] {
+    border-color: #e5e7eb !important;
+}
+
+/* SIDEBAR MENU FIXES - Force Green Colors */
+.sidenav,
+.sidebar,
+.navbar-nav,
+.menu-item,
+.menu-link,
+.nav-link,
+.sidebar .nav-link,
+.sidebar .menu-item,
+.sidebar .menu-link {
+    background-color: transparent !important;
+    color: #202938 !important;
+}
+
+.menu-item:hover,
+.menu-link:hover,
+.nav-link:hover,
+.sidebar .menu-item:hover,
+.sidebar .menu-link:hover,
+.sidebar .nav-link:hover {
+    background-color: #ffffff !important;
+    color: #08815e !important;
+}
+
+.menu-item.active,
+.menu-link.active,
+.nav-link.active,
+.sidebar .menu-item.active,
+.sidebar .menu-link.active,
+.sidebar .nav-link.active,
+.menu-item[aria-current="page"],
+.menu-link[aria-current="page"],
+.nav-link[aria-current="page"] {
+    background-color: #08815e !important;
+    color: #ffffff !important;
+}
+
+/* Left sidebar specific overrides */
+.sidenav .menu-item,
+.sidenav .menu-link,
+.sidenav .nav-link {
+    color: #202938 !important;
+}
+
+.sidenav .menu-item:hover,
+.sidenav .menu-link:hover,
+.sidenav .nav-link:hover {
+    background-color: #ffffff !important;
+    color: #08815e !important;
+}
+
+.sidenav .menu-item.active,
+.sidenav .menu-link.active,
+.sidenav .nav-link.active,
+.sidenav .menu-item[aria-current="page"],
+.sidenav .menu-link[aria-current="page"],
+.sidenav .nav-link[aria-current="page"] {
+    background-color: #08815e !important;
+    color: #ffffff !important;
+}
+
+/* Force override any brown/cream colors in sidebar */
+.sidebar *,
+.sidenav *,
+.menu-item *,
+.menu-link *,
+.nav-link * {
+    background-color: inherit !important;
+}
+
+/* Specific menu item states */
+.menu-item:focus,
+.menu-link:focus,
+.nav-link:focus {
+    background-color: #ffffff !important;
+    color: #08815e !important;
+    outline: 2px solid #08815e !important;
+}

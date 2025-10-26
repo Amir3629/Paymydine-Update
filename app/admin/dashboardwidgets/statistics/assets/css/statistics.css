@@ -37,7 +37,7 @@
 /* Style control buttons */
 .widget-item-action .btn {
     background: rgba(112, 79, 38, 0.9) !important;
-    border: 1px solid #8b6332 !important;
+    border: 1px solid #08815e !important;
     border-radius: 6px !important;
     padding: 5px 8px !important;
     transition: all 0.2s ease !important;
@@ -104,7 +104,7 @@
     left: auto !important;
     opacity: 1 !important;
     /* Icon color - brown instead of white - override .text-white */
-    color: #8b6332 !important;
+    color: #08815e !important;
     z-index: 1;
 }
 
@@ -137,7 +137,7 @@
 .card-counter .stat-number {
     font-size: 2.0em !important; /* Slightly smaller - was 2.5em */
     font-weight: 800 !important;
-    color: #704f26 !important;
+    color: #202938 !important;
     margin: 10px 0 5px 0 !important;
     line-height: 1 !important;
     display: block !important;
@@ -146,7 +146,7 @@
 /* Text label styling */
 .card-counter .stat-text {
     font-size: 0.9em !important;
-    color: #8b6332 !important;
+    color: #08815e !important;
     margin: 5px 0 0 0 !important;
     font-weight: 600 !important;
     line-height: 1.3 !important;
@@ -157,13 +157,13 @@
 
 /* Gradient rings for each stat type */
 .stat-icon-brown-light {
-    background: linear-gradient(45deg, #8b6332, #d4a574, #e6b885, #d4a574, #8b6332) !important;
+    background: linear-gradient(45deg, #08815e, #0bb87a, #0dd4a3, #0bb87a, #08815e) !important;
 }
 
 .stat-icon-gold {
-    background: linear-gradient(45deg, #d4a574, #e6b885, #f0c896, #e6b885, #d4a574) !important;
+    background: linear-gradient(45deg, #0bb87a, #0dd4a3, #0ff5c7, #0dd4a3, #0bb87a) !important;
 }
 
 .stat-icon-brown-dark {
-    background: linear-gradient(45deg, #704f26, #8b6332, #a07644, #8b6332, #704f26) !important;
+    background: linear-gradient(45deg, #202938, #08815e, #065a42, #08815e, #202938) !important;
 }

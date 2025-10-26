@@ -1,0 +1,212 @@
+.table {
+  > :not(caption) > * > * {
+    box-shadow: none;
+  }
+
+  .sort-col {
+    cursor: pointer;
+    display: block;
+    position: relative;
+    color: $table-hover-color;
+    text-decoration: none;
+
+    .fa {
+      visibility: hidden;
+      position: absolute;
+      right: 1px;
+      top: 6px;
+    }
+
+    &:hover,
+    .active {
+      color: $body-color;
+    }
+
+    &:hover .fa,
+    &:hover,
+    .active {
+      visibility: visible;
+    }
+
+    .fa-sort-ASC:before,
+    &:hover .fa-sort-DESC:before {
+      @extend .fa-sort-amount-asc
+    }
+
+    .fa-sort-DESC:before,
+    &:hover .fa-sort-ASC:before {
+      @extend .fa-sort-amount-desc
+    }
+  }
+
+  > :not(:first-child) {
+    border-top: 2px solid $table-border-color;
+  }
+}
+.table-striped {
+  thead th {
+    background-color: $table-head-bg;
+  }
+
+  tbody tr {
+    background-color: $table-head-bg;
+  }
+}
+
+.table-muted .text-muted {
+  filter: alpha(opacity=80);
+  opacity: 0.8;
+}
+
+.table > tbody > tr > td,
+.table > tbody > tr > th,
+.table > tfoot > tr > td,
+.table > tfoot > tr > th,
+.table > thead > tr > td,
+.table > thead > tr > th {
+  vertical-align: middle;
+}
+
+.table > thead > tr > th {
+  font-weight: $font-weight-normal;
+  font-size: $font-size-sm;
+  text-transform: uppercase;
+  line-height: 2;
+  color: $table-hover-color;
+}
+
+.table .list-action,
+.table .list-setup {
+  width: 1px;
+}
+.list-table {
+  .table {
+    thead {
+      position: relative;
+    }
+
+    th:first-child,
+    td:first-child {
+      padding-left: $page-padding-x;
+      padding-right: 0;
+    }
+
+    th:last-child,
+    td:last-child {
+      padding-left: 0;
+      padding-right: $page-padding-x;
+    }
+  }
+
+  .bulk-actions {
+    background: transparent !important; // Transparent - will be in toolbar
+    position: fixed !important; // Fixed positioning to stay in toolbar
+    top: 84px !important; // Align with toolbar buttons
+    left: auto !important; // Don't hardcode left position
+    right: 250px !important; // Position from right side (leaves space for other elements)
+    width: auto !important;
+    z-index: 1000;
+    border: none !important;
+    box-shadow: none !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    
+    // When visible (not hidden by JavaScript), use flex
+    &:not(.hide) {
+      display: flex !important;
+    }
+
+    td {
+      border-bottom: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+      display: contents !important; // Make children appear inline
+      vertical-align: middle;
+      
+      &:first-child {
+        display: none !important; // Hide checkbox column
+      }
+    }
+
+    .btn-select-all {
+      &.active {
+        font-weight: $font-weight-bold;
+      }
+    }
+    
+    .btn-counter {
+      color: $brown-900;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      padding: 8px 12px;
+      order: 10; // Show LAST (after all buttons)
+      margin-left: 12px;
+    }
+    
+    .dropdown {
+      order: 1; // Show FIRST
+    }
+    
+    // Style ALL buttons to match "New" button EXACTLY
+    .btn-light {
+      background: linear-gradient(to bottom, #08815e, #08815e) !important;
+      border: none !important;
+      color: #FFFFFF !important;
+      padding: 8px 12px !important; // EXACT same as "New" button
+      border-radius: 3px !important; // Match "New" button
+      font-size: 14px !important;
+      line-height: 21px !important;
+      font-weight: 600 !important; // Match "New" button
+      height: 39px !important; // Force exact height
+      order: 2; // Show second
+      
+      &:hover {
+        background: linear-gradient(to bottom, #08815e, #08815e) !important;
+        color: #FFFFFF !important;
+      }
+    }
+    
+    .dropdown-toggle {
+      background: linear-gradient(to bottom, #08815e, #08815e) !important;
+      border: none !important;
+      color: #FFFFFF !important;
+      padding: 8px 12px !important; // EXACT same as "New" button
+      border-radius: 3px !important; // Match "New" button
+      font-size: 14px !important;
+      line-height: 21px !important;
+      font-weight: 600 !important; // Match "New" button
+      height: 39px !important; // Force exact height
+      
+      &:hover {
+        background: linear-gradient(to bottom, #08815e, #08815e) !important;
+        color: #FFFFFF !important;
+      }
+    }
+    
+    .text-danger {
+      background: linear-gradient(to bottom, #dc3545, #c82333) !important;
+      border: none !important;
+      color: #FFFFFF !important;
+      padding: 8px 12px !important; // EXACT same as "New" button
+      border-radius: 3px !important; // Match "New" button
+      font-size: 14px !important;
+      line-height: 21px !important;
+      font-weight: 600 !important; // Match "New" button
+      height: 39px !important; // Force exact height
+      order: 3; // Show third (after Enable/Disable)
+      
+      &:hover {
+        background: linear-gradient(to bottom, #c82333, #bd2130) !important;
+        color: #FFFFFF !important;
+      }
+    }
+  }
+}
+.table-striped {
+  thead th {
+    background-color: $brown-50; // Changed to light cream for new theme
+    border-bottom: 2px solid $brown-200;
+  }
+}

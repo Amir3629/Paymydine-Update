@@ -1,0 +1,280 @@
+.navbar-top {
+  background-color: $brown-900; // Changed to dark blue-gray #202938
+  padding: 0;
+  border-bottom: 1px solid $brown-900; // Same color as background for invisible border
+  box-shadow: none; // No shadow for seamless look
+
+  &.navbar-expand {
+    .navbar {
+      padding: 0 15px;
+    }
+
+    .navbar-nav {
+      .nav-link {
+        line-height: $page-top-line-height;
+        color: $cream-100; // Changed to cream for dark brown background
+        padding: $mainmenu-padding-x $mainmenu-padding-y;
+        position: relative;
+
+        .icon-border {
+          border-width: 3px;
+          border-style: solid;
+        }
+      }
+    }
+  }
+
+  .navbar-nav {
+    > li.dropdown > a {
+      position: relative;
+    }
+
+    li.nav-item > a img {
+      max-width: 32px;
+      max-height: 32px;
+    }
+
+    .nav-link > .fa {
+      font-size: $mainmenu-icon-size;
+      vertical-align: middle;
+    }
+
+    .nav-link > .badge {
+      font-size: 9px;
+      position: absolute;
+      top: 18px;
+      right: 10px;
+      padding: 0.25em 0.6em;
+      border-radius: 10rem;
+    }
+
+    > li.nav-item.show > a .fa {
+      color: $cream-500; // Changed to cream accent
+    }
+
+    > li.dropdown.show > a::after,
+    > li.dropdown.show > a::before {
+      border-bottom: 8px solid $brown-900; // Match navbar background
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      bottom: -2px;
+      display: none;
+      left: 50%;
+      margin-left: -8px;
+      position: absolute;
+      z-index: 1001;
+    }
+
+    > li.dropdown.show > a::before {
+      border-bottom-width: 9px;
+      border-left-width: 9px;
+      border-right-width: 9px;
+      border-bottom-color: $brown-900; // Match navbar background
+      margin-left: -13px;
+      bottom: -8px;
+    }
+
+    > li.dropdown a::after {
+      content: "";
+      margin: 0;
+      display: none;
+      font-size: 1.231rem;
+      margin-left: 6px;
+      border: 0;
+    }
+
+    > li.dropdown {
+      position: static;
+    }
+  }
+
+  .dropdown-menu {
+    left: auto;
+    right: 25px;
+    padding: .3rem;
+    margin-top: -8px;
+    line-height: $line-height-base;
+    min-width: $mainmenu-dropdown-width;
+    box-shadow: $box-shadow;
+    border: $border-width solid $border-color;
+    max-height: 70vh;
+    overflow-y: auto;
+
+    .dropdown-item {
+      .fa {
+        margin-right: 14px;
+      }
+    }
+
+    .dropdown-header {
+      font-size: $font-size-base;
+      color: $gray-600;
+      padding: 10px 20px 8px;
+      border-bottom: $border-width solid $border-color;
+    }
+
+    .dropdown-footer a {
+      text-align: center;
+      padding: 10px 0;
+      border-top: $border-width solid $border-color;
+      font-size: $font-size-base;
+      color: $body-color;
+      display: block;
+      outline: 0;
+
+      &:hover {
+        background-color: $dropdown-link-hover-bg;
+      }
+    }
+
+    .menu {
+      list-style: outside none none;
+      margin: 0;
+      max-height: $mainmenu-menu-max-height;
+      overflow-x: hidden;
+      padding: 0;
+
+      &.menu-lg {
+        min-width: $mainmenu-dropdown-width + 130px;
+      }
+
+      .menu-item {
+        border-bottom: $border-width solid $brown-200; // Brown border for menu items
+        border-radius: $input-border-radius;
+      }
+
+      .menu-item:hover {
+        background-color: $brown-50; // Cream hover for menu items
+      }
+
+      .menu-link {
+        padding: 10px 20px;
+        display: block;
+        text-decoration: none;
+        color: $brown-800; // Dark brown text for menu links
+      }
+
+      .menu-item.active .menu-link {
+        color: $body-color;
+      }
+
+      .menu-item-meta {
+        line-height: 16px;
+      }
+    }
+
+    .menu-grid {
+      max-height: unset;
+      padding: .3rem;
+
+      .menu-item {
+        border: 0 none;
+      }
+
+      .menu-link {
+        border-radius: 3px;
+        line-height: 24px;
+        text-align: center;
+        padding: 15px 0 9px;
+        display: block;
+        border: 1px solid transparent;
+        color: $brown-700; // Brown text for grid menu links
+      }
+
+      .menu-link:hover {
+        background-color: $brown-50; // Cream hover background
+        border-color: $brown-500; // Brown border on hover
+      }
+
+      .menu-link span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .menu-link .fa {
+        font-size: 32px;
+      }
+    }
+  }
+
+  @include media-breakpoint-down(sm) {
+    &.navbar-expand {
+      margin-left: 0;
+
+      .navbar {
+        border-bottom: $border-width solid $brown-800; // Brown border for mobile
+        background-color: $brown-900; // Dark brown background for mobile
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1030;
+        padding: 0;
+      }
+
+      .navbar-nav {
+        .nav-link,
+        > li.nav-item.show > a .fa {
+          color: $white;
+        }
+
+        > li.dropdown.show > a::after {
+          bottom: -1px;
+        }
+
+        > li.dropdown .dropdown-menu {
+          left: 0;
+          right: 0;
+          width: 100%;
+          margin-top: 0;
+          border-width: 0;
+          box-shadow: none;
+        }
+      }
+
+      .navbar-toggler {
+        display: inline-block;
+        color: $white;
+        font-size: $mainmenu-icon-size;
+      }
+    }
+  }
+}
+
+.navbar-brand {
+  display: block;
+  padding: 0;
+  margin: 0;
+
+  .logo {
+    display: block;
+    padding-left: 10px;
+    line-height: $logo-line-height;
+    font-size: $logo-font-size;
+    color: $cream-100; // Changed to cream for dark brown navbar
+  }
+}
+
+.page-title {
+  margin: 0px;
+  padding-left: 15px;
+  font-size: $mainmenu-font-size;
+  color: $cream-100; // Changed to cream for dark brown navbar
+
+  .small,
+  small {
+    color: $cream-200; // Lighter cream for subtitle
+  }
+
+  span {
+    vertical-align: text-top;
+  }
+}
+
+@include media-breakpoint-down(sm) {
+  .page-title {
+    display: none;
+  }
+}
