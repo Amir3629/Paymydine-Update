@@ -11,17 +11,21 @@ input[type="search"],
 input[type="tel"],
 input[type="url"],
 textarea,
-select {
+select,
+.form-select {
     background-color: #ffffff !important;
-    border-color: #e5e7eb !important;
+    border-color: #d1d5db !important;
     color: #111827 !important;
+    border-radius: 12px !important;
+    border: 2px solid #d1d5db !important;
 }
 
 /* Form Controls Focus States */
 .form-control:focus,
 input:focus,
 textarea:focus,
-select:focus {
+select:focus,
+.form-select:focus {
     background-color: #ffffff !important;
     border-color: #08815e !important;
     box-shadow: 0 0 0 0.2rem rgba(8, 129, 94, 0.25) !important;
@@ -40,7 +44,7 @@ select:focus {
 /* Labels */
 .form-label,
 label {
-    color: #111827 !important;
+    color: #4b5563 !important;
 }
 
 /* Buttons - Force Green */
@@ -76,84 +80,70 @@ select[style*="color"] {
 input[style*="border"],
 textarea[style*="border"],
 select[style*="border"] {
-    border-color: #e5e7eb !important;
+    border-color: #d1d5db !important;
 }
 
-/* SIDEBAR MENU FIXES - Force Green Colors */
-.sidenav,
-.sidebar,
-.navbar-nav,
-.menu-item,
-.menu-link,
-.nav-link,
-.sidebar .nav-link,
-.sidebar .menu-item,
-.sidebar .menu-link {
-    background-color: transparent !important;
-    color: #202938 !important;
+/* NUCLEAR OPTION: Force rounded corners on ALL form elements */
+select,
+.form-select,
+select.form-control,
+.form-control-select select,
+.form-control-select .form-control,
+.js-select2,
+.select2-container--default .select2-selection--single {
+    border-radius: 12px !important;
+    border: 2px solid #d1d5db !important;
 }
 
-.menu-item:hover,
-.menu-link:hover,
-.nav-link:hover,
-.sidebar .menu-item:hover,
-.sidebar .menu-link:hover,
-.sidebar .nav-link:hover {
+/* Force override any inline border-radius styles */
+select[style*="border-radius"],
+.form-select[style*="border-radius"] {
+    border-radius: 12px !important;
+}
+
+/* SLIMSELECT SPECIFIC OVERRIDES */
+:root {
+    --ss-border-radius: 12px !important;
+    --ss-primary-color: #08815e !important;
+    --ss-bg-color: #ffffff !important;
+    --ss-border-color: #d1d5db !important;
+}
+
+.ss-main {
+    border-radius: 12px !important;
+    border: 2px solid #d1d5db !important;
     background-color: #ffffff !important;
-    color: #08815e !important;
 }
 
-.menu-item.active,
-.menu-link.active,
-.nav-link.active,
-.sidebar .menu-item.active,
-.sidebar .menu-link.active,
-.sidebar .nav-link.active,
-.menu-item[aria-current="page"],
-.menu-link[aria-current="page"],
-.nav-link[aria-current="page"] {
+.ss-main:focus {
+    border-color: #08815e !important;
+    box-shadow: 0 0 0 4px rgba(216, 182, 134, 0.2), 0 8px 25px rgba(216, 182, 134, 0.15) !important;
+}
+
+.ss-content {
+    border-radius: 12px !important;
+    border: 2px solid #d1d5db !important;
+}
+
+.ss-content .ss-search input {
+    border-radius: 8px !important;
+    border: 1px solid #d1d5db !important;
+}
+
+.ss-content .ss-search input:focus {
+    border-color: #08815e !important;
+    box-shadow: 0 0 0 2px rgba(216, 182, 134, 0.2) !important;
+}
+
+.ss-content .ss-list .ss-option {
+    border-radius: 6px !important;
+}
+
+.ss-content .ss-list .ss-option:hover {
+    background-color: rgba(8, 129, 94, 0.1) !important;
+}
+
+.ss-content .ss-list .ss-option.ss-selected {
     background-color: #08815e !important;
     color: #ffffff !important;
-}
-
-/* Left sidebar specific overrides */
-.sidenav .menu-item,
-.sidenav .menu-link,
-.sidenav .nav-link {
-    color: #202938 !important;
-}
-
-.sidenav .menu-item:hover,
-.sidenav .menu-link:hover,
-.sidenav .nav-link:hover {
-    background-color: #ffffff !important;
-    color: #08815e !important;
-}
-
-.sidenav .menu-item.active,
-.sidenav .menu-link.active,
-.sidenav .nav-link.active,
-.sidenav .menu-item[aria-current="page"],
-.sidenav .menu-link[aria-current="page"],
-.sidenav .nav-link[aria-current="page"] {
-    background-color: #08815e !important;
-    color: #ffffff !important;
-}
-
-/* Force override any brown/cream colors in sidebar */
-.sidebar *,
-.sidenav *,
-.menu-item *,
-.menu-link *,
-.nav-link * {
-    background-color: inherit !important;
-}
-
-/* Specific menu item states */
-.menu-item:focus,
-.menu-link:focus,
-.nav-link:focus {
-    background-color: #ffffff !important;
-    color: #08815e !important;
-    outline: 2px solid #08815e !important;
 }
