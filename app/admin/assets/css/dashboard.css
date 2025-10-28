@@ -42572,3 +42572,966 @@ td, th {
 .nk-sidebar .active .ni {
   color: #1ee0ac !important;
 }
+
+/* ============================================
+   CRITICAL FIXES - Title Purple & Sidebar Green
+   ============================================ */
+
+/* 1. FIX PURPLE TITLE - FORCE DARK GRAY */
+.nk-block-title,
+.page-title,
+.tenants-heading,
+h3.nk-block-title,
+h3.page-title,
+.nk-block-head-content h3,
+.nk-block-head-content .title {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+}
+
+/* Override any purple color on titles */
+h1, h2, h3, h4, h5, h6 {
+  color: #364a63 !important;
+}
+
+/* 2. FIX SIDEBAR ACTIVE - MATCH ADMIN PANEL (NOT BRIGHT GREEN!) */
+.nk-sidebar .nk-menu-link.active,
+.nk-sidebar .nk-menu-item.active > .nk-menu-link,
+.nk-sidebar .nk-menu-link:active,
+.nk-sidebar .nk-menu-item:active > .nk-menu-link {
+  background-color: rgba(30, 224, 172, 0.08) !important;
+  color: #b7c2d0 !important;
+  border-left: 3px solid #1ee0ac !important;
+  box-shadow: none !important;
+}
+
+/* Active menu icon - subtle light green */
+.nk-sidebar .nk-menu-link.active .nk-menu-icon,
+.nk-sidebar .nk-menu-item.active .nk-menu-icon {
+  color: #1ee0ac !important;
+}
+
+/* Active menu text - light gray/white (NOT bright green) */
+.nk-sidebar .nk-menu-link.active .nk-menu-text,
+.nk-sidebar .nk-menu-item.active .nk-menu-text {
+  color: #ffffff !important;
+}
+
+/* Remove ANY bright green backgrounds from sidebar */
+.nk-sidebar .bg-primary,
+.nk-sidebar [class*="bg-primary"],
+.nk-sidebar .is-active,
+.nk-sidebar .active {
+  background-color: rgba(30, 224, 172, 0.08) !important;
+}
+
+/* Sidebar normal state */
+.nk-sidebar .nk-menu-link {
+  color: #b7c2d0 !important;
+  background-color: transparent !important;
+  transition: all 0.3s ease !important;
+}
+
+.nk-sidebar .nk-menu-link:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Remove green from sidebar items on click */
+.nk-sidebar .nk-menu-link:focus,
+.nk-sidebar .nk-menu-link:visited {
+  background-color: transparent !important;
+}
+
+/* 3. Ensure NO green backgrounds anywhere in sidebar */
+.nk-sidebar,
+.nk-sidebar * {
+  background: none !important;
+}
+
+.nk-sidebar {
+  background: linear-gradient(180deg, #1f2b3a 0%, #364a63 100%) !important;
+}
+
+.nk-sidebar-brand {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 4. Fix any remaining purple text */
+.text-primary:not(.btn):not(.badge) {
+  color: #08815e !important;
+}
+
+/* Page content area titles */
+.nk-content .nk-block-title,
+.nk-content h3,
+.nk-content .page-title {
+  color: #364a63 !important;
+}
+
+/* ============================================
+   SUPERADMIN LOGIN PAGE - DARK BLUE THEME
+   No purple, no green - only dark blue!
+   ============================================ */
+
+/* Right side background - DARK BLUE instead of purple/blue gradient */
+.pg-auth .nk-split-content.bg-abstract,
+.bg-abstract {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 50%, #526484 100%) !important;
+  background-image: none !important;
+}
+
+/* Remove any pattern/overlay */
+.bg-abstract::before,
+.bg-abstract::after {
+  display: none !important;
+}
+
+/* Sign In button - DARK BLUE instead of green */
+.pg-auth .btn-primary,
+.nk-auth-container .btn-primary {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+}
+
+.pg-auth .btn-primary:hover,
+.nk-auth-container .btn-primary:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+}
+
+/* Login page titles - DARK GRAY */
+.pg-auth .nk-block-title,
+.nk-auth-container h5 {
+  color: #364a63 !important;
+}
+
+/* Login page text - DARK GRAY */
+.pg-auth .nk-block-des p,
+.nk-auth-container p {
+  color: #8094ae !important;
+}
+
+/* Input fields on login page */
+.pg-auth .form-control,
+.nk-auth-container .form-control {
+  border: 2px solid #d1d5db !important;
+  border-radius: 12px !important;
+  color: #364a63 !important;
+  background-color: #ffffff !important;
+}
+
+.pg-auth .form-control:focus,
+.nk-auth-container .form-control:focus {
+  border-color: #364a63 !important;
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+}
+
+/* Labels on login page */
+.pg-auth .form-label,
+.nk-auth-container .form-label {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+}
+
+/* Remove any green or purple accents from login page */
+.pg-auth a:not(.btn),
+.nk-auth-container a:not(.btn) {
+  color: #364a63 !important;
+}
+
+.pg-auth a:not(.btn):hover,
+.nk-auth-container a:not(.btn):hover {
+  color: #526484 !important;
+}
+
+/* Ensure no background patterns show through */
+.nk-split-content {
+  position: relative !important;
+}
+
+.nk-split-content.bg-abstract {
+  background-color: #1f2b3a !important;
+  background-image: none !important;
+}
+
+/* Password toggle icon */
+.pg-auth .form-icon,
+.nk-auth-container .form-icon {
+  color: #8094ae !important;
+}
+
+.pg-auth .form-icon:hover,
+.nk-auth-container .form-icon:hover {
+  color: #364a63 !important;
+}
+
+/* Left side - keep white */
+.pg-auth .nk-split-content.nk-auth-container {
+  background-color: #ffffff !important;
+}
+
+/* ============================================
+   SUPERADMIN LOGIN PAGE - FIX RIGHT SIDE BACKGROUND
+   Force dark blue gradient on right side
+   ============================================ */
+
+/* NUCLEAR OPTION: Force right side to be dark blue */
+.nk-split-page .nk-split-content:not(.nk-auth-container),
+.nk-split-page .nk-split-stretch,
+.nk-split .nk-split-content.bg-abstract,
+.nk-split .nk-split-stretch.bg-abstract,
+.bg-abstract,
+[class*="bg-abstract"] {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 50%, #526484 100%) !important;
+  background-color: #1f2b3a !important;
+  background-image: linear-gradient(135deg, #1f2b3a 0%, #364a63 50%, #526484 100%) !important;
+}
+
+/* Remove any white background */
+.nk-split-stretch {
+  background-color: #1f2b3a !important;
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 50%, #526484 100%) !important;
+}
+
+/* Ensure the split container shows the gradient */
+.nk-split-md .nk-split-content:last-child {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 50%, #526484 100%) !important;
+}
+
+/* Override any theme.css that might be interfering */
+body.pg-auth .nk-split-content:not(.nk-auth-container) {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 50%, #526484 100%) !important;
+}
+
+/* Make sure the gradient covers the entire area */
+.nk-split-content.nk-split-stretch {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* ============================================
+   LOGO SIZE - Make it 10% bigger
+   ============================================ */
+
+/* Login page logo */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img,
+.nk-auth-body .logo-img,
+.nk-auth-body .brand-logo img {
+  max-width: 220px !important;
+  width: 220px !important;
+  height: auto !important;
+  transform: scale(1.1) !important;
+}
+
+/* Sidebar logo */
+.nk-sidebar .logo-img,
+.nk-sidebar-brand img,
+.nk-sidebar .brand-logo img {
+  max-width: 165px !important;
+  width: 165px !important;
+  height: auto !important;
+  transform: scale(1.1) !important;
+}
+
+/* Header logo */
+.nk-header .logo-img,
+.nk-header .brand-logo img {
+  max-width: 165px !important;
+  width: 165px !important;
+  height: auto !important;
+  transform: scale(1.1) !important;
+}
+
+/* General logo styling */
+.logo-img,
+.brand-logo img {
+  display: block !important;
+  object-fit: contain !important;
+}
+
+/* Ensure logo container has enough space */
+.brand-logo,
+.logo-link,
+.nk-sidebar-brand {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px !important;
+}
+
+/* ============================================
+   LOGO SIZE - MUCH BIGGER & MOVED HIGHER
+   ============================================ */
+
+/* Login page logo - MUCH BIGGER */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img,
+.nk-auth-body .logo-img,
+.nk-auth-body .brand-logo img {
+  max-width: 320px !important;
+  width: 320px !important;
+  height: auto !important;
+  transform: scale(1.5) !important;
+  margin-bottom: 40px !important;
+}
+
+/* Move login logo higher */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo {
+  padding-top: 20px !important;
+  padding-bottom: 60px !important;
+  margin-top: -40px !important;
+}
+
+/* Sidebar logo - BIGGER */
+.nk-sidebar .logo-img,
+.nk-sidebar-brand img,
+.nk-sidebar .brand-logo img {
+  max-width: 220px !important;
+  width: 220px !important;
+  height: auto !important;
+  transform: scale(1.4) !important;
+  margin: 15px 0 !important;
+}
+
+/* Move sidebar logo higher */
+.nk-sidebar-brand {
+  padding-top: 25px !important;
+  padding-bottom: 25px !important;
+  min-height: 90px !important;
+}
+
+/* Header logo - BIGGER */
+.nk-header .logo-img,
+.nk-header .brand-logo img {
+  max-width: 200px !important;
+  width: 200px !important;
+  height: auto !important;
+  transform: scale(1.3) !important;
+}
+
+/* General logo container adjustments */
+.brand-logo,
+.logo-link {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+}
+
+/* Remove previous smaller sizes */
+.pg-auth .logo-img {
+  min-width: 280px !important;
+}
+
+.nk-sidebar .logo-img {
+  min-width: 180px !important;
+}
+
+/* ============================================
+   LOGO SIZE - 5X BIGGER (NO LAYOUT IMPACT)
+   ============================================ */
+
+/* Login page logo - 5X BIGGER */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img,
+.nk-auth-body .logo-img,
+.nk-auth-body .brand-logo img {
+  max-width: none !important;
+  width: 600px !important;
+  height: auto !important;
+  transform: scale(1) !important;
+  margin-bottom: 30px !important;
+}
+
+/* Sidebar logo - 5X BIGGER */
+.nk-sidebar .logo-img,
+.nk-sidebar-brand img,
+.nk-sidebar .brand-logo img {
+  max-width: none !important;
+  width: 400px !important;
+  height: auto !important;
+  transform: scale(1) !important;
+  margin: 10px 0 !important;
+}
+
+/* Header logo - 5X BIGGER */
+.nk-header .logo-img,
+.nk-header .brand-logo img {
+  max-width: none !important;
+  width: 350px !important;
+  height: auto !important;
+  transform: scale(1) !important;
+}
+
+/* Ensure containers don't restrict size */
+.brand-logo,
+.logo-link,
+.nk-sidebar-brand,
+.pg-auth .brand-logo {
+  overflow: visible !important;
+  max-width: none !important;
+  width: auto !important;
+}
+
+/* Keep spacing consistent */
+.pg-auth .brand-logo {
+  padding-bottom: 40px !important;
+  padding-top: 30px !important;
+}
+
+.nk-sidebar-brand {
+  padding: 20px 15px !important;
+  overflow: visible !important;
+}
+
+/* ============================================
+   LOGO SIZE - NUCLEAR OPTION: MASSIVE SIZE
+   ============================================ */
+
+/* FORCE LOGIN PAGE LOGO TO BE HUGE */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img,
+.nk-auth-body .logo-img,
+.nk-auth-body .brand-logo img,
+.pg-auth img[src*="logo"],
+body.pg-auth .brand-logo img {
+  max-width: 800px !important;
+  min-width: 800px !important;
+  width: 800px !important;
+  height: auto !important;
+  transform: scale(1) !important;
+  object-fit: contain !important;
+}
+
+/* FORCE SIDEBAR LOGO TO BE HUGE */
+.nk-sidebar .logo-img,
+.nk-sidebar-brand img,
+.nk-sidebar .brand-logo img,
+.nk-sidebar img[src*="logo"] {
+  max-width: 500px !important;
+  min-width: 500px !important;
+  width: 500px !important;
+  height: auto !important;
+  transform: scale(1) !important;
+  object-fit: contain !important;
+}
+
+/* FORCE HEADER LOGO TO BE HUGE */
+.nk-header .logo-img,
+.nk-header .brand-logo img,
+.nk-header img[src*="logo"] {
+  max-width: 450px !important;
+  min-width: 450px !important;
+  width: 450px !important;
+  height: auto !important;
+  transform: scale(1) !important;
+  object-fit: contain !important;
+}
+
+/* Remove ALL size restrictions */
+img[src*="logo"] {
+  max-width: none !important;
+  width: auto !important;
+  min-width: 500px !important;
+}
+
+/* Ensure containers don't restrict */
+.brand-logo,
+.logo-link,
+.nk-sidebar-brand {
+  overflow: visible !important;
+  max-width: none !important;
+  width: auto !important;
+  display: block !important;
+}
+
+/* ============================================
+   LOGO FIX - PROPER SIZE WITH CORRECT ASPECT RATIO
+   Remove all previous bad rules
+   ============================================ */
+
+/* RESET AND FIX LOGIN PAGE LOGO */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img,
+.nk-auth-body .logo-img,
+.nk-auth-body .brand-logo img,
+body.pg-auth img[src*="logo"] {
+  width: auto !important;
+  max-width: 300px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  transform: none !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto 30px auto !important;
+}
+
+/* Fix parent container to center logo */
+.pg-auth .brand-logo,
+.pg-auth .logo-link,
+.nk-auth-body .brand-logo,
+.nk-auth-body .logo-link {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  text-align: center !important;
+}
+
+/* RESET SIDEBAR LOGO */
+.nk-sidebar .logo-img,
+.nk-sidebar-brand img,
+.nk-sidebar .brand-logo img,
+.nk-sidebar img[src*="logo"] {
+  width: auto !important;
+  max-width: 180px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  transform: none !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* RESET HEADER LOGO */
+.nk-header .logo-img,
+.nk-header .brand-logo img,
+.nk-header img[src*="logo"] {
+  width: auto !important;
+  max-width: 160px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  transform: none !important;
+  object-fit: contain !important;
+}
+
+/* Remove ALL forced width rules on logos */
+img[src*="logo"] {
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+/* ============================================
+   LOGO FIX - SMALLER & NO SPACING IMPACT
+   ============================================ */
+
+/* LOGIN PAGE LOGO - SMALLER, NO LAYOUT IMPACT */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img,
+.nk-auth-body .logo-img,
+.nk-auth-body .brand-logo img,
+body.pg-auth img[src*="logo"] {
+  width: auto !important;
+  max-width: 180px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  transform: none !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto 20px auto !important;
+}
+
+/* Fix parent container - NO extra spacing */
+.pg-auth .brand-logo,
+.pg-auth .logo-link,
+.nk-auth-body .brand-logo {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 0 20px 0 !important;
+}
+
+/* Keep login section spacing tight */
+.nk-auth-body .brand-logo {
+  padding-bottom: 0 !important;
+  padding-top: 0 !important;
+  margin-bottom: 20px !important;
+}
+
+.nk-auth-body {
+  padding-top: 20px !important;
+}
+
+/* ============================================
+   LOGO - MOVE HIGHER
+   ============================================ */
+
+/* Move logo higher on login page */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo {
+  margin-top: -30px !important;
+  margin-bottom: 30px !important;
+}
+
+.nk-auth-body {
+  padding-top: 0 !important;
+}
+
+/* Move entire auth section higher if needed */
+.nk-block-middle {
+  padding-top: 20px !important;
+}
+
+/* ============================================
+   LOGO - 20% HIGHER
+   ============================================ */
+
+/* Move logo much higher on login page */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo {
+  margin-top: -80px !important;
+  margin-bottom: 40px !important;
+}
+
+.nk-auth-body {
+  padding-top: 0 !important;
+  margin-top: -40px !important;
+}
+
+/* Move entire auth section higher */
+.nk-block-middle {
+  padding-top: 0 !important;
+  margin-top: -60px !important;
+}
+
+/* ============================================
+   MOVE LOGIN SECTION DOWN (NOT THE LOGO)
+   ============================================ */
+
+/* Keep logo in place, but move everything AFTER it down */
+.nk-block-head,
+.nk-auth-body .nk-block-head {
+  margin-top: 60px !important;
+  padding-top: 20px !important;
+}
+
+/* Move the Sign-In title and form down */
+.nk-block-head-content {
+  margin-top: 20px !important;
+}
+
+/* Move the entire form section down */
+.nk-auth-body form {
+  margin-top: 20px !important;
+}
+
+/* Add space between logo and login section */
+.brand-logo + .nk-block-head {
+  margin-top: 80px !important;
+}
+
+/* ============================================
+   MOVE LOGIN SECTION A BIT MORE DOWN
+   ============================================ */
+
+/* Add a little more space */
+.brand-logo + .nk-block-head {
+  margin-top: 100px !important;
+}
+
+.nk-block-head,
+.nk-auth-body .nk-block-head {
+  margin-top: 80px !important;
+}
+
+/* ============================================
+   MOVE LOGIN SECTION A LITTLE BIT MORE DOWN
+   ============================================ */
+
+/* Add a little more space */
+.brand-logo + .nk-block-head {
+  margin-top: 120px !important;
+}
+
+.nk-block-head,
+.nk-auth-body .nk-block-head {
+  margin-top: 100px !important;
+}
+
+/* ============================================
+   MOVE LOGO A BIT DOWN
+   ============================================ */
+
+/* Move logo down a bit */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo {
+  margin-top: -60px !important;
+}
+
+.nk-auth-body {
+  margin-top: -20px !important;
+}
+
+.nk-block-middle {
+  margin-top: -40px !important;
+}
+
+/* ============================================
+   MOVE LOGO TO THE RIGHT (CENTER IT)
+   ============================================ */
+
+/* Center logo horizontally on the page */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.pg-auth .logo-link,
+.nk-auth-body .logo-link {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Center the logo image itself */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: block !important;
+}
+
+/* Keep login section in its current position (left aligned) */
+.nk-block-head,
+.nk-auth-body form,
+.nk-block-head-content {
+  margin-left: 0 !important;
+  text-align: left !important;
+}
+
+/* ============================================
+   MAKE LOGO 30% SMALLER (NO LAYOUT CHANGE)
+   ============================================ */
+
+/* Make logo 30% smaller - was 180px, now 126px */
+.pg-auth .logo-img,
+.pg-auth .brand-logo img,
+.nk-auth-body .logo-img,
+.nk-auth-body .brand-logo img,
+body.pg-auth img[src*="logo"] {
+  max-width: 126px !important;
+  width: auto !important;
+}
+
+/* Keep all spacing exactly the same */
+.pg-auth .brand-logo img {
+  margin-bottom: 20px !important;
+}
+
+/* No layout changes - everything else stays in place */
+
+/* ============================================
+   CENTER LOGO IN THE ENTIRE WHITE SLIDE AREA
+   ============================================ */
+
+/* Make the auth container use full width for centering */
+.nk-auth-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+}
+
+/* Center the auth body content */
+.nk-block-middle.nk-auth-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Center the logo in the full width */
+.nk-auth-body .brand-logo {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* Keep login section centered below logo */
+.nk-block-head,
+.nk-auth-body form {
+  width: 360px !important;
+  max-width: 360px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* ============================================
+   LOGO IN SAME COLUMN AS SIGN-IN BUTTON (LEFT ALIGNED)
+   ============================================ */
+
+/* Remove centering - align everything left */
+.nk-auth-container {
+  display: block !important;
+  justify-content: flex-start !important;
+}
+
+.nk-block-middle.nk-auth-body {
+  display: block !important;
+  align-items: flex-start !important;
+  width: 360px !important;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+}
+
+/* Logo in same column as form */
+.nk-auth-body .brand-logo,
+.nk-auth-body .logo-link {
+  width: 100% !important;
+  display: block !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+.pg-auth .logo-img,
+.nk-auth-body .logo-img {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* Login section same width */
+.nk-block-head,
+.nk-auth-body form {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* ============================================
+   MOVE LOGO MORE TO THE RIGHT
+   ============================================ */
+
+/* Add left margin to push logo right */
+.pg-auth .logo-img,
+.nk-auth-body .logo-img,
+.pg-auth .brand-logo img {
+  margin-left: 80px !important;
+}
+
+/* ============================================
+   FORCE LOGO TO MOVE RIGHT - STRONGER RULES
+   ============================================ */
+
+/* Force logo container to have padding/margin on left */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo,
+body.pg-auth .brand-logo {
+  padding-left: 80px !important;
+  margin-left: 0 !important;
+}
+
+/* Also push the logo link */
+.pg-auth .logo-link,
+.nk-auth-body .logo-link,
+body.pg-auth .logo-link {
+  padding-left: 80px !important;
+  display: block !important;
+}
+
+/* Force the image itself */
+body.pg-auth img.logo-img,
+.pg-auth img[src*="logo"],
+.nk-auth-body img.logo-img {
+  margin-left: 80px !important;
+  transform: translateX(80px) !important;
+}
+
+/* ============================================
+   CENTER LOGO EXACTLY IN THE MIDDLE
+   ============================================ */
+
+/* Remove the 80px push, center it instead */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo,
+body.pg-auth .brand-logo {
+  padding-left: 0 !important;
+  text-align: center !important;
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.pg-auth .logo-link,
+.nk-auth-body .logo-link,
+body.pg-auth .logo-link {
+  padding-left: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+/* Center the image itself */
+body.pg-auth img.logo-img,
+.pg-auth img[src*="logo"],
+.nk-auth-body img.logo-img {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  transform: translateX(0) !important;
+}
+
+/* ============================================
+   LOGO BETWEEN LEFT AND CENTER
+   ============================================ */
+
+/* Left align but with moderate spacing */
+.pg-auth .brand-logo,
+.nk-auth-body .brand-logo,
+body.pg-auth .brand-logo {
+  text-align: left !important;
+  display: block !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  padding-left: 40px !important;
+}
+
+.pg-auth .logo-link,
+.nk-auth-body .logo-link,
+body.pg-auth .logo-link {
+  display: block !important;
+  justify-content: flex-start !important;
+  padding-left: 0 !important;
+}
+
+/* Push logo to the right by 40px (between left and center) */
+body.pg-auth img.logo-img,
+.pg-auth img[src*="logo"],
+.nk-auth-body img.logo-img {
+  margin-left: 40px !important;
+  margin-right: auto !important;
+  transform: translateX(0) !important;
+}
+
+/* ============================================
+   MOVE LOGO AND LOGIN SECTION DOWN A BIT
+   ============================================ */
+
+/* Move the entire auth body down */
+.nk-block-middle.nk-auth-body,
+.nk-auth-body {
+  margin-top: 40px !important;
+  padding-top: 40px !important;
+}

@@ -1,0 +1,885 @@
+/**
+ * SUPERADMIN SPACING & COLOR FIX - ULTRA AGGRESSIVE
+ * Fixes the massive spacing issues and removes all purple colors
+ * Based on console analysis results
+ * MAXIMUM SPECIFICITY TO OVERRIDE EVERYTHING
+ * 
+ * NOTE: These styles should NOT apply to login page!
+ * Only apply to pages with sidebar (.nk-sidebar)
+ */
+
+/* ============================================
+   0. EXCLUDE LOGIN PAGE - Only apply when sidebar exists
+   ============================================ */
+
+/* Check if sidebar exists - if not, don't apply these styles */
+body:not(:has(.nk-sidebar)) .nk-wrap,
+body:not(:has(.nk-sidebar)) .nk-content {
+  position: static !important;
+  margin: auto !important;
+  padding: normal !important;
+  background: inherit !important;
+}
+
+/* ============================================
+   1. FIX CONTENT POSITIONING - NO GAPS! (ONLY WITH SIDEBAR)
+   ============================================ */
+
+/* Main content wrapper - FIXED POSITION (ONLY when sidebar exists) */
+.nk-sidebar ~ .nk-main .nk-wrap,
+body:has(.nk-sidebar) .nk-wrap {
+  position: fixed !important; /* Force fixed positioning */
+  top: 65px !important; /* Exactly at header bottom */
+  left: 230px !important; /* Exactly at sidebar right */
+  right: 0 !important; /* Stretch to right edge */
+  bottom: 0 !important; /* Stretch to bottom */
+  margin: 0 !important; /* NO margins when using fixed */
+  padding: 0 !important;
+  overflow-y: auto !important; /* Allow scrolling */
+  z-index: 1 !important;
+  background-color: #ffffff !important;
+}
+
+/* Content area - ABSOLUTE NO SPACING (ONLY with sidebar) */
+body:has(.nk-sidebar) .nk-content,
+.nk-sidebar ~ .nk-main .nk-content {
+  margin: 0 !important; /* Remove all margins */
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 !important; /* NO padding at all */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  background-color: #ffffff !important;
+  position: relative !important;
+}
+
+/* Remove excessive padding from nested containers - ULTRA SPECIFIC */
+.nk-content .nk-content-inner,
+.nk-content-inner,
+body .nk-content-inner,
+.nk-content .nk-content-body,
+.nk-content-body,
+body .nk-content-body {
+  padding: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Container fluid - NO TOP PADDING */
+.nk-content .container-fluid,
+body .nk-content .container-fluid,
+.nk-wrap .nk-content .container-fluid {
+  padding: 0px 20px 15px 20px !important; /* NO top, only sides and bottom */
+  padding-top: 0px !important; /* ZERO top padding */
+  padding-bottom: 15px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Block head - MINIMAL spacing */
+.nk-block-head {
+  padding: 0 0 10px 0 !important;
+  margin: 0 0 10px 0 !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+}
+
+.nk-block-head-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Block container - minimal spacing */
+.nk-block {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Titles and descriptions - ZERO top spacing */
+.nk-block-title,
+.elegant-title,
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 5px 0 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+}
+
+.nk-block-des,
+.welcome-text {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* First child elements - ZERO top spacing */
+.nk-block-head > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* ============================================
+   2. REMOVE ALL PURPLE COLORS & SHADOWS
+   ============================================ */
+
+/* Remove purple box-shadow from title - CRITICAL */
+.elegant-title,
+.nk-block-title,
+.page-title,
+h1, h2, h3, h4, h5, h6 {
+  color: #364a63 !important; /* Dark gray-blue */
+  box-shadow: none !important; /* NO purple shadow! */
+  text-shadow: none !important;
+  background: none !important;
+}
+
+/* Hover states - NO purple shadows */
+.elegant-title:hover,
+.nk-block-title:hover,
+.page-title:hover,
+h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+/* Tenant titles */
+.tenant-title {
+  color: #364a63 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Tenant subtitles */
+.tenant-subtitle,
+.welcome-text,
+.nk-block-des,
+.nk-block-des p {
+  color: #8094ae !important; /* Soft gray, NOT purple */
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Card titles */
+.card-title,
+.card-title h6,
+.card-title-group .card-title {
+  color: #364a63 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Remove purple from ALL elements globally */
+* {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Re-enable box-shadow only for cards and dropdowns (NOT purple) */
+.card,
+.card-bordered {
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08) !important;
+}
+
+.dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   3. FIX TABLE & TEXT COLORS
+   ============================================ */
+
+/* Table text - proper gray, NOT purple */
+.nk-tb-list,
+.nk-tb-item,
+.nk-tb-head,
+thead, tbody, tr {
+  color: #526484 !important; /* Proper gray */
+}
+
+/* Sub text colors */
+.sub-text,
+.tb-sub,
+.tb-lead {
+  color: #526484 !important;
+}
+
+/* User info colors */
+.user-info,
+.user-status,
+.lead-text {
+  color: #526484 !important;
+}
+
+/* Icon colors - proper gray */
+.icon,
+em.icon {
+  color: #526484 !important;
+}
+
+/* Arrow icons - proper gray */
+.icon.ni-arrow-long-up,
+.icon.ni-arrow-long-down {
+  color: #526484 !important;
+}
+
+/* ============================================
+   4. REDUCE CARD SPACING
+   ============================================ */
+
+/* Cards - less margin between them */
+.col-md-7,
+.col-md-5,
+.col-xxl-4 {
+  padding: 0 8px !important;
+}
+
+.card {
+  margin-bottom: 15px !important;
+}
+
+.card-inner {
+  padding: 15px !important;
+}
+
+/* Card title group - minimal spacing */
+.card-title-group {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.card-title {
+  margin: 0 0 5px 0 !important;
+  padding: 0 !important;
+}
+
+/* ============================================
+   5. FIX ROW SPACING
+   ============================================ */
+
+.row.g-gs {
+  margin: 0 -8px !important;
+}
+
+/* Remove extra row spacing */
+.row {
+  margin-top: 0 !important;
+}
+
+/* ============================================
+   6. ENSURE CONTENT STARTS RIGHT AFTER HEADER
+   ============================================ */
+
+/* Force content to be exactly at header bottom */
+body .nk-content {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Force wrap positioning - FIXED */
+body .nk-wrap {
+  position: fixed !important;
+  top: 65px !important;
+  left: 230px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  overflow-y: auto !important;
+  background-color: #ffffff !important;
+}
+
+/* Remove default spacing from nested wrappers */
+.nk-content-wrap,
+.container {
+  padding-top: 0px !important; /* ZERO top padding */
+  padding-bottom: 15px !important;
+}
+
+/* Force first element to have no top margin */
+.nk-content-body > *:first-child {
+  margin-top: 0 !important;
+}
+
+.nk-block-head:first-child {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* ============================================
+   7. FIX DROPDOWN COLORS (NOT PURPLE)
+   ============================================ */
+
+.dropdown-menu,
+.dropdown-inner,
+.dropdown-menu a {
+  color: #526484 !important;
+}
+
+.dropdown-menu a:hover {
+  background-color: #f5f6fa !important;
+  color: #364a63 !important;
+}
+
+/* ============================================
+   8. NUCLEAR OVERRIDE - FORCE SPACING
+   ============================================ */
+
+/* ULTRA AGGRESSIVE - FIXED POSITIONING */
+html body .nk-app-root .nk-main .nk-wrap {
+  position: fixed !important;
+  top: 65px !important;
+  left: 230px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-y: auto !important;
+  z-index: 1 !important;
+  background-color: #ffffff !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: #ffffff !important;
+}
+
+/* Ensure body is also white (ONLY with sidebar) */
+body:has(.nk-sidebar),
+body:has(.nk-sidebar) html,
+body:has(.nk-sidebar) .nk-app-root,
+body:has(.nk-sidebar) .nk-main {
+  background-color: #ffffff !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content .container-fluid {
+  padding: 0px 20px 15px 20px !important; /* ZERO top padding */
+  padding-top: 0px !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content .nk-content-inner {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content .nk-content-body {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Remove ALL purple box-shadows - NUCLEAR */
+html body * {
+  box-shadow: none !important;
+}
+
+html body .card,
+html body .card-bordered {
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08) !important;
+}
+
+html body .dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   9. HIDE DUPLICATE PAGE TITLE SECTIONS (NOT HEADER TITLES)
+   ============================================ */
+
+/* KEEP header titles visible - DO NOT hide .page-title in header */
+.nk-header .page-title {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Hide ONLY the content area title sections (not header) */
+.nk-content .nk-block-head,
+.nk-content .nk-block-head-sm {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Hide content area page titles and descriptions (not header) */
+.nk-content .nk-block-title,
+.nk-content .elegant-title,
+.nk-content .nk-block-des,
+.nk-content .welcome-text,
+.nk-content .nk-block-head-content {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide "General settings" / "General setting" text in cards */
+.card-inner > h5:first-child,
+.card-inner > .card-title:first-child {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide "General settings" text in tab navigation (keep icon) */
+.nav-link[href="#site"] span,
+a[href="#site"] span {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Keep the icon visible */
+.nav-link[href="#site"] em.icon,
+a[href="#site"] em.icon {
+  display: inline-block !important;
+  visibility: visible !important;
+}
+
+/* ============================================
+   10. REMOVE ALL CARD BORDERS & FRAMES (ONLY with sidebar)
+   ============================================ */
+
+/* Remove borders from ALL cards (ONLY on logged-in pages) */
+body:has(.nk-sidebar) .card,
+body:has(.nk-sidebar) .card-bordered,
+body:has(.nk-sidebar) .card-stretch {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+/* Make card inner transparent (ONLY with sidebar) */
+body:has(.nk-sidebar) .card-inner {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* Remove green backgrounds */
+.bg-success,
+.badge-success,
+.badge.bg-success {
+  background-color: transparent !important;
+  color: #364a63 !important;
+}
+
+/* Make ONLY content area PURE WHITE background - NOT header/sidebar (ONLY with sidebar) */
+body:has(.nk-sidebar) .nk-content,
+body:has(.nk-sidebar) .nk-content .container-fluid,
+body:has(.nk-sidebar) .nk-content .nk-block {
+  background-color: #ffffff !important;
+}
+
+/* FORCE header to stay dark */
+.nk-header,
+.nk-header-fixed {
+  background-color: #202938 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* FORCE sidebar to stay dark */
+.nk-sidebar,
+.nk-sidebar-fixed {
+  background-color: #202938 !important;
+}
+
+/* Keep header text and icons white */
+.nk-header .page-title,
+.nk-header .page-title span {
+  color: #fff !important;
+}
+
+.nk-header .icon,
+.nk-header em.icon {
+  color: #fff !important;
+}
+
+.nk-header .user-name,
+.nk-header .user-status {
+  color: #fff !important;
+}
+
+/* Remove tab borders */
+.nav-tabs,
+.nav-tabs-card {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.nav-tabs .nav-link {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.nav-tabs .nav-link.active {
+  border: none !important;
+  background-color: transparent !important;
+  border-bottom: 2px solid #6576ff !important;
+}
+
+/* Tab content - no border */
+.tab-content {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+/* Form elements - keep minimal styling */
+.form-control {
+  background-color: #fff !important;
+  border: 1px solid #dbdfea !important;
+}
+
+/* Tables - Clean styling without borders */
+.nk-tb-list,
+.traffic-channel-table,
+.nk-tb-ulist {
+  background-color: #fff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+/* Table header */
+.nk-tb-item.nk-tb-head {
+  background-color: #f9fafb !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+  font-weight: 600 !important;
+  padding: 15px !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.nk-tb-item.nk-tb-head span {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Table rows - NO borders */
+.nk-tb-item {
+  background-color: #fff !important;
+  border: none !important;
+  border-bottom: none !important;
+  padding: 12px 15px !important;
+  transition: all 0.2s ease !important;
+}
+
+.nk-tb-item:last-child {
+  border-bottom: none !important;
+}
+
+.nk-tb-item:hover {
+  background-color: #f9fafb !important;
+  transform: none !important;
+}
+
+/* Table cells */
+.nk-tb-col {
+  padding: 10px 8px !important;
+}
+
+/* Table text */
+.tb-lead {
+  color: #364a63 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+.tb-sub,
+.tb-amount {
+  color: #526484 !important;
+  font-size: 13px !important;
+}
+
+/* Card titles for tables */
+.card-title-group {
+  padding: 15px 0 !important;
+  margin-bottom: 15px !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+}
+
+.tenant-title {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  margin-bottom: 4px !important;
+}
+
+.tenant-subtitle {
+  color: #8094ae !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+}
+
+/* Make table container have white background - NO borders */
+.card-inner {
+  background-color: #fff !important;
+  padding: 20px !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+/* Remove separator lines */
+.btn-toolbar-sep {
+  display: none !important;
+}
+
+/* Remove user avatar circles/backgrounds */
+.user-avatar {
+  background-color: transparent !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+}
+
+.user-avatar.bg-primary {
+  background-color: transparent !important;
+  color: #364a63 !important;
+}
+
+/* Remove green dots */
+.dot.dot-success {
+  display: none !important;
+}
+
+/* Remove pagination borders */
+.pagination .page-link {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: transparent !important;
+  border: none !important;
+  color: #526484 !important;
+  font-weight: 600 !important;
+}
+
+.pagination .page-item.disabled .page-link {
+  border: none !important;
+  background-color: transparent !important;
+  color: #8094ae !important;
+}
+
+/* Remove all card borders - AGGRESSIVE */
+.card.card-bordered,
+.card-bordered,
+.card,
+.card-stretch {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove card-inner borders */
+.card-inner,
+.card-inner-group {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove all table container borders */
+.nk-tb-list,
+.nk-tb-ulist {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove all possible borders from table wrapper */
+.card-inner.p-0,
+.card-inner-group > .card-inner {
+  border: none !important;
+}
+
+/* Remove checkbox borders and styling */
+.custom-checkbox .custom-control-label::before {
+  border: 1px solid #dbdfea !important;
+  background-color: #fff !important;
+}
+
+/* Remove all card shadows globally */
+* {
+  box-shadow: none !important;
+}
+
+/* Only keep shadow on dropdowns */
+.dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   11. MOVE PAGINATION TO TOP (NEXT TO SETTINGS)
+   ============================================ */
+
+/* Target the specific card with table */
+.card-bordered.card-stretch {
+  position: relative !important;
+}
+
+/* Find the card-tools section and make room for pagination */
+.card-title-group {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 15px 20px !important;
+  margin: 0 !important;
+}
+
+.card-tools {
+  display: flex !important;
+  gap: 15px !important;
+  align-items: center !important;
+}
+
+/* Move pagination from bottom to top - absolute positioning */
+.card-inner:last-child {
+  position: static !important;
+}
+
+.nk-block-between-md {
+  position: absolute !important;
+  top: 35px !important;
+  left: 20px !important;
+  z-index: 50 !important;
+  margin: 0 !important;
+}
+
+/* Style the pagination */
+.nk-block-between-md .pagination {
+  margin: 0 !important;
+  display: inline-flex !important;
+  background: transparent !important;
+}
+
+.pagination .page-item {
+  margin: 0 2px !important;
+}
+
+.pagination .page-link {
+  padding: 6px 12px !important;
+  border: 1px solid #dbdfea !important;
+  background-color: #fff !important;
+  color: #526484 !important;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #6576ff !important;
+  border-color: #6576ff !important;
+  color: #fff !important;
+}
+
+/* ============================================
+   12. USER AVATAR CIRCLES - WHITE BY DEFAULT, NO GREEN!
+   ============================================ */
+
+/* NUCLEAR: Remove ALL green backgrounds from avatars */
+.user-avatar,
+.user-avatar.bg-primary,
+.user-avatar.bg-success,
+.user-avatar.bg-info,
+td .user-avatar,
+.nk-tb-item .user-avatar,
+div.user-avatar,
+span.user-avatar,
+[class*="user-avatar"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Remove green from ANY element with bg-primary inside table */
+td .bg-primary,
+.nk-tb-col .bg-primary,
+.nk-tb-item .bg-primary {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+}
+
+/* Avatar text color - black by default */
+.user-avatar span,
+.user-avatar.bg-primary span,
+.user-avatar.bg-success span,
+.user-avatar.bg-info span,
+.bg-primary span,
+td .user-avatar span,
+td .bg-primary span {
+  color: #000000 !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+}
+
+/* Remove green from ALL possible avatar elements */
+div[class*="bg-primary"],
+span[class*="bg-primary"],
+div[class*="bg-success"],
+span[class*="bg-success"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+/* Hover effect - turn DARK GREEN only on hover */
+.user-avatar:hover,
+.user-avatar.bg-primary:hover,
+.user-avatar.bg-success:hover,
+td .user-avatar:hover,
+td .bg-primary:hover,
+.nk-tb-item:hover .user-avatar,
+.nk-tb-item:hover .bg-primary,
+tr:hover .user-avatar,
+tr:hover .bg-primary {
+  background-color: #059669 !important;
+  background: #059669 !important;
+  border-color: #059669 !important;
+  color: #ffffff !important;
+}
+
+.user-avatar:hover span,
+.user-avatar.bg-primary:hover span,
+.user-avatar.bg-success:hover span,
+td .user-avatar:hover span,
+td .bg-primary:hover span,
+.nk-tb-item:hover .user-avatar span,
+.nk-tb-item:hover .bg-primary span,
+tr:hover .user-avatar span,
+tr:hover .bg-primary span {
+  color: #ffffff !important;
+}
+
+/* ============================================
+   13. SETTINGS ICON - DARK GREEN COLOR
+   ============================================ */
+
+/* Settings icon - same dark green as avatar hover */
+.btn-icon .icon.ni-setting,
+em.icon.ni-setting,
+.dropdown-toggle .icon.ni-setting {
+  color: #059669 !important;
+}
+
+/* Settings button */
+.btn-trigger.btn-icon {
+  color: #059669 !important;
+}
+
+/* Settings icon hover - slightly darker */
+.btn-icon:hover .icon.ni-setting,
+.dropdown-toggle:hover .icon.ni-setting {
+  color: #047857 !important;
+}
+

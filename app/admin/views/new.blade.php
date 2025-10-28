@@ -13,11 +13,17 @@
     <title>PayMyDine Super Admin Dashboard</title>
     <!-- StyleSheets  -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dashboard.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-exact-match.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-scrollbar-fix.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-spacing-fix.css') }}?ver={{ time() }}">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
     <!-- Smooth Transitions & Modern Interactions -->
     <script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?ver={{ time() }}" defer></script>
+    
+    <!-- Sidebar Star Icon -->
+    <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?ver={{ time() }}" defer></script>
 
     <style>
         .toggle-status {
@@ -133,15 +139,21 @@
                 <div class="nk-header nk-header-fixed is-light">
                     <div class="container-fluid">
                         <div class="nk-header-wrap">
+                            <!-- Logo in Header - LEFT SIDE (Always visible) -->
+                            <div class="navbar-brand">
+                                <a href="/superadmin/index" class="logo-link">
+                                    <img class="logo-light logo-img" src="./images/logo.png" alt="logo">
+                                </a>
+                            </div>
+                            
                             <div class="nk-menu-trigger d-xl-none ms-n1">
                                 <a href="#" class="nk-nav-toggle nk-quick-nav-icon" data-target="sidebarMenu"><em class="icon ni ni-menu"></em></a>
                             </div>
-                            <div class="nk-header-brand d-xl-none">
-                                <a href="/superadmin/index" class="logo-link">
-                                    <img class="logo-light logo-img" src="./images/logo.png" srcset="./images/logo.png" alt="logo">
-                                    <img class="logo-dark logo-img" src="./images/logo.png" srcset="./images/logo.png" alt="logo-dark">
-                                  </a>
-                            </div><!-- .nk-header-brand -->
+                            
+                            <!-- Page Title in Header - CENTER -->
+                            <div class="page-title">
+                                <span>Restaurants List</span>
+                            </div>
                            
                             <div class="nk-header-tools">
                                 <ul class="nk-quick-nav">

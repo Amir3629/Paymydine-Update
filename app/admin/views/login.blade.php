@@ -12,7 +12,7 @@
     <!-- Page Title  -->
     <title>Login | DashLite Admin Template</title>
     <!-- StyleSheets  -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dashboard.css') }}?ver=3.2.3">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dashboard.css') }}?ver={{ time() }}">
     <link id="skin-default" rel="stylesheet" href="./assets/css/theme.css?ver=3.2.3">
 </head>
 
