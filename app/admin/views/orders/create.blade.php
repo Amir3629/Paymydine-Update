@@ -75,10 +75,14 @@
 
 .badge.badge-primary {
     background: linear-gradient(135deg, #08815e, #08815e);
-    color: #000329;
+    color: #ffffff;
     font-weight: 600;
     padding: 0.5rem 1rem;
     border-radius: 0.375rem;
+}
+
+.badge.badge-primary span {
+    color: #ffffff;
 }
 
 .table-status-badge {
@@ -116,17 +120,18 @@
     color: #ffffff !important;
 }
 
-/* Fix Zoom Control Button Sizes */
+/* Fix Zoom Control Button Sizes - Smaller than Edit Layout Button */
 .zoom-btn {
     width: 32px !important;
     height: 32px !important;
-    padding: 6px !important;
+    padding: 0 !important;
     font-size: 12px !important;
+    line-height: 32px !important;
     border-radius: 6px !important;
     border: 1px solid #08815e !important;
     background: linear-gradient(135deg, #08815e, #08815e) !important;
     color: white !important;
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
@@ -170,7 +175,9 @@
     .zoom-btn {
         width: 28px !important;
         height: 28px !important;
+        padding: 0 !important;
         font-size: 10px !important;
+        line-height: 28px !important;
     }
 }
 </style>
@@ -181,8 +188,8 @@
 <div class="page-header">
     <div class="page-header-content">
         <div class="page-title">
-            <button type="button" id="back-to-tables" class="btn btn-primary" style="display: none;" onclick="window.location.href='{{ admin_url('orders') }}'">
-                <i class="fa fa-arrow-left"></i> Back to Order
+            <button type="button" id="back-to-tables" class="btn btn-primary" style="display: none;">
+                <i class="fa fa-arrow-left"></i> Back to Orders
             </button>
         </div>
         <div class="page-header-actions">
@@ -204,11 +211,11 @@
                 </button>
             </div>
             <div id="selected-table-info" class="selected-table-info" style="display: none;">
-                <span class="badge badge-primary">Ordering for <span id="current-table-name"></span></span>
-                <div class="table-status-badge" id="table-status-badge" style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-left: 10px;"></div>
+                <span class="badge badge-primary">Ordering for <span id="current-table-name"></span> - <span id="table-status-badge-text">Available</span></span>
                 <!-- Hidden elements for JavaScript to access -->
                 <span id="current-table-id" style="display: none;"></span>
                 <span id="current-table-no" style="display: none;"></span>
+                <div class="table-status-badge" id="table-status-badge" style="display: none;"></div>
             </div>
         </div>
     </div>
@@ -1126,11 +1133,14 @@ body, html {
     background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
     border: none;
     color: white;
-    padding: 10px 20px;
-    border-radius: 25px;
+    padding: 8px 16px;
+    font-size: 14px;
+    min-height: 36px;
+    border-radius: 8px;
     font-weight: 600;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(214, 182, 134, 0.3);
+    line-height: 1.4;
 }
 
 #edit-layout-btn:hover {
@@ -1154,7 +1164,7 @@ body, html {
     padding: 0;
     width: 100%;
     height: 100%;
-    margin-top: 80px;
+    margin-top: 10px;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e0 #f7fafc;
 }
@@ -1549,20 +1559,22 @@ body, html {
 }
 
 .zoom-btn {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
-    border: none;
+    border: 1px solid #08815e;
     color: white;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(214, 182, 134, 0.3);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: bold;
+    padding: 0;
+    line-height: 32px;
 }
 
 .zoom-btn:hover {
@@ -1661,8 +1673,11 @@ body, html {
     }
     
     .zoom-btn {
-        width: 35px;
-        height: 35px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        font-size: 10px;
+        line-height: 28px;
     }
 }
 
@@ -3495,15 +3510,12 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('current-table-id').textContent = tableId;
         document.getElementById('current-table-no').textContent = tableNo;
         
-        // Update table status badge
-        const statusBadge = document.getElementById('table-status-badge');
+        // Update table status badge text in combined badge
+        const statusBadgeText = document.getElementById('table-status-badge-text');
         const selectedTable = document.querySelector('.table-item.selected');
-        if (selectedTable) {
-            const status = selectedTable.dataset.status || 'available';
+        if (selectedTable && statusBadgeText) {
             const statusText = selectedTable.querySelector('.table-status')?.textContent || 'Available';
-            statusBadge.textContent = statusText;
-            statusBadge.className = `table-status-badge status-${status}`;
-            statusBadge.style.display = 'inline-block';
+            statusBadgeText.textContent = statusText;
         }
         
         // Hide table grid with smooth animation
@@ -3619,7 +3631,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     // Back to tables button event listener
-    document.getElementById('back-to-tables').addEventListener('click', backToTables);
+    document.getElementById('back-to-tables').addEventListener('click', function() {
+        const backButton = document.getElementById('back-to-tables');
+        const buttonText = backButton.innerText || backButton.textContent;
+        
+        // If button says "Back to Orders" or "Back to Order", navigate to orders page
+        if (buttonText.includes('Back to Order')) {
+            window.location.href = '{{ admin_url('orders') }}';
+        } else {
+            // Otherwise (when it says "Back to Tables"), just toggle to table selection view
+            backToTables();
+        }
+    });
 
     // Initialize zoom button states and load saved zoom
     loadZoomLevel();
