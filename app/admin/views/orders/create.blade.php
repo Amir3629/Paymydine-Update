@@ -32,12 +32,10 @@
 
 /* Standard Admin Page Header Styling */
 .page-header {
-    background: #fff;
-    border-bottom: 1px solid #e9ecef;
+    background: transparent;
+    border: none;
     padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
-    border-radius: 0.375rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0.5rem;
 }
 
 .page-header-content {
@@ -321,10 +319,17 @@ foreach ($menu_ids as $key => $menu_id) {
         $total_price += ($price * $qty);
         $total_qty += $qty;
     }
+    
+    // Add all menu options prices to the order total
+    $total_options_price = 0;
+    foreach ($menu_option_totals as $menu_id => $option_total) {
+        $total_options_price += floatval($option_total);
+    }
+    
     $order->created_at = now();
     $order->updated_at = now();
     $order->total_items = $total_qty;
-    $order->order_total = $total_price ;
+    $order->order_total = $total_price + $total_options_price;
     $order->save();
     $last_order_id = $order->order_id;
 
@@ -362,22 +367,40 @@ foreach ($menu_ids as $key => $menu_id) {
             ->where('menu_id', $menu_id)
             ->value('order_menu_id');
 
+        // Remove duplicates from option values array
+        $option_values = array_unique($option_values);
+        
         foreach ($option_values as $value_id) {
             $option = DB::table('menu_option_values')
                 ->where('option_value_id', $value_id)
                 ->first();
 
             if ($option) {
-                DB::table('order_menu_options')->insert([
-                    'order_id' => $last_order_id,
-                    'menu_id' => $menu_id,
-                    'quantity' => $quantities[$menu_id] ?? 1, // Ensure correct quantity
-                    'order_menu_id' => $order_menu_id,
-                    'order_option_name' => $option->value,
-                    'order_option_price' => $option->price,
-                    'menu_option_value_id' => $option->option_value_id,
-                    'order_menu_option_id' => $option->option_id
-                ]);
+                // Get the menu_option_id from menu_item_options table
+                $menuItemOption = DB::table('menu_item_options')
+                    ->where('menu_id', $menu_id)
+                    ->where('option_id', $option->option_id)
+                    ->first();
+                
+                // Check if this exact option already exists for this order menu to prevent duplicates
+                $existingOption = DB::table('order_menu_options')
+                    ->where('order_id', $last_order_id)
+                    ->where('order_menu_id', $order_menu_id)
+                    ->where('menu_option_value_id', $option->option_value_id)
+                    ->exists();
+                
+                if (!$existingOption) {
+                    DB::table('order_menu_options')->insert([
+                        'order_id' => $last_order_id,
+                        'menu_id' => $menu_id,
+                        'quantity' => $quantities[$menu_id] ?? 1,
+                        'order_menu_id' => $order_menu_id,
+                        'order_option_name' => $option->value,
+                        'order_option_price' => $option->price,
+                        'menu_option_value_id' => $option->option_value_id,
+                        'order_menu_option_id' => $menuItemOption ? $menuItemOption->menu_option_id : $option->option_id
+                    ]);
+                }
             }
         }
     }
@@ -578,13 +601,11 @@ $unavailableTables = DB::table('orders')
         </div>
     </div>
     
-    <div class="w-100 ms-row card-body mt-5 order-form" style="background: linear-gradient(135deg, #ffffff, #ffffff);padding: 4rem 2rem; display: none;">
+    <div class="w-100 ms-row order-form" style="padding: 1rem 2rem; display: none;">
 
 <div class="wrapper w-100">
     <div class="row w-100">
         <div class="col">
-            <label for="menu-select" class="form-label">Select Menu</label>
-            
             <!-- Category Filter Buttons -->
             <div class="category-filter-container" style="margin-bottom: 20px;">
                 <div class="category-buttons">
@@ -644,13 +665,10 @@ $unavailableTables = DB::table('orders')
                             <span class="menu-name">{{ $menuRow->menu_name }}</span>
                             <span class="menu-price">{{ $menuRow->menu_price }}{{ app('currency')->getDefault()->currency_symbol }}</span>
                         </div>
-                        <div class="add-button">
-                            <i class="fa fa-plus"></i>
-                        </div>
                     </div>
                     
                     <!-- Back of card (for sides/options) -->
-                    <div class="card-back" style="display: none; background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;">
+                    <div class="card-back force-white-background">
                         <div class="back-header">
                             <h4>{{ $menuRow->menu_name }} Options</h4>
                         </div>
@@ -723,22 +741,23 @@ $unavailableTables = DB::table('orders')
         .menu-price,
         .interactive-card .menu-price,
         .menu-info .menu-price {
-    font-size: 0.8rem !important; 
-    font-weight: 500 !important; 
-    color: #202938 !important; /* Changed to dark brown */
-    background: linear-gradient(135deg, #ffffff, #ffffff) !important; /* Changed to cream gradient */
-    padding: 4px 8px !important; 
-    border-radius: 6px !important;
+    font-size: 1.2rem !important; 
+    font-weight: 700 !important; 
+    color: #2c3e50 !important;
+    background: none !important;
+    padding: 0 !important; 
+    border-radius: 0 !important;
     display: inline-block !important; 
-    box-shadow: 0 2px 5px rgba(214, 182, 134, 0.2) !important; /* Brown shadow */
-    transition: all 0.3s ease-in-out !important;
+    box-shadow: none !important;
+    transition: none !important;
+    border: none !important;
 }
 
 .menu-price:hover {
-    color: #fff !important; 
-    background: linear-gradient(135deg, #08815e, #08815e) !important; /* Changed to brown gradient */
-    transform: scale(1.05) !important; 
-    box-shadow: 0 4px 8px rgba(214, 182, 134, 0.3) !important; /* Brown shadow */
+    color: #2c3e50 !important; 
+    background: none !important;
+    transform: none !important; 
+    box-shadow: none !important;
 }
 
    .col {
@@ -819,7 +838,7 @@ $unavailableTables = DB::table('orders')
     font-size: 1.2rem !important;
     text-align: center !important;
     line-height: 1.4 !important;
-    color: #08815e !important;
+    color: #000000 !important;
 }
 
 
@@ -829,6 +848,7 @@ $unavailableTables = DB::table('orders')
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             transform-style: preserve-3d;
             position: relative;
+            background: transparent !important; /* No background on container */
         }
 
         .interactive-card.flipped {
@@ -838,58 +858,69 @@ $unavailableTables = DB::table('orders')
         }
 
         .card-front, .card-back {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            backface-visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            backface-visibility: hidden !important;
+            -webkit-backface-visibility: hidden !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 12px !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        
+        .card-front {
+            transform: rotateY(0deg) !important;
+            z-index: 2 !important;
+            background: #fcfcfc !important;
+            justify-content: space-between !important;
+            padding: 15px !important;
         }
 
         .card-back {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important; /* Same as front cards */
-            border-radius: 12px;
-            padding: 15px;
-            transform: rotateY(180deg);
-            overflow-y: auto;
-            max-height: 100%;
+            background: #fcfcfc !important;
+            padding: 15px !important;
+            transform: rotateY(180deg) !important;
+            overflow-y: auto !important;
+            z-index: 1 !important;
         }
         
         /* Force override any external CSS - ULTRA SPECIFIC */
         .interactive-card .card-back {
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
+            background: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
         }
         
         .flipped .card-back {
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
+            background: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
         }
         
         /* Nuclear option - force white background */
         .force-white-background {
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
-            background-color: #f9f9f9 !important;
-            background-image: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
+            background: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
+            background-color: #fcfcfc !important;
+            background-image: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
         }
         
         .card-back.force-white-background {
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
-            background-color: #f9f9f9 !important;
-            background-image: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
+            background: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
+            background-color: #fcfcfc !important;
+            background-image: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
         }
         
         /* NUCLEAR OPTION - Override everything */
         div.card-back {
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
+            background: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
         }
         
         .menu-items-grid .interactive-card .card-back {
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
+            background: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
         }
         
         /* Force with attribute selector */
         [class*="card-back"] {
-            background: linear-gradient(135deg, #f9f9f9, #ffffff) !important;
+            background: linear-gradient(135deg, #fcfcfc, #ffffff) !important;
         }
 
         .interactive-card.flipped .card-front {
@@ -981,7 +1012,7 @@ $unavailableTables = DB::table('orders')
 
         @keyframes addedToCart {
             0% { transform: scale(1); }
-            50% { transform: scale(1.05); background: linear-gradient(135deg, #f9f9f9, #ffffff); }
+            50% { transform: scale(1.05); background: linear-gradient(135deg, #fcfcfc, #ffffff); }
             100% { transform: scale(1); }
         }
 
@@ -1811,7 +1842,7 @@ body, html {
     flex-direction: column;
     align-items: center;
     justify-content: space-between; 
-    background: linear-gradient(135deg, #f9f9f9, #ffffff);
+    background: linear-gradient(135deg, #fcfcfc, #ffffff);
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     padding: 15px;
@@ -2219,7 +2250,6 @@ document.addEventListener("DOMContentLoaded", function () {
             window.initializeCategoryFiltering = initializeCategoryFiltering;
 
     menuItems.forEach(item => {
-        const addButton = item.querySelector('.add-button');
         const backButton = item.querySelector('.flip-back-btn');
         const addItemButton = item.querySelector('.add-item-btn');
         
@@ -2296,16 +2326,16 @@ document.addEventListener("DOMContentLoaded", function () {
             // Show success message
             console.log('Item added to cart with sides:', itemData);
             
-            // Add success animation to the card
-            item.classList.add('added-to-cart');
-            setTimeout(() => {
-                item.classList.remove('added-to-cart');
-            }, 1000);
+            // Flip back to front immediately (like back button)
+            flipToFront.call(item);
             
-            // Flip back to front after adding
+            // Add success animation AFTER flip completes (flip takes 400ms)
             setTimeout(() => {
-                flipToFront.call(item);
-            }, 500);
+                item.classList.add('added-to-cart');
+                setTimeout(() => {
+                    item.classList.remove('added-to-cart');
+                }, 1000);
+            }, 450); // Wait for flip to complete
             
             // Update floating toolbar
             updateFloatingToolbar();
@@ -2404,8 +2434,8 @@ document.addEventListener("DOMContentLoaded", function () {
             setTimeout(() => {
                 const cardBack = this.querySelector('.card-back');
                 if (cardBack) {
-                    cardBack.style.background = 'linear-gradient(135deg, #f9f9f9, #ffffff) !important';
-                    cardBack.style.setProperty('background', 'linear-gradient(135deg, #f9f9f9, #ffffff)', 'important');
+                    cardBack.style.background = 'linear-gradient(135deg, #fcfcfc, #ffffff) !important';
+                    cardBack.style.setProperty('background', 'linear-gradient(135deg, #fcfcfc, #ffffff)', 'important');
                 }
             }, 100);
             try {
@@ -2502,19 +2532,11 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Show back of card with smooth flip animation
             this.classList.add('flipped');
-            const cardFront = this.querySelector('.card-front');
-            const cardBack = this.querySelector('.card-back');
-            cardFront.style.display = 'none';
-            cardBack.style.display = 'block';
         }
 
         // Flip back to front
         function flipToFront() {
             this.classList.remove('flipped');
-            const cardFront = this.querySelector('.card-front');
-            const cardBack = this.querySelector('.card-back');
-            cardBack.style.display = 'none';
-            cardFront.style.display = 'block';
         }
 
                 // Update floating toolbar display
@@ -2627,11 +2649,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 };
 
         // Event listeners
-        addButton.addEventListener('click', function(e) {
-            e.stopPropagation();
-            addToCart();
-        });
-
         addItemButton.addEventListener('click', function(e) {
             e.stopPropagation();
             console.log('Add button clicked!');
@@ -2647,8 +2664,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Click on card to flip to options (if has options)
         item.addEventListener('click', function(e) {
-            if (e.target.closest('.add-button') || e.target.closest('.add-item-btn') || 
-                e.target.closest('.flip-back-btn')) {
+            if (e.target.closest('.add-item-btn') || e.target.closest('.flip-back-btn')) {
                 return;
             }
             
@@ -2669,31 +2685,38 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Toolbar event listeners
-        toggleToolbarBtn.addEventListener('click', function() {
-            console.log('Toggle button clicked, current state:', toolbarState);
-            if (toolbarState === "collapsed") {
-                // If collapsed, go to preview (shouldn't happen normally)
-                toolbarState = "preview";
-                floatingToolbar.className = "floating-toolbar preview show";
-                // Remove inline transform to let CSS handle it
-                floatingToolbar.style.transform = '';
-                toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
-            } else if (toolbarState === "preview") {
-                toolbarState = "expanded";
-                floatingToolbar.className = "floating-toolbar expanded show";
-                // Remove inline transform to let CSS handle it
-                floatingToolbar.style.transform = '';
-                toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
-            } else if (toolbarState === "expanded") {
-                toolbarState = "preview";
-                floatingToolbar.className = "floating-toolbar preview show";
-                // Remove inline transform to let CSS handle it
-                floatingToolbar.style.transform = '';
-                toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
-            }
-            console.log('New toolbar state:', toolbarState);
-        });
+        // Toolbar event listeners - Guard against duplicate listeners
+        if (!toggleToolbarBtn.dataset.hasClickListener) {
+            toggleToolbarBtn.dataset.hasClickListener = 'true';
+            
+            toggleToolbarBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Toggle button clicked, current state:', toolbarState);
+                if (toolbarState === "collapsed") {
+                    // If collapsed, go to preview (shouldn't happen normally)
+                    toolbarState = "preview";
+                    floatingToolbar.className = "floating-toolbar preview show";
+                    // Remove inline transform to let CSS handle it
+                    floatingToolbar.style.transform = '';
+                    toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                } else if (toolbarState === "preview") {
+                    toolbarState = "expanded";
+                    floatingToolbar.className = "floating-toolbar expanded show";
+                    // Remove inline transform to let CSS handle it
+                    floatingToolbar.style.transform = '';
+                    toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                } else if (toolbarState === "expanded") {
+                    toolbarState = "preview";
+                    floatingToolbar.className = "floating-toolbar preview show";
+                    // Remove inline transform to let CSS handle it
+                    floatingToolbar.style.transform = '';
+                    toggleToolbarBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                }
+                console.log('New toolbar state:', toolbarState);
+            });
+        }
 
 
         placeOrderBtn.addEventListener('click', function(e) {
@@ -2714,11 +2737,17 @@ document.addEventListener("DOMContentLoaded", function () {
             // Find the form and submit it
             const form = document.querySelector('form');
             if (form) {
+                // FIRST: Remove ALL existing menu-related hidden inputs to prevent duplicates
+                form.querySelectorAll('input[name="menu_id[]"], input[name="menu_name[]"], input[name="menu_price[]"], input[name="qty[]"], input[name^="menu_options"]').forEach(input => input.remove());
+                
+                console.log('🛒 Cart contents before submission:', selectedItems);
+                
                 // Add selected items to form as hidden inputs
-                selectedItems.forEach((itemData, menuId) => {
-                    // Remove existing inputs for this menu item
-                    const existingInputs = form.querySelectorAll(`input[name="menu_id[]"][value="${menuId}"]`);
-                    existingInputs.forEach(input => input.remove());
+                selectedItems.forEach((itemData, uniqueKey) => {
+                    // Extract the actual menu ID from the unique key or use the id property
+                    const menuId = itemData.id;
+                    
+                    console.log(`📦 Processing cart item: ${itemData.name} (ID: ${menuId}, Qty: ${itemData.quantity})`);
                     
                     // Add new inputs
                     const menuIdInput = document.createElement('input');
@@ -2736,7 +2765,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const menuPriceInput = document.createElement('input');
                     menuPriceInput.type = 'hidden';
                     menuPriceInput.name = 'menu_price[]';
-                    menuPriceInput.value = itemData.price;
+                    menuPriceInput.value = itemData.basePrice || itemData.price;
                     form.appendChild(menuPriceInput);
                     
                     const qtyInput = document.createElement('input');
@@ -2744,6 +2773,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     qtyInput.name = 'qty[]';
                     qtyInput.value = itemData.quantity;
                     form.appendChild(qtyInput);
+                    
+                    // Add menu options/sides if they exist
+                    if (itemData.options && itemData.options.length > 0) {
+                        console.log(`✅ Adding ${itemData.options.length} unique options for menu ID ${menuId}:`, itemData.options);
+                        itemData.options.forEach(option => {
+                            const optionInput = document.createElement('input');
+                            optionInput.type = 'hidden';
+                            optionInput.name = `menu_options[${menuId}][]`;
+                            optionInput.value = option.value; // This is the option_value_id
+                            form.appendChild(optionInput);
+                            console.log(`   ➕ Option: ${option.text} (value_id: ${option.value})`);
+                        });
+                    } else {
+                        console.log(`ℹ️  No options for menu ID ${menuId}`);
+                    }
                 });
                 
                 // Ensure table_id is set
@@ -3585,13 +3629,13 @@ document.addEventListener("DOMContentLoaded", function () {
          const cardBacks = document.querySelectorAll('.card-back');
          cardBacks.forEach(card => {
              // Try multiple approaches - CORRECT COLORS
-             card.style.setProperty('background', 'linear-gradient(135deg, #f9f9f9, #ffffff)', 'important');
-             card.style.background = 'linear-gradient(135deg, #f9f9f9, #ffffff) !important';
-             card.style.backgroundColor = '#f9f9f9 !important';
+             card.style.setProperty('background', 'linear-gradient(135deg, #fcfcfc, #ffffff)', 'important');
+             card.style.background = 'linear-gradient(135deg, #fcfcfc, #ffffff) !important';
+             card.style.backgroundColor = '#fcfcfc !important';
              
              // Force remove any gray colors
-             card.style.setProperty('background-color', '#f9f9f9', 'important');
-             card.style.setProperty('background-image', 'linear-gradient(135deg, #f9f9f9, #ffffff)', 'important');
+             card.style.setProperty('background-color', '#fcfcfc', 'important');
+             card.style.setProperty('background-image', 'linear-gradient(135deg, #fcfcfc, #ffffff)', 'important');
              
              // Add a class to force the style
              card.classList.add('force-white-background');
