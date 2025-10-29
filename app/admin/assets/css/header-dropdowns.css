@@ -1,0 +1,276 @@
+/* ============================================
+   HEADER DROPDOWN MENUS - Brown/Cream Theme
+   Global styles for all admin header dropdowns
+   ============================================ */
+
+/* Center the page title in header */
+.navbar-top .container-fluid {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  
+  .navbar-top .page-title {
+    flex: 1 !important;
+    text-align: center !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important; /* Light cream color */
+    margin: 0 20px !important;
+    letter-spacing: 0.5px !important;
+  }
+  
+  .navbar-top .page-title span {
+    color: #ffffff !important; /* Light cream color */
+  }
+  
+  /* Override admin.css which sets right: 25px */
+  /* Force ALL navbar dropdowns to align right edge to parent right edge */
+  /* Using very high specificity to override Bootstrap's positioning */
+  .navbar-top .nav-item.dropdown .dropdown-menu,
+  .navbar-top .dropdown-menu,
+  #notification-panel.dropdown-menu,
+  .navbar-top .nav-item.dropdown .dropdown-menu.dropdown-menu-right,
+  .navbar-top .dropdown-menu.show {
+    right: 0 !important;
+    left: auto !important;
+    transform-origin: top right !important; /* Ensure animation originates from top-right */
+  }
+  
+  /* All dropdown menus in header (account, location, notifications, etc.) */
+  .navbar-top .dropdown-menu,
+  .navbar-top .nav-item .dropdown-menu {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 2px solid #08815e !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 30px rgba(112, 79, 38, 0.25) !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+  
+    /* Smooth open/close animations */
+    opacity: 0 !important;
+    transform: translateY(-20px) scale(0.95) !important;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    pointer-events: none !important;
+  }
+  
+  /* Show state - smooth entrance */
+  .dropdown-menu.show,
+  .navbar-top .dropdown-menu.show {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: all !important;
+  }
+  
+  /* Dropdown header */
+  .dropdown-menu .dropdown-header {
+    color: #202938 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    padding: 12px 16px 8px !important;
+    border-bottom: 2px solid #ffffff !important;
+    background: transparent !important;
+  }
+  
+  /* Dropdown items */
+  .dropdown-menu .dropdown-item:not([data-request="onUpdateStatus"]),
+  .dropdown-menu .menu-link,
+  .dropdown-menu a:not(.btn) {
+    color: #5a4a3a !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    font-weight: 500 !important;
+    margin: 2px 0 !important;
+    background: transparent !important;
+    
+    /* Staggered fade-in animation */
+    opacity: 0;
+    transform: translateX(-10px);
+    animation: slideInItem 0.3s ease forwards;
+  }
+  
+  /* Staggered animation delays */
+  .dropdown-menu.show .dropdown-item:nth-child(1),
+  .dropdown-menu.show .menu-item:nth-child(1) { animation-delay: 0.05s; }
+  .dropdown-menu.show .dropdown-item:nth-child(2),
+  .dropdown-menu.show .menu-item:nth-child(2) { animation-delay: 0.1s; }
+  .dropdown-menu.show .dropdown-item:nth-child(3),
+  .dropdown-menu.show .menu-item:nth-child(3) { animation-delay: 0.15s; }
+  .dropdown-menu.show .dropdown-item:nth-child(4),
+  .dropdown-menu.show .menu-item:nth-child(4) { animation-delay: 0.2s; }
+  .dropdown-menu.show .dropdown-item:nth-child(5),
+  .dropdown-menu.show .menu-item:nth-child(5) { animation-delay: 0.25s; }
+  .dropdown-menu.show .dropdown-item:nth-child(n+6),
+  .dropdown-menu.show .menu-item:nth-child(n+6) { animation-delay: 0.3s; }
+  
+  @keyframes slideInItem {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* Dropdown item hover */
+  .dropdown-menu .dropdown-item:not([data-request="onUpdateStatus"]):hover,
+  .dropdown-menu .menu-link:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    color: #202938 !important;
+    transform: translateX(3px) !important;
+  }
+  
+  /* Allow status dropdown items to use their inline hover colors */
+  .list-table .dropdown-menu a[data-request="onUpdateStatus"]:hover {
+    background-color: unset !important;
+  }
+  
+  /* Settings menu grid layout - 3 COLUMNS */
+  .dropdown-menu .menu-grid {
+    padding: 8px 6px !important;
+    min-width: 420px !important;
+    max-width: 450px !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-item {
+    border-bottom: none !important;
+    margin: 3px !important;
+    text-align: center !important;
+    padding: 0 !important;
+    flex: 0 0 calc(33.333% - 6px) !important;
+    max-width: calc(33.333% - 6px) !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px 8px !important;
+    min-height: 75px !important;
+    border-radius: 10px !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link i {
+    font-size: 24px !important;
+    margin-bottom: 6px !important;
+    margin-right: 0 !important;
+    color: #08815e !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link span {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #5a4a3a !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+    display: block !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 3px 8px rgba(112, 79, 38, 0.15) !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link:hover i {
+    color: #202938 !important;
+    transform: scale(1.08) !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link:hover span {
+    color: #202938 !important;
+  }
+  
+  /* Notification panel specific - SIMPLE FIX: Align right edge to parent right edge */
+  #notification-panel,
+  #notification-panel.dropdown-menu {
+    min-width: 420px !important;
+    max-width: 420px !important; /* Force consistent width */
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 8px !important;
+    /* Position from the RIGHT side of parent */
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    /* Override the 25px offset from admin.css and push even further right */
+    margin-right: -123px !important; /* Push it further right to align perfectly */
+  }
+  
+  /* Fix notification parent positioning */
+  #notif-root.nav-item.dropdown {
+    position: relative !important;
+  }
+  
+  /* GENTLE FIX: Force notification dropdown to align right without breaking animations */
+  #notif-root .dropdown-menu,
+  #notif-root > .dropdown-menu,
+  li#notif-root .dropdown-menu {
+    position: absolute !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+  
+  /* Only override left positioning from Popper.js */
+  #notification-panel.show {
+    right: 0 !important;
+    left: auto !important;
+  }
+  
+  /* Notification header - MATCH DROPDOWN HEADERS */
+  #notification-panel .d-flex.align-items-center,
+  #notification-panel > div:first-child {
+    background: transparent !important;
+    color: #202938 !important;
+    padding: 12px 16px !important;
+    border-bottom: 2px solid #ffffff !important;
+    border-radius: 0 !important;
+  }
+  
+  #notification-panel .d-flex.align-items-center strong,
+  #notification-panel strong {
+    color: #202938 !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+  
+  /* ============================================
+     CRITICAL FIX: Status Dropdown in Orders Table
+     ============================================ */
+  
+  /* Prevent the general dropdown hover rule from overriding inline background colors */
+  .list-table .dropdown-menu .dropdown-item:hover,
+  .list-table .dropdown-menu .status-dropdown-item:hover,
+  .list-table .dropdown-menu a[data-request="onUpdateStatus"]:hover {
+    background: none !important;
+    background-color: revert !important;
+    /* This allows the inline onmouseover handler to work */
+  }
+  
+  /* Ensure status items are always visible (no animation delay) */
+  .list-table .dropdown-menu .status-dropdown-item,
+  .list-table .dropdown-menu a[data-request="onUpdateStatus"] {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+    animation: none !important;
+  }
+  
+  

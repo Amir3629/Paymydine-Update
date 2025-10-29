@@ -1,0 +1,248 @@
+/* ============================================
+   SUPERADMIN SIDEBAR FIXES
+   1. Remove scrollbar (only 3 items, no need)
+   2. Remove ALL hover effects (no effects on menu/logo)
+   3. Move menu items higher
+   ============================================ */
+
+/* ============================================
+   1. HIDE ALL SCROLLBARS IN SIDEBAR
+   ============================================ */
+
+/* Hide scrollbar completely */
+.nk-sidebar,
+.sidebar,
+div.sidebar,
+.nk-sidebar-element.nk-sidebar-body,
+.nk-sidebar-content,
+.nk-sidebar-menu,
+.nav-sidebar {
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.nk-sidebar::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+div.sidebar::-webkit-scrollbar,
+.nk-sidebar-element.nk-sidebar-body::-webkit-scrollbar,
+.nk-sidebar-content::-webkit-scrollbar,
+.nk-sidebar-menu::-webkit-scrollbar,
+.nav-sidebar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ============================================
+   2. REMOVE ALL HOVER EFFECTS
+   ============================================ */
+
+/* Menu link hover - NO EFFECTS AT ALL */
+.nk-sidebar .nk-menu-link:hover,
+.nk-sidebar-menu .nk-menu-link:hover,
+.nav-sidebar .nav-link:hover,
+#side-nav-menu .nav-link:hover,
+.sidebar .nav-link:hover {
+  background-color: transparent !important; /* NO EFFECT */
+  color: rgba(255, 255, 255, 0.7) !important; /* Same as default */
+  transform: none !important; /* No movement */
+  box-shadow: none !important; /* No shadow */
+}
+
+/* Active menu link - NO GREEN, just brighter and bigger */
+.nk-sidebar .nk-menu-link.active,
+.nk-sidebar .nk-menu-item.active > .nk-menu-link,
+.nk-sidebar-menu .active,
+.nav-sidebar .active,
+#side-nav-menu .active,
+.sidebar .nav-link.active {
+  background-color: transparent !important; /* NO background */
+  color: #ffffff !important; /* Pure white text - brighter */
+  border-left: none !important; /* NO green border */
+  transform: scale(1.05) !important; /* Slightly bigger */
+  font-weight: 600 !important; /* Bolder */
+  opacity: 1 !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Remove green from active menu item container */
+.nk-sidebar .nk-menu-item.active,
+.nk-sidebar .nk-menu-item.current-page {
+  background-color: transparent !important;
+  border-left: none !important;
+}
+
+/* NUCLEAR: Remove ALL green colors from sidebar completely */
+.nk-sidebar .nk-menu-item.active > .nav-link,
+#side-nav-menu .nav-item.active > .nav-link,
+.nk-sidebar-menu .nav-item.active,
+.nk-sidebar .active {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  border-left: none !important;
+}
+
+/* Remove green text color from active links */
+.nk-sidebar a.active,
+.nk-sidebar .nk-menu-link.active,
+#side-nav-menu .active {
+  color: #ffffff !important;
+}
+
+/* Menu icons - WHITE/GRAY only, NO green! */
+.nk-sidebar .nk-menu-icon,
+.nk-sidebar-menu .icon,
+.nav-sidebar i,
+#side-nav-menu i {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Icon on hover - NO CHANGE */
+.nk-sidebar .nk-menu-link:hover .nk-menu-icon,
+.nk-sidebar-menu .nk-menu-link:hover i,
+.nav-sidebar .nav-link:hover i,
+#side-nav-menu .nav-link:hover i {
+  color: rgba(255, 255, 255, 0.7) !important; /* Same as default - NO CHANGE */
+}
+
+/* Icon when active - PURE WHITE (NOT green) */
+.nk-sidebar .nk-menu-link.active .nk-menu-icon,
+.nk-sidebar .nk-menu-item.active .nk-menu-icon,
+.nk-sidebar-menu .active i,
+.nav-sidebar .active i,
+#side-nav-menu .active i {
+  color: #ffffff !important; /* Pure white */
+}
+
+/* ============================================
+   3. REMOVE ALL HOVER EFFECTS GLOBALLY
+   ============================================ */
+
+/* NO hover effects on anything in sidebar */
+.nk-sidebar *:hover,
+.sidebar *:hover,
+.nk-sidebar-brand:hover,
+.nk-sidebar-brand img:hover,
+.logo-link:hover,
+.nk-sidebar .nk-menu-link:hover,
+.nk-sidebar a:hover {
+  background-color: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* Remove any pseudo-elements that might duplicate logo */
+.nk-sidebar-brand::before,
+.nk-sidebar-brand::after,
+.logo-link::before,
+.logo-link::after,
+.nk-sidebar-brand img::before,
+.nk-sidebar-brand img::after {
+  display: none !important;
+  content: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide duplicate/extra images */
+.nk-sidebar-brand img + img,
+.logo-link img + img {
+  display: none !important;
+}
+
+/* Only show first logo image */
+.nk-sidebar-brand img:first-of-type,
+.logo-link img:first-of-type {
+  display: block !important;
+}
+
+.nk-sidebar-brand img:not(:first-of-type),
+.logo-link img:not(:first-of-type) {
+  display: none !important;
+}
+
+/* ============================================
+   4. MOVE MENU ITEMS HIGHER
+   ============================================ */
+
+/* Sidebar menu - move higher */
+.nk-sidebar .nk-menu,
+.nk-sidebar-menu,
+.nav-sidebar,
+#side-nav-menu {
+  padding-top: 0px !important; /* Remove top padding to move items up */
+  margin-top: 0px !important; /* Remove top margin */
+}
+
+/* Sidebar body - start right after logo */
+.nk-sidebar-element.nk-sidebar-body,
+.nk-sidebar-content {
+  padding-top: 0px !important; /* No top padding */
+  margin-top: 0px !important; /* No top margin */
+}
+
+/* First menu item - no extra spacing */
+.nk-sidebar .nk-menu-item:first-child,
+.nk-menu .nk-menu-item:first-child {
+  margin-top: 0px !important;
+  padding-top: 0px !important;
+}
+
+/* ============================================
+   5. DISABLE ALL TRANSITIONS & EFFECTS
+   ============================================ */
+
+/* NO transitions on sidebar elements */
+.nk-sidebar,
+.nk-sidebar *,
+.nk-sidebar-brand,
+.nk-sidebar-brand *,
+.nk-sidebar .nk-menu-link,
+.nk-sidebar-menu .nk-menu-link,
+.nav-sidebar .nav-link,
+#side-nav-menu .nav-link {
+  transition: none !important; /* NO transitions */
+  transform: none !important; /* NO transforms */
+}
+
+/* ============================================
+   FINAL NUCLEAR OVERRIDE - REMOVE ALL GREEN
+   ============================================ */
+
+/* Kill ALL green colors in sidebar - MAXIMUM SPECIFICITY */
+html body .nk-sidebar .nk-menu-item.active > .nk-menu-link,
+html body .nk-sidebar .nk-menu-item.active .nk-menu-link,
+html body .nk-sidebar .active,
+html body #side-nav-menu .nav-item.active > .nav-link,
+html body .nk-sidebar-menu .nav-item.active {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  border-left: none !important;
+  transform: scale(1.05) !important;
+  font-weight: 600 !important;
+}
+
+/* Remove green background */
+html body .nk-sidebar .nk-menu-item.active,
+html body .nk-sidebar .current-page {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Force white color on active menu text */
+html body .nk-sidebar .nk-menu-item.active .nk-menu-text,
+html body .nk-sidebar .active .nk-menu-text,
+html body .nk-sidebar .nk-menu-link.active span {
+  color: #ffffff !important;
+}
+
+/* Force white color on active icons */
+html body .nk-sidebar .nk-menu-item.active .nk-menu-icon,
+html body .nk-sidebar .active .icon,
+html body .nk-sidebar .nk-menu-link.active em {
+  color: #ffffff !important;
+}
+
