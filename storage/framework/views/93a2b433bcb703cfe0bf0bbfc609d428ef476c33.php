@@ -1,0 +1,11 @@
+<div class="row-fluid">
+    <?php echo $this->widgets['toolbar']->render(); ?>
+
+
+    <?php echo $this->makePartial('updates/search', ['itemType' => 'theme']); ?>
+
+
+    <?php echo $this->widgets['list']->render(); ?>
+
+</div>
+<?php /**PATH /Users/amir/Downloads/paymydine-main-9/app/system/views/themes/index.blade.php ENDPATH**/ ?>
