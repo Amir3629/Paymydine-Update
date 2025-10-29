@@ -25,7 +25,7 @@
             left: 201px !important;
             font-size: 64px !important;
             color: rgb(32, 41, 56) !important;
-            z-index: 999999 !important;
+            z-index: 1030 !important;
             line-height: 1 !important;
             pointer-events: none !important;
             text-shadow: 0 0 10px rgba(32, 41, 56, 0.5) !important;

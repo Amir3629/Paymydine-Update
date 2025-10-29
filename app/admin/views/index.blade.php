@@ -16,19 +16,10 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-exact-match.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-scrollbar-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-spacing-fix.css') }}?ver={{ time() }}">
-    
-    <!-- Smooth Transitions & Modern Interactions -->
-    <script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?ver={{ time() }}" defer></script>
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-simple-fade.css') }}?ver={{ time() }}">
     
     <!-- Sidebar Star Icon -->
     <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?ver={{ time() }}" defer></script>
-    
-    <style>
-        /* Page fade-in animation */
-        body {
-            animation: fadeIn 0.5s ease-out !important;
-        }
-    </style>
 </head>
 
 <body class="nk-body bg-lighter npc-general has-sidebar ">
@@ -266,9 +257,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                                         <div class="card-title card-title-sm">
                                                             <h6 class="tenant-title">Tenants</h6>
                                                             <p class="tenant-subtitle">Tenants Statistics</p>
-                                                            
                                                         </div>
-                                                     
                                                     </div>
                                                 </div>
                                                 <div class="nk-tb-list is-loose traffic-channel-table">
@@ -375,7 +364,7 @@ $class4 = ($totalToday > $totalYesterday) ? 'change up' : 'change down';
                                                 <div class="card-inner-group">
                                                     <div class="card-inner">
                                                         <div class="card-title-group">
-                                                            <div class="card-title">
+                                                            <div class="card-title card-title-sm">
                                                             <?php
 
 $recentTenants = DB::connection('mysql')
@@ -384,10 +373,8 @@ $recentTenants = DB::connection('mysql')
     ->limit(5) // Get the last 5 tenants
     ->get();
 ?>
-                                                                <h6 class="tenant-title">Recent Tenants </h6>
-                                                            </div>
-                                                            <div class="card-tools">
-                                                                <a href="/superadmin/new" class="link">View All</a>
+                                                                <h6 class="tenant-title">Recent Tenants</h6>
+                                                                <p class="tenant-subtitle">Latest Registered Restaurants</p>
                                                             </div>
                                                         </div>
                                                     </div>

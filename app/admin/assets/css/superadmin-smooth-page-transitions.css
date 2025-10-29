@@ -1,0 +1,86 @@
+/**
+ * SUPERADMIN SMOOTH PAGE TRANSITIONS
+ * Only animates content INSIDE fixed containers
+ * Fixed containers (header, sidebar, wrap) stay perfectly in place
+ */
+
+/* Only animate the INNER content, not the containers */
+.nk-content-body {
+    animation: fadeInContent 0.4s ease-out;
+}
+
+@keyframes fadeInContent {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Add transition to inner content only */
+.nk-content-body {
+    transition: opacity 0.25s ease;
+}
+
+/* Fade out inner content when leaving */
+body.page-leaving .nk-content-body {
+    opacity: 0;
+}
+
+/* NUCLEAR: LOCK ALL FIXED CONTAINERS IN PLACE */
+html,
+body,
+.nk-app-root,
+.nk-main,
+.nk-wrap,
+.nk-header,
+.nk-sidebar,
+.nk-content,
+.container-fluid,
+.nk-content-inner {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+}
+
+/* Force body to stay in place */
+html {
+    overflow-x: hidden !important;
+}
+
+body {
+    overflow-x: hidden !important;
+    position: relative !important;
+}
+
+/* FORCE: Ensure wrap container is always at correct position */
+.nk-wrap {
+    position: fixed !important;
+    top: 65px !important;
+    left: 230px !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* FORCE: Ensure header stays locked at top */
+.nk-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 230px !important;
+    right: 0 !important;
+    height: 65px !important;
+}
+
+/* FORCE: Ensure sidebar stays locked at left */
+.nk-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 230px !important;
+    height: 100vh !important;
+}
+

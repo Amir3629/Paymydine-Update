@@ -16,20 +16,10 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-exact-match.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-scrollbar-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-spacing-fix.css') }}?ver={{ time() }}">
-    
-    <!-- Smooth Transitions & Modern Interactions -->
-    <script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?ver={{ time() }}" defer></script>
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-simple-fade.css') }}?ver={{ time() }}">
     
     <!-- Sidebar Star Icon -->
     <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?ver={{ time() }}" defer></script>
-    
-    <style>
-        /* Page fade-in animation */
-        body {
-            animation: fadeIn 0.5s ease-out !important;
-        }
-    </style>
-
 </head>
 
 <body class="nk-body bg-lighter npc-general has-sidebar ">
@@ -66,7 +56,7 @@
                             <li class="nk-menu-item">
                                     <a href="/superadmin/new" class="nk-menu-link">
                                         <span class="nk-menu-icon"><em class="icon ni ni-user-list-fill"></em></span>
-                                        <span class="nk-menu-text">Tenants</span>
+                                        <span class="nk-menu-text">Restaurants</span>
                                     </a>
                                 </li><!-- .nk-menu-item -->
                              

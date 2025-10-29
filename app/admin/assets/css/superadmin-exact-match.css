@@ -479,12 +479,17 @@ html,
 }
 
 /* Main Content - Adjust for header and sidebar */
-.nk-main,
-.nk-wrap,
+/* CRITICAL: Body must stay at 0,0 - NO margins! */
 body {
-  margin-left: 230px !important; /* Sidebar width */
-  margin-top: 65px !important; /* Header height */
-  padding: 30px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: #f5f6fa !important;
+  overflow-x: hidden !important;
+}
+
+.nk-main,
+.nk-wrap {
+  /* Wrap is fixed positioned, doesn't need margins */
   background-color: #f5f6fa !important;
   min-height: calc(100vh - 65px) !important;
 }

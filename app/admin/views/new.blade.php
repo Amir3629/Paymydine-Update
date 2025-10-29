@@ -26,6 +26,14 @@
     <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?ver={{ time() }}" defer></script>
 
     <style>
+    /* FORCE dropdown white */
+    .nk-header .dropdown-menu { background: #ffffff !important; border: 1px solid #e5e9f2 !important; }
+    .dropdown-menu .dropdown-inner { background: #ffffff !important; }
+    .dropdown-menu .link-list a { background: #ffffff !important; color: #364a63 !important; }
+    .dropdown-menu .link-list a:hover { background: #f5f6fa !important; color: #049b68 !important; }
+    </style>
+
+    <style>
         .toggle-status {
     font-size: 12px; /* Smaller text */
     padding: 6px 10px; /* Adjust padding for a smaller button */
@@ -307,8 +315,27 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                                     <div class="card-tools me-n1">
                                                         <ul class="btn-toolbar gx-1">
                                                             <li>
+                                                                <!-- Settings Button - First -->
+                                                                <div class="dropdown">
+                                                                    <a href="#" class="btn btn-trigger btn-icon dropdown-toggle" data-bs-toggle="dropdown">
+                                                                        <em class="icon ni ni-setting"></em>
+                                                                    </a>
+                                                                    <div class="dropdown-menu dropdown-menu-xs dropdown-menu-end">
+                                                                        <ul class="link-check">
+                                                                            <li><span>Order</span></li>
+                                                                            <li><a href="#" class="order-by" data-value="DESC">DESC</a></li>
+                                                                            <li><a href="#" class="order-by" data-value="ASC">ASC</a></li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </div><!-- .dropdown -->
                                                             </li><!-- li -->
                                                             <li class="btn-toolbar-sep"></li><!-- li -->
+                                                            <li>
+                                                                <!-- Add Restaurant Button - Second -->
+                                                                <a href="#" class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomer">
+                                                                    <em class="icon ni ni-plus"></em>
+                                                                </a>
+                                                            </li><!-- li -->
                                                             <li>
                                                                 <div class="toggle-wrap">
                                                                     <a href="#" class="btn btn-icon btn-trigger toggle" data-target="cardTools"><em class="icon ni ni-menu-right"></em></a>
@@ -321,24 +348,6 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                                                            
                                                                             </li><!-- li -->
                                                                             <li>
-                                                                            <div class="dropdown">
-    <a href="#" class="btn btn-trigger btn-icon dropdown-toggle" data-bs-toggle="dropdown">
-        <em class="icon ni ni-setting"></em>
-    </a>
-    <div class="dropdown-menu dropdown-menu-xs dropdown-menu-end">
-        <ul class="link-check">
-            <li><span>Show</span></li>
-            <li><a href="#" class="per-page" data-value="5">5</a></li>
-            <li><a href="#" class="per-page" data-value="10">10</a></li>
-            <li><a href="#" class="per-page" data-value="15">15</a></li>
-        </ul>
-        <ul class="link-check">
-            <li><span>Order</span></li>
-            <li><a href="#" class="order-by" data-value="DESC">DESC</a></li>
-            <li><a href="#" class="order-by" data-value="ASC">ASC</a></li>
-        </ul>
-    </div>
-</div><!-- .dropdown -->
 
                                                                             </li><!-- li -->
                                                                         </ul><!-- .btn-toolbar -->
@@ -353,12 +362,6 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                             <div class="card-inner p-0">
                                                 <div class="nk-tb-list nk-tb-ulist">
                                                     <div class="nk-tb-item nk-tb-head">
-                                                        <div class="nk-tb-col nk-tb-col-check">
-                                                            <div class="custom-control custom-control-sm custom-checkbox notext">
-                                                                <input type="checkbox" class="custom-control-input" id="uid">
-                                                                <label class="custom-control-label" for="uid"></label>
-                                                            </div>
-                                                        </div>
                                                         <div class="nk-tb-col"><span class="sub-text">Restaurant</span></div>
                                                         <div class="nk-tb-col tb-col-lg"><span class="sub-text">Phone</span></div>
                                                         <div class="nk-tb-col tb-col-mb"><span class="sub-text">Restaurant Database</span></div>
@@ -369,19 +372,17 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                                         </div>
                                                     </div>
                                                     @foreach ($tenants as $tenant)
+                                                    @php
+                                                        $tenantStatus = DB::connection('mysql')->table('tenants')->where('id', $tenant->id)->value('status');
+                                                        $isDisabled = ($tenantStatus !== 'active');
+                                                    @endphp
 
                                                     <!-- .nk-tb-item -->
-                                                    <div class="nk-tb-item">
-                                                        <div class="nk-tb-col nk-tb-col-check">
-                                                            <div class="custom-control custom-control-sm custom-checkbox notext">
-                                                                <input type="checkbox" class="custom-control-input" id="uid1">
-                                                                <label class="custom-control-label" for="uid1"></label>
-                                                            </div>
-                                                        </div>
+                                                    <div class="nk-tb-item {{ $isDisabled ? 'restaurant-disabled' : '' }}" data-status="{{ $tenantStatus }}">
                                                         <div class="nk-tb-col">
                                                             <div class="user-card">
-                                                                <div class="user-avatar bg-primary">
-                                                                    <span>T {{ $tenant->id }}</span>
+                                                                <div class="user-avatar bg-primary tenant-id-avatar">
+                                                                    <span>{{ $tenant->id }}</span>
                                                                 </div>
                                                                 <div class="user-info">
                                                                     <span class="tb-lead">{{ $tenant->name }} <span class="dot dot-success d-md-none ms-1"></span></span>
@@ -404,53 +405,59 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                                         </div>
                                                         <div class="nk-tb-col nk-tb-col-tools">
                                                             <ul class="nk-tb-actions gx-1">
-                                                                <li class="nk-tb-action-hidden">
-                                                                    <a  href="mailto:{{ $tenant->email }}" class="btn btn-trigger btn-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="Send Email">
-                                                                        <em class="icon ni ni-mail-fill"></em>
-                                                                    </a>
-                                                                </li>
-                                                                <li class="nk-tb-action-hidden">
-    @php
-        $tenantStatus = DB::connection('mysql')->table('tenants')->where('id', $tenant->id)->value('status');
-        $isActive = ($tenantStatus === 'active');
-    @endphp
-
-    <a href="javascript:void(0);" 
-        class="btn btn-trigger btn-icon toggle-status" 
-        data-id="{{ $tenant->id }}" 
-        data-status="{{ $isActive ? 'disable' : 'activate' }}" 
-        data-bs-toggle="tooltip" 
-        data-bs-placement="top" 
-        title="{{ $isActive ? 'Disable Restaurant' : 'Activate Restaurant' }}">
-        <em class="icon ni {{ $isActive ? 'ni-user-cross' : 'ni-user-check' }}"></em>
-    </a>
-</li>
-
                                                                 <li>
                                                                     <div class="drodown">
                                                                         <a href="#" class="dropdown-toggle btn btn-icon btn-trigger" data-bs-toggle="dropdown"><em class="icon ni ni-more-h"></em></a>
                                                                         <div class="dropdown-menu dropdown-menu-end">
                                                                             <ul class="link-list-opt no-bdr">
-                                                                            <li>
-                                                                            <a href="javascript:void(0);" 
-   class="delete-button"
-   data-url="{{ url('/tenants/delete/' . $tenant->id) }}">
-    <em class="icon ni ni-trash"></em>
-    <span>Delete Restaurant</span>
-</a>
-
-</li>
-                                                                                <li><a data-bs-toggle="modal"  data-id="{{ $tenant->id }}" 
-            data-name="{{ $tenant->name }}" 
-            data-email="{{ $tenant->email }}" 
-            data-phone="{{ $tenant->phone }}" 
-            data-domain="{{ $tenant->domain }}" 
-            data-start="{{ $tenant->start }}" 
-            data-end="{{ $tenant->end }}"
-            data-type="{{ $tenant->type }}" 
-            data-description="{{ $tenant->description }}"
-            data-country="{{ $tenant->country }}"
-            href="#editCustomer"><em class="icon ni ni-edit"></em><span>Edit Restaurant</span></a></li>
+                                                                                <!-- Send Email -->
+                                                                                <li>
+                                                                                    <a href="mailto:{{ $tenant->email }}">
+                                                                                        <em class="icon ni ni-mail-fill"></em>
+                                                                                        <span>Send Email</span>
+                                                                                    </a>
+                                                                                </li>
+                                                                                <!-- Activate/Disable -->
+                                                                                <li>
+                                                                                    @php
+                                                                                        $tenantStatus = DB::connection('mysql')->table('tenants')->where('id', $tenant->id)->value('status');
+                                                                                        $isActive = ($tenantStatus === 'active');
+                                                                                    @endphp
+                                                                                    <a href="javascript:void(0);" 
+                                                                                        class="toggle-status" 
+                                                                                        data-id="{{ $tenant->id }}" 
+                                                                                        data-status="{{ $isActive ? 'disable' : 'activate' }}">
+                                                                                        <em class="icon ni {{ $isActive ? 'ni-user-cross' : 'ni-user-check' }}"></em>
+                                                                                        <span>{{ $isActive ? 'Disable Restaurant' : 'Activate Restaurant' }}</span>
+                                                                                    </a>
+                                                                                </li>
+                                                                                <!-- Edit -->
+                                                                                <li>
+                                                                                    <a data-bs-toggle="modal"  
+                                                                                        data-id="{{ $tenant->id }}" 
+                                                                                        data-name="{{ $tenant->name }}" 
+                                                                                        data-email="{{ $tenant->email }}" 
+                                                                                        data-phone="{{ $tenant->phone }}" 
+                                                                                        data-domain="{{ $tenant->domain }}" 
+                                                                                        data-start="{{ $tenant->start }}" 
+                                                                                        data-end="{{ $tenant->end }}"
+                                                                                        data-type="{{ $tenant->type }}" 
+                                                                                        data-description="{{ $tenant->description }}"
+                                                                                        data-country="{{ $tenant->country }}"
+                                                                                        href="#editCustomer">
+                                                                                        <em class="icon ni ni-edit"></em>
+                                                                                        <span>Edit Restaurant</span>
+                                                                                    </a>
+                                                                                </li>
+                                                                                <!-- Delete -->
+                                                                                <li>
+                                                                                    <a href="javascript:void(0);" 
+                                                                                        class="delete-button"
+                                                                                        data-url="{{ url('/tenants/delete/' . $tenant->id) }}">
+                                                                                        <em class="icon ni ni-trash"></em>
+                                                                                        <span>Delete Restaurant</span>
+                                                                                    </a>
+                                                                                </li>
                                                                             </ul>
                                                                         </div>
                                                                     </div>
@@ -525,7 +532,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                         
                     @csrf
                         <div class="row g-gs">
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label" for="edit-name">Restaurant Name</label>
                                     <div class="form-control-wrap">
@@ -535,7 +542,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                             </div>
                             <input type="hidden" name="id" id="edit-tenant-id">
 
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label" for="edit-email">Email</label>
                                     <div class="form-control-wrap">
@@ -543,7 +550,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label" for="edit-phone">Phone</label>
                                     <div class="form-control-wrap">
@@ -632,7 +639,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                     <form action="{{ url('/new/store') }}" method="POST" class="mt-2">
                          @csrf
                         <div class="row g-gs">
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label" for="add-name"> Restaurant Name</label>
                                     <div class="form-control-wrap">
@@ -642,7 +649,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                             </div>
 
                             
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label" for="add-email">Email</label>
                                     <div class="form-control-wrap">
@@ -650,7 +657,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="form-group">
                                     <label class="form-label" for="add-phone">Phone</label>
                                     <div class="form-control-wrap">
@@ -849,36 +856,43 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .then(response => response.json())
             .then(data => {
-    if (data.success) {
-        console.log(`Success: Status changed to ${newStatus}`);
+                if (data.success) {
+                    console.log(`Success: Status changed to ${newStatus}`);
 
-        // Get the button element
-        let button = this;
-        let icon = button.querySelector("em");
+                    // Get the button element and the table row
+                    let button = this;
+                    let icon = button.querySelector("em");
+                    let span = button.querySelector("span");
+                    let tableRow = button.closest('.nk-tb-item');
 
-        // Toggle status and update UI
-        if (newStatus === "disable") {
-            button.dataset.status = "activate";
-            button.title = "Activate Restaurant";
-            button.innerHTML = `<em class="icon ni ni-user-check"></em> `; // Update text
-            
-        } else {
-            button.dataset.status = "disable";
-            button.title = "Disable Restaurant";
-            button.innerHTML = `<em class="icon ni ni-user-cross"></em> `; // Update text
-        }
-const tooltip = bootstrap.Tooltip.getInstance(button); // Get current tooltip instance
-
-if (tooltip) {
-    tooltip.dispose(); 
-    tooltip.show(); 
-    }} 
-    else {
-        console.error("Server Error:", data.error);
-        alert("Error updating status!");
-    }
-})
-
+                    // Toggle status and update UI
+                    if (newStatus === "disable") {
+                        button.dataset.status = "activate";
+                        icon.className = "icon ni ni-user-check";
+                        span.textContent = "Activate Restaurant";
+                        // Add disabled class to table row (red effect)
+                        tableRow.classList.add('restaurant-disabled');
+                        tableRow.setAttribute('data-status', 'disabled');
+                    } else {
+                        button.dataset.status = "disable";
+                        icon.className = "icon ni ni-user-cross";
+                        span.textContent = "Disable Restaurant";
+                        // Remove disabled class from table row
+                        tableRow.classList.remove('restaurant-disabled');
+                        tableRow.setAttribute('data-status', 'active');
+                    }
+                    
+                    // Show success message
+                    console.log("Status updated successfully!");
+                } else {
+                    console.error("Server Error:", data.error);
+                    alert("Error updating status!");
+                }
+            })
+            .catch(error => {
+                console.error("Fetch Error:", error);
+                alert("Error updating status!");
+            });
         });
     });
 });
@@ -887,3 +901,5 @@ if (tooltip) {
 </body>
 
 </html>
+
+
