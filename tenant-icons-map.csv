@@ -1,0 +1,4 @@
+scope,host_or_domain,tenant_id_or_name,menu_html_uses,final_dom_src_pattern,origin(:8000|:3000|absolute),served_status_8000,served_status_3000,content_type_8000,content_type_3000,icon_source_model(db|shared_public|tenant_disk|proxy),cashier_icon_reference,notes
+central,127.0.0.1:8000,N/A,<Image> (not rendering),/images/payments/{code}.svg,relative,200 OK,200 OK,image/svg+xml,image/svg+xml,shared_public,N/A,Next.js frontend not loading through proxy
+central,127.0.0.1:3000,N/A,<Image>,/images/payments/{code}.svg,relative,N/A,200 OK,N/A,image/svg+xml,shared_public,N/A,Direct Next.js access works
+tenant,{tenant}.paymydine.com,Unknown,<Image> (not rendering),/images/payments/{code}.svg,relative,200 OK,200 OK,image/svg+xml,image/svg+xml,shared_public,N/A,No local tenant subdomains available for testing

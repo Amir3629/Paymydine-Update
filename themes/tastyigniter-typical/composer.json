@@ -1,0 +1,47 @@
+{
+  "name": "tastyigniter/ti-theme-typical",
+  "type": "tastyigniter-theme",
+  "description": "The Typical theme features a clean and modern design that is optimized for restaurants and food businesses.",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Dejosel"
+    }
+  ],
+  "keywords": [
+    "tastyigniter",
+    "theme",
+    "typical"
+  ],
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.0",
+    "pestphp/pest": "^1.20"
+  },
+  "extra": {
+    "tastyigniter-theme": {
+      "code": "tastyigniter-typical",
+      "name": "Typical Theme",
+      "locked": true,
+      "require": {
+        "igniter.cart": "*",
+        "igniter.coupons": "*",
+        "igniter.frontend": "*",
+        "igniter.local": "*",
+        "igniter.pages": "*",
+        "igniter.payregister": "*",
+        "igniter.reservation": "*",
+        "igniter.user": "*"
+      }
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/pest",
+    "test-coverage": "vendor/bin/pest --coverage",
+    "format": "vendor/bin/php-cs-fixer fix --allow-risky=yes"
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
