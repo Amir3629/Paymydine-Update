@@ -54,7 +54,13 @@
   function renderItem(item) {
     const ts = new Date(item.created_at || Date.now());
     const time = ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    const table = item.table_name || (item.table_id ? `Table ${item.table_id}` : '—');
+    // Better fallback logic for table display
+    let table = '—';
+    if (item.table_name && item.table_name.trim()) {
+      table = item.table_name.trim();
+    } else if (item.table_id) {
+      table = `Table ${item.table_id}`;
+    }
     const type = (item.type||'').replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
     
     let payload = {};
@@ -66,54 +72,97 @@
 
     // Create the main container with proper flex layout
     const div = document.createElement('div');
-    div.className = 'list-group-item d-flex align-items-start justify-content-between';
+    div.className = 'list-group-item d-flex align-items-start justify-content-between notif-item-custom';
     div.dataset.id = item.id;
 
     // Create the content wrapper (left side)
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'flex-grow-1';
 
-    // Create time and type info
+    // Create time info - RESTRUCTURED (just time for all types)
     const metaDiv = document.createElement('div');
-    metaDiv.className = 'small text-muted';
-    metaDiv.textContent = `${time} • ${type}`;
+    metaDiv.className = 'small notif-meta-line';
+    metaDiv.style.color = '#000000';
+    metaDiv.style.fontWeight = '500';
+    
+    // For order_status notifications: show "time • Order #X"
+    if (item.type === 'order_status') {
+      const orderId = payload.order_id || 'Unknown Order';
+      metaDiv.textContent = `${time} • Order #${orderId}`;
+    } else {
+      // For all other types: just show time without bullet
+      metaDiv.textContent = time;
+    }
 
-    // Create table name
+    // Create table name with status (for orders) or type label for others
     const tableDiv = document.createElement('div');
-    tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
+    if (item.type === 'order_status') {
+      const statusName = payload.status_name || 'Unknown Status';
+      // Status color mapping
+      const statusColors = {
+        'Received': '#08815e',
+        'Preparation': '#f39c12',
+        'Ready': '#3498db',
+        'Delivered': '#27ae60',
+        'Completed': '#27ae60',
+        'Canceled': '#e74c3c',
+        'Cancelled': '#e74c3c'
+      };
+      const statusColor = statusColors[statusName] || '#08815e';
+      tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: ${statusColor}; font-weight: 600;">${escapeHtml(statusName)}</span>`;
+    } else if (item.type === 'table_note') {
+      // For table notes: show "TABLE X • Note"
+      tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Note</span>`;
+    } else if (item.type === 'waiter_call') {
+      // For waiter calls: show "TABLE X • Waiter Call"
+      tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Waiter Call</span>`;
+    } else {
+      tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
+    }
 
     // Create the text body with proper class for wrapping
     const body = document.createElement('div');
-    body.className = 'notif-text text-muted';
+    body.className = 'notif-text';
+    body.style.color = '#000000';
+    body.style.fontWeight = '500';
 
     // Choose the right field to show based on type
     let text = '';
     if (item.type === 'table_note') {
-      text = payload.note || '(no note text)';
+      // Show the note content in dropdown (full text)
+      const noteContent = payload.note || '(no note text)';
+      text = noteContent;
     } else if (item.type === 'valet_request') {
-      const name = payload.name || 'Guest';
-      const plate = payload.license_plate || '—';
+      const name = payload.name || '';
+      const plate = payload.license_plate || '';
       const car = payload.car_make || '';
-      text = `Valet • ${name} • ${plate}${car ? ' • ' + car : ''}`;
+      if (name || plate || car) {
+        text = [name, plate, car].filter(v => v).join(' • ');
+      }
     } else if (item.type === 'waiter_call') {
+      // Add custom message if it exists and is not default
       const raw = (payload && payload.message) ? String(payload.message).trim() : "";
       const isLegacyDefault = raw.toLowerCase() === "customer needs assistance";
       const isMinimal = raw === ".";
-      if (!raw || isLegacyDefault || isMinimal) {
-        text = "";
-      } else {
+      if (raw && !isLegacyDefault && !isMinimal) {
         text = raw;
       }
     } else if (item.type === 'order_status') {
-      const statusName = payload.status_name || 'Unknown Status';
-      const orderId = payload.order_id || 'Unknown Order';
-      text = `Order #${orderId} • ${statusName}`;
+      // For order status, we've already shown order ID and status, so no additional text needed
+      text = "";
     } else {
-      text = item.title || '';
+      text = item.title || type;
     }
 
+    // Assemble the structure in correct order: time, table, then additional text
+    contentWrapper.appendChild(metaDiv);
+    contentWrapper.appendChild(tableDiv);
+    
     // Set text content safely (not innerHTML) - this enables proper text wrapping
-    body.textContent = text;
+    if (text) {
+      body.textContent = text;
+      contentWrapper.appendChild(body);
+    }
 
     // Create the action button container (right side)
     const actionDiv = document.createElement('div');
@@ -122,11 +171,6 @@
     button.className = 'btn btn-sm btn-outline-secondary js-mark-seen';
     button.textContent = 'Seen';
     actionDiv.appendChild(button);
-
-    // Assemble the structure: content on left, button on right
-    contentWrapper.appendChild(metaDiv);
-    contentWrapper.appendChild(tableDiv);
-    contentWrapper.appendChild(body);
     
     div.appendChild(contentWrapper);
     div.appendChild(actionDiv);

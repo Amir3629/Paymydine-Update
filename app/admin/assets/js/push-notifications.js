@@ -78,33 +78,32 @@ class PushNotificationManager {
         const toast = document.createElement('div');
         toast.className = `notification-toast toast-${notification.type || 'order'}`;
         
-        const iconMap = {
-            'order': 'fa-utensils',
-            'waiter': 'fa-hand-paper',
-            'reservation': 'fa-calendar-check',
-            'alert': 'fa-exclamation-triangle'
-        };
-
-        const icon = notification.icon || iconMap[notification.type] || 'fa-bell';
+        // Add status as data attribute for progress bar color
+        if (notification.statusName) {
+            toast.setAttribute('data-status', notification.statusName.toLowerCase());
+        }
+        
+        // Format message with colored status if available
+        let messageHtml = notification.message || '';
+        if (notification.statusName && notification.statusColor) {
+            // Replace the status text with colored version
+            messageHtml = messageHtml.replace(
+                notification.statusName, 
+                `<span style="color: ${notification.statusColor}; font-weight: 600;">${notification.statusName}</span>`
+            );
+        }
 
         toast.innerHTML = `
             <div class="notification-toast-header">
-                <div class="notification-toast-title">
-                    <div class="notification-toast-icon">
-                        <i class="fa ${icon}"></i>
-                    </div>
-                    <span>${notification.title || 'New Notification'}</span>
+                <div class="notification-toast-meta-line">
+                    ${notification.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}${notification.title ? ' • ' + notification.title : ''}
                 </div>
                 <button class="notification-toast-close" aria-label="Close">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
             <div class="notification-toast-body">
-                ${notification.message || ''}
-            </div>
-            <div class="notification-toast-meta">
-                <i class="fa fa-clock-o"></i>
-                <span>${notification.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                ${messageHtml}
             </div>
             <div class="notification-toast-progress"></div>
         `;
@@ -234,31 +233,59 @@ class PushNotificationManager {
                 console.error('Failed to parse notification payload:', e);
             }
             
-            // Build title: "TABLE 5" or "TABLE 1"
-            let title = notif.table_name || 'TABLE';
-            if (!title.toUpperCase().includes('TABLE')) {
-                title = 'TABLE ' + title;
+            // Build table name
+            let tableName = 'TABLE';
+            if (notif.table_name && notif.table_name.trim()) {
+                tableName = notif.table_name.trim();
+            } else if (notif.table_id) {
+                tableName = 'TABLE ' + notif.table_id;
             }
-            title = title.trim();
             
-            // Build message: "Order #443 • Received" or "Order #443 • Preparation"
+            // Build title and message based on notification type
+            let title = '';
             let message = '';
             
-            // Get order ID from payload or notification
-            const orderId = payload.order_id || notif.order_id;
-            if (orderId) {
-                message = `Order #${orderId}`;
-            }
+            let statusName = null;
+            let statusColor = null;
             
-            // Get status name from payload (Received, Preparation, Delivery, Completed, Canceled)
-            const statusName = payload.status_name || payload.status || notif.order_status;
-            if (statusName) {
-                if (message) message += ' • ';
-                message += statusName;
-            }
-            
-            // Fallback to title or type if no message
-            if (!message) {
+            if (notif.type === 'order_status') {
+                // For order status: Title = "Order #X", Message = "TABLE Y • Status"
+                const orderId = payload.order_id || notif.order_id;
+                statusName = payload.status_name || payload.status || notif.order_status;
+                
+                // Status color mapping
+                const statusColors = {
+                    'Received': '#08815e',
+                    'Preparation': '#f39c12',
+                    'Ready': '#3498db',
+                    'Delivered': '#27ae60',
+                    'Completed': '#27ae60',
+                    'Canceled': '#e74c3c',
+                    'Cancelled': '#e74c3c'
+                };
+                statusColor = statusColors[statusName] || '#08815e';
+                
+                title = orderId ? `Order #${orderId}` : tableName;
+                message = tableName;
+                if (statusName) {
+                    message += ' • ' + statusName;
+                }
+            } else if (notif.type === 'waiter_call') {
+                // For waiter call: just show "Waiter Call" without custom message in push notification
+                title = '';  // No title, just time
+                message = tableName + ' • Waiter Call';
+            } else if (notif.type === 'valet_request') {
+                // For valet: Title = "TABLE X", Message = "Valet Request • Details"
+                title = tableName;
+                message = 'Valet Request';
+                if (payload.name) message += ' • ' + payload.name;
+            } else if (notif.type === 'table_note') {
+                // For table note: just show "Note" without content in push notification
+                title = '';  // No title, just time
+                message = tableName + ' • Note';
+            } else {
+                // For other notification types
+                title = tableName;
                 message = notif.message || notif.type || 'New notification';
             }
             
@@ -274,12 +301,14 @@ class PushNotificationManager {
                 type = 'alert';
             }
             
-            // Show the push notification with EXACT same text as in bell dropdown
+            // Show the push notification
             this.show({
                 title: title,
-                message: message || 'New Order',
+                message: message || 'New notification',
                 type: type,
-                time: this.formatTime(notif.created_at)
+                time: this.formatTime(notif.created_at),
+                statusName: statusName,
+                statusColor: statusColor
             });
             
             console.log('📬 NEW notification (ID:', notifId + '):', title, '|', message);

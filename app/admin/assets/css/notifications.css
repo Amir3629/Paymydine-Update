@@ -13,12 +13,30 @@
   flex-direction: column;
 }
 
+/* Custom notification item styling - light gray background, no border */
+.notif-item-custom,
+#notification-panel .notif-item-custom {
+  background-color: #f8f9fa !important;
+  border: none !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px !important;
+  padding: 12px 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.notif-item-custom:hover,
+#notification-panel .notif-item-custom:hover {
+  background-color: #e9ecef !important;
+  transform: translateX(2px) !important;
+}
+
 /* Wrap long notes/messages, including very long unbroken strings */
 #notification-panel .notif-text {
-  white-space: pre-wrap;     /* respect \n, allow wrap */
+  white-space: pre-line;     /* respect \n, allow wrap, collapse spaces */
   overflow-wrap: anywhere;   /* modern soft wrap */
   word-break: break-word;    /* legacy fallback */
   hyphens: auto;             /* optional: hyphenation */
+  line-height: 1.4;
 }
 
 /* Optional: keep absurdly long notes scrollable instead of
