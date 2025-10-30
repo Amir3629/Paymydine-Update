@@ -41,7 +41,7 @@
   .navbar-top .dropdown-menu,
   .navbar-top .nav-item .dropdown-menu {
     background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
-    border: 2px solid #08815e !important;
+    border: none !important;
     border-radius: 10px !important;
     box-shadow: 0 8px 30px rgba(112, 79, 38, 0.25) !important;
     padding: 8px !important;
