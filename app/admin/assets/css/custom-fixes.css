@@ -482,16 +482,44 @@ input[type="reset"],
 .nav-sidebar,
 #navSidebar,
 .sidebar {
-  border-bottom-right-radius: 15px !important;
+  border-bottom-right-radius: 0 !important;
   position: relative !important;
-  overflow: visible !important;
-  height: 100vh !important; /* Full viewport height */
-  min-height: 100vh !important; /* Ensure it's at least full height */
 }
 
-/* Create star/sparkle icon in top-right corner */
-.nav-sidebar::before,
-#navSidebar::before,
+/* Keep sidebar full height of viewport minus top navbar */
+.sidebar {
+  height: calc(100vh - 64px) !important;
+  min-height: calc(100vh - 64px) !important;
+}
+
+/* Enable scrolling inside admin sidebar (do NOT affect superadmin) */
+#navSidebar,
+.nav-sidebar {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Show scrollbar in WebKit and style it lightly */
+.nav-sidebar::-webkit-scrollbar {
+  display: block !important;
+  width: 8px;
+  height: 8px;
+}
+.nav-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+}
+.nav-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Show scrollbar in Firefox */
+.nav-sidebar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent !important;
+}
+
+/* Create star/sparkle icon in top-right corner (sidebar only) */
 .sidebar::before {
   content: '✦' !important; /* Star/sparkle character */
   position: absolute !important;
@@ -502,18 +530,8 @@ input[type="reset"],
   z-index: 10 !important;
 }
 
-/* Add shape to bottom-right of sidebar */
-.nav-sidebar::after,
-#navSidebar::after,
-.sidebar::after {
-  content: '✦' !important; /* Star/sparkle character */
-  position: absolute !important;
-  bottom: -54px !important;
-  right: -19px !important;
-  color: #202938 !important;
-  font-size: 64px !important;
-  z-index: 10 !important;
-}
+/* Remove any decorative bottom-right shape */
+.sidebar::after { content: none !important; }
 
 /* Round the main content area top-right corner */
 .content-wrapper,
@@ -621,6 +639,23 @@ body.history.index .list-table {
   opacity: 0 !important;
   pointer-events: none !important;
   display: none !important; /* Completely hide it */
+}
+
+/* ============================================
+   ADMIN LOGIN PAGE - ROUNDED CARD CORNERS
+   ============================================ */
+
+/* Increase rounding on the login box only on the login page */
+.page-login .card,
+.page-login .card > .card-body,
+.page-login .login-container .card,
+.page-login .login-container .card-body {
+  border-radius: 16px !important;
+}
+
+/* Optional: slightly larger rounding on button to match */
+.page-login .btn.btn-primary {
+  border-radius: 10px !important;
 }
 
 /* Ensure modals are still visible and clickable */
@@ -2092,4 +2127,59 @@ div.modal,
 .media-finder .input-group {
     overflow: hidden !important;
     position: relative !important;
+}
+
+/* Neutralize modal styling to match header/card style (no green) */
+.modal .modal-content,
+div.modal .modal-content,
+.modal-content {
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Global modal headers override */
+.modal .modal-header,
+div.modal .modal-header,
+.modal-header {
+    background: #202938 !important; /* match header dark blue */
+    border-bottom: 1px solid #1a2230 !important;
+    border-radius: 12px 12px 0 0 !important;
+    color: #ffffff !important;
+}
+
+/* Titles and close button in neutral color */
+.modal-header .modal-title,
+.modal-header h1,
+.modal-header h2,
+.modal-header h3,
+.modal-header h4,
+.modal-header h5,
+.modal-header h6 {
+    color: #ffffff !important;
+}
+
+.modal-header .btn-close,
+.modal-header button.close {
+    filter: brightness(0) invert(1) !important;
+    opacity: 0.8 !important;
+}
+
+.modal-header .btn-close:hover,
+.modal-header button.close:hover {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* Specific setup modals override (wins over earlier green) */
+#lists-setup-modal .modal-header,
+[id$="-setup-modal"] .modal-header {
+    background: #202938 !important;
+    border-bottom: 1px solid #1a2230 !important;
+    color: #ffffff !important;
+}
+
+#lists-setup-modal .modal-content,
+[id$="-setup-modal"] .modal-content {
+    border: none !important;
 }

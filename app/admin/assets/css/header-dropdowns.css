@@ -9,6 +9,58 @@
     align-items: center !important;
     justify-content: space-between !important;
   }
+
+/* Lock header height to prevent expansion on clicks */
+.navbar-top {
+  height: 64px !important;
+  min-height: 64px !important;
+}
+.navbar-top .container-fluid,
+.navbar-top .navbar,
+.navbar-top .navbar-right {
+  height: 64px !important;
+  min-height: 64px !important;
+  align-items: center !important;
+}
+.navbar-top .navbar-nav {
+  align-items: center !important;
+}
+/* Uniform, tighter spacing between header nav items */
+.navbar-top .navbar-nav > .nav-item {
+  margin-right: 8px !important;
+}
+.navbar-top .navbar-nav > .nav-item:first-child {
+  margin-left: 0 !important; /* tighter to the left edge */
+}
+.navbar-top .navbar-nav > .nav-item:last-child {
+  margin-right: 0 !important;
+}
+.navbar-top #menu-mainmenu > li#menuitem-preview {
+  /* Nudge storefront icon slightly left to visually align */
+  margin-left: -2px !important;
+  transform: translateX(-3px) !important; /* force visual shift */
+}
+
+/* If the li-level shift is neutralized by layout, move the anchor itself */
+.navbar-top #menu-mainmenu > li#menuitem-preview > a.nav-link.front-end {
+  position: relative !important;
+  left: -4px !important;
+}
+
+/* Remove extra left padding on the UL so first item sits closer to edge */
+.navbar-top #menu-mainmenu {
+  padding-left: 0 !important;
+}
+
+/* Slightly reduce space between hamburger and first icon */
+.navbar-top .navbar-toggler {
+  margin-right: 4px !important;
+}
+.navbar-top .navbar-nav .nav-link {
+  line-height: 48px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
   
   .navbar-top .page-title {
     flex: 1 !important;
@@ -24,6 +76,17 @@
     color: #ffffff !important; /* Light cream color */
   }
   
+  /* Ensure page title is centered on ALL pages including orders/create */
+  body.orders .navbar-top .page-title,
+  body.orders.create .navbar-top .page-title,
+  .navbar-top .page-title {
+    flex: 1 !important;
+    text-align: center !important;
+    position: relative !important;
+    left: 0 !important;
+    transform: none !important;
+  }
+  
   /* Override admin.css which sets right: 25px */
   /* Force ALL navbar dropdowns to align right edge to parent right edge */
   /* Using very high specificity to override Bootstrap's positioning */
@@ -32,6 +95,8 @@
   #notification-panel.dropdown-menu,
   .navbar-top .nav-item.dropdown .dropdown-menu.dropdown-menu-right,
   .navbar-top .dropdown-menu.show {
+    position: absolute !important;
+    top: 100% !important;
     right: 0 !important;
     left: auto !important;
     transform-origin: top right !important; /* Ensure animation originates from top-right */
@@ -52,6 +117,9 @@
     transform: translateY(-20px) scale(0.95) !important;
     transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
     pointer-events: none !important;
+    /* Ensure dropdown never expands header height */
+    position: absolute !important;
+    top: 100% !important;
   }
   
   /* Show state - smooth entrance */
@@ -133,17 +201,38 @@
   /* Settings menu grid layout - 3 COLUMNS */
   .dropdown-menu .menu-grid {
     padding: 8px 6px !important;
-    min-width: 420px !important;
-    max-width: 450px !important;
+    min-width: 360px !important;
+    max-width: 380px !important;
   }
   
   .dropdown-menu .menu-grid .menu-item {
+    border: none !important;
+    border-top: none !important;
+    border-right: none !important;
     border-bottom: none !important;
+    border-left: none !important;
     margin: 3px !important;
     text-align: center !important;
     padding: 0 !important;
     flex: 0 0 calc(33.333% - 6px) !important;
     max-width: calc(33.333% - 6px) !important;
+  }
+  
+  /* Remove green border from parent .menu-item when child is active/focused/hovered */
+  .dropdown-menu .menu-grid .menu-item:has(.menu-link:hover),
+  .dropdown-menu .menu-grid .menu-item:has(.menu-link:focus),
+  .dropdown-menu .menu-grid .menu-item:has(.menu-link:active),
+  .dropdown-menu .menu-grid .menu-item:hover,
+  .dropdown-menu .menu-grid .menu-item:focus,
+  .dropdown-menu .menu-grid .menu-item:active,
+  .dropdown-menu .menu-grid .menu-item:focus-within {
+    border: none !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
   
   .dropdown-menu .menu-grid .menu-link {
@@ -157,14 +246,31 @@
     text-decoration: none !important;
     transition: all 0.2s ease !important;
     width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+  
+  /* Remove green/3D border effects on click/focus */
+  .dropdown-menu .menu-grid .menu-link:focus,
+  .dropdown-menu .menu-grid .menu-link:active,
+  .dropdown-menu .menu-grid .menu-link:focus-visible,
+  .dropdown-menu .dropdown-item:focus,
+  .dropdown-menu .dropdown-item:active,
+  .dropdown-menu .dropdown-item:focus-visible {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #202938 !important;
   }
   
   .dropdown-menu .menu-grid .menu-link i {
     font-size: 24px !important;
     margin-bottom: 6px !important;
     margin-right: 0 !important;
-    color: #08815e !important;
-    transition: all 0.2s ease !important;
+    color: #4b5563 !important;
+    transition: color 0.15s ease !important;
   }
   
   .dropdown-menu .menu-grid .menu-link span {
@@ -181,14 +287,15 @@
   }
   
   .dropdown-menu .menu-grid .menu-link:hover {
-    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 3px 8px rgba(112, 79, 38, 0.15) !important;
+    background: #ffffff !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
   }
   
   .dropdown-menu .menu-grid .menu-link:hover i {
-    color: #202938 !important;
-    transform: scale(1.08) !important;
+    color: #000000 !important;
+    transform: none !important;
   }
   
   .dropdown-menu .menu-grid .menu-link:hover span {
@@ -271,6 +378,82 @@
     opacity: 1 !important;
     transform: translateX(0) !important;
     animation: none !important;
+  }
+  
+  /* Hide the 'updates available' row inside the header settings dropdown */
+  .navbar-top .dropdown-menu .dropdown-item.alert-warning {
+    display: none !important;
+  }
+
+  /* Make the three-dots button a small green box with white dots */
+  .navbar-top .dropdown-menu .dropdown-footer {
+    padding: 8px 12px !important;
+    text-align: center !important;
+  }
+  .navbar-top .dropdown-menu .dropdown-footer a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 32px !important;
+    background: #08815e !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    border: 1px solid #08815e !important;
+    text-decoration: none !important;
+  }
+  .navbar-top .dropdown-menu .dropdown-footer a i {
+    color: #ffffff !important;
+  }
+  .navbar-top .dropdown-menu .dropdown-footer a:hover {
+    background: #0bb87a !important;
+    border-color: #0bb87a !important;
+  }
+  
+  /* Remove any green frame/border on settings tiles in all states */
+  .navbar-top .dropdown-menu .menu-grid .menu-link,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:hover,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:active,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus-visible {
+    border: 1px solid transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    background: #ffffff !important;
+    color: #202938 !important;
+    transform: none !important;
+  }
+  
+  /* Kill any green frame/active animation on settings tiles and their children */
+  .navbar-top .dropdown-menu .menu-grid .menu-link,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *,
+  .navbar-top .dropdown-menu .dropdown-item,
+  .navbar-top .dropdown-menu .dropdown-item * {
+    box-shadow: none !important;
+    outline: none !important;
+    border-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  .navbar-top .dropdown-menu .menu-grid .menu-link:active,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *:active,
+  .navbar-top .dropdown-menu .dropdown-item:active,
+  .navbar-top .dropdown-menu .dropdown-item *:active,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *:focus,
+  .navbar-top .dropdown-menu .dropdown-item:focus,
+  .navbar-top .dropdown-menu .dropdown-item *:focus,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus-visible,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *:focus-visible,
+  .navbar-top .dropdown-menu .dropdown-item:focus-visible,
+  .navbar-top .dropdown-menu .dropdown-item *:focus-visible {
+    background: #ffffff !important;
+    color: #202938 !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    transform: none !important;
+    filter: none !important;
   }
   
   

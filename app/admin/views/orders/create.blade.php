@@ -38,6 +38,16 @@
     margin-bottom: 0.5rem;
 }
 
+/* Center title in the top navbar header on this page */
+.navbar-top .container-fluid { position: relative !important; }
+.navbar-top .page-title {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    text-align: center !important;
+    margin: 0 !important;
+}
+
 .page-header-content {
     display: flex;
     justify-content: space-between;
@@ -114,19 +124,28 @@
 
 #back-to-tables.btn-primary:hover {
     background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-    transform: translateY(-2px) scale(1.02) !important;
+    transform: translateY(-2px) !important;
     box-shadow: 0 8px 20px rgba(216, 182, 134, 0.4) !important;
     border-color: #08815e !important;
     color: #ffffff !important;
 }
 
-/* Fix Zoom Control Button Sizes - Smaller than Edit Layout Button */
+/* Make the Edit Layout button larger like other prominent buttons */
+#edit-layout-btn {
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+}
+#edit-layout-btn .fa { margin-right: 6px; }
+
 .zoom-btn {
-    width: 32px !important;
-    height: 32px !important;
+    width: 36px !important;
+    height: 36px !important;
     padding: 0 !important;
-    font-size: 12px !important;
-    line-height: 32px !important;
+    font-size: 14px !important;
+    line-height: 36px !important;
     border-radius: 6px !important;
     border: 1px solid #08815e !important;
     background: linear-gradient(135deg, #08815e, #08815e) !important;
@@ -173,11 +192,11 @@
     }
     
     .zoom-btn {
-        width: 28px !important;
-        height: 28px !important;
+        width: 32px !important;
+        height: 32px !important;
         padding: 0 !important;
-        font-size: 10px !important;
-        line-height: 28px !important;
+        font-size: 12px !important;
+        line-height: 32px !important;
     }
 }
 </style>
@@ -1559,8 +1578,8 @@ body, html {
 }
 
 .zoom-btn {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 6px;
     background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
     border: 1px solid #08815e;
@@ -1571,10 +1590,10 @@ body, html {
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(214, 182, 134, 0.3);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     padding: 0;
-    line-height: 32px;
+    line-height: 36px;
 }
 
 .zoom-btn:hover {
@@ -1673,11 +1692,11 @@ body, html {
     }
     
     .zoom-btn {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         padding: 0;
-        font-size: 10px;
-        line-height: 28px;
+        font-size: 12px;
+        line-height: 32px;
     }
 }
 

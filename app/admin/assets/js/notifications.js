@@ -1,4 +1,19 @@
 (function () {
+  // Do NOT run on the admin login page
+  try {
+    const path = (location && location.pathname) || '';
+    const isAuthScreen = /\/admin\/(login|logout)(?:$|[/?#])/i.test(path) || path === '/admin/login';
+    if (isAuthScreen) {
+      // Hard hide any notification UI if markup exists
+      try {
+        const style = document.createElement('style');
+        style.textContent = '#notif-root, #notification-panel { display: none !important; visibility: hidden !important; }';
+        document.documentElement.appendChild(style);
+      } catch (_e) {}
+      return;
+    }
+  } catch (_) {}
+
   const ROOT   = document.getElementById('notif-root');
   if (!ROOT) return;
 

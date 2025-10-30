@@ -45,3 +45,17 @@
   max-height: 14rem;
   overflow: auto;
 }
+
+/* Seen button styling */
+#notification-panel .js-mark-seen {
+  border-color: #08815e !important;
+  color: #08815e !important;
+  background-color: #ffffff !important;
+  font-weight: 600 !important;
+}
+#notification-panel .js-mark-seen:hover,
+#notification-panel .js-mark-seen:focus {
+  background-color: #08815e !important;
+  border-color: #08815e !important;
+  color: #ffffff !important; /* make text white on hover */
+}

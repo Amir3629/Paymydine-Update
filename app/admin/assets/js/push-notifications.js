@@ -339,8 +339,18 @@ class PushNotificationManager {
 let pushNotificationManager;
 
 document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const path = (location && location.pathname) || '';
+        const isAuthScreen = /\/admin\/(login|logout)(?:$|[/?#])/i.test(path) || path === '/admin/login';
+        if (isAuthScreen) {
+            // Do not initialize push notifications on auth screens; also hide any container if present
+            const style = document.createElement('style');
+            style.textContent = '.notification-toast-container{display:none!important;visibility:hidden!important;}';
+            document.documentElement.appendChild(style);
+            return;
+        }
+    } catch (_) {}
     pushNotificationManager = new PushNotificationManager();
-    
     // Make it globally accessible for manual testing and integration
     window.pushNotif = pushNotificationManager;
 });
