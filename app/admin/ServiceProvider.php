@@ -278,8 +278,8 @@ class ServiceProvider extends AppServiceProvider
                     'attributes' => [
                         'class' => 'nav-link front-end',
                         'title' => 'lang:admin::lang.side_menu.storefront',
-                        'href' => admin_url('storefront-url'),
-                        'target' => '_blank',
+                        'href' => admin_url('orders/create'),
+                        'target' => '',
                     ],
                 ],
                 // Activity bell moved to settings page - see registerSystemSettings()
