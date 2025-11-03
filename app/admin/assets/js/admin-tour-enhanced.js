@@ -9,6 +9,14 @@
 
     const EnhancedAdminTour = {
         init: function() {
+            // Don't show welcome screen on login page
+            const path = window.location.pathname;
+            const isLoginPage = path.includes('/login') || path.includes('/auth/login') || document.body.classList.contains('page-login');
+            
+            if (isLoginPage) {
+                return; // Don't initialize tour on login page
+            }
+
             // Check if welcome screen has been shown
             if (!this.hasSeenWelcomeScreen()) {
                 // Show welcome screen first, then start tour if user clicks "Start Tour"
