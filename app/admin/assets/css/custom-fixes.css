@@ -1,0 +1,2393 @@
+/* ============================================
+   CUSTOM FIXES FOR SPECIFIC PAGES
+   ============================================ */
+
+/* ============================================
+   NUCLEAR SCROLLBAR ARROW DESTROYER
+   ============================================ */
+
+/* NUCLEAR OPTION 1: Hide ALL scrollbar arrows globally with maximum force */
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:start:decrement,
+*::-webkit-scrollbar-button:end:increment,
+*::-webkit-scrollbar-button:vertical:start:decrement,
+*::-webkit-scrollbar-button:vertical:end:increment,
+*::-webkit-scrollbar-button:horizontal:start:decrement,
+*::-webkit-scrollbar-button:horizontal:end:increment {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+    clip: rect(0,0,0,0) !important;
+    overflow: hidden !important;
+}
+
+/* NUCLEAR OPTION 2: Target calendar with EXTREME force */
+.daterangepicker::-webkit-scrollbar-button,
+.daterangepicker *::-webkit-scrollbar-button,
+.daterangepicker::-webkit-scrollbar-button:start:decrement,
+.daterangepicker::-webkit-scrollbar-button:end:increment,
+.daterangepicker *::-webkit-scrollbar-button:start:decrement,
+.daterangepicker *::-webkit-scrollbar-button:end:increment,
+.daterangepicker::-webkit-scrollbar-button:vertical:start:decrement,
+.daterangepicker::-webkit-scrollbar-button:vertical:end:increment,
+.daterangepicker::-webkit-scrollbar-button:horizontal:start:decrement,
+.daterangepicker::-webkit-scrollbar-button:horizontal:end:increment,
+.daterangepicker *::-webkit-scrollbar-button:vertical:start:decrement,
+.daterangepicker *::-webkit-scrollbar-button:vertical:end:increment,
+.daterangepicker *::-webkit-scrollbar-button:horizontal:start:decrement,
+.daterangepicker *::-webkit-scrollbar-button:horizontal:end:increment {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+    clip: rect(0,0,0,0) !important;
+    overflow: hidden !important;
+    transform: scale(0) !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+}
+
+/* NUCLEAR OPTION 3: Hide entire scrollbar if arrows persist */
+.daterangepicker::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    display: none !important;
+}
+
+.daterangepicker *::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    display: none !important;
+}
+
+/* ULTIMATE SCROLLBAR ARROW DESTROYER - More aggressive approach */
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:start:decrement,
+*::-webkit-scrollbar-button:end:increment,
+*::-webkit-scrollbar-button:vertical:start:decrement,
+*::-webkit-scrollbar-button:vertical:end:increment,
+*::-webkit-scrollbar-button:horizontal:start:decrement,
+*::-webkit-scrollbar-button:horizontal:end:increment,
+*::-webkit-scrollbar-button:double-button,
+*::-webkit-scrollbar-button:single-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+    clip: rect(0,0,0,0) !important;
+    overflow: hidden !important;
+    transform: scale(0) !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    z-index: -9999 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* Calendar-specific scrollbar button destruction */
+.daterangepicker,
+.daterangepicker *,
+.daterangepicker::-webkit-scrollbar-button,
+.daterangepicker *::-webkit-scrollbar-button,
+.daterangepicker::-webkit-scrollbar-button:start:decrement,
+.daterangepicker::-webkit-scrollbar-button:end:increment,
+.daterangepicker *::-webkit-scrollbar-button:start:decrement,
+.daterangepicker *::-webkit-scrollbar-button:end:increment,
+.daterangepicker::-webkit-scrollbar-button:double-button,
+.daterangepicker::-webkit-scrollbar-button:single-button,
+.daterangepicker *::-webkit-scrollbar-button:double-button,
+.daterangepicker *::-webkit-scrollbar-button:single-button {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.daterangepicker::-webkit-scrollbar-button,
+.daterangepicker *::-webkit-scrollbar-button,
+.daterangepicker::-webkit-scrollbar-button:start:decrement,
+.daterangepicker::-webkit-scrollbar-button:end:increment,
+.daterangepicker *::-webkit-scrollbar-button:start:decrement,
+.daterangepicker *::-webkit-scrollbar-button:end:increment,
+.daterangepicker::-webkit-scrollbar-button:double-button,
+.daterangepicker::-webkit-scrollbar-button:single-button,
+.daterangepicker *::-webkit-scrollbar-button:double-button,
+.daterangepicker *::-webkit-scrollbar-button:single-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+    clip: rect(0,0,0,0) !important;
+    overflow: hidden !important;
+    transform: scale(0) !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    z-index: -9999 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* Force no scrollbars on calendar and prevent jumping */
+.daterangepicker {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: auto !important;
+}
+
+.daterangepicker * {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+/* Prevent calendar from ever becoming scrollable */
+.daterangepicker .drp-calendar {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.daterangepicker .drp-calendar .calendar-table {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+}
+
+.daterangepicker .ranges {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+}
+
+/* Hide any scrollbar elements that might exist */
+.daterangepicker .scrollbar,
+.daterangepicker .scrollbar-track,
+.daterangepicker .scrollbar-thumb,
+.daterangepicker .scrollbar-button,
+.daterangepicker .scrollbar-corner,
+.daterangepicker .scroll-arrow,
+.daterangepicker .scroll-indicator {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Hide any elements with scrollbar-like classes */
+.daterangepicker *[class*="scrollbar"],
+.daterangepicker *[class*="scroll-arrow"],
+.daterangepicker *[class*="scroll-indicator"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Ensure calendar content is visible and functional */
+.daterangepicker {
+    overflow: visible !important;
+}
+
+.daterangepicker .drp-calendar {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.daterangepicker .ranges {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.daterangepicker table {
+    display: table !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Fix empty gap in Statuses page - ONLY FOR STATUSES PAGE */
+body.statuses.index .toolbar-action,
+body.statuses.index .progress-indicator-container {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* Hide empty toolbar containers ONLY in Statuses page */
+body.statuses.index .toolbar-action:has(> .progress-indicator-container:has(> a[style*="display: none"])),
+body.statuses.index .progress-indicator-container:has(> a[style*="display: none"]) {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix empty toolbar ONLY in Statuses page */
+body.statuses.index .content-wrapper > .container-fluid > .toolbar:empty,
+body.statuses.index .content-wrapper > .container-fluid > .toolbar:has(> *:empty),
+body.statuses.index .content-wrapper > .container-fluid > .toolbar:has(> .toolbar-action:empty) {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ============================================
+   SUPER AGGRESSIVE FIX FOR BULK ACTION BUTTONS
+   (Applies to ALL pages EXCEPT statuses)
+   ============================================ */
+
+/* TELEPORT the bulk actions row to the top of the page */
+body:not(.statuses) tr.bulk-actions {
+  position: absolute !important; /* Use absolute positioning */
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  display: block !important;
+  height: 0 !important; /* Zero height so it doesn't take space */
+  overflow: visible !important; /* But content is visible */
+  pointer-events: none !important; /* Don't block clicks */
+  opacity: 0 !important; /* Start invisible */
+}
+
+/* Make the bulk actions row visible when it's not hidden */
+body:not(.statuses) tr.bulk-actions:not(.hide) {
+  opacity: 1 !important;
+}
+
+/* Hide the checkbox cell completely */
+body:not(.statuses) tr.bulk-actions td.bulk-action {
+  display: none !important;
+}
+
+/* Position the content cell EXACTLY in the toolbar line */
+body:not(.statuses) tr.bulk-actions td.w-100 {
+  position: absolute !important; /* Use absolute instead of fixed */
+  top: 63px !important; /* Match the toolbar's top position exactly */
+  right: 20px !important; /* Align to the right */
+  width: auto !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: auto !important; /* Allow clicks on buttons */
+  z-index: 1050 !important; /* Above most elements */
+}
+
+/* Style the button container */
+body:not(.statuses) tr.bulk-actions td.w-100 > div {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  background: transparent !important; /* No background - blend with toolbar */
+  padding: 0 !important; /* No padding to match toolbar buttons */
+  margin: 0 !important;
+}
+
+/* Make sure all buttons are visible */
+body:not(.statuses) tr.bulk-actions * {
+  visibility: visible !important;
+}
+
+/* Keep the toolbar layout normal */
+body:not(.statuses) #toolbar.toolbar {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 15px !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+/* Style the counter button (shows "X record(s) selected") */
+body:not(.statuses) .btn-counter {
+  display: inline-flex !important;
+  background: #08815e !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  padding: 8px 15px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(8, 129, 94, 0.15) !important;
+  align-items: center !important;
+}
+
+/* Style the "Select all X records" button */
+body:not(.statuses) .btn-select-all,
+body:not(.statuses) [data-control="check-total-records"] {
+  display: inline-flex !important;
+  color: #202938 !important;
+  text-decoration: underline !important;
+  padding: 8px 12px !important;
+  background: transparent !important;
+  border: none !important;
+  align-items: center !important;
+}
+
+/* Show select-all button when active (not hidden) */
+body:not(.statuses) .btn-select-all:not(.hide),
+body:not(.statuses) [data-control="check-total-records"]:not(.hide) {
+  display: inline-flex !important;
+}
+
+/* UNIVERSAL BULK ACTION BUTTONS - SAME DESIGN ACROSS ALL PAGES */
+[data-control="bulk-action"] {
+  display: inline-flex !important;
+  background: #08815e !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  padding: 8px 15px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(8, 129, 94, 0.15) !important;
+  align-items: center !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Hover effect for bulk action buttons - ALL PAGES */
+[data-control="bulk-action"]:hover {
+  background: #08815e !important;
+  color: #fff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(8, 129, 94, 0.25) !important;
+}
+
+/* Delete button specifically - SAME BROWN STYLE AS COUNTER - ALL PAGES */
+[data-control="bulk-action"].text-danger {
+  background: #08815e !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+/* Hover effect for delete button - ALL PAGES */
+[data-control="bulk-action"].text-danger:hover {
+  background: #08815e !important;
+  color: #fff !important;
+}
+
+/* Red trash icon inside delete button - ALL PAGES */
+[data-control="bulk-action"].text-danger i,
+[data-control="bulk-action"].text-danger .fa,
+[data-control="bulk-action"].text-danger .fas,
+[data-control="bulk-action"].text-danger .far,
+[data-control="bulk-action"].text-danger .icon,
+[data-control="bulk-action"].text-danger svg {
+  color: #dc3545 !important;
+  fill: #dc3545 !important;
+}
+
+/* UNIVERSAL BUTTON CORNER STYLING - ALL BUTTONS GET SAME ROUNDED CORNERS */
+.btn,
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+[role="button"],
+.button,
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info,
+.btn-light,
+.btn-dark,
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-success,
+.btn-outline-danger,
+.btn-outline-warning,
+.btn-outline-info,
+.btn-outline-light,
+.btn-outline-dark,
+.btn-sm,
+.btn-lg,
+.btn-xl {
+  border-radius: 6px !important;
+}
+
+/* Also apply to any custom button classes */
+[class*="btn-"],
+[class*="button-"],
+[class*="action-"] {
+  border-radius: 6px !important;
+}
+
+/* Ensure all buttons have proper spacing to prevent overlapping */
+.btn,
+button:not(.navbar-toggler):not(.close),
+[role="button"],
+.button {
+  margin: 4px !important;
+}
+
+/* Ensure primary buttons ALWAYS have white text - NO exceptions */
+.btn-primary,
+button.btn-primary,
+a.btn-primary,
+input.btn-primary,
+.btn-primary *,
+.btn-primary span,
+.btn-primary i,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  color: #ffffff !important;
+}
+
+/* Ensure secondary/close buttons ALWAYS have white text too */
+.btn-secondary,
+button.btn-secondary,
+a.btn-secondary,
+input.btn-secondary,
+.btn-default,
+.btn-secondary *,
+.btn-secondary span,
+.btn-secondary i,
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-secondary:active {
+  color: #ffffff !important;
+}
+
+/* Make ALL buttons consistent in size - same padding, same height */
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info,
+.btn-default,
+button.btn-primary,
+button.btn-secondary,
+button.btn-success,
+button.btn-danger,
+a.btn-primary,
+a.btn-secondary {
+  min-width: 80px !important;
+  min-height: 38px !important;
+  padding: 10px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+  border-radius: 8px !important;
+  margin: 4px !important;
+  display: inline-block !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* Remove ALL borders from cards and modals - NO FRAMES */
+.card,
+.card-bordered,
+.card-stretch,
+div.card,
+.modal-content,
+div.modal-content,
+.modal .modal-content,
+.card-inner,
+.nk-block {
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+}
+
+/* Remove borders from card headers and footers */
+.card-header,
+.card-footer,
+.modal-header,
+.modal-footer {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* FORCE REPLACE ANY REMAINING BROWN COLORS - NUCLEAR OPTION */
+/* Replace any brown/tan/beige colors with proper colors */
+*[style*="#7e603c"],
+*[style*="rgb(126, 96, 60)"],
+*[style*="rgba(126, 96, 60"],
+*[style*="#704f26"],
+*[style*="#5a4a3a"],
+*[style*="#5a3d1a"],
+*[style*="#644c2b"],
+*[style*="#8a6420"],
+*[style*="#624c06"],
+*[style*="#5a3f1e"],
+*[style*="#4a3419"],
+*[style*="#564b4e"] {
+  color: #364a63 !important;
+  background-color: inherit !important;
+}
+
+/* Force any brown backgrounds to be white or green */
+*[style*="background:#7e603c"],
+*[style*="background-color:#7e603c"],
+*[style*="background: #7e603c"],
+*[style*="background-color: #7e603c"],
+*[style*="background:#644c2b"],
+*[style*="background-color:#644c2b"],
+*[style*="background:#8a6420"],
+*[style*="background-color:#8a6420"] {
+  background-color: #08815e !important;
+  background: #08815e !important;
+  color: #ffffff !important;
+}
+
+/* UNIVERSAL BROWN COLOR KILLER - Covers ALL possible brown colors on hover too */
+.btn:hover,
+a:hover,
+button:hover,
+.handle:hover,
+*:hover {
+  /* If any element tries to show brown on hover, force it to green */
+}
+
+/* Force specific brown color classes to green */
+*[class*="brown"],
+*[class*="tan"],
+*[class*="beige"] {
+  color: #364a63 !important;
+}
+
+/* ROUND THE HEADER FROM RIGHT SIDE - MORE PRONOUNCED */
+.navbar-top {
+  border-bottom-right-radius: 25px !important;
+}
+
+/* Round the left sidebar menu from right side */
+.nav-sidebar,
+#navSidebar,
+.sidebar {
+  border-bottom-right-radius: 0 !important;
+  position: relative !important;
+}
+
+/* Keep sidebar full height of viewport minus top navbar */
+.sidebar {
+  height: calc(100vh - 64px) !important;
+  min-height: calc(100vh - 64px) !important;
+}
+
+/* Enable scrolling inside admin sidebar (do NOT affect superadmin) */
+#navSidebar,
+.nav-sidebar {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Show scrollbar in WebKit and style it lightly */
+.nav-sidebar::-webkit-scrollbar {
+  display: block !important;
+  width: 8px;
+  height: 8px;
+}
+.nav-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+}
+.nav-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Show scrollbar in Firefox */
+.nav-sidebar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent !important;
+}
+
+/* Create star/sparkle icon in top-right corner (sidebar only) */
+.sidebar::before {
+  content: '✦' !important; /* Star/sparkle character */
+  position: absolute !important;
+  top: -54px !important;
+  right: -19px !important;
+  color: #202938 !important;
+  font-size: 64px !important;
+  z-index: 10 !important;
+}
+
+/* Remove any decorative bottom-right shape */
+.sidebar::after { content: none !important; }
+
+/* Round the main content area top-right corner */
+.content-wrapper,
+.main-content,
+.page-content,
+[class*="content"] {
+  border-top-right-radius: 15px !important;
+}
+
+/* Ensure all checkboxes are properly aligned */
+body:not(.statuses) .list-container input[type="checkbox"] {
+  position: relative !important;
+  margin: 0 8px 0 0 !important;
+  vertical-align: middle !important;
+}
+
+/* ============================================
+   HISTORY PAGE SPACING FIX - Add top spacing
+   ============================================ */
+
+/* Add minimal top margin/padding to history page content for bulk actions */
+body.history.index .page-content,
+body.history.index .content-wrapper,
+body.history.index .row-fluid {
+    margin-top: 20px !important;
+    padding-top: 10px !important;
+}
+
+/* Ensure the history list has minimal spacing from header */
+body.history.index .list-container,
+body.history.index .list-table {
+    margin-top: 10px !important;
+}
+
+/* Minimal spacing for history page content */
+.history-page-content {
+    margin-top: 15px !important;
+    padding-top: 8px !important;
+}
+
+/* Ensure history list table has minimal spacing */
+body.history.index .list-table {
+    margin-top: 12px !important;
+}
+
+/* ============================================
+   TABLE HEADER CLICKABILITY FIX - SAFE VERSION
+   ============================================ */
+
+/* Make entire header cells clickable for sorting - SAFE APPROACH */
+.list-table th {
+    cursor: pointer !important;
+    position: relative !important;
+    transition: background-color 0.2s ease !important;
+}
+
+/* Make sure links inside headers are clickable */
+.list-table th a {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 12px 8px !important;
+    margin: -12px -8px !important;
+    text-decoration: none !important;
+    color: inherit !important;
+    cursor: pointer !important;
+}
+
+/* Hover effect for entire header cells */
+.list-table th:hover {
+    background-color: transparent !important;
+}
+
+/* Active/sorted state */
+.list-table th.active {
+    background-color: #ffffff !important;
+}
+
+/* ============================================
+   SMOOTH PAGE TITLE FADE ON PAGE LOAD
+   ============================================ */
+
+/* Add fade animation to page title on normal page loads */
+.page-title {
+    animation: fadeInTitle 0.3s ease-in-out;
+}
+
+@keyframes fadeInTitle {
+    0% {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   REMOVE DARK MODAL BACKDROP
+   ============================================ */
+
+/* Make modal backdrop completely transparent and non-clickable */
+.modal-backdrop {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  display: none !important; /* Completely hide it */
+}
+
+/* ============================================
+   ADMIN LOGIN PAGE - ROUNDED CARD CORNERS
+   ============================================ */
+
+/* Increase rounding on the login box only on the login page */
+.page-login .card,
+.page-login .card > .card-body,
+.page-login .login-container .card,
+.page-login .login-container .card-body {
+  border-radius: 16px !important;
+}
+
+/* Optional: slightly larger rounding on button to match */
+.page-login .btn.btn-primary {
+  border-radius: 10px !important;
+}
+
+/* Ensure modals are still visible and clickable */
+.modal {
+  pointer-events: auto !important;
+}
+
+/* Prevent body from being locked when modal opens */
+body.modal-open {
+  overflow: auto !important;
+  padding-right: 0 !important;
+}
+
+/* ============================================
+   BTN-LIGHT - BROWN/CREAM THEME
+   ============================================ */
+
+/* Override btn-light to use brown/cream colors - SUPER AGGRESSIVE */
+.btn-light,
+label.btn-light,
+button.btn-light,
+.btn.btn-light {
+    --bs-btn-color: #202938 !important;
+    --bs-btn-bg: #ffffff !important;
+    --bs-btn-border-color: #08815e !important;
+    --bs-btn-hover-color: #fff !important;
+    --bs-btn-hover-bg: #08815e !important;
+    --bs-btn-hover-border-color: #0bb87a !important;
+    --bs-btn-focus-shadow-rgb: 216, 182, 134 !important;
+    --bs-btn-active-color: #fff !important;
+    --bs-btn-active-bg: #0bb87a !important;
+    --bs-btn-active-border-color: #065a42 !important;
+    --bs-btn-disabled-color: #08815e !important;
+    --bs-btn-disabled-bg: #ffffff !important;
+    --bs-btn-disabled-border-color: #ffffff !important;
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border-color: #08815e !important;
+    color: #202938 !important;
+}
+
+.btn-light:hover,
+label.btn-light:hover,
+button.btn-light:hover {
+    background-color: #08815e !important;
+    background: #08815e !important;
+    border-color: #0bb87a !important;
+    color: #fff !important;
+}
+
+.btn-light:active,
+.btn-light.active,
+.btn-light:focus,
+label.btn-light:active,
+label.btn-light.active {
+    background-color: #0bb87a !important;
+    background: #0bb87a !important;
+    border-color: #065a42 !important;
+    color: #fff !important;
+}
+
+/* CRITICAL: Override Bootstrap's checked checkbox label styles */
+.btn-check:checked + .btn-light,
+.btn-check:active + .btn-light,
+input:checked + label.btn-light,
+input[type="checkbox"]:checked + label.btn-light,
+input[type="radio"]:checked + label.btn-light,
+label.btn-light:checked,
+label.btn-light[aria-pressed="true"] {
+    background-color: #08815e !important;
+    background: #08815e !important;
+    border-color: #08815e !important;
+    color: #fff !important;
+}
+
+/* ULTRA AGGRESSIVE: Force styles on ALL label.btn-light regardless of state */
+label.btn-light[for^="checkbox_"],
+label.btn-light[for*="checkbox"],
+label.btn-light[for*="radio"] {
+    /* Default state */
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #202938 !important;
+    border-color: #08815e !important;
+}
+
+/* When the associated checkbox/radio is checked */
+input:checked + label.btn-light[for^="checkbox_"],
+input:checked + label.btn-light[for*="checkbox"],
+input:checked + label.btn-light[for*="radio"],
+label.btn-light[for^="checkbox_"]:active,
+label.btn-light[for*="checkbox"]:active,
+label.btn-light[for*="radio"]:active {
+    background-color: #08815e !important;
+    background: #08815e !important;
+    color: #fff !important;
+    border-color: #08815e !important;
+}
+
+/* NUCLEAR OPTION: Target the exact structure - btn-group with btn-check */
+.btn-group-toggle .btn-check:checked + .btn-light,
+.btn-group .btn-check:checked + .btn-light,
+.btn-group-toggle .btn-check:checked + label.btn-light,
+.btn-group .btn-check:checked + label.btn-light {
+    background-color: #08815e !important;
+    background: #08815e !important;
+    border-color: #08815e !important;
+    color: #fff !important;
+}
+
+/* Force unchecked state too */
+.btn-group-toggle .btn-check + .btn-light,
+.btn-group .btn-check + .btn-light,
+.btn-group-toggle .btn-check + label.btn-light,
+.btn-group .btn-check + label.btn-light {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border-color: #08815e !important;
+    color: #202938 !important;
+}
+
+/* Then override again for checked */
+.btn-group-toggle .btn-check:checked + .btn-light,
+.btn-group .btn-check:checked + .btn-light,
+.btn-group-toggle .btn-check:checked + label.btn-light,
+.btn-group .btn-check:checked + label.btn-light {
+    background-color: #08815e !important;
+    background: #08815e !important;
+    border-color: #08815e !important;
+    color: #fff !important;
+}
+
+/* ============================================
+   SETUP MODAL - BROWN/CREAM THEME REDESIGN
+   ============================================ */
+
+/* Modal container - FORCE full height with SUPER aggressive rules */
+#lists-setup-modal,
+[id$="-setup-modal"],
+.modal#lists-setup-modal,
+.modal[id$="-setup-modal"],
+div.modal#lists-setup-modal,
+div.modal[id$="-setup-modal"] {
+    padding-right: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    min-height: 100vh !important;
+}
+
+/* Modal background overlay - OVERRIDE Bootstrap's .modal-dialog-scrollable */
+#lists-setup-modal .modal-dialog,
+[id$="-setup-modal"] .modal-dialog,
+#lists-setup-modal .modal-dialog-scrollable,
+[id$="-setup-modal"] .modal-dialog-scrollable {
+    max-width: 600px !important;
+    max-height: calc(100vh - 3.5rem) !important;
+    height: auto !important;
+    min-height: auto !important;
+    margin: 1.75rem auto !important;
+}
+
+/* Modal content - brown/cream theme with viewport constraint */
+#lists-setup-modal .modal-content,
+[id$="-setup-modal"] .modal-content {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 2px solid #08815e !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(8, 129, 94, 0.25) !important;
+    max-height: calc(100vh - 3.5rem) !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+/* Modal header - brown gradient, fixed height */
+#lists-setup-modal .modal-header,
+[id$="-setup-modal"] .modal-header {
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    border-bottom: 2px solid #065a42 !important;
+    border-radius: 10px 10px 0 0 !important;
+    padding: 20px 25px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Modal title - white text */
+#lists-setup-modal .modal-title,
+[id$="-setup-modal"] .modal-title {
+    color: #fff !important;
+    font-weight: 700 !important;
+    font-size: 20px !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Close button - white with hover effect */
+#lists-setup-modal .btn-close,
+[id$="-setup-modal"] .btn-close {
+    filter: brightness(0) invert(1) !important;
+    opacity: 0.8 !important;
+    transition: all 0.3s ease !important;
+}
+
+#lists-setup-modal .btn-close:hover,
+[id$="-setup-modal"] .btn-close:hover {
+    opacity: 1 !important;
+    transform: rotate(90deg) !important;
+}
+
+/* Modal body - cream background with flexible height */
+#lists-setup-modal .modal-body,
+[id$="-setup-modal"] .modal-body {
+    background: #ffffff !important;
+    padding: 25px !important;
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    max-height: none !important;
+}
+
+/* Custom scrollbar for modal body */
+#lists-setup-modal .modal-body::-webkit-scrollbar,
+[id$="-setup-modal"] .modal-body::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+#lists-setup-modal .modal-body::-webkit-scrollbar-track,
+[id$="-setup-modal"] .modal-body::-webkit-scrollbar-track {
+    background: #ffffff !important;
+    border-radius: 4px !important;
+}
+
+#lists-setup-modal .modal-body::-webkit-scrollbar-thumb,
+[id$="-setup-modal"] .modal-body::-webkit-scrollbar-thumb {
+    background: #08815e !important;
+    border-radius: 4px !important;
+}
+
+#lists-setup-modal .modal-body::-webkit-scrollbar-thumb:hover,
+[id$="-setup-modal"] .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #0bb87a !important;
+}
+
+/* Form labels - brown text */
+#lists-setup-modal .form-label,
+[id$="-setup-modal"] .form-label {
+    color: #202938 !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    margin-bottom: 8px !important;
+}
+
+/* Help text - softer brown */
+#lists-setup-modal .help-block,
+[id$="-setup-modal"] .help-block {
+    color: #08815e !important;
+    font-size: 13px !important;
+    margin-bottom: 15px !important;
+}
+
+/* Form group containing Items Per Page - remove any white backgrounds */
+#lists-setup-modal .form-group,
+[id$="-setup-modal"] .form-group {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 0 20px 0 !important;
+}
+
+/* Ensure the Items Per Page section has no white background */
+#lists-setup-modal .form-group:has(.btn-group-toggle),
+[id$="-setup-modal"] .form-group:has(.btn-group-toggle) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 0 20px 0 !important;
+}
+
+/* List group items - cream cards with hover */
+#lists-setup-modal .list-group-item,
+[id$="-setup-modal"] .list-group-item {
+    background: #ffffff !important;
+    border: 1px solid #08815e !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px !important;
+    padding: 12px 15px !important;
+    transition: all 0.3s ease !important;
+}
+
+#lists-setup-modal .list-group-item:hover,
+[id$="-setup-modal"] .list-group-item:hover {
+    background: #ffffff !important;
+    border-color: #0bb87a !important;
+    transform: translateX(5px) !important;
+    box-shadow: 0 4px 8px rgba(8, 129, 94, 0.12) !important;
+}
+
+/* All edit mode icons - white icon with blue box border (including delete) */
+#lists-setup-modal .btn-handle,
+[id$="-setup-modal"] .btn-handle,
+.btn.handle,
+a.handle,
+.handle,
+.btn-icon.btn-sm,
+a.btn:not(.btn-primary):not(.btn-success),
+.btn-danger,
+a.btn.text-danger {
+    background: #202938 !important;
+    border: 2px solid #202938 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    color: #ffffff !important;
+    padding: 8px 12px !important;
+    min-width: auto !important;
+    min-height: auto !important;
+    width: auto !important;
+    height: auto !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+    transition: all 0.2s ease !important;
+}
+
+#lists-setup-modal .btn-handle:hover,
+[id$="-setup-modal"] .btn-handle:hover,
+.btn.handle:hover,
+a.handle:hover,
+.handle:hover,
+.btn-icon.btn-sm:hover,
+a.btn:not(.btn-primary):not(.btn-success):hover,
+.btn-danger:hover,
+a.btn.text-danger:hover {
+    background: #364a63 !important;
+    border: 2px solid #364a63 !important;
+    cursor: pointer !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(32, 41, 56, 0.3) !important;
+}
+
+#lists-setup-modal .btn-handle i,
+[id$="-setup-modal"] .btn-handle i,
+.btn.handle i,
+a.handle i,
+.handle i,
+.btn-icon.btn-sm i,
+a.btn:not(.btn-primary):not(.btn-success) i,
+.btn-danger i,
+a.btn.text-danger i {
+    color: #ffffff !important;
+    font-size: 14px !important;
+}
+
+#lists-setup-modal .btn-handle:hover i,
+[id$="-setup-modal"] .btn-handle:hover i,
+.btn.handle:hover i,
+a.handle:hover i,
+.handle:hover i,
+.btn-icon.btn-sm:hover i,
+a.btn:not(.btn-primary):not(.btn-success):hover i,
+.btn-danger:hover i,
+a.btn.text-danger:hover i {
+    color: #ffffff !important;
+}
+
+/* Checkboxes - brown accent */
+#lists-setup-modal .form-check-input,
+[id$="-setup-modal"] .form-check-input {
+    border: 2px solid #0bb87a !important;
+    cursor: pointer !important;
+}
+
+#lists-setup-modal .form-check-input:checked,
+[id$="-setup-modal"] .form-check-input:checked {
+    background-color: #202938 !important;
+    border-color: #202938 !important;
+}
+
+#lists-setup-modal .form-check-input:focus,
+[id$="-setup-modal"] .form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(8, 129, 94, 0.20) !important;
+}
+
+/* Checkbox labels - brown text */
+#lists-setup-modal .form-check-label,
+[id$="-setup-modal"] .form-check-label {
+    color: #364a63 !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+}
+
+/* Page limit buttons - brown theme */
+#lists-setup-modal .btn-group-toggle,
+[id$="-setup-modal"] .btn-group-toggle {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+#lists-setup-modal .btn-group-toggle .btn,
+[id$="-setup-modal"] .btn-group-toggle .btn {
+    background: #ffffff !important;
+    border: 2px solid #08815e !important;
+    color: #202938 !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    margin: 0 2px !important;
+}
+
+#lists-setup-modal .btn-group-toggle .btn:hover,
+[id$="-setup-modal"] .btn-group-toggle .btn:hover {
+    background: #08815e !important;
+    color: #fff !important;
+    transform: translateY(-2px) !important;
+}
+
+#lists-setup-modal .btn-group-toggle .btn-check:checked + .btn,
+[id$="-setup-modal"] .btn-group-toggle .btn-check:checked + .btn {
+    background: #202938 !important;
+    border-color: #202938 !important;
+    color: #fff !important;
+}
+
+/* Additional fixes for any white backgrounds in the Items Per Page area */
+#lists-setup-modal .btn-group,
+[id$="-setup-modal"] .btn-group {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Force remove any white backgrounds from Bootstrap defaults */
+#lists-setup-modal .btn-group-toggle,
+[id$="-setup-modal"] .btn-group-toggle,
+#lists-setup-modal .btn-group,
+[id$="-setup-modal"] .btn-group {
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Ensure the entire Items Per Page section has no white frame */
+#lists-setup-modal .form-group:has(.btn-group-toggle) *,
+[id$="-setup-modal"] .form-group:has(.btn-group-toggle) * {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* But keep the individual buttons styled */
+#lists-setup-modal .form-group:has(.btn-group-toggle) .btn,
+[id$="-setup-modal"] .form-group:has(.btn-group-toggle) .btn {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 2px solid #08815e !important;
+    color: #202938 !important;
+}
+
+/* Modal footer - cream background with border, fixed height */
+#lists-setup-modal .modal-footer,
+[id$="-setup-modal"] .modal-footer {
+    background: #ffffff !important;
+    border-top: 2px solid #08815e !important;
+    border-radius: 0 0 10px 10px !important;
+    padding: 20px 25px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Footer buttons - styled */
+#lists-setup-modal .modal-footer .btn-link,
+[id$="-setup-modal"] .modal-footer .btn-link {
+    color: #202938 !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+#lists-setup-modal .modal-footer .btn-link:hover,
+[id$="-setup-modal"] .modal-footer .btn-link:hover {
+    color: #364a63 !important;
+    text-decoration: underline !important;
+}
+
+#lists-setup-modal .modal-footer .btn-link.text-danger,
+[id$="-setup-modal"] .modal-footer .btn-link.text-danger {
+    color: #dc3545 !important;
+}
+
+#lists-setup-modal .modal-footer .btn-link.text-danger:hover,
+[id$="-setup-modal"] .modal-footer .btn-link.text-danger:hover {
+    color: #c82333 !important;
+}
+
+#lists-setup-modal .modal-footer .btn-primary,
+[id$="-setup-modal"] .modal-footer .btn-primary {
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    padding: 10px 25px !important;
+    border-radius: 6px !important;
+    transition: all 0.3s ease !important;
+}
+
+#lists-setup-modal .modal-footer .btn-primary:hover,
+[id$="-setup-modal"] .modal-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #0bb87a 0%, #065a42 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(8, 129, 94, 0.25) !important;
+}
+
+/* Loading spinner - brown */
+#lists-setup-modal .spinner-border,
+[id$="-setup-modal"] .spinner-border {
+    color: #202938 !important;
+}
+
+/* ============================================
+   MAIL TEMPLATES - ALIGN ALL BUTTONS LEFT
+   ============================================ */
+
+/* Keep all toolbar buttons grouped on the left side */
+.toolbar .toolbar-action,
+.toolbar .progress-indicator-container {
+    justify-content: flex-start !important;
+}
+
+.toolbar .progress-indicator-container .btn {
+    margin-left: 0 !important;
+    margin-right: 10px !important;
+}
+
+/* Remove any float or positioning that pushes buttons apart */
+.toolbar .btn-group,
+.toolbar .btn {
+    float: none !important;
+}
+
+/* ============================================
+   CALENDAR - SIMPLE CREAM/BROWN THEME
+   ============================================ */
+
+/* Remove white from ALL calendar-related containers */
+.page-content .widget,
+.page-content .widget-content,
+.page-content .panel,
+.page-content .card,
+.calendar-widget {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+/* Calendar container - cream background, NO WHITE FRAME */
+.fc {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+/* Force all calendar parents to be transparent */
+.fc-view-harness,
+.fc-view-harness-active {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Remove all white backgrounds and borders */
+.fc,
+.fc-view,
+.fc-view-harness,
+.fc-daygrid-body,
+.fc-scrollgrid,
+.fc-scrollgrid-section,
+.fc-scrollgrid-sync-table {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Remove white frame/border from main table */
+.fc-scrollgrid {
+    border: none !important;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: #08815e !important;
+}
+
+.fc-theme-standard .fc-scrollgrid {
+    border: none !important;
+}
+
+/* Calendar day cells - cream background */
+.fc-daygrid-day {
+    background: #ffffff !important;
+    border-color: #08815e !important;
+}
+
+/* Today's date - slightly darker cream */
+.fc-day-today {
+    background: #ffffff !important;
+    border: 2px solid #08815e !important;
+}
+
+/* Day headers - cream background */
+.fc-col-header {
+    background: #ffffff !important;
+}
+
+.fc-col-header-cell {
+    background: transparent !important;
+    border-color: #08815e !important;
+    padding: 10px 8px !important;
+}
+
+.fc-col-header-cell-cushion {
+    color: #202938 !important;
+    font-weight: 600 !important;
+}
+
+/* Calendar toolbar - brown theme */
+.fc-toolbar {
+    background: #ffffff !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    margin-bottom: 15px !important;
+}
+
+.fc-toolbar h2 {
+    color: #202938 !important;
+    font-weight: 600 !important;
+}
+
+/* Toolbar buttons - brown, NO WHITE BORDERS */
+.fc-toolbar .fc-button,
+.fc-button,
+.fc-button-primary,
+.fc-today-button,
+.fc-prev-button,
+.fc-next-button,
+.fc-datePicker-button,
+.fc-dayGridMonth-button,
+.fc-timeGridWeek-button,
+.fc-timeGridDay-button {
+    background: #08815e !important;
+    border: none !important;
+    border-color: #08815e !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+}
+
+.fc-toolbar .fc-button:hover,
+.fc-button:hover {
+    background: #0bb87a !important;
+    border-color: #0bb87a !important;
+}
+
+.fc-toolbar .fc-button:active,
+.fc-toolbar .fc-button-active,
+.fc-button:active,
+.fc-button-active {
+    background: #202938 !important;
+    border-color: #202938 !important;
+}
+
+/* Button icons - no white borders */
+.fc-icon,
+.fc-icon-chevron-left,
+.fc-icon-chevron-right {
+    border: none !important;
+    border-color: transparent !important;
+}
+
+/* Day numbers - brown text */
+.fc-daygrid-day-number {
+    color: #202938 !important;
+    font-weight: 500 !important;
+    padding: 8px !important;
+}
+
+/* Events - brown theme, NO WHITE BORDERS */
+.fc-event,
+.fc-event-main,
+.fc-event-main-frame,
+.fc-event-time,
+.fc-event-title-container,
+.fc-event-title {
+    border: none !important;
+    border-color: transparent !important;
+}
+
+.fc-event {
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+}
+
+/* Popover - cream background */
+.calendar-popover-content {
+    background: #ffffff !important;
+    border: 2px solid #08815e !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+}
+
+.calendar-popover-content h5 {
+    color: #202938 !important;
+    font-weight: 600 !important;
+}
+
+.calendar-popover-content p {
+    color: #364a63 !important;
+}
+
+/* ============================================
+   FORCE ENABLE/DISABLE BUTTON STYLING
+   ============================================ */
+
+/* Target the Enable/Disable dropdown button specifically */
+body:not(.statuses) .dropdown-toggle[statuscolumn],
+body:not(.statuses) button.dropdown-toggle.btn-light[statuscolumn] {
+  background: #08815e !important;
+  background-color: #08815e !important;
+  border: 1px solid #08815e !important;
+  color: #fff !important;
+  height: 38px !important;
+  padding: 0 15px !important;
+  display: flex !important;
+  align-items: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force the button to stay styled on hover */
+body:not(.statuses) .dropdown-toggle[statuscolumn]:hover,
+body:not(.statuses) button.dropdown-toggle.btn-light[statuscolumn]:hover {
+  background: #08815e !important;
+  background-color: #08815e !important;
+  border-color: #08815e !important;
+  color: #fff !important;
+}
+
+/* Force the button to stay styled when focused */
+body:not(.statuses) .dropdown-toggle[statuscolumn]:focus,
+body:not(.statuses) button.dropdown-toggle.btn-light[statuscolumn]:focus {
+  background: #08815e !important;
+  background-color: #08815e !important;
+  border-color: #08815e !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 0.2rem rgba(184, 149, 106, 0.25) !important;
+}
+
+/* ============================================
+   GLOBAL MODAL/CARD/DIALOG BROWN/CREAM THEME
+   ============================================ */
+
+/* Apply brown/cream theme to ALL modals throughout the admin panel */
+.modal-content,
+div.modal-content,
+.modal .modal-content {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 2px solid #08815e !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(8, 129, 94, 0.25) !important;
+    color: #202938 !important;
+}
+
+/* Modal headers */
+.modal-header,
+div.modal-header,
+.modal .modal-header {
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    border-bottom: 2px solid #065a42 !important;
+    border-radius: 10px 10px 0 0 !important;
+    color: #fff !important;
+}
+
+.modal-header .modal-title,
+.modal-header h1,
+.modal-header h2,
+.modal-header h3,
+.modal-header h4,
+.modal-header h5,
+.modal-header h6 {
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+
+.modal-header .close,
+.modal-header .btn-close,
+.modal-header button.close {
+    color: #fff !important;
+    opacity: 0.9 !important;
+    text-shadow: none !important;
+}
+
+.modal-header .close:hover,
+.modal-header .btn-close:hover {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Modal body */
+.modal-body,
+div.modal-body,
+.modal .modal-body {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    color: #202938 !important;
+    padding: 20px !important;
+}
+
+/* Modal footer */
+.modal-footer,
+div.modal-footer,
+.modal .modal-footer {
+    background: transparent !important;
+    border-top: 2px solid #08815e !important;
+    padding: 15px 20px !important;
+}
+
+/* Apply brown/cream theme to ALL cards */
+.card,
+div.card,
+.card-body,
+div.card-body {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 1px solid #08815e !important;
+    border-radius: 8px !important;
+    color: #202938 !important;
+}
+
+.card-header,
+div.card-header {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border-bottom: 1px solid #08815e !important;
+    color: #202938 !important;
+    font-weight: 600 !important;
+}
+
+.card-footer,
+div.card-footer {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border-top: 1px solid #08815e !important;
+    color: #202938 !important;
+}
+
+/* Apply to dialog elements */
+.dialog,
+div.dialog,
+[role="dialog"] {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 2px solid #08815e !important;
+    border-radius: 12px !important;
+    color: #202938 !important;
+}
+
+/* Popup elements */
+.popup,
+div.popup,
+[class*="popup"] {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 2px solid #08815e !important;
+    border-radius: 8px !important;
+    color: #202938 !important;
+}
+
+/* DateTimePicker / DatePicker modals */
+.bootstrap-datetimepicker-widget,
+.datepicker,
+.clockpicker-popover,
+.tempus-dominus-widget {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 2px solid #08815e !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(8, 129, 94, 0.25) !important;
+}
+
+.bootstrap-datetimepicker-widget table td,
+.bootstrap-datetimepicker-widget table th,
+.datepicker table td,
+.datepicker table th {
+    color: #202938 !important;
+}
+
+.bootstrap-datetimepicker-widget table td.active,
+.bootstrap-datetimepicker-widget table td.active:hover,
+.datepicker table td.active,
+.datepicker table td.active:hover {
+    background: #08815e !important;
+    color: #fff !important;
+}
+
+.bootstrap-datetimepicker-widget .timepicker-hour,
+.bootstrap-datetimepicker-widget .timepicker-minute,
+.bootstrap-datetimepicker-widget .timepicker-second {
+    color: #202938 !important;
+}
+
+/* Attach/Upload file modals */
+.finder-widget,
+.media-manager-widget,
+.media-finder,
+.file-upload-modal {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: 2px solid #08815e !important;
+    border-radius: 12px !important;
+}
+
+/* Ensure text in all modals is readable */
+.modal-content input,
+.modal-content select,
+.modal-content textarea,
+.card input,
+.card select,
+.card textarea {
+    background: #fff !important;
+    border: 1px solid #08815e !important;
+    color: #202938 !important;
+}
+
+.modal-content input:focus,
+.modal-content select:focus,
+.modal-content textarea:focus,
+.card input:focus,
+.card select:focus,
+.card textarea:focus {
+    border-color: #0bb87a !important;
+    box-shadow: 0 0 0 0.2rem rgba(216, 182, 134, 0.25) !important;
+}
+
+/* Labels in modals and cards */
+.modal-content label,
+.card label {
+    color: #202938 !important;
+    font-weight: 500 !important;
+}
+
+/* Help text */
+.modal-content .help-block,
+.modal-content .form-text,
+.card .help-block,
+.card .form-text {
+    color: #08815e !important;
+}
+
+/* Fix white background inside modal content areas */
+.modal-body > *,
+.modal-content > *,
+.modal-body .container,
+.modal-body .container-fluid,
+.modal-body .row,
+.modal-body .col,
+.modal-body [class*="col-"] {
+    background: transparent !important;
+}
+
+/* Specific fix for panels/sections inside modals */
+.modal-body .panel,
+.modal-body .panel-body,
+.modal-body .form-group,
+.modal-body .section,
+.modal-body .content {
+    background: transparent !important;
+}
+
+/* Fix for any nested white divs */
+.modal-content div[style*="background: white"],
+.modal-content div[style*="background: #fff"],
+.modal-content div[style*="background-color: white"],
+.modal-content div[style*="background-color: #fff"],
+.modal-content div[style*="background-color: rgb(255, 255, 255)"] {
+    background: transparent !important;
+}
+
+/* CRITICAL: Override Bootstrap's .bg-light inside modals */
+.modal-content .bg-light,
+.modal-body .bg-light,
+.modal .bg-light,
+div.modal .bg-light,
+.btn-group.bg-light,
+.btn-group-toggle.bg-light {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* CRITICAL: Backdrop - NO backdrop-filter (causes modal to blur) */
+.modal-backdrop,
+div.modal-backdrop {
+    background-color: rgba(32, 41, 56, 0) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: background-color 0.25s ease !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1040 !important;
+}
+
+/* When backdrop is shown, apply dark blue overlay (NO BLUR) - matches header color */
+.modal-backdrop.show,
+.modal-backdrop.fade.show {
+    background-color: rgba(32, 41, 56, 0.6) !important;
+}
+
+/* Ensure modal has HIGHER z-index than backdrop */
+.modal,
+div.modal,
+.modal.show {
+    z-index: 1050 !important;
+    position: fixed !important;
+}
+
+/* BLUR THE PAGE CONTENT when modal is open - modal is moved to body by JS */
+.page-wrapper,
+.navbar-top,
+#navSidebar {
+    filter: none;
+    -webkit-filter: none;
+    transition: filter 0.25s ease, -webkit-filter 0.25s ease;
+}
+
+/* REMOVED - This was causing permanent blur */
+
+/* ENSURE: Modal itself is NEVER blurred */
+.modal,
+.modal.show,
+.modal-dialog,
+.modal-content,
+.modal-header,
+.modal-body,
+.modal-footer {
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* ============================================
+   FIX STATUS DROPDOWN VISIBILITY ISSUE
+   ============================================ */
+/* Force status dropdown items to be fully visible */
+.dropdown-menu .status-dropdown-item,
+.dropdown-menu .dropdown-item {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Ensure dropdown menu itself is solid and above table content */
+.dropdown-menu.show {
+    opacity: 1 !important;
+    background-color: #fff !important;
+    z-index: 1050 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* REMOVED - This was reverting to transparent, breaking inline styles */
+
+/* Force dropdown menu in table to have cream background */
+.list-table .dropdown-menu {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+}
+
+/* MOVE STATUS DROPDOWN TO THE LEFT - Avoid overlapping with other status words */
+.list-table .dropdown-menu {
+    transform: translateX(-60px) !important;
+    left: -100px !important;
+    right: auto !important;
+}
+
+/* FIX HISTORY PAGE FILTER BUTTONS - Make them visible and clickable */
+.list-filter .btn {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 6px 12px !important;
+    pointer-events: auto !important;
+}
+
+/* Ensure filter buttons are properly sized */
+.list-filter .btn-outline-danger,
+.list-filter .btn-light {
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 6px 12px !important;
+    margin: 2px !important;
+}
+
+/* FIX BULK ACTION BUTTONS ON HISTORY PAGE - Make them visible and clickable */
+.btn-counter,
+.btn-select-all,
+button[data-control="bulk-action"],
+button[data-request="list::onBulkAction"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 6px 12px !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* Ensure bulk action buttons are not hidden */
+.btn-counter:not(.hide),
+.btn-select-all:not(.hide),
+button[data-control="bulk-action"]:not(.hide) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* BREAK CONNECTION - Force ALL buttons to work independently */
+button, .btn, a[role="button"] {
+    pointer-events: auto !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 99999 !important;
+}
+
+/* Remove disabled states */
+button:not([disabled]),
+.btn:not([disabled]),
+a[role="button"]:not([disabled]) {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Force parent containers to allow interaction */
+.list-filter, .filter-toolbar, .toolbar, .content-wrapper {
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* HIDE MENU TOGGLE BUTTON IN HEADER */
+/* EXCEPT in navbar-top where we want it visible */
+.navbar-toggler:not(.navbar-top .navbar-toggler),
+button.navbar-toggler:not(.navbar-top .navbar-toggler),
+.navbar-toggler[data-bs-toggle="collapse"]:not(.navbar-top .navbar-toggler) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* Keep navbar-toggler hidden in navbar-top (user doesn't want it visible) */
+.navbar-top .navbar-toggler,
+.navbar-top button.navbar-toggler,
+.navbar-top .navbar-toggler[data-bs-toggle="collapse"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* FIX SETTINGS CARDS - Make them smaller and properly aligned */
+.row.no-gutters.mb-3 {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    gap: 15px !important;
+}
+
+.row.no-gutters.mb-3 .col-lg-4 {
+    flex: 0 0 calc(33.333% - 10px) !important;
+    max-width: calc(33.333% - 10px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.row.no-gutters.mb-3 .col-lg-4 a {
+    height: 140px !important;
+    min-height: 140px !important;
+    max-height: 140px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    text-decoration: none !important;
+}
+
+.row.no-gutters.mb-3 .col-lg-4 .card {
+    height: 140px !important;
+    min-height: 140px !important;
+    max-height: 140px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+}
+
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: 15px !important;
+}
+
+/* Make icons smaller and remove white frames */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .fa,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body i {
+    font-size: 1.8rem !important;
+    margin-bottom: 10px !important;
+    color: #202938 !important;
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Remove white frames from icon parent containers */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .rounded-circle,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .bg-light {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    display: inline-block !important;
+}
+
+/* PERFECT ICON CENTERING - Force all icons to be perfectly centered */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+}
+
+/* Center the icon container specifically with 4px fine-tuning */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .rounded-circle,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .bg-light,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .fa,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body i {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+    width: 100% !important;
+    position: relative !important;
+    left: 4px !important;
+}
+
+/* Ensure icon text is centered */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body h5,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body h6,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .card-title {
+    text-align: center !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Center description text */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body p,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .card-text {
+    text-align: center !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Make card titles larger and bolder */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body h5,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body h6,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .card-title {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    color: #202938 !important;
+}
+
+/* Make card descriptions smaller */
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body p,
+.row.no-gutters.mb-3 .col-lg-4 .card .card-body .card-text {
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 0 !important;
+    color: #364a63 !important;
+}
+
+.row.no-gutters.mb-3 .col-lg-4 .card .card-footer {
+    margin-top: auto !important;
+    flex-shrink: 0 !important;
+    padding: 10px 15px !important;
+}
+
+/* Ensure all settings cards have the same height */
+.row.no-gutters.mb-3 .col-lg-4,
+.row.no-gutters.mb-3 .col-lg-4 a,
+.row.no-gutters.mb-3 .col-lg-4 .card {
+    height: 140px !important;
+    min-height: 140px !important;
+    max-height: 140px !important;
+}
+
+/* Fix the modal itself (the container) - should be transparent */
+.modal,
+div.modal,
+.modal.show,
+.modal.fade {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* ============================================
+   WORKING CALENDAR MODAL SYSTEM - Compact and beautiful
+   ============================================ */
+
+/* Calendar dropdown styling - Match header cards exactly */
+/* ANTI-FLASH: Hide calendar by default until positioned */
+.daterangepicker {
+    z-index: 1050 !important;
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important; /* Same gradient as header cards */
+    border: 2px solid #08815e !important; /* Same border as header cards */
+    border-radius: 10px !important; /* Same border radius as header cards */
+    box-shadow: 0 8px 30px rgba(8, 129, 94, 0.20) !important; /* Same shadow as header cards */
+    padding: 8px !important; /* Same padding as header cards */
+    max-width: 600px !important;
+    width: auto !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: none !important;
+    overflow: hidden !important; /* Same overflow as header cards */
+}
+
+/* Show calendar only when positioned */
+.daterangepicker.positioned {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Make calendar more compact */
+.daterangepicker .ranges {
+    width: 140px !important;
+    padding: 10px !important;
+}
+
+.daterangepicker .drp-calendar {
+    padding: 10px !important;
+}
+
+.daterangepicker .drp-calendar .calendar-table {
+    margin: 0 !important;
+}
+
+.daterangepicker .drp-calendar .calendar-table th,
+.daterangepicker .drp-calendar .calendar-table td {
+    padding: 8px 6px !important;
+    font-size: 13px !important;
+}
+
+.daterangepicker .drp-calendar .calendar-table th {
+    font-weight: 600 !important;
+    color: #555 !important;
+}
+
+.daterangepicker .drp-calendar .calendar-table td {
+    font-size: 12px !important;
+}
+
+/* Compact buttons */
+.daterangepicker .drp-buttons {
+    padding: 10px 15px !important;
+    margin-top: 10px !important;
+}
+
+.daterangepicker .drp-buttons .btn {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    margin: 0 3px !important;
+}
+
+/* Compact ranges list */
+.daterangepicker .ranges ul {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.daterangepicker .ranges li {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    margin: 2px 0 !important;
+}
+
+.daterangepicker * {
+    z-index: 1050 !important;
+}
+
+/* CLEAN SCROLLBAR ARROW HIDING - SIMPLE SOLUTION */
+*::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+*::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+}
+
+* {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+/* Additional scrollbar hiding for calendar */
+.daterangepicker,
+.daterangepicker * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+/* Simple calendar scrollbar hiding */
+.daterangepicker::-webkit-scrollbar,
+.daterangepicker *::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.daterangepicker::-webkit-scrollbar-button,
+.daterangepicker *::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* ============================================
+   MEDIA FINDER - LONG FILENAME OVERFLOW FIX
+   ============================================ */
+
+/* Fix long filename overflow in media finder components */
+[data-find-name],
+.media-finder [data-find-name],
+.media-finder .icon-container span[data-find-name],
+.media-finder .form-control[data-find-name] {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+/* Specific fix for grid mode icon container */
+.media-finder .grid .icon-container span[data-find-name] {
+    max-width: 110px !important; /* Slightly less than grid width (124px) to account for padding */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+    word-wrap: normal !important; /* Override any word-wrap */
+    word-break: normal !important; /* Override any word-break */
+}
+
+/* Specific fix for inline mode form control */
+.media-finder .form-control[data-find-name] {
+    max-width: calc(100% - 100px) !important; /* Account for buttons */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+}
+
+/* Add tooltip functionality for full filename */
+[data-find-name]:hover {
+    position: relative !important;
+    z-index: 1000 !important;
+}
+
+/* Tooltip styling for full filename display */
+[data-find-name]:hover::after {
+    content: attr(title) !important;
+    position: absolute !important;
+    bottom: 100% !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    z-index: 1001 !important;
+    pointer-events: none !important;
+    max-width: 300px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Ensure the media finder container doesn't break layout */
+.media-finder {
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+/* Fix for any parent containers that might cause overflow */
+.media-finder .grid,
+.media-finder .input-group {
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+/* Neutralize modal styling to match header/card style (no green) */
+.modal .modal-content,
+div.modal .modal-content,
+.modal-content {
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Global modal headers override */
+.modal .modal-header,
+div.modal .modal-header,
+.modal-header {
+    background: #202938 !important; /* match header dark blue */
+    border-bottom: 1px solid #1a2230 !important;
+    border-radius: 12px 12px 0 0 !important;
+    color: #ffffff !important;
+}
+
+/* Titles and close button in neutral color */
+.modal-header .modal-title,
+.modal-header h1,
+.modal-header h2,
+.modal-header h3,
+.modal-header h4,
+.modal-header h5,
+.modal-header h6 {
+    color: #ffffff !important;
+}
+
+.modal-header .btn-close,
+.modal-header button.close {
+    filter: brightness(0) invert(1) !important;
+    opacity: 0.8 !important;
+}
+
+.modal-header .btn-close:hover,
+.modal-header button.close:hover {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* Specific setup modals override (wins over earlier green) */
+#lists-setup-modal .modal-header,
+[id$="-setup-modal"] .modal-header {
+    background: #202938 !important;
+    border-bottom: 1px solid #1a2230 !important;
+    color: #ffffff !important;
+}
+
+#lists-setup-modal .modal-content,
+[id$="-setup-modal"] .modal-content {
+    border: none !important;
+}

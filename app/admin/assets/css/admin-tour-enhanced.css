@@ -295,15 +295,15 @@ body.introjs-fixParent .introjs-showElement #sidebar-star-icon {
     display: none !important;
 }
 
-/* Highlighted element effects - Smooth scale up once, no pulsing, no gray colors */
+/* Highlighted element effects - No scale/size effects, just positioning */
 .introjs-showElement {
-    transition: transform 0.5s ease !important;
-    transform: scale(1.02) !important;
+    transition: none !important;
+    transform: none !important;
     transform-origin: center center !important;
     z-index: 2147483645 !important;
     position: relative !important;
-    /* Prevent layout shifts during transform */
-    will-change: transform !important;
+    /* Prevent layout shifts */
+    will-change: auto !important;
     contain: layout style paint !important;
     /* Prevent jumping by isolating transform from layout */
     isolation: isolate !important;
@@ -387,9 +387,10 @@ nav.navbar.introjs-showElement {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Smooth transition when element is no longer highlighted */
+/* No transition when element is no longer highlighted - prevent size effects */
 .introjs-showElement:not(.introjs-relativePosition) {
-    transition: transform 0.4s ease !important;
+    transition: none !important;
+    transform: none !important;
 }
 
 /* Blur other elements when tour is active - subtle */

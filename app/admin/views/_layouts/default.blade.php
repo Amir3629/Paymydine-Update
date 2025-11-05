@@ -275,6 +275,9 @@
             e.preventDefault();
             e.stopPropagation();
             
+            // Close all open dropdowns and modals before starting the tour
+            closeAllOpenDropdowns();
+            
             // Wait a bit to ensure tour system is loaded
             setTimeout(function() {
                 if (window.PayMyDineTour && typeof window.PayMyDineTour.startTour === 'function') {
@@ -290,6 +293,49 @@
                 }
             }, 100);
         });
+    }
+    
+    // Function to close all open dropdowns and panels
+    function closeAllOpenDropdowns() {
+        // Close all Bootstrap dropdowns
+        const openDropdowns = document.querySelectorAll('.dropdown-menu.show');
+        openDropdowns.forEach(function(dropdown) {
+            dropdown.classList.remove('show');
+            
+            // Also remove show class from parent dropdown
+            const parentDropdown = dropdown.closest('.dropdown');
+            if (parentDropdown) {
+                const toggle = parentDropdown.querySelector('[data-bs-toggle="dropdown"], [data-toggle="dropdown"]');
+                if (toggle) {
+                    toggle.classList.remove('show');
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+        });
+        
+        // Close notification panel specifically
+        const notificationPanel = document.getElementById('notification-panel');
+        if (notificationPanel) {
+            notificationPanel.classList.remove('show');
+        }
+        
+        // Close any open modals
+        const openModals = document.querySelectorAll('.modal.show');
+        openModals.forEach(function(modal) {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        });
+        
+        // Remove modal backdrop if exists
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(function(backdrop) {
+            backdrop.remove();
+        });
+        
+        // Reset body styles that might have been set by modals
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
     }
     
     // Initialize when DOM is ready

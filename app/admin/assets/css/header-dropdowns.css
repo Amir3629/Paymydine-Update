@@ -210,7 +210,7 @@
     background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
     border: none !important;
     border-radius: 10px !important;
-    box-shadow: 0 8px 30px rgba(112, 79, 38, 0.25) !important;
+    box-shadow: 0 8px 30px rgba(8, 129, 94, 0.20) !important;
     padding: 8px !important;
     overflow: hidden !important;
   
@@ -248,7 +248,7 @@
   .dropdown-menu .dropdown-item:not([data-request="onUpdateStatus"]),
   .dropdown-menu .menu-link,
   .dropdown-menu a:not(.btn) {
-    color: #5a4a3a !important;
+    color: #364a63 !important;
     padding: 10px 16px !important;
     border-radius: 8px !important;
     transition: all 0.2s ease !important;
@@ -378,7 +378,7 @@
   .dropdown-menu .menu-grid .menu-link span {
     font-size: 11px !important;
     font-weight: 600 !important;
-    color: #5a4a3a !important;
+    color: #364a63 !important;
     text-align: center !important;
     line-height: 1.2 !important;
     word-wrap: break-word !important;
@@ -418,8 +418,8 @@
     top: 100% !important;
     right: 0 !important;
     left: auto !important;
-    /* Override the 25px offset from admin.css and push even further right */
-    margin-right: -123px !important; /* Push it further right to align perfectly */
+    /* No offset - align with parent bell icon */
+    margin-right: -85px !important;
   }
   
   /* Fix notification parent positioning */
@@ -569,6 +569,30 @@
   .navbar-top .dropdown-menu .dropdown-item.active:hover {
     background: rgba(11, 184, 122, 0.2) !important;
     color: #08815e !important;
+  }
+  
+  /* ============================================
+     ADMIN PANEL ONLY: Push Profile Icon to Right
+     Keep notification, settings, store front, and info icons on the left
+     ============================================ */
+  
+  /* Push the user profile dropdown (last nav-item) to the right */
+  .navbar-top .navbar-nav > .nav-item:last-child {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    /* Add extra spacing before the profile icon */
+    padding-left: 12px !important;
+  }
+  
+  /* Ensure all other icons stay on the left with consistent spacing */
+  .navbar-top .navbar-nav > .nav-item:not(:last-child) {
+    margin-left: 0 !important;
+    margin-right: 8px !important;
+  }
+  
+  /* Guide tour button positioning */
+  .navbar-top .navbar-tour-btn {
+    margin-right: 8px !important;
   }
   
   
