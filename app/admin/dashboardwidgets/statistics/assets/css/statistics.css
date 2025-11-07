@@ -103,8 +103,8 @@
     transition: all 0.3s ease !important;
     left: auto !important;
     opacity: 1 !important;
-    /* Icon color - brown instead of white - override .text-white */
-    color: #08815e !important;
+    /* Icon color - header blue - override .text-white */
+    color: #202938 !important;
     z-index: 1;
 }
 
@@ -146,7 +146,7 @@
 /* Text label styling */
 .card-counter .stat-text {
     font-size: 0.9em !important;
-    color: #08815e !important;
+    color: #2f5496 !important;
     margin: 5px 0 0 0 !important;
     font-weight: 600 !important;
     line-height: 1.3 !important;
@@ -157,7 +157,7 @@
 
 /* Gradient rings for each stat type */
 .stat-icon-brown-light {
-    background: linear-gradient(45deg, #08815e, #0bb87a, #0dd4a3, #0bb87a, #08815e) !important;
+    background: linear-gradient(45deg, #202938, #2f5496, #4a75c3, #64b5f6, #203864) !important;
 }
 
 .stat-icon-gold {

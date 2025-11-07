@@ -815,19 +815,19 @@ body.modal-open {
 label.btn-light,
 button.btn-light,
 .btn.btn-light {
-    --bs-btn-color: #202938 !important;
-    --bs-btn-bg: #ffffff !important;
-    --bs-btn-border-color: #08815e !important;
-    --bs-btn-hover-color: #fff !important;
-    --bs-btn-hover-bg: #08815e !important;
-    --bs-btn-hover-border-color: #0bb87a !important;
-    --bs-btn-focus-shadow-rgb: 216, 182, 134 !important;
-    --bs-btn-active-color: #fff !important;
-    --bs-btn-active-bg: #0bb87a !important;
-    --bs-btn-active-border-color: #065a42 !important;
-    --bs-btn-disabled-color: #08815e !important;
-    --bs-btn-disabled-bg: #ffffff !important;
-    --bs-btn-disabled-border-color: #ffffff !important;
+    --bs-btn-color: #202938;
+    --bs-btn-bg: #ffffff;
+    --bs-btn-border-color: #08815e;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #08815e;
+    --bs-btn-hover-border-color: #0bb87a;
+    --bs-btn-focus-shadow-rgb: 216, 182, 134;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #0bb87a;
+    --bs-btn-active-border-color: #065a42;
+    --bs-btn-disabled-color: #08815e;
+    --bs-btn-disabled-bg: #ffffff;
+    --bs-btn-disabled-border-color: #ffffff;
     background-color: #ffffff !important;
     background: #ffffff !important;
     border-color: #08815e !important;
@@ -2390,4 +2390,206 @@ div.modal .modal-header,
 #lists-setup-modal .modal-content,
 [id$="-setup-modal"] .modal-content {
     border: none !important;
+}
+
+/* ============================================
+   DASHBOARD & ADMIN TOOLBAR BUTTON ALIGNMENT
+   ============================================ */
+.toolbar-action {
+    gap: 0.75rem !important;
+}
+
+.toolbar-action .btn {
+    --toolbar-btn-padding: 0.55rem 1.75rem;
+    --toolbar-btn-font-weight: 600;
+    --toolbar-btn-border-radius: 12px;
+    --toolbar-btn-display: inline-flex;
+    --toolbar-btn-align-items: center;
+    --toolbar-btn-justify-content: center;
+    --toolbar-btn-box-shadow: none;
+
+    min-width: auto !important;
+    padding: var(--toolbar-btn-padding) !important;
+    font-weight: var(--toolbar-btn-font-weight) !important;
+    border-radius: var(--toolbar-btn-border-radius) !important;
+    display: var(--toolbar-btn-display) !important;
+    align-items: var(--toolbar-btn-align-items) !important;
+    justify-content: var(--toolbar-btn-justify-content) !important;
+    box-shadow: var(--toolbar-btn-box-shadow) !important;
+}
+
+.toolbar-action .btn:first-child:not(.btn-ice) {
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    border-color: #202938 !important;
+    color: #ffffff !important;
+}
+
+.toolbar-action .btn:not(:first-child) {
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+}
+
+/* Override Bootstrap default button classes in toolbar */
+.toolbar-action .btn-default:not(:first-child),
+.toolbar-action .btn-secondary:not(:first-child),
+.toolbar-action .btn-outline-primary:not(:first-child),
+.toolbar-action .btn-outline-secondary:not(:first-child) {
+    --bs-btn-color: #202938;
+    --bs-btn-bg: #f1f4fb;
+    --bs-btn-border-color: #c9d2e3;
+    --bs-btn-hover-color: #202938;
+    --bs-btn-hover-bg: #e5ebf7;
+    --bs-btn-hover-border-color: #b8c6dd;
+    --bs-btn-active-color: #202938;
+    --bs-btn-active-bg: #e5ebf7;
+    --bs-btn-active-border-color: #b8c6dd;
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+}
+
+.toolbar-action .btn:not(:first-child):hover,
+.toolbar-action .btn:not(:first-child):focus {
+    background: #e5ebf7 !important;
+    color: #202938 !important;
+    border-color: #b8c6dd !important;
+}
+
+.toolbar-action .btn + .btn {
+    margin-left: 0 !important;
+}
+
+/* Modal footer buttons -> use ice white palette */
+.modal-footer .btn {
+    min-width: 140px !important;
+    padding: 0.55rem 1.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-footer .btn-default,
+.modal-footer .btn-primary {
+    background: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+}
+
+.modal-footer .btn-default:hover,
+.modal-footer .btn-default:focus,
+.modal-footer .btn-primary:hover,
+.modal-footer .btn-primary:focus {
+    background: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
+    color: #202938 !important;
+}
+
+/* Generic ice button utility */
+.btn-ice {
+    background: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+    border-radius: 12px !important;
+    min-width: 140px !important;
+    padding: 0.55rem 1.75rem !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-ice:hover,
+.btn-ice:focus {
+    background: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
+    color: #202938 !important;
+}
+
+/* Explicit styling for Add Widget toolbar button (fallback) */
+.toolbar-action button[data-bs-target="#newWidgetModal"],
+.toolbar-action button[data-request$="onLoadAddPopup"] {
+    background: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+    min-width: 140px !important;
+    padding: 0.55rem 1.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+}
+
+.toolbar-action button[data-bs-target="#newWidgetModal"]:hover,
+.toolbar-action button[data-bs-target="#newWidgetModal"]:focus,
+.toolbar-action button[data-request$="onLoadAddPopup"]:hover,
+.toolbar-action button[data-request$="onLoadAddPopup"]:focus {
+    background: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
+    color: #202938 !important;
+}
+
+/* List action edit buttons -> use ice palette */
+.list-action .btn.btn-edit,
+.btn-edit {
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+    border-radius: 10px !important;
+    padding: 6px 10px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.list-action .btn.btn-edit:hover,
+.btn-edit:hover,
+.list-action .btn.btn-edit:focus,
+.btn-edit:focus {
+    background: #e5ebf7 !important;
+    background-color: #e5ebf7 !important;
+    color: #202938 !important;
+    border-color: #b8c6dd !important;
+}
+
+.btn-outline-warning.bg-transparent,
+.list-action .btn-outline-warning,
+.btn-outline-warning {
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+    border-radius: 10px !important;
+    padding: 6px 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+}
+
+.btn-outline-warning.bg-transparent:hover,
+.btn-outline-warning.bg-transparent:focus,
+.btn-outline-warning:hover,
+.btn-outline-warning:focus {
+    background: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
+    color: #202938 !important;
+}
+
+.btn-outline-warning.bg-transparent i,
+.btn-outline-warning i {
+    color: #202938 !important;
+}
+
+.widget-activities .text-right a {
+    color: #202938 !important;
+    font-weight: 600;
+}
+
+.widget-activities .text-right a:hover,
+.widget-activities .text-right a:focus {
+    color: #2f5496 !important;
 }

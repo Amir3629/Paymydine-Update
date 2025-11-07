@@ -63,6 +63,12 @@
   box-shadow: none !important;
 }
 
+.widget-cache {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .widget-cache .widget-title {
   color: #202938 !important;
   font-weight: 600;
@@ -74,7 +80,7 @@
 /* Total cache size - center of donut */
 .widget-cache > span {
   position: absolute;
-  top: 50%;
+  top: 50.7%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
@@ -105,8 +111,8 @@
 /* Donut chart container */
 .widget-cache .progress {
   position: relative;
-  width: 300px !important;
-  height: 300px !important;
+  width: 260px !important;
+  height: 260px !important;
   border-radius: 50% !important;
   background: transparent !important;
   border: none !important;
@@ -133,8 +139,9 @@
     rgba(220, 224, 228, 0.6) var(--slice-size, 85deg)
   );
   /* Clip to show only the slice portion - donut shape with angular cut */
+  /* Center circle is 120px diameter, chart is 260px. Inner at 38%, outer at 95% for wider ring extending towards center */
   -webkit-mask-image: 
-    radial-gradient(circle, transparent 0%, transparent 35%, black 35%, black 100%),
+    radial-gradient(circle, transparent 0%, transparent 38%, black 38%, black 95%, transparent 95%),
     conic-gradient(
       from var(--start-angle, 0deg),
       transparent 0deg,
@@ -144,7 +151,7 @@
     );
   -webkit-mask-composite: source-in;
   mask-image: 
-    radial-gradient(circle, transparent 0%, transparent 35%, black 35%, black 100%),
+    radial-gradient(circle, transparent 0%, transparent 38%, black 38%, black 95%, transparent 95%),
     conic-gradient(
       from var(--start-angle, 0deg),
       transparent 0deg,
@@ -185,29 +192,38 @@
   clear: both;
 }
 
-/* Clear cache button - simple brown style */
+/* Clear cache button - ice white styling */
 .widget-cache .btn-default {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  border-color: #202938 !important;
-  color: white !important;
-  border-radius: 6px;
-  padding: 0.5rem 1.25rem;
-  font-weight: 600;
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  border-radius: 12px !important;
+  padding: 0.55rem 1.75rem !important;
+  font-weight: 600 !important;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-  font-size: 0.85rem;
-  display: block;
-  margin: 0 auto;
+  box-shadow: none !important;
+  font-size: 0.92rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.45rem;
+  min-width: 140px;
+  margin: 0 auto !important;
+  position: relative;
+  z-index: 15;
 }
 
-.widget-cache .btn-default:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
+.widget-cache .btn-default:hover,
+.widget-cache .btn-default:focus {
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #202938 !important;
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 8px rgba(32, 41, 56, 0.12) !important;
 }
 
 .widget-cache .btn-default i {
-  color: white !important;
+  color: #202938 !important;
 }
 
 /* ============================================

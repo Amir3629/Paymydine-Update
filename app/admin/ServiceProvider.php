@@ -122,11 +122,6 @@ class ServiceProvider extends AppServiceProvider
                 'label' => 'Cache Usage',
             ]);
 
-            $manager->registerDashboardWidget(\System\DashboardWidgets\News::class, [
-                'code' => 'news',
-                'label' => 'Latest News',
-            ]);
-
             $manager->registerDashboardWidget(\Admin\DashboardWidgets\Statistics::class, [
                 'code' => 'stats',
                 'label' => 'Statistics widget',
@@ -146,11 +141,6 @@ class ServiceProvider extends AppServiceProvider
             $manager->registerDashboardWidget(\Admin\DashboardWidgets\Statistics::class, [
                 'code' => 'stat_circle_3',
                 'label' => 'Statistic Circle',
-            ]);
-
-            $manager->registerDashboardWidget(\Admin\DashboardWidgets\Onboarding::class, [
-                'code' => 'onboarding',
-                'label' => 'Onboarding widget',
             ]);
 
             $manager->registerDashboardWidget(\Admin\DashboardWidgets\Charts::class, [
