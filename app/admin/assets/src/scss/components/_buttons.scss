@@ -1,0 +1,39 @@
+[data-request="onSave"] {
+  background-color: #0f9d58 !important;
+  border-color: #0c7d47 !important;
+  color: #ffffff !important;
+}
+.btn {
+  border-bottom-width: $btn-border-bottom-width;
+  box-shadow: none;
+  cursor: pointer;
+}
+.btn-edit {
+  color: $primary;
+  background-color: transparent;
+}
+.list-action .btn,
+.btn-action {
+  border: 0;
+  padding: $btn-action-padding;
+}
+.btn-light {
+  background-color: $light;
+  border-color: $brown-200;
+
+  &:hover {
+    background-color: $brown-50;
+    border-color: $brown-300;
+  }
+}
+.btn-secondary, .btn-default {
+  &:hover {
+    color: $white;
+  }
+}
+.btn-light:not(:disabled):not(.disabled):active,
+.btn-light:not(:disabled):not(.disabled).active,
+.show > .btn-light.dropdown-toggle {
+  background-color: $brown-300;
+  border-color: $brown-300;
+}

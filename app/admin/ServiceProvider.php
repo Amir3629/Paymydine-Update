@@ -315,6 +315,7 @@ class ServiceProvider extends AppServiceProvider
                     'href' => admin_url('dashboard'),
                     'icon' => 'fa-tachometer-alt',
                     'title' => lang('admin::lang.side_menu.dashboard'),
+                    'permission' => 'Admin.Dashboard',
                 ],
                 'restaurant' => [
                     'priority' => 10,
@@ -784,6 +785,16 @@ class ServiceProvider extends AppServiceProvider
                     'url' => admin_url('settings/edit/user'),
                     'form' => '~/app/admin/models/config/user_settings',
                     'request' => 'Admin\Requests\UserSettings',
+                ],
+                'panel' => [
+                    'label' => 'lang:admin::lang.settings.text_tab_panel',
+                    'description' => 'lang:admin::lang.settings.text_tab_desc_panel',
+                    'icon' => 'fa fa-sliders-h',
+                    'priority' => 5,
+                    'permission' => ['Site.Settings'],
+                    'url' => admin_url('settings/edit/panel'),
+                    'form' => '~/app/admin/models/config/panel_settings',
+                    'request' => 'Admin\Requests\PanelSettings',
                 ],
                 'activities' => [
                     'label' => 'lang:admin::lang.text_activity_title',

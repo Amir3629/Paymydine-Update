@@ -4572,8 +4572,24 @@ readers do not read off random characters that represent icons */
   content: "\f85e";
 }
 
+[data-request="onSave"] {
+  background-color: #0f9d58 !important;
+  border-color: #0c7d47 !important;
+  color: #ffffff !important;
+}
+
 .fa-trash::before, .fa-trash-o::before {
   content: "\f1f8";
+}
+
+.btn i.fa-trash,
+.btn i.fa-trash-o {
+  color: #dc3545 !important;
+}
+
+a[data-request="onDelete"] i.fa-trash,
+a[data-request="onDelete"] i.fa-trash-o {
+  color: #dc3545 !important;
 }
 
 .fa-gauge-simple::before {
