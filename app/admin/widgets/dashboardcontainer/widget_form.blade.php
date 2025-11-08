@@ -16,13 +16,13 @@
 <div class="modal-footer">
     <button
         type="button"
-        class="btn btn-primary"
+        class="btn btn-primary btn-add-widget"
         data-bs-dismiss="modal"
         data-request="{{ $this->getEventHandler('onUpdateWidget') }}"
     >@lang('admin::lang.text_save')</button>
     <button
         type="button"
-        class="btn btn-default"
+        class="btn btn-ice btn-close-modal"
         data-bs-dismiss="modal"
     >@lang('admin::lang.button_close')</button>
 </div>

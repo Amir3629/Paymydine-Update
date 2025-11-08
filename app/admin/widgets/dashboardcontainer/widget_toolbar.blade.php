@@ -6,8 +6,8 @@
     aria-labelledby="newWidgetModalTitle"
     aria-hidden="true"
 >
-    <div class="modal-dialog" role="document">
-        <div id="{{ $this->getId('new-widget-modal-content') }}" class="modal-content">
+    <div class="modal-dialog dashboard-widget-modal-dialog" role="document">
+        <div id="{{ $this->getId('new-widget-modal-content') }}" class="modal-content dashboard-widget-modal">
             <div class="modal-body">
                 <div class="progress-indicator">
                     <span class="spinner"><span class="ti-loading fa-3x fa-fw"></span></span>

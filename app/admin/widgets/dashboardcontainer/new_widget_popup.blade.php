@@ -5,9 +5,9 @@
 </div>
 <div class="modal-body">
     @if ($widgets->isEmpty())
-        <div class="alert" style="background: #ffffff; border: 1px solid #08815e; color: #202938;">
-            <i class="fa fa-check-circle" style="color: #08815e;"></i>&nbsp;&nbsp;
-            <strong>All widgets are already on your dashboard.</strong>
+        <div class="no-widgets-note">
+            <i class="fa fa-check-circle"></i>
+            <span>@lang('admin::lang.dashboard.text_all_widgets_added')</span>
         </div>
     @else
         <div class="form-group">
@@ -38,16 +38,14 @@
     @if (!$widgets->isEmpty())
         <button
             type="button"
-            class="btn btn-ice"
-            style="min-width: 140px; padding: 0.55rem 1.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;"
+            class="btn btn-primary btn-add-widget"
             data-request="{{ $this->getEventHandler('onAddWidget') }}"
             data-bs-dismiss="modal"
         >@lang('admin::lang.button_add')</button>
     @endif
     <button
         type="button"
-        class="btn btn-ice"
-        style="background: #f1f4fb; color: #202938; border-color: #c9d2e3; min-width: 140px; padding: 0.55rem 1.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;"
+        class="btn btn-ice btn-close-modal"
         data-bs-dismiss="modal"
     >@lang('admin::lang.button_close')</button>
 </div>

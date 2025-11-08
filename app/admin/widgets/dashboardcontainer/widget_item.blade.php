@@ -48,10 +48,10 @@
         aria-labelledby="{{ $widgetAlias }}-title"
         aria-hidden="true"
     >
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog dashboard-widget-modal-dialog" role="document">
             <div
                 id="{{ $widgetAlias }}-modal-content"
-                class="modal-content"
+                class="modal-content dashboard-widget-modal"
             >
                 {!! $this->makePartial('dashboardcontainer/widget_form', [
                     'widgetAlias' => $widgetAlias,

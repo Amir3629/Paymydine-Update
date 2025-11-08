@@ -372,6 +372,7 @@ return [
         'text_add_widget' => 'Add Widget',
         'text_edit_widget' => 'Edit Widget',
         'text_select_widget' => 'Select a widget',
+        'text_all_widgets_added' => 'All dashboard widgets are already applied.',
 
         'text_zero' => '0',
         'text_dash_dash' => '--',

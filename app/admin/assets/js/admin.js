@@ -1401,6 +1401,9 @@ if (window.jQuery.request !== undefined)
         $('.sidebar').removeClass('show')
     })
 
+    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #0f9d58 0%, #0bb87a 100%)';
+    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #0c7d47 0%, #0aa868 100%)';
+
     function applyDeleteIconColor(context) {
         var scope = context || document;
 
@@ -1410,15 +1413,113 @@ if (window.jQuery.request !== undefined)
             });
     }
 
+    function applyGreenButtonBase(element) {
+        element.style.setProperty('background', GREEN_BUTTON_BASE_GRADIENT, 'important');
+        element.style.setProperty('background-image', GREEN_BUTTON_BASE_GRADIENT, 'important');
+        element.style.setProperty('border', '1px solid #0c7d47', 'important');
+        element.style.setProperty('border-color', '#0c7d47', 'important');
+        element.style.setProperty('color', '#ffffff', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.25)', 'important');
+        element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
+        element.style.setProperty('transform', 'translateY(0)', 'important');
+        element.style.setProperty('min-width', '90px', 'important');
+        element.style.setProperty('padding', '0.4rem 0.9rem', 'important');
+        element.style.setProperty('display', 'inline-block', 'important');
+        element.style.setProperty('text-align', 'center', 'important');
+        element.style.removeProperty('align-items');
+        element.style.removeProperty('justify-content');
+        element.style.removeProperty('gap');
+    }
+
+    function handleGreenButtonHover(event) {
+        var element = event.currentTarget;
+        element.style.setProperty('background', GREEN_BUTTON_HOVER_GRADIENT, 'important');
+        element.style.setProperty('background-image', GREEN_BUTTON_HOVER_GRADIENT, 'important');
+        element.style.setProperty('transform', 'translateY(-1px)', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.35)', 'important');
+    }
+
+    function handleGreenButtonLeave(event) {
+        applyGreenButtonBase(event.currentTarget);
+    }
+
+    function decorateGreenButton(element) {
+        applyGreenButtonBase(element);
+
+        if (element.dataset.greenButtonBound === '1')
+            return;
+
+        element.addEventListener('mouseenter', handleGreenButtonHover);
+        element.addEventListener('mouseleave', handleGreenButtonLeave);
+        element.addEventListener('focus', handleGreenButtonHover);
+        element.addEventListener('blur', handleGreenButtonLeave);
+
+        element.dataset.greenButtonBound = '1';
+    }
+
     function applySaveButtonStyles(context) {
         var $scope = context ? $(context) : $(document);
 
-        $scope.find('[data-request="onSave"]').each(function () {
-            this.style.setProperty('background', '#0f9d58', 'important');
-            this.style.setProperty('background-color', '#0f9d58', 'important');
-            this.style.setProperty('border', '1px solid #0c7d47', 'important');
-            this.style.setProperty('border-color', '#0c7d47', 'important');
-            this.style.setProperty('color', '#ffffff', 'important');
+        $scope.find('[data-request="onSave"], .btn-add-widget').each(function () {
+            decorateGreenButton(this);
+        });
+    }
+
+    function applyCloseButtonStyles(context) {
+        var $scope = context ? $(context) : $(document);
+
+        $scope.find('.btn-close-modal').each(function () {
+            this.style.setProperty('background', '#f1f4fb', 'important');
+            this.style.setProperty('border', '1px solid #c9d2e3', 'important');
+            this.style.setProperty('color', '#202938', 'important');
+            this.style.setProperty('width', '90px', 'important');
+            this.style.setProperty('min-width', '90px', 'important');
+            this.style.setProperty('padding', '0.4rem 0.9rem', 'important');
+            this.style.setProperty('border-radius', '12px', 'important');
+            this.style.setProperty('display', 'inline-block', 'important');
+            this.style.setProperty('text-align', 'center', 'important');
+        });
+    }
+
+    function applyWidgetModalStyles(context) {
+        var $scope = context ? $(context) : $(document);
+
+        $scope.find('#newWidgetModal .modal-content, .dashboard-widget-modal').each(function () {
+            this.style.setProperty('border', '2px solid #edeff5', 'important');
+            this.style.setProperty('border-radius', '18px', 'important');
+            this.style.setProperty('background', '#ffffff', 'important');
+            this.style.setProperty('box-shadow', '0 24px 48px rgba(32, 41, 56, 0.14)', 'important');
+        });
+
+        $scope.find('#newWidgetModal .modal-header, .dashboard-widget-modal .modal-header').each(function () {
+            this.style.setProperty('border', 'none', 'important');
+            this.style.setProperty('padding', '1.5rem 1.75rem', 'important');
+        });
+
+        $scope.find('#newWidgetModal .modal-body, .dashboard-widget-modal .modal-body').each(function () {
+            this.style.setProperty('padding', '1.5rem 1.75rem', 'important');
+            this.style.setProperty('border-bottom', '1px solid rgba(201, 210, 227, 0.5)', 'important');
+        });
+
+        $scope.find('#newWidgetModal .modal-footer, .dashboard-widget-modal .modal-footer').each(function () {
+            this.style.setProperty('border', 'none', 'important');
+            this.style.setProperty('padding', '1rem 1.75rem 1.25rem', 'important');
+            this.style.setProperty('gap', '0.75rem', 'important');
+        });
+
+        $scope.find('#newWidgetModal select, #newWidgetModal .form-control, #newWidgetModal .ss-main, .dashboard-widget-modal select, .dashboard-widget-modal .form-control, .dashboard-widget-modal .ss-main').each(function () {
+            this.style.setProperty('border', '1px solid #c9d2e3', 'important');
+            this.style.setProperty('border-radius', '12px', 'important');
+            this.style.setProperty('padding', '0.65rem 0.75rem', 'important');
+            this.style.setProperty('box-shadow', 'none', 'important');
+            this.style.setProperty('color', '#202938', 'important');
+            this.style.setProperty('background', '#ffffff', 'important');
+        });
+
+        $scope.find('#newWidgetModal .help-block, .dashboard-widget-modal .help-block').each(function () {
+            this.style.setProperty('color', '#202938', 'important');
+            this.style.setProperty('font-weight', '400', 'important');
+            this.style.setProperty('opacity', '0.9', 'important');
         });
     }
 
@@ -1430,23 +1531,33 @@ if (window.jQuery.request !== undefined)
 
         applyDeleteIconColor(context);
         applySaveButtonStyles(context);
+        applyCloseButtonStyles(context);
+        applyWidgetModalStyles(context);
     });
 
     $(document).on('ajaxDone ajaxComplete ajaxSuccess', function (event, context) {
         var scope = context && context.elements ? context.elements : context;
         applyDeleteIconColor(scope || document);
         applySaveButtonStyles(scope || document);
+        applyCloseButtonStyles(scope || document);
+        applyWidgetModalStyles(scope || document);
     });
 
     applyDeleteIconColor();
     applySaveButtonStyles();
+    applyCloseButtonStyles();
+    applyWidgetModalStyles();
 
     $(function () {
         applySaveButtonStyles();
+        applyCloseButtonStyles();
+        applyWidgetModalStyles();
     });
 
     var saveButtonStyleInterval = setInterval(function () {
         applySaveButtonStyles();
+        applyCloseButtonStyles();
+        applyWidgetModalStyles();
     }, 500);
 
     setTimeout(function () {
