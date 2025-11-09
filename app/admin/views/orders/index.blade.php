@@ -24,6 +24,14 @@
         background-color: transparent !important;
     }
     
+    /* Hide bulk selection summary and select-all controls */
+    .list-table .bulk-actions .btn-counter,
+    .list-table .bulk-actions .btn-select-all,
+    .list-table .bulk-actions .btn-counter + span,
+    .list-table .bulk-actions .btn-select-all.btn {
+        display: none !important;
+    }
+    
     
     /* Status dropdown items with colors */
     .status-dropdown-item {

@@ -2555,6 +2555,12 @@ div.modal .modal-header,
     border-color: #b8c6dd !important;
 }
 
+.list-table .bulk-actions .btn-counter,
+.list-table .bulk-actions .btn-counter + span,
+.list-table .bulk-actions .btn-select-all {
+    display: none !important;
+}
+
 .btn-outline-warning.bg-transparent,
 .list-action .btn-outline-warning,
 .btn-outline-warning {
@@ -2582,6 +2588,99 @@ div.modal .modal-header,
 .btn-outline-warning.bg-transparent i,
 .btn-outline-warning i {
     color: #202938 !important;
+}
+
+.dashboard-range-input,
+[id$="-time-range"] {
+    appearance: none !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: 2px !important;
+    padding: 0 !important;
+}
+
+.dashboard-range-input:focus,
+.dashboard-range-input:focus-visible,
+.dashboard-range-input:active,
+[id$="-time-range"]:focus,
+[id$="-time-range"]:focus-visible,
+[id$="-time-range"]:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.dashboard-range-input::-webkit-slider-runnable-track,
+[id$="-time-range"]::-webkit-slider-runnable-track {
+    height: 2px !important;
+    background: #000000 !important;
+    border: none !important;
+    border-radius: 1px !important;
+}
+
+.dashboard-range-input::-webkit-slider-thumb,
+[id$="-time-range"]::-webkit-slider-thumb {
+    appearance: none !important;
+    width: 12px !important;
+    height: 12px !important;
+    margin-top: -5px !important;
+    background: #000000 !important;
+    border-radius: 50% !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.dashboard-range-input::-moz-range-track,
+[id$="-time-range"]::-moz-range-track {
+    height: 2px !important;
+    background: #000000 !important;
+    border: none !important;
+    border-radius: 1px !important;
+}
+
+.dashboard-range-input::-moz-range-progress,
+[id$="-time-range"]::-moz-range-progress {
+    height: 2px !important;
+    background: #000000 !important;
+    border-radius: 1px !important;
+}
+
+.dashboard-range-input::-moz-range-thumb,
+[id$="-time-range"]::-moz-range-thumb {
+    width: 12px !important;
+    height: 12px !important;
+    background: #000000 !important;
+    border-radius: 50% !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.dashboard-range-input::-ms-track,
+[id$="-time-range"]::-ms-track {
+    height: 2px !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    color: transparent !important;
+}
+
+.dashboard-range-input::-ms-fill-lower,
+.dashboard-range-input::-ms-fill-upper,
+[id$="-time-range"]::-ms-fill-lower,
+[id$="-time-range"]::-ms-fill-upper {
+    background: #000000 !important;
+    border: none !important;
+    border-radius: 1px !important;
+}
+
+.dashboard-range-input::-ms-thumb,
+[id$="-time-range"]::-ms-thumb {
+    width: 12px !important;
+    height: 12px !important;
+    background: #000000 !important;
+    border-radius: 50% !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .widget-activities .text-right a {

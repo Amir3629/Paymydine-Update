@@ -6,6 +6,12 @@
 (function() {
     'use strict';
     
+    const isThemeEditPage = window.location.pathname.includes('/admin/themes/edit');
+    if (isThemeEditPage) {
+        console.log('🔧 Force Button Alignment skipped on theme edit page');
+        return;
+    }
+    
     console.log('🔧 Force Button Alignment initialized');
     
     const BUTTON_PADDING = '0.55rem 1.75rem';
@@ -36,6 +42,26 @@
         const icon = btn.querySelector('i');
         if (icon) {
             icon.style.setProperty('color', ICE_TEXT_COLOR, 'important');
+        }
+    }
+
+    function restylePrimaryActionButton(btn) {
+        btn.classList.remove('btn-secondary', 'btn-dark', 'text-white', 'btn-outline-warning');
+        btn.style.setProperty('background', PRIMARY_BACKGROUND, 'important');
+        btn.style.setProperty('background-color', PRIMARY_SOLID_BACKGROUND, 'important');
+        btn.style.setProperty('border', `1px solid ${PRIMARY_BORDER}`, 'important');
+        btn.style.setProperty('border-radius', '12px', 'important');
+        btn.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+        btn.style.setProperty('display', 'inline-flex', 'important');
+        btn.style.setProperty('align-items', 'center', 'important');
+        btn.style.setProperty('justify-content', 'center', 'important');
+        btn.style.setProperty('color', PRIMARY_TEXT_COLOR, 'important');
+        btn.style.setProperty('box-shadow', '0 4px 10px rgba(8, 129, 94, 0.24)', 'important');
+        btn.style.setProperty('min-height', '40px', 'important');
+
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.style.setProperty('color', PRIMARY_TEXT_COLOR, 'important');
         }
     }
 
@@ -99,7 +125,12 @@
                 // Don't prevent default - let original functionality work
             }, true); // Use capture phase to override other handlers
             
-            if (btn.classList.contains('btn-edit') || btn.classList.contains('btn-outline-warning') || btn.matches('[data-request*="SetDefault"], [data-request*="onSetDefault"]')) {
+            if (
+                btn.classList.contains('btn-edit') ||
+                btn.classList.contains('btn-outline-warning') ||
+                btn.classList.contains('theme-action-btn') ||
+                btn.matches('[data-request*="SetDefault"], [data-request*="onSetDefault"]')
+            ) {
                 restyleIceActionButton(btn);
             }
 
@@ -220,33 +251,41 @@
                 
                 // Check if this is the "Select all" button we want to HIDE
                 const isSelectAll = button.classList && button.classList.contains('btn-select-all');
+                const isCounterSpan = button.nodeType === Node.TEXT_NODE || (button.tagName === 'SPAN' && !button.classList.length);
+                const isCounter = button.classList && button.classList.contains('btn-counter');
+                const isDropdownWrapper = button.classList && button.classList.contains('dropdown');
                 
                 // HIDE only the "Select all" button
-                if (isSelectAll) {
-                    button.style.setProperty('display', 'none', 'important');
-                    button.style.setProperty('visibility', 'hidden', 'important');
-                    button.style.setProperty('opacity', '0', 'important');
-                    button.style.setProperty('position', 'absolute', 'important');
-                    button.style.setProperty('pointer-events', 'none', 'important');
-                    toolbarBulkContainer.appendChild(button);
+                if (isSelectAll || isCounter || isCounterSpan) {
+                    button.remove();
+                    continue;
+                } else if (isDropdownWrapper) {
+                    const menuItems = Array.from(button.querySelectorAll('.dropdown-menu .dropdown-item'));
+                    menuItems.forEach((menuButton, index) => {
+                        const clonedButton = menuButton.cloneNode(true);
+                        clonedButton.classList.remove('dropdown-item', 'text-danger');
+                        clonedButton.classList.add('btn');
+                        clonedButton.setAttribute('type', 'button');
+                        clonedButton.style.removeProperty('display');
+                        clonedButton.style.removeProperty('visibility');
+                        clonedButton.style.removeProperty('opacity');
+                        clonedButton.style.removeProperty('position');
+                        clonedButton.style.removeProperty('pointer-events');
+                        clonedButton.style.marginLeft = index > 0 ? '8px' : '0';
+
+                        restyleIceActionButton(clonedButton);
+
+                        toolbarBulkContainer.appendChild(clonedButton);
+                    });
+
+                    button.remove();
+                    continue;
                 } else {
                     // Show all other buttons and style them
-                    const isCounter = button.classList && button.classList.contains('btn-counter');
                     const isDeleteButton = button.textContent && button.textContent.toLowerCase().includes('delete') && 
                                           button.classList && button.classList.contains('text-danger') &&
                                           !button.classList.contains('dropdown-item');
                     const isEnableDisable = button.classList && button.classList.contains('dropdown-toggle');
-                    
-                    // Style the counter button
-                    if (isCounter) {
-                        button.style.height = '38px';
-                        button.style.display = 'flex';
-                        button.style.alignItems = 'center';
-                        button.style.background = '#08815e';
-                        button.style.color = '#fff';
-                        button.style.borderRadius = '4px';
-                        button.style.padding = '0 15px';
-                    }
                     
                     // Style the delete button
                     if (isDeleteButton) {
@@ -282,7 +321,12 @@
                         });
                     }
                     
-                    if (button.classList.contains('btn-edit') || button.classList.contains('btn-outline-warning') || button.matches('[data-request*="SetDefault"], [data-request*="onSetDefault"]')) {
+                    if (
+                        button.classList.contains('btn-edit') ||
+                        button.classList.contains('btn-outline-warning') ||
+                        button.classList.contains('theme-action-btn') ||
+                        button.matches('[data-request*="SetDefault"], [data-request*="onSetDefault"]')
+                    ) {
                         restyleIceActionButton(button);
                     }
 

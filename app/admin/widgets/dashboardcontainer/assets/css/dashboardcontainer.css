@@ -126,9 +126,8 @@
   min-width: 90px !important;
   padding: 0.4rem 0.9rem !important;
   font-weight: 600 !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
+  display: inline-block !important;
+  text-align: center !important;
   border-radius: 12px !important;
 }
 

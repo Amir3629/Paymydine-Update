@@ -70,6 +70,19 @@
         
         // Initialize time range slider
         this.initTimeRangeSlider()
+
+        // Apply default 30-day filter once datasets are ready
+        var self = this
+        $(document).ready(function () {
+            // Delay slightly to ensure Chart.js has populated internal datasets
+            setTimeout(function () {
+                self.filterChartData(30)
+                var label = $('#' + self.options.alias + '-range-label')
+                if (label.length) {
+                    label.text('30 days')
+                }
+            }, 50)
+        })
     }
     
     ChartControl.prototype.initTimeRangeSlider = function () {
@@ -78,6 +91,8 @@
         var label = $('#' + this.options.alias + '-range-label')
         
         if (!slider.length) return
+        
+        slider.addClass('dashboard-range-input')
         
         // Non-linear mapping: slower from 7-30, faster from 30-90
         // Slider goes 0-100, but maps to days non-linearly

@@ -79,6 +79,15 @@
 .table .list-setup {
   width: 1px;
 }
+
+.list-table .dropdown-menu {
+  position: absolute !important;
+  inset: auto auto auto auto;
+  transform: none !important;
+  top: 100% !important;
+  left: 0 !important;
+  margin-top: var(--bs-dropdown-spacer, 0.125rem) !important;
+}
 .list-table {
   .table {
     thead {
@@ -99,108 +108,32 @@
   }
 
   .bulk-actions {
-    background: transparent !important; // Transparent - will be in toolbar
-    position: fixed !important; // Fixed positioning to stay in toolbar
-    top: 84px !important; // Align with toolbar buttons
-    left: auto !important; // Don't hardcode left position
-    right: 250px !important; // Position from right side (leaves space for other elements)
-    width: auto !important;
-    z-index: 1000;
+    position: static !important;
+    width: 100% !important;
+    background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 10px !important;
-    
-    // When visible (not hidden by JavaScript), use flex
+    z-index: auto !important;
+
+    &.hide {
+      display: none !important;
+    }
+
     &:not(.hide) {
-      display: flex !important;
+      display: table-row !important;
     }
 
     td {
-      border-bottom: 0 !important;
-      padding: 0 !important;
-      background: transparent !important;
-      display: contents !important; // Make children appear inline
+      display: table-cell !important;
+      padding: 0.75rem 1rem !important;
+      background: inherit !important;
       vertical-align: middle;
-      
-      &:first-child {
-        display: none !important; // Hide checkbox column
-      }
     }
 
+    .btn-counter,
+    .btn-counter + span,
     .btn-select-all {
-      &.active {
-        font-weight: $font-weight-bold;
-      }
-    }
-    
-    .btn-counter {
-      color: $brown-900;
-      font-weight: 500;
-      background: transparent;
-      border: none;
-      padding: 8px 12px;
-      order: 10; // Show LAST (after all buttons)
-      margin-left: 12px;
-    }
-    
-    .dropdown {
-      order: 1; // Show FIRST
-    }
-    
-    // Style ALL buttons to match "New" button EXACTLY
-    .btn-light {
-      background: linear-gradient(to bottom, #08815e, #08815e) !important;
-      border: none !important;
-      color: #FFFFFF !important;
-      padding: 8px 12px !important; // EXACT same as "New" button
-      border-radius: 3px !important; // Match "New" button
-      font-size: 14px !important;
-      line-height: 21px !important;
-      font-weight: 600 !important; // Match "New" button
-      height: 39px !important; // Force exact height
-      order: 2; // Show second
-      
-      &:hover {
-        background: linear-gradient(to bottom, #08815e, #08815e) !important;
-        color: #FFFFFF !important;
-      }
-    }
-    
-    .dropdown-toggle {
-      background: linear-gradient(to bottom, #08815e, #08815e) !important;
-      border: none !important;
-      color: #FFFFFF !important;
-      padding: 8px 12px !important; // EXACT same as "New" button
-      border-radius: 3px !important; // Match "New" button
-      font-size: 14px !important;
-      line-height: 21px !important;
-      font-weight: 600 !important; // Match "New" button
-      height: 39px !important; // Force exact height
-      
-      &:hover {
-        background: linear-gradient(to bottom, #08815e, #08815e) !important;
-        color: #FFFFFF !important;
-      }
-    }
-    
-    .text-danger {
-      background: linear-gradient(to bottom, #dc3545, #c82333) !important;
-      border: none !important;
-      color: #FFFFFF !important;
-      padding: 8px 12px !important; // EXACT same as "New" button
-      border-radius: 3px !important; // Match "New" button
-      font-size: 14px !important;
-      line-height: 21px !important;
-      font-weight: 600 !important; // Match "New" button
-      height: 39px !important; // Force exact height
-      order: 3; // Show third (after Enable/Disable)
-      
-      &:hover {
-        background: linear-gradient(to bottom, #c82333, #bd2130) !important;
-        color: #FFFFFF !important;
-      }
+      display: none !important;
     }
   }
 }
