@@ -219,6 +219,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  width: 100%;
 }
 
 .widget-cache .widget-title {
@@ -230,45 +232,83 @@
 }
 
 /* Total cache size - center of donut */
-.widget-cache > span {
+.widget-cache .cache-donut {
+  position: relative;
+  width: min(260px, 100%);
+  aspect-ratio: 1 / 1;
+  margin: 2rem auto 1.5rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: inline-size;
+}
+
+.widget-cache .cache-total-text {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.widget-cache .cache-total-text .cache-label {
+  font-size: clamp(0.62rem, 1.2vw + 0.8cqw, 0.85rem);
+  font-weight: 600;
+  color: #202938;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.widget-cache .cache-total-text b {
+  font-size: clamp(0.85rem, 1.2vw + 2.6cqw, 1.25rem);
+}
+
+.widget-cache .cache-donut > span {
   position: absolute;
-  top: 50.7%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
   background: #ffffff;
-  padding: 1rem 1.5rem;
+  padding: clamp(0.5rem, 2.4cqw + 1vw, 1rem) clamp(0.75rem, 3.6cqw + 1vw, 1.5rem);
   border-radius: 50%;
   color: #202938 !important;
   font-weight: 600;
-  border: 3px solid #ffffff;
+  border: clamp(1.5px, 0.6vw + 0.6cqw, 3px) solid #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
-  width: 120px;
-  height: 120px;
+  width: clamp(68px, 38cqw, 120px);
+  height: clamp(68px, 38cqw, 120px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  font-size: clamp(0.62rem, 1.6vw + 1cqw, 0.92rem);
+  white-space: nowrap;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
-.widget-cache > span b {
+.widget-cache .cache-donut > span b {
   color: #202938 !important;
   font-weight: 700;
-  font-size: 1.3rem;
+  font-size: clamp(0.85rem, 1.1vw + 1.8cqw, 1.25rem);
   display: block;
-  margin-top: 0.25rem;
+  margin-top: 0;
+  white-space: nowrap;
 }
 
 /* Donut chart container */
 .widget-cache .progress {
   position: relative;
-  width: 260px !important;
-  height: 260px !important;
+  width: 100% !important;
+  height: 100% !important;
   border-radius: 50% !important;
   background: transparent !important;
   border: none !important;
-  margin: 2rem auto 1.5rem !important;
+  margin: 0 !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -317,8 +357,73 @@
   transform: translate(var(--translate-x, 0px), var(--translate-y, 0px));
 }
 
+@media (max-width: 1199.98px) {
+  .widget-cache .cache-donut {
+    width: min(220px, 100%);
+  }
+}
+
+@media (max-width: 991.98px) {
+  .widget-cache .cache-donut {
+    width: min(200px, 100%);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .widget-cache .cache-donut {
+    width: min(180px, 85%);
+    margin: 1.5rem auto 1.25rem !important;
+  }
+}
+
 .widget-cache .progress-bar b {
   display: none;
+}
+
+@media (min-width: 576px) {
+  .col-sm-1 .widget-cache .cache-donut {
+    max-width: 88px;
+    margin: 1.1rem auto 0.9rem !important;
+  }
+
+  .col-sm-1 .widget-cache .cache-donut > span {
+    width: 56px;
+    height: 56px;
+    padding: 0.38rem 0.6rem;
+    font-size: 0.56rem;
+  }
+
+  .col-sm-1 .widget-cache .cache-donut > span b {
+    font-size: 0.72rem;
+  }
+
+  .col-sm-2 .widget-cache .cache-donut {
+    max-width: 108px;
+    margin: 1.35rem auto 0.95rem !important;
+  }
+
+  .col-sm-2 .widget-cache .cache-donut > span {
+    width: 68px;
+    height: 68px;
+    padding: 0.48rem 0.72rem;
+    font-size: 0.62rem;
+  }
+
+  .col-sm-2 .widget-cache .cache-donut > span b {
+    font-size: 0.85rem;
+  }
+
+  .col-sm-1 .widget-cache .cache-curved-label,
+  .col-sm-2 .widget-cache .cache-curved-label {
+    font-size: 8px !important;
+    letter-spacing: 1px;
+  }
+
+  .col-sm-1 .widget-cache .cache-labels-svg,
+  .col-sm-2 .widget-cache .cache-labels-svg {
+    transform: scale(0.8);
+    transform-origin: center;
+  }
 }
 
 /* SVG curved text labels following the donut arc */
@@ -350,7 +455,7 @@
   border: 1px solid #c9d2e3 !important;
   color: #202938 !important;
   border-radius: 12px !important;
-  padding: 0.55rem 1.75rem !important;
+  padding: 0.45rem 1.4rem !important;
   font-weight: 600 !important;
   transition: all 0.2s ease;
   box-shadow: none !important;
@@ -376,186 +481,6 @@
 
 .widget-cache .btn-default i {
   color: #202938 !important;
-}
-
-/* ============================================
-   DATE RANGE PICKER - Brown/Cream Theme
-   ============================================ */
-
-/* Main popup container */
-.daterangepicker {
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
-  border: 2px solid #08815e !important;
-  border-radius: 12px !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important;
-  padding: 20px !important;
-}
-
-/* Calendar headers */
-.daterangepicker .calendar-table {
-  background: transparent !important;
-  border: none !important;
-}
-
-.daterangepicker th {
-  color: #202938 !important;
-  font-weight: 600 !important;
-  text-transform: uppercase !important;
-  font-size: 11px !important;
-  letter-spacing: 0.5px !important;
-  padding: 8px 5px !important;
-}
-
-/* Calendar cells */
-.daterangepicker td {
-  color: #5a4a3a !important;
-  border-radius: 6px !important;
-  transition: all 0.2s ease !important;
-}
-
-/* Available dates */
-.daterangepicker td.available:hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  color: #202938 !important;
-  transform: scale(1.05) !important;
-}
-
-/* Selected date range */
-.daterangepicker td.in-range {
-  background: linear-gradient(135deg, rgba(184, 149, 106, 0.2) 0%, rgba(184, 149, 106, 0.15) 100%) !important;
-  color: #202938 !important;
-}
-
-/* Start and end dates */
-.daterangepicker td.active,
-.daterangepicker td.active:hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  color: white !important;
-  font-weight: bold !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Today highlight */
-.daterangepicker td.today {
-  border: 2px solid #08815e !important;
-  font-weight: 600 !important;
-}
-
-/* Off/disabled dates */
-.daterangepicker td.off,
-.daterangepicker td.disabled {
-  color: #ccc !important;
-  opacity: 0.4 !important;
-}
-
-/* Ranges sidebar (Today, Yesterday, etc.) */
-.daterangepicker .ranges {
-  background: transparent !important;
-  border-right: 2px solid #08815e !important;
-  padding: 0 15px !important;
-}
-
-.daterangepicker .ranges li {
-  color: #202938 !important;
-  padding: 10px 15px !important;
-  margin: 5px 0 !important;
-  border-radius: 8px !important;
-  transition: all 0.2s ease !important;
-  font-weight: 500 !important;
-}
-
-.daterangepicker .ranges li:hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  transform: translateX(5px) !important;
-}
-
-.daterangepicker .ranges li.active {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  color: white !important;
-  font-weight: bold !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Month/Year dropdowns */
-.daterangepicker select {
-  background: white !important;
-  border: 1px solid #08815e !important;
-  border-radius: 6px !important;
-  color: #202938 !important;
-  padding: 5px 10px !important;
-  font-weight: 500 !important;
-}
-
-.daterangepicker select:focus {
-  border-color: #0bb87a !important;
-  box-shadow: 0 0 0 3px rgba(184, 149, 106, 0.15) !important;
-}
-
-/* Navigation arrows */
-.daterangepicker .prev,
-.daterangepicker .next {
-  color: #08815e !important;
-  border-radius: 50% !important;
-  transition: all 0.2s ease !important;
-}
-
-.daterangepicker .prev:hover,
-.daterangepicker .next:hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  color: #202938 !important;
-  transform: scale(1.1) !important;
-}
-
-/* Apply/Cancel buttons */
-.daterangepicker .drp-buttons {
-  border-top: 2px solid #08815e !important;
-  padding-top: 15px !important;
-  margin-top: 15px !important;
-}
-
-.daterangepicker .btn {
-  border-radius: 8px !important;
-  padding: 8px 20px !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
-  text-transform: uppercase !important;
-  font-size: 11px !important;
-  letter-spacing: 0.5px !important;
-}
-
-.daterangepicker .btn-primary {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  border: none !important;
-  color: white !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12) !important;
-}
-
-.daterangepicker .btn-primary:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15) !important;
-}
-
-.daterangepicker .btn-default {
-  background: transparent !important;
-  border: 2px solid #08815e !important;
-  color: #202938 !important;
-}
-
-.daterangepicker .btn-default:hover {
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
-  border-color: #08815e !important;
-  transform: translateY(-2px) !important;
-}
-
-/* Input display at top */
-.daterangepicker .drp-selected {
-  color: #202938 !important;
-  font-weight: 600 !important;
-  background: rgba(184, 149, 106, 0.1) !important;
-  padding: 10px !important;
-  border-radius: 8px !important;
-  margin-bottom: 10px !important;
 }
 
 /* ============================================
@@ -902,9 +827,9 @@
 /* History button */
 #notif-history-link,
 #notification-panel .btn-light {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  color: white !important;
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
   font-weight: 600 !important;
   padding: 6px 16px !important;
   border-radius: 20px !important;
@@ -915,9 +840,10 @@
 
 #notif-history-link:hover,
 #notification-panel .btn-light:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
   transform: scale(1.05) !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Notification list container */

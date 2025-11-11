@@ -7,6 +7,38 @@
   box-sizing: border-box;
 }
 
+/* History shortcut button - ice white palette */
+#notification-panel #notif-history-link {
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+#notification-panel #notif-history-link:hover,
+#notification-panel #notif-history-link:focus {
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #202938 !important;
+}
+
+#notification-panel #notif-history-link.active,
+body.history.index #notification-panel #notif-history-link {
+  background: #f1f4fb !important;
+  border-color: #c9d2e3 !important;
+  color: #202938 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.history.index #notification-panel #notif-history-link:hover,
+body.history.index #notification-panel #notif-history-link:focus {
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #202938 !important;
+}
+
 /* Each item stacks vertically and wraps text */
 #notification-panel .notif-item {
   display: flex;
@@ -48,14 +80,15 @@
 
 /* Seen button styling */
 #notification-panel .js-mark-seen {
-  border-color: #08815e !important;
-  color: #08815e !important;
-  background-color: #ffffff !important;
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
   font-weight: 600 !important;
+  transition: all 0.2s ease;
 }
 #notification-panel .js-mark-seen:hover,
 #notification-panel .js-mark-seen:focus {
-  background-color: #08815e !important;
-  border-color: #08815e !important;
-  color: #ffffff !important; /* make text white on hover */
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #202938 !important;
 }

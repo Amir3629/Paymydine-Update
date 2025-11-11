@@ -1,7 +1,11 @@
 <div id="{{ $this->getId() }}" class="dashboard-widget widget-cache">
     <h6 class="widget-title">@lang($this->property('title'))</h6>
 
-    <span>@lang('admin::lang.dashboard.text_total_cache')<b>{{ $formattedTotalCacheSize }}</b></span>
+    <div class="cache-donut">
+        <span class="cache-total-text">
+            <span class="cache-label">{{ __('Cache') }}</span>
+            <b>{{ $formattedTotalCacheSize }}</b>
+        </span>
     <div class="progress mb-3" style="height: 25px;">
         @foreach ($cacheSizes as $cacheInfo)
             <div
@@ -18,6 +22,7 @@
                 style="{{ 'background-color: '.$cacheInfo->color.'; width: '.$cacheInfo->size.'%' }}"
             ><b>{{ $cacheInfo->formattedSize }}</b></div>
         @endforeach
+        </div>
     </div>
     <button
         type="button"
