@@ -197,6 +197,8 @@ class LanguageManager
 
     public function applyLanguagePack($locale, $build = null)
     {
+        $build = $build ?: 'latest';
+
         $response = $this->getHubManager()->applyLanguagePack($locale, $build);
 
         return array_get($response, 'data', []);
@@ -213,7 +215,7 @@ class LanguageManager
 
         return $this->getHubManager()->downloadLanguagePack($filePath, $packHash, [
             'locale' => $packCode,
-            'build' => array_get($meta, 'version'),
+            'build' => array_get($meta, 'version') ?: 'latest',
         ]);
     }
 
