@@ -1653,6 +1653,114 @@ if (window.jQuery.request !== undefined)
         }
     })
 
+    // Lightweight daterangepicker arrow normaliser
+    function ensureRangePickerArrows(picker) {
+        var $container = picker && picker.container ? picker.container : $('.daterangepicker.show-calendar').last();
+        if (!$container || !$container.length) return;
+
+        var $headerRow = $container.find('.drp-calendar.right .calendar-table thead tr:first-child');
+        if (!$headerRow.length) return;
+
+        var $cells = $headerRow.children('th');
+
+        var $prev = $headerRow.children('th.prev').first();
+        if (!$prev.length && $cells.length) {
+            $prev = $($cells.get(0));
+        }
+        if (!$prev.length) {
+            $prev = $('<th></th>');
+            $headerRow.prepend($prev);
+        }
+        $prev.attr('class', 'prev available');
+
+        var $next = $headerRow.children('th.next').last();
+        if (!$next.length && $cells.length > 1) {
+            $next = $($cells.get($cells.length - 1));
+        }
+        if (!$next.length) {
+            $next = $('<th></th>');
+            $headerRow.append($next);
+        }
+        $next.attr('class', 'next available');
+
+        if (!$prev.children('span').length) {
+            $prev.empty().append('<span></span>');
+        }
+        if (!$next.children('span').length) {
+            $next.empty().append('<span></span>');
+        }
+
+        $prev.children('span').text('');
+        $next.children('span').text('');
+
+        if (!$prev.data('arrow-bound')) {
+            $prev.data('arrow-bound', true).on('click', function (event) {
+                if (event && typeof event.preventDefault === 'function') {
+                    event.preventDefault();
+                }
+                var mockEvent = {
+                    target: this,
+                    currentTarget: this,
+                    preventDefault: function () {}
+                };
+                if (picker && typeof picker.clickPrev === 'function') {
+                    picker.clickPrev(mockEvent);
+                } else {
+                    $container.find('.calendar-table thead tr:first-child th.prev').not($prev).first().trigger('click');
+                }
+                setTimeout(function () {
+                    ensureRangePickerArrows(picker);
+                }, 0);
+            });
+        }
+
+        if (!$next.data('arrow-bound')) {
+            $next.data('arrow-bound', true).on('click', function (event) {
+                if (event && typeof event.preventDefault === 'function') {
+                    event.preventDefault();
+                }
+                var mockEvent = {
+                    target: this,
+                    currentTarget: this,
+                    preventDefault: function () {}
+                };
+                if (picker && typeof picker.clickNext === 'function') {
+                    picker.clickNext(mockEvent);
+                } else {
+                    $container.find('.calendar-table thead tr:first-child th.next').not($next).first().trigger('click');
+                }
+                setTimeout(function () {
+                    ensureRangePickerArrows(picker);
+                }, 0);
+            });
+        }
+
+        var headerNode = $headerRow.get(0);
+        if (headerNode && !headerNode.__arrowObserver) {
+            var observer = new MutationObserver(function () {
+                observer.disconnect();
+                headerNode.__arrowObserver = null;
+                ensureRangePickerArrows(picker);
+            });
+            observer.observe(headerNode, { childList: true });
+            headerNode.__arrowObserver = observer;
+        }
+    }
+
+    $(document).on('show.daterangepicker', function (event, picker) {
+        ensureRangePickerArrows(picker);
+        setTimeout(function () {
+            ensureRangePickerArrows(picker);
+        }, 50);
+    });
+
+    $(document).on('click focus', '[data-control="datepicker"] [data-datepicker-trigger]', function () {
+        var picker = $(this).data('daterangepicker');
+        setTimeout(function () {
+            ensureRangePickerArrows(picker);
+        }, 0);
+    });
+
     // Calendar override scripts removed; default daterangepicker behavior is used.
     console.log('ℹ️ Calendar override scripts disabled');
 }(window.jQuery);

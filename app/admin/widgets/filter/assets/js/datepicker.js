@@ -35,6 +35,9 @@
             $el = this.$el.find('[data-datepicker-trigger]')
 
         if (!options.singleDatePicker) {
+            options.autoApply = false;
+            options.alwaysShowCalendars = true;
+
             options.ranges = {
                 'Today': [moment().startOf('day'), moment().endOf('day')],
                 'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
@@ -54,6 +57,18 @@
 
         $el.daterangepicker(options, $.proxy(this.onDateSelected, this))
         $el.on('showCalendar.daterangepicker', $.proxy(this.onShowCalendar, this));
+
+        var daterangepicker = $el.data('daterangepicker');
+
+        $el.on('show.daterangepicker', $.proxy(function(event, picker) {
+            this.ensureCalendarsVisible(picker || daterangepicker);
+        }, this));
+
+        if (daterangepicker && daterangepicker.container) {
+            daterangepicker.container.on('click', '.ranges li', $.proxy(function() {
+                this.ensureCalendarsVisible(daterangepicker);
+            }, this));
+        }
     }
 
     DatePickerControl.prototype.onDateSelected = function (start, end, label, initialize) {
@@ -84,6 +99,84 @@
 
         if (valueChanged) {
             daterangepicker.updateCalendars();
+        }
+
+        this.ensureCalendarsVisible(daterangepicker);
+    }
+
+    DatePickerControl.prototype.ensureCalendarsVisible = function (picker) {
+        picker = picker || this.$el.data('daterangepicker');
+        if (!picker || !picker.container) return;
+
+        picker.container.addClass('show-calendar');
+        picker.container.find('.drp-calendar').css('display', 'block');
+        picker.container.find('.drp-calendar.left').css('display', 'none');
+        this.ensureNavigationArrows(picker);
+    }
+
+    DatePickerControl.prototype.ensureNavigationArrows = function (picker) {
+        picker = picker || this.$el.data('daterangepicker');
+        if (!picker || !picker.container) return;
+
+        var headerRow = picker.container.find('.drp-calendar.right .calendar-table thead tr:first-child');
+        if (!headerRow.length) return;
+
+        var headerCells = headerRow.children('th');
+
+        var prev = headerRow.find('.prev').first();
+        var prev = headerRow.find('.prev');
+        if (!prev.length && headerCells.length) {
+            prev = $(headerCells.get(0));
+        }
+        if (!prev.length) {
+            prev = $('<th></th>');
+            headerRow.prepend(prev);
+        }
+        prev.attr('class', 'prev available').attr('role', 'button');
+
+        var next = headerRow.find('.next');
+        if (!next.length && headerCells.length > 1) {
+            next = $(headerCells.get(headerCells.length - 1));
+        }
+        if (!next.length) {
+            next = $('<th></th>');
+            headerRow.append(next);
+        }
+        next.attr('class', 'next available').attr('role', 'button');
+
+        if (!prev.children('span').length) {
+            prev.empty().append('<span></span>');
+        }
+
+        if (!next.children('span').length) {
+            next.empty().append('<span></span>');
+        }
+
+        prev.children('span').text('‹');
+        next.children('span').text('›');
+
+        if (!prev.data('custom-nav-bound')) {
+            prev.data('custom-nav-bound', true);
+            prev.on('click', function (event) {
+                event.preventDefault();
+                if (typeof picker.clickPrev === 'function') {
+                    picker.clickPrev();
+                } else {
+                    picker.container.find('.calendar-table thead tr:first-child th.prev').not(prev).first().trigger('click');
+                }
+            });
+        }
+
+        if (!next.data('custom-nav-bound')) {
+            next.data('custom-nav-bound', true);
+            next.on('click', function (event) {
+                event.preventDefault();
+                if (typeof picker.clickNext === 'function') {
+                    picker.clickNext();
+                } else {
+                    picker.container.find('.calendar-table thead tr:first-child th.next').not(next).first().trigger('click');
+                }
+            });
         }
     }
 
