@@ -15,17 +15,17 @@ $config['list']['filter'] = [
 
 $config['list']['toolbar'] = [
     'buttons' => [
-        // 'create' => [
-        //     'label' => 'lang:admin::lang.button_new',
-        //     'class' => 'btn btn-primary',
-        //     'href' => 'languages/create',
-        // ],
-        // 'browse' => [
-        //     'label' => 'lang:system::lang.languages.button_browse',
-        //     'class' => 'btn btn-default',
-        //     'href' => 'https://tastyigniter.com/translate',
-        //     'target' => '_blank',
-        // ],
+        'create' => [
+            'label' => 'lang:admin::lang.button_new',
+            'class' => 'btn btn-primary',
+            'href' => 'languages/create',
+        ],
+        'browse' => [
+            'label' => 'lang:system::lang.languages.button_browse',
+            'class' => 'btn btn-default',
+            'href' => 'https://tastyigniter.com/translate',
+            'target' => '_blank',
+        ],
     ],
 ];
 
