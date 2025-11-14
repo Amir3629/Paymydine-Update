@@ -33,7 +33,7 @@
                         </select>
                     </div>
                     <div
-                        class="form-group"
+                        class="form-group hide"
                         data-trigger="[name='status']"
                         data-trigger-action="show"
                         data-trigger-condition="value[4]"
@@ -48,7 +48,7 @@
                         >
                     </div>
                     <div
-                        class="form-group"
+                        class="form-group hide"
                         data-trigger="[name='status']"
                         data-trigger-action="show"
                         data-trigger-condition="value[4]"
@@ -70,12 +70,12 @@
                 <div class="modal-footer text-right">
                     <button
                         type="button"
-                        class="btn btn-link"
+                        class="btn btn-ice btn-close-modal"
                         data-bs-dismiss="modal"
                     >@lang('admin::lang.button_close')</button>
                     <button
                         type="submit"
-                        class="btn btn-primary"
+                        class="btn btn-primary status-modal-save"
                     >@lang('admin::lang.button_save')</button>
                 </div>
             </form>

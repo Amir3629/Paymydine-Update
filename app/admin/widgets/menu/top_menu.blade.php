@@ -1,3 +1,8 @@
+@php
+    use App\Helpers\SettingsHelper;
+    $orderNotificationsEnabled = SettingsHelper::areOrderNotificationsEnabled();
+@endphp
+
 <ul
     id="{{ $this->getId() }}"
     class="navbar-nav"
@@ -22,8 +27,19 @@
               <div class="dropdown-menu dropdown-menu-right p-0 shadow"
                    id="notification-panel"
                    aria-labelledby="notifDropdown">
-                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                  <strong>Notifications</strong>
+                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom gap-2 flex-wrap">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <strong class="mb-0">Statuses</strong>
+                    <div class="form-check form-switch mb-0 notification-toggle">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="header-notification-toggle"
+                        {{ $orderNotificationsEnabled ? 'checked' : '' }}
+                      >
+                    </div>
+                  </div>
                   <a id="notif-history-link" class="btn btn-light btn-sm" href="{{ url('/admin/history') }}">
                     {{ __('History') }}
                   </a>
@@ -72,6 +88,50 @@
                     childList: true, 
                     characterData: true, 
                     subtree: true 
+                });
+            }
+
+            const notifToggle = document.getElementById('header-notification-toggle');
+            const notifToggleLabel = document.getElementById('header-notification-toggle-label');
+            const updateToggleLabel = (enabled) => {
+                if (notifToggleLabel) {
+                    notifToggleLabel.textContent = enabled ? '{{ __('On') }}' : '{{ __('Off') }}';
+                }
+            };
+            if (notifToggle) {
+                updateToggleLabel(notifToggle.checked);
+                notifToggle.addEventListener('change', function () {
+                    const enabled = this.checked ? 1 : 0;
+                    const formData = new FormData();
+                    formData.append('_token', '{{ csrf_token() }}');
+                    formData.append('_handler', 'onSaveOrderNotificationSettings');
+                    formData.append('order_notifications_enabled', enabled);
+                    this.disabled = true;
+                    fetch('{{ admin_url('statuses') }}', {
+                        method: 'POST',
+                        headers: {'X-Requested-With': 'XMLHttpRequest'},
+                        body: formData,
+                        credentials: 'same-origin',
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Request failed');
+                        try {
+                            return response.json();
+                        } catch (err) {
+                            return {};
+                        }
+                    })
+                    .then(() => {
+                        updateToggleLabel(enabled === 1);
+                    })
+                    .catch(() => {
+                        this.checked = !this.checked;
+                        updateToggleLabel(this.checked);
+                        alert('Unable to update notification setting. Please try again.');
+                    })
+                    .finally(() => {
+                        this.disabled = false;
+                    });
                 });
             }
             </script>

@@ -31,6 +31,17 @@
     }
 
     ChartControl.LINE_TYPE_OPTIONS = {
+        plugins: {
+            legend: {
+                labels: {
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    boxWidth: 14,
+                    boxHeight: 14,
+                    padding: 16,
+                },
+            },
+        },
         scales: {
             y: {
                 beginAtZero: true,

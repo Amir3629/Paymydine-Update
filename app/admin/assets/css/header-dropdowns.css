@@ -29,7 +29,7 @@
 .navbar-top .navbar-right {
   display: flex !important;
   align-items: center !important;
-  gap: 0 !important;
+  gap: 6px !important;
   margin: 0 !important;
   padding: 0 !important;
   position: relative !important;
@@ -112,8 +112,8 @@
   color: #ffffff !important;
   font-size: 18px !important;
   padding: 8px 12px !important;
-  margin-left: 0 !important;
-  margin-right: 8px !important;
+  margin-left: 4px !important;
+  margin-right: 4px !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   cursor: pointer !important;
@@ -402,6 +402,120 @@
   
   .dropdown-menu .menu-grid .menu-link:hover span {
     color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu {
+    min-width: 260px !important;
+    max-width: 280px !important;
+    padding: 18px 20px 16px !important;
+    gap: 0 !important;
+  }
+  
+  .profile-dropdown-menu .rounded-circle {
+    width: 72px !important;
+    height: 72px !important;
+    object-fit: cover !important;
+    border: 3px solid #e5ebf7 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-divider {
+    margin: 14px 0 !important;
+    border-top: 1px solid rgba(32, 41, 56, 0.15) !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header {
+    padding: 0 0 6px !important;
+    margin-bottom: 6px !important;
+    border-bottom: none !important;
+    letter-spacing: 0.15em !important;
+    color: #202938 !important;
+    padding-left: 19.5px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    color: #202938 !important;
+    font-weight: 600 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item i,
+  .profile-dropdown-menu .dropdown-item span,
+  .profile-dropdown-menu .dropdown-item.text-danger,
+  .profile-dropdown-menu .dropdown-item.text-danger i {
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item span {
+    flex: 1 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item:first-of-type span {
+    margin-left: 8px !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item:hover {
+    background: transparent !important;
+    transform: none !important;
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item:hover i,
+  .profile-dropdown-menu .dropdown-item:hover span,
+  .profile-dropdown-menu .dropdown-item:focus i,
+  .profile-dropdown-menu .dropdown-item:focus span,
+  .profile-dropdown-menu .dropdown-item:active i,
+  .profile-dropdown-menu .dropdown-item:active span {
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item + .dropdown-item {
+    border-top: 1px solid rgba(32, 41, 56, 0.1) !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item i {
+    font-size: 16px !important;
+    color: #202938 !important;
+    transition: none !important;
+  }
+  
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:hover,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:focus,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:active {
+    color: #202938 !important;
+  }
+  
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item i,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:hover i,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:focus i,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:active i {
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header i {
+    margin-right: 6px !important;
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header span {
+    margin-left: 18px !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item.active {
+    background: transparent !important;
+    font-weight: 700 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header ~ .dropdown-item {
+    padding-left: 50px !important;
+    border-left: 3px solid transparent !important;
   }
   
   /* Notification panel specific - SIMPLE FIX: Align right edge to parent right edge */

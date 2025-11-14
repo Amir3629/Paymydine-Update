@@ -4,6 +4,7 @@ namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
 use App\Helpers\SettingsHelper;
+use Illuminate\Support\Facades\Request;
 
 class Statuses extends \Admin\Classes\AdminController
 {
@@ -70,9 +71,6 @@ class Statuses extends \Admin\Classes\AdminController
     public function index()
     {
         $this->asExtension('ListController')->index();
-        
-        // Add order notifications setting to the view
-        $this->vars['orderNotificationsEnabled'] = SettingsHelper::areOrderNotificationsEnabled();
     }
 
     /**
@@ -84,6 +82,13 @@ class Statuses extends \Admin\Classes\AdminController
         
         $success = SettingsHelper::setOrderNotificationsEnabled($enabled);
         
+        if (Request::ajax()) {
+            return [
+                'result' => $success ? 'success' : 'error',
+                'enabled' => $enabled,
+            ];
+        }
+
         if ($success) {
             $message = $enabled ? 'Order notifications enabled' : 'Order notifications disabled';
             flash()->success($message);

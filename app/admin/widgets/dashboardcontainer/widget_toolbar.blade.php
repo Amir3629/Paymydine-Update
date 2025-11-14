@@ -74,6 +74,11 @@ body.edit-mode-active .edit-mode-only {
 body.edit-mode-active .edit-mode-only.btn-group {
     display: inline-flex !important;
 }
+
+/* Hide the dashboard date range picker while editing layout */
+body.edit-mode-active #{{ $this->alias }}-daterange {
+    display: none !important;
+}
 </style>
 
 <script>
@@ -87,6 +92,7 @@ function toggleEditMode() {
     const editButton = document.getElementById('edit-layout-toggle');
     const editText = document.getElementById('edit-layout-text');
     const editModeButtons = document.querySelectorAll('.edit-mode-only');
+    const dateRangeButton = document.getElementById('{{ $this->alias }}-daterange');
     
     if (isEditMode) {
         // Enter edit mode
@@ -99,6 +105,11 @@ function toggleEditMode() {
         editModeButtons.forEach(btn => {
             btn.style.display = btn.classList.contains('btn-group') ? 'inline-flex' : 'inline-block';
         });
+
+        if (dateRangeButton) {
+            dateRangeButton.dataset.originalDisplay = dateRangeButton.style.display;
+            dateRangeButton.style.setProperty('display', 'none', 'important');
+        }
     } else {
         // Exit edit mode (save)
         dashboardContainer.classList.remove('edit-mode');
@@ -110,6 +121,12 @@ function toggleEditMode() {
         editModeButtons.forEach(btn => {
             btn.style.display = 'none';
         });
+
+        if (dateRangeButton) {
+            const previousDisplay = dateRangeButton.dataset.originalDisplay || '';
+            dateRangeButton.style.setProperty('display', previousDisplay || '', 'important');
+            delete dateRangeButton.dataset.originalDisplay;
+        }
         
         // Trigger save - this will save the current widget positions
         // The dashboard container already has auto-save functionality

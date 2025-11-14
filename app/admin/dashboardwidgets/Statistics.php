@@ -361,11 +361,11 @@ class Statistics extends BaseDashboardWidget
             ],
             'lost_sale' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_lost_sale',
-                'icon' => 'stat-icon-brown-dark text-white fa fa-arrow-circle-down',
+                'icon' => 'stat-icon-brown-light text-white fa fa-arrow-circle-down',
             ],
             'cash_payment' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_cash_payment',
-                'icon' => 'stat-icon-gold text-white fa fa-dollar',
+                'icon' => 'stat-icon-brown-light text-white fa fa-dollar',
             ],
             'customer' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_customer',
@@ -373,11 +373,11 @@ class Statistics extends BaseDashboardWidget
             ],
             'order' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_order',
-                'icon' => 'stat-icon-gold text-white fa fa-shopping-cart',
+                'icon' => 'stat-icon-brown-light text-white fa fa-shopping-cart',
             ],
             'delivery_order' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_delivery_order',
-                'icon' => 'stat-icon-brown-dark text-white fa fa-truck',
+                'icon' => 'stat-icon-brown-light text-white fa fa-truck',
             ],
             'collection_order' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_collection_order',
@@ -385,11 +385,11 @@ class Statistics extends BaseDashboardWidget
             ],
             'completed_order' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_completed_order',
-                'icon' => 'stat-icon-gold text-white fa fa-receipt',
+                'icon' => 'stat-icon-brown-light text-white fa fa-receipt',
             ],
             'reserved_table' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_reserved_table',
-                'icon' => 'stat-icon-brown-dark text-white fa fa-table',
+                'icon' => 'stat-icon-brown-light text-white fa fa-table',
             ],
             'reserved_guest' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_reserved_guest',
@@ -397,11 +397,11 @@ class Statistics extends BaseDashboardWidget
             ],
             'reservation' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_reservation',
-                'icon' => 'stat-icon-gold text-white fa fa-calendar-check',
+                'icon' => 'stat-icon-brown-light text-white fa fa-calendar-check',
             ],
             'completed_reservation' => [
                 'label' => 'lang:admin::lang.dashboard.text_total_completed_reservation',
-                'icon' => 'stat-icon-brown-dark text-white fa fa-check-circle',
+                'icon' => 'stat-icon-brown-light text-white fa fa-check-circle',
             ],
         ];
     }
