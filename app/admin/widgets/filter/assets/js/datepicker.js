@@ -37,15 +37,14 @@
         if (!options.singleDatePicker) {
             options.autoApply = false;
             options.alwaysShowCalendars = true;
+            options.linkedCalendars = false;
 
             options.ranges = {
                 'Today': [moment().startOf('day'), moment().endOf('day')],
                 'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
                 'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
-                'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
                 'This Month': [moment().startOf('month').startOf('day'), moment().endOf('month').endOf('day')],
                 'Last Month': [moment().subtract(1, 'month').startOf('month').startOf('day'), moment().subtract(1, 'month').endOf('month').endOf('day')],
-                'Lifetime': ['', ''],
             }
 
             if (this.$el.find('[data-datepicker-range-start]').val() == '')
@@ -57,18 +56,31 @@
 
         $el.daterangepicker(options, $.proxy(this.onDateSelected, this))
         $el.on('showCalendar.daterangepicker', $.proxy(this.onShowCalendar, this));
+        $el.on('hide.daterangepicker', $.proxy(this.onHideCalendar, this));
+        $el.on('apply.daterangepicker', $.proxy(this.onApplyCalendar, this));
 
         var daterangepicker = $el.data('daterangepicker');
 
         $el.on('show.daterangepicker', $.proxy(function(event, picker) {
-            this.ensureCalendarsVisible(picker || daterangepicker);
+            var instance = picker || daterangepicker;
+            this.ensureCalendarsVisible(instance);
+            var self = this;
+            setTimeout(function () {
+                self.ensureCalendarsVisible(instance);
+            }, 0);
         }, this));
 
         if (daterangepicker && daterangepicker.container) {
             daterangepicker.container.on('click', '.ranges li', $.proxy(function() {
+                var self = this;
                 this.ensureCalendarsVisible(daterangepicker);
+                setTimeout(function () {
+                    self.ensureCalendarsVisible(daterangepicker);
+                }, 0);
             }, this));
         }
+
+        this.updateSelectedLabel(daterangepicker);
     }
 
     DatePickerControl.prototype.onDateSelected = function (start, end, label, initialize) {
@@ -80,6 +92,8 @@
         } else {
             this.$el.find('[data-datepicker-input]').val(start.format(format));
         }
+
+        this.updateSelectedLabel();
 
         if (!initialize) this.$el.closest('form').submit();
     }
@@ -101,20 +115,154 @@
             daterangepicker.updateCalendars();
         }
 
-        this.ensureCalendarsVisible(daterangepicker);
+        var pickerInstance = daterangepicker;
+        $('.daterangepicker').not(pickerInstance && pickerInstance.container ? pickerInstance.container : []).remove();
+        this.ensureCalendarsVisible(pickerInstance);
+    }
+
+    DatePickerControl.prototype.onHideCalendar = function (event, daterangepicker) {
+        daterangepicker = daterangepicker || this.$el.data('daterangepicker');
+        if (!daterangepicker || !daterangepicker.container) return;
+
+        var containerNode = daterangepicker.container.get(0);
+        if (containerNode && containerNode.__tiLayoutObserver) {
+            containerNode.__tiLayoutObserver.disconnect();
+            containerNode.__tiLayoutObserver = null;
+        }
+
+        daterangepicker.container.removeClass('show-calendar ti-visible open-active tm-active-instance');
+        daterangepicker.container.css('display', 'none');
+        daterangepicker.container.removeClass('tm-active-instance');
+        daterangepicker.container.find('.drp-calendar.left').css('display', '');
+        daterangepicker.container.find('.drp-calendar.right').css('display', '');
+    }
+
+    DatePickerControl.prototype.onApplyCalendar = function (event, daterangepicker) {
+        daterangepicker = daterangepicker || this.$el.data('daterangepicker');
+        if (!daterangepicker || !daterangepicker.container) return;
+
+        var containerNode = daterangepicker.container.get(0);
+        if (containerNode && containerNode.__tiLayoutObserver) {
+            containerNode.__tiLayoutObserver.disconnect();
+            containerNode.__tiLayoutObserver = null;
+        }
+
+        daterangepicker.container.removeClass('show-calendar ti-visible open-active tm-active-instance');
+        daterangepicker.container.removeClass('show-ranges');
+        daterangepicker.container.css('display', 'none');
+        daterangepicker.container.removeClass('tm-active-instance');
+        daterangepicker.container.find('.drp-calendar.left').css('display', '');
+        daterangepicker.container.find('.drp-calendar.right').css('display', '');
     }
 
     DatePickerControl.prototype.ensureCalendarsVisible = function (picker) {
+        var self = this;
         picker = picker || this.$el.data('daterangepicker');
         if (!picker || !picker.container) return;
 
-        picker.container.addClass('show-calendar');
-        picker.container.find('.drp-calendar').css('display', 'block');
-        picker.container.find('.drp-calendar.left').css('display', 'none');
+        $('.daterangepicker').not(picker.container).remove();
+
+        picker.container.addClass('show-calendar ti-visible open-active tm-active-instance');
+        picker.container.css('display', 'grid');
+        var $header = picker.container.find('.drp-buttons');
+        if ($header.length) {
+            $header.css('display', 'grid');
+            $header.css('grid-template-columns', '1fr auto auto');
+        }
+
+        var $left = picker.container.find('.drp-calendar.left');
+        var $right = picker.container.find('.drp-calendar.right');
+
+        var focusDate = null;
+        if (picker.endDate && picker.endDate.isValid()) {
+            focusDate = picker.endDate.clone();
+        } else if (picker.startDate && picker.startDate.isValid()) {
+            focusDate = picker.startDate.clone();
+        } else {
+            focusDate = moment();
+        }
+
+        if (focusDate && picker.leftCalendar && picker.rightCalendar) {
+            var baseMonth = focusDate.clone().startOf('month');
+            picker.leftCalendar.month = baseMonth.clone();
+            picker.rightCalendar.month = baseMonth.clone().add(1, 'month');
+            picker.updateCalendars();
+        }
+
+        this.forceSingleCalendarLayout(picker, $left, $right);
+
         this.ensureNavigationArrows(picker);
+        this.updateSelectedLabel(picker, true);
+        this.ensureVisibleClass(picker);
+
+        var containerNode = picker.container.get(0);
+        if (containerNode && !containerNode.__tiLayoutObserver) {
+            var observer = new MutationObserver(function () {
+                if (!picker.container.is(':visible')) {
+                    observer.disconnect();
+                    containerNode.__tiLayoutObserver = null;
+                    return;
+                }
+
+                if (!picker.container.hasClass('show-calendar')) {
+                    picker.container.addClass('show-calendar');
+                }
+                picker.container.addClass('ti-visible open-active tm-active-instance');
+                picker.container.css('display', 'grid');
+                self.forceSingleCalendarLayout(picker);
+                var $header = picker.container.find('.drp-buttons');
+                if ($header.length) {
+                    $header.css('display', 'grid');
+                    $header.css('grid-template-columns', '1fr auto auto');
+                }
+            });
+            observer.observe(containerNode, { attributes: true, attributeFilter: ['class', 'style'] });
+            containerNode.__tiLayoutObserver = observer;
+        }
+    }
+
+    DatePickerControl.prototype.forceSingleCalendarLayout = function (picker, $left, $right) {
+        picker = picker || this.$el.data('daterangepicker');
+        if (!picker || !picker.container) return;
+
+        $left = $left || picker.container.find('.drp-calendar.left');
+        $right = $right || picker.container.find('.drp-calendar.right');
+
+        picker.container.removeClass('single tm-single-calendar');
+        picker.container.addClass('show-ranges tm-single-calendar');
+
+        if ($left.length) {
+            $left
+                .attr('aria-hidden', 'true')
+                .addClass('tm-hidden-calendar')
+                .css({
+                    display: 'none',
+                    visibility: 'hidden',
+                    height: 0,
+                    overflow: 'hidden',
+                    padding: 0,
+                    margin: 0
+                });
+            $left.find('.calendar-time').css({
+                display: 'none',
+                visibility: 'hidden'
+            });
+        }
+
+        if ($right.length) {
+            $right
+                .attr('aria-hidden', 'false')
+                .css({
+                    display: 'block',
+                    visibility: '',
+                    height: '',
+                    overflow: ''
+                });
+        }
     }
 
     DatePickerControl.prototype.ensureNavigationArrows = function (picker) {
+        var self = this;
         picker = picker || this.$el.data('daterangepicker');
         if (!picker || !picker.container) return;
 
@@ -152,31 +300,98 @@
             next.empty().append('<span></span>');
         }
 
-        prev.children('span').text('‹');
-        next.children('span').text('›');
+        prev.children('span').text('');
+        next.children('span').text('');
 
-        if (!prev.data('custom-nav-bound')) {
-            prev.data('custom-nav-bound', true);
-            prev.on('click', function (event) {
-                event.preventDefault();
+        prev.off('.customNav').removeData('custom-nav-bound');
+        prev.on('click.customNav', function (event) {
+                if (event && typeof event.preventDefault === 'function') {
+                    event.preventDefault();
+                }
+                var mockEvent = {
+                    target: this,
+                    currentTarget: this,
+                    preventDefault: function () {}
+                };
                 if (typeof picker.clickPrev === 'function') {
-                    picker.clickPrev();
+                    picker.clickPrev(mockEvent);
                 } else {
                     picker.container.find('.calendar-table thead tr:first-child th.prev').not(prev).first().trigger('click');
                 }
             });
-        }
+        prev.data('custom-nav-bound', true);
 
-        if (!next.data('custom-nav-bound')) {
-            next.data('custom-nav-bound', true);
-            next.on('click', function (event) {
-                event.preventDefault();
+        next.off('.customNav').removeData('custom-nav-bound');
+        next.on('click.customNav', function (event) {
+                if (event && typeof event.preventDefault === 'function') {
+                    event.preventDefault();
+                }
+                var mockEvent = {
+                    target: this,
+                    currentTarget: this,
+                    preventDefault: function () {}
+                };
                 if (typeof picker.clickNext === 'function') {
-                    picker.clickNext();
+                    picker.clickNext(mockEvent);
                 } else {
                     picker.container.find('.calendar-table thead tr:first-child th.next').not(next).first().trigger('click');
                 }
             });
+        next.data('custom-nav-bound', true);
+
+        var headerNode = headerRow.get(0);
+        var observerTarget = headerNode ? headerNode.parentNode || headerNode : null;
+        if (observerTarget && !observerTarget.__customNavObserver) {
+            var observer = new MutationObserver(function () {
+                observer.disconnect();
+                observerTarget.__customNavObserver = null;
+                self.ensureNavigationArrows(picker);
+                self.updateSelectedLabel(picker, true);
+                self.ensureVisibleClass(picker);
+            });
+            observer.observe(observerTarget, { childList: true, subtree: true });
+            observerTarget.__customNavObserver = observer;
+        }
+    }
+
+    DatePickerControl.prototype.updateSelectedLabel = function (picker, forceVisibility) {
+        picker = picker || this.$el.data('daterangepicker');
+        if (!picker || !picker.container) return;
+
+        var $label = picker.container.find('.drp-selected');
+        if (!$label.length) return;
+
+        var format = 'MM/DD/YY';
+        var startText = picker.startDate && picker.startDate.isValid() ? picker.startDate.format(format) : '';
+        var endText = picker.endDate && picker.endDate.isValid() ? picker.endDate.format(format) : '';
+
+        if (startText && endText) {
+            $label.text(startText + ' - ' + endText);
+        } else if (startText) {
+            $label.text(startText);
+        } else {
+            $label.text('');
+        }
+
+        if (forceVisibility) {
+            this.ensureVisibleClass(picker);
+        }
+    }
+
+    DatePickerControl.prototype.ensureVisibleClass = function (picker) {
+        picker = picker || this.$el.data('daterangepicker');
+        if (!picker || !picker.container) return;
+
+        var $container = picker.container;
+        if (typeof picker.showCalendars === 'function' && picker.container && !picker.container.hasClass('show-calendar')) {
+            picker.showCalendars();
+        }
+        $container.addClass('ti-visible open-active tm-active-instance');
+        $container.css('display', 'grid');
+        var $header = $container.find('.drp-buttons');
+        if ($header.length) {
+            $header.css('display', 'grid');
+            $header.css('grid-template-columns', '1fr auto auto');
         }
     }
 
@@ -219,5 +434,6 @@
 
     $(document).render(function () {
         $('[data-control="datepicker"]').datePickerControl()
+        $('.daterangepicker').not('.tm-active-instance').remove();
     })
 }(window.jQuery)

@@ -1653,6 +1653,55 @@ if (window.jQuery.request !== undefined)
         }
     })
 
+    function enforceSingleCalendarLayout(picker) {
+        if (!picker || !picker.container) return;
+        if (!picker.isShowing && !picker.container.hasClass('show-calendar')) return;
+
+        var $container = picker.container;
+
+        $container.addClass('ti-visible open-active tm-single-calendar');
+        $container.css('display', 'grid');
+
+        var $left = $container.find('.drp-calendar.left');
+        var $right = $container.find('.drp-calendar.right');
+
+        if ($left.length) {
+            $left
+                .attr('aria-hidden', 'true')
+                .addClass('tm-hidden-calendar')
+                .css({
+                    display: 'none',
+                    visibility: 'hidden',
+                    height: 0,
+                    overflow: 'hidden',
+                    padding: 0,
+                    margin: 0
+                });
+
+            $left.find('.calendar-time').css({
+                display: 'none',
+                visibility: 'hidden'
+            });
+        }
+
+        if ($right.length) {
+            $right
+                .attr('aria-hidden', 'false')
+                .css({
+                    display: 'block',
+                    visibility: '',
+                    height: '',
+                    overflow: ''
+                });
+        }
+
+        var $buttons = $container.find('.drp-buttons');
+        if ($buttons.length) {
+            $buttons.css('display', 'grid');
+            $buttons.css('grid-template-columns', '1fr auto auto');
+        }
+    }
+
     // Lightweight daterangepicker arrow normaliser
     function ensureRangePickerArrows(picker) {
         var $container = picker && picker.container ? picker.container : $('.daterangepicker.show-calendar').last();
@@ -1693,8 +1742,8 @@ if (window.jQuery.request !== undefined)
         $prev.children('span').text('');
         $next.children('span').text('');
 
-        if (!$prev.data('arrow-bound')) {
-            $prev.data('arrow-bound', true).on('click', function (event) {
+        $prev.off('.arrowNav').removeData('arrow-bound');
+        $prev.on('click.arrowNav', function (event) {
                 if (event && typeof event.preventDefault === 'function') {
                     event.preventDefault();
                 }
@@ -1712,10 +1761,9 @@ if (window.jQuery.request !== undefined)
                     ensureRangePickerArrows(picker);
                 }, 0);
             });
-        }
 
-        if (!$next.data('arrow-bound')) {
-            $next.data('arrow-bound', true).on('click', function (event) {
+        $next.off('.arrowNav').removeData('arrow-bound');
+        $next.on('click.arrowNav', function (event) {
                 if (event && typeof event.preventDefault === 'function') {
                     event.preventDefault();
                 }
@@ -1733,23 +1781,26 @@ if (window.jQuery.request !== undefined)
                     ensureRangePickerArrows(picker);
                 }, 0);
             });
-        }
+        $next.data('arrow-bound', true);
 
         var headerNode = $headerRow.get(0);
-        if (headerNode && !headerNode.__arrowObserver) {
+        var observerTarget = headerNode ? headerNode.parentNode || headerNode : null;
+        if (observerTarget && !observerTarget.__arrowObserver) {
             var observer = new MutationObserver(function () {
                 observer.disconnect();
-                headerNode.__arrowObserver = null;
+                observerTarget.__arrowObserver = null;
                 ensureRangePickerArrows(picker);
             });
-            observer.observe(headerNode, { childList: true });
-            headerNode.__arrowObserver = observer;
+            observer.observe(observerTarget, { childList: true, subtree: true });
+            observerTarget.__arrowObserver = observer;
         }
     }
 
     $(document).on('show.daterangepicker', function (event, picker) {
+        enforceSingleCalendarLayout(picker);
         ensureRangePickerArrows(picker);
         setTimeout(function () {
+            enforceSingleCalendarLayout(picker);
             ensureRangePickerArrows(picker);
         }, 50);
     });
@@ -1757,10 +1808,10 @@ if (window.jQuery.request !== undefined)
     $(document).on('click focus', '[data-control="datepicker"] [data-datepicker-trigger]', function () {
         var picker = $(this).data('daterangepicker');
         setTimeout(function () {
+            enforceSingleCalendarLayout(picker);
             ensureRangePickerArrows(picker);
         }, 0);
     });
 
-    // Calendar override scripts removed; default daterangepicker behavior is used.
-    console.log('ℹ️ Calendar override scripts disabled');
+    console.log('ℹ️ Calendar single-view enforcement active');
 }(window.jQuery);

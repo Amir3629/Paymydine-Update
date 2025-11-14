@@ -65,87 +65,145 @@
     ChartControl.prototype.initChartJs = function () {
         var chartOptions = (this.options.type === 'line') ? ChartControl.LINE_TYPE_OPTIONS : ChartControl.PIE_TYPE_OPTIONS
         this.options.options = $.extend({}, this.options.options, chartOptions)
+        this.originalData = null
         this.chartJs = new Chart(this.$el.find('canvas'), this.options)
         this.chartJs.update()
-        
-        // Initialize time range slider
-        this.initTimeRangeSlider()
 
-        // Apply default 30-day filter once datasets are ready
-        var self = this
-        $(document).ready(function () {
-            // Delay slightly to ensure Chart.js has populated internal datasets
-            setTimeout(function () {
-                self.filterChartData(30)
-                var label = $('#' + self.options.alias + '-range-label')
-                if (label.length) {
-                    label.text('30 days')
-                }
-            }, 50)
-        })
+        this.captureDataRange()
+        this.initTimeRangeSlider()
     }
-    
+
+    ChartControl.prototype.captureDataRange = function () {
+        var meta = (this.options.data && this.options.data.meta) || {}
+
+        var start = meta.startDate ? new Date(meta.startDate) : null
+        var end = meta.endDate ? new Date(meta.endDate) : null
+
+        if (!start || !end) {
+            var dates = []
+            var datasets = (this.options.data && this.options.data.datasets) || []
+
+            datasets.forEach(function (dataset) {
+                (dataset.data || []).forEach(function (point) {
+                    if (point && point.x) {
+                        dates.push(new Date(point.x))
+                    }
+                })
+            })
+
+            if (dates.length) {
+                dates.sort(function (a, b) { return a - b })
+                start = dates[0]
+                end = dates[dates.length - 1]
+            } else {
+                start = new Date()
+                end = new Date()
+            }
+        }
+
+        this.dataStartDate = new Date(start.getTime())
+        this.dataEndDate = new Date(end.getTime())
+
+        var diff = Math.abs(this.dataEndDate - this.dataStartDate)
+        this.totalDaysAvailable = Math.max(1, Math.round(diff / 86400000) + 1)
+    }
+
     ChartControl.prototype.initTimeRangeSlider = function () {
         var self = this
         var slider = $('#' + this.options.alias + '-time-range')
         var label = $('#' + this.options.alias + '-range-label')
-        
+
         if (!slider.length) return
-        
+
         slider.addClass('dashboard-range-input')
-        
-        // Non-linear mapping: slower from 7-30, faster from 30-90
-        // Slider goes 0-100, but maps to days non-linearly
-        slider.attr('min', 0)
-        slider.attr('max', 100)
-        slider.attr('value', 50) // Middle = 30 days
-        
-        function sliderToDays(sliderValue) {
-            if (sliderValue <= 50) {
-                // Left half: 0-50 maps to 7-30 days (23 days range)
-                return Math.round(7 + (sliderValue / 50) * 23)
-            } else {
-                // Right half: 50-100 maps to 30-90 days (60 days range)
-                return Math.round(30 + ((sliderValue - 50) / 50) * 60)
-            }
-        }
-        
-        // Continuous slider with non-linear scale
-        slider.on('input change', function() {
-            var sliderValue = parseInt($(this).val())
-            var days = sliderToDays(sliderValue)
-            label.text(days + ' days')
-            
-            // Filter the chart data based on the selected range
+
+        var totalDays = this.totalDaysAvailable || 1
+        var defaultDays = totalDays
+
+        slider.attr('min', 1)
+        slider.attr('max', totalDays)
+        slider.attr('step', 1)
+        slider.attr('value', defaultDays)
+
+        slider.prop('disabled', totalDays <= 1)
+
+        slider.off('.chartRange').on('input.chartRange change.chartRange', function () {
+            var days = parseInt($(this).val(), 10) || 1
+            self.updateRangeLabel(label, days, totalDays)
             self.filterChartData(days)
         })
-        
-        // Set initial label
-        label.text('30 days')
+
+        this.updateRangeScale(slider, totalDays)
+        this.updateRangeLabel(label, defaultDays, totalDays)
+        this.filterChartData(defaultDays)
     }
-    
+
+    ChartControl.prototype.updateRangeLabel = function (labelEl, days, totalDays) {
+        if (!labelEl || !labelEl.length) return
+
+        if (days >= totalDays && totalDays > 1) {
+            labelEl.text('Full range')
+            return
+        }
+
+        labelEl.text(days + ' ' + (days === 1 ? 'day' : 'days'))
+    }
+
+    ChartControl.prototype.updateRangeScale = function (sliderEl, totalDays) {
+        if (!sliderEl || !sliderEl.length) return
+
+        var $scale = sliderEl.siblings('.range-scale')
+        if (!$scale.length) return
+
+        var spans = $scale.find('span')
+        if (!spans.length) return
+
+        var start = new Date(this.dataStartDate.getTime())
+        var end = new Date(this.dataEndDate.getTime())
+        var mid = new Date(start.getTime())
+        mid.setDate(mid.getDate() + Math.floor((totalDays - 1) / 2))
+
+        spans.eq(0).text(this.formatDateLabel(start))
+        spans.eq(1).text(totalDays > 1 ? this.formatDateLabel(mid) : this.formatDateLabel(start))
+        spans.eq(2).text(this.formatDateLabel(end))
+    }
+
+    ChartControl.prototype.formatDateLabel = function (date) {
+        if (!date) return ''
+
+        if (typeof moment === 'function') {
+            return moment(date).format('MMM D')
+        }
+
+        return date.toLocaleDateString(undefined, {month: 'short', day: 'numeric'})
+    }
+
     ChartControl.prototype.filterChartData = function (days) {
         if (!this.chartJs || !this.chartJs.data.datasets) return
-        
+
         var self = this
-        var today = new Date()
-        var startDate = new Date()
-        startDate.setDate(today.getDate() - days)
-        
+        var endDate = this.dataEndDate ? new Date(this.dataEndDate.getTime()) : new Date()
+        var startDate = new Date(endDate.getTime())
+        startDate.setDate(endDate.getDate() - (parseInt(days, 10) || 1) + 1)
+
+        if (this.dataStartDate && startDate < this.dataStartDate) {
+            startDate = new Date(this.dataStartDate.getTime())
+        }
+
         // Store original data if not already stored
         if (!this.originalData) {
             this.originalData = JSON.parse(JSON.stringify(this.chartJs.data.datasets))
         }
-        
+
         // Filter each dataset
         this.chartJs.data.datasets.forEach(function(dataset, index) {
             var originalDataset = self.originalData[index]
             dataset.data = originalDataset.data.filter(function(point) {
                 var pointDate = new Date(point.x)
-                return pointDate >= startDate && pointDate <= today
+                return pointDate >= startDate && pointDate <= endDate
             })
         })
-        
+
         this.chartJs.update('none') // Update without animation for smooth sliding
     }
 

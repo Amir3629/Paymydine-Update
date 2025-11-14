@@ -685,7 +685,19 @@
             // Display the calendar
             //
 
-            var minDate = side == 'left' ? this.minDate : this.startDate;
+            var minDate;
+            if (side == 'left') {
+                minDate = this.minDate;
+            } else {
+                minDate = this.linkedCalendars ? this.startDate : this.minDate;
+            }
+
+            var showPrev;
+            if (side == 'left') {
+                showPrev = !minDate || minDate.isBefore(calendar.firstDay);
+            } else {
+                showPrev = true;
+            }
             var maxDate = this.maxDate;
             var selected = side == 'left' ? this.startDate : this.endDate;
             var arrow = this.locale.direction == 'ltr' ? {left: 'chevron-left', right: 'chevron-right'} : {left: 'chevron-right', right: 'chevron-left'};
@@ -698,7 +710,7 @@
             if (this.showWeekNumbers || this.showISOWeekNumbers)
                 html += '<th></th>';
 
-            if ((!minDate || minDate.isBefore(calendar.firstDay)) && (!this.linkedCalendars || side == 'left')) {
+            if (showPrev) {
                 html += '<th class="prev available"><span></span></th>';
             } else {
                 html += '<th></th>';
@@ -1199,6 +1211,10 @@
         },
 
         hideCalendars: function() {
+            if (this.alwaysShowCalendars) {
+                this.container.addClass('show-calendar');
+                return;
+            }
             this.container.removeClass('show-calendar');
             this.element.trigger('hideCalendar.daterangepicker', this);
         },

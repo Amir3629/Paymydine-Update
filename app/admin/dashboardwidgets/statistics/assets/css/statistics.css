@@ -105,7 +105,7 @@
     opacity: 1 !important;
     /* Icon color - header blue - override .text-white */
     color: #202938 !important;
-    z-index: 1;
+    z-index: 0 !important;
 }
 
 /* Inner circle (cream background like Instagram) */

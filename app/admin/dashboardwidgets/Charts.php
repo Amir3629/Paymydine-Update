@@ -68,21 +68,30 @@ class Charts extends BaseDashboardWidget
 
     public function getData()
     {
-        // Always fetch 90 days of data so client-side filtering works
-        $end = $this->getEndDate();
-        $start = now()->subDays(89); // 89 days back + today = 90 days
+        $end = $this->getEndDate() ?: now();
+        $start = $this->getStartDate() ?: $end->copy()->subDays(89);
+
+        $start = $start->copy();
+        $end = $end->copy();
         
         if ($datasetFromCallable = $this->getDataDefinition('datasetFrom')) {
-            return $datasetFromCallable($this->getActiveDataset(), $start, $end);
-        }
-
+            $payload = $datasetFromCallable($this->getActiveDataset(), $start, $end);
+        } else {
         $datasets = [];
         $definitions = $this->getDataDefinition('sets') ?? [$this->dataDefinition];
         foreach (array_filter($definitions) as $config) {
             $datasets[] = $this->makeDataset($config, $start, $end);
         }
 
-        return ['datasets' => $datasets];
+            $payload = ['datasets' => $datasets];
+        }
+
+        $payload['meta'] = [
+            'startDate' => $start->toDateString(),
+            'endDate' => $end->toDateString(),
+        ];
+
+        return $payload;
     }
 
     protected function getDatasetOptions()
