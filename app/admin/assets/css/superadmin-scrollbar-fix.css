@@ -40,16 +40,18 @@ div.sidebar::-webkit-scrollbar,
    2. REMOVE ALL HOVER EFFECTS
    ============================================ */
 
-/* Menu link hover - NO EFFECTS AT ALL */
+/* Menu link hover - Scale effect only */
 .nk-sidebar .nk-menu-link:hover,
 .nk-sidebar-menu .nk-menu-link:hover,
 .nav-sidebar .nav-link:hover,
 #side-nav-menu .nav-link:hover,
-.sidebar .nav-link:hover {
-  background-color: transparent !important; /* NO EFFECT */
-  color: rgba(255, 255, 255, 0.7) !important; /* Same as default */
-  transform: none !important; /* No movement */
-  box-shadow: none !important; /* No shadow */
+.sidebar .nav-link:hover,
+.nk-sidebar-menu .nk-menu-sub .nk-menu-link:hover,
+.nav-sidebar .nav.collapse .nav-link:hover,
+#side-nav-menu .nav.collapse .nav-link:hover {
+  background-color: transparent !important;
+  transform: scale(1.1) !important; /* Size effect only */
+  box-shadow: none !important;
 }
 
 /* Active menu link - NO GREEN, just brighter and bigger */
@@ -121,19 +123,17 @@ div.sidebar::-webkit-scrollbar,
    3. REMOVE ALL HOVER EFFECTS GLOBALLY
    ============================================ */
 
-/* NO hover effects on anything in sidebar */
-.nk-sidebar *:hover,
-.sidebar *:hover,
+/* NO hover effects on sidebar brand/logo, but allow scale on menu items */
 .nk-sidebar-brand:hover,
 .nk-sidebar-brand img:hover,
-.logo-link:hover,
-.nk-sidebar .nk-menu-link:hover,
-.nk-sidebar a:hover {
+.logo-link:hover {
   background-color: transparent !important;
   transform: none !important;
   box-shadow: none !important;
   opacity: 1 !important;
 }
+
+/* Menu links get scale effect (defined above) */
 
 /* Remove any pseudo-elements that might duplicate logo */
 .nk-sidebar-brand::before,
@@ -199,13 +199,17 @@ div.sidebar::-webkit-scrollbar,
 .nk-sidebar,
 .nk-sidebar *,
 .nk-sidebar-brand,
-.nk-sidebar-brand *,
+.nk-sidebar-brand * {
+  transition: none !important; /* NO transitions */
+  transform: none !important; /* NO transforms */
+}
+
+/* Sidebar menu links - allow scale transform on hover */
 .nk-sidebar .nk-menu-link,
 .nk-sidebar-menu .nk-menu-link,
 .nav-sidebar .nav-link,
 #side-nav-menu .nav-link {
-  transition: none !important; /* NO transitions */
-  transform: none !important; /* NO transforms */
+  transition: transform 0.2s ease !important;
 }
 
 /* ============================================

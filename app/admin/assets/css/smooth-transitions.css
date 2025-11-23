@@ -65,9 +65,9 @@
 
 /* Smooth hover transitions for sidebar items */
 #side-nav .nav-item a {
-  transition: all 0.2s ease !important;
+  transition: transform 0.2s ease !important;
 }
 
 #side-nav .nav-item a:hover {
-  transform: translateX(3px);
+  transform: scale(1.1) !important; /* Size effect only */
 }

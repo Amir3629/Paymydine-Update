@@ -128,8 +128,6 @@
 }
 
 .navbar-tour-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #ffffff !important;
   transform: scale(1.1) !important;
 }
 
@@ -162,6 +160,31 @@
   line-height: 48px !important;
   padding-top: 8px !important;
   padding-bottom: 8px !important;
+  transition: transform 0.2s ease !important;
+}
+
+/* Ensure all header buttons have transition for scale effect */
+.navbar-top .nav-link,
+.navbar-top .dropdown-toggle,
+.navbar-top .btn-icon,
+.navbar-top .btn-trigger,
+.navbar-top .nav-item .nav-link,
+.navbar-top .nav-item .dropdown-toggle {
+  transition: transform 0.2s ease !important;
+}
+
+/* Consistent scale hover effect for all header buttons */
+.navbar-top .navbar-nav .nav-link:hover,
+.navbar-top .nav-link:hover,
+.navbar-top .dropdown-toggle:hover,
+.navbar-top .btn-icon:hover,
+.navbar-top .btn-trigger:hover,
+.navbar-top .nav-item .nav-link:hover,
+.navbar-top .nav-item .dropdown-toggle:hover {
+  transform: scale(1.1) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
   
   .navbar-top .page-title {

@@ -229,6 +229,11 @@ div.nk-sidebar-element.nk-sidebar-head,
 
 .nk-header .nav-link:hover {
   color: rgba(255, 255, 255, 1) !important;
+  transform: scale(1.1) !important;
+}
+
+.nk-header .nav-link {
+  transition: transform 0.2s ease, color 0.2s ease !important;
 }
 
 .nk-header .nav-link i,
@@ -404,15 +409,15 @@ div.sidebar * {
   height: 50px !important;
   color: rgba(255, 255, 255, 0.7) !important;
   text-decoration: none !important;
-  transition: all 0.2s ease !important;
+  transition: transform 0.2s ease !important;
   border-radius: 0 !important;
 }
 
 .nk-sidebar-menu .nk-menu-link:hover,
 .nav-sidebar .nav-link:hover,
 #side-nav-menu .nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  color: rgba(255, 255, 255, 0.9) !important;
+  background-color: transparent !important;
+  transform: scale(1.1) !important; /* Size effect only */
 }
 
 /* Active Menu Item */
@@ -463,6 +468,15 @@ div.sidebar * {
 #side-nav-menu .nav.collapse .nav-link {
   padding-left: 58px !important; /* Indent for submenu */
   height: 42px !important;
+  transition: transform 0.2s ease !important;
+}
+
+/* Submenu hover - scale effect only */
+.nk-sidebar-menu .nk-menu-sub .nk-menu-link:hover,
+.nav-sidebar .nav.collapse .nav-link:hover,
+#side-nav-menu .nav.collapse .nav-link:hover {
+  background-color: transparent !important;
+  transform: scale(1.1) !important; /* Size effect only */
 }
 
 /* ============================================

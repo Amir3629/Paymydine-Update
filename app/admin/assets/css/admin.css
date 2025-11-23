@@ -27441,10 +27441,13 @@ body.dragging .dragged, body.dragging .dragged {
   padding: 0 1rem;
   font-weight: 500;
   font-size: 15px;
+  transition: transform 0.2s ease !important;
 }
 .nav-sidebar .nav > li > a:focus,
 .nav-sidebar .nav > li > a:hover {
   color: #FFFFFF;
+  transform: scale(1.1) !important; /* Size effect only */
+  background-color: transparent !important;
 }
 .nav-sidebar .nav li.active > a,
 .nav-sidebar .nav .nav li.active > a,
@@ -27466,10 +27469,36 @@ body.dragging .dragged, body.dragging .dragged {
   font-weight: 400;
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.75);
+  transition: transform 0.2s ease !important;
 }
 .nav-sidebar .nav .nav li > a:hover,
 .nav-sidebar .nav .nav li > a:focus {
   background-color: transparent;
+  transform: scale(1.1) !important; /* Size effect only */
+}
+
+/* Also apply scale effect to nav-link class used in admin panel */
+.nav-sidebar .nav-link,
+#side-nav-menu .nav-link {
+  transition: transform 0.2s ease !important;
+}
+
+.nav-sidebar .nav-link:hover,
+#side-nav-menu .nav-link:hover {
+  transform: scale(1.1) !important; /* Size effect only */
+  background-color: transparent !important;
+}
+
+/* Submenu nav-link items */
+.nav-sidebar .nav.collapse .nav-link,
+#side-nav-menu .nav.collapse .nav-link {
+  transition: transform 0.2s ease !important;
+}
+
+.nav-sidebar .nav.collapse .nav-link:hover,
+#side-nav-menu .nav.collapse .nav-link:hover {
+  transform: scale(1.1) !important; /* Size effect only */
+  background-color: transparent !important;
 }
 .nav-sidebar .nav .arrow {
   line-height: 50px;
