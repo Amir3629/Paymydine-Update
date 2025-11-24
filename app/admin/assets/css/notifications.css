@@ -7,24 +7,36 @@
   box-sizing: border-box;
 }
 
-/* History shortcut button - ice white palette */
-#notification-panel #notif-history-link {
+/* History shortcut button - ice white palette - CONSISTENT ACROSS ALL PAGES */
+#notif-history-link,
+#notification-panel #notif-history-link,
+#notification-panel .btn-light {
   background: #f1f4fb !important;
   border: 1px solid #c9d2e3 !important;
   color: #202938 !important;
-  font-weight: 600;
-  transition: all 0.2s ease;
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  transition: all 0.2s ease !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
 }
 
+#notif-history-link:hover,
+#notif-history-link:focus,
 #notification-panel #notif-history-link:hover,
-#notification-panel #notif-history-link:focus {
+#notification-panel #notif-history-link:focus,
+#notification-panel .btn-light:hover {
   background: #e5ebf7 !important;
   border-color: #b8c6dd !important;
   color: #202938 !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
 }
 
 #notification-panel #notif-history-link.active,
-body.history.index #notification-panel #notif-history-link {
+body.history.index #notification-panel #notif-history-link,
+body.history.index #notif-history-link {
   background: #f1f4fb !important;
   border-color: #c9d2e3 !important;
   color: #202938 !important;
@@ -33,10 +45,14 @@ body.history.index #notification-panel #notif-history-link {
 }
 
 body.history.index #notification-panel #notif-history-link:hover,
-body.history.index #notification-panel #notif-history-link:focus {
+body.history.index #notification-panel #notif-history-link:focus,
+body.history.index #notif-history-link:hover,
+body.history.index #notif-history-link:focus {
   background: #e5ebf7 !important;
   border-color: #b8c6dd !important;
   color: #202938 !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Each item stacks vertically and wraps text */

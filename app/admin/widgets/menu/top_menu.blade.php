@@ -1,6 +1,8 @@
 @php
     use App\Helpers\SettingsHelper;
-    $orderNotificationsEnabled = SettingsHelper::areOrderNotificationsEnabled();
+    use Admin\Facades\AdminAuth;
+    $user = AdminAuth::getUser();
+    $orderNotificationsEnabled = SettingsHelper::areOrderNotificationsEnabledForUser($user);
 @endphp
 
 <ul

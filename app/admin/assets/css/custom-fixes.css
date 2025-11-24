@@ -454,40 +454,427 @@ body:not(.statuses) .list-container input[type="checkbox"] {
 }
 
 /* ============================================
-   HISTORY PAGE SPACING FIX - Add top spacing
+   HISTORY PAGE SPACING FIX - Add more spacing from header
    ============================================ */
 
-/* Add minimal top margin/padding to history page content for bulk actions */
+/* Add significant top margin/padding to history page content to move it down */
 body.history.index .page-content,
-body.history.index .content-wrapper,
+body.history.index .content-wrapper {
+    margin-top: 50px !important;
+    padding-top: 30px !important;
+}
+
+/* Ensure row-fluid has proper spacing */
 body.history.index .row-fluid {
-    margin-top: 20px !important;
-    padding-top: 10px !important;
+    margin-top: 50px !important;
+    padding-top: 30px !important;
 }
 
+/* Proper spacing for history page content */
+.history-page-content {
+    margin-top: 50px !important;
+    padding-top: 30px !important;
+}
+
+/* Ensure bulk actions on history page follow same rules as other pages */
 body.history.index {
-    --bulk-actions-offset: 92px;
+    --bulk-actions-offset: 63px; /* Match other pages - toolbar position */
 }
 
-body.history.index tr.bulk-actions td.w-100 > div {
-    margin-top: 6px !important;
+/* Ensure bulk actions row is positioned correctly on history page */
+/* Use fixed positioning so it's relative to viewport, not pushed-down content */
+body.history.index tr.bulk-actions {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 9999 !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    display: block !important;
+    height: 0 !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
 }
 
-/* Ensure the history list has minimal spacing from header */
+/* Make the bulk actions row visible when it's not hidden */
+body.history.index tr.bulk-actions:not(.hide) {
+    opacity: 1 !important;
+}
+
+/* Hide the checkbox cell completely */
+body.history.index tr.bulk-actions td.bulk-action {
+    display: none !important;
+}
+
+/* Position the content cell EXACTLY in the toolbar line - top right */
+/* Break out of table cell constraints */
+body.history.index tr.bulk-actions td.w-100 {
+    position: static !important; /* Remove table cell positioning */
+    display: block !important; /* Break out of table cell display */
+    width: 0 !important; /* Zero width so it doesn't take space */
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+    /* Remove any transforms/filters that would create positioning context for fixed children */
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    will-change: auto !important;
+}
+
+/* Position the button container directly - FIXED to viewport */
+/* Override ANY inline styles that might be applied */
+body.history.index tr.bulk-actions td.w-100 > div,
+body.history.index tr.bulk-actions td.w-100 > div[style] {
+    position: fixed !important;
+    top: 75px !important; /* Moved down to match other pages */
+    right: 20px !important;
+    left: auto !important;
+    bottom: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    margin-left: 0 !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    z-index: 1051 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    /* Remove any transforms/filters that create positioning context */
+    filter: none !important;
+    perspective: none !important;
+    will-change: auto !important;
+}
+
+/* Override inline styles on buttons inside the container - BUT NOT THE DELETE BUTTON */
+body.history.index tr.bulk-actions td.w-100 > div > *:not(button[data-control="bulk-action"]),
+body.history.index tr.bulk-actions td.w-100 > div > *[style]:not(button[data-control="bulk-action"]) {
+    position: relative !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: auto !important;
+}
+
+/* CRITICAL: Force delete button to be positioned relative to viewport, not parent */
+/* The button is currently at top: 177px because parent TD is at 114px + 63px offset */
+/* Need to position button relative to viewport (63px), not parent container */
+body.history.index tr.bulk-actions td.w-100 > div > button[data-control="bulk-action"],
+body.history.index tr.bulk-actions.hide td.w-100 > div > button[data-control="bulk-action"],
+.history-page-content tr.bulk-actions td.w-100 > div > button[data-control="bulk-action"],
+.history-page-content tr.bulk-actions.hide td.w-100 > div > button[data-control="bulk-action"] {
+    position: fixed !important;
+    /* Position relative to viewport, accounting for parent offset */
+    /* Parent TD is at top: 114px, button should be at viewport top: 75px */
+    /* So button top = 75px (viewport) - 114px (parent offset) = -39px relative to parent */
+    /* But since it's fixed, we just use 75px for viewport */
+    top: 75px !important;
+    right: 20px !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    transform: translate(0, 0) !important;
+    /* Remove any transforms/filters that create positioning context */
+    filter: none !important;
+    perspective: none !important;
+    will-change: auto !important;
+    /* Force viewport-relative positioning */
+}
+
+/* Make sure all buttons are visible */
+body.history.index tr.bulk-actions * {
+    visibility: visible !important;
+}
+
+/* Ensure the history list has proper spacing from header */
 body.history.index .list-container,
 body.history.index .list-table {
-    margin-top: 10px !important;
+    margin-top: 30px !important;
+    padding-top: 15px !important;
 }
 
-/* Minimal spacing for history page content */
-.history-page-content {
-    margin-top: 15px !important;
-    padding-top: 8px !important;
+/* ============================================
+   HISTORY PAGE: ALWAYS-VISIBLE DELETE BUTTON
+   ============================================ */
+
+/* Target history page - Use .history-page-content as primary selector since body classes may not be set */
+.history-page-content tr.bulk-actions button[data-control="bulk-action"],
+body.history.index tr.bulk-actions button[data-control="bulk-action"],
+body[class*="history"] tr.bulk-actions button[data-control="bulk-action"] {
+    /* Force visibility ALWAYS - even when parent has .hide class */
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    
+    /* Position delete button in top-right corner (like other pages) - OVERRIDE position:relative from line 559 */
+    position: fixed !important;
+    top: 75px !important;  /* Moved down a bit to match other pages */
+    right: 20px !important; /* Align to right edge */
+    z-index: 1051 !important; /* Above other elements */
+    margin: 4px 10px 4px 0px !important; /* Match other pages exactly */
+    
+    /* Apply same styling as other pages - light blue background with dark text */
+    background: rgb(241, 244, 251) !important; /* #f1f4fb - light blue/ice */
+    color: rgb(32, 41, 56) !important; /* #202938 - dark text */
+    border: 1px solid rgb(201, 210, 227) !important; /* #c9d2e3 - light gray border */
+    border-radius: 12px !important; /* Match other pages */
+    box-shadow: none !important; /* No shadow like other pages */
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 0.55rem 1.75rem !important; /* 8.8px 28px - match other pages */
+    min-height: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    
+    /* Override any transform that might affect positioning */
+    transform: none !important;
+    left: auto !important;
+    bottom: auto !important;
 }
 
-/* Ensure history list table has minimal spacing */
-body.history.index .list-table {
-    margin-top: 12px !important;
+/* CRITICAL: Override display:none when .hide class is present - MUST come after all other rules */
+/* Use .history-page-content first since it's most reliable */
+.history-page-content tr.bulk-actions.hide,
+body.history.index tr.bulk-actions.hide,
+body[class*="history"] tr.bulk-actions.hide {
+    /* Override display:none from _tables.scss - keep container visible for button */
+    display: block !important; /* Change from none to block */
+    opacity: 1 !important;
+    pointer-events: none !important; /* Container doesn't block, but button does */
+    visibility: visible !important;
+}
+
+/* CRITICAL: Force button to be visible and positioned correctly even when parent has .hide */
+/* Use .history-page-content first since it's most reliable */
+.history-page-content tr.bulk-actions.hide button[data-control="bulk-action"],
+body.history.index tr.bulk-actions.hide button[data-control="bulk-action"],
+body[class*="history"] tr.bulk-actions.hide button[data-control="bulk-action"] {
+    /* Force visibility - override ANY display:none rules */
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    
+    /* Force positioning - override position:relative from line 559 */
+    position: fixed !important;
+    top: 75px !important;
+    right: 20px !important;
+    z-index: 1051 !important;
+    
+    /* Match exact styling from other pages */
+    background: rgb(241, 244, 251) !important; /* #f1f4fb - light blue/ice */
+    color: rgb(32, 41, 56) !important; /* #202938 - dark text */
+    border: 1px solid rgb(201, 210, 227) !important; /* #c9d2e3 - light gray */
+    border-radius: 12px !important;
+    padding: 0.55rem 1.75rem !important; /* 8.8px 28px */
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    box-shadow: none !important;
+    margin: 4px 10px 4px 0px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Hide counter and select-all buttons on history page (keep UI clean) */
+body.history.index tr.bulk-actions .btn-counter,
+body[class*="history"] tr.bulk-actions .btn-counter,
+.history-page-content tr.bulk-actions .btn-counter,
+body.history.index tr.bulk-actions .btn-select-all,
+body[class*="history"] tr.bulk-actions .btn-select-all,
+.history-page-content tr.bulk-actions .btn-select-all,
+body.history.index tr.bulk-actions [data-control="check-total-records"],
+body[class*="history"] tr.bulk-actions [data-control="check-total-records"],
+.history-page-content tr.bulk-actions [data-control="check-total-records"] {
+    display: none !important;
+}
+
+/* Red trash icon inside delete button - match other pages */
+body.history.index tr.bulk-actions button[data-control="bulk-action"].text-danger i,
+body[class*="history"] tr.bulk-actions button[data-control="bulk-action"].text-danger i,
+.history-page-content tr.bulk-actions button[data-control="bulk-action"].text-danger i,
+body.history.index tr.bulk-actions button[data-control="bulk-action"].text-danger .fa,
+body[class*="history"] tr.bulk-actions button[data-control="bulk-action"].text-danger .fa,
+.history-page-content tr.bulk-actions button[data-control="bulk-action"].text-danger .fa {
+    color: rgb(220, 53, 69) !important; /* #dc3545 - red icon */
+    fill: rgb(220, 53, 69) !important;
+    font-size: 14px !important;
+}
+
+/* Hover effect for delete button - match other pages */
+body.history.index tr.bulk-actions button[data-control="bulk-action"].text-danger:hover,
+body[class*="history"] tr.bulk-actions button[data-control="bulk-action"].text-danger:hover,
+.history-page-content tr.bulk-actions button[data-control="bulk-action"].text-danger:hover {
+    background: rgb(229, 232, 240) !important; /* Slightly darker on hover */
+    color: rgb(32, 41, 56) !important; /* Keep dark text */
+    border-color: rgb(201, 210, 227) !important;
+    transform: translateY(-1px) !important; /* Match other pages */
+    box-shadow: none !important; /* No shadow on hover */
+}
+
+/* FINAL OVERRIDE: Maximum specificity to ensure delete button is always visible and positioned correctly */
+/* This must come last to override all other rules - prioritize .history-page-content */
+.history-page-content tr.bulk-actions.hide button[data-control="bulk-action"][data-request*="onBulkAction"],
+.history-page-content tr.bulk-actions button[data-control="bulk-action"][data-request*="onBulkAction"],
+body.history.index tr.bulk-actions.hide button[data-control="bulk-action"][data-request*="onBulkAction"],
+body.history.index tr.bulk-actions button[data-control="bulk-action"][data-request*="onBulkAction"],
+body[class*="history"] tr.bulk-actions.hide button[data-control="bulk-action"][data-request*="onBulkAction"],
+body[class*="history"] tr.bulk-actions button[data-control="bulk-action"][data-request*="onBulkAction"] {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    top: 75px !important;
+    right: 20px !important;
+    z-index: 1051 !important;
+    pointer-events: auto !important;
+    /* Match exact styling from other pages */
+    background: rgb(241, 244, 251) !important; /* #f1f4fb - light blue/ice */
+    color: rgb(32, 41, 56) !important; /* #202938 - dark text */
+    border: 1px solid rgb(201, 210, 227) !important; /* #c9d2e3 - light gray */
+    border-radius: 12px !important;
+    padding: 0.55rem 1.75rem !important; /* 8.8px 28px */
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    box-shadow: none !important;
+    margin: 4px 10px 4px 0px !important;
+    transform: none !important;
+    left: auto !important;
+    bottom: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* NUCLEAR OPTION: Direct selector for history page delete button - works regardless of body classes */
+/* Target by the unique history page container and button attributes - MAXIMUM SPECIFICITY */
+.history-page-content button[data-control="bulk-action"].text-danger[permissions="Admin.History"],
+.history-page-content button[data-control="bulk-action"][permissions="Admin.History"],
+.history-page-content [data-control="bulk-actions"] button[data-control="bulk-action"].text-danger,
+button[data-control="bulk-action"].text-danger[permissions="Admin.History"],
+.history-page-content tr.bulk-actions button[data-control="bulk-action"].text-danger[permissions="Admin.History"],
+.history-page-content tr.bulk-actions.hide button[data-control="bulk-action"].text-danger[permissions="Admin.History"] {
+    /* Force visibility - override EVERYTHING */
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    top: 75px !important;
+    right: 20px !important;
+    z-index: 1051 !important;
+    pointer-events: auto !important;
+    /* Match exact styling from other pages - OVERRIDE universal rules */
+    background: rgb(241, 244, 251) !important; /* #f1f4fb - light blue/ice */
+    background-color: rgb(241, 244, 251) !important;
+    color: rgb(32, 41, 56) !important; /* #202938 - dark text */
+    border: 1px solid rgb(201, 210, 227) !important; /* #c9d2e3 - light gray */
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-color: rgb(201, 210, 227) !important;
+    border-radius: 12px !important;
+    padding: 0.55rem 1.75rem !important; /* 8.8px 28px */
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    box-shadow: none !important;
+    margin: 4px 10px 4px 0px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 18.2px !important; /* Match other pages */
+    /* border-radius and box-shadow already set above - don't override */
+    transform: none !important;
+    left: auto !important;
+    bottom: auto !important;
+    /* Override any calc() or other positioning */
+    top: 75px !important;
+}
+
+/* Override parent .hide class for history page */
+.history-page-content [data-control="bulk-actions"].hide {
+    display: block !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    visibility: visible !important;
+}
+
+.history-page-content [data-control="bulk-actions"].hide button[data-control="bulk-action"],
+.history-page-content tr.bulk-actions.hide button[data-control="bulk-action"] {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    /* Force correct positioning - override everything */
+    position: fixed !important;
+    top: 75px !important;
+    right: 20px !important;
+    z-index: 1051 !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    margin-top: 0 !important;
+}
+
+/* ABSOLUTE FINAL OVERRIDE - Target button directly by all possible selectors */
+.history-page-content tr.bulk-actions td.w-100 > div > button[data-control="bulk-action"],
+.history-page-content tr.bulk-actions.hide td.w-100 > div > button[data-control="bulk-action"],
+.history-page-content tr.bulk-actions td.w-100 > div button[data-control="bulk-action"].text-danger {
+    position: fixed !important;
+    top: 75px !important;
+    right: 20px !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    transform: translate(0, 0) !important;
+    transform: none !important;
+}
+
+/* ULTIMATE FINAL OVERRIDE - Use most specific selector possible */
+.history-page-content tr.bulk-actions td.w-100 > div > button[data-control="bulk-action"].text-danger[permissions="Admin.History"],
+.history-page-content tr.bulk-actions.hide td.w-100 > div > button[data-control="bulk-action"].text-danger[permissions="Admin.History"] {
+    position: fixed !important;
+    top: 75px !important;
+    right: 20px !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    padding: 8px 15px !important;
+    transform: none !important;
+}
+
+/* FINAL FINAL FINAL OVERRIDE - Add at end of file to ensure it takes precedence */
+/* This targets the button by its exact HTML path */
+.history-page-content tr.bulk-actions.hide td.w-100 > div > button[data-control="bulk-action"].text-danger,
+.history-page-content tr.bulk-actions td.w-100 > div > button[data-control="bulk-action"].text-danger {
+    top: 75px !important;
+    position: fixed !important;
 }
 
 /* ============================================
@@ -1917,6 +2304,23 @@ div.modal,
     color: var(--pmdb-ink-light) !important;
 }
 
+/* Remove green hover effect from profile dropdown items */
+.profile-dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu a.dropdown-item:hover,
+html body .profile-dropdown-menu .dropdown-item:hover,
+html body .profile-dropdown-menu a.dropdown-item:hover,
+.navbar-top .navbar-nav > li:last-child .dropdown-menu.profile-dropdown-menu .dropdown-item:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    color: #202938 !important;
+}
+
+.profile-dropdown-menu .dropdown-item:hover i,
+.profile-dropdown-menu .dropdown-item:hover span {
+    color: #202938 !important;
+}
+
 .note-editor.note-frame.card,
 .note-editor.note-frame.card .card-header,
 .note-editor.note-frame.card .card-body,
@@ -2408,7 +2812,7 @@ ul.timeline:before,
     width: 2.6rem !important;
     height: 1.4rem !important;
     margin-right: 0.35rem !important;
-    margin-top: 0.1rem !important;
+    margin-top: 0.5rem !important;
     background-color: var(--pmdb-border) !important;
     border: 1px solid var(--pmdb-border) !important;
     cursor: pointer !important;
@@ -2818,4 +3222,54 @@ a.btn-outline-success {
     border-color: #202938 !important;
     color: #ffffff !important;
     box-shadow: 0 10px 24px rgba(32, 41, 56, 0.35) !important;
+}
+
+/* ============================================
+   ABSOLUTE FINAL OVERRIDE FOR HISTORY DELETE BUTTON POSITION
+   Place at END of file to ensure maximum precedence
+   ============================================ */
+/* Force button to be positioned relative to viewport, not parent containers */
+/* The button is at top: 177px (114px parent + 63px), need to force it to viewport top: 75px */
+.history-page-content button[data-control="bulk-action"].text-danger,
+.history-page-content tr.bulk-actions button[data-control="bulk-action"].text-danger,
+.history-page-content tr.bulk-actions.hide button[data-control="bulk-action"].text-danger,
+.history-page-content tr.bulk-actions td.w-100 > div > button[data-control="bulk-action"].text-danger,
+.history-page-content tr.bulk-actions td.w-100 > div button[data-control="bulk-action"][permissions="Admin.History"] {
+    position: fixed !important;
+    top: 75px !important;
+    right: 20px !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin: 4px 10px 4px 0px !important; /* Match other pages exactly */
+    transform: none !important;
+    /* Remove any properties that might affect positioning */
+    filter: none !important;
+    perspective: none !important;
+    will-change: auto !important;
+    /* Match exact styling from other pages - OVERRIDE universal [data-control="bulk-action"] rules */
+    background: rgb(241, 244, 251) !important; /* #f1f4fb - light blue/ice - OVERRIDE var(--pmdb-ink) */
+    background-color: rgb(241, 244, 251) !important; /* Double override */
+    color: rgb(32, 41, 56) !important; /* #202938 - dark text - OVERRIDE white */
+    border: 1px solid rgb(201, 210, 227) !important; /* #c9d2e3 - light gray - OVERRIDE none */
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-color: rgb(201, 210, 227) !important;
+    border-radius: 12px !important; /* OVERRIDE 6px from universal rule */
+    padding: 0.55rem 1.75rem !important; /* 8.8px 28px - OVERRIDE 8px 15px from universal rule */
+    padding-top: 0.55rem !important;
+    padding-right: 1.75rem !important;
+    padding-bottom: 0.55rem !important;
+    padding-left: 1.75rem !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    min-width: auto !important; /* Allow natural width based on content */
+    width: auto !important; /* Allow natural width */
+    box-shadow: none !important; /* OVERRIDE shadow */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 18.2px !important; /* Match other pages */
+    /* Ensure it's positioned relative to viewport, not any positioned parent */
 }

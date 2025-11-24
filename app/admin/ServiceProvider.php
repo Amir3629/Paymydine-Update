@@ -61,6 +61,7 @@ class ServiceProvider extends AppServiceProvider
             Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut']);
             Route::get('/superadmin/settings', [SuperAdminController::class, 'settings'])->name('superadmin.settings');
             Route::get('/superadmin/index', [SuperAdminController::class, 'showIndex'])->name('superadmin.index');
+            Route::get('/superadmin/location-requests', [SuperAdminController::class, 'locationRequests'])->name('superadmin.location-requests');
 
         });
         if ($this->app->runningInAdmin()) {

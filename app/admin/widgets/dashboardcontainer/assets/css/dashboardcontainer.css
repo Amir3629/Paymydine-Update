@@ -595,6 +595,16 @@
   transform: translateX(3px) !important;
 }
 
+/* Exclude profile dropdown from green hover effect */
+.profile-dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu .menu-link:hover,
+.profile-dropdown-menu a:not(.btn):hover {
+  background: transparent !important;
+  background-image: none !important;
+  color: #202938 !important;
+  transform: scale(1.05) !important;
+}
+
 /* Active/selected dropdown item */
 .dropdown-menu .dropdown-item.active,
 .dropdown-menu .dropdown-item:active,

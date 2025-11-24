@@ -59,6 +59,13 @@
                                         <span class="nk-menu-text">Restaurants</span>
                                     </a>
                                 </li><!-- .nk-menu-item -->
+
+                                <li class="nk-menu-item">
+                                    <a href="/superadmin/location-requests" class="nk-menu-link">
+                                        <span class="nk-menu-icon"><em class="icon ni ni-map-pin-fill"></em></span>
+                                        <span class="nk-menu-text">Location Requests</span>
+                                    </a>
+                                </li><!-- .nk-menu-item -->
                              
                             
                                 <li class="nk-menu-item">

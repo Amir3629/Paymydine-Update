@@ -318,4 +318,36 @@ public function updateSettings(Request $request)
         return redirect()->back()->with('success', 'Settings updated successfully.');
 
 }
+
+public function locationRequests(Request $request)
+{
+    // Fetch the first superadmin record
+    $superadmin = DB::connection('mysql')
+        ->table('superadmin')
+        ->first();
+    Session::put('superadmin_id', $superadmin->id);
+    Session::put('superadmin_username', $superadmin->username);
+    Session::save();
+
+    $perPage = $request->input('per_page', 10);
+    $order = $request->input('order', 'DESC');
+
+    // Check if location_requests table exists, if not return empty collection
+    try {
+        $locationRequests = DB::connection('mysql')
+            ->table('location_requests')
+            ->orderBy('id', $order)
+            ->paginate($perPage);
+    } catch (\Exception $e) {
+        // Table doesn't exist yet, return empty paginated collection
+        $locationRequests = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect([]),
+            0,
+            $perPage,
+            1
+        );
+    }
+
+    return view('location_requests', compact('locationRequests', 'perPage', 'order'));
+}
 }

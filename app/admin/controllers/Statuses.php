@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminAuth;
 use App\Helpers\SettingsHelper;
 use Illuminate\Support\Facades\Request;
 
@@ -74,13 +75,14 @@ class Statuses extends \Admin\Classes\AdminController
     }
 
     /**
-     * Save order notifications settings
+     * Save order notifications settings (user-specific)
      */
     public function onSaveOrderNotificationSettings()
     {
         $enabled = (bool) post('order_notifications_enabled', false);
+        $user = AdminAuth::getUser();
         
-        $success = SettingsHelper::setOrderNotificationsEnabled($enabled);
+        $success = SettingsHelper::setOrderNotificationsEnabledForUser($enabled, $user);
         
         if (Request::ajax()) {
             return [

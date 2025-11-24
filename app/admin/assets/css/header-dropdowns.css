@@ -247,11 +247,27 @@
     top: 100% !important;
   }
   
+  /* Profile dropdown - NO smooth animation */
+  .profile-dropdown-menu {
+    opacity: 0 !important;
+    transform: none !important;
+    transition: none !important;
+    pointer-events: none !important;
+  }
+  
   /* Show state - smooth entrance */
   .dropdown-menu.show,
   .navbar-top .dropdown-menu.show {
     opacity: 1 !important;
     transform: translateY(0) scale(1) !important;
+    pointer-events: all !important;
+  }
+  
+  /* Profile dropdown show state - instant, no animation */
+  .profile-dropdown-menu.show {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
     pointer-events: all !important;
   }
   
@@ -285,6 +301,13 @@
     animation: slideInItem 0.3s ease forwards;
   }
   
+  /* Profile dropdown items - NO animation */
+  .profile-dropdown-menu .dropdown-item {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  
   /* Staggered animation delays */
   .dropdown-menu.show .dropdown-item:nth-child(1),
   .dropdown-menu.show .menu-item:nth-child(1) { animation-delay: 0.05s; }
@@ -310,9 +333,16 @@
     }
   }
   
-  /* Dropdown item hover */
-  .dropdown-menu .dropdown-item:not([data-request="onUpdateStatus"]):hover,
-  .dropdown-menu .menu-link:hover {
+  /* Dropdown item hover - NO movement for profile dropdown */
+  .profile-dropdown-menu .dropdown-item:hover {
+    background: transparent !important;
+    color: #202938 !important;
+    transform: scale(1.05) !important;
+  }
+  
+  /* Other dropdown items can keep their effects */
+  .dropdown-menu:not(.profile-dropdown-menu) .dropdown-item:not([data-request="onUpdateStatus"]):hover,
+  .dropdown-menu:not(.profile-dropdown-menu) .menu-link:hover {
     background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
     color: #202938 !important;
     transform: translateX(3px) !important;
@@ -485,8 +515,13 @@
   
   .profile-dropdown-menu .dropdown-item:hover {
     background: transparent !important;
-    transform: none !important;
+    transform: scale(1.05) !important;
+    transition: transform 0.1s ease !important;
     color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item {
+    transition: transform 0.1s ease !important;
   }
   
   .profile-dropdown-menu .dropdown-item:hover i,
@@ -534,6 +569,11 @@
   .profile-dropdown-menu .dropdown-item.active {
     background: transparent !important;
     font-weight: 700 !important;
+    transform: none !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item.active:hover {
+    transform: scale(1.05) !important;
   }
   
   .profile-dropdown-menu .dropdown-header ~ .dropdown-item {

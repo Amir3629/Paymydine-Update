@@ -275,6 +275,13 @@ select:focus {
   transform: translateX(4px) !important;
 }
 
+/* Exclude profile dropdown from green hover effect */
+.profile-dropdown-menu .dropdown-item:hover {
+  background-color: transparent !important;
+  color: #202938 !important;
+  transform: scale(1.05) !important;
+}
+
 /* ============================================
    BADGES - Modern Design
    ============================================ */
