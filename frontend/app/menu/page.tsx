@@ -273,7 +273,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
-  const { paymentOptions, tipSettings, taxSettings, loadTaxSettings } = useCmsStore()
+  const { paymentOptions, tipSettings, taxSettings, loadTaxSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
   const { clearCart, addToCart } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
   const [isSplitting, setIsSplitting] = useState(false)
@@ -284,6 +284,9 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loadingPayments, setLoadingPayments] = useState(true)
+  const [couponCode, setCouponCode] = useState("")
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
     cardNumber: "",
     expiryDate: "",
@@ -345,15 +348,31 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
     }, 0),
     [itemsToPay, selectedOptions, allItems],
   )
-  // Calculate tax if enabled
+  // Calculate tax if enabled AND tax should be applied on checkout (not already included in prices)
+  // tax_menu_price: 0 = tax included in menu price, 1 = apply tax on checkout
   const taxAmount = useMemo(() => {
-    if (!taxSettings.enabled || taxSettings.percentage === 0) {
-      return 0
+    if (!taxSettings.enabled || taxSettings.percentage === 0 || taxSettings.menuPrice === 0) {
+      return 0 // If tax is included in menu price (menuPrice = 0), don't add tax
     }
     return subtotal * (taxSettings.percentage / 100)
-  }, [subtotal, taxSettings.enabled, taxSettings.percentage])
+  }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const tipAmount = customTip ? Number.parseFloat(customTip) || 0 : subtotal * (tipPercentage / 100)
-  const finalTotal = subtotal + taxAmount + tipAmount
+  
+  // Calculate coupon discount
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0
+    // Recalculate discount based on current subtotal (in case items changed)
+    const subtotalForCoupon = subtotal
+    if (appliedCoupon.type === 'F') {
+      // Fixed amount - don't exceed subtotal
+      return Math.min(appliedCoupon.discount, subtotalForCoupon)
+    } else {
+      // Percentage
+      return subtotalForCoupon * (appliedCoupon.discount_value / 100)
+    }
+  }, [appliedCoupon, subtotal])
+  
+  const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
   const handlePayment = async () => {
     setIsLoading(true)
@@ -381,6 +400,8 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
                       selectedPaymentMethod === 'paypal' ? 'paypal' : 'card') as 'cod' | 'card' | 'paypal',
         total_amount: finalTotal,
         tip_amount: tipAmount,
+        coupon_code: appliedCoupon?.code || null,
+        coupon_discount: couponDiscount,
         special_instructions: ''
       }
 
@@ -907,22 +928,104 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
             </div>
           )}
 
+          {/* Coupon Code Input */}
+          <div className="surface-sub rounded-2xl p-3 space-y-2">
+            {!appliedCoupon ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase())
+                    setCouponError(null)
+                  }}
+                  placeholder={t("couponCode") || "Coupon Code"}
+                  className="flex-1 px-3 py-2 border rounded-lg text-xs"
+                  style={{ borderColor: 'var(--theme-border)' }}
+                  disabled={couponLoading}
+                />
+                <Button
+                  onClick={async () => {
+                    if (!couponCode.trim()) {
+                      setCouponError("Please enter a coupon code")
+                      return
+                    }
+                    setCouponLoading(true)
+                    setCouponError(null)
+                    const result = await validateCoupon(couponCode.trim(), subtotal)
+                    if (!result.success) {
+                      setCouponError(result.message || "Invalid coupon code")
+                    } else {
+                      setCouponCode("")
+                      // Wait a bit for state to update, then show toast
+                      setTimeout(() => {
+                        const { appliedCoupon: currentCoupon } = useCmsStore.getState()
+                        toast({
+                          title: "Coupon Applied",
+                          description: `${currentCoupon?.name || 'Coupon'} applied successfully!`,
+                        })
+                      }, 100)
+                    }
+                    setCouponLoading(false)
+                  }}
+                  disabled={couponLoading || !couponCode.trim()}
+                  size="sm"
+                  className="icon-btn--accent text-xs"
+                >
+                  {couponLoading ? "..." : t("apply") || "Apply"}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                    {appliedCoupon.name} ({appliedCoupon.code})
+                  </span>
+                  <span className="text-xs text-green-600 dark:text-green-500">
+                    -{formatCurrency(couponDiscount)}
+                  </span>
+                </div>
+                <Button
+                  onClick={() => {
+                    removeCoupon()
+                    setCouponCode("")
+                    setCouponError(null)
+                  }}
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                >
+                  ✕
+                </Button>
+              </div>
+            )}
+            {couponError && (
+              <p className="text-xs text-red-600 dark:text-red-400">{couponError}</p>
+            )}
+          </div>
+
           {/* Totals */}
           <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span>{t("subtotal")}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
             </div>
-            {taxSettings.enabled && taxSettings.percentage > 0 && (
-              <div className="flex justify-between text-xs">
+            {taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1 && (
+            <div className="flex justify-between text-xs">
                 <span>{t("tax")} {taxSettings.percentage}%</span>
                 <span className="font-semibold">{formatCurrency(taxAmount)}</span>
-              </div>
+            </div>
             )}
             {tipAmount > 0 && (
               <div className="flex justify-between text-xs">
                 <span>{t("tip")}</span>
           <span className="font-semibold">{formatCurrency(tipAmount)}</span>
+              </div>
+            )}
+            {appliedCoupon && couponDiscount > 0 && (
+              <div className="flex justify-between text-xs text-green-600 dark:text-green-400">
+                <span>{t("coupon") || "Coupon"} ({appliedCoupon.code})</span>
+                <span className="font-semibold">-{formatCurrency(couponDiscount)}</span>
               </div>
             )}
             <div className="flex justify-between items-center divider pt-2 mt-2">
@@ -1657,7 +1760,7 @@ function MenuContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
-  const { menuItems } = useCmsStore()
+  const { menuItems, taxSettings, loadTaxSettings } = useCmsStore()
 
   // Debug logging for theme consistency
   if (typeof window !== 'undefined') {
@@ -1705,6 +1808,11 @@ function MenuContent() {
       setSelectedCategory("All");
     }
   }, [apiMenuItems]);
+
+  // Load tax settings on mount
+  useEffect(() => {
+    loadTaxSettings()
+  }, [loadTaxSettings])
 
   // Load menu data from API on component mount
   useEffect(() => {
@@ -1765,22 +1873,45 @@ function MenuContent() {
     return ["All", ...categoryList];
   }, [dynamicCategories]);
 
-  // Update filteredItems logic
+  // Adjust menu item prices if tax is included in prices (tax_menu_price = 0)
+  const adjustPriceForTax = (price: number): number => {
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      // Tax is included in prices - increase price by tax percentage
+      return price * (1 + taxSettings.percentage / 100)
+    }
+    return price
+  }
+
+  // Update filteredItems logic with price adjustment
   const filteredItems = useMemo(() => {
     // Use API data if available, otherwise fallback to CMS store or static data
     const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData);
+    
+    // Adjust prices if tax is included in menu prices
+    const itemsWithAdjustedPrices = availableItems.map(item => ({
+      ...item,
+      price: adjustPriceForTax(item.price),
+      // Also adjust option prices if they exist
+      options: item.options?.map(option => ({
+        ...option,
+        values: option.values.map(value => ({
+          ...value,
+          price: adjustPriceForTax(value.price)
+        }))
+      }))
+    }))
     
     // Always default to showing all items if no category is selected
     const currentCategory = selectedCategory || "All";
     
     // If "All" is selected, show all items
     if (currentCategory === "All") {
-      return availableItems;
+      return itemsWithAdjustedPrices;
     }
     
     // Otherwise, filter by selected category
-    return availableItems.filter((item) => item.category === currentCategory);
-  }, [apiMenuItems, menuItems, selectedCategory]);
+    return itemsWithAdjustedPrices.filter((item) => item.category === currentCategory);
+  }, [apiMenuItems, menuItems, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
 
   // Initialize with "All" category when data loads
   useEffect(() => {

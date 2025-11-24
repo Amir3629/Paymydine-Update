@@ -40,12 +40,23 @@ type TaxSettings = {
   menuPrice: number // 0 = include tax in menu price, 1 = apply tax on menu price
 }
 
+type AppliedCoupon = {
+  coupon_id: number
+  code: string
+  name: string
+  type: 'F' | 'P' // F = Fixed, P = Percentage
+  discount: number // Calculated discount amount
+  discount_value: number // Original discount value from coupon
+  min_total: number
+} | null
+
 type CmsState = {
   settings: CmsSettings
   menuItems: MenuItem[]
   paymentOptions: PaymentOption[]
   tipSettings: TipSettings
   taxSettings: TaxSettings
+  appliedCoupon: AppliedCoupon
   merchantSettings: MerchantSettings
   updateSettings: (newSettings: Partial<CmsSettings>) => void
   updateMenuItem: (updatedItem: MenuItem) => void
@@ -54,6 +65,8 @@ type CmsState = {
   updateTipSettings: (newSettings: Partial<TipSettings>) => void
   updateTaxSettings: (newSettings: Partial<TaxSettings>) => void
   loadTaxSettings: () => Promise<void>
+  validateCoupon: (code: string, subtotal: number) => Promise<{ success: boolean; message?: string }>
+  removeCoupon: () => void
   updateMerchantSettings: (newSettings: Partial<MerchantSettings>) => void
   isInitialized: boolean
 }
@@ -107,6 +120,7 @@ export const useCmsStore = create<CmsState>()(
       paymentOptions: initialPaymentOptions,
       tipSettings: initialTipSettings,
       taxSettings: initialTaxSettings,
+      appliedCoupon: null,
       merchantSettings: initialMerchantSettings,
       isInitialized: false,
       updateSettings: (newSettings) =>
@@ -163,6 +177,39 @@ export const useCmsStore = create<CmsState>()(
         } catch (error) {
           console.error('❌ CMS Store: Failed to load tax settings:', error)
         }
+      },
+      validateCoupon: async (code: string, subtotal: number) => {
+        try {
+          console.log('🔄 CMS Store: Validating coupon code:', code)
+          const response = await apiClient.validateCoupon(code, subtotal)
+          console.log('📡 CMS Store: Coupon validation response:', response)
+          
+          if (response.success && response.data) {
+            set({
+              appliedCoupon: {
+                coupon_id: response.data.coupon_id,
+                code: response.data.code,
+                name: response.data.name,
+                type: response.data.type,
+                discount: response.data.discount,
+                discount_value: response.data.discount_value,
+                min_total: response.data.min_total,
+              },
+            })
+            console.log('✅ CMS Store: Coupon applied successfully')
+            return { success: true }
+          } else {
+            console.warn('⚠️ CMS Store: Coupon validation failed:', response.message)
+            return { success: false, message: response.message || 'Invalid coupon code' }
+          }
+        } catch (error) {
+          console.error('❌ CMS Store: Failed to validate coupon:', error)
+          return { success: false, message: 'Failed to validate coupon' }
+        }
+      },
+      removeCoupon: () => {
+        set({ appliedCoupon: null })
+        console.log('✅ CMS Store: Coupon removed')
       },
       updateMerchantSettings: (newSettings) =>
         set((state) => ({

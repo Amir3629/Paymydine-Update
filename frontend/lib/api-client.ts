@@ -465,6 +465,37 @@ export class ApiClient {
     }
   }
 
+  async validateCoupon(code: string, subtotal: number): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
+      const res = await fetch(`${base}/validate-coupon`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code, subtotal }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to validate coupon' }));
+        return {
+          success: false,
+          message: errorData.message || 'Failed to validate coupon',
+        };
+      }
+      
+      const json = await res.json();
+      return json;
+    } catch (error) {
+      console.error('Failed to validate coupon:', error);
+      return {
+        success: false,
+        message: 'Failed to validate coupon',
+      };
+    }
+  }
+
   async getRestaurantInfo(locationId: number = 1): Promise<{ success: boolean; data: RestaurantInfo }> {
     try {
       const endpoint = this.envConfig.getApiEndpoint(`/restaurant`);

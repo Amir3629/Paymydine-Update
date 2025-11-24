@@ -55,7 +55,7 @@ export default function CheckoutPage() {
   const { toast } = useToast()
   const { t } = useLanguageStore()
   const { items: allItems, clearCart } = useCartStore()
-  const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadTaxSettings } = useCmsStore()
+  const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadTaxSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
   const [isLoading, setIsLoading] = useState(false)
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SelectedItem>>({})
@@ -64,6 +64,9 @@ export default function CheckoutPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loadingPayments, setLoadingPayments] = useState(true)
+  const [couponCode, setCouponCode] = useState("")
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
     cardNumber: "",
     expiryDate: "",
@@ -119,16 +122,32 @@ export default function CheckoutPage() {
     () => itemsToPay.reduce((acc, inst) => acc + inst.price, 0),
     [itemsToPay],
   )
-  // Calculate tax if enabled
+  // Calculate tax if enabled AND tax should be applied on checkout (not already included in prices)
+  // tax_menu_price: 0 = tax included in menu price, 1 = apply tax on checkout
   const taxAmount = useMemo(() => {
-    if (!taxSettings.enabled || taxSettings.percentage === 0) {
-      return 0
+    if (!taxSettings.enabled || taxSettings.percentage === 0 || taxSettings.menuPrice === 0) {
+      return 0 // If tax is included in menu price (menuPrice = 0), don't add tax
     }
     return subtotal * (taxSettings.percentage / 100)
-  }, [subtotal, taxSettings.enabled, taxSettings.percentage])
+  }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const safeTip = Math.max(0, Number(customTip) || 0);
   const tipAmount = customTip ? safeTip : subtotal * (tipPercentage / 100);
-  const finalTotal = subtotal + taxAmount + tipAmount
+  
+  // Calculate coupon discount
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0
+    // Recalculate discount based on current subtotal (in case items changed)
+    const subtotalForCoupon = subtotal
+    if (appliedCoupon.type === 'F') {
+      // Fixed amount - don't exceed subtotal
+      return Math.min(appliedCoupon.discount, subtotalForCoupon)
+    } else {
+      // Percentage
+      return subtotalForCoupon * (appliedCoupon.discount_value / 100)
+    }
+  }, [appliedCoupon, subtotal])
+  
+  const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
   const processPayment = async (paymentData: any) => {
     try {
@@ -146,6 +165,8 @@ export default function CheckoutPage() {
           items: itemsToPay,
           customerInfo: paymentFormData,
           merchantAccount: merchantSettings.accountId,
+          coupon_code: appliedCoupon?.code || null,
+          coupon_discount: couponDiscount,
           ...paymentData,
         }),
       })
@@ -757,7 +778,7 @@ export default function CheckoutPage() {
           onClick={() => router.back()}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {t("back")}
+          {t("backToHome") || "Back"}
         </Button>
 
         <div className="space-y-8">
@@ -777,21 +798,103 @@ export default function CheckoutPage() {
               )
             })}
 
+            {/* Coupon Code Input */}
+            <div className="surface-sub rounded-2xl p-3 space-y-2 mt-4">
+              {!appliedCoupon ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase())
+                      setCouponError(null)
+                    }}
+                    placeholder={t("couponCode") || "Coupon Code"}
+                    className="flex-1 px-3 py-2 border rounded-lg text-xs"
+                    style={{ borderColor: 'var(--theme-border)' }}
+                    disabled={couponLoading}
+                  />
+                  <Button
+                    onClick={async () => {
+                      if (!couponCode.trim()) {
+                        setCouponError("Please enter a coupon code")
+                        return
+                      }
+                      setCouponLoading(true)
+                      setCouponError(null)
+                      const result = await validateCoupon(couponCode.trim(), subtotal)
+                      if (!result.success) {
+                        setCouponError(result.message || "Invalid coupon code")
+                      } else {
+                        setCouponCode("")
+                        // Wait a bit for state to update, then show toast
+                        setTimeout(() => {
+                          const { appliedCoupon: currentCoupon } = useCmsStore.getState()
+                          toast({
+                            title: "Coupon Applied",
+                            description: `${currentCoupon?.name || 'Coupon'} applied successfully!`,
+                          })
+                        }, 100)
+                      }
+                      setCouponLoading(false)
+                    }}
+                    disabled={couponLoading || !couponCode.trim()}
+                    size="sm"
+                    className="icon-btn--accent text-xs"
+                  >
+                    {couponLoading ? "..." : t("apply") || "Apply"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                      {appliedCoupon.name} ({appliedCoupon.code})
+                    </span>
+                    <span className="text-xs text-green-600 dark:text-green-500">
+                      -${couponDiscount.toFixed(2)}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      removeCoupon()
+                      setCouponCode("")
+                      setCouponError(null)
+                    }}
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              )}
+              {couponError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{couponError}</p>
+              )}
+            </div>
+
             <div className="mt-4 space-y-2">
               <div className="flex justify-between">
                 <span>{t("subtotal")}</span>
                 <span className="font-semibold">${subtotal.toFixed(2)}</span>
               </div>
-              {taxSettings.enabled && taxSettings.percentage > 0 && (
-                <div className="flex justify-between">
+              {taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1 && (
+              <div className="flex justify-between">
                   <span>{t("tax")} {taxSettings.percentage}%</span>
                   <span className="font-semibold">${taxAmount.toFixed(2)}</span>
-                </div>
+              </div>
               )}
               <div className="flex justify-between">
                 <span>{t("tip")}</span>
                 <span className="font-semibold">${tipAmount.toFixed(2)}</span>
               </div>
+              {appliedCoupon && couponDiscount > 0 && (
+                <div className="flex justify-between text-xs text-green-600 dark:text-green-400">
+                  <span>{t("coupon") || "Coupon"} ({appliedCoupon.code})</span>
+                  <span className="font-semibold">-${couponDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-xl font-bold pt-2 divider">
                 <span>{t("total")}</span>
                 <span style={{ color: 'var(--theme-secondary)' }}>${finalTotal.toFixed(2)}</span>
@@ -902,11 +1005,11 @@ export default function CheckoutPage() {
               <span>{t("subtotal")}</span>
               <span className="font-semibold">${subtotal.toFixed(2)}</span>
             </div>
-            {taxSettings.enabled && taxSettings.percentage > 0 && (
-              <div className="flex justify-between text-xs">
+            {taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1 && (
+            <div className="flex justify-between text-xs">
                 <span>{t("tax")} {taxSettings.percentage}%</span>
                 <span className="font-semibold">${taxAmount.toFixed(2)}</span>
-              </div>
+            </div>
             )}
             {tipAmount > 0 && (
               <div className="flex justify-between text-xs">

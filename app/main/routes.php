@@ -774,6 +774,71 @@ App::before(function () {
             }
         });
 
+        // Validate coupon code - same pattern as /tax-settings
+        Route::post('/validate-coupon', function (\Illuminate\Http\Request $request) {
+            try {
+                $code = strtoupper(trim($request->input('code', '')));
+                $subtotal = floatval($request->input('subtotal', 0));
+                
+                if (empty($code)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Coupon code is required'
+                    ]);
+                }
+                
+                // Find coupon by code
+                // Use 'igniter_coupons' - Laravel will automatically add the 'ti_' prefix
+                $coupon = DB::table('igniter_coupons')
+                    ->where('code', $code)
+                    ->where('status', 1)
+                    ->first();
+                
+                if (!$coupon) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid coupon code'
+                    ]);
+                }
+                
+                // Check minimum total requirement
+                if ($coupon->min_total && $subtotal < $coupon->min_total) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Minimum order total of $' . number_format($coupon->min_total, 2) . ' required'
+                    ]);
+                }
+                
+                // Calculate discount
+                $discount = 0;
+                if ($coupon->type === 'F') {
+                    // Fixed amount
+                    $discount = min(floatval($coupon->discount), $subtotal);
+                } else {
+                    // Percentage
+                    $discount = $subtotal * (floatval($coupon->discount) / 100);
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'coupon_id' => $coupon->coupon_id,
+                        'code' => $coupon->code,
+                        'name' => $coupon->name,
+                        'type' => $coupon->type,
+                        'discount' => $discount,
+                        'discount_value' => floatval($coupon->discount),
+                        'min_total' => floatval($coupon->min_total ?? 0),
+                    ]
+                ]);
+            } catch (Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to validate coupon: ' . $e->getMessage()
+                ]);
+            }
+        });
+
         // If the active theme is frontend-theme, proxy root to Next.js server so URL stays 127.0.0.1:8000
         Route::get('/', function () {
             $active = params('default_themes.main', config('system.defaultTheme'));
@@ -805,6 +870,7 @@ App::before(function () {
                     '/api-server.php',
                     '/simple-theme',
                     '/tax-settings',
+                    '/validate-coupon',
                 ];
                 foreach ($exclusions as $ex) {
                     if ($path === $ex || strpos($path, rtrim($ex,'/').'/') === 0) {
