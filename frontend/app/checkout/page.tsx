@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, Wallet, Check, Plus, Minus, CreditCard, Lock, ArrowLeft } from "lucide-react"
+import { Users, Wallet, Check, Plus, Minus, CreditCard, Lock, ArrowLeft, DollarSign } from "lucide-react"
 import { useCartStore, type CartItem } from "@/store/cart-store"
 import { useLanguageStore } from "@/store/language-store"
 import { useCmsStore } from "@/store/cms-store"
@@ -964,7 +964,7 @@ export default function CheckoutPage() {
               <h3 className="font-semibold mb-2 text-xs">{t("orderSummary")}</h3>
               <div className="space-y-2">
                 {allItems.map((cartItem) => (
-                  <div key={cartItem.item.id} className="flex justify-between items-center text-xs p-2 rounded-lg">
+                  <div key={cartItem.item.id} className="flex justify-between items-center text-xs p-2 rounded-2xl">
                     <span className="muted min-w-[120px]">
                       {cartItem.quantity}x {t(cartItem.item.nameKey as TranslationKey)}
                     </span>
@@ -982,7 +982,24 @@ export default function CheckoutPage() {
           {/* Tip Section */}
           {tipSettings.enabled && (
             <div className="surface-sub rounded-2xl p-3">
-              <h3 className="font-semibold mb-2 text-xs">{t("addTip")}</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="relative h-4 w-4 flex items-center justify-center">
+                  <svg 
+                    className="absolute h-4 w-4" 
+                    style={{ color: 'var(--theme-secondary)' }}
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                  <DollarSign className="h-2.5 w-2.5 absolute" style={{ color: 'var(--theme-background)' }} strokeWidth="3" />
+                </div>
+                <h3 className="font-semibold text-xs">{t("addTip")}</h3>
+              </div>
               <div className="space-y-3">
                 <div className="flex gap-2">
                   {tipSettings.percentages.map((p) => (

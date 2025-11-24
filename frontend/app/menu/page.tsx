@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle } from "lucide-react"
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign } from "lucide-react"
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
@@ -179,7 +179,7 @@ function OrderItemWithOptions({
   }
 
   return (
-    <div className="border border-paydine-champagne/20 rounded-lg overflow-hidden">
+    <div className="border border-paydine-champagne/20 rounded-2xl overflow-hidden">
       {/* Main item row */}
       <div className="flex justify-between items-center text-xs p-2">
         <span className="text-paydine-elegant-gray min-w-[120px]">
@@ -193,7 +193,7 @@ function OrderItemWithOptions({
             }}
             className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Minus className="w-3 h-3" style={{ color: 'var(--theme-background)' }} />
+            <Minus className="w-3 h-3" />
           </button>
           <span className="text-paydine-elegant-gray font-semibold min-w-[48px] text-center">
             {formatCurrency(getTotalPrice())}
@@ -205,7 +205,7 @@ function OrderItemWithOptions({
             }}
             className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Plus className="w-3 h-3" style={{ color: 'var(--theme-background)' }} />
+            <Plus className="w-3 h-3" strokeWidth={3} />
           </button>
         </div>
       </div>
@@ -916,7 +916,24 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
           {/* Tip Section */}
           {tipSettings.enabled && (
             <div className="surface-sub rounded-2xl p-3">
-              <h3 className="mb-2 text-xs">{t("addTip")}</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="relative h-4 w-4 flex items-center justify-center">
+                  <svg 
+                    className="absolute h-4 w-4" 
+                    style={{ color: 'var(--theme-secondary)' }}
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                  <DollarSign className="h-2.5 w-2.5 absolute" style={{ color: 'var(--theme-background)' }} strokeWidth="3" />
+                </div>
+                <h3 className="text-xs">{t("addTip")}</h3>
+              </div>
               <div className="flex gap-2">
                 {tipSettings.percentages.map((p) => (
                   <Button
@@ -1198,7 +1215,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
               ) : (
-                <Plus className="h-5 w-5" />
+                <Plus className="h-5 w-5" strokeWidth={3} />
               )}
               <span className="sr-only">Add to cart</span>
             </button>

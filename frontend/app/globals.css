@@ -299,6 +299,127 @@
     border-color: var(--theme-border); 
     color: var(--theme-text-secondary); 
   }
+
+  /* Input fields - BRIGHT version of theme background color (not same color) */
+  /* Target ALL inputs globally including valet page */
+  
+  /* Clean Light Theme - Background: #FAFAFA, Input: Much brighter */
+  [data-theme="clean-light"] input[type="text"],
+  [data-theme="clean-light"] input[type="number"],
+  [data-theme="clean-light"] input[type="email"],
+  [data-theme="clean-light"] input[type="tel"],
+  [data-theme="clean-light"] input[type="password"],
+  [data-theme="clean-light"] textarea,
+  [data-theme="clean-light"] input,
+  [data-theme="clean-light"] .surface input,
+  [data-theme="clean-light"] .surface-sub input,
+  [data-theme="clean-light"] .surface textarea,
+  [data-theme="clean-light"] .surface-sub textarea {
+    background-color: #FFFFFF !important; /* Bright white - much brighter than #FAFAFA */
+    color: #000000 !important; /* Black text for light background */
+  }
+
+  /* Modern Dark Theme - Background: #0A0E12, Input: Much brighter */
+  [data-theme="modern-dark"] input[type="text"],
+  [data-theme="modern-dark"] input[type="number"],
+  [data-theme="modern-dark"] input[type="email"],
+  [data-theme="modern-dark"] input[type="tel"],
+  [data-theme="modern-dark"] input[type="password"],
+  [data-theme="modern-dark"] textarea,
+  [data-theme="modern-dark"] input,
+  [data-theme="modern-dark"] .surface input,
+  [data-theme="modern-dark"] .surface-sub input,
+  [data-theme="modern-dark"] .surface textarea,
+  [data-theme="modern-dark"] .surface-sub textarea {
+    background-color: #2A2E38 !important; /* Bright version of #0A0E12 - much brighter */
+    color: #FFFFFF !important; /* White text for dark background */
+  }
+
+  /* Gold Luxury Theme - Background: #0F0B05, Input: Much brighter */
+  [data-theme="gold-luxury"] input[type="text"],
+  [data-theme="gold-luxury"] input[type="number"],
+  [data-theme="gold-luxury"] input[type="email"],
+  [data-theme="gold-luxury"] input[type="tel"],
+  [data-theme="gold-luxury"] input[type="password"],
+  [data-theme="gold-luxury"] textarea,
+  [data-theme="gold-luxury"] input,
+  [data-theme="gold-luxury"] .surface input,
+  [data-theme="gold-luxury"] .surface-sub input,
+  [data-theme="gold-luxury"] .surface textarea,
+  [data-theme="gold-luxury"] .surface-sub textarea {
+    background-color: #2F2B25 !important; /* Bright version of #0F0B05 - much brighter */
+    color: #FFFFFF !important; /* White text for dark background */
+  }
+
+  /* Vibrant Colors Theme - Background: #e2ceb1, Input: Much brighter */
+  [data-theme="vibrant-colors"] input[type="text"],
+  [data-theme="vibrant-colors"] input[type="number"],
+  [data-theme="vibrant-colors"] input[type="email"],
+  [data-theme="vibrant-colors"] input[type="tel"],
+  [data-theme="vibrant-colors"] input[type="password"],
+  [data-theme="vibrant-colors"] textarea,
+  [data-theme="vibrant-colors"] input,
+  [data-theme="vibrant-colors"] .surface input,
+  [data-theme="vibrant-colors"] .surface-sub input,
+  [data-theme="vibrant-colors"] .surface textarea,
+  [data-theme="vibrant-colors"] .surface-sub textarea {
+    background-color: #F8E8D1 !important; /* Bright version of #e2ceb1 - much brighter */
+    color: #000000 !important; /* Black text for light background */
+  }
+
+  /* Minimal Theme - Background: #CFEBF7, Input: Much brighter */
+  [data-theme="minimal"] input[type="text"],
+  [data-theme="minimal"] input[type="number"],
+  [data-theme="minimal"] input[type="email"],
+  [data-theme="minimal"] input[type="tel"],
+  [data-theme="minimal"] input[type="password"],
+  [data-theme="minimal"] textarea,
+  [data-theme="minimal"] input,
+  [data-theme="minimal"] .surface input,
+  [data-theme="minimal"] .surface-sub input,
+  [data-theme="minimal"] .surface textarea,
+  [data-theme="minimal"] .surface-sub textarea {
+    background-color: #E5F7FF !important; /* Bright version of #CFEBF7 - much brighter */
+    color: #000000 !important; /* Black text for light background */
+  }
+
+  /* More rounded corners for all input fields and textareas */
+  [data-theme] input[type="text"],
+  [data-theme] input[type="number"],
+  [data-theme] input[type="email"],
+  [data-theme] input[type="tel"],
+  [data-theme] input[type="password"],
+  [data-theme] textarea,
+  [data-theme] input {
+    border-radius: 0.75rem !important; /* rounded-xl - more rounded */
+  }
+
+  /* Very thin white focus frame for all input fields */
+  [data-theme] input:focus,
+  [data-theme] input:focus-visible,
+  [data-theme] textarea:focus,
+  [data-theme] textarea:focus-visible {
+    outline: 0.5px solid rgba(255, 255, 255, 0.7) !important; /* Very thin white border */
+    outline-offset: 0 !important;
+    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.7) !important; /* Very thin white frame */
+    border-color: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 0.75rem !important; /* Keep rounded on focus */
+  }
+}
+
+/* Order Summary food item frames - more rounded */
+.surface-sub .border.rounded-lg,
+.surface-sub div[class*="border"][class*="rounded-lg"],
+.surface-sub .border[class*="rounded-lg"],
+.surface-sub div[class*="rounded-lg"][class*="flex"][class*="justify-between"],
+.surface-sub .rounded-lg[class*="flex"][class*="justify-between"] {
+  border-radius: 1rem !important; /* rounded-2xl - more rounded */
+}
+
+/* Also target food items in Order Summary without explicit border class */
+.surface-sub .space-y-2 > div[class*="rounded-lg"],
+.surface-sub .space-y-2 > div.rounded-lg {
+  border-radius: 1rem !important; /* rounded-2xl - more rounded */
 }
 
 /* Existing utilities */
@@ -403,11 +524,19 @@ input[type="number"] {
   border: 1.5px solid var(--theme-border) !important; /* Round frame */
   border-radius: 9999px !important; /* Fully rounded frame */
 }
+.icon-btn:hover {
+  color: var(--theme-text-primary) !important; /* No color change on hover */
+  background: transparent !important; /* No background change on hover */
+}
 .icon-btn--accent {
-  background: var(--theme-cart-bg, var(--theme-input)) !important; /* Match card background */
-  color: var(--theme-text-primary) !important;
-  border: 1.5px solid var(--theme-border) !important; /* Round frame */
+  background: var(--theme-secondary) !important; /* Use theme's secondary/button color */
+  color: var(--theme-background) !important; /* Use theme's background color for text */
+  border: 1.5px solid var(--theme-secondary) !important; /* Match background */
   border-radius: 9999px !important; /* Fully rounded frame */
+}
+.icon-btn--accent:hover {
+  background: var(--theme-secondary) !important; /* Keep same color on hover */
+  color: var(--theme-background) !important; /* Keep same text color on hover */
 }
 
 /* Icon button frame colors - theme-specific for better visibility */
@@ -418,7 +547,14 @@ input[type="number"] {
 
 [data-theme="clean-light"] .icon-btn--accent,
 [data-theme="clean-light"] button.icon-btn--accent {
-  border-color: rgba(0, 0, 0, 0.2) !important; /* Darker frame for light theme */
+  background-color: #EFC7B1 !important; /* paydine-rose-beige (secondary) */
+  color: #FAFAFA !important; /* paydine-soft-white (background) */
+  border-color: #EFC7B1 !important;
+}
+[data-theme="clean-light"] .icon-btn--accent:hover,
+[data-theme="clean-light"] button.icon-btn--accent:hover {
+  background-color: #EFC7B1 !important; /* No change on hover */
+  color: #FAFAFA !important; /* No change on hover */
 }
 
 [data-theme="modern-dark"] .icon-btn,
@@ -428,7 +564,14 @@ input[type="number"] {
 
 [data-theme="modern-dark"] .icon-btn--accent,
 [data-theme="modern-dark"] button.icon-btn--accent {
-  border-color: rgba(255, 255, 255, 0.2) !important; /* Lighter frame for dark theme */
+  background-color: #E8B4A0 !important; /* Rose gold (secondary) */
+  color: #0A0E12 !important; /* Dark background */
+  border-color: #E8B4A0 !important;
+}
+[data-theme="modern-dark"] .icon-btn--accent:hover,
+[data-theme="modern-dark"] button.icon-btn--accent:hover {
+  background-color: #E8B4A0 !important; /* No change on hover */
+  color: #0A0E12 !important; /* No change on hover */
 }
 
 [data-theme="gold-luxury"] .icon-btn,
@@ -438,7 +581,14 @@ input[type="number"] {
 
 [data-theme="gold-luxury"] .icon-btn--accent,
 [data-theme="gold-luxury"] button.icon-btn--accent {
-  border-color: rgba(255, 248, 220, 0.4) !important; /* Gold frame for luxury theme */
+  background-color: #FFF8DC !important; /* Cornsilk (secondary) */
+  color: #0F0B05 !important; /* Dark background */
+  border-color: #FFF8DC !important;
+}
+[data-theme="gold-luxury"] .icon-btn--accent:hover,
+[data-theme="gold-luxury"] button.icon-btn--accent:hover {
+  background-color: #FFF8DC !important; /* No change on hover */
+  color: #0F0B05 !important; /* No change on hover */
 }
 
 [data-theme="vibrant-colors"] .icon-btn,
@@ -448,7 +598,14 @@ input[type="number"] {
 
 [data-theme="vibrant-colors"] .icon-btn--accent,
 [data-theme="vibrant-colors"] button.icon-btn--accent {
-  border-color: rgba(0, 0, 0, 0.25) !important; /* Darker frame for vibrant theme */
+  background-color: #FF6B6B !important; /* Electric coral (secondary) */
+  color: #e2ceb1 !important; /* Warm beige (background) */
+  border-color: #FF6B6B !important;
+}
+[data-theme="vibrant-colors"] .icon-btn--accent:hover,
+[data-theme="vibrant-colors"] button.icon-btn--accent:hover {
+  background-color: #FF6B6B !important; /* No change on hover */
+  color: #e2ceb1 !important; /* No change on hover */
 }
 
 [data-theme="minimal"] .icon-btn,
@@ -458,7 +615,14 @@ input[type="number"] {
 
 [data-theme="minimal"] .icon-btn--accent,
 [data-theme="minimal"] button.icon-btn--accent {
-  border-color: rgba(74, 144, 226, 0.3) !important; /* Blue frame for minimal theme */
+  background-color: #4B8FE2 !important; /* Blue (matching cart badge) */
+  color: #CFEBF7 !important; /* Light blue (background) */
+  border-color: #4B8FE2 !important;
+}
+[data-theme="minimal"] .icon-btn--accent:hover,
+[data-theme="minimal"] button.icon-btn--accent:hover {
+  background-color: #4B8FE2 !important; /* No change on hover */
+  color: #CFEBF7 !important; /* No change on hover */
 }
 
 /* Tip pills */
@@ -466,7 +630,7 @@ input[type="number"] {
   background: transparent !important;
   color: var(--theme-text-primary) !important;
   border: 1px solid var(--theme-border) !important;
-  border-radius: 12px !important;
+  border-radius: 9999px !important; /* Fully rounded like other buttons */
   padding: 10px 14px !important;
 }
 
@@ -476,6 +640,7 @@ input[type="number"] {
   background-color: #EFC7B1 !important; /* paydine-rose-beige */
   color: #FAFAFA !important; /* paydine-soft-white */
   border-color: #EFC7B1 !important;
+  border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
   font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
@@ -485,6 +650,7 @@ input[type="number"] {
   background-color: #E8B4A0 !important; /* rose gold */
   color: #0A0E12 !important; /* dark background */
   border-color: #E8B4A0 !important;
+  border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
   font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
@@ -494,6 +660,7 @@ input[type="number"] {
   background-color: #FFF8DC !important; /* cornsilk */
   color: #0F0B05 !important; /* dark background */
   border-color: #FFF8DC !important;
+  border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
   font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
@@ -503,15 +670,17 @@ input[type="number"] {
   background-color: #FF6B6B !important; /* coral */
   color: #e2ceb1 !important; /* warm beige */
   border-color: #FF6B6B !important;
+  border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
   font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
 
 [data-theme="minimal"] .tip-pill--active,
 [data-theme="minimal"] button.tip-pill--active {
-  background-color: #4A90E2 !important; /* blue */
+  background-color: #4B8FE2 !important; /* blue (matching cart badge) */
   color: #CFEBF7 !important; /* light blue */
-  border-color: #4A90E2 !important;
+  border-color: #4B8FE2 !important;
+  border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
   font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
@@ -521,6 +690,7 @@ input[type="number"] {
   background: var(--theme-secondary) !important;
   color: var(--theme-background) !important;
   border-color: var(--theme-secondary) !important;
+  border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
   font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
@@ -537,19 +707,171 @@ div[class*="surface-sub"] span.text-xs {
   font-weight: 800 !important; /* Thick/bold titles for Split Bill, Order Summary, Add a Tip */
 }
 
-/* Split Bill text - make it black */
+/* Split Bill text - theme-aware colors */
 .surface-sub .flex.items-center span.text-xs.muted,
 div[class*="surface-sub"] .flex.items-center span.text-xs.muted,
 .surface-sub span.muted.text-xs {
-  color: #000000 !important; /* Black text for Split Bill */
+  color: var(--theme-text-primary) !important; /* Use theme text color */
 }
 
-/* Split Bill icon - make it bigger */
+/* Split Bill text - specific colors for dark themes */
+[data-theme="modern-dark"] .surface-sub .flex.items-center span.text-xs.muted,
+[data-theme="modern-dark"] div[class*="surface-sub"] .flex.items-center span.text-xs.muted,
+[data-theme="modern-dark"] .surface-sub span.muted.text-xs {
+  color: #F8FAFC !important; /* Crisp white for Modern Dark */
+}
+
+[data-theme="gold-luxury"] .surface-sub .flex.items-center span.text-xs.muted,
+[data-theme="gold-luxury"] div[class*="surface-sub"] .flex.items-center span.text-xs.muted,
+[data-theme="gold-luxury"] .surface-sub span.muted.text-xs {
+  color: #FFF8DC !important; /* Warm white for Gold Luxury */
+}
+
+/* Split Bill icon - make it bigger and match button colors */
 .surface-sub .flex.items-center svg.lucide-users,
 .surface-sub .flex.items-center svg[class*="lucide-users"],
 div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
   width: 20px !important; /* Bigger icon (from 16px to 20px) */
   height: 20px !important; /* Bigger icon (from 16px to 20px) */
+}
+
+/* Split Bill icon colors - match button colors exactly */
+[data-theme="clean-light"] .surface-sub .flex.items-center svg.lucide-users,
+[data-theme="clean-light"] .surface-sub .flex.items-center svg[class*="lucide-users"],
+[data-theme="clean-light"] div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
+  color: #EFC7B1 !important; /* paydine-rose-beige (matches button) */
+  fill: #EFC7B1 !important;
+  stroke: #EFC7B1 !important;
+}
+
+[data-theme="modern-dark"] .surface-sub .flex.items-center svg.lucide-users,
+[data-theme="modern-dark"] .surface-sub .flex.items-center svg[class*="lucide-users"],
+[data-theme="modern-dark"] div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
+  color: #E8B4A0 !important; /* Rose gold (matches button) */
+  fill: #E8B4A0 !important;
+  stroke: #E8B4A0 !important;
+}
+
+[data-theme="gold-luxury"] .surface-sub .flex.items-center svg.lucide-users,
+[data-theme="gold-luxury"] .surface-sub .flex.items-center svg[class*="lucide-users"],
+[data-theme="gold-luxury"] div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
+  color: #FFF8DC !important; /* Cornsilk (matches button) */
+  fill: #FFF8DC !important;
+  stroke: #FFF8DC !important;
+}
+
+[data-theme="vibrant-colors"] .surface-sub .flex.items-center svg.lucide-users,
+[data-theme="vibrant-colors"] .surface-sub .flex.items-center svg[class*="lucide-users"],
+[data-theme="vibrant-colors"] div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
+  color: #FF6B6B !important; /* Electric coral (matches button) */
+  fill: #FF6B6B !important;
+  stroke: #FF6B6B !important;
+}
+
+[data-theme="minimal"] .surface-sub .flex.items-center svg.lucide-users,
+[data-theme="minimal"] .surface-sub .flex.items-center svg[class*="lucide-users"],
+[data-theme="minimal"] div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
+  color: #4B8FE2 !important; /* Blue (matches button) */
+  fill: #4B8FE2 !important;
+  stroke: #4B8FE2 !important;
+}
+
+/* Also target Split Bill icon in checkout page and other locations */
+[data-theme="clean-light"] svg.lucide-users[class*="h-4"],
+[data-theme="clean-light"] .flex.items-center svg.lucide-users {
+  color: #EFC7B1 !important; /* paydine-rose-beige (matches button) */
+}
+
+[data-theme="modern-dark"] svg.lucide-users[class*="h-4"],
+[data-theme="modern-dark"] .flex.items-center svg.lucide-users {
+  color: #E8B4A0 !important; /* Rose gold (matches button) */
+}
+
+[data-theme="gold-luxury"] svg.lucide-users[class*="h-4"],
+[data-theme="gold-luxury"] .flex.items-center svg.lucide-users {
+  color: #FFF8DC !important; /* Cornsilk (matches button) */
+}
+
+[data-theme="vibrant-colors"] svg.lucide-users[class*="h-4"],
+[data-theme="vibrant-colors"] .flex.items-center svg.lucide-users {
+  color: #FF6B6B !important; /* Electric coral (matches button) */
+}
+
+[data-theme="minimal"] svg.lucide-users[class*="h-4"],
+[data-theme="minimal"] .flex.items-center svg.lucide-users {
+  color: #4B8FE2 !important; /* Blue (matches button) */
+}
+
+/* Tip icon colors - match button colors exactly (same as Split Bill icon) */
+[data-theme="clean-light"] svg.lucide-wallet[class*="h-4"],
+[data-theme="clean-light"] .flex.items-center svg.lucide-wallet {
+  color: #EFC7B1 !important; /* paydine-rose-beige (matches button) */
+  fill: #EFC7B1 !important;
+  stroke: #EFC7B1 !important;
+}
+
+[data-theme="modern-dark"] svg.lucide-wallet[class*="h-4"],
+[data-theme="modern-dark"] .flex.items-center svg.lucide-wallet {
+  color: #E8B4A0 !important; /* Rose gold (matches button) */
+  fill: #E8B4A0 !important;
+  stroke: #E8B4A0 !important;
+}
+
+[data-theme="gold-luxury"] svg.lucide-wallet[class*="h-4"],
+[data-theme="gold-luxury"] .flex.items-center svg.lucide-wallet {
+  color: #FFF8DC !important; /* Cornsilk (matches button) */
+  fill: #FFF8DC !important;
+  stroke: #FFF8DC !important;
+}
+
+[data-theme="vibrant-colors"] svg.lucide-wallet[class*="h-4"],
+[data-theme="vibrant-colors"] .flex.items-center svg.lucide-wallet {
+  color: #FF6B6B !important; /* Electric coral (matches button) */
+  fill: #FF6B6B !important;
+  stroke: #FF6B6B !important;
+}
+
+[data-theme="minimal"] svg.lucide-wallet[class*="h-4"],
+[data-theme="minimal"] .flex.items-center svg.lucide-wallet {
+  color: #4B8FE2 !important; /* Blue (matches button) */
+  fill: #4B8FE2 !important;
+  stroke: #4B8FE2 !important;
+}
+
+/* Dollar sign inside coin - use theme background colors */
+[data-theme="clean-light"] svg.lucide-dollar-sign[class*="h-2.5"],
+[data-theme="clean-light"] .lucide-dollar-sign {
+  color: #FAFAFA !important; /* paydine-soft-white (background) */
+  fill: #FAFAFA !important;
+  stroke: #FAFAFA !important;
+}
+
+[data-theme="modern-dark"] svg.lucide-dollar-sign[class*="h-2.5"],
+[data-theme="modern-dark"] .lucide-dollar-sign {
+  color: #0A0E12 !important; /* Dark background */
+  fill: #0A0E12 !important;
+  stroke: #0A0E12 !important;
+}
+
+[data-theme="gold-luxury"] svg.lucide-dollar-sign[class*="h-2.5"],
+[data-theme="gold-luxury"] .lucide-dollar-sign {
+  color: #0F0B05 !important; /* Dark background */
+  fill: #0F0B05 !important;
+  stroke: #0F0B05 !important;
+}
+
+[data-theme="vibrant-colors"] svg.lucide-dollar-sign[class*="h-2.5"],
+[data-theme="vibrant-colors"] .lucide-dollar-sign {
+  color: #e2ceb1 !important; /* Warm beige (background) */
+  fill: #e2ceb1 !important;
+  stroke: #e2ceb1 !important;
+}
+
+[data-theme="minimal"] svg.lucide-dollar-sign[class*="h-2.5"],
+[data-theme="minimal"] .lucide-dollar-sign {
+  color: #CFEBF7 !important; /* Light blue (background) */
+  fill: #CFEBF7 !important;
+  stroke: #CFEBF7 !important;
 }
 
 /* Totals section labels - make them thick/bold (only direct children of space-y-1 container, exclude order items) */
@@ -648,9 +970,9 @@ div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
 /* Minimal Theme */
 [data-theme="minimal"] button.quantity-btn,
 [data-theme="minimal"] .quantity-btn {
-  background-color: #4A90E2 !important; /* blue */
+  background-color: #4B8FE2 !important; /* blue (matching cart badge) */
   color: #CFEBF7 !important; /* light blue */
-  border: 1px solid #4A90E2 !important;
+  border: 1px solid #4B8FE2 !important;
   border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
