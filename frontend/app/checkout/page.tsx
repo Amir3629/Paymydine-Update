@@ -57,6 +57,15 @@ export default function CheckoutPage() {
   const { items: allItems, clearCart } = useCartStore()
   const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadTaxSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Helper function to adjust price if tax is included in menu prices
+  const adjustPriceForTax = (price: number): number => {
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      // Tax is included in prices - increase price by tax percentage
+      return price * (1 + taxSettings.percentage / 100)
+    }
+    return price
+  }
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SelectedItem>>({})
   const [tipPercentage, setTipPercentage] = useState(tipSettings.defaultPercentage)
@@ -103,7 +112,7 @@ export default function CheckoutPage() {
     Array.from({ length: cartItem.quantity }).map((_, i) => ({
       cartIndex,
       item: cartItem.item,
-      price: cartItem.item.price,
+      price: adjustPriceForTax(cartItem.item.price),
       key: `${cartItem.item.id}-${cartIndex}-${i}`,
     }))
   )
@@ -114,13 +123,13 @@ export default function CheckoutPage() {
     : allItems.flatMap((cartItem) =>
         Array.from({ length: cartItem.quantity }).map(() => ({
           item: cartItem.item,
-          price: cartItem.item.price,
+          price: adjustPriceForTax(cartItem.item.price),
         }))
       )
 
   const subtotal = useMemo(
     () => itemsToPay.reduce((acc, inst) => acc + inst.price, 0),
-    [itemsToPay],
+    [itemsToPay, taxSettings],
   )
   // Calculate tax if enabled AND tax should be applied on checkout (not already included in prices)
   // tax_menu_price: 0 = tax included in menu price, 1 = apply tax on checkout
@@ -787,13 +796,14 @@ export default function CheckoutPage() {
             
             {allItems.map(({ item, quantity }) => {
               const itemName = t(item.nameKey as TranslationKey) || item.name
+              const adjustedPrice = adjustPriceForTax(item.price)
               return (
                 <div key={item.id} className="flex justify-between items-center py-2 divider last:border-0">
                   <div className="flex items-center space-x-4">
                     <span>{quantity}x</span>
                     <span>{itemName}</span>
                   </div>
-                  <span className="font-semibold">${(item.price * quantity).toFixed(2)}</span>
+                  <span className="font-semibold">${(adjustedPrice * quantity).toFixed(2)}</span>
                 </div>
               )
             })}
@@ -960,7 +970,7 @@ export default function CheckoutPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="font-medium min-w-[48px] text-center" style={{ color: 'var(--theme-secondary)' }}>
-                        ${(cartItem.item.price * cartItem.quantity).toFixed(2)}
+                        ${(adjustPriceForTax(cartItem.item.price) * cartItem.quantity).toFixed(2)}
                       </span>
                     </div>
                   </div>

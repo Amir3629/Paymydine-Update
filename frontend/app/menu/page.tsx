@@ -156,13 +156,22 @@ function OrderItemWithOptions({
   }
 
   const getTotalPrice = () => {
-    let total = (cartItem.item.price || 0) * cartItem.quantity
+    // Get adjusted price helper from parent scope (need to pass it or get from store)
+    const { taxSettings } = useCmsStore.getState()
+    const adjustPrice = (price: number): number => {
+      if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+        return price * (1 + taxSettings.percentage / 100)
+      }
+      return price
+    }
+    
+    let total = adjustPrice(cartItem.item.price || 0) * cartItem.quantity
     Object.values(selectedOptions).forEach(optionId => {
       // Find the option in all option types and add its price
       itemOptions.forEach(option => {
         const optionValue = option.values.find(val => val.id.toString() === optionId)
         if (optionValue) {
-          total += optionValue.price * cartItem.quantity
+          total += adjustPrice(optionValue.price) * cartItem.quantity
         }
       })
     })
@@ -250,11 +259,20 @@ function OrderItemWithOptions({
                             className="w-3 h-3 text-paydine-champagne"
                           />
                           <span className="text-paydine-elegant-gray">{value.value}</span>
-                          {value.price > 0 && (
-                            <span className="text-paydine-champagne font-medium">
-                              +{formatCurrency(value.price)}
-                            </span>
-                          )}
+                          {value.price > 0 && (() => {
+                            const { taxSettings } = useCmsStore.getState()
+                            const adjustPrice = (price: number): number => {
+                              if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+                                return price * (1 + taxSettings.percentage / 100)
+                              }
+                              return price
+                            }
+                            return (
+                              <span className="text-paydine-champagne font-medium">
+                                +{formatCurrency(adjustPrice(value.price))}
+                              </span>
+                            )
+                          })()}
                         </label>
                       ))}
                     </div>
@@ -276,6 +294,15 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
   const { paymentOptions, tipSettings, taxSettings, loadTaxSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
   const { clearCart, addToCart } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Helper function to adjust price if tax is included in menu prices
+  const adjustPriceForTax = (price: number): number => {
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      // Tax is included in prices - increase price by tax percentage
+      return price * (1 + taxSettings.percentage / 100)
+    }
+    return price
+  }
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SplitBillItem>>({})
   const [selectedOptions, setSelectedOptions] = useState<Record<number, Record<string, string>>>({})
@@ -320,7 +347,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
     ? Object.values(selectedItems)
     : allItems.map(cartItem => ({
         item: cartItem.item,
-        price: cartItem.item.price || 0,
+        price: adjustPriceForTax(cartItem.item.price || 0),
         quantity: cartItem.quantity
       }))
 
@@ -328,7 +355,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
     () => itemsToPay.reduce((acc, inst) => {
       let itemTotal = inst.price * (inst.quantity || 1)
       
-      // Add option prices
+      // Add option prices (with tax adjustment if needed)
       const itemOptions = selectedOptions[inst.item.id] || {}
       if (Object.keys(itemOptions).length > 0) {
         const menuItem = allItems.find(cartItem => cartItem.item.id === inst.item.id)
@@ -337,7 +364,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
             menuItem.item.options!.forEach(option => {
               const optionValue = option.values.find(val => val.id.toString() === optionId)
               if (optionValue) {
-                itemTotal += optionValue.price * (inst.quantity || 1)
+                itemTotal += adjustPriceForTax(optionValue.price) * (inst.quantity || 1)
               }
             })
           })
@@ -346,7 +373,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
       
       return acc + itemTotal
     }, 0),
-    [itemsToPay, selectedOptions, allItems],
+    [itemsToPay, selectedOptions, allItems, taxSettings],
   )
   // Calculate tax if enabled AND tax should be applied on checkout (not already included in prices)
   // tax_menu_price: 0 = tax included in menu price, 1 = apply tax on checkout
@@ -1107,6 +1134,8 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
   const addToCart = useCartStore((state) => state.addToCart)
   const { items } = useCartStore()
   const { t } = useLanguageStore()
+  
+  // NOTE: item.price from filteredItems is already adjusted, so we don't adjust again
 
   // Get current quantity for this item
   const currentItem = items.find(cartItem => cartItem.item.id === item.id)
@@ -1114,7 +1143,27 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation()
-    addToCart(item)
+    // IMPORTANT: item from filteredItems has adjusted price, but cart needs ORIGINAL price
+    // So we need to revert the price adjustment before adding to cart
+    const { taxSettings } = useCmsStore.getState()
+    let itemToAdd = { ...item }
+    
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      // Revert the adjustment: divide by (1 + tax%)
+      itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
+      // Also revert option prices
+      if (itemToAdd.options) {
+        itemToAdd.options = itemToAdd.options.map(option => ({
+          ...option,
+          values: option.values.map(value => ({
+            ...value,
+            price: value.price / (1 + taxSettings.percentage / 100)
+          }))
+        }))
+      }
+    }
+    
+    addToCart(itemToAdd)
     if (quantity === 0) {
       onFirstAdd()
     }
@@ -1180,6 +1229,15 @@ function ExpandingBottomToolbar({
   totalItems,
   themeBackgroundColor,
 }: ExpandingBottomToolbarProps) {
+  const { taxSettings } = useCmsStore()
+  
+  // Helper to adjust price if tax is included
+  const adjustPrice = (price: number): number => {
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      return price * (1 + taxSettings.percentage / 100)
+    }
+    return price
+  }
   // Heights for each state
   const collapsedHeight = 76
   const previewHeight = 180
@@ -1351,7 +1409,7 @@ function ExpandingBottomToolbar({
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -5 }}
                             >
-          {formatCurrency(item.item.price || 0)} × {item.quantity}
+          {formatCurrency(adjustPrice(item.item.price || 0))} × {item.quantity}
                             </motion.div>
                           </div>
                         </div>
@@ -1361,7 +1419,7 @@ function ExpandingBottomToolbar({
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
                         >
-          {formatCurrency((item.item.price || 0) * item.quantity)}
+          {formatCurrency(adjustPrice(item.item.price || 0) * item.quantity)}
                         </motion.div>
                       </motion.div>
                     ))}
