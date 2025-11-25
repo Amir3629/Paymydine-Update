@@ -422,6 +422,89 @@
   border-radius: 1rem !important; /* rounded-2xl - more rounded */
 }
 
+/* Order Summary food item frame borders - theme-specific colors matching scrollbar */
+[data-theme="clean-light"] .surface-sub .border,
+[data-theme="clean-light"] .surface-sub .border.rounded-lg,
+[data-theme="clean-light"] .surface-sub div[class*="border"][class*="rounded-lg"] {
+  border-color: rgba(231, 203, 169, 0.4) !important; /* Light champagne - same as scrollbar */
+}
+
+[data-theme="modern-dark"] .surface-sub .border,
+[data-theme="modern-dark"] .surface-sub .border.rounded-lg,
+[data-theme="modern-dark"] .surface-sub div[class*="border"][class*="rounded-lg"] {
+  border-color: rgba(240, 198, 177, 0.4) !important; /* Light rose gold - same as scrollbar */
+}
+
+[data-theme="gold-luxury"] .surface-sub .border,
+[data-theme="gold-luxury"] .surface-sub .border.rounded-lg,
+[data-theme="gold-luxury"] .surface-sub div[class*="border"][class*="rounded-lg"] {
+  border-color: rgba(255, 215, 0, 0.35) !important; /* Light gold - same as scrollbar */
+}
+
+[data-theme="vibrant-colors"] .surface-sub .border,
+[data-theme="vibrant-colors"] .surface-sub .border.rounded-lg,
+[data-theme="vibrant-colors"] .surface-sub div[class*="border"][class*="rounded-lg"] {
+  border-color: rgba(255, 107, 107, 0.4) !important; /* Light coral - same as scrollbar */
+}
+
+[data-theme="minimal"] .surface-sub .border,
+[data-theme="minimal"] .surface-sub .border.rounded-lg,
+[data-theme="minimal"] .surface-sub div[class*="border"][class*="rounded-lg"] {
+  border-color: rgba(74, 144, 226, 0.3) !important; /* Light blue-gray - same as scrollbar */
+}
+
+/* Also override border-paydine-champagne/20 and other border utilities in Order Summary items */
+[data-theme="clean-light"] .border[class*="paydine-champagne"],
+[data-theme="clean-light"] div[class*="border"][class*="rounded"]:not(.tip-pill):not(.icon-btn) {
+  border-color: rgba(231, 203, 169, 0.4) !important; /* Light champagne - same as scrollbar */
+}
+
+[data-theme="modern-dark"] .border[class*="paydine-champagne"],
+[data-theme="modern-dark"] div[class*="border"][class*="rounded"]:not(.tip-pill):not(.icon-btn) {
+  border-color: rgba(240, 198, 177, 0.4) !important; /* Light rose gold - same as scrollbar */
+}
+
+[data-theme="gold-luxury"] .border[class*="paydine-champagne"],
+[data-theme="gold-luxury"] div[class*="border"][class*="rounded"]:not(.tip-pill):not(.icon-btn) {
+  border-color: rgba(255, 215, 0, 0.35) !important; /* Light gold - same as scrollbar */
+}
+
+[data-theme="vibrant-colors"] .border[class*="paydine-champagne"],
+[data-theme="vibrant-colors"] div[class*="border"][class*="rounded"]:not(.tip-pill):not(.icon-btn) {
+  border-color: rgba(255, 107, 107, 0.4) !important; /* Light coral - same as scrollbar */
+}
+
+[data-theme="minimal"] .border[class*="paydine-champagne"],
+[data-theme="minimal"] div[class*="border"][class*="rounded"]:not(.tip-pill):not(.icon-btn) {
+  border-color: rgba(74, 144, 226, 0.3) !important; /* Light blue-gray - same as scrollbar */
+}
+
+/* Specific targeting for Order Summary food item rows */
+[data-theme="clean-light"] .border.rounded-2xl,
+[data-theme="clean-light"] .border.rounded-lg {
+  border-color: rgba(231, 203, 169, 0.4) !important;
+}
+
+[data-theme="modern-dark"] .border.rounded-2xl,
+[data-theme="modern-dark"] .border.rounded-lg {
+  border-color: rgba(240, 198, 177, 0.4) !important;
+}
+
+[data-theme="gold-luxury"] .border.rounded-2xl,
+[data-theme="gold-luxury"] .border.rounded-lg {
+  border-color: rgba(255, 215, 0, 0.35) !important;
+}
+
+[data-theme="vibrant-colors"] .border.rounded-2xl,
+[data-theme="vibrant-colors"] .border.rounded-lg {
+  border-color: rgba(255, 107, 107, 0.4) !important;
+}
+
+[data-theme="minimal"] .border.rounded-2xl,
+[data-theme="minimal"] .border.rounded-lg {
+  border-color: rgba(74, 144, 226, 0.3) !important;
+}
+
 /* Existing utilities */
 @layer utilities {
   .no-scrollbar {
@@ -448,25 +531,92 @@
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Really small and thin */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 3px;
+  height: 3px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(242, 195, 195, 0.05);
-  border-radius: 6px;
+  background: transparent;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--theme-secondary);
-  border-radius: 6px;
+  background: rgba(231, 203, 169, 0.3); /* Default light champagne */
+  border-radius: 3px;
   transition: all 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--theme-primary);
+  background: rgba(231, 203, 169, 0.5);
+}
+
+/* Theme-specific scrollbar colors - Light versions of each theme */
+/* Clean Light Theme - Light champagne/beige */
+[data-theme="clean-light"] ::-webkit-scrollbar-thumb {
+  background: rgba(231, 203, 169, 0.4) !important;
+}
+[data-theme="clean-light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(231, 203, 169, 0.6) !important;
+}
+
+/* Modern Dark Theme - Light rose gold */
+[data-theme="modern-dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(240, 198, 177, 0.4) !important;
+}
+[data-theme="modern-dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 198, 177, 0.6) !important;
+}
+
+/* Gold Luxury Theme - Light gold */
+[data-theme="gold-luxury"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.35) !important;
+}
+[data-theme="gold-luxury"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.55) !important;
+}
+
+/* Vibrant Colors Theme - Light coral */
+[data-theme="vibrant-colors"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.4) !important;
+}
+[data-theme="vibrant-colors"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 107, 0.6) !important;
+}
+
+/* Minimal Theme - Light blue-gray to match background */
+[data-theme="minimal"] ::-webkit-scrollbar-thumb {
+  background: rgba(74, 144, 226, 0.3) !important;
+}
+[data-theme="minimal"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(74, 144, 226, 0.5) !important;
+}
+
+/* Firefox scrollbar - also small and thin */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(231, 203, 169, 0.3) transparent;
+}
+
+[data-theme="clean-light"] * {
+  scrollbar-color: rgba(231, 203, 169, 0.4) transparent !important;
+}
+
+[data-theme="modern-dark"] * {
+  scrollbar-color: rgba(240, 198, 177, 0.4) transparent !important;
+}
+
+[data-theme="gold-luxury"] * {
+  scrollbar-color: rgba(255, 215, 0, 0.35) transparent !important;
+}
+
+[data-theme="vibrant-colors"] * {
+  scrollbar-color: rgba(255, 107, 107, 0.4) transparent !important;
+}
+
+[data-theme="minimal"] * {
+  scrollbar-color: rgba(74, 144, 226, 0.3) transparent !important;
 }
 
 /* Remove number input arrows */
@@ -625,13 +775,39 @@ input[type="number"] {
   color: #CFEBF7 !important; /* No change on hover */
 }
 
-/* Tip pills */
+/* Tip pills - Normal state (unselected) - Use same colors as scrollbar */
 .tip-pill {
   background: transparent !important;
   color: var(--theme-text-primary) !important;
   border: 1px solid var(--theme-border) !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   padding: 10px 14px !important;
+}
+
+/* Theme-specific tip pill border colors (normal state) - matching scrollbar colors */
+[data-theme="clean-light"] .tip-pill,
+[data-theme="clean-light"] button.tip-pill {
+  border-color: rgba(231, 203, 169, 0.4) !important; /* Light champagne - same as scrollbar */
+}
+
+[data-theme="modern-dark"] .tip-pill,
+[data-theme="modern-dark"] button.tip-pill {
+  border-color: rgba(240, 198, 177, 0.4) !important; /* Light rose gold - same as scrollbar */
+}
+
+[data-theme="gold-luxury"] .tip-pill,
+[data-theme="gold-luxury"] button.tip-pill {
+  border-color: rgba(255, 215, 0, 0.35) !important; /* Light gold - same as scrollbar */
+}
+
+[data-theme="vibrant-colors"] .tip-pill,
+[data-theme="vibrant-colors"] button.tip-pill {
+  border-color: rgba(255, 107, 107, 0.4) !important; /* Light coral - same as scrollbar */
+}
+
+[data-theme="minimal"] .tip-pill,
+[data-theme="minimal"] button.tip-pill {
+  border-color: rgba(74, 144, 226, 0.3) !important; /* Light blue-gray - same as scrollbar */
 }
 
 /* Tip pill active state - theme-specific colors for visibility */
@@ -642,7 +818,6 @@ input[type="number"] {
   border-color: #EFC7B1 !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
-  font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
 
 [data-theme="modern-dark"] .tip-pill--active,
@@ -652,7 +827,6 @@ input[type="number"] {
   border-color: #E8B4A0 !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
-  font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
 
 [data-theme="gold-luxury"] .tip-pill--active,
@@ -662,7 +836,6 @@ input[type="number"] {
   border-color: #FFF8DC !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
-  font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
 
 [data-theme="vibrant-colors"] .tip-pill--active,
@@ -672,7 +845,6 @@ input[type="number"] {
   border-color: #FF6B6B !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
-  font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
 
 [data-theme="minimal"] .tip-pill--active,
@@ -682,7 +854,6 @@ input[type="number"] {
   border-color: #4B8FE2 !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
-  font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
 
 /* Fallback for tip-pill--active */
@@ -692,7 +863,6 @@ input[type="number"] {
   border-color: var(--theme-secondary) !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
-  font-size: 0.93rem !important; /* Slightly larger font for better visibility */
 }
 
 /* Section titles - make them thick/bold */
@@ -874,6 +1044,52 @@ div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
   stroke: #CFEBF7 !important;
 }
 
+/* Arrow left icon in "Your Order" title card - match title text color (theme-text-primary) */
+[data-theme="clean-light"] .surface-sub button svg.lucide-arrow-left,
+[data-theme="clean-light"] .surface-sub svg.lucide-arrow-left,
+[data-theme="clean-light"] .surface-sub button .lucide-arrow-left,
+[data-theme="clean-light"] .surface-sub .lucide-arrow-left {
+  color: #3B3B3B !important; /* paydine-elegant-gray (textPrimary) - matches "Your Order" title */
+  fill: #3B3B3B !important;
+  stroke: #3B3B3B !important;
+}
+
+[data-theme="modern-dark"] .surface-sub button svg.lucide-arrow-left,
+[data-theme="modern-dark"] .surface-sub svg.lucide-arrow-left,
+[data-theme="modern-dark"] .surface-sub button .lucide-arrow-left,
+[data-theme="modern-dark"] .surface-sub .lucide-arrow-left {
+  color: #F8FAFC !important; /* Crisp white (textPrimary) - matches "Your Order" title */
+  fill: #F8FAFC !important;
+  stroke: #F8FAFC !important;
+}
+
+[data-theme="gold-luxury"] .surface-sub button svg.lucide-arrow-left,
+[data-theme="gold-luxury"] .surface-sub svg.lucide-arrow-left,
+[data-theme="gold-luxury"] .surface-sub button .lucide-arrow-left,
+[data-theme="gold-luxury"] .surface-sub .lucide-arrow-left {
+  color: #FFF8DC !important; /* Warm white (textPrimary) - matches "Your Order" title */
+  fill: #FFF8DC !important;
+  stroke: #FFF8DC !important;
+}
+
+[data-theme="vibrant-colors"] .surface-sub button svg.lucide-arrow-left,
+[data-theme="vibrant-colors"] .surface-sub svg.lucide-arrow-left,
+[data-theme="vibrant-colors"] .surface-sub button .lucide-arrow-left,
+[data-theme="vibrant-colors"] .surface-sub .lucide-arrow-left {
+  color: #1E293B !important; /* Deep slate (textPrimary) - matches "Your Order" title */
+  fill: #1E293B !important;
+  stroke: #1E293B !important;
+}
+
+[data-theme="minimal"] .surface-sub button svg.lucide-arrow-left,
+[data-theme="minimal"] .surface-sub svg.lucide-arrow-left,
+[data-theme="minimal"] .surface-sub button .lucide-arrow-left,
+[data-theme="minimal"] .surface-sub .lucide-arrow-left {
+  color: #1A202C !important; /* Deep charcoal (textPrimary) - matches "Your Order" title */
+  fill: #1A202C !important;
+  stroke: #1A202C !important;
+}
+
 /* Totals section labels - make them thick/bold (only direct children of space-y-1 container, exclude order items) */
 .surface-sub.space-y-1 > div.flex.justify-between.text-xs > span:first-child:not(.text-paydine-elegant-gray),
 .surface-sub .space-y-1 > div.flex.justify-between.text-xs > span:first-child:not(.text-paydine-elegant-gray),
@@ -893,9 +1109,197 @@ div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
   border-color: var(--theme-border);
 }
 
-/* Scrollbar inside drawer */
-.surface ::-webkit-scrollbar-thumb {
-  background: var(--theme-border);
+/* Scrollbar inside drawer - match theme-specific scrollbar colors */
+.surface ::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+/* Order Summary scrollable area - move scrollbar more to the right */
+.surface-sub .overflow-y-auto,
+.surface-sub div[class*="overflow-y-auto"],
+div[class*="surface-sub"] div[class*="overflow-y-auto"],
+.surface-sub .space-y-2[class*="overflow"],
+.surface-sub .space-y-2[class*="max-h"][class*="overflow"],
+/* Specific targeting for Order Summary lists */
+.surface-sub .space-y-2.max-h-64,
+.surface-sub .space-y-2.max-h-24,
+.surface-sub div.space-y-2[class*="max-h"] {
+  padding-right: 8px !important; /* Add padding to move scrollbar to the right */
+  margin-right: -4px !important; /* Adjust to compensate for padding */
+}
+
+[data-theme="clean-light"] .surface ::-webkit-scrollbar-thumb {
+  background: rgba(231, 203, 169, 0.4) !important;
+}
+
+[data-theme="modern-dark"] .surface ::-webkit-scrollbar-thumb {
+  background: rgba(240, 198, 177, 0.4) !important;
+}
+
+[data-theme="gold-luxury"] .surface ::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.35) !important;
+}
+
+[data-theme="vibrant-colors"] .surface ::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.4) !important;
+}
+
+[data-theme="minimal"] .surface ::-webkit-scrollbar-thumb {
+  background: rgba(74, 144, 226, 0.3) !important;
+}
+
+/* Bottom toolbar scrollbar - smaller and positioned inside rounded frame */
+/* Make scrollbar thinner and add padding to keep it inside rounded corners */
+.scrollbar-hide[style*="overflow-y: auto"],
+.scrollbar-hide[style*="overflowY: auto"] {
+  padding-right: 16px !important; /* Move scrollbar inside from right edge */
+  padding-top: 8px !important; /* Account for top rounded corner */
+  padding-bottom: 8px !important; /* Account for bottom rounded corner */
+  margin-right: -8px !important; /* Compensate for padding to keep content width */
+}
+
+/* Make scrollbar thinner for bottom toolbar */
+.scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar,
+.scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar {
+  width: 2px !important; /* Thinner scrollbar - 2px instead of 3px */
+  height: 2px !important;
+}
+
+.scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-track,
+.scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 2px !important;
+  margin: 30px 0 8px 0 !important; /* More top margin to push scrollbar lower from top */
+}
+
+.scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
+.scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  border-radius: 2px !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Theme-specific scrollbar colors for bottom toolbar */
+[data-theme="clean-light"] .scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
+[data-theme="clean-light"] .scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  background: rgba(231, 203, 169, 0.4) !important;
+}
+
+[data-theme="modern-dark"] .scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
+[data-theme="modern-dark"] .scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  background: rgba(240, 198, 177, 0.4) !important;
+}
+
+[data-theme="gold-luxury"] .scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
+[data-theme="gold-luxury"] .scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.35) !important;
+}
+
+[data-theme="vibrant-colors"] .scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
+[data-theme="vibrant-colors"] .scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.4) !important;
+}
+
+[data-theme="minimal"] .scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
+[data-theme="minimal"] .scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
+  background: rgba(74, 144, 226, 0.3) !important;
+}
+
+/* Firefox scrollbar for bottom toolbar */
+[data-theme="clean-light"] .scrollbar-hide[style*="overflow-y: auto"],
+[data-theme="clean-light"] .scrollbar-hide[style*="overflowY: auto"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(231, 203, 169, 0.4) transparent !important;
+}
+
+[data-theme="modern-dark"] .scrollbar-hide[style*="overflow-y: auto"],
+[data-theme="modern-dark"] .scrollbar-hide[style*="overflowY: auto"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(240, 198, 177, 0.4) transparent !important;
+}
+
+[data-theme="gold-luxury"] .scrollbar-hide[style*="overflow-y: auto"],
+[data-theme="gold-luxury"] .scrollbar-hide[style*="overflowY: auto"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 215, 0, 0.35) transparent !important;
+}
+
+[data-theme="vibrant-colors"] .scrollbar-hide[style*="overflow-y: auto"],
+[data-theme="vibrant-colors"] .scrollbar-hide[style*="overflowY: auto"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 107, 107, 0.4) transparent !important;
+}
+
+[data-theme="minimal"] .scrollbar-hide[style*="overflow-y: auto"],
+[data-theme="minimal"] .scrollbar-hide[style*="overflowY: auto"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(74, 144, 226, 0.3) transparent !important;
+}
+
+/* Bottom toolbar food item borders - thin lines matching scrollbar colors */
+/* Clean Light Theme */
+[data-theme="clean-light"] .bottom-toolbar-item-border {
+  border-bottom: 0.5px solid rgba(231, 203, 169, 0.4) !important; /* Same as scrollbar - really thin */
+  padding-left: 24px !important; /* Add left padding so line doesn't start at edge */
+  padding-right: 24px !important; /* Add right padding so line doesn't end at edge */
+  margin-left: -24px !important; /* Compensate for padding to keep content aligned */
+  margin-right: -24px !important; /* Compensate for padding to keep content aligned */
+}
+
+[data-theme="clean-light"] .bottom-toolbar-item-border:last-child {
+  border-bottom: none !important;
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .bottom-toolbar-item-border {
+  border-bottom: 0.5px solid rgba(240, 198, 177, 0.4) !important; /* Same as scrollbar - really thin */
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  margin-left: -24px !important;
+  margin-right: -24px !important;
+}
+
+[data-theme="modern-dark"] .bottom-toolbar-item-border:last-child {
+  border-bottom: none !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .bottom-toolbar-item-border {
+  border-bottom: 0.5px solid rgba(255, 215, 0, 0.35) !important; /* Same as scrollbar - really thin */
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  margin-left: -24px !important;
+  margin-right: -24px !important;
+}
+
+[data-theme="gold-luxury"] .bottom-toolbar-item-border:last-child {
+  border-bottom: none !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .bottom-toolbar-item-border {
+  border-bottom: 0.5px solid rgba(255, 107, 107, 0.4) !important; /* Same as scrollbar - really thin */
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  margin-left: -24px !important;
+  margin-right: -24px !important;
+}
+
+[data-theme="vibrant-colors"] .bottom-toolbar-item-border:last-child {
+  border-bottom: none !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .bottom-toolbar-item-border {
+  border-bottom: 0.5px solid rgba(74, 144, 226, 0.3) !important; /* Same as scrollbar - really thin */
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  margin-left: -24px !important;
+  margin-right: -24px !important;
+}
+
+[data-theme="minimal"] .bottom-toolbar-item-border:last-child {
+  border-bottom: none !important;
 }
 
 /* Quantity selector buttons - HARDCODED COLORS BY THEME */
@@ -1002,6 +1406,13 @@ button.quantity-btn.w-5.h-5 svg,
   stroke-width: 4 !important;
 }
 
+/* Make plus icon in larger quantity buttons (w-12 h-12) slightly thicker */
+button.quantity-btn.w-12.h-12 svg.lucide-plus,
+.quantity-btn.w-12.h-12 svg.lucide-plus,
+button.quantity-btn[class*="w-12"][class*="h-12"] svg.lucide-plus {
+  stroke-width: 3.5 !important;
+}
+
 /* Hover effects */
 button.quantity-btn:hover,
 .quantity-btn:hover {
@@ -1013,6 +1424,143 @@ button.quantity-btn:focus,
 .quantity-btn:focus {
   outline: none !important;
   box-shadow: 0 0 0 2px var(--theme-secondary) !important;
+}
+
+/* Plus icon button for increasing quantity - match quantity-btn background color (main add button color) */
+/* Clean Light Theme */
+[data-theme="clean-light"] button[aria-label="Increase quantity"],
+[data-theme="clean-light"] button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+[data-theme="clean-light"] button[class*="absolute"][class*="-top-2"][class*="-right-2"] {
+  color: #EFC7B1 !important; /* paydine-rose-beige - matches quantity-btn background */
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] button[aria-label="Increase quantity"],
+[data-theme="modern-dark"] button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+[data-theme="modern-dark"] button[class*="absolute"][class*="-top-2"][class*="-right-2"] {
+  color: #E8B4A0 !important; /* rose gold - matches quantity-btn background */
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] button[aria-label="Increase quantity"],
+[data-theme="gold-luxury"] button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+[data-theme="gold-luxury"] button[class*="absolute"][class*="-top-2"][class*="-right-2"] {
+  color: #FFF8DC !important; /* cornsilk - matches quantity-btn background */
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] button[aria-label="Increase quantity"],
+[data-theme="vibrant-colors"] button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+[data-theme="vibrant-colors"] button[class*="absolute"][class*="-top-2"][class*="-right-2"] {
+  color: #FF6B6B !important; /* coral - matches quantity-btn background */
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] button[aria-label="Increase quantity"],
+[data-theme="minimal"] button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+[data-theme="minimal"] button[class*="absolute"][class*="-top-2"][class*="-right-2"] {
+  color: #4B8FE2 !important; /* blue - matches quantity-btn background */
+}
+
+/* Button arrow frame (Show bill / Hide bill) - theme-specific background and icon colors */
+/* Clean Light Theme */
+[data-theme="clean-light"] button[aria-label="Show bill"],
+[data-theme="clean-light"] button[aria-label="Hide bill"],
+[data-theme="clean-light"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #FAFAFA !important; /* paydine-soft-white - theme background */
+  border-color: rgba(231, 203, 169, 0.3) !important; /* Light champagne border */
+}
+
+[data-theme="clean-light"] button[aria-label="Show bill"] svg,
+[data-theme="clean-light"] button[aria-label="Hide bill"] svg,
+[data-theme="clean-light"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="clean-light"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="clean-light"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="clean-light"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="clean-light"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #EFC7B1 !important; /* paydine-rose-beige - matches plus button/quantity-btn background */
+  fill: #EFC7B1 !important;
+  stroke: #EFC7B1 !important;
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] button[aria-label="Show bill"],
+[data-theme="modern-dark"] button[aria-label="Hide bill"],
+[data-theme="modern-dark"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #0A0E12 !important; /* Deep charcoal - theme background */
+  border-color: rgba(240, 198, 177, 0.3) !important; /* Light rose gold border */
+}
+
+[data-theme="modern-dark"] button[aria-label="Show bill"] svg,
+[data-theme="modern-dark"] button[aria-label="Hide bill"] svg,
+[data-theme="modern-dark"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="modern-dark"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="modern-dark"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="modern-dark"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="modern-dark"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #E8B4A0 !important; /* rose gold - matches plus button/quantity-btn background */
+  fill: #E8B4A0 !important;
+  stroke: #E8B4A0 !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] button[aria-label="Show bill"],
+[data-theme="gold-luxury"] button[aria-label="Hide bill"],
+[data-theme="gold-luxury"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #0F0B05 !important; /* Deep warm black - theme background */
+  border-color: rgba(255, 215, 0, 0.3) !important; /* Light gold border */
+}
+
+[data-theme="gold-luxury"] button[aria-label="Show bill"] svg,
+[data-theme="gold-luxury"] button[aria-label="Hide bill"] svg,
+[data-theme="gold-luxury"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="gold-luxury"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="gold-luxury"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="gold-luxury"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="gold-luxury"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #FFF8DC !important; /* cornsilk - matches plus button/quantity-btn background */
+  fill: #FFF8DC !important;
+  stroke: #FFF8DC !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] button[aria-label="Show bill"],
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"],
+[data-theme="vibrant-colors"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #e2ceb1 !important; /* Warm beige - theme background */
+  border-color: rgba(255, 107, 107, 0.3) !important; /* Light coral border */
+}
+
+[data-theme="vibrant-colors"] button[aria-label="Show bill"] svg,
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"] svg,
+[data-theme="vibrant-colors"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="vibrant-colors"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="vibrant-colors"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #FF6B6B !important; /* coral - matches plus button/quantity-btn background */
+  fill: #FF6B6B !important;
+  stroke: #FF6B6B !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] button[aria-label="Show bill"],
+[data-theme="minimal"] button[aria-label="Hide bill"],
+[data-theme="minimal"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #CFEBF7 !important; /* Light blue - theme background */
+  border-color: rgba(74, 144, 226, 0.3) !important; /* Light blue border */
+}
+
+[data-theme="minimal"] button[aria-label="Show bill"] svg,
+[data-theme="minimal"] button[aria-label="Hide bill"] svg,
+[data-theme="minimal"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="minimal"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="minimal"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="minimal"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="minimal"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #4B8FE2 !important; /* blue - matches plus button/quantity-btn background */
+  fill: #4B8FE2 !important;
+  stroke: #4B8FE2 !important;
 }
 
 /* Cart badge - CORRECT BUTTON COLORS BY THEME - MAXIMUM SPECIFICITY */

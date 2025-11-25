@@ -21,7 +21,7 @@ import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, W
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { cn, truncateText } from "@/lib/utils"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiClient, type PaymentMethod } from "@/lib/api-client"
@@ -205,7 +205,7 @@ function OrderItemWithOptions({
             }}
             className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Plus className="w-3 h-3" strokeWidth={3} />
+            <Plus className="w-3 h-3" strokeWidth={3.5} />
           </button>
         </div>
       </div>
@@ -306,7 +306,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SplitBillItem>>({})
   const [selectedOptions, setSelectedOptions] = useState<Record<number, Record<string, string>>>({})
-  const [tipPercentage, setTipPercentage] = useState(tipSettings.defaultPercentage)
+  const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -966,7 +966,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
                     className="pl-6 text-xs h-8"
                     style={{ borderColor: 'var(--theme-border)' }}
                   />
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 muted text-xs">$</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 muted text-xs">€</span>
                 </div>
               </div>
             </div>
@@ -1188,6 +1188,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
 
   const itemName = item.nameKey && t(item.nameKey as TranslationKey) ? t(item.nameKey as TranslationKey) : item.name
   const itemDescription = item.descriptionKey && t(item.descriptionKey as TranslationKey) ? t(item.descriptionKey as TranslationKey) : item.description
+  const truncatedDescription = truncateText(itemDescription || '', 66)
 
   return (
     <div
@@ -1204,7 +1205,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
       </div>
       <div className="flex-grow">
         <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{itemDescription}</p>
+        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
         <p className="text-lg font-semibold text-paydine-rose-beige">{formatCurrency(item.price || 0)}</p>
           <div className="relative">
@@ -1215,14 +1216,22 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
               ) : (
-                <Plus className="h-5 w-5" strokeWidth={3} />
+                <Plus className="h-5 w-5" strokeWidth={3.5} />
               )}
               <span className="sr-only">Add to cart</span>
             </button>
             {quantity > 0 && (
-              <span className="absolute -top-2 -right-2 text-base font-bold" style={{ color: 'var(--theme-secondary)' }}>
+              <button
+                className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10"
+                style={{ color: 'var(--theme-secondary)' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAdd(e);
+                }}
+                aria-label="Increase quantity"
+              >
                 +
-              </span>
+              </button>
             )}
           </div>
         </div>
@@ -1395,7 +1404,7 @@ function ExpandingBottomToolbar({
                           scale: 0.95,
                           transition: { duration: 0.18 }
                         }}
-                        className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"
+                        className="flex items-center justify-between py-2 bottom-toolbar-item-border"
                       >
                         <div className="flex items-center space-x-3">
                           <motion.div

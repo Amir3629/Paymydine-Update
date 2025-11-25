@@ -68,7 +68,7 @@ export default function CheckoutPage() {
   }
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SelectedItem>>({})
-  const [tipPercentage, setTipPercentage] = useState(tipSettings.defaultPercentage)
+  const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -418,7 +418,7 @@ export default function CheckoutPage() {
           }}
           className="pl-6 border-paydine-champagne/30 text-xs h-8"
         />
-        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">€</span>
       </div>
     );
   };
