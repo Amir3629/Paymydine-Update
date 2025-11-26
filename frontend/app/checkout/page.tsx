@@ -838,18 +838,35 @@ export default function CheckoutPage() {
           <div className="surface rounded-3xl p-6 shadow-lg">
             <h2 className="text-2xl font-bold mb-4">{t("orderSummary")}</h2>
             
-            {allItems.map(({ item, quantity }) => {
+            {allItems.flatMap(({ item, quantity }) => {
               const itemName = t(item.nameKey as TranslationKey) || item.name
               const adjustedPrice = adjustPriceForTax(item.price)
-              return (
-                <div key={item.id} className="flex justify-between items-center py-2 divider last:border-0">
+              const hasOptions = item.options && item.options.length > 0
+              
+              // If item has sides/options, always show each instance separately (1x, 1x, 1x)
+              // This ensures each item can have different sides selected
+              if (hasOptions) {
+                return Array.from({ length: quantity }).map((_, index) => (
+                  <div key={`${item.id}-${index}`} className="flex justify-between items-center py-2 divider last:border-0">
+                    <div className="flex items-center space-x-4">
+                      <span>1x</span>
+                      <span>{itemName}</span>
+                    </div>
+                    <span className="font-semibold">${adjustedPrice.toFixed(2)}</span>
+                  </div>
+                ))
+              }
+              
+              // If no options, show grouped (but still as 1x entries for consistency)
+              return Array.from({ length: quantity }).map((_, index) => (
+                <div key={`${item.id}-${index}`} className="flex justify-between items-center py-2 divider last:border-0">
                   <div className="flex items-center space-x-4">
-                    <span>{quantity}x</span>
+                    <span>1x</span>
                     <span>{itemName}</span>
                   </div>
-                  <span className="font-semibold">${(adjustedPrice * quantity).toFixed(2)}</span>
+                  <span className="font-semibold">${adjustedPrice.toFixed(2)}</span>
                 </div>
-              )
+              ))
             })}
 
             {/* Coupon Code Input */}
@@ -1007,18 +1024,42 @@ export default function CheckoutPage() {
             <div className="surface-sub rounded-2xl p-3">
               <h3 className="font-semibold mb-2 text-xs">{t("orderSummary")}</h3>
               <div className="space-y-2">
-                {allItems.map((cartItem) => (
-                  <div key={cartItem.item.id} className="flex justify-between items-center text-xs p-2 rounded-2xl">
-                    <span className="muted min-w-[120px]">
-                      {cartItem.quantity}x {t(cartItem.item.nameKey as TranslationKey)}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium min-w-[48px] text-center" style={{ color: 'var(--theme-secondary)' }}>
-                        ${(adjustPriceForTax(cartItem.item.price) * cartItem.quantity).toFixed(2)}
+                {allItems.flatMap((cartItem) => {
+                  const itemName = t(cartItem.item.nameKey as TranslationKey) || cartItem.item.name
+                  const adjustedPrice = adjustPriceForTax(cartItem.item.price)
+                  const hasOptions = cartItem.item.options && cartItem.item.options.length > 0
+                  
+                  // If item has sides/options, always show each instance separately (1x, 1x, 1x)
+                  // This ensures each item can have different sides selected
+                  if (hasOptions) {
+                    return Array.from({ length: cartItem.quantity }).map((_, index) => (
+                      <div key={`${cartItem.item.id}-${index}`} className="flex justify-between items-center text-xs p-2 rounded-2xl">
+                        <span className="muted min-w-[120px]">
+                          1x {itemName}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium min-w-[48px] text-center" style={{ color: 'var(--theme-secondary)' }}>
+                            ${adjustedPrice.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  }
+                  
+                  // If no options, show grouped (but still as 1x entries for consistency)
+                  return Array.from({ length: cartItem.quantity }).map((_, index) => (
+                    <div key={`${cartItem.item.id}-${index}`} className="flex justify-between items-center text-xs p-2 rounded-2xl">
+                      <span className="muted min-w-[120px]">
+                        1x {itemName}
                       </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium min-w-[48px] text-center" style={{ color: 'var(--theme-secondary)' }}>
+                          ${adjustedPrice.toFixed(2)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                })}
               </div>
             </div>
           )}
