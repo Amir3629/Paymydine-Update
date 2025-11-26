@@ -1,11 +1,9 @@
 "use client"
 
 import { useEffect, useState, Suspense } from "react"
-import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { CheckCircle, ChefHat, CookingPot } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
 import { useLanguageStore } from "@/store/language-store"
 import { useCmsStore } from "@/store/cms-store"
@@ -23,7 +21,6 @@ function OrderPlacedContent() {
   const { settings } = useCmsStore()
   const { tableInfo } = useCartStore()
   const [currentStatus, setCurrentStatus] = useState(0)
-  const [showTaxiButtons, setShowTaxiButtons] = useState(false)
   const [orderId, setOrderId] = useState<number | null>(null)
 
   const statuses = [
@@ -56,11 +53,6 @@ function OrderPlacedContent() {
         if (response.success) {
           const newStatus = response.data.customer_status
           setCurrentStatus(newStatus)
-          
-          // Show taxi buttons when order is ready
-          if (newStatus === 2) { // On Its Way to Your Table
-            setTimeout(() => setShowTaxiButtons(true), 1000)
-          }
         }
       } catch (error) {
         console.error('Failed to fetch order status:', error)
@@ -122,37 +114,6 @@ function OrderPlacedContent() {
           >
             Menu
           </button>
-          
-          {showTaxiButtons && (
-            <div className="grid grid-cols-2 gap-4">
-              {/* FIXED: Uber button - size effect on hover, no background */}
-              <button
-                onClick={() => window.open('https://www.uber.com', '_blank')}
-                className="flex items-center justify-center p-3 hover:scale-110 transition-transform duration-200"
-              >
-                <Image 
-                  src="/images/uber-logo.png" 
-                  alt="Uber" 
-                  width={80} 
-                  height={28} 
-                  className="object-contain" 
-                />
-              </button>
-              {/* FIXED: Bolt button - size effect on hover, no background */}
-              <button
-                onClick={() => window.open('https://bolt.eu', '_blank')}
-                className="flex items-center justify-center p-3 hover:scale-110 transition-transform duration-200"
-              >
-                <Image 
-                  src="/images/bolt-logo.png" 
-                  alt="Bolt" 
-                  width={80} 
-                  height={28} 
-                  className="object-contain" 
-                />
-              </button>
-            </div>
-          )}
         </div>
       </motion.div>
     </div>

@@ -257,7 +257,14 @@
   [data-theme="gold-luxury"] .page--home .surface-sub h2,
   [data-theme="gold-luxury"] .page--home .surface-sub h3,
   [data-theme="gold-luxury"] .page--home .surface-sub span {
-    color: var(--theme-text-primary, #FFF8DC) !important;
+    color: #FFF8DC !important; /* Cornsilk - override theme-primary */
+  }
+  /* Override theme-primary for homepage card titles in gold-luxury */
+  [data-theme="gold-luxury"] .page--home .surface-sub h2,
+  [data-theme="gold-luxury"] .page--home .surface-sub h2[style*="theme-primary"],
+  [data-theme="gold-luxury"] .page--home h2[style*="theme-primary"],
+  [data-theme="gold-luxury"] .page--home .surface-sub h2[style*="color"] {
+    color: #FFF8DC !important; /* Cornsilk instead of gold */
   }
 
   /* Vibrant Colors Theme */
@@ -373,7 +380,7 @@
     color: #FFF8DC !important;
   }
   [data-theme="gold-luxury"] .page--home button.hover\:text-paydine-rose-beige:hover {
-    color: #FFD700 !important; /* Pure gold */
+    color: #FFF8DC !important; /* Cornsilk */
   }
 
   /* Vibrant Colors Theme */
@@ -2236,9 +2243,9 @@ html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl svg,
 html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl i,
 html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
 html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
-  color: #FFD700 !important;
+  color: #FFF8DC !important;
   fill: none !important; /* No fill - only stroke */
-  stroke: #FFD700 !important;
+  stroke: #FFF8DC !important;
   background-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -2434,7 +2441,7 @@ html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.sur
 /* Gold Luxury Theme */
 html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
 html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
-  background-color: #FFD700 !important; /* Pure gold */
+  background-color: #FFF8DC !important; /* Cornsilk */
   color: #0F0B05 !important; /* Dark background */
 }
 
@@ -2705,7 +2712,7 @@ html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface
 }
 
 [data-theme="gold-luxury"] .order-placed-status-active {
-  background-color: #FFD700 !important; /* Pure gold */
+  background-color: #FFF8DC !important; /* Cornsilk */
 }
 
 [data-theme="gold-luxury"] .order-placed-status-inactive {
@@ -2737,7 +2744,7 @@ html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface
 }
 
 [data-theme="gold-luxury"] .order-placed-menu-button:hover {
-  color: #FFD700; /* Pure gold */
+  color: #FFF8DC; /* Cornsilk */
 }
 
 /* Vibrant Colors Theme */
@@ -2927,9 +2934,9 @@ html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface
 [data-theme="gold-luxury"] .valet-request-btn,
 [data-theme="gold-luxury"] button.valet-request-btn,
 [data-theme="gold-luxury"] .valet-request-btn * {
-  background-color: #FFD700 !important; /* Pure gold (theme-secondary) */
+  background-color: #FFF8DC !important; /* Cornsilk (theme-secondary) */
   color: #000000 !important; /* Black text for maximum contrast */
-  border: 2px solid #FFD700 !important;
+  border: 2px solid #FFF8DC !important;
   border-radius: 0.75rem !important;
   font-weight: 600 !important;
   padding: 0.75rem 1.5rem !important;
@@ -2937,8 +2944,8 @@ html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface
 
 [data-theme="gold-luxury"] .valet-request-btn:hover:not(:disabled),
 [data-theme="gold-luxury"] button.valet-request-btn:hover:not(:disabled) {
-  background-color: #FFED4E !important; /* Brighter gold */
-  border-color: #FFED4E !important;
+  background-color: #FFF8DC !important; /* Cornsilk */
+  border-color: #FFF8DC !important;
   color: #000000 !important;
 }
 
@@ -3021,9 +3028,9 @@ html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface
 [data-theme="gold-luxury"] .valet-icon,
 [data-theme="gold-luxury"] svg.valet-icon,
 [data-theme="gold-luxury"] .valet-icon svg {
-  color: #FFD700 !important; /* Pure gold (theme-secondary) */
+  color: #FFF8DC !important; /* Cornsilk (theme-secondary) */
   fill: none !important; /* No fill - only stroke */
-  stroke: #FFD700 !important;
+  stroke: #FFF8DC !important;
 }
 
 /* Vibrant Colors Theme */
