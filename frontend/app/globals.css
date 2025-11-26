@@ -438,7 +438,7 @@
 [data-theme="gold-luxury"] .surface-sub .border,
 [data-theme="gold-luxury"] .surface-sub .border.rounded-lg,
 [data-theme="gold-luxury"] .surface-sub div[class*="border"][class*="rounded-lg"] {
-  border-color: rgba(255, 215, 0, 0.35) !important; /* Light gold - same as scrollbar */
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC - same as scrollbar */
 }
 
 [data-theme="vibrant-colors"] .surface-sub .border,
@@ -466,7 +466,7 @@
 
 [data-theme="gold-luxury"] .border[class*="paydine-champagne"],
 [data-theme="gold-luxury"] div[class*="border"][class*="rounded"]:not(.tip-pill):not(.icon-btn) {
-  border-color: rgba(255, 215, 0, 0.35) !important; /* Light gold - same as scrollbar */
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC - same as scrollbar */
 }
 
 [data-theme="vibrant-colors"] .border[class*="paydine-champagne"],
@@ -492,7 +492,7 @@
 
 [data-theme="gold-luxury"] .border.rounded-2xl,
 [data-theme="gold-luxury"] .border.rounded-lg {
-  border-color: rgba(255, 215, 0, 0.35) !important;
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC */
 }
 
 [data-theme="vibrant-colors"] .border.rounded-2xl,
@@ -569,12 +569,12 @@
   background: rgba(240, 198, 177, 0.6) !important;
 }
 
-/* Gold Luxury Theme - Light gold */
+/* Gold Luxury Theme - Cornsilk #FFF8DC */
 [data-theme="gold-luxury"] ::-webkit-scrollbar-thumb {
-  background: rgba(255, 215, 0, 0.35) !important;
+  background: rgba(255, 248, 220, 0.4) !important;
 }
 [data-theme="gold-luxury"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 215, 0, 0.55) !important;
+  background: rgba(255, 248, 220, 0.6) !important;
 }
 
 /* Vibrant Colors Theme - Light coral */
@@ -608,7 +608,7 @@
 }
 
 [data-theme="gold-luxury"] * {
-  scrollbar-color: rgba(255, 215, 0, 0.35) transparent !important;
+  scrollbar-color: rgba(255, 248, 220, 0.4) transparent !important; /* Cornsilk #FFF8DC */
 }
 
 [data-theme="vibrant-colors"] * {
@@ -726,7 +726,7 @@ input[type="number"] {
 
 [data-theme="gold-luxury"] .icon-btn,
 [data-theme="gold-luxury"] button.icon-btn {
-  border-color: rgba(255, 248, 220, 0.4) !important; /* Gold frame for luxury theme */
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC frame */
 }
 
 [data-theme="gold-luxury"] .icon-btn--accent,
@@ -797,7 +797,7 @@ input[type="number"] {
 
 [data-theme="gold-luxury"] .tip-pill,
 [data-theme="gold-luxury"] button.tip-pill {
-  border-color: rgba(255, 215, 0, 0.35) !important; /* Light gold - same as scrollbar */
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC - same as scrollbar */
 }
 
 [data-theme="vibrant-colors"] .tip-pill,
@@ -1138,7 +1138,7 @@ div[class*="surface-sub"] div[class*="overflow-y-auto"],
 }
 
 [data-theme="gold-luxury"] .surface ::-webkit-scrollbar-thumb {
-  background: rgba(255, 215, 0, 0.35) !important;
+  background: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC */
 }
 
 [data-theme="vibrant-colors"] .surface ::-webkit-scrollbar-thumb {
@@ -1192,7 +1192,7 @@ div[class*="surface-sub"] div[class*="overflow-y-auto"],
 
 [data-theme="gold-luxury"] .scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
 [data-theme="gold-luxury"] .scrollbar-hide[style*="overflowY: auto"]::-webkit-scrollbar-thumb {
-  background: rgba(255, 215, 0, 0.35) !important;
+  background: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC */
 }
 
 [data-theme="vibrant-colors"] .scrollbar-hide[style*="overflow-y: auto"]::-webkit-scrollbar-thumb,
@@ -1221,7 +1221,7 @@ div[class*="surface-sub"] div[class*="overflow-y-auto"],
 [data-theme="gold-luxury"] .scrollbar-hide[style*="overflow-y: auto"],
 [data-theme="gold-luxury"] .scrollbar-hide[style*="overflowY: auto"] {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 215, 0, 0.35) transparent !important;
+  scrollbar-color: rgba(255, 248, 220, 0.4) transparent !important; /* Cornsilk #FFF8DC */
 }
 
 [data-theme="vibrant-colors"] .scrollbar-hide[style*="overflow-y: auto"],
@@ -1265,7 +1265,7 @@ div[class*="surface-sub"] div[class*="overflow-y-auto"],
 
 /* Gold Luxury Theme */
 [data-theme="gold-luxury"] .bottom-toolbar-item-border {
-  border-bottom: 0.5px solid rgba(255, 215, 0, 0.35) !important; /* Same as scrollbar - really thin */
+  border-bottom: 0.5px solid rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC - same as scrollbar - really thin */
   padding-left: 24px !important;
   padding-right: 24px !important;
   margin-left: -24px !important;
@@ -1341,7 +1341,7 @@ div[class*="surface-sub"] div[class*="overflow-y-auto"],
 [data-theme="gold-luxury"] button.quantity-btn,
 [data-theme="gold-luxury"] .quantity-btn {
   background-color: #FFF8DC !important; /* cornsilk */
-  color: #0F0B05 !important; /* dark background */
+  color: #0F0B05 !important; /* dark background - theme background color */
   border: 1px solid #FFF8DC !important;
   border-radius: 50% !important;
   display: flex !important;
@@ -1352,6 +1352,24 @@ div[class*="surface-sub"] div[class*="overflow-y-auto"],
   height: 48px !important;
   font-size: 18px !important;
   font-weight: bold !important;
+}
+
+/* Gold Luxury Theme - Plus and Minus icons in Order Summary use theme background color */
+[data-theme="gold-luxury"] .quantity-btn svg,
+[data-theme="gold-luxury"] button.quantity-btn svg,
+[data-theme="gold-luxury"] .quantity-btn .lucide-plus,
+[data-theme="gold-luxury"] .quantity-btn .lucide-minus,
+[data-theme="gold-luxury"] button.quantity-btn .lucide-plus,
+[data-theme="gold-luxury"] button.quantity-btn .lucide-minus,
+[data-theme="gold-luxury"] .surface-sub .quantity-btn svg,
+[data-theme="gold-luxury"] .surface-sub button.quantity-btn svg,
+[data-theme="gold-luxury"] .surface-sub .quantity-btn .lucide-plus,
+[data-theme="gold-luxury"] .surface-sub .quantity-btn .lucide-minus,
+[data-theme="gold-luxury"] .surface-sub button.quantity-btn .lucide-plus,
+[data-theme="gold-luxury"] .surface-sub button.quantity-btn .lucide-minus {
+  color: #0F0B05 !important; /* Theme background color for icons */
+  stroke: #0F0B05 !important;
+  fill: #0F0B05 !important;
 }
 
 /* Vibrant Colors Theme */
@@ -1445,7 +1463,7 @@ button.quantity-btn:focus,
 [data-theme="gold-luxury"] button[aria-label="Increase quantity"],
 [data-theme="gold-luxury"] button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
 [data-theme="gold-luxury"] button[class*="absolute"][class*="-top-2"][class*="-right-2"] {
-  color: #FFF8DC !important; /* cornsilk - matches quantity-btn background */
+  color: #FFF8DC !important; /* Cornsilk #FFF8DC - matches quantity-btn background */
 }
 
 /* Vibrant Colors Theme */
@@ -1508,7 +1526,7 @@ button.quantity-btn:focus,
 [data-theme="gold-luxury"] button[aria-label="Hide bill"],
 [data-theme="gold-luxury"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
   background-color: #0F0B05 !important; /* Deep warm black - theme background */
-  border-color: rgba(255, 215, 0, 0.3) !important; /* Light gold border */
+  border-color: rgba(255, 248, 220, 0.3) !important; /* Cornsilk #FFF8DC border */
 }
 
 [data-theme="gold-luxury"] button[aria-label="Show bill"] svg,
@@ -1563,13 +1581,13 @@ button.quantity-btn:focus,
   stroke: #4B8FE2 !important;
 }
 
-/* Cart badge - CORRECT BUTTON COLORS BY THEME - MAXIMUM SPECIFICITY */
-/* Clean Light Theme */
+/* Cart badge - MATCH QUANTITY-BTN BACKGROUND COLORS BY THEME - MAXIMUM SPECIFICITY */
+/* Clean Light Theme - Match quantity-btn background (#EFC7B1) */
 html[data-theme="clean-light"] .cart-badge,
 html[data-theme="clean-light"] span.cart-badge,
 [data-theme="clean-light"] .cart-badge,
 [data-theme="clean-light"] span.cart-badge {
-  background-color: #E7CBA9 !important; /* paydine-champagne (button color) */
+  background-color: #EFC7B1 !important; /* paydine-rose-beige - same as quantity-btn background */
   color: #FAFAFA !important; /* paydine-soft-white */
   opacity: 1 !important;
   visibility: visible !important;
@@ -1577,12 +1595,12 @@ html[data-theme="clean-light"] span.cart-badge,
   z-index: 9999999 !important;
 }
 
-/* Modern Dark Theme */
+/* Modern Dark Theme - Match quantity-btn background (#E8B4A0) */
 html[data-theme="modern-dark"] .cart-badge,
 html[data-theme="modern-dark"] span.cart-badge,
 [data-theme="modern-dark"] .cart-badge,
 [data-theme="modern-dark"] span.cart-badge {
-  background-color: #E8B4A0 !important; /* secondary color (rose gold) */
+  background-color: #E8B4A0 !important; /* rose gold - same as quantity-btn background */
   color: #0A0E12 !important; /* dark background */
   opacity: 1 !important;
   visibility: visible !important;
@@ -1590,12 +1608,12 @@ html[data-theme="modern-dark"] span.cart-badge,
   z-index: 9999999 !important;
 }
 
-/* Gold Luxury Theme */
+/* Gold Luxury Theme - Match quantity-btn background (#FFF8DC) */
 html[data-theme="gold-luxury"] .cart-badge,
 html[data-theme="gold-luxury"] span.cart-badge,
 [data-theme="gold-luxury"] .cart-badge,
 [data-theme="gold-luxury"] span.cart-badge {
-  background-color: #FFF8DC !important; /* cornsilk (updated as requested) */
+  background-color: #FFF8DC !important; /* cornsilk - same as quantity-btn background */
   color: #0F0B05 !important; /* dark background */
   opacity: 1 !important;
   visibility: visible !important;
@@ -1603,12 +1621,12 @@ html[data-theme="gold-luxury"] span.cart-badge,
   z-index: 9999999 !important;
 }
 
-/* Vibrant Colors Theme */
+/* Vibrant Colors Theme - Match quantity-btn background (#FF6B6B) */
 html[data-theme="vibrant-colors"] .cart-badge,
 html[data-theme="vibrant-colors"] span.cart-badge,
 [data-theme="vibrant-colors"] .cart-badge,
 [data-theme="vibrant-colors"] span.cart-badge {
-  background-color: #FF6B6B !important; /* electric coral (button color) */
+  background-color: #FF6B6B !important; /* electric coral - same as quantity-btn background */
   color: #e2ceb1 !important; /* warm beige */
   opacity: 1 !important;
   visibility: visible !important;
@@ -1616,12 +1634,12 @@ html[data-theme="vibrant-colors"] span.cart-badge,
   z-index: 9999999 !important;
 }
 
-/* Minimal Theme */
+/* Minimal Theme - Match quantity-btn background (#4B8FE2) */
 html[data-theme="minimal"] .cart-badge,
 html[data-theme="minimal"] span.cart-badge,
 [data-theme="minimal"] .cart-badge,
 [data-theme="minimal"] span.cart-badge {
-  background-color: #4B8FE2 !important; /* nice blue color */
+  background-color: #4B8FE2 !important; /* blue - same as quantity-btn background */
   color: #CFEBF7 !important; /* light blue */
   opacity: 1 !important;
   visibility: visible !important;
@@ -1730,11 +1748,11 @@ html[data-theme="gold-luxury"] div[class*="backdrop-blur-sm"][class*="rounded-2x
 html[data-theme="gold-luxury"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
   background-color: rgba(26, 22, 18, 0.9) !important;
   color: #FFF8DC !important;
-  border-color: #CD853F !important;
+  border-color: #FFF8DC !important; /* Changed to Cornsilk #FFF8DC */
   opacity: 1 !important;
   visibility: visible !important;
   backdrop-filter: blur(8px) !important;
-  border: 1px solid #CD853F !important;
+  border: 1px solid #FFF8DC !important; /* Changed to Cornsilk #FFF8DC */
 }
 
 /* Vibrant Colors Theme */
@@ -1799,7 +1817,7 @@ html[data-theme="gold-luxury"] div[class*="rounded-3xl"][class*="shadow-2xl"]:no
   opacity: 1 !important;
   visibility: visible !important;
   backdrop-filter: blur(8px) !important;
-  border: 1px solid #CD853F !important;
+  border: 1px solid #FFF8DC !important; /* Changed to Cornsilk #FFF8DC */
 }
 
 /* Vibrant Colors Theme */
@@ -1911,4 +1929,356 @@ html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-24"][cla
   box-shadow: none !important;
   border: none !important;
   border-radius: 0 !important;
+}
+
+/* CHECKOUT BILL CARD - GOLD LUXURY THEME - FORCE #FFF8DC FOR ALL COLORS */
+[data-theme="gold-luxury"] .surface-sub,
+[data-theme="gold-luxury"] .surface-sub *,
+[data-theme="gold-luxury"] .surface-sub .border,
+[data-theme="gold-luxury"] .surface-sub div[class*="border"],
+[data-theme="gold-luxury"] .surface-sub span,
+[data-theme="gold-luxury"] .surface-sub .text-xs,
+[data-theme="gold-luxury"] .surface-sub .muted,
+[data-theme="gold-luxury"] .surface-sub .divider {
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC for all borders */
+  color: #FFF8DC !important; /* Cornsilk #FFF8DC for all text */
+}
+
+/* Ensure checkout bill card totals section uses #FFF8DC */
+[data-theme="gold-luxury"] .surface-sub .flex.justify-between span,
+[data-theme="gold-luxury"] .surface-sub .flex.justify-between.items-center span {
+  color: #FFF8DC !important; /* Cornsilk #FFF8DC */
+}
+
+/* Ensure checkout bill card divider uses #FFF8DC */
+[data-theme="gold-luxury"] .surface-sub .divider {
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC */
+}
+/* ============================================
+   ORDER PLACED PAGE - THEME-SPECIFIC STYLING
+   ============================================ */
+
+/* Base styles for order-placed page */
+.order-placed-page {
+  background-color: var(--theme-background);
+  background-image: linear-gradient(to bottom right, var(--theme-background), var(--theme-secondary));
+  background-blend-mode: overlay;
+}
+
+.order-placed-title {
+  color: var(--theme-text-primary);
+}
+
+.order-placed-subtitle {
+  color: var(--theme-text-secondary);
+}
+
+.order-placed-card {
+  background-color: var(--theme-menu-item-bg);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.order-placed-menu-button {
+  color: var(--theme-text-primary);
+}
+
+.order-placed-menu-button:hover {
+  color: var(--theme-primary);
+}
+
+/* Status icons and text */
+.order-placed-status-active {
+  background-color: var(--theme-primary) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.order-placed-status-inactive {
+  background-color: var(--theme-border);
+  opacity: 0.5;
+}
+
+.order-placed-icon-active {
+  color: var(--theme-text-primary) !important;
+}
+
+.order-placed-icon-inactive {
+  color: var(--theme-text-muted) !important;
+}
+
+.order-placed-text-active {
+  color: var(--theme-text-primary) !important;
+}
+
+.order-placed-text-inactive {
+  color: var(--theme-text-muted) !important;
+}
+
+/* Clean Light Theme */
+[data-theme="clean-light"] .order-placed-page {
+  background: linear-gradient(to bottom right, #FAFAFA, rgba(239, 199, 177, 0.2));
+}
+
+[data-theme="clean-light"] .order-placed-card {
+  background-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(231, 203, 169, 0.2);
+}
+
+[data-theme="clean-light"] .order-placed-status-active {
+  background-color: #E7CBA9 !important; /* paydine-champagne */
+}
+
+[data-theme="clean-light"] .order-placed-status-inactive {
+  background-color: #EDEDED; /* paydine-border */
+}
+
+[data-theme="clean-light"] .order-placed-icon-active {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+[data-theme="clean-light"] .order-placed-icon-inactive {
+  color: #7E7E7E !important; /* paydine-muted-gray */
+}
+
+[data-theme="clean-light"] .order-placed-text-active {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+[data-theme="clean-light"] .order-placed-text-inactive {
+  color: #7E7E7E !important; /* paydine-muted-gray */
+}
+
+[data-theme="clean-light"] .order-placed-subtitle {
+  color: #7E7E7E; /* paydine-muted-gray */
+}
+
+[data-theme="clean-light"] .order-placed-menu-button {
+  color: #3B3B3B; /* paydine-elegant-gray */
+}
+
+[data-theme="clean-light"] .order-placed-menu-button:hover {
+  color: #E7CBA9; /* paydine-champagne */
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .order-placed-page {
+  background: linear-gradient(to bottom right, #0A0E12, rgba(240, 198, 177, 0.1));
+}
+
+[data-theme="modern-dark"] .order-placed-card {
+  background-color: rgba(30, 41, 59, 0.7); /* menuItemBackground with opacity */
+  border-color: rgba(240, 198, 177, 0.2);
+}
+
+[data-theme="modern-dark"] .order-placed-status-active {
+  background-color: #F0C6B1 !important; /* Light rose gold */
+}
+
+[data-theme="modern-dark"] .order-placed-status-inactive {
+  background-color: #334155; /* border color */
+}
+
+[data-theme="modern-dark"] .order-placed-icon-active {
+  color: #0A0E12 !important; /* dark background */
+}
+
+[data-theme="modern-dark"] .order-placed-icon-inactive {
+  color: #94A3B8 !important; /* textMuted */
+}
+
+[data-theme="modern-dark"] .order-placed-text-active {
+  color: #F8FAFC !important; /* textPrimary */
+}
+
+[data-theme="modern-dark"] .order-placed-text-inactive {
+  color: #94A3B8 !important; /* textMuted */
+}
+
+[data-theme="modern-dark"] .order-placed-subtitle {
+  color: #CBD5E1; /* textSecondary */
+}
+
+[data-theme="modern-dark"] .order-placed-menu-button {
+  color: #F8FAFC; /* textPrimary */
+}
+
+[data-theme="modern-dark"] .order-placed-menu-button:hover {
+  color: #F0C6B1; /* primary */
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .order-placed-page {
+  background: linear-gradient(to bottom right, #0F0B05, rgba(255, 248, 220, 0.1));
+}
+
+[data-theme="gold-luxury"] .order-placed-card {
+  background-color: rgba(26, 22, 18, 0.7); /* menuItemBackground with opacity */
+  border-color: rgba(255, 248, 220, 0.2);
+}
+
+[data-theme="gold-luxury"] .order-placed-status-active {
+  background-color: #FFD700 !important; /* Pure gold */
+}
+
+[data-theme="gold-luxury"] .order-placed-status-inactive {
+  background-color: rgba(255, 248, 220, 0.2); /* Cornsilk with low opacity */
+}
+
+[data-theme="gold-luxury"] .order-placed-icon-active {
+  color: #0F0B05 !important; /* dark background */
+}
+
+[data-theme="gold-luxury"] .order-placed-icon-inactive {
+  color: rgba(255, 248, 220, 0.5) !important; /* Cornsilk with opacity */
+}
+
+[data-theme="gold-luxury"] .order-placed-text-active {
+  color: #FFF8DC !important; /* Cornsilk */
+}
+
+[data-theme="gold-luxury"] .order-placed-text-inactive {
+  color: rgba(255, 248, 220, 0.5) !important; /* Cornsilk with opacity */
+}
+
+[data-theme="gold-luxury"] .order-placed-subtitle {
+  color: #FFF8DC; /* Cornsilk */
+}
+
+[data-theme="gold-luxury"] .order-placed-menu-button {
+  color: #FFF8DC; /* Cornsilk */
+}
+
+[data-theme="gold-luxury"] .order-placed-menu-button:hover {
+  color: #FFD700; /* Pure gold */
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .order-placed-page {
+  background: linear-gradient(to bottom right, #e2ceb1, rgba(255, 107, 107, 0.15));
+}
+
+[data-theme="vibrant-colors"] .order-placed-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 107, 107, 0.2);
+}
+
+[data-theme="vibrant-colors"] .order-placed-status-active {
+  background-color: #FF6B6B !important; /* Electric coral */
+}
+
+[data-theme="vibrant-colors"] .order-placed-status-inactive {
+  background-color: #E2E8F0; /* border color */
+}
+
+[data-theme="vibrant-colors"] .order-placed-icon-active {
+  color: #1E293B !important; /* Deep slate */
+}
+
+[data-theme="vibrant-colors"] .order-placed-icon-inactive {
+  color: #64748B !important; /* textMuted */
+}
+
+[data-theme="vibrant-colors"] .order-placed-text-active {
+  color: #1E293B !important; /* Deep slate */
+}
+
+[data-theme="vibrant-colors"] .order-placed-text-inactive {
+  color: #64748B !important; /* textMuted */
+}
+
+[data-theme="vibrant-colors"] .order-placed-subtitle {
+  color: #475569; /* textSecondary */
+}
+
+[data-theme="vibrant-colors"] .order-placed-menu-button {
+  color: #1E293B; /* textPrimary */
+}
+
+[data-theme="vibrant-colors"] .order-placed-menu-button:hover {
+  color: #FF6B6B; /* Electric coral */
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .order-placed-page {
+  background: linear-gradient(to bottom right, #CFEBF7, rgba(45, 55, 72, 0.1));
+}
+
+[data-theme="minimal"] .order-placed-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(45, 55, 72, 0.2);
+}
+
+[data-theme="minimal"] .order-placed-status-active {
+  background-color: #2D3748 !important; /* Charcoal */
+}
+
+[data-theme="minimal"] .order-placed-status-inactive {
+  background-color: #E2E8F0; /* border color */
+}
+
+[data-theme="minimal"] .order-placed-icon-active {
+  color: #FFFFFF !important; /* White for contrast */
+}
+
+[data-theme="minimal"] .order-placed-icon-inactive {
+  color: #718096 !important; /* textMuted */
+}
+
+[data-theme="minimal"] .order-placed-text-active {
+  color: #1A202C !important; /* Deep charcoal */
+}
+
+[data-theme="minimal"] .order-placed-text-inactive {
+  color: #718096 !important; /* textMuted */
+}
+
+[data-theme="minimal"] .order-placed-subtitle {
+  color: #2D3748; /* Charcoal */
+}
+
+[data-theme="minimal"] .order-placed-menu-button {
+  color: #1A202C; /* Deep charcoal */
+}
+
+[data-theme="minimal"] .order-placed-menu-button:hover {
+  color: #2D3748; /* Charcoal */
+}
+
+/* ============================================
+   MENU ITEM PRICES - MATCH PLUS BUTTON COLORS
+   ============================================ */
+
+/* Clean Light Theme - Match quantity-btn background (#EFC7B1) */
+[data-theme="clean-light"] .menu-item-price,
+[data-theme="clean-light"] p.menu-item-price,
+[data-theme="clean-light"] span.menu-item-price {
+  color: #EFC7B1 !important; /* paydine-rose-beige - same as quantity-btn background */
+}
+
+/* Modern Dark Theme - Match quantity-btn background (#E8B4A0) */
+[data-theme="modern-dark"] .menu-item-price,
+[data-theme="modern-dark"] p.menu-item-price,
+[data-theme="modern-dark"] span.menu-item-price {
+  color: #E8B4A0 !important; /* rose gold - same as quantity-btn background */
+}
+
+/* Gold Luxury Theme - Match quantity-btn background (#FFF8DC) */
+[data-theme="gold-luxury"] .menu-item-price,
+[data-theme="gold-luxury"] p.menu-item-price,
+[data-theme="gold-luxury"] span.menu-item-price {
+  color: #FFF8DC !important; /* cornsilk - same as quantity-btn background */
+}
+
+/* Vibrant Colors Theme - Match quantity-btn background (#FF6B6B) */
+[data-theme="vibrant-colors"] .menu-item-price,
+[data-theme="vibrant-colors"] p.menu-item-price,
+[data-theme="vibrant-colors"] span.menu-item-price {
+  color: #FF6B6B !important; /* electric coral - same as quantity-btn background */
+}
+
+/* Minimal Theme - Match quantity-btn background (#4B8FE2) */
+[data-theme="minimal"] .menu-item-price,
+[data-theme="minimal"] p.menu-item-price,
+[data-theme="minimal"] span.menu-item-price {
+  color: #4B8FE2 !important; /* blue - same as quantity-btn background */
 }

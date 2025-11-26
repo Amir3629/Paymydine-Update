@@ -917,7 +917,7 @@ export default function CheckoutPage() {
                     }}
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2 text-xs"
+                    className="h-8 w-8 p-0 text-base font-bold"
                   >
                     ✕
                   </Button>

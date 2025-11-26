@@ -1037,7 +1037,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
                   }}
                   size="sm"
                   variant="ghost"
-                  className="h-6 px-2 text-xs"
+                  className="h-8 w-8 p-0 text-base font-bold"
                 >
                   ✕
                 </Button>
@@ -1207,7 +1207,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
         <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
-        <p className="text-lg font-semibold text-paydine-rose-beige">{formatCurrency(item.price || 0)}</p>
+        <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
           <div className="relative">
             <button
               className="quantity-btn w-12 h-12 font-bold text-lg"
@@ -1440,7 +1440,7 @@ function ExpandingBottomToolbar({
                           </div>
                         </div>
                         <motion.div
-                          className="font-semibold text-paydine-rose-beige text-lg"
+                          className="font-semibold menu-item-price text-lg"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}

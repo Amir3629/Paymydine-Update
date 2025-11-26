@@ -67,7 +67,7 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
         <h3 className="font-serif text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
-          <p className="text-lg font-semibold text-paydine-rose-beige">{formatCurrency(item.price)}</p>
+          <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price)}</p>
           <Button
             size="icon"
             variant="ghost"
