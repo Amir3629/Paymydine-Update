@@ -214,6 +214,278 @@
     background-color: #CFEBF7 !important;
   }
 
+  /* HOMEPAGE CARDS - ENSURE THEME COLORS FOR ALL ELEMENTS */
+  /* Clean Light Theme */
+  [data-theme="clean-light"] .page--home .surface-sub {
+    background-color: var(--theme-cart-bg, #FFFFFF) !important;
+    border-color: var(--theme-border, #EDEDED) !important;
+    color: var(--theme-text-primary, #3B3B3B) !important;
+  }
+  [data-theme="clean-light"] .page--home .surface-sub.border {
+    border-color: #EDEDED !important; /* paydine-border */
+  }
+  [data-theme="clean-light"] .page--home .surface-sub h2,
+  [data-theme="clean-light"] .page--home .surface-sub h3,
+  [data-theme="clean-light"] .page--home .surface-sub span {
+    color: var(--theme-text-primary, #3B3B3B) !important;
+  }
+
+  /* Modern Dark Theme */
+  [data-theme="modern-dark"] .page--home .surface-sub {
+    background-color: var(--theme-cart-bg, #1E293B) !important;
+    border-color: var(--theme-border, #334155) !important;
+    color: var(--theme-text-primary, #F8FAFC) !important;
+  }
+  [data-theme="modern-dark"] .page--home .surface-sub.border {
+    border-color: #334155 !important; /* Medium slate */
+  }
+  [data-theme="modern-dark"] .page--home .surface-sub h2,
+  [data-theme="modern-dark"] .page--home .surface-sub h3,
+  [data-theme="modern-dark"] .page--home .surface-sub span {
+    color: var(--theme-text-primary, #F8FAFC) !important;
+  }
+
+  /* Gold Luxury Theme */
+  [data-theme="gold-luxury"] .page--home .surface-sub {
+    background-color: var(--theme-cart-bg, #1A1612) !important;
+    border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk border */
+    color: var(--theme-text-primary, #FFF8DC) !important;
+  }
+  [data-theme="gold-luxury"] .page--home .surface-sub.border {
+    border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC */
+  }
+  [data-theme="gold-luxury"] .page--home .surface-sub h2,
+  [data-theme="gold-luxury"] .page--home .surface-sub h3,
+  [data-theme="gold-luxury"] .page--home .surface-sub span {
+    color: var(--theme-text-primary, #FFF8DC) !important;
+  }
+
+  /* Vibrant Colors Theme */
+  [data-theme="vibrant-colors"] .page--home .surface-sub {
+    background-color: var(--theme-cart-bg, #FAF7F2) !important;
+    border-color: var(--theme-border, #E8E0D5) !important;
+    color: var(--theme-text-primary, #1E293B) !important;
+  }
+  [data-theme="vibrant-colors"] .page--home .surface-sub.border {
+    border-color: #E8E0D5 !important; /* Light border */
+  }
+  [data-theme="vibrant-colors"] .page--home .surface-sub h2,
+  [data-theme="vibrant-colors"] .page--home .surface-sub h3,
+  [data-theme="vibrant-colors"] .page--home .surface-sub span {
+    color: var(--theme-text-primary, #1E293B) !important;
+  }
+
+  /* Minimal Theme */
+  [data-theme="minimal"] .page--home .surface-sub {
+    background-color: var(--theme-cart-bg, #FFFFFF) !important;
+    border-color: var(--theme-border, #E2E8F0) !important;
+    color: var(--theme-text-primary, #1A202C) !important;
+  }
+  [data-theme="minimal"] .page--home .surface-sub.border {
+    border-color: #E2E8F0 !important; /* Light border */
+  }
+  [data-theme="minimal"] .page--home .surface-sub h2,
+  [data-theme="minimal"] .page--home .surface-sub h3,
+  [data-theme="minimal"] .page--home .surface-sub span {
+    color: var(--theme-text-primary, #1A202C) !important;
+  }
+
+  /* HOMEPAGE CARDS - HOVER SHADOWS - THEME-AWARE */
+  /* Ensure shadows are visible but not too dark for dark themes */
+  [data-theme="clean-light"] .page--home .surface-sub.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  }
+  [data-theme="clean-light"] .page--home .surface-sub.hover\:shadow-xl:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  [data-theme="modern-dark"] .page--home .surface-sub.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+  }
+  [data-theme="modern-dark"] .page--home .surface-sub.hover\:shadow-xl:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  [data-theme="gold-luxury"] .page--home .surface-sub.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.4) !important;
+  }
+  [data-theme="gold-luxury"] .page--home .surface-sub.hover\:shadow-xl:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 248, 220, 0.1) !important;
+  }
+
+  [data-theme="vibrant-colors"] .page--home .surface-sub.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.08) !important;
+  }
+  [data-theme="vibrant-colors"] .page--home .surface-sub.hover\:shadow-xl:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  [data-theme="minimal"] .page--home .surface-sub.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  }
+  [data-theme="minimal"] .page--home .surface-sub.hover\:shadow-xl:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* HOMEPAGE - LOGO AND TABLE NUMBER BADGE - THEME COLORS */
+  /* Clean Light Theme */
+  [data-theme="clean-light"] .page--home .text-paydine-elegant-gray,
+  [data-theme="clean-light"] .page--home p[class*="text-paydine-elegant-gray"] {
+    color: #3B3B3B !important; /* paydine-elegant-gray */
+  }
+  [data-theme="clean-light"] .page--home .bg-paydine-champagne\/10,
+  [data-theme="clean-light"] .page--home p[class*="bg-paydine-champagne"] {
+    background-color: rgba(231, 203, 169, 0.1) !important; /* paydine-champagne/10 */
+  }
+  [data-theme="clean-light"] .page--home button.text-paydine-elegant-gray {
+    color: #3B3B3B !important;
+  }
+  [data-theme="clean-light"] .page--home button.hover\:text-paydine-rose-beige:hover {
+    color: #EFC7B1 !important; /* paydine-rose-beige */
+  }
+
+  /* Modern Dark Theme */
+  [data-theme="modern-dark"] .page--home .text-paydine-elegant-gray,
+  [data-theme="modern-dark"] .page--home p[class*="text-paydine-elegant-gray"] {
+    color: #F8FAFC !important; /* Crisp white */
+  }
+  [data-theme="modern-dark"] .page--home .bg-paydine-champagne\/10,
+  [data-theme="modern-dark"] .page--home p[class*="bg-paydine-champagne"] {
+    background-color: rgba(240, 198, 177, 0.15) !important; /* Light rose gold/15 */
+  }
+  [data-theme="modern-dark"] .page--home button.text-paydine-elegant-gray {
+    color: #F8FAFC !important;
+  }
+  [data-theme="modern-dark"] .page--home button.hover\:text-paydine-rose-beige:hover {
+    color: #E8B4A0 !important; /* Rose gold */
+  }
+
+  /* Gold Luxury Theme */
+  [data-theme="gold-luxury"] .page--home .text-paydine-elegant-gray,
+  [data-theme="gold-luxury"] .page--home p[class*="text-paydine-elegant-gray"] {
+    color: #FFF8DC !important; /* Cornsilk */
+  }
+  [data-theme="gold-luxury"] .page--home .bg-paydine-champagne\/10,
+  [data-theme="gold-luxury"] .page--home p[class*="bg-paydine-champagne"] {
+    background-color: rgba(255, 215, 0, 0.15) !important; /* Gold/15 */
+  }
+  [data-theme="gold-luxury"] .page--home button.text-paydine-elegant-gray {
+    color: #FFF8DC !important;
+  }
+  [data-theme="gold-luxury"] .page--home button.hover\:text-paydine-rose-beige:hover {
+    color: #FFD700 !important; /* Pure gold */
+  }
+
+  /* Vibrant Colors Theme */
+  [data-theme="vibrant-colors"] .page--home .text-paydine-elegant-gray,
+  [data-theme="vibrant-colors"] .page--home p[class*="text-paydine-elegant-gray"] {
+    color: #1E293B !important; /* Deep slate */
+  }
+  [data-theme="vibrant-colors"] .page--home .bg-paydine-champagne\/10,
+  [data-theme="vibrant-colors"] .page--home p[class*="bg-paydine-champagne"] {
+    background-color: rgba(255, 107, 107, 0.1) !important; /* Electric coral/10 */
+  }
+  [data-theme="vibrant-colors"] .page--home button.text-paydine-elegant-gray {
+    color: #1E293B !important;
+  }
+  [data-theme="vibrant-colors"] .page--home button.hover\:text-paydine-rose-beige:hover {
+    color: #FF6B6B !important; /* Electric coral */
+  }
+
+  /* Minimal Theme */
+  [data-theme="minimal"] .page--home .text-paydine-elegant-gray,
+  [data-theme="minimal"] .page--home p[class*="text-paydine-elegant-gray"] {
+    color: #1A202C !important; /* Deep charcoal */
+  }
+  [data-theme="minimal"] .page--home .bg-paydine-champagne\/10,
+  [data-theme="minimal"] .page--home p[class*="bg-paydine-champagne"] {
+    background-color: rgba(45, 55, 72, 0.1) !important; /* Charcoal/10 */
+  }
+  [data-theme="minimal"] .page--home button.text-paydine-elegant-gray {
+    color: #1A202C !important;
+  }
+  [data-theme="minimal"] .page--home button.hover\:text-paydine-rose-beige:hover {
+    color: #2D3748 !important; /* Charcoal */
+  }
+
+  /* HOMEPAGE CARDS - ICONS - THEME-SPECIFIC COLORS (STROKE ONLY, NO FILL) */
+  /* Clean Light Theme */
+  [data-theme="clean-light"] .page--home .surface-sub svg.lucide-utensils,
+  [data-theme="clean-light"] .page--home .surface-sub svg.lucide-car,
+  [data-theme="clean-light"] .page--home .surface-sub svg[class*="lucide"],
+  [data-theme="clean-light"] .page--home .surface-sub svg {
+    color: #EFC7B1 !important; /* paydine-rose-beige (theme-secondary) */
+    fill: none !important; /* No fill - only stroke */
+    stroke: #EFC7B1 !important;
+  }
+
+  /* Modern Dark Theme */
+  [data-theme="modern-dark"] .page--home .surface-sub svg.lucide-utensils,
+  [data-theme="modern-dark"] .page--home .surface-sub svg.lucide-car,
+  [data-theme="modern-dark"] .page--home .surface-sub svg[class*="lucide"],
+  [data-theme="modern-dark"] .page--home .surface-sub svg {
+    color: #E8B4A0 !important; /* Rose gold (theme-secondary) */
+    fill: none !important; /* No fill - only stroke */
+    stroke: #E8B4A0 !important;
+  }
+
+  /* Gold Luxury Theme */
+  [data-theme="gold-luxury"] .page--home .surface-sub svg.lucide-utensils,
+  [data-theme="gold-luxury"] .page--home .surface-sub svg.lucide-car,
+  [data-theme="gold-luxury"] .page--home .surface-sub svg[class*="lucide"],
+  [data-theme="gold-luxury"] .page--home .surface-sub svg {
+    color: #FFF8DC !important; /* Cornsilk (theme-secondary) */
+    fill: none !important; /* No fill - only stroke */
+    stroke: #FFF8DC !important;
+  }
+
+  /* Vibrant Colors Theme */
+  [data-theme="vibrant-colors"] .page--home .surface-sub svg.lucide-utensils,
+  [data-theme="vibrant-colors"] .page--home .surface-sub svg.lucide-car,
+  [data-theme="vibrant-colors"] .page--home .surface-sub svg[class*="lucide"],
+  [data-theme="vibrant-colors"] .page--home .surface-sub svg {
+    color: #FF6B6B !important; /* Electric coral (theme-secondary) */
+    fill: none !important; /* No fill - only stroke */
+    stroke: #FF6B6B !important;
+  }
+
+  /* Minimal Theme */
+  [data-theme="minimal"] .page--home .surface-sub svg.lucide-utensils,
+  [data-theme="minimal"] .page--home .surface-sub svg.lucide-car,
+  [data-theme="minimal"] .page--home .surface-sub svg[class*="lucide"],
+  [data-theme="minimal"] .page--home .surface-sub svg {
+    color: #4A5568 !important; /* Slate (theme-secondary equivalent) */
+    fill: none !important; /* No fill - only stroke */
+    stroke: #4A5568 !important;
+  }
+
+  /* Override any inline styles on homepage card icons - use specific theme colors (stroke only) */
+  [data-theme="clean-light"] .page--home .surface-sub svg[style*="color"] {
+    color: #EFC7B1 !important; /* paydine-rose-beige */
+    fill: none !important;
+    stroke: #EFC7B1 !important;
+  }
+  [data-theme="modern-dark"] .page--home .surface-sub svg[style*="color"] {
+    color: #E8B4A0 !important; /* Rose gold */
+    fill: none !important;
+    stroke: #E8B4A0 !important;
+  }
+  [data-theme="gold-luxury"] .page--home .surface-sub svg[style*="color"] {
+    color: #FFF8DC !important; /* Cornsilk */
+    fill: none !important;
+    stroke: #FFF8DC !important;
+  }
+  [data-theme="vibrant-colors"] .page--home .surface-sub svg[style*="color"] {
+    color: #FF6B6B !important; /* Electric coral */
+    fill: none !important;
+    stroke: #FF6B6B !important;
+  }
+  [data-theme="minimal"] .page--home .surface-sub svg[style*="color"] {
+    color: #4A5568 !important; /* Slate */
+    fill: none !important;
+    stroke: #4A5568 !important;
+  }
+
   /* Additional safety: Force bg-theme-background class to use exact colors - only for page backgrounds */
   [data-theme="clean-light"] .bg-theme-background {
     background-color: #FAFAFA !important;
@@ -689,6 +961,17 @@ input[type="number"] {
   color: var(--theme-background) !important; /* Keep same text color on hover */
 }
 
+/* Ensure Apply button text and all text inside icon-btn--accent uses theme background color */
+.icon-btn--accent,
+.icon-btn--accent *,
+.icon-btn--accent span,
+.icon-btn--accent button,
+button.icon-btn--accent,
+button.icon-btn--accent *,
+button.icon-btn--accent span {
+  color: var(--theme-background) !important;
+}
+
 /* Icon button frame colors - theme-specific for better visibility */
 [data-theme="clean-light"] .icon-btn,
 [data-theme="clean-light"] button.icon-btn {
@@ -775,6 +1058,47 @@ input[type="number"] {
   color: #CFEBF7 !important; /* No change on hover */
 }
 
+/* Override any Tailwind text color utilities on Apply button (icon-btn--accent) */
+/* Clean Light Theme */
+[data-theme="clean-light"] .icon-btn--accent[class*="text-"],
+[data-theme="clean-light"] button.icon-btn--accent[class*="text-"],
+[data-theme="clean-light"] .icon-btn--accent *[class*="text-"],
+[data-theme="clean-light"] button.icon-btn--accent *[class*="text-"] {
+  color: #FAFAFA !important; /* paydine-soft-white (background) */
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .icon-btn--accent[class*="text-"],
+[data-theme="modern-dark"] button.icon-btn--accent[class*="text-"],
+[data-theme="modern-dark"] .icon-btn--accent *[class*="text-"],
+[data-theme="modern-dark"] button.icon-btn--accent *[class*="text-"] {
+  color: #0A0E12 !important; /* Dark background */
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .icon-btn--accent[class*="text-"],
+[data-theme="gold-luxury"] button.icon-btn--accent[class*="text-"],
+[data-theme="gold-luxury"] .icon-btn--accent *[class*="text-"],
+[data-theme="gold-luxury"] button.icon-btn--accent *[class*="text-"] {
+  color: #0F0B05 !important; /* Dark background */
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .icon-btn--accent[class*="text-"],
+[data-theme="vibrant-colors"] button.icon-btn--accent[class*="text-"],
+[data-theme="vibrant-colors"] .icon-btn--accent *[class*="text-"],
+[data-theme="vibrant-colors"] button.icon-btn--accent *[class*="text-"] {
+  color: #e2ceb1 !important; /* Warm beige (background) */
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .icon-btn--accent[class*="text-"],
+[data-theme="minimal"] button.icon-btn--accent[class*="text-"],
+[data-theme="minimal"] .icon-btn--accent *[class*="text-"],
+[data-theme="minimal"] button.icon-btn--accent *[class*="text-"] {
+  color: #CFEBF7 !important; /* Light blue (background) */
+}
+
 /* Tip pills - Normal state (unselected) - Use same colors as scrollbar */
 .tip-pill {
   background: transparent !important;
@@ -838,6 +1162,14 @@ input[type="number"] {
   font-weight: 900 !important; /* Extra bold numbers and % sign */
 }
 
+/* Override Tailwind text-primary-foreground for Gold Luxury tip pills */
+[data-theme="gold-luxury"] button.tip-pill--active.text-primary-foreground,
+[data-theme="gold-luxury"] .tip-pill--active.text-primary-foreground,
+[data-theme="gold-luxury"] button.tip-pill--active[class*="text-primary-foreground"],
+[data-theme="gold-luxury"] .tip-pill--active[class*="text-primary-foreground"] {
+  color: #0F0B05 !important; /* dark background - theme background color */
+}
+
 [data-theme="vibrant-colors"] .tip-pill--active,
 [data-theme="vibrant-colors"] button.tip-pill--active {
   background-color: #FF6B6B !important; /* coral */
@@ -863,6 +1195,32 @@ input[type="number"] {
   border-color: var(--theme-secondary) !important;
   border-radius: 9999px !important; /* Fully rounded like other buttons */
   font-weight: 900 !important; /* Extra bold numbers and % sign */
+}
+
+/* Override any Tailwind text color utilities on tip pills - theme colors take priority */
+[data-theme="clean-light"] button.tip-pill--active[class*="text-"],
+[data-theme="clean-light"] .tip-pill--active[class*="text-"] {
+  color: #FAFAFA !important; /* paydine-soft-white */
+}
+
+[data-theme="modern-dark"] button.tip-pill--active[class*="text-"],
+[data-theme="modern-dark"] .tip-pill--active[class*="text-"] {
+  color: #0A0E12 !important; /* dark background */
+}
+
+[data-theme="gold-luxury"] button.tip-pill--active[class*="text-"],
+[data-theme="gold-luxury"] .tip-pill--active[class*="text-"] {
+  color: #0F0B05 !important; /* dark background - theme background color */
+}
+
+[data-theme="vibrant-colors"] button.tip-pill--active[class*="text-"],
+[data-theme="vibrant-colors"] .tip-pill--active[class*="text-"] {
+  color: #e2ceb1 !important; /* warm beige */
+}
+
+[data-theme="minimal"] button.tip-pill--active[class*="text-"],
+[data-theme="minimal"] .tip-pill--active[class*="text-"] {
+  color: #CFEBF7 !important; /* light blue */
 }
 
 /* Section titles - make them thick/bold */
@@ -1844,14 +2202,14 @@ html[data-theme="minimal"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([c
   border: 1px solid #E2E8F0 !important;
 }
 
-/* WAITER AND NOTE MODAL ICONS - COLOR ONLY (NO BACKGROUND) */
+/* WAITER AND NOTE MODAL ICONS - STROKE ONLY (NO FILL) */
 /* Clean Light Theme */
 html[data-theme="clean-light"] .rounded-3xl.shadow-2xl svg,
 html[data-theme="clean-light"] .rounded-3xl.shadow-2xl i,
 html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
 html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
   color: #E7CBA9 !important;
-  fill: #E7CBA9 !important;
+  fill: none !important; /* No fill - only stroke */
   stroke: #E7CBA9 !important;
   background-color: transparent !important;
   background: transparent !important;
@@ -1865,7 +2223,7 @@ html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl i,
 html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
 html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
   color: #F0C6B1 !important;
-  fill: #F0C6B1 !important;
+  fill: none !important; /* No fill - only stroke */
   stroke: #F0C6B1 !important;
   background-color: transparent !important;
   background: transparent !important;
@@ -1879,7 +2237,7 @@ html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl i,
 html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
 html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
   color: #FFD700 !important;
-  fill: #FFD700 !important;
+  fill: none !important; /* No fill - only stroke */
   stroke: #FFD700 !important;
   background-color: transparent !important;
   background: transparent !important;
@@ -1893,7 +2251,7 @@ html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl i,
 html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
 html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
   color: #FF6B6B !important;
-  fill: #FF6B6B !important;
+  fill: none !important; /* No fill - only stroke */
   stroke: #FF6B6B !important;
   background-color: transparent !important;
   background: transparent !important;
@@ -1907,12 +2265,58 @@ html[data-theme="minimal"] .rounded-3xl.shadow-2xl i,
 html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
 html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
   color: #2D3748 !important;
-  fill: #2D3748 !important;
+  fill: none !important; /* No fill - only stroke */
   stroke: #2D3748 !important;
   background-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
+}
+
+/* MENU PAGE - WAITER AND NOTE ICONS IN TOOLBAR - STROKE ONLY (NO FILL) */
+/* Clean Light Theme */
+html[data-theme="clean-light"] svg.lucide-hand-platter,
+html[data-theme="clean-light"] svg.lucide-notebook-pen,
+html[data-theme="clean-light"] button svg.lucide-hand-platter,
+html[data-theme="clean-light"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] svg.lucide-hand-platter,
+html[data-theme="modern-dark"] svg.lucide-notebook-pen,
+html[data-theme="modern-dark"] button svg.lucide-hand-platter,
+html[data-theme="modern-dark"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] svg.lucide-hand-platter,
+html[data-theme="gold-luxury"] svg.lucide-notebook-pen,
+html[data-theme="gold-luxury"] button svg.lucide-hand-platter,
+html[data-theme="gold-luxury"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] svg.lucide-hand-platter,
+html[data-theme="vibrant-colors"] svg.lucide-notebook-pen,
+html[data-theme="vibrant-colors"] button svg.lucide-hand-platter,
+html[data-theme="vibrant-colors"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] svg.lucide-hand-platter,
+html[data-theme="minimal"] svg.lucide-notebook-pen,
+html[data-theme="minimal"] button svg.lucide-hand-platter,
+html[data-theme="minimal"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
 }
 
 /* WAITER AND NOTE MODAL ICON CONTAINERS - REMOVE BACKGROUNDS */
@@ -1930,6 +2334,190 @@ html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-24"][cla
   border: none !important;
   border-radius: 0 !important;
 }
+
+/* WAITER AND NOTE MODALS - ALL TEXT ELEMENTS - THEME-SPECIFIC COLORS */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #F8FAFC !important; /* Crisp white */
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #FFF8DC !important; /* Cornsilk */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #1E293B !important; /* Deep slate */
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #1A202C !important; /* Deep charcoal */
+}
+
+/* WAITER AND NOTE MODALS - BUTTONS - THEME-SPECIFIC COLORS */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #E7CBA9 !important; /* paydine-champagne */
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #F0C6B1 !important; /* Light rose gold */
+  color: #0A0E12 !important; /* Dark background */
+}
+
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #F8FAFC !important; /* Crisp white */
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #FFD700 !important; /* Pure gold */
+  color: #0F0B05 !important; /* Dark background */
+}
+
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #FFF8DC !important; /* Cornsilk */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #FF6B6B !important; /* Electric coral */
+  color: #e2ceb1 !important; /* Warm beige */
+}
+
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #1E293B !important; /* Deep slate */
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #2D3748 !important; /* Charcoal */
+  color: #CFEBF7 !important; /* Light blue */
+}
+
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #1A202C !important; /* Deep charcoal */
+}
+
+/* WAITER AND NOTE MODALS - TEXTAREA AND INPUTS - THEME-SPECIFIC COLORS */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #FFFFFF !important; /* Bright white */
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+  border-color: #EDEDED !important; /* paydine-border */
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #2A2E38 !important; /* Bright version of dark background */
+  color: #F8FAFC !important; /* Crisp white */
+  border-color: #334155 !important; /* Medium slate */
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #2F2B25 !important; /* Bright version of dark background */
+  color: #FFF8DC !important; /* Cornsilk */
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk border */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #F8E8D1 !important; /* Bright version of warm beige */
+  color: #1E293B !important; /* Deep slate */
+  border-color: #E8E0D5 !important; /* Light border */
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #E5F7FF !important; /* Bright version of light blue */
+  color: #1A202C !important; /* Deep charcoal */
+  border-color: #E2E8F0 !important; /* Light border */
+}
+
 
 /* CHECKOUT BILL CARD - GOLD LUXURY THEME - FORCE #FFF8DC FOR ALL COLORS */
 [data-theme="gold-luxury"] .surface-sub,
@@ -2281,4 +2869,177 @@ html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-24"][cla
 [data-theme="minimal"] p.menu-item-price,
 [data-theme="minimal"] span.menu-item-price {
   color: #4B8FE2 !important; /* blue - same as quantity-btn background */
+}
+
+/* ============================================
+   VALET REQUEST BUTTON - THEMED FRAME
+   ============================================ */
+
+/* Clean Light Theme */
+[data-theme="clean-light"] .valet-request-btn,
+[data-theme="clean-light"] button.valet-request-btn,
+[data-theme="clean-light"] .valet-request-btn * {
+  background-color: #E7CBA9 !important; /* paydine-champagne (theme-secondary) */
+  color: #1A1A1A !important; /* Dark text for contrast */
+  border: 2px solid #E7CBA9 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="clean-light"] .valet-request-btn:hover:not(:disabled),
+[data-theme="clean-light"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #EFC7B1 !important; /* paydine-rose-beige */
+  border-color: #EFC7B1 !important;
+  color: #1A1A1A !important;
+}
+
+[data-theme="clean-light"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .valet-request-btn,
+[data-theme="modern-dark"] button.valet-request-btn,
+[data-theme="modern-dark"] .valet-request-btn * {
+  background-color: #F0C6B1 !important; /* Light rose gold (theme-secondary) */
+  color: #000000 !important; /* Black text for maximum contrast */
+  border: 2px solid #F0C6B1 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="modern-dark"] .valet-request-btn:hover:not(:disabled),
+[data-theme="modern-dark"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #E8B4A0 !important; /* Rose gold */
+  border-color: #E8B4A0 !important;
+  color: #000000 !important;
+}
+
+[data-theme="modern-dark"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .valet-request-btn,
+[data-theme="gold-luxury"] button.valet-request-btn,
+[data-theme="gold-luxury"] .valet-request-btn * {
+  background-color: #FFD700 !important; /* Pure gold (theme-secondary) */
+  color: #000000 !important; /* Black text for maximum contrast */
+  border: 2px solid #FFD700 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="gold-luxury"] .valet-request-btn:hover:not(:disabled),
+[data-theme="gold-luxury"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #FFED4E !important; /* Brighter gold */
+  border-color: #FFED4E !important;
+  color: #000000 !important;
+}
+
+[data-theme="gold-luxury"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .valet-request-btn,
+[data-theme="vibrant-colors"] button.valet-request-btn,
+[data-theme="vibrant-colors"] .valet-request-btn * {
+  background-color: #FF6B6B !important; /* Electric coral (theme-secondary) */
+  color: #FFFFFF !important; /* White text for contrast on coral */
+  border: 2px solid #FF6B6B !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="vibrant-colors"] .valet-request-btn:hover:not(:disabled),
+[data-theme="vibrant-colors"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #FF5252 !important; /* Darker coral */
+  border-color: #FF5252 !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="vibrant-colors"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .valet-request-btn,
+[data-theme="minimal"] button.valet-request-btn,
+[data-theme="minimal"] .valet-request-btn * {
+  background-color: #2D3748 !important; /* Charcoal (theme-secondary) */
+  color: #FFFFFF !important; /* White text for contrast on charcoal */
+  border: 2px solid #2D3748 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="minimal"] .valet-request-btn:hover:not(:disabled),
+[data-theme="minimal"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #4A5568 !important; /* Slate */
+  border-color: #4A5568 !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="minimal"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* ============================================
+   VALET PAGE ICONS - THEME-AWARE COLORS
+   ============================================ */
+
+/* Clean Light Theme */
+[data-theme="clean-light"] .valet-icon,
+[data-theme="clean-light"] svg.valet-icon,
+[data-theme="clean-light"] .valet-icon svg {
+  color: #E7CBA9 !important; /* paydine-champagne (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #E7CBA9 !important;
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .valet-icon,
+[data-theme="modern-dark"] svg.valet-icon,
+[data-theme="modern-dark"] .valet-icon svg {
+  color: #F0C6B1 !important; /* Light rose gold (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #F0C6B1 !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .valet-icon,
+[data-theme="gold-luxury"] svg.valet-icon,
+[data-theme="gold-luxury"] .valet-icon svg {
+  color: #FFD700 !important; /* Pure gold (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #FFD700 !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .valet-icon,
+[data-theme="vibrant-colors"] svg.valet-icon,
+[data-theme="vibrant-colors"] .valet-icon svg {
+  color: #FF6B6B !important; /* Electric coral (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #FF6B6B !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .valet-icon,
+[data-theme="minimal"] svg.valet-icon,
+[data-theme="minimal"] .valet-icon svg {
+  color: #2D3748 !important; /* Charcoal (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #2D3748 !important;
 }

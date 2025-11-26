@@ -218,6 +218,28 @@ export const useCmsStore = create<CmsState>()(
     }),
     {
       name: "paymydine-cms-storage",
+      version: 1,
+      migrate: (persistedState: any, version: number) => {
+        // Migrate tip settings from old [10, 15, 20] to new [0, 5, 10]
+        if (persistedState?.state?.tipSettings) {
+          const currentPercentages = persistedState.state.tipSettings.percentages || []
+          const correctPercentages = [0, 5, 10]
+          
+          // Check if migration is needed
+          const needsMigration = 
+            currentPercentages.length !== correctPercentages.length ||
+            !currentPercentages.every((p: number, i: number) => p === correctPercentages[i])
+          
+          if (needsMigration) {
+            persistedState.state.tipSettings = {
+              enabled: persistedState.state.tipSettings.enabled ?? true,
+              percentages: correctPercentages,
+              defaultPercentage: 10,
+            }
+          }
+        }
+        return persistedState
+      },
       storage: createJSONStorage(() => {
         // Check if we're on the client side
         if (typeof window !== "undefined") {
@@ -231,7 +253,23 @@ export const useCmsStore = create<CmsState>()(
         }
       }),
       onRehydrateStorage: () => (state) => {
-        if (state) state.isInitialized = true
+        if (state) {
+          state.isInitialized = true
+          // Backup check: Ensure tip settings are correct even after migration
+          const correctPercentages = [0, 5, 10]
+          const currentPercentages = state.tipSettings?.percentages || []
+          const needsUpdate = 
+            currentPercentages.length !== correctPercentages.length ||
+            !currentPercentages.every((p, i) => p === correctPercentages[i])
+          
+          if (needsUpdate) {
+            state.tipSettings = {
+              enabled: state.tipSettings?.enabled ?? true,
+              percentages: correctPercentages,
+              defaultPercentage: 10,
+            }
+          }
+        }
       },
     },
   ),
