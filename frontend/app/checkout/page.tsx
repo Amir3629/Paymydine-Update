@@ -54,7 +54,8 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
-  const { items: allItems, clearCart } = useCartStore()
+  const { items: allItems, clearCart, tableInfo } = useCartStore()
+  const isCashier = (tableInfo as any)?.is_codier || false
   const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadTaxSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
   const [isLoading, setIsLoading] = useState(false)
   
@@ -162,7 +163,8 @@ export default function CheckoutPage() {
     try {
       setIsLoading(true)
       
-      const response = await fetch('/api/process-payment', {
+      // First, process payment with payment provider
+      const paymentResponse = await fetch('/api/process-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,25 +182,63 @@ export default function CheckoutPage() {
         }),
       })
 
-      const result = await response.json()
+      const paymentResult = await paymentResponse.json()
 
-      if (result.success) {
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.error || 'Payment failed')
+      }
+
+      // After payment succeeds, submit order to backend
+      const api = new ApiClient()
+      const orderData = {
+        table_id: isCashier ? "cashier" : (tableInfo?.table_id || "7"),
+        table_name: isCashier ? "Cashier" : (tableInfo?.table_name || "Table 7"),
+        location_id: tableInfo?.location_id || 1,
+        is_codier: isCashier,
+        items: itemsToPay.map(item => ({
+          menu_id: item.item.id,
+          name: item.item.name,
+          quantity: 1, // itemsToPay already has individual items
+          price: item.price,
+          special_instructions: '',
+          options: {}
+        })),
+        customer_name: paymentFormData.cardholderName || (isCashier ? "Cashier Customer" : `${tableInfo?.table_name || `Table ${tableInfo?.table_id || 'Unknown'}`} Customer`),
+        customer_phone: paymentFormData.phone || '',
+        customer_email: paymentFormData.email || '',
+        payment_method: (selectedPaymentMethod === 'paypal' ? 'paypal' : 
+                        selectedPaymentMethod === 'cash' ? 'cod' : 'card') as 'cod' | 'card' | 'paypal',
+        total_amount: finalTotal,
+        tip_amount: tipAmount,
+        coupon_code: appliedCoupon?.code || null,
+        coupon_discount: couponDiscount,
+        special_instructions: ''
+      }
+
+      const orderResponse = await api.submitOrder(orderData)
+      
+      if (orderResponse.success) {
+        // Save order ID for status tracking
+        if (orderResponse.order_id) {
+          localStorage.setItem('lastOrderId', orderResponse.order_id.toString())
+        }
+        
         toast({ 
           title: t("paymentSuccessful"), 
-          description: t("paymentSuccessfulDesc"),
+          description: `Order #${orderResponse.order_id || 'submitted'} placed successfully!`,
           variant: "default"
         })
         
         // Clear cart and redirect after success
         setTimeout(() => {
           clearCart()
-          router.push("/order-placed")
+          router.push(`/order-placed?order_id=${orderResponse.order_id || 'unknown'}`)
         }, 1500)
       } else {
-        throw new Error(result.error || 'Payment failed')
+        throw new Error('Order submission failed')
       }
     } catch (error) {
-      console.error('Payment error:', error)
+      console.error('Payment/Order error:', error)
       toast({ 
         title: "Payment Failed", 
         description: error instanceof Error ? error.message : "Please try again",
@@ -666,7 +706,7 @@ export default function CheckoutPage() {
               <div className="bg-gray-50 rounded-xl p-6">
                 <CreditCard className="h-12 w-12 text-paydine-champagne mx-auto mb-3" />
                 <p className="text-sm text-gray-600 mb-4">
-                  {selectedMethod.id === "applepay" 
+                  {selectedMethod.code === "applepay" 
                     ? "Touch ID or Face ID to pay with Apple Pay"
                     : "Use your saved payment method with Google Pay"
                   }
@@ -725,9 +765,11 @@ export default function CheckoutPage() {
     if (!selectedMethod) return null
 
     const isFormValid = () => {
-      switch (selectedMethod.id) {
+      switch (selectedMethod.code) {
         case "visa":
         case "mastercard":
+        case "stripe":
+        case "authorizenetaim":
           return paymentFormData.cardNumber && paymentFormData.expiryDate && paymentFormData.cvv && paymentFormData.cardholderName
         case "paypal":
           return true // PayPal handles its own validation
@@ -741,9 +783,11 @@ export default function CheckoutPage() {
     }
 
     const getButtonText = () => {
-      switch (selectedMethod.id) {
+      switch (selectedMethod.code) {
         case "visa":
         case "mastercard":
+        case "stripe":
+        case "authorizenetaim":
           return `Pay $${finalTotal.toFixed(2)}`
         case "paypal":
           return "Continue with PayPal"

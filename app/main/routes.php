@@ -272,6 +272,161 @@ App::before(function () {
                         ], 500);
                     }
                 });
+
+               function syncOrderToPOS($orderId)
+                {
+                    try {
+                        $order = DB::table('orders')->where('order_id', $orderId)->first();
+                        $items = DB::table('order_menus')->where('order_id', $orderId)->get();
+
+                        if (!$order) {
+                            \Log::warning('API: Order not found for POS sync', ['order_id' => $orderId]);
+                            return;
+                        }
+
+                        $configs = \Admin\Models\Pos_configs_model::with('devices')->get();
+
+                        if ($configs->isEmpty()) {
+                            \Log::warning('API: No POS configs found');
+                            return;
+                        }
+
+                        // Recriar payloads
+                        $squarePayload     = formatOrderForSquareAPI($order, $items);
+                        \Log::info('Square Payload', ['payload' => $squarePayload]);
+                        // $cloverPayload     = formatOrderForCloverAPI($order, $items);
+                        // $lightspeedPayload = formatOrderForLightspeedAPI($order, $items);
+
+                        $baseUrl = 'https://pay-my-dine-api-pos.onrender.com';
+
+                        foreach ($configs as $config) {
+
+                            $device      = $config->devices;
+                            $posCode     = strtolower($device->code ?? '');
+                            $accessToken = $config->access_token ?? null;
+
+                            if (!$posCode || !$accessToken) continue;
+
+                            $url = null;
+                            $payload = null;
+
+                            switch ($posCode) {
+                                case 'square':
+                                    $url = "$baseUrl/api/pos/square/order/create";
+                                    $payload = $squarePayload;
+                                    break;
+
+                                case 'clover':
+                                    $url = "$baseUrl/api/pos/clover/order";
+                                    if (!empty($config->id_application)) {
+                                        $url .= '?merchantId=' . urlencode($config->id_application);
+                                    }
+                                    $payload = $cloverPayload;
+                                    break;
+
+                                case 'lightspeed':
+                                    $url = "$baseUrl/api/pos/lightspeed/order";
+                                    if (!empty($config->id_application)) {
+                                        $url .= '?domainPrefix=' . urlencode($config->id_application);
+                                    }
+                                    $payload = $lightspeedPayload;
+                                    break;
+
+                                default:
+                                    continue 2;
+                            }
+
+                            $response = Http::withToken($accessToken)
+                                ->acceptJson()
+                                ->post($url, $payload);
+
+                            \Log::info('API: POS sync sent', [
+                                'order_id' => $orderId,
+                                'pos'      => $posCode,
+                                'status'   => $response->status(),
+                                'response' => $response->json()
+                            ]);
+                        }
+
+                    } catch (\Exception $e) {
+                        \Log::error('API: POS sync failed', [
+                            'order_id' => $orderId,
+                            'error'    => $e->getMessage()
+                        ]);
+                    }
+                }
+
+                function formatOrderForSquareAPI($order, $items)
+                {
+                    return [
+                        'order_id' => $order->order_id,
+                        'location_id' => $order->location_id,
+                        'customer' => [
+                            'name'  => $order->first_name,
+                            'email' => $order->email,
+                        ],
+                        'total_money' => [
+                            'amount'   => intval($order->order_total * 100),
+                            'currency' => 'USD',
+                        ],
+                        'line_items' => collect($items)->map(function ($item) {
+                            return [
+                                'name' => $item->name,
+                                'quantity' => strval($item->quantity),
+                                'base_price_money' => [
+                                    'amount'   => intval($item->price * 100),
+                                    'currency' => 'USD',
+                                ],
+                            ];
+                        })->toArray(),
+                        'created_at' => now()->toIso8601String(),
+                        'provider'   => 'square',
+                    ];
+                }
+
+                function formatOrderForCloverAPI($order, $items)
+                {
+                    return [
+                        'order_id' => $order->order_id,
+                        'customer' => [
+                            'name'  => $order->first_name,
+                            'email' => $order->email,
+                        ],
+                        'line_items' => collect($items)->map(function ($item) {
+                            return [
+                                'name'  => $item->name,
+                                'price' => intval($item->price * 100),
+                                'unitQty' => [
+                                    'unit'     => 'UNIT',
+                                    'quantity' => (int)$item->quantity,
+                                ],
+                            ];
+                        })->toArray(),
+                        'created_at' => now()->toIso8601String(),
+                        'provider'   => 'clover',
+                    ];
+                }
+
+                function formatOrderForLightspeedAPI($order, $items)
+                {
+                    return [
+                        'payload' => [
+                            'id' => (string) $order->order_id,
+                            'totals' => [
+                                'total_price' => (float) $order->order_total,
+                            ],
+                            'register_sale_products' => collect($items)->map(function ($item) {
+                                return [
+                                    'quantity' => (int)$item->quantity,
+                                    'price'    => (float)$item->price,
+                                    'price_total' => $item->quantity * $item->price,
+                                ];
+                            })->toArray(),
+                            'created_at' => now()->toIso8601String(),
+                        ],
+                        'provider' => 'lightspeed',
+                    ];
+                }
                 
                 // Orders endpoint
                 Route::post('/orders', function () {
@@ -409,7 +564,27 @@ App::before(function () {
                         
                         $serviceFee = $subtotal * $servicePercentage;
                         $tipAmount = $input['tip_amount'] ?? 0;
-                        $total = $subtotal + $serviceFee + $tipAmount;
+                        
+                        // Handle coupon discount
+                        $couponDiscount = 0;
+                        $couponId = null;
+                        $couponCode = null;
+                        
+                        if (!empty($input['coupon_code']) && isset($input['coupon_discount']) && $input['coupon_discount'] > 0) {
+                            $couponDiscount = floatval($input['coupon_discount']);
+                            $couponCode = $input['coupon_code'];
+                            
+                            // Get coupon ID from database
+                            $coupon = DB::table('ti_igniter_coupons')
+                                ->where('code', $couponCode)
+                                ->first();
+                            
+                            if ($coupon) {
+                                $couponId = $coupon->coupon_id;
+                            }
+                        }
+                        
+                        $total = $subtotal + $serviceFee + $tipAmount - $couponDiscount;
                         
                         DB::table('order_totals')->insert([
                             'order_id' => $orderId,
@@ -442,6 +617,48 @@ App::before(function () {
                             ]);
                         }
                         
+                        // Save coupon discount to order_totals
+                        if ($couponDiscount > 0) {
+                            DB::table('order_totals')->insert([
+                                'order_id' => $orderId,
+                                'code' => 'coupon',
+                                'title' => 'Coupon (' . $couponCode . ')',
+                                'value' => -$couponDiscount, // Negative value for discount
+                                'priority' => 3.5,
+                                'is_summable' => 1
+                            ]);
+                            
+                            // Save coupon history
+                            if ($couponId) {
+                                try {
+                                    DB::table('ti_igniter_coupons_history')->insert([
+                                        'coupon_id' => $couponId,
+                                        'order_id' => $orderId,
+                                        'customer_id' => 1, // Default customer, can be updated if customer tracking is added
+                                        'code' => $couponCode,
+                                        'min_total' => $coupon->min_total ?? null,
+                                        'amount' => $couponDiscount,
+                                        'status' => 1,
+                                        'created_at' => now(),
+                                        'updated_at' => now()
+                                    ]);
+                                    
+                                    \Log::info('Coupon history saved', [
+                                        'coupon_id' => $couponId,
+                                        'order_id' => $orderId,
+                                        'code' => $couponCode,
+                                        'discount' => $couponDiscount
+                                    ]);
+                                } catch (\Exception $e) {
+                                    \Log::error('Failed to save coupon history', [
+                                        'error' => $e->getMessage(),
+                                        'coupon_id' => $couponId,
+                                        'order_id' => $orderId
+                                    ]);
+                                }
+                            }
+                        }
+                        
                         DB::table('order_totals')->insert([
                             'order_id' => $orderId,
                             'code' => 'total',
@@ -450,6 +667,12 @@ App::before(function () {
                             'priority' => 4,
                             'is_summable' => 0
                         ]);
+                        
+                        \Log::info('API: Order submitted', ['order_id' => $orderId]);
+                        
+                        syncOrderToPOS($orderId);
+
+                        \Log::info('API: Order sync to POS initiated', ['order_id' => $orderId]);
                         
                         return response()->json([
                             'success' => true,
@@ -460,6 +683,7 @@ App::before(function () {
                                 'service' => round($serviceFee, 2),
                                 'service_percentage' => round($servicePercentage * 100, 1),
                                 'tip' => round($tipAmount, 2),
+                                'coupon_discount' => round($couponDiscount, 2),
                                 'total' => round($total, 2)
                             ]
                         ]);
