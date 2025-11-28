@@ -1455,6 +1455,49 @@ div[class*="surface-sub"] .flex.items-center svg[class*="h-4"][class*="w-4"] {
   stroke: #1A202C !important;
 }
 
+/* Back button in top-left corner - theme-aware colors for all themes */
+.back-button {
+  color: var(--theme-text-primary) !important;
+  background-color: transparent !important;
+  transition: color 0.2s ease, background-color 0.2s ease !important;
+}
+
+.back-button:hover {
+  color: var(--theme-primary) !important;
+  background-color: transparent !important;
+}
+
+.back-button:hover,
+.back-button:hover * {
+  color: var(--theme-primary) !important;
+}
+
+.back-button:hover svg,
+.back-button:hover .lucide-arrow-left {
+  color: var(--theme-primary) !important;
+  fill: var(--theme-primary) !important;
+  stroke: var(--theme-primary) !important;
+}
+
+.back-button svg,
+.back-button .lucide-arrow-left {
+  color: var(--theme-text-primary) !important;
+  fill: var(--theme-text-primary) !important;
+  stroke: var(--theme-text-primary) !important;
+  transition: color 0.2s ease, fill 0.2s ease, stroke 0.2s ease !important;
+}
+
+/* Bottom card total section - make slightly brighter than background for vibrant and minimal themes */
+[data-theme="vibrant-colors"] .flex.flex-col .mt-4.pt-4.border-t.rounded-xl.p-4,
+[data-theme="vibrant-colors"] div.mt-4.pt-4.border-t.rounded-xl.p-4 {
+  background-color: #F0E4D0 !important; /* Slightly brighter than #e2ceb1 (background) */
+}
+
+[data-theme="minimal"] .flex.flex-col .mt-4.pt-4.border-t.rounded-xl.p-4,
+[data-theme="minimal"] div.mt-4.pt-4.border-t.rounded-xl.p-4 {
+  background-color: #D9F2FF !important; /* Slightly brighter than #CFEBF7 (background) */
+}
+
 /* Totals section labels - make them thick/bold (only direct children of space-y-1 container, exclude order items) */
 .surface-sub.space-y-1 > div.flex.justify-between.text-xs > span:first-child:not(.text-paydine-elegant-gray),
 .surface-sub .space-y-1 > div.flex.justify-between.text-xs > span:first-child:not(.text-paydine-elegant-gray),

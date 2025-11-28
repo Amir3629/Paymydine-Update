@@ -1422,7 +1422,8 @@ function ExpandingBottomToolbar({
                           </motion.div>
                           <div>
                             <motion.div
-                              className="font-medium text-paydine-elegant-gray text-base"
+                              className="font-medium text-base"
+                              style={{ color: 'var(--theme-text-primary)' }}
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -5 }}
@@ -1430,7 +1431,8 @@ function ExpandingBottomToolbar({
                               {item.item.name}
                             </motion.div>
                             <motion.div
-                              className="text-sm text-gray-500"
+                              className="text-sm"
+                              style={{ color: 'var(--theme-text-secondary)' }}
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -5 }}
@@ -1457,18 +1459,24 @@ function ExpandingBottomToolbar({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="mt-4 pt-4 border-t border-paydine-champagne/30 bg-paydine-rose-beige/10 rounded-xl p-4"
+                    className="mt-4 pt-4 border-t rounded-xl p-4"
+                    style={{ 
+                      borderColor: 'var(--theme-border)',
+                      backgroundColor: 'var(--theme-cart-bg)'
+                    }}
                   >
                     <div className="flex justify-between items-center">
                       <motion.span
-                        className="font-bold text-paydine-elegant-gray text-lg"
+                        className="font-bold text-lg"
+                        style={{ color: 'var(--theme-text-primary)' }}
                         initial={{ x: -10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                       >
                         Total
                       </motion.span>
                       <motion.span
-                        className="font-bold text-2xl text-paydine-champagne"
+                        className="font-bold text-2xl"
+                        style={{ color: 'var(--theme-price)' }}
                         initial={{ x: 10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                       >

@@ -43,6 +43,22 @@ export const useCartStore = create<CartState>()(
           const hasOptions = item.options && item.options.length > 0
           
           if (hasOptions) {
+            // For items with options, handle removal differently
+            if (quantity < 0) {
+              // Find the last instance of this item and remove it
+              const itemIndex = state.items.map((cartItem, index) => 
+                cartItem.item.id === item.id ? index : -1
+              ).filter(index => index !== -1).pop()
+              
+              if (itemIndex !== undefined && itemIndex >= 0) {
+                return {
+                  items: state.items.filter((_, index) => index !== itemIndex)
+                }
+              }
+              // If not found, return state unchanged
+              return state
+            }
+            
             // For items with options, add each as a separate entry
             const newItems = Array.from({ length: quantity }).map(() => ({
               item,
