@@ -98,28 +98,14 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
       <div className="absolute left-2 md:left-4 top-4">
         {isHomePage ? (
           <Link href={homeUrl}>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="back-button"
-              style={{ 
-                color: 'var(--theme-text-primary)',
-              }}
-            >
+            <Button variant="ghost" size="sm" className="text-paydine-elegant-gray hover:text-paydine-rose-beige">
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
           </Link>
         ) : (
           <Link href={homeUrl}>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="back-button"
-              style={{ 
-                color: 'var(--theme-text-primary)',
-              }}
-            >
+            <Button variant="ghost" size="sm" className="text-paydine-elegant-gray hover:text-paydine-rose-beige">
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>

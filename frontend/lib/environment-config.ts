@@ -92,11 +92,8 @@ export class EnvironmentConfig {
   // Get API endpoint with tenant detection
   getApiEndpoint(endpoint: string): string {
     if (this.isProduction() && this.shouldDetectTenant()) {
-      // In production, use the multi-tenant API gateway directly
-      // The PHP file expects endpoints without /api/v1 prefix (e.g., /orders, not /api/v1/orders)
-      // Remove /api/v1 prefix if present, as api-server-multi-tenant.php handles routes directly
-      const cleanEndpoint = endpoint.startsWith('/api/v1') ? endpoint.replace('/api/v1', '') : endpoint;
-      return `/api-server-multi-tenant.php${cleanEndpoint}`;
+      // In production, use relative URLs for same-origin requests
+      return `/api/v1${endpoint}`;
     } else {
       // In development, use full URL to Laravel backend
       return `${this.getApiBaseUrl()}/api/v1${endpoint}`;
