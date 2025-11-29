@@ -200,6 +200,15 @@ $config['form']['toolbar'] = [
             'data-progress-indicator' => 'admin::lang.text_deleting',
             'context' => ['edit'],
         ],
+        'email_invoice' => [
+            'label' => '<i class="fa fa-envelope" style="color: #364a63 !important; margin-right: 8px;"></i> Send Invoice',
+            'class' => 'btn btn-send-invoice',
+            'data-request' => 'onSendInvoiceEmail',
+            'data-request-confirm' => 'Send invoice to customer email?',
+            'data-progress-indicator' => 'Sending invoice...',
+            'context' => ['edit'],
+            'title' => 'Send Invoice via Email',
+        ],
     ],
 ];
 

@@ -3273,3 +3273,107 @@ a.btn-outline-success {
     line-height: 18.2px !important; /* Match other pages */
     /* Ensure it's positioned relative to viewport, not any positioned parent */
 }
+
+/* ============================================
+   SEND INVOICE BUTTON STYLING
+   ============================================ */
+.btn-send-invoice,
+.toolbar-action .btn-send-invoice,
+a.btn-send-invoice {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 0.55rem 1.75rem !important;
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    color: #202938 !important;
+    border: 1px solid #c9d2e3 !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    min-height: 40px !important;
+    height: 40px !important;
+}
+
+.btn-send-invoice:hover,
+.btn-send-invoice:focus,
+.toolbar-action .btn-send-invoice:hover,
+.toolbar-action .btn-send-invoice:focus,
+a.btn-send-invoice:hover,
+a.btn-send-invoice:focus {
+    background: #e5ebf7 !important;
+    background-color: #e5ebf7 !important;
+    color: #202938 !important;
+    border-color: #b8c6dd !important;
+}
+
+/* Force icon color - highest specificity */
+.btn-send-invoice i,
+.btn-send-invoice i.fa,
+.btn-send-invoice i.fa-envelope,
+.toolbar-action .btn-send-invoice i,
+.toolbar-action .btn-send-invoice i.fa,
+.toolbar-action .btn-send-invoice i.fa-envelope,
+a.btn-send-invoice i,
+a.btn-send-invoice i.fa,
+a.btn-send-invoice i.fa-envelope {
+    color: #364a63 !important;
+    margin-right: 0 !important;
+    font-size: 14px !important;
+    display: inline-block !important;
+}
+
+.btn-send-invoice:hover i,
+.btn-send-invoice:focus i,
+.btn-send-invoice:hover i.fa,
+.btn-send-invoice:focus i.fa,
+.btn-send-invoice:hover i.fa-envelope,
+.btn-send-invoice:focus i.fa-envelope,
+.toolbar-action .btn-send-invoice:hover i,
+.toolbar-action .btn-send-invoice:focus i,
+.toolbar-action .btn-send-invoice:hover i.fa,
+.toolbar-action .btn-send-invoice:focus i.fa,
+.toolbar-action .btn-send-invoice:hover i.fa-envelope,
+.toolbar-action .btn-send-invoice:focus i.fa-envelope,
+a.btn-send-invoice:hover i,
+a.btn-send-invoice:focus i,
+a.btn-send-invoice:hover i.fa,
+a.btn-send-invoice:focus i.fa,
+a.btn-send-invoice:hover i.fa-envelope,
+a.btn-send-invoice:focus i.fa-envelope {
+    color: #364a63 !important;
+}
+
+/* Override any inherited colors */
+.btn-send-invoice *,
+.toolbar-action .btn-send-invoice *,
+a.btn-send-invoice * {
+    color: inherit !important;
+}
+
+.btn-send-invoice i *,
+.toolbar-action .btn-send-invoice i *,
+a.btn-send-invoice i * {
+    color: #364a63 !important;
+}
+
+/* NUCLEAR - Force icon color even with inline styles */
+a[class*="btn-send-invoice"] i,
+a[class*="btn-send-invoice"] i.fa,
+a[class*="btn-send-invoice"] i.fa-envelope,
+a[data-request="onSendInvoiceEmail"] i,
+a[data-request="onSendInvoiceEmail"] i.fa,
+a[data-request="onSendInvoiceEmail"] i.fa-envelope {
+    color: #364a63 !important;
+}
+
+a[class*="btn-send-invoice"] i::before,
+a[data-request="onSendInvoiceEmail"] i::before {
+    color: #364a63 !important;
+}
+
+/* Override even if parent has white color */
+a.btn-send-invoice[style*="color"] i,
+a.btn-send-invoice[style*="background"] i {
+    color: #364a63 !important;
+}

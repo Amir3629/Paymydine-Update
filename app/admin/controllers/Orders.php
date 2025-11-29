@@ -8,6 +8,9 @@ use Admin\Models\Orders_model;
 use Admin\Models\Statuses_model;
 use Igniter\Flame\Exception\ApplicationException;
 use App\Helpers\NotificationHelper;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\View;
 
 class Orders extends \Admin\Classes\AdminController
 {
@@ -156,6 +159,86 @@ class Orders extends \Admin\Classes\AdminController
         $this->suppressLayout = true;
     }
 
+    public function edit_onSendInvoiceEmail($context, $recordId = null)
+    {
+        $model = $this->formFindModelObject($recordId);
+
+        if (!$model->hasInvoice()) {
+            flash()->error('Invoice not generated for this order.')->now();
+            return $this->redirectBack();
+        }
+
+        // Get customer email
+        $customerEmail = $model->email;
+        
+        if (empty($customerEmail)) {
+            flash()->error('Customer email not found for this order.')->now();
+            return $this->redirectBack();
+        }
+
+        // Get restaurant email from location
+        $locationEmail = $model->location->location_email ?? setting('site_email');
+        
+        if (empty($locationEmail)) {
+            flash()->error('Restaurant email not configured. Please configure it in Settings > Locations.')->now();
+            return $this->redirectBack();
+        }
+
+        try {
+            // Generate invoice HTML - render the invoice view
+            $invoiceHtml = View::make('orders.invoice', ['model' => $model])->render();
+            
+            // Build email body
+            $emailBody = $this->buildInvoiceEmailBody($model);
+            
+            // Get location info
+            $locationName = $model->location->location_name ?? setting('site_name');
+            $invoiceFileName = 'Invoice-' . $model->invoice_number . '.html';
+            
+            // Send email using Mail::raw() method
+            Mail::raw('', function ($message) use ($customerEmail, $model, $locationEmail, $locationName, $invoiceHtml, $invoiceFileName, $emailBody) {
+                $swiftMessage = $message->getSwiftMessage();
+                $swiftMessage->setBody($emailBody, 'text/html');
+                
+                // Create attachment from data using Swift_Attachment constructor
+                $attachment = new \Swift_Attachment($invoiceHtml, $invoiceFileName, 'text/html');
+                $swiftMessage->attach($attachment);
+                
+                $message->to($customerEmail, $model->customer_name)
+                    ->from($locationEmail, $locationName)
+                    ->replyTo($locationEmail, $locationName)
+                    ->subject('Invoice for Order #' . $model->order_id . ' - ' . $locationName);
+            });
+
+            flash()->success('Invoice sent successfully to ' . $customerEmail . '!')->now();
+        } catch (\Exception $e) {
+            Log::error('Failed to send invoice email', [
+                'order_id' => $model->order_id,
+                'email' => $customerEmail,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            flash()->error('Failed to send invoice email: ' . $e->getMessage())->now();
+        }
+
+        return $this->redirectBack();
+    }
+
+    protected function buildInvoiceEmailBody($model)
+    {
+        $locationName = $model->location->location_name ?? setting('site_name');
+        $locationAddress = $model->location ? format_address($model->location->getAddress()) : '';
+        $locationPhone = $model->location->location_telephone ?? '';
+        
+        return View::make('orders.invoice_email_body', [
+            'model' => $model,
+            'locationName' => $locationName,
+            'locationAddress' => $locationAddress,
+            'locationPhone' => $locationPhone,
+        ])->render();
+    }
+
     public function listExtendQuery($query)
     {
         // Eager load status relationship for row background colors
@@ -186,6 +269,39 @@ class Orders extends \Admin\Classes\AdminController
         // Remove the hidden columns from the list widget
         foreach ($hiddenColumns as $columnName) {
             $host->removeColumn($columnName);
+        }
+    }
+
+    public function edit_onUpdateField($context, $recordId = null)
+    {
+        $model = $this->formFindModelObject($recordId);
+        $field = post('field');
+        $value = post('value');
+
+        if (!in_array($field, ['email', 'telephone'])) {
+            flash()->error('Invalid field')->now();
+            return ['#notification' => $this->makePartial('flash')];
+        }
+
+        try {
+            $model->$field = $value;
+            $model->save();
+
+            flash()->success(ucfirst($field) . ' updated successfully')->now();
+            return [
+                '#notification' => $this->makePartial('flash'),
+                'success' => true,
+                'value' => $value
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to update order field', [
+                'order_id' => $model->order_id,
+                'field' => $field,
+                'error' => $e->getMessage()
+            ]);
+
+            flash()->error('Failed to update ' . $field . ': ' . $e->getMessage())->now();
+            return ['#notification' => $this->makePartial('flash')];
         }
     }
 
