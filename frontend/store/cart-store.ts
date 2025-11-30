@@ -38,22 +38,6 @@ export const useCartStore = create<CartState>()(
       tableInfo: null,
       addToCart: (item, quantity = 1) =>
         set((state) => {
-          // If item has options/sides, always add as separate entries (quantity 1 each)
-          // This ensures each instance can have different sides selected
-          const hasOptions = item.options && item.options.length > 0
-          
-          if (hasOptions) {
-            // For items with options, add each as a separate entry
-            const newItems = Array.from({ length: quantity }).map(() => ({
-              item,
-              quantity: 1
-            }))
-            return {
-              items: [...state.items, ...newItems]
-            }
-          }
-          
-          // For items without options, group them by item.id (existing behavior)
           const existingItem = state.items.find((cartItem) => cartItem.item.id === item.id)
           if (existingItem) {
             const newQuantity = existingItem.quantity + quantity
