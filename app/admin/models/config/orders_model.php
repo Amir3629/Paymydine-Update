@@ -61,6 +61,13 @@ $config['list']['toolbar'] = [
             'class' => 'btn btn-primary',
             'href' => 'orders/create',
         ],
+        'history' => [
+            'label' => '<i class="fa fa-history"></i> <span>History</span>',
+            'type' => 'button',
+            'class' => 'btn btn-light orders-history-toggle',
+            'onclick' => 'return toggleOrdersHistory(this);',
+            'id' => 'orders-history-btn',
+        ],
     ],
 ];
 

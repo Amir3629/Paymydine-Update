@@ -1856,10 +1856,67 @@ div.modal,
 
 /* REMOVED - This was reverting to transparent, breaking inline styles */
 
-/* Force dropdown menu in table to have cream background */
-.list-table .dropdown-menu {
+/* Force dropdown menu in table to have solid white background - blocks everything behind */
+.list-table .dropdown-menu,
+.list-table .dropdown-menu.show {
     background: #ffffff !important;
     background-color: #ffffff !important;
+    opacity: 1 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid #e5e9f2 !important;
+}
+
+/* ============================================
+   CRITICAL FIX: Status dropdown z-index
+   DROPDOWN MUST ALWAYS BE ABOVE EVERYTHING!
+   ============================================ */
+/* Force status dropdown menus to appear above EVERYTHING - MAXIMUM z-index */
+.list-table .dropdown-menu,
+.list-table .dropdown-menu.show,
+.list-table td .dropdown-menu,
+.list-table td .dropdown-menu.show,
+.list-table .list-col-name-status-name .dropdown-menu,
+.list-table .list-col-name-status-name .dropdown-menu.show,
+.list-table [class*="status"] .dropdown-menu,
+.list-table [class*="status"] .dropdown-menu.show,
+.list-table .dropdown.show .dropdown-menu,
+.list-table .dropdown.show .dropdown-menu.show {
+    z-index: 99999 !important;
+    position: absolute !important;
+}
+
+/* Prevent parent containers from clipping dropdowns (but keep scrolling enabled) */
+.list-table table,
+.list-table tbody,
+.list-table tr,
+.list-table td,
+.list-table .list-col-name-status-name,
+.list-table [class*="status"],
+.list-table .dropdown {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+}
+
+/* Keep scrolling enabled on main containers */
+.table-responsive {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+
+/* Ensure page can scroll */
+.page-wrapper,
+body.dropdown-open,
+html {
+    overflow: auto !important;
+    overflow-y: auto !important;
+}
+
+/* Ensure dropdown container doesn't interfere */
+.list-table td[class*="status"],
+.list-table .list-col-name-status-name {
+    overflow: visible !important;
+    position: relative !important;
 }
 
 /* MOVE STATUS DROPDOWN TO THE LEFT - Avoid overlapping with other status words */
