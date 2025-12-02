@@ -104,8 +104,23 @@ class Orders extends \Admin\Classes\AdminController
             'menu_price' => intval($settings['tax_menu_price']->value ?? '1'),
         ];
         
+        // Check if editing existing order
+        $orderId = request()->get('order_id');
+        $existingOrder = null;
+        $existingOrderItems = [];
+        
+        if ($orderId) {
+            $existingOrder = Orders_model::find($orderId);
+            if ($existingOrder) {
+                // Load existing order items
+                $existingOrderItems = $existingOrder->getOrderMenusWithOptions();
+            }
+        }
+        
         $this->vars['paymentMethods'] = $paymentMethods;
         $this->vars['taxSettings'] = $taxSettings;
+        $this->vars['existingOrder'] = $existingOrder;
+        $this->vars['existingOrderItems'] = $existingOrderItems;
         
         return $this->asExtension('FormController')->create();
     }
@@ -325,6 +340,165 @@ class Orders extends \Admin\Classes\AdminController
 
             flash()->error('Failed to update ' . $field . ': ' . $e->getMessage())->now();
             return ['#notification' => $this->makePartial('flash')];
+        }
+    }
+
+    /**
+     * Update order item quantity
+     */
+    public function edit_onUpdateItemQuantity($context, $recordId = null)
+    {
+        $order = $this->formFindModelObject($recordId);
+        $orderMenuId = post('order_menu_id');
+        $quantity = (int)post('quantity');
+
+        if ($quantity < 0) {
+            return [
+                'success' => false,
+                'error' => 'Quantity cannot be negative'
+            ];
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Get order menu item
+            $orderMenu = DB::table('order_menus')
+                ->where('order_menu_id', $orderMenuId)
+                ->where('order_id', $order->order_id)
+                ->first();
+
+            if (!$orderMenu) {
+                return [
+                    'success' => false,
+                    'error' => 'Order item not found'
+                ];
+            }
+
+            // Update quantity and subtotal
+            $price = (float)$orderMenu->price;
+            $newSubtotal = $price * $quantity;
+
+            DB::table('order_menus')
+                ->where('order_menu_id', $orderMenuId)
+                ->update([
+                    'quantity' => $quantity,
+                    'subtotal' => $newSubtotal
+                ]);
+
+            // Recalculate order totals
+            $order->calculateTotals();
+            $order->refresh();
+
+            // Get updated totals
+            $totals = $order->getOrderTotals();
+            $subtotalTotal = $totals->firstWhere('code', 'subtotal');
+            $taxTotal = $totals->firstWhere('code', 'tax');
+            $tipTotal = $totals->firstWhere('code', 'tip');
+            $couponTotal = $totals->firstWhere('code', 'coupon');
+            $finalTotal = $totals->firstWhere('code', 'total');
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'totals' => [
+                    'subtotal' => $subtotalTotal ? (float)$subtotalTotal->value : 0,
+                    'tax' => $taxTotal ? (float)$taxTotal->value : 0,
+                    'tip' => $tipTotal ? (float)$tipTotal->value : 0,
+                    'coupon' => $couponTotal ? (float)$couponTotal->value : 0,
+                    'total' => $finalTotal ? (float)$finalTotal->value : 0,
+                    'total_items' => (int)$order->total_items
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update order item quantity', [
+                'order_id' => $order->order_id,
+                'order_menu_id' => $orderMenuId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to update quantity: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Remove order item
+     */
+    public function edit_onRemoveItem($context, $recordId = null)
+    {
+        $order = $this->formFindModelObject($recordId);
+        $orderMenuId = post('order_menu_id');
+
+        try {
+            DB::beginTransaction();
+
+            // Verify item belongs to this order
+            $orderMenu = DB::table('order_menus')
+                ->where('order_menu_id', $orderMenuId)
+                ->where('order_id', $order->order_id)
+                ->first();
+
+            if (!$orderMenu) {
+                return [
+                    'success' => false,
+                    'error' => 'Order item not found'
+                ];
+            }
+
+            // Delete order menu options first
+            DB::table('order_menu_options')
+                ->where('order_menu_id', $orderMenuId)
+                ->delete();
+
+            // Delete order menu item
+            DB::table('order_menus')
+                ->where('order_menu_id', $orderMenuId)
+                ->delete();
+
+            // Recalculate order totals
+            $order->calculateTotals();
+            $order->refresh();
+
+            // Get updated totals
+            $totals = $order->getOrderTotals();
+            $subtotalTotal = $totals->firstWhere('code', 'subtotal');
+            $taxTotal = $totals->firstWhere('code', 'tax');
+            $tipTotal = $totals->firstWhere('code', 'tip');
+            $couponTotal = $totals->firstWhere('code', 'coupon');
+            $finalTotal = $totals->firstWhere('code', 'total');
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'totals' => [
+                    'subtotal' => $subtotalTotal ? (float)$subtotalTotal->value : 0,
+                    'tax' => $taxTotal ? (float)$taxTotal->value : 0,
+                    'tip' => $tipTotal ? (float)$tipTotal->value : 0,
+                    'coupon' => $couponTotal ? (float)$couponTotal->value : 0,
+                    'total' => $finalTotal ? (float)$finalTotal->value : 0,
+                    'total_items' => (int)$order->total_items
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to remove order item', [
+                'order_id' => $order->order_id,
+                'order_menu_id' => $orderMenuId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to remove item: ' . $e->getMessage()
+            ];
         }
     }
 

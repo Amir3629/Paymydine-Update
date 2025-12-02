@@ -371,12 +371,13 @@
 ]) !!}
     
     <!-- Hidden fields for order processing -->
-    <input type="hidden" name="table_id" id="selected-table" value="">
+    <input type="hidden" name="order_id" id="existing-order-id" value="{{ $existingOrder->order_id ?? '' }}">
+    <input type="hidden" name="table_id" id="selected-table" value="{{ $existingOrder->table_id ?? '' }}">
     <input type="hidden" name="menu_id[]" id="menu-ids" value="">
     <input type="hidden" name="menu_price[]" id="menu-prices" value="">
     <input type="hidden" name="qty[]" id="menu-quantities" value="">
     <input type="hidden" name="menu_name[]" id="menu-names" value="">
-    <input type="hidden" name="payment_method" id="payment-method-input" value="cod">
+    <input type="hidden" name="payment_method" id="payment-method-input" value="{{ $existingOrder->payment ?? 'cod' }}">
     <input type="hidden" name="tax_amount" id="tax-amount-input" value="0">
     <input type="hidden" name="tip_amount" id="tip-amount-input" value="0">
     <input type="hidden" name="coupon_code" id="coupon-code-input" value="">
@@ -431,7 +432,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $status_updated_at = date('Y-m-d H:i:s');
     $assignee_updated_at = date('Y-m-d H:i:s');
     $invoice_date = date('Y-m-d H:i:s');
-    $order = new Orders_model();
+    
+    // Check if updating existing order
+    $existing_order_id = isset($_POST['order_id']) ? (int)$_POST['order_id'] : null;
+    $is_updating = $existing_order_id && $existing_order_id > 0;
+    
+    if ($is_updating) {
+        // Update existing order
+        $order = Orders_model::find($existing_order_id);
+        if (!$order) {
+            echo '<div id="notification"><div class="alert alert-danger flash-message animated fadeInDown alert-dismissible show" data-allow-dismiss="true" role="alert">Order not found.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true"></button></div></div>';
+            exit;
+        }
+        
+        // Update order basic info
+        $order->payment = $payment;
+        $order->order_type = $table_id;
+        $order->updated_at = now();
+    } else {
+        // Create new order
+        $order = new Orders_model();
+        $order->first_name = $first_name;
+        $order->last_name = $last_name;
+        $order->email = $email;
+        $order->telephone = $telephone;
+        $order->location_id = $location_id;
+        $order->address_id = $address_id;
+        $order->payment = $payment;
+        $order->ms_order_type = 0;
+        $order->order_time = $order_time;
+        $order->order_date = $order_date;
+        $order->status_id = $status_id;
+        $order->ip_address = $ip_address;
+        $order->user_agent = $user_agent;
+        $order->invoice_prefix = $invoice_prefix;
+        $order->order_time_is_asap = $order_time_is_asap;
+        $order->processed = $processed;
+        $order->order_type = $table_id;
+        $order->created_at = now();
+        $order->updated_at = now();
+    }
     $order->first_name = $first_name;
     $order->last_name = $last_name;
     $order->email = $email;
@@ -492,9 +532,29 @@ foreach ($menu_ids as $key => $menu_id) {
     $order->total_items = $total_qty;
     // Order total will be calculated after we get tax, tip, and discount
     // For now, set to subtotal (will be updated later)
+    // Order total will be calculated after we get tax, tip, and discount
+    // For now, set to subtotal (will be updated later)
     $order->order_total = $total_price + $total_options_price;
     $order->save();
     $last_order_id = $order->order_id;
+    
+    // If updating, delete existing order items first
+    if ($is_updating) {
+        // Delete existing order menu options
+        DB::table('order_menu_options')
+            ->where('order_id', $last_order_id)
+            ->delete();
+        
+        // Delete existing order menus
+        DB::table('order_menus')
+            ->where('order_id', $last_order_id)
+            ->delete();
+        
+        // Delete existing order totals (except we'll recreate them)
+        DB::table('order_totals')
+            ->where('order_id', $last_order_id)
+            ->delete();
+    }
 
     $order_menu = new \Admin\Models\Menus_model();
 
@@ -678,8 +738,16 @@ foreach ($menu_ids as $key => $menu_id) {
         
         DB::table('order_totals')->insert($orderTotals);
     }
-    echo '<div id="notification"><div class="alert alert-success flash-message animated fadeInDown alert-dismissible show" data-allow-dismiss="true" role="alert">Order generated successfully.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true"></button></div>
+    // Redirect based on whether updating or creating
+    if ($is_updating) {
+        // Redirect to edit page for updated order
+        header('Location: /admin/orders/edit/' . $last_order_id);
+        exit;
+    } else {
+        // Show success message for new order
+        echo '<div id="notification"><div class="alert alert-success flash-message animated fadeInDown alert-dismissible show" data-allow-dismiss="true" role="alert">Order generated successfully.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true"></button></div>
 </div>';
+    }
 }
 ?>
     @php
@@ -2855,6 +2923,139 @@ document.addEventListener("DOMContentLoaded", function () {
         const placeOrderBtn = document.getElementById("place-order-btn");
             let selectedItems = new Map(); // Track selected items
             let toolbarState = "collapsed"; // collapsed, preview, expanded
+
+            // ========== PRE-POPULATE EXISTING ORDER ITEMS ==========
+            @if(isset($existingOrder) && $existingOrder && isset($existingOrderItems) && count($existingOrderItems) > 0)
+            // Pre-populate cart with existing order items
+            const existingOrderItems = @json($existingOrderItems);
+            const existingOrderId = {{ $existingOrder->order_id }};
+            const existingTableId = {{ $existingOrder->table_id ?? 'null' }};
+            const existingTableName = '{{ $existingOrder->order_type ?? "" }}';
+            
+            console.log('Pre-populating cart with existing order items:', existingOrderItems);
+            
+            // Auto-select table and show menu
+            if (existingTableName) {
+                // Set table input
+                document.getElementById('selected-table').value = existingTableName;
+                
+                // Find and select the table in the grid
+                const tableElement = document.querySelector(`[data-value^="${existingTableName}_"]`);
+                if (tableElement) {
+                    tableElement.classList.add('selected');
+                    const tableId = tableElement.dataset.tableId;
+                    const tableNo = tableElement.dataset.tableNo;
+                    
+                    // Show menu for this table (use window function if available)
+                    setTimeout(() => {
+                        if (typeof showMenuForTable === 'function') {
+                            showMenuForTable(existingTableName, tableId, tableNo);
+                        } else {
+                            // Fallback: manually show menu
+                            const orderForm = document.querySelector('.order-form');
+                            const tableSelection = document.querySelector('.table-selection');
+                            if (orderForm && tableSelection) {
+                                tableSelection.style.display = 'none';
+                                orderForm.style.display = 'block';
+                                document.getElementById('back-to-tables').style.display = 'inline-block';
+                                document.getElementById('header-controls').style.display = 'none';
+                                document.getElementById('selected-table-info').style.display = 'block';
+                            }
+                        }
+                    }, 100);
+                } else {
+                    // Table not found, but still show menu
+                    setTimeout(() => {
+                        const orderForm = document.querySelector('.order-form');
+                        const tableSelection = document.querySelector('.table-selection');
+                        if (orderForm && tableSelection) {
+                            tableSelection.style.display = 'none';
+                            orderForm.style.display = 'block';
+                            document.getElementById('back-to-tables').style.display = 'inline-block';
+                            document.getElementById('header-controls').style.display = 'none';
+                            document.getElementById('selected-table-info').style.display = 'block';
+                        }
+                    }, 100);
+                }
+            }
+            
+            // Pre-populate cart with existing items
+            setTimeout(() => {
+                existingOrderItems.forEach((orderItem) => {
+                    const menuId = orderItem.menu_id;
+                    const quantity = orderItem.quantity;
+                    const price = parseFloat(orderItem.price);
+                    const name = orderItem.name;
+                    
+                    // Find the menu card
+                    const menuCard = document.querySelector(`.interactive-card[data-id="${menuId}"]`);
+                    if (!menuCard) {
+                        console.warn('Menu card not found for menu_id:', menuId);
+                        return;
+                    }
+                    
+                    // Get menu data
+                    const menuImage = menuCard.dataset.image || '';
+                    const menuPrice = parseFloat(menuCard.dataset.price) || price;
+                    
+                    // Get options from order item
+                    let selectedOptions = [];
+                    let totalOptionsPrice = 0;
+                    
+                    if (orderItem.menu_options && orderItem.menu_options.length > 0) {
+                        orderItem.menu_options.forEach(option => {
+                            const optionPrice = parseFloat(option.order_option_price || 0);
+                            totalOptionsPrice += optionPrice;
+                            selectedOptions.push({
+                                value: option.menu_option_value_id || '',
+                                text: option.order_option_name || '',
+                                price: optionPrice
+                            });
+                        });
+                    }
+                    
+                    // Create unique key
+                    const optionsKey = selectedOptions.map(opt => opt.value).sort().join(',');
+                    const uniqueKey = optionsKey ? `${menuId}_${optionsKey}` : `${menuId}_no_sides`;
+                    
+                    // Add to cart
+                    if (!selectedItems.has(uniqueKey)) {
+                        selectedItems.set(uniqueKey, {
+                            id: menuId,
+                            uniqueKey: uniqueKey,
+                            name: name,
+                            price: menuPrice + totalOptionsPrice,
+                            basePrice: menuPrice,
+                            optionsPrice: totalOptionsPrice,
+                            image: menuImage,
+                            quantity: 0,
+                            options: selectedOptions
+                        });
+                    }
+                    
+                    const itemData = selectedItems.get(uniqueKey);
+                    itemData.quantity = quantity;
+                    
+                    // Update UI
+                    menuCard.dataset.quantity = quantity;
+                    const quantityBadge = menuCard.querySelector('.quantity-badge');
+                    const quantityNumber = menuCard.querySelector('.quantity-number');
+                    if (quantityBadge && quantityNumber) {
+                        quantityBadge.classList.add('show');
+                        quantityNumber.textContent = quantity;
+                    }
+                });
+                
+                // Update toolbar
+                updateFloatingToolbar();
+                
+                // Show order sections
+                showOrderSections();
+                
+                console.log('Cart pre-populated with', existingOrderItems.length, 'items');
+            }, 1000); // Wait for menu to load
+            @endif
+            // ========== END PRE-POPULATE EXISTING ORDER ITEMS ==========
 
             // Category Filtering Functionality - Initialize after DOM is ready
             function initializeCategoryFiltering() {

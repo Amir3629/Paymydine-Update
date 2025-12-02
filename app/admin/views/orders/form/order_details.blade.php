@@ -47,26 +47,26 @@
 .order-details-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
-    line-height: 1.3;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .order-details-table td {
-    padding: 4px 3px;
+    padding: 10px 6px;
     border-bottom: 1px solid #f5f6fa;
     color: #526484;
 }
 
 .order-details-table td.text-muted {
     color: #8094ae;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .order-details-table td.text-right {
     text-align: right;
     font-weight: 500;
     color: #526484 !important;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .order-details-table td.text-right a {
