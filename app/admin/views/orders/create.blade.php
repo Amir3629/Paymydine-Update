@@ -68,6 +68,8 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
+    margin-left: -0.25rem !important;
+    padding-left: 0 !important;
 }
 
 .page-header-actions {
@@ -84,15 +86,27 @@
 }
 
 .badge.badge-primary {
-    background: linear-gradient(135deg, #08815e, #08815e);
-    color: #ffffff;
+    background: rgb(241, 244, 251) !important;
+    color: rgb(32, 41, 56) !important;
     font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
+    font-size: 14px !important;
+    padding: 0.55rem 1.75rem;
+    border-radius: 12px;
+    border: 1px solid rgb(201, 210, 227) !important;
+    box-shadow: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    height: 40px;
+    line-height: 1.4;
+    white-space: normal;
 }
 
 .badge.badge-primary span {
-    color: #ffffff;
+    color: rgb(32, 41, 56) !important;
+    font-size: 14px !important;
+    white-space: normal;
 }
 
 .table-status-badge {
@@ -102,65 +116,165 @@
     font-weight: 600;
 }
 
-/* Back to Tables Button - Override for Standard Size */
+/* Back to Tables Button - Override for Standard Size with nice rounded corners */
 #back-to-tables.btn-primary {
-    padding: 8px 16px !important;
+    padding: 0.55rem 1.75rem !important;
     font-size: 14px !important;
-    min-height: 36px !important;
-    border-radius: 8px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    border-radius: 12px !important;
     background: linear-gradient(135deg, #08815e 0%, #08815e 100%) !important;
-    border: 2px solid #08815e !important;
+    border: 1px solid #08815e !important;
     color: #ffffff !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     text-decoration: none !important;
-    display: inline-block !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     text-align: center !important;
     vertical-align: middle !important;
     cursor: pointer !important;
     user-select: none !important;
     white-space: nowrap !important;
-    line-height: 1.4 !important;
+    line-height: 1.3 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(8, 129, 94, 0.2) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }
 
 #back-to-tables.btn-primary:hover {
     background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
     transform: translateY(-2px) !important;
-    box-shadow: 0 8px 20px rgba(216, 182, 134, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
     border-color: #08815e !important;
     color: #ffffff !important;
 }
 
+#back-to-tables.btn-primary i {
+    margin-right: 8px !important;
+}
+
 /* Make the Edit Layout button larger like other prominent buttons */
 #edit-layout-btn {
-    padding: 10px 16px !important;
+    padding: 0.55rem 1.75rem !important;
     font-size: 14px !important;
     min-height: 40px !important;
-    border-radius: 8px !important;
-    font-weight: 700 !important;
+    height: 40px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    background: rgb(241, 244, 251) !important;
+    border: 1px solid rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: none !important;
+    line-height: 1.3 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 #edit-layout-btn .fa { margin-right: 6px; }
+
+/* Override any Bootstrap or other CSS that might affect these buttons */
+#edit-layout-btn.btn-outline-secondary,
+#edit-layout-btn.btn-outline-secondary:hover,
+#edit-layout-btn.btn-outline-secondary:focus,
+#edit-layout-btn.btn-outline-secondary:active,
+#edit-layout-btn.btn-outline-secondary.active {
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: none !important;
+}
+
+/* Category Buttons - Match Allergens button style with oval/elliptical shape */
+.category-btn {
+    background: rgb(241, 244, 251) !important;
+    border: 1px solid rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    padding: 0.55rem 1.75rem !important;
+    border-radius: 50px !important; /* Oval/elliptical shape - almost circular */
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    line-height: 1.3 !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    white-space: nowrap !important;
+}
+
+.category-btn:hover {
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.15) !important;
+    transform: scale(1.05) !important;
+}
+
+.category-btn.active {
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.15) !important;
+    transform: scale(1.05) !important;
+}
+
+.category-btn::before {
+    display: none !important;
+}
+
+.category-btn:hover::before {
+    display: none !important;
+}
+
+/* Remove frame/container background from category filter container */
+.category-filter-container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 20px !important;
+    border-radius: 0 !important;
+}
+
+.category-filter-container::before {
+    display: none !important;
+}
+
+.category-filter-container > * {
+    position: static !important;
+    z-index: auto !important;
+}
 
 .zoom-btn {
     width: 36px !important;
     height: 36px !important;
     padding: 0 !important;
     font-size: 14px !important;
-    line-height: 36px !important;
-    border-radius: 6px !important;
-    border: 1px solid #08815e !important;
-    background: linear-gradient(135deg, #08815e, #08815e) !important;
-    color: white !important;
+    line-height: 1.3 !important;
+    border-radius: 12px !important;
+    border: 1px solid rgb(201, 210, 227) !important;
+    background: rgb(241, 244, 251) !important;
+    color: rgb(32, 41, 56) !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
     transition: all 0.3s ease !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
 }
 
 .zoom-btn:hover {
-    background: linear-gradient(135deg, #08815e, #0bb87a) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 8px rgba(216, 182, 134, 0.3) !important;
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 .zoom-level-indicator {
@@ -230,7 +344,7 @@
                 </button>
             </div>
             <div id="selected-table-info" class="selected-table-info" style="display: none;">
-                <span class="badge badge-primary">Ordering for <span id="current-table-name"></span> - <span id="table-status-badge-text">Available</span></span>
+                <span class="badge badge-primary"><span>Table&nbsp;</span><span id="current-table-name"></span><span>&nbsp;-&nbsp;</span><span id="table-status-badge-text">Available</span></span>
                 <!-- Hidden elements for JavaScript to access -->
                 <span id="current-table-id" style="display: none;"></span>
                 <span id="current-table-no" style="display: none;"></span>
@@ -252,6 +366,11 @@
     <input type="hidden" name="menu_price[]" id="menu-prices" value="">
     <input type="hidden" name="qty[]" id="menu-quantities" value="">
     <input type="hidden" name="menu_name[]" id="menu-names" value="">
+    <input type="hidden" name="payment_method" id="payment-method-input" value="cod">
+    <input type="hidden" name="tax_amount" id="tax-amount-input" value="0">
+    <input type="hidden" name="tip_amount" id="tip-amount-input" value="0">
+    <input type="hidden" name="coupon_code" id="coupon-code-input" value="">
+    <input type="hidden" name="coupon_discount" id="coupon-discount-input" value="0">
     <?php
 
 use Admin\Models\Orders_model;
@@ -284,7 +403,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $telephone = '1234567890';
     $location_id = 1;
     $address_id = 1;
-    $payment = 'Cod';
+    $payment = $_POST['payment_method'] ?? 'cod';
+    
+    // Get tax, tip, and coupon from POST
+    $tax_amount = floatval($_POST['tax_amount'] ?? 0);
+    $tip_amount = floatval($_POST['tip_amount'] ?? 0);
+    $coupon_code = $_POST['coupon_code'] ?? null;
+    $coupon_discount = floatval($_POST['coupon_discount'] ?? 0);
     $order_time = now();
     $order_date = now()->toDateString();
     $status_id = 1;
@@ -355,6 +480,8 @@ foreach ($menu_ids as $key => $menu_id) {
     $order->created_at = now();
     $order->updated_at = now();
     $order->total_items = $total_qty;
+    // Order total will be calculated after we get tax, tip, and discount
+    // For now, set to subtotal (will be updated later)
     $order->order_total = $total_price + $total_options_price;
     $order->save();
     $last_order_id = $order->order_id;
@@ -469,36 +596,77 @@ foreach ($menu_ids as $key => $menu_id) {
     //     }
     // }
     $total_option_price = DB::table('order_menu_options')
-    ->where('order_id', $last_order_id)
-    ->sum('order_option_price');
-$total_price = $total_option_price + $total_price;
+        ->where('order_id', $last_order_id)
+        ->sum('order_option_price');
+    $subtotal = $total_option_price + $total_price;
+    
+    // Calculate final total with tax, tip, and discount
+    $final_total = $subtotal + $tax_amount + $tip_amount - $coupon_discount;
+    
+    // Update order total
+    $order->order_total = $final_total;
+    $order->save();
+    
+    // Create proper order_totals structure
     if ($last_order_id) {
-        DB::table('order_totals')->insert([
+        $orderTotals = [
             [
                 'order_id' => $last_order_id,
                 'code' => 'subtotal',
-                'title' => $_POST['table_id'],
-                'priority' => 0,
-                'value' => 0.0000,
-                'is_summable' => 0,
-            ],
-            [
-                'order_id' => $last_order_id,
-                'code' => $_POST['table_id'],
-                'title' => 'Sub Total',
-                'priority' => 0,
-                'value' => $total_price,
-                'is_summable' => 0,
-            ],
-            [
-                'order_id' => $last_order_id,
-                'code' => 'total',
-                'title' => 'Order Total',
-                'priority' => 0,
-                'value' => $total_price,
-                'is_summable' => 0,
+                'title' => 'Subtotal',
+                'priority' => 1,
+                'value' => $subtotal,
+                'is_summable' => 1,
             ]
-        ]);
+        ];
+        
+        // Add tax if applicable
+        if ($tax_amount > 0) {
+            $orderTotals[] = [
+                'order_id' => $last_order_id,
+                'code' => 'tax',
+                'title' => 'Tax',
+                'priority' => 2,
+                'value' => $tax_amount,
+                'is_summable' => 1,
+            ];
+        }
+        
+        // Add tip if applicable
+        if ($tip_amount > 0) {
+            $orderTotals[] = [
+                'order_id' => $last_order_id,
+                'code' => 'tip',
+                'title' => 'Tip',
+                'priority' => 3,
+                'value' => $tip_amount,
+                'is_summable' => 1,
+            ];
+        }
+        
+        // Add coupon discount if applicable
+        if ($coupon_discount > 0) {
+            $orderTotals[] = [
+                'order_id' => $last_order_id,
+                'code' => 'coupon',
+                'title' => 'Discount' . ($coupon_code ? ' (' . $coupon_code . ')' : ''),
+                'priority' => 4,
+                'value' => -$coupon_discount, // Negative value for discount
+                'is_summable' => 1,
+            ];
+        }
+        
+        // Add total
+        $orderTotals[] = [
+            'order_id' => $last_order_id,
+            'code' => 'total',
+            'title' => 'Total',
+            'priority' => 5,
+            'value' => $final_total,
+            'is_summable' => 0,
+        ];
+        
+        DB::table('order_totals')->insert($orderTotals);
     }
     echo '<div id="notification"><div class="alert alert-success flash-message animated fadeInDown alert-dismissible show" data-allow-dismiss="true" role="alert">Order generated successfully.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true"></button></div>
 </div>';
@@ -749,6 +917,80 @@ $unavailableTables = DB::table('orders')
             </div>
         </div>
 
+                    <!-- Order Summary Section -->
+                    <div class="order-summary-section" id="order-summary-section" style="display: none;">
+                        <div class="summary-row">
+                            <span>Subtotal:</span>
+                            <span id="summary-subtotal">$0.00</span>
+                        </div>
+                        <div class="summary-row" id="tax-row" style="display: none;">
+                            <span>Tax:</span>
+                            <span id="summary-tax">$0.00</span>
+                        </div>
+                        <div class="summary-row" id="tip-row" style="display: none;">
+                            <span>Tip:</span>
+                            <span id="summary-tip">$0.00</span>
+                        </div>
+                        <div class="summary-row" id="discount-row" style="display: none;">
+                            <span>Discount:</span>
+                            <span id="summary-discount" style="color: #2c3e50;">-$0.00</span>
+                        </div>
+                        <div class="summary-row summary-total">
+                            <span><strong>Total:</strong></span>
+                            <span id="summary-total"><strong>$0.00</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method Selection -->
+                    <div class="payment-method-section" id="payment-method-section" style="display: none;">
+                        <h5 style="margin-bottom: 10px; font-weight: 600;">Payment Method</h5>
+                        <div class="payment-methods-grid" id="payment-methods-grid">
+                            @if(isset($paymentMethods) && $paymentMethods->count() > 0)
+                                @foreach($paymentMethods as $method)
+                                    <label class="payment-method-option">
+                                        <input type="radio" name="payment_method_radio" value="{{ $method->code }}" 
+                                               {{ $method->code === 'cod' ? 'checked' : '' }}>
+                                        <span class="payment-method-label">{{ $method->name }}</span>
+                                    </label>
+                                @endforeach
+                            @else
+                                <label class="payment-method-option">
+                                    <input type="radio" name="payment_method_radio" value="cod" checked>
+                                    <span class="payment-method-label">Cash on Delivery</span>
+                                </label>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Coupon Section -->
+                    <div class="coupon-section" id="coupon-section" style="display: none;">
+                        <h5 style="margin-bottom: 10px; font-weight: 600;">Coupon Code</h5>
+                        <div class="coupon-input-group">
+                            <input type="text" id="coupon-code-field" class="form-control" 
+                                   placeholder="Enter coupon code" style="text-transform: uppercase;">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="apply-coupon-btn">Apply</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="remove-coupon-btn" style="display: none;">Remove</button>
+                        </div>
+                        <div id="coupon-message" class="coupon-message" style="display: none;"></div>
+                    </div>
+
+                    <!-- Tip Section -->
+                    <div class="tip-section" id="tip-section" style="display: none;">
+                        <h5 style="margin-bottom: 10px; font-weight: 600;">Tip</h5>
+                        <div class="tip-buttons">
+                            <button type="button" class="tip-btn" data-tip="0">0%</button>
+                            <button type="button" class="tip-btn" data-tip="5">5%</button>
+                            <button type="button" class="tip-btn" data-tip="10">10%</button>
+                            <button type="button" class="tip-btn" data-tip="15">15%</button>
+                            <button type="button" class="tip-btn" data-tip="20">20%</button>
+                        </div>
+                        <div class="custom-tip-input" style="margin-top: 10px;">
+                            <label>Custom Amount: $</label>
+                            <input type="number" id="custom-tip-input" class="form-control" 
+                                   placeholder="0.00" step="0.01" min="0" style="display: inline-block; width: 120px;">
+                        </div>
+                    </div>
+
                     <!-- Toolbar Footer -->
                     <div class="toolbar-footer">
                         <div class="total-price" id="total-price">$0.00</div>
@@ -789,6 +1031,9 @@ $unavailableTables = DB::table('orders')
    .col {
     margin-bottom: 15px !important;
     padding: 10px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 } 
 
 
@@ -802,8 +1047,8 @@ $unavailableTables = DB::table('orders')
 }
 
 .form-control:focus {
-    border-color: #08815e !important;
-    box-shadow: 0 0 5px rgba(214, 182, 134, 0.5) !important;
+    border-color: #2c3e50 !important;
+    box-shadow: 0 0 5px rgba(44, 62, 80, 0.5) !important;
 }
 
 #menu-options-container {
@@ -829,6 +1074,19 @@ $unavailableTables = DB::table('orders')
     gap: 15px;
     justify-content: center;
     padding: 10px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.menu-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
 }
 
 .menu-item {
@@ -845,7 +1103,7 @@ $unavailableTables = DB::table('orders')
 }
 
 .menu-item:hover, .menu-item.selected {
-    border-color: #08815e;
+    border-color: #2c3e50;
     background: #ffffff;
 }
 
@@ -903,6 +1161,17 @@ $unavailableTables = DB::table('orders')
             background: #fcfcfc !important;
             justify-content: space-between !important;
             padding: 15px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        /* Hover effect only when card is NOT flipped */
+        .interactive-card:not(.flipped):hover .card-front {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        /* Light lift effect on the card container when not flipped */
+        .interactive-card:not(.flipped):hover {
+            transform: translateY(-2px);
         }
 
         .card-back {
@@ -911,6 +1180,7 @@ $unavailableTables = DB::table('orders')
             transform: rotateY(180deg) !important;
             overflow-y: auto !important;
             z-index: 1 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
         }
         
         /* Force override any external CSS - ULTRA SPECIFIC */
@@ -962,11 +1232,11 @@ $unavailableTables = DB::table('orders')
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #08815e;
+            border-bottom: 2px solid #2c3e50;
         }
 
         .flip-back-btn {
-            background: #08815e;
+            background: #2c3e50;
             color: white;
             border: none;
             border-radius: 50%;
@@ -982,21 +1252,123 @@ $unavailableTables = DB::table('orders')
         }
 
         .flip-back-btn:hover {
-            background: #08815e;
+            background: #2c3e50;
             transform: scale(1.1);
         }
 
         .back-header h4 {
             margin: 0;
-            color: #08815e;
+            color: #2c3e50 !important;
             font-size: 1.1rem;
             font-weight: 600;
+        }
+        
+        .card-back .back-header h4 {
+            color: #2c3e50 !important;
+        }
+        
+        .interactive-card .card-back .back-header h4 {
+            color: #2c3e50 !important;
         }
 
         .options-content {
             max-height: 200px;
             overflow-y: auto;
             margin-bottom: 15px;
+            scrollbar-width: thin !important;
+            scrollbar-color: #2c3e50 #f7fafc !important;
+        }
+        
+        .card-back .options-content {
+            scrollbar-width: thin !important;
+            scrollbar-color: #2c3e50 #f7fafc !important;
+        }
+        
+        .interactive-card .card-back .options-content {
+            scrollbar-width: thin !important;
+            scrollbar-color: #2c3e50 #f7fafc !important;
+        }
+        
+        .options-content::-webkit-scrollbar {
+            width: 6px !important;
+            background: transparent !important;
+        }
+        
+        .card-back .options-content::-webkit-scrollbar {
+            width: 6px !important;
+            background: transparent !important;
+        }
+        
+        .interactive-card .card-back .options-content::-webkit-scrollbar {
+            width: 6px !important;
+            background: transparent !important;
+        }
+        
+        .options-content::-webkit-scrollbar-track {
+            background: #f7fafc !important;
+            border-radius: 3px !important;
+        }
+        
+        .card-back .options-content::-webkit-scrollbar-track {
+            background: #f7fafc !important;
+            border-radius: 3px !important;
+        }
+        
+        .interactive-card .card-back .options-content::-webkit-scrollbar-track {
+            background: #f7fafc !important;
+            border-radius: 3px !important;
+        }
+        
+        .options-content::-webkit-scrollbar-thumb {
+            background: #2c3e50 !important;
+            border-radius: 3px !important;
+        }
+        
+        .card-back .options-content::-webkit-scrollbar-thumb {
+            background: #2c3e50 !important;
+            border-radius: 3px !important;
+        }
+        
+        .interactive-card .card-back .options-content::-webkit-scrollbar-thumb {
+            background: #2c3e50 !important;
+            border-radius: 3px !important;
+        }
+        
+        .options-content::-webkit-scrollbar-thumb:hover {
+            background: #34495e !important;
+        }
+        
+        .card-back .options-content::-webkit-scrollbar-thumb:hover {
+            background: #34495e !important;
+        }
+        
+        .interactive-card .card-back .options-content::-webkit-scrollbar-thumb:hover {
+            background: #34495e !important;
+        }
+        
+        /* Force scrollbar color class for dynamically created elements */
+        .force-dark-scrollbar {
+            scrollbar-width: thin !important;
+            scrollbar-color: #2c3e50 #f7fafc !important;
+        }
+        
+        .force-dark-scrollbar::-webkit-scrollbar {
+            width: 6px !important;
+            background: transparent !important;
+        }
+        
+        .force-dark-scrollbar::-webkit-scrollbar-track {
+            background: #f7fafc !important;
+            border-radius: 3px !important;
+        }
+        
+        .force-dark-scrollbar::-webkit-scrollbar-thumb {
+            background: #2c3e50 !important;
+            border-radius: 3px !important;
+        }
+        
+        .force-dark-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #34495e !important;
         }
 
         .back-actions {
@@ -1004,11 +1376,11 @@ $unavailableTables = DB::table('orders')
             gap: 10px;
             justify-content: center;
             padding-top: 10px;
-            border-top: 2px solid #08815e;
+            border-top: 2px solid #2c3e50;
         }
 
         .flip-back-btn, .add-item-btn {
-            background: linear-gradient(135deg, #08815e, #08815e) !important;
+            background: linear-gradient(135deg, #2c3e50, #2c3e50) !important;
             color: white !important;
             border: none !important;
             border-radius: 50% !important;
@@ -1019,14 +1391,14 @@ $unavailableTables = DB::table('orders')
             transition: all 0.3s ease !important;
             font-weight: 600 !important;
             font-size: 20px !important;
-            box-shadow: 0 2px 6px rgba(193, 154, 90, 0.3) !important;
+            box-shadow: 0 2px 6px rgba(44, 62, 80, 0.3) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
         }
 
         .flip-back-btn:hover, .add-item-btn:hover {
-            background: linear-gradient(135deg, #08815e, #08815e) !important;
+            background: linear-gradient(135deg, #2c3e50, #2c3e50) !important;
             transform: translateY(-2px) !important;
             box-shadow: 0 4px 12px rgba(193, 154, 90, 0.4) !important;
         }
@@ -1050,7 +1422,15 @@ $unavailableTables = DB::table('orders')
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 8px;
-            color: #08815e;
+            color: #2c3e50 !important;
+        }
+        
+        .card-back .option-group h5 {
+            color: #2c3e50 !important;
+        }
+        
+        .interactive-card .card-back .option-group h5 {
+            color: #2c3e50 !important;
         }
 
         .form-check {
@@ -1058,14 +1438,30 @@ $unavailableTables = DB::table('orders')
         }
 
         .form-check-input:checked {
-            background-color: #08815e;
-            border-color: #08815e;
+            background-color: #2c3e50;
+            border-color: #2c3e50;
         }
 
         .form-check-label {
-            color: #202938;
+            color: #2c3e50 !important;
             font-weight: 500;
             cursor: pointer;
+        }
+        
+        .card-back .form-check-label {
+            color: #2c3e50 !important;
+        }
+        
+        .interactive-card .card-back .form-check-label {
+            color: #2c3e50 !important;
+        }
+        
+        .card-back label {
+            color: #2c3e50 !important;
+        }
+        
+        .card-back .form-check label {
+            color: #2c3e50 !important;
         }
 
         .option-group.radio-group {
@@ -1123,7 +1519,7 @@ body, html {
     align-items: center;
     margin: 0;
     padding: 20px 30px;
-    border-bottom: 2px solid #08815e;
+    border-bottom: 2px solid #2c3e50;
     background: #ffffff;
     position: absolute;
     top: 0;
@@ -1149,27 +1545,36 @@ body, html {
 }
 
 #edit-layout-btn {
-    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
-    border: none;
-    color: white;
-    padding: 8px 16px;
+    background: rgb(241, 244, 251) !important;
+    border: 1px solid rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    padding: 0.55rem 1.75rem !important;
     font-size: 14px;
-    min-height: 36px;
-    border-radius: 8px;
-    font-weight: 600;
+    min-height: 40px !important;
+    height: 40px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(214, 182, 134, 0.3);
-    line-height: 1.4;
+    box-shadow: none !important;
+    line-height: 1.3 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 #edit-layout-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(214, 182, 134, 0.4);
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
 #edit-layout-btn.active {
-    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
-    box-shadow: 0 4px 15px rgba(214, 182, 134, 0.3);
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: none !important;
 }
 
 .table-grid-container {
@@ -1306,14 +1711,14 @@ body, html {
 }
 
 .table-circle.cashier {
-    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
+    background: linear-gradient(135deg, #2c3e50 0%, #2c3e50 100%);
     color: white;
 }
 
 .table-circle.available {
     background: #ffffff;
-    color: #28a745;
-    border: 4px solid #28a745;
+    color: #2c3e50;
+    border: 4px solid #2c3e50;
     box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
 
@@ -1340,15 +1745,15 @@ body, html {
 
 .table-circle.cashier {
     background: #ffffff;
-    color: #28a745;
-    border: 4px solid #28a745;
+    color: #2c3e50;
+    border: 4px solid #2c3e50;
     box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
 
 .table-circle.completed {
     background: #ffffff;
-    color: #28a745;
-    border: 4px solid #28a745;
+    color: #2c3e50;
+    border: 4px solid #2c3e50;
     box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
 
@@ -1361,8 +1766,8 @@ body, html {
 
 .table-circle.paid {
     background: #ffffff;
-    color: #28a745;
-    border: 4px solid #28a745;
+    color: #2c3e50;
+    border: 4px solid #2c3e50;
     box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
 
@@ -1418,7 +1823,7 @@ body, html {
     position: absolute;
     top: -5px;
     right: -5px;
-    background: #08815e;
+    background: #2c3e50;
     color: white;
     border-radius: 50%;
     width: 20px;
@@ -1427,14 +1832,14 @@ body, html {
     align-items: center;
     justify-content: center;
     font-size: 10px;
-    box-shadow: 0 2px 8px rgba(214, 182, 134, 0.3);
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.3);
     opacity: 0.8;
     transition: all 0.3s ease;
 }
 
 .table-item:hover .menu-link-icon {
     opacity: 1;
-    background: #08815e;
+    background: #2c3e50;
     transform: scale(1.1);
 }
 
@@ -1471,7 +1876,7 @@ body, html {
 }
 
 .table-item.edit-mode .table-circle {
-    border: 2px dashed #08815e;
+    border: 2px dashed #2c3e50;
 }
 
 /* Ensure tables can be positioned freely */
@@ -1514,7 +1919,7 @@ body, html {
     border-radius: 8px;
     padding: 10px;
     font-size: 12px;
-    color: #08815e;
+    color: #2c3e50;
     z-index: 1000;
     pointer-events: none;
 }
@@ -1581,8 +1986,8 @@ body, html {
     width: 36px;
     height: 36px;
     border-radius: 6px;
-    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
-    border: 1px solid #08815e;
+    background: linear-gradient(135deg, #2c3e50 0%, #2c3e50 100%);
+    border: 1px solid #2c3e50;
     color: white;
     display: inline-flex;
     align-items: center;
@@ -1597,7 +2002,7 @@ body, html {
 }
 
 .zoom-btn:hover {
-    background: linear-gradient(135deg, #08815e 0%, #08815e 100%);
+    background: linear-gradient(135deg, #2c3e50 0%, #2c3e50 100%);
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(214, 182, 134, 0.4);
 }
@@ -1612,13 +2017,14 @@ body, html {
 .zoom-level-indicator {
     text-align: center;
     font-size: 12px;
-    font-weight: bold;
-    color: #08815e;
+    font-weight: 600;
+    color: rgb(32, 41, 56);
     padding: 8px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 15px;
+    background: rgb(241, 244, 251);
+    border-radius: 12px;
     margin-right: 10px;
-    border: 1px solid rgba(214, 182, 134, 0.2);
+    border: 1px solid rgb(201, 210, 227);
+    box-shadow: none;
 }
 
 /* Save message notifications */
@@ -1715,6 +2121,21 @@ body, html {
 .order-form {
     display: none;
     animation: fadeIn 0.5s ease-in-out;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.order-form .wrapper {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.order-form .row {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* NEW: Smooth transition styles */
@@ -1730,7 +2151,7 @@ body, html {
     padding: 15px;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-radius: 10px;
-    border-left: 4px solid #08815e;
+    border-left: 4px solid #2c3e50;
 }
 
 .selected-table-info h3 {
@@ -1746,20 +2167,32 @@ body, html {
 }
 
 #back-to-tables {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    border: none;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+    background: linear-gradient(135deg, #08815e 0%, #08815e 100%) !important;
+    border: 1px solid #08815e !important;
+    color: white !important;
+    padding: 0.55rem 1.75rem !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(8, 129, 94, 0.2) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1.3 !important;
 }
 
 #back-to-tables:hover {
-    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
+    border-color: #08815e !important;
+}
+
+#back-to-tables i {
+    margin-right: 8px !important;
 }
 
 /* Enhanced menu transition */
@@ -1782,17 +2215,17 @@ body, html {
 }
 
 .table-status-badge.status-available {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
 }
 
 .table-status-badge.status-occupied {
-    background: linear-gradient(135deg, #dc3545 0%, #0bb87a 100%);
+    background: linear-gradient(135deg, #dc3545 0%, #34495e 100%);
     color: white;
 }
 
 .table-status-badge.status-pending {
-    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%);
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
 }
 
@@ -1802,12 +2235,12 @@ body, html {
 }
 
 .table-status-badge.status-completed {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
 }
 
 .table-status-badge.status-paid {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
 }
 
@@ -1822,7 +2255,7 @@ body, html {
 }
 
 .btn-primary {
-    background-color: #08815e !important;
+    background-color: #2c3e50 !important;
     border: none !important;
     padding: 12px 20px !important;
     font-size: 16px !important;
@@ -1832,7 +2265,7 @@ body, html {
 }
 
 .btn-primary:hover {
-    background-color: #08815e !important;
+    background-color: #2c3e50 !important;
     box-shadow: 0 3px 10px rgba(214, 182, 134, 0.3) !important;
 }
 
@@ -2098,7 +2531,7 @@ body, html {
 }
 
 .side-tag {
-    background: linear-gradient(135deg, #08815e, #08815e);
+    background: linear-gradient(135deg, #2c3e50, #2c3e50);
     color: white;
     padding: 2px 6px;
     border-radius: 10px;
@@ -2106,6 +2539,262 @@ body, html {
     font-weight: 500;
     display: inline-block;
     box-shadow: 0 1px 3px rgba(193, 154, 90, 0.3);
+}
+
+/* Toggle Toolbar Button - Smaller and Dark Blue */
+#toggle-toolbar-btn.toolbar-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    background: #2c3e50 !important;
+    border: 1px solid #2c3e50 !important;
+    color: #ffffff !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(44, 62, 80, 0.2) !important;
+}
+
+#toggle-toolbar-btn.toolbar-btn:hover {
+    background: #34495e !important;
+    border-color: #34495e !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 6px rgba(44, 62, 80, 0.3) !important;
+}
+
+#toggle-toolbar-btn.toolbar-btn i {
+    font-size: 12px !important;
+    color: #ffffff !important;
+}
+
+/* Fix Floating Toolbar Overflow Issue */
+.floating-toolbar.expanded {
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.floating-toolbar.expanded .toolbar-glass {
+    max-height: 100% !important;
+    overflow-y: auto !important;
+}
+
+/* Order Summary Section Styles */
+.order-summary-section {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px solid #dee2e6;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 14px;
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-total {
+    margin-top: 10px;
+    padding-top: 10px;
+        border-top: 2px solid #2c3e50;
+    font-size: 16px;
+}
+
+.summary-total span {
+    color: #2c3e50;
+}
+
+/* Payment Method Section Styles */
+.payment-method-section {
+    padding: 15px;
+    background: #ffffff;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px solid #dee2e6;
+}
+
+.payment-method-section h5 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.payment-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.payment-method-option {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #ffffff;
+}
+
+.payment-method-option:hover {
+    border-color: #2c3e50;
+    background: #f0f9f5;
+}
+
+.payment-method-option input[type="radio"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.payment-method-option input[type="radio"]:checked + .payment-method-label {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.payment-method-option:has(input[type="radio"]:checked) {
+    border-color: #2c3e50;
+    background: #f0f4f8;
+}
+
+.payment-method-label {
+    cursor: pointer;
+    font-size: 14px;
+    color: #495057;
+}
+
+/* Coupon Section Styles */
+.coupon-section {
+    padding: 15px;
+    background: #ffffff;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px solid #dee2e6;
+}
+
+.coupon-section h5 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.coupon-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.coupon-input-group .form-control {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.coupon-input-group .form-control:focus {
+    border-color: #2c3e50;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+}
+
+.coupon-message {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.coupon-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.coupon-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Tip Section Styles */
+.tip-section {
+    padding: 15px;
+    background: #ffffff;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px solid #dee2e6;
+}
+
+.tip-section h5 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.tip-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tip-btn {
+    flex: 1;
+    min-width: 60px;
+    padding: 10px 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #495057;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tip-btn:hover {
+    border-color: #2c3e50;
+    background: #f0f4f8;
+    color: #2c3e50;
+}
+
+.tip-btn.active {
+    border-color: #2c3e50;
+    background: #2c3e50;
+    color: #ffffff;
+}
+
+.custom-tip-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.custom-tip-input label {
+    font-size: 14px;
+    color: #495057;
+    font-weight: 500;
+}
+
+.custom-tip-input .form-control {
+    padding: 8px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.custom-tip-input .form-control:focus {
+    border-color: #2c3e50;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
 }
 
     </style>
@@ -2131,14 +2820,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 floatingToolbar.style.position = 'fixed';
                 floatingToolbar.style.bottom = '1.5rem';
                 floatingToolbar.style.left = '50%';
-                floatingToolbar.style.transform = 'translateX(-50%) translateY(100px)';
+                floatingToolbar.style.transform = 'translateX(-50%)';
                 floatingToolbar.style.zIndex = '99999';
                 floatingToolbar.style.width = '100%';
                 floatingToolbar.style.maxWidth = '600px';
+                floatingToolbar.style.maxHeight = '80vh'; // Allow scrolling if content is tall
+                floatingToolbar.style.overflowY = 'auto'; // Enable scrolling
                 floatingToolbar.style.padding = '0 1rem';
                 floatingToolbar.style.margin = '0';
-                floatingToolbar.style.opacity = '0';
-                floatingToolbar.style.visibility = 'hidden';
+                floatingToolbar.style.opacity = '1'; // Make visible
+                floatingToolbar.style.visibility = 'visible'; // Make visible
                 floatingToolbar.style.pointerEvents = 'auto';
                 floatingToolbar.style.display = 'block';
                 
@@ -2283,6 +2974,313 @@ document.addEventListener("DOMContentLoaded", function () {
             // Also initialize when the menu is shown (for the new table-to-menu flow)
             window.initializeCategoryFiltering = initializeCategoryFiltering;
 
+            // ========== PAYMENT, TAX, COUPON, TIP FUNCTIONALITY ==========
+            
+            // Tax settings from backend
+            const taxSettings = {
+                enabled: {{ isset($taxSettings['enabled']) && $taxSettings['enabled'] ? 'true' : 'false' }},
+                percentage: {{ $taxSettings['percentage'] ?? 0 }},
+                menuPrice: {{ $taxSettings['menuPrice'] ?? 1 }}
+            };
+
+            // State variables
+            let selectedPaymentMethod = 'cod';
+            let tipPercentage = 0;
+            let customTipAmount = 0;
+            let appliedCoupon = null;
+            let couponDiscount = 0;
+
+            // Helper function to adjust price if tax is included in menu prices
+            function adjustPriceForTax(price) {
+                if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+                    return price * (1 + taxSettings.percentage / 100);
+                }
+                return price;
+            }
+
+            // Calculate all totals
+            function calculateTotals() {
+                // Calculate subtotal
+                let subtotal = 0;
+                selectedItems.forEach((itemData) => {
+                    const basePrice = parseFloat(itemData.basePrice || itemData.price || 0);
+                    const optionsPrice = parseFloat(itemData.optionsPrice || 0);
+                    const itemTotalPrice = basePrice + optionsPrice;
+                    const adjustedPrice = adjustPriceForTax(itemTotalPrice);
+                    subtotal += adjustedPrice * itemData.quantity;
+                });
+
+                // Calculate tax (if tax should be applied on checkout)
+                let taxAmount = 0;
+                if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1) {
+                    taxAmount = subtotal * (taxSettings.percentage / 100);
+                }
+
+                // Calculate tip
+                let tipAmount = 0;
+                if (customTipAmount > 0) {
+                    tipAmount = customTipAmount;
+                } else if (tipPercentage > 0) {
+                    tipAmount = subtotal * (tipPercentage / 100);
+                }
+
+                // Calculate final total
+                const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount);
+
+                // Update UI
+                updateOrderSummary(subtotal, taxAmount, tipAmount, couponDiscount, finalTotal);
+                
+                // Update hidden inputs
+                document.getElementById('tax-amount-input').value = taxAmount.toFixed(2);
+                document.getElementById('tip-amount-input').value = tipAmount.toFixed(2);
+                document.getElementById('coupon-discount-input').value = couponDiscount.toFixed(2);
+                
+                return { subtotal, taxAmount, tipAmount, couponDiscount, finalTotal };
+            }
+
+            // Update order summary display
+            function updateOrderSummary(subtotal, taxAmount, tipAmount, discount, total) {
+                document.getElementById('summary-subtotal').textContent = '$' + subtotal.toFixed(2);
+                document.getElementById('summary-total').innerHTML = '<strong>$' + total.toFixed(2) + '</strong>';
+                
+                // Show/hide tax row
+                const taxRow = document.getElementById('tax-row');
+                if (taxAmount > 0) {
+                    taxRow.style.display = 'flex';
+                    document.getElementById('summary-tax').textContent = '$' + taxAmount.toFixed(2);
+                } else {
+                    taxRow.style.display = 'none';
+                }
+
+                // Show/hide tip row
+                const tipRow = document.getElementById('tip-row');
+                if (tipAmount > 0) {
+                    tipRow.style.display = 'flex';
+                    document.getElementById('summary-tip').textContent = '$' + tipAmount.toFixed(2);
+                } else {
+                    tipRow.style.display = 'none';
+                }
+
+                // Show/hide discount row
+                const discountRow = document.getElementById('discount-row');
+                if (discount > 0) {
+                    discountRow.style.display = 'flex';
+                    document.getElementById('summary-discount').textContent = '-$' + discount.toFixed(2);
+                } else {
+                    discountRow.style.display = 'none';
+                }
+
+                // Update total price in footer
+                document.getElementById('total-price').textContent = '$' + total.toFixed(2);
+            }
+
+            // Payment method selection
+            const paymentMethodRadios = document.querySelectorAll('input[name="payment_method_radio"]');
+            paymentMethodRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    selectedPaymentMethod = this.value;
+                    document.getElementById('payment-method-input').value = selectedPaymentMethod;
+                    calculateTotals();
+                });
+            });
+
+            // Tip percentage buttons
+            const tipButtons = document.querySelectorAll('.tip-btn');
+            tipButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    tipButtons.forEach(b => b.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    tipPercentage = parseFloat(this.dataset.tip) || 0;
+                    customTipAmount = 0; // Reset custom tip when percentage is selected
+                    document.getElementById('custom-tip-input').value = '';
+                    calculateTotals();
+                });
+            });
+
+            // Custom tip input
+            const customTipInput = document.getElementById('custom-tip-input');
+            customTipInput.addEventListener('input', function() {
+                const value = parseFloat(this.value) || 0;
+                if (value > 0) {
+                    customTipAmount = value;
+                    tipPercentage = 0; // Reset percentage when custom tip is entered
+                    tipButtons.forEach(b => b.classList.remove('active'));
+                    calculateTotals();
+                } else {
+                    customTipAmount = 0;
+                    calculateTotals();
+                }
+            });
+
+            // Coupon validation
+            const applyCouponBtn = document.getElementById('apply-coupon-btn');
+            const removeCouponBtn = document.getElementById('remove-coupon-btn');
+            const couponCodeField = document.getElementById('coupon-code-field');
+            const couponMessage = document.getElementById('coupon-message');
+
+            applyCouponBtn.addEventListener('click', async function() {
+                const code = couponCodeField.value.trim().toUpperCase();
+                if (!code) {
+                    couponMessage.textContent = 'Please enter a coupon code';
+                    couponMessage.className = 'coupon-message error';
+                    couponMessage.style.display = 'block';
+                    return;
+                }
+
+                // Calculate current subtotal for validation
+                const { subtotal } = calculateTotals();
+
+                try {
+                    const response = await fetch('/validate-coupon', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            code: code,
+                            subtotal: subtotal
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        appliedCoupon = data.data;
+                        couponDiscount = parseFloat(data.data.discount) || 0;
+                        
+                        document.getElementById('coupon-code-input').value = code;
+                        document.getElementById('coupon-discount-input').value = couponDiscount.toFixed(2);
+                        
+                        couponMessage.textContent = `Coupon "${code}" applied! Discount: $${couponDiscount.toFixed(2)}`;
+                        couponMessage.className = 'coupon-message success';
+                        couponMessage.style.display = 'block';
+                        
+                        applyCouponBtn.style.display = 'none';
+                        removeCouponBtn.style.display = 'inline-block';
+                        couponCodeField.disabled = true;
+                        
+                        calculateTotals();
+                    } else {
+                        couponMessage.textContent = data.message || 'Invalid coupon code';
+                        couponMessage.className = 'coupon-message error';
+                        couponMessage.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Coupon validation error:', error);
+                    couponMessage.textContent = 'Failed to validate coupon. Please try again.';
+                    couponMessage.className = 'coupon-message error';
+                    couponMessage.style.display = 'block';
+                }
+            });
+
+            removeCouponBtn.addEventListener('click', function() {
+                appliedCoupon = null;
+                couponDiscount = 0;
+                document.getElementById('coupon-code-input').value = '';
+                document.getElementById('coupon-discount-input').value = '0';
+                couponCodeField.value = '';
+                couponCodeField.disabled = false;
+                couponMessage.style.display = 'none';
+                applyCouponBtn.style.display = 'inline-block';
+                removeCouponBtn.style.display = 'none';
+                calculateTotals();
+            });
+
+            // Show sections when items are selected
+            function showOrderSections() {
+                document.getElementById('order-summary-section').style.display = 'block';
+                document.getElementById('payment-method-section').style.display = 'block';
+                document.getElementById('coupon-section').style.display = 'block';
+                document.getElementById('tip-section').style.display = 'block';
+            }
+
+            function hideOrderSections() {
+                document.getElementById('order-summary-section').style.display = 'none';
+                document.getElementById('payment-method-section').style.display = 'none';
+                document.getElementById('coupon-section').style.display = 'none';
+                document.getElementById('tip-section').style.display = 'none';
+            }
+
+            // ========== END PAYMENT, TAX, COUPON, TIP FUNCTIONALITY ==========
+
+            // Define updateFloatingToolbar in the correct scope (outside forEach)
+            function updateFloatingToolbar() {
+                const totalItems = Array.from(selectedItems.values()).reduce((sum, item) => sum + item.quantity, 0);
+                
+                // Update counts
+                totalItemsCount.textContent = totalItems;
+                
+                // Calculate and update totals (includes tax, tip, discount)
+                const totals = calculateTotals();
+                
+                // Show/hide toolbar based on items
+                if (totalItems === 0) {
+                    // Hide toolbar smoothly
+                    floatingToolbar.className = "floating-toolbar collapsed";
+                    hideOrderSections();
+                    console.log("🔽 Toolbar hidden - no items selected");
+                } else {
+                    // Show toolbar smoothly
+                    floatingToolbar.classList.add('show');
+                    showOrderSections();
+                    
+                    // Update toolbar state
+                    if (toolbarState === "collapsed" && totalItems > 0) {
+                        toolbarState = "preview";
+                        floatingToolbar.className = "floating-toolbar preview show";
+                    }
+                    
+                    // Ensure toolbar is visible and scrollable
+                    floatingToolbar.style.opacity = '1';
+                    floatingToolbar.style.visibility = 'visible';
+                    floatingToolbar.style.maxHeight = '80vh';
+                    floatingToolbar.style.overflowY = 'auto';
+                    
+                    console.log("🔼 Toolbar shown - items selected:", totalItems);
+                }
+                
+                // Update selected items display
+                if (totalItems > 0) {
+                    selectedItemsContainer.innerHTML = '';
+                    
+                    selectedItems.forEach((itemData, menuId) => {
+                        const itemCard = document.createElement("div");
+                        itemCard.classList.add("selected-item-card");
+                         // Generate sides display
+                         let sidesDisplay = '';
+                         if (itemData.options && itemData.options.length > 0) {
+                             console.log('Item has options, creating sides display');
+                             sidesDisplay = '<div class="selected-item-sides">';
+                             itemData.options.forEach(option => {
+                                 console.log('Adding side tag:', option.text);
+                                 sidesDisplay += `<span class="side-tag">${option.text}</span>`;
+                             });
+                             sidesDisplay += '</div>';
+                         }
+                         
+                         itemCard.innerHTML = `
+                             <img src="${itemData.image}" alt="${itemData.name}" class="selected-item-image">
+                             <div class="selected-item-info">
+                                 <h4 class="selected-item-name">${itemData.name}</h4>
+                                 <p class="selected-item-price">$${itemData.price}</p>
+                                 ${sidesDisplay}
+    </div>
+                             <div class="selected-item-actions">
+                                 <div class="quantity-control">
+                                     <button class="qty-btn danger" onclick="decreaseQuantity('${itemData.uniqueKey}')">-</button>
+                                     <span class="qty-display">${itemData.quantity}</span>
+                                     <button class="qty-btn" onclick="increaseQuantity('${itemData.uniqueKey}')">+</button>
+</div>
+                             </div>
+                         `;
+                        selectedItemsContainer.appendChild(itemCard);
+                    });
+                }
+            }
+
     menuItems.forEach(item => {
         const backButton = item.querySelector('.flip-back-btn');
         const addItemButton = item.querySelector('.add-item-btn');
@@ -2389,11 +3387,13 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log('Unique key for cart (no sides):', uniqueKey);
             
             if (!selectedItems.has(uniqueKey)) {
+                const basePrice = parseFloat(menuPrice);
                 selectedItems.set(uniqueKey, {
                     id: menuId,
                     uniqueKey: uniqueKey, // Store the unique key
                     name: menuName,
-                    price: menuPrice,
+                    price: basePrice,
+                    basePrice: basePrice, // Keep original price for tax calculations
                     image: menuImage,
                     quantity: 0,
                     options: []
@@ -2521,6 +3521,41 @@ document.addEventListener("DOMContentLoaded", function () {
 });
                 optionsList.innerHTML = optionsHTML;
                 
+                // Force colors on dynamically created elements
+                setTimeout(() => {
+                    const cardBack = this.querySelector('.card-back');
+                    if (cardBack) {
+                        // Force header h4 color
+                        const headerH4 = cardBack.querySelector('.back-header h4');
+                        if (headerH4) {
+                            headerH4.style.color = '#2c3e50';
+                            headerH4.style.setProperty('color', '#2c3e50', 'important');
+                        }
+                        
+                        // Force option group h5 colors
+                        const optionH5s = cardBack.querySelectorAll('.option-group h5');
+                        optionH5s.forEach(h5 => {
+                            h5.style.color = '#2c3e50';
+                            h5.style.setProperty('color', '#2c3e50', 'important');
+                        });
+                        
+                        // Force form check label colors
+                        const labels = cardBack.querySelectorAll('.form-check-label, label');
+                        labels.forEach(label => {
+                            label.style.color = '#2c3e50';
+                            label.style.setProperty('color', '#2c3e50', 'important');
+                        });
+                        
+                        // Force scrollbar colors - add class to ensure CSS applies
+                        const optionsContent = cardBack.querySelector('.options-content');
+                        if (optionsContent) {
+                            optionsContent.classList.add('force-dark-scrollbar');
+                            optionsContent.style.setProperty('scrollbar-width', 'thin', 'important');
+                            optionsContent.style.setProperty('scrollbar-color', '#2c3e50 #f7fafc', 'important');
+                        }
+                    }
+                }, 50);
+                
                 // Add event listeners to make options clickable
                 setTimeout(() => {
                     const optionInputs = optionsList.querySelectorAll('input[type="checkbox"], input[type="radio"]');
@@ -2573,70 +3608,7 @@ document.addEventListener("DOMContentLoaded", function () {
             this.classList.remove('flipped');
         }
 
-                // Update floating toolbar display
-                function updateFloatingToolbar() {
-                    const totalItems = Array.from(selectedItems.values()).reduce((sum, item) => sum + item.quantity, 0);
-                    const totalPriceValue = Array.from(selectedItems.values()).reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                    
-                    // Update counts and price
-                    totalItemsCount.textContent = totalItems;
-                    totalPrice.textContent = `$${totalPriceValue.toFixed(2)}`;
-                    
-                    // Show/hide toolbar based on items
-                    if (totalItems === 0) {
-                        // Hide toolbar smoothly
-                        floatingToolbar.className = "floating-toolbar collapsed";
-                        console.log("🔽 Toolbar hidden - no items selected");
-                    } else {
-                        // Show toolbar smoothly
-                        floatingToolbar.classList.add('show');
-                        
-                        // Update toolbar state
-                        if (toolbarState === "collapsed" && totalItems > 0) {
-                            toolbarState = "preview";
-                            floatingToolbar.className = "floating-toolbar preview show";
-                        }
-                        console.log("🔼 Toolbar shown - items selected:", totalItems);
-                    }
-                    
-                    // Update selected items display
-                    if (totalItems > 0) {
-                        selectedItemsContainer.innerHTML = '';
-                        
-                        selectedItems.forEach((itemData, menuId) => {
-                            const itemCard = document.createElement("div");
-                            itemCard.classList.add("selected-item-card");
-                             // Generate sides display
-                             let sidesDisplay = '';
-                             if (itemData.options && itemData.options.length > 0) {
-                                 console.log('Item has options, creating sides display');
-                                 sidesDisplay = '<div class="selected-item-sides">';
-                                 itemData.options.forEach(option => {
-                                     console.log('Adding side tag:', option.text);
-                                     sidesDisplay += `<span class="side-tag">${option.text}</span>`;
-                                 });
-                                 sidesDisplay += '</div>';
-                             }
-                             
-                             itemCard.innerHTML = `
-                                 <img src="${itemData.image}" alt="${itemData.name}" class="selected-item-image">
-                                 <div class="selected-item-info">
-                                     <h4 class="selected-item-name">${itemData.name}</h4>
-                                     <p class="selected-item-price">$${itemData.price}</p>
-                                     ${sidesDisplay}
-    </div>
-                                 <div class="selected-item-actions">
-                                     <div class="quantity-control">
-                                         <button class="qty-btn danger" onclick="decreaseQuantity('${itemData.uniqueKey}')">-</button>
-                                         <span class="qty-display">${itemData.quantity}</span>
-                                         <button class="qty-btn" onclick="increaseQuantity('${itemData.uniqueKey}')">+</button>
-</div>
-                                 </div>
-                             `;
-                            selectedItemsContainer.appendChild(itemCard);
-                        });
-                    }
-                }
+                // updateFloatingToolbar is now defined outside forEach in the correct scope
                 
                 // Global functions for quantity control
                 window.increaseQuantity = function(uniqueKey) {
@@ -2830,6 +3802,17 @@ document.addEventListener("DOMContentLoaded", function () {
                     tableIdInput.value = selectedTableInput.value;
                     console.log('Table ID being set to:', selectedTableInput.value);
                 }
+                
+                // Ensure payment method is set
+                const paymentMethodInput = form.querySelector('input[name="payment_method"]');
+                if (paymentMethodInput) {
+                    paymentMethodInput.value = selectedPaymentMethod;
+                    console.log('Payment method:', selectedPaymentMethod);
+                }
+                
+                // Calculate final totals before submission
+                const totals = calculateTotals();
+                console.log('Final totals:', totals);
                 
                 // Debug: Log form data before submission
                 console.log('Form data being submitted:');
@@ -3525,7 +4508,11 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('Showing menu for table:', tableName, tableId, tableNo);
         
         // Update table info display
-        document.getElementById('current-table-name').textContent = tableName;
+        // Remove "Table" prefix from tableName if it exists (since we already have "Table" in the HTML)
+        // Also extract just the number if it's "Table X" format
+        let displayTableName = tableName.replace(/^Table\s+/i, '');
+        // If it's just a number, use it as is; if it's "Cashier" or other text, use it as is
+        document.getElementById('current-table-name').textContent = displayTableName;
         document.getElementById('current-table-id').textContent = tableId;
         document.getElementById('current-table-no').textContent = tableNo;
         
@@ -3631,6 +4618,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Hide back button and table info
             document.getElementById('back-to-tables').style.display = 'none';
             document.getElementById('selected-table-info').style.display = 'none';
+            
+            // Show header controls (zoom buttons and Edit Layout button)
+            document.getElementById('header-controls').style.display = 'flex';
             
             // Change button text to "Back to Orders" for next time
             const backButton = document.getElementById('back-to-tables');

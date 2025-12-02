@@ -6,11 +6,13 @@ use Admin\ActivityTypes\StatusUpdated;
 use Admin\Facades\AdminMenu;
 use Admin\Models\Orders_model;
 use Admin\Models\Statuses_model;
+use Admin\Models\Payments_model;
 use Igniter\Flame\Exception\ApplicationException;
 use App\Helpers\NotificationHelper;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\DB;
 
 class Orders extends \Admin\Classes\AdminController
 {
@@ -85,6 +87,27 @@ class Orders extends \Admin\Classes\AdminController
         
         $this->vars['statusesOptions'] = $statusesOptions;
         $this->vars['statusesColors'] = $statusesColors;
+    }
+
+    public function create()
+    {
+        // Load payment methods
+        $paymentMethods = Payments_model::isEnabled()
+            ->orderBy('priority')
+            ->get(['code', 'name', 'priority']);
+        
+        // Load tax settings
+        $settings = DB::table('settings')->get()->keyBy('item');
+        $taxSettings = [
+            'enabled' => ($settings['tax_mode']->value ?? '0') === '1',
+            'percentage' => floatval($settings['tax_percentage']->value ?? '0'),
+            'menu_price' => intval($settings['tax_menu_price']->value ?? '1'),
+        ];
+        
+        $this->vars['paymentMethods'] = $paymentMethods;
+        $this->vars['taxSettings'] = $taxSettings;
+        
+        return $this->asExtension('FormController')->create();
     }
 
     public function index_onDelete()

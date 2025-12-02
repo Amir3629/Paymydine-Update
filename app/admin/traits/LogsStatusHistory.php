@@ -64,47 +64,53 @@ trait LogsStatusHistory
             parse_str($queryString, $queryParams);
         }
 
+       $history = null;
+       
        if (empty($queryParams)){
         if (!$history = Status_history_model::createHistory($status, $this, $statusData)) {
             return false;
-            $this->save();
+        }
+        
+        $this->save();
+        $this->reloadRelations();
 
-            $this->reloadRelations();
+        if ($history && $history->notify) {
+            $mailView = ($this instanceof Reservations_model)
+                ? 'admin::_mail.reservation_update' : 'admin::_mail.order_update';
 
-            if ($history->notify) {
-                $mailView = ($this instanceof Reservations_model)
-                    ? 'admin::_mail.reservation_update' : 'admin::_mail.order_update';
+            $this->mailSend($mailView, 'customer');
+        }
 
-                $this->mailSend($mailView, 'customer');
-            }
-
+        if ($history) {
             $this->fireSystemEvent('admin.statusHistory.added', [$history]);
         }
        }
+       
        if (!empty($queryParams)){
             $orderId = array_key_exists('u-order', $queryParams) ? ((int) $queryParams['u-order']) : null;
-           // dd('addStatusHistory')    ;
 
             if ($orderId) {
                 $order = Orders_model::find($orderId);
                 if (!$history = Status_history_model::createHistory($status, $order, $statusData)) {
                     return false;
                 }
-            $order->save();
+                $order->save();
+                $order->reloadRelations();
 
-            $order->reloadRelations();
+                if ($history && $history->notify) {
+                    $mailView = ($order instanceof Reservations_model)
+                        ? 'admin::_mail.reservation_update' : 'admin::_mail.order_update';
 
-            if ($history->notify) {
-                $mailView = ($order instanceof Reservations_model)
-                    ? 'admin::_mail.reservation_update' : 'admin::_mail.order_update';
+                    $order->mailSend($mailView, 'customer');
+                }
 
-                $order->mailSend($mailView, 'customer');
-            }
-
-            $order->fireSystemEvent('admin.statusHistory.added', [$history]);
+                if ($history) {
+                    $order->fireSystemEvent('admin.statusHistory.added', [$history]);
+                }
             }
         }
-        return $history;
+        
+        return $history ?: true;
     }
 
     public function hasStatus($statusId = null)
