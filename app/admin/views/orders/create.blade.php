@@ -12,22 +12,32 @@
 <style>
 /* Cashier square override */
 #cashierButton .table-square {
-    border-radius: 10px !important;
+    border-radius: 18px !important;
     border: 2px solid #36a269;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 18px 20px;
-    min-width: 180px;
-    min-height: 130px;
+    padding: 15px;
+    width: 150px !important;
+    height: 150px !important;
+    min-width: 150px !important;
+    min-height: 150px !important;
+    max-width: 150px !important;
+    max-height: 150px !important;
     background: #fff;
+    flex-direction: column;
+}
+#cashierButton .table-square i {
+    font-size: 32px !important;
+    margin-bottom: 8px;
 }
 #cashierButton .table-label {
     display: inline-block;
     font-weight: 700;
-    font-size: 14.5px;
+    font-size: 16px !important;
     line-height: 1.2;
-    margin-left: 8px;
+    margin-left: 0;
+    margin-top: 4px;
 }
 
 /* Standard Admin Page Header Styling */
