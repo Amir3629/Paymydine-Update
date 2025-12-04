@@ -16,7 +16,7 @@ function restyleEditButtons() {
         button.style.setProperty('background-color', '#f1f4fb', 'important');
         button.style.setProperty('color', '#202938', 'important');
         button.style.setProperty('border', '1px solid #c9d2e3', 'important');
-        button.style.setProperty('border-radius', '10px', 'important');
+        button.style.setProperty('border-radius', '20px', 'important');
         button.style.setProperty('min-height', '48px', 'important');
         button.style.setProperty('min-width', '48px', 'important');
         button.style.setProperty('height', '48px', 'important');

@@ -408,26 +408,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $menu_names = $_POST['menu_name'] ?? [];
     
     // Handle combos - save them as special entries
+    // IMPORTANT: Aggregate combos by ID to prevent duplicates
     $combo_entries = [];
+    $combo_aggregated = []; // Temporary aggregation to combine duplicates
+    
     if (isset($_POST['combo_id']) && is_array($_POST['combo_id'])) {
         $combo_ids = $_POST['combo_id'];
         $combo_qtys = $_POST['combo_qty'] ?? [];
         
+        // First pass: aggregate combos by ID to prevent duplicates
         foreach ($combo_ids as $key => $combo_id) {
-            $combo = \Admin\Models\Menu_combos_model::with('combo_items.menu')->find($combo_id);
-            if ($combo) {
-                $combo_qty = isset($combo_qtys[$key]) ? intval($combo_qtys[$key]) : 1;
-                $combo_entries[] = [
-                    'combo_id' => $combo_id,
-                    'combo_name' => $combo->combo_name,
-                    'combo_price' => $combo->combo_price,
-                    'quantity' => $combo_qty,
-                    'items' => $combo->combo_items->map(function($item) {
-                        return $item->menu ? $item->menu->menu_name . ($item->quantity > 1 ? ' (x' . $item->quantity . ')' : '') : '';
-                    })->filter()->implode(', ')
-                ];
+            if (empty($combo_id) || !is_numeric($combo_id)) {
+                continue; // Skip invalid combo IDs
+            }
+            
+            $combo_id = intval($combo_id);
+            $combo_qty = isset($combo_qtys[$key]) ? intval($combo_qtys[$key]) : 1;
+            
+            if (!isset($combo_aggregated[$combo_id])) {
+                $combo = \Admin\Models\Menu_combos_model::with('combo_items.menu')->find($combo_id);
+                if ($combo) {
+                    $combo_aggregated[$combo_id] = [
+                        'combo_id' => $combo_id,
+                        'combo_name' => $combo->combo_name,
+                        'combo_price' => $combo->combo_price,
+                        'quantity' => 0,
+                        'items' => $combo->combo_items->map(function($item) {
+                            return $item->menu ? $item->menu->menu_name . ($item->quantity > 1 ? ' (x' . $item->quantity . ')' : '') : '';
+                        })->filter()->implode(', ')
+                    ];
+                }
+            }
+            
+            // Aggregate quantity
+            if (isset($combo_aggregated[$combo_id])) {
+                $combo_aggregated[$combo_id]['quantity'] += $combo_qty;
             }
         }
+        
+        // Second pass: convert aggregated data to entries array (one entry per unique combo)
+        $combo_entries = array_values($combo_aggregated);
     }
     
     $total_price = 0;
@@ -605,6 +625,26 @@ foreach ($menu_ids as $key => $menu_id) {
             'option_values' => json_encode([]), // Empty options for now
         ]);
     }
+    
+    // Save combo items to order_menus - save as single combo entry (not expanded)
+    // IMPORTANT: Combos are already aggregated above, so each combo_id appears only once
+    foreach ($combo_entries as $combo_entry) {
+        // Only save if quantity > 0
+        if ($combo_entry['quantity'] <= 0) {
+            continue;
+        }
+        
+        $combo_subtotal = $combo_entry['combo_price'] * $combo_entry['quantity'];
+        DB::table('order_menus')->insert([
+            'order_id' => $last_order_id,
+            'menu_id' => 0, // Use 0 for combos since they don't have a single menu_id
+            'name' => $combo_entry['combo_name'],
+            'quantity' => $combo_entry['quantity'],
+            'price' => $combo_entry['combo_price'],
+            'subtotal' => $combo_subtotal,
+            'option_values' => json_encode(['combo_id' => $combo_entry['combo_id'], 'items' => $combo_entry['items']]),
+        ]);
+    }
 
 
     if (isset($_POST['menu_options']) && is_array($_POST['menu_options'])) {
@@ -696,10 +736,10 @@ foreach ($menu_ids as $key => $menu_id) {
     //         $menuIndex++;
     //     }
     // }
-    $total_option_price = DB::table('order_menu_options')
+    // Calculate subtotal from order_menus table (already includes option prices in subtotal column)
+    $subtotal = DB::table('order_menus')
         ->where('order_id', $last_order_id)
-        ->sum('order_option_price');
-    $subtotal = $total_option_price + $total_price;
+        ->sum('subtotal');
     
     // Calculate final total with tax, tip, and discount
     $final_total = $subtotal + $tax_amount + $tip_amount - $coupon_discount;
@@ -1034,9 +1074,9 @@ $unavailableTables = DB::table('orders')
                                 {{ $comboItems }}
                             </span>
                             @endif
-                        </div>
-                    </div>
-                    
+                </div>
+            </div>
+
                     <!-- Back of card (for combo details) -->
                     <div class="card-back force-white-background">
                         <div class="back-header">
@@ -4136,7 +4176,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const form = document.querySelector('form');
             if (form) {
                 // FIRST: Remove ALL existing menu-related hidden inputs to prevent duplicates
-                form.querySelectorAll('input[name="menu_id[]"], input[name="menu_name[]"], input[name="menu_price[]"], input[name="qty[]"], input[name^="menu_options"]').forEach(input => input.remove());
+                // Also remove combo inputs to prevent duplicates
+                form.querySelectorAll('input[name="menu_id[]"], input[name="menu_name[]"], input[name="menu_price[]"], input[name="qty[]"], input[name="combo_id[]"], input[name="combo_qty[]"], input[name^="menu_options"]').forEach(input => input.remove());
                 
                 console.log('🛒 Cart contents before submission:', selectedItems);
                 
@@ -4161,48 +4202,48 @@ document.addEventListener("DOMContentLoaded", function () {
                         console.log(`📦 Processing combo: ${itemData.name} (Combo ID: ${itemData.comboId}, Qty: ${itemData.quantity})`);
                     } else {
                         // Regular menu item
-                        const menuId = itemData.id;
-                        
-                        console.log(`📦 Processing cart item: ${itemData.name} (ID: ${menuId}, Qty: ${itemData.quantity})`);
-                        
-                        // Add new inputs
-                        const menuIdInput = document.createElement('input');
-                        menuIdInput.type = 'hidden';
-                        menuIdInput.name = 'menu_id[]';
-                        menuIdInput.value = menuId;
-                        form.appendChild(menuIdInput);
-                        
-                        const menuNameInput = document.createElement('input');
-                        menuNameInput.type = 'hidden';
-                        menuNameInput.name = 'menu_name[]';
-                        menuNameInput.value = itemData.name;
-                        form.appendChild(menuNameInput);
-                        
-                        const menuPriceInput = document.createElement('input');
-                        menuPriceInput.type = 'hidden';
-                        menuPriceInput.name = 'menu_price[]';
-                        menuPriceInput.value = itemData.basePrice || itemData.price;
-                        form.appendChild(menuPriceInput);
-                        
-                        const qtyInput = document.createElement('input');
-                        qtyInput.type = 'hidden';
-                        qtyInput.name = 'qty[]';
-                        qtyInput.value = itemData.quantity;
-                        form.appendChild(qtyInput);
-                        
-                        // Add menu options/sides if they exist
-                        if (itemData.options && itemData.options.length > 0) {
-                            console.log(`✅ Adding ${itemData.options.length} unique options for menu ID ${menuId}:`, itemData.options);
-                            itemData.options.forEach(option => {
-                                const optionInput = document.createElement('input');
-                                optionInput.type = 'hidden';
-                                optionInput.name = `menu_options[${menuId}][]`;
-                                optionInput.value = option.value; // This is the option_value_id
-                                form.appendChild(optionInput);
-                                console.log(`   ➕ Option: ${option.text} (value_id: ${option.value})`);
-                            });
-                        } else {
-                            console.log(`ℹ️  No options for menu ID ${menuId}`);
+                    const menuId = itemData.id;
+                    
+                    console.log(`📦 Processing cart item: ${itemData.name} (ID: ${menuId}, Qty: ${itemData.quantity})`);
+                    
+                    // Add new inputs
+                    const menuIdInput = document.createElement('input');
+                    menuIdInput.type = 'hidden';
+                    menuIdInput.name = 'menu_id[]';
+                    menuIdInput.value = menuId;
+                    form.appendChild(menuIdInput);
+                    
+                    const menuNameInput = document.createElement('input');
+                    menuNameInput.type = 'hidden';
+                    menuNameInput.name = 'menu_name[]';
+                    menuNameInput.value = itemData.name;
+                    form.appendChild(menuNameInput);
+                    
+                    const menuPriceInput = document.createElement('input');
+                    menuPriceInput.type = 'hidden';
+                    menuPriceInput.name = 'menu_price[]';
+                    menuPriceInput.value = itemData.basePrice || itemData.price;
+                    form.appendChild(menuPriceInput);
+                    
+                    const qtyInput = document.createElement('input');
+                    qtyInput.type = 'hidden';
+                    qtyInput.name = 'qty[]';
+                    qtyInput.value = itemData.quantity;
+                    form.appendChild(qtyInput);
+                    
+                    // Add menu options/sides if they exist
+                    if (itemData.options && itemData.options.length > 0) {
+                        console.log(`✅ Adding ${itemData.options.length} unique options for menu ID ${menuId}:`, itemData.options);
+                        itemData.options.forEach(option => {
+                            const optionInput = document.createElement('input');
+                            optionInput.type = 'hidden';
+                            optionInput.name = `menu_options[${menuId}][]`;
+                            optionInput.value = option.value; // This is the option_value_id
+                            form.appendChild(optionInput);
+                            console.log(`   ➕ Option: ${option.text} (value_id: ${option.value})`);
+                        });
+                    } else {
+                        console.log(`ℹ️  No options for menu ID ${menuId}`);
                         }
                     }
                 });

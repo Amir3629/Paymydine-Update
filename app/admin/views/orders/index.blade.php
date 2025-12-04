@@ -56,7 +56,7 @@
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        border-radius: 10px !important;
+        border-radius: 20px !important;
     }
     
     .list-table tbody tr td .btn-edit i {

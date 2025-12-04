@@ -57,5 +57,18 @@ class Tips_shifts_model extends Model
     {
         return $query->where('location_id', $locationId);
     }
+    
+    protected function beforeSave()
+    {
+        // Ensure shift_date is set - default to today if not provided
+        if (empty($this->shift_date)) {
+            $this->shift_date = date('Y-m-d');
+        }
+        
+        // Ensure location_id is set - default to current location if not provided
+        if (empty($this->location_id)) {
+            $this->location_id = AdminLocation::getId() ?: 1;
+        }
+    }
 }
 

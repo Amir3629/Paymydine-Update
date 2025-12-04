@@ -60,12 +60,40 @@ $config['list']['columns'] = [
     ],
 ];
 
+$config['form']['toolbar'] = [
+    'buttons' => [
+        'back' => [
+            'label' => 'lang:admin::lang.button_icon_back',
+            'class' => 'btn btn-outline-secondary',
+            'href' => 'tips',
+        ],
+        'save' => [
+            'label' => 'lang:admin::lang.button_save',
+            'context' => ['create', 'edit'],
+            'partial' => 'form/toolbar_save_button',
+            'class' => 'btn btn-primary',
+            'data-request' => 'onSave',
+            'data-progress-indicator' => 'admin::lang.text_saving',
+        ],
+        'delete' => [
+            'label' => 'lang:admin::lang.button_icon_delete',
+            'class' => 'btn btn-danger',
+            'data-request' => 'onDelete',
+            'data-request-data' => "_method:'DELETE'",
+            'data-request-confirm' => 'lang:admin::lang.alert_warning_confirm',
+            'data-progress-indicator' => 'admin::lang.text_deleting',
+            'context' => ['edit'],
+        ],
+    ],
+];
+
 $config['form']['fields'] = [
     'shift_date' => [
         'label' => 'Shift Date',
         'type' => 'datepicker',
         'span' => 'left',
         'required' => true,
+        'default' => date('Y-m-d'),
     ],
     'location_id' => [
         'label' => 'Location',
