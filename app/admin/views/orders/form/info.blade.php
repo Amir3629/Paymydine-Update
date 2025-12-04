@@ -26,13 +26,14 @@
 /* Make the header break out of any column constraints */
 .order-info-header {
     display: flex !important;
-    align-items: center;
-    gap: 32px;
-    padding: 24px 32px;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 22px;
     background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
     border-radius: 14px;
     border: 2px solid #e5e9f2;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-top: -32px !important;
     margin-bottom: 24px;
     margin-left: 0 !important;
     margin-right: 0 !important;
@@ -41,70 +42,176 @@
     max-width: 100% !important;
     min-width: 100% !important;
     box-sizing: border-box;
-    min-height: 80px;
+    min-height: 72px;
     overflow: visible !important;
     position: relative;
     clear: both;
 }
 
-/* Ensure all items fit within the frame */
+/* Ensure all items fit within the frame - align from top */
 .order-info-item {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
     flex-shrink: 0;
     flex-grow: 0;
     text-align: center;
+    margin-top: 0;
+    padding-top: 0;
 }
 
-/* Ensure all labels align on the same baseline */
+/* Ensure all labels align on the same baseline at the top */
 .order-info-item > .order-info-label {
     flex: 0 0 auto;
-    height: 14px;
-    min-height: 14px;
-    max-height: 14px;
-    line-height: 14px;
-    margin-bottom: 6px;
+    height: 15px;
+    min-height: 15px;
+    max-height: 15px;
+    line-height: 15px;
+    margin: 0 0 3px 0;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
     align-self: center;
 }
 
 .order-info-item.table-number {
-    min-width: 110px;
+    min-width: 130px;
 }
 
 .order-info-item.order-id {
-    min-width: 100px;
+    min-width: 120px;
 }
 
 .order-info-item.date-time {
-    min-width: 200px;
+    min-width: 220px;
 }
 
 .order-info-item.status {
-    min-width: 150px;
+    min-width: 170px;
 }
 
 .order-info-item.assignee {
-    min-width: 130px;
-    flex-grow: 1;
-    flex-shrink: 1;
+    min-width: 120px;
+    flex-grow: 0;
+    flex-shrink: 0;
 }
 
 .order-info-item.send-invoice {
-    min-width: 120px;
+    min-width: 110px;
     flex-shrink: 0;
     align-items: stretch;
-    gap: 6px;
+    gap: 3px;
+    margin-top: 0;
+    padding-top: 0;
+    justify-content: flex-start;
+}
+
+.order-info-item.invoice {
+    min-width: 110px;
+    flex-shrink: 0;
+    align-items: stretch;
+    gap: 3px;
+    margin-top: 0;
+    padding-top: 0;
+    justify-content: flex-start;
+}
+
+.order-info-item.invoice .invoice-icon-btn {
+    margin-top: 2px !important;
+    transform: translateY(0) !important;
+    position: relative !important;
+    top: 0 !important;
+}
+
+/* Invoice Icon Button - Perfect Square */
+.order-info-header .invoice-icon-btn,
+.order-info-item.invoice .invoice-icon-btn,
+a.invoice-icon-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    aspect-ratio: 1 / 1 !important;
+    box-sizing: border-box !important;
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    border: 1px solid #c9d2e3 !important;
+    border-radius: 10px !important;
+    color: #364a63 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    text-decoration: none !important;
+    padding: 0 !important;
+    margin: 2px auto 0 auto !important;
+    margin-top: 2px !important;
+    transform: translateY(0) !important;
+    flex-shrink: 0 !important;
+}
+
+.order-info-header .invoice-icon-btn:hover,
+.order-info-header .invoice-icon-btn:focus,
+.order-info-item.invoice .invoice-icon-btn:hover,
+.order-info-item.invoice .invoice-icon-btn:focus {
+    background: #e5ebf7 !important;
+    background-color: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
+    transform: translateY(-1px) translateY(0) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    top: 0 !important;
+}
+
+/* Invoice Icon - Centered in button frame */
+.order-info-header .invoice-icon-btn i,
+.order-info-header .invoice-icon-btn i.fa,
+.order-info-header .invoice-icon-btn i.fa-file-text,
+.order-info-header .invoice-icon-btn i.fa-file-invoice,
+.order-info-item.invoice .invoice-icon-btn i,
+.order-info-item.invoice .invoice-icon-btn i.fa,
+.order-info-item.invoice .invoice-icon-btn i.fa-file-text,
+.order-info-item.invoice .invoice-icon-btn i.fa-file-invoice,
+a.invoice-icon-btn i,
+a.invoice-icon-btn i.fa,
+a.invoice-icon-btn i.fa-file-text,
+a.invoice-icon-btn i.fa-file-invoice,
+a[class*="invoice-icon-btn"] i,
+a[class*="invoice-icon-btn"] i.fa,
+.invoice-icon-btn i,
+.invoice-icon-btn i.fa {
+    font-size: 18px !important;
+    color: #364a63 !important;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    position: relative !important;
+    top: 0 !important;
+}
+
+.order-info-header .invoice-icon-btn:hover i,
+.order-info-header .invoice-icon-btn:focus i,
+.order-info-item.invoice .invoice-icon-btn:hover i,
+.order-info-item.invoice .invoice-icon-btn:focus i {
+    color: #364a63 !important;
 }
 
 .order-info-item.send-invoice .send-invoice-icon-btn {
-    margin-top: 8px !important;
+    margin-top: 2px !important;
     transform: translateY(0) !important;
     position: relative !important;
-    top: 4px !important;
+    top: 0 !important;
 }
 
 /* Send Invoice Icon Button - Perfect Square */
@@ -131,7 +238,8 @@ a.send-invoice-icon-btn {
     transition: all 0.2s ease !important;
     text-decoration: none !important;
     padding: 0 !important;
-    margin: 8px auto 0 auto !important;
+    margin: 2px auto 0 auto !important;
+    margin-top: 2px !important;
     transform: translateY(0) !important;
     flex-shrink: 0 !important;
 }
@@ -145,7 +253,7 @@ a.send-invoice-icon-btn {
     border-color: #b8c6dd !important;
     transform: translateY(-1px) translateY(0) !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    top: 4px !important;
+    top: 0 !important;
 }
 
 /* Icon - Move down a bit inside the button frame */
@@ -200,30 +308,32 @@ a.send-invoice-icon-btn i[style*="margin-right"],
 }
 
 .order-info-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: #8094ae;
-    margin: 0;
-    margin-bottom: 6px;
-    padding: 0;
-    line-height: 1.2;
-    height: 14px;
-    min-height: 14px;
-    max-height: 14px;
+    margin: 0 0 3px 0 !important;
+    margin-top: 0 !important;
+    padding: 0 !important;
+    padding-top: 0 !important;
+    line-height: 15px;
+    height: 15px;
+    min-height: 15px;
+    max-height: 15px;
     text-align: center;
     width: 100%;
     display: block;
-    vertical-align: baseline;
+    vertical-align: top;
     box-sizing: border-box;
 }
 
 .order-info-value {
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 700;
     color: #364a63;
-    margin: 0;
+    margin: 5px 0 0 0;
+    margin-top: 5px;
     line-height: 1.3;
     white-space: nowrap;
     overflow: hidden;
@@ -234,7 +344,8 @@ a.send-invoice-icon-btn i[style*="margin-right"],
 
 .order-info-value.order-id-value {
     color: #08815e;
-    font-size: 20px;
+    font-size: 22px;
+    margin-top: 5px;
 }
 
 .order-info-value.status-value {
@@ -242,50 +353,146 @@ a.send-invoice-icon-btn i[style*="margin-right"],
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 6px 14px;
-    background: #f0f9f7;
-    border-radius: 6px;
-    border: 1px solid #d1f2e8;
-    color: #08815e;
+    padding: 6px 4px;
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    border-radius: 10px !important;
+    border: 1px solid #c9d2e3 !important;
+    border-bottom: 1px solid #c9d2e3 !important;
+    color: #364a63 !important;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    border-bottom: 2px dashed transparent;
     margin: 0 auto;
 }
 
 .order-info-value.status-value:hover {
-    background: #e0f5ef;
-    border-color: #08815e;
+    background: #e5ebf7 !important;
+    background-color: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(8, 129, 94, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .order-info-value.assignee-value {
-    color: #526484;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    border-radius: 10px !important;
+    border: 1px solid #c9d2e3 !important;
+    color: #364a63 !important;
     font-style: italic;
     cursor: pointer;
     transition: all 0.2s ease;
-    border-bottom: 2px dashed transparent;
-    padding: 6px 0;
     font-size: 16px;
     text-align: center;
     margin: 0 auto;
 }
 
 .order-info-value.assignee-value:hover {
-    color: #364a63;
-    border-bottom-color: #526484;
+    background: #e5ebf7 !important;
+    background-color: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
     transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Status dot icon - preserve status color */
+.order-info-value.status-value i.fa-circle,
+.status-value.header-status-clickable i.fa-circle,
+.status-dot-icon,
+.order-info-header .status-value i.fa-circle {
+    /* Status color will be set inline from PHP - don't override it */
+}
+
+/* Override inline styles for STATUS and ASSIGNEE - Ice White - Match Invoice Buttons Exactly */
+.order-info-header .order-info-value.status-value,
+.order-info-header .status-value.header-status-clickable,
+.order-info-item.status .order-info-value.status-value,
+a.order-info-value.status-value.header-status-clickable,
+.order-info-header a.order-info-value.status-value,
+.order-info-header a.status-value {
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    border: 1px solid #c9d2e3 !important;
+    border-radius: 10px !important;
+    color: #364a63 !important;
+    border-bottom: 1px solid #c9d2e3 !important;
+    border-bottom-style: solid !important;
+}
+
+.order-info-header .order-info-value.status-value:hover,
+.order-info-header .status-value.header-status-clickable:hover,
+.order-info-item.status .order-info-value.status-value:hover,
+a.order-info-value.status-value.header-status-clickable:hover,
+.order-info-header a.order-info-value.status-value:hover,
+.order-info-header a.status-value:hover {
+    background: #e5ebf7 !important;
+    background-color: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
+    border-bottom-color: #b8c6dd !important;
+}
+
+.order-info-header .order-info-value.status-value,
+.order-info-header .status-value.header-status-clickable,
+.order-info-item.status .order-info-value.status-value,
+a.order-info-value.status-value.header-status-clickable,
+.order-info-header a.order-info-value.status-value,
+.order-info-header a.status-value {
+    padding: 6px 4px !important;
+}
+
+.order-info-header .order-info-value.assignee-value,
+.order-info-header .assignee-value.header-assignee-clickable,
+.order-info-item.assignee .order-info-value.assignee-value,
+a.order-info-value.assignee-value.header-assignee-clickable,
+.order-info-header a.order-info-value.assignee-value,
+.order-info-header a.assignee-value {
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+    border: 1px solid #c9d2e3 !important;
+    border-radius: 10px !important;
+    color: #364a63 !important;
+    padding: 6px 14px !important;
+    border-bottom: 1px solid #c9d2e3 !important;
+    border-bottom-style: solid !important;
+}
+
+.order-info-header .order-info-value.assignee-value:hover,
+.order-info-header .assignee-value.header-assignee-clickable:hover,
+.order-info-item.assignee .order-info-value.assignee-value:hover,
+a.order-info-value.assignee-value.header-assignee-clickable:hover,
+.order-info-header a.order-info-value.assignee-value:hover,
+.order-info-header a.assignee-value:hover {
+    background: #e5ebf7 !important;
+    background-color: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
+    border-bottom-color: #b8c6dd !important;
+}
+
+/* Override all inline style attributes that might change colors */
+.order-info-header a[style*="background"]:has(.fa-circle),
+.order-info-header a[style*="rgb(240, 249, 247)"] {
+    background: #f1f4fb !important;
+    background-color: #f1f4fb !important;
+}
+
+.order-info-header a[style*="rgb(0, 192, 239)"] {
+    color: #364a63 !important;
 }
 
 .order-info-separator {
     width: 1px;
-    height: 50px;
+    height: 48px;
     background: #e5e9f2;
     flex-shrink: 0;
-    margin: 0 4px;
+    margin: 0 1px;
+    align-self: center;
 }
 
 /* Hide duplicate statuseditor info section display, but keep the container for functionality */
@@ -321,10 +528,13 @@ div.toolbar-action a.btn-send-invoice {
 }
 
 
+/* Responsive Design for Header - All Device Sizes */
+
+/* Large tablets and smaller desktops */
 @media (max-width: 1400px) {
     .order-info-header {
-        gap: 24px;
-        padding: 20px 28px;
+        gap: 12px;
+        padding: 10px 16px;
     }
     
     .order-info-item {
@@ -334,17 +544,257 @@ div.toolbar-action a.btn-send-invoice {
     .order-info-value {
         font-size: 15px;
     }
+    
+    .order-info-label {
+        font-size: 12px;
+    }
 }
 
+/* Medium tablets */
 @media (max-width: 1200px) {
     .order-info-header {
+        gap: 10px;
+        padding: 10px 14px;
         flex-wrap: wrap;
-        gap: 16px;
-        padding: 18px 24px;
     }
     
     .order-info-item {
-        flex: 0 0 calc(50% - 12px);
+        min-width: auto;
+        flex: 0 0 calc(33.333% - 10px);
+    }
+    
+    .order-info-item.invoice,
+    .order-info-item.send-invoice {
+        flex: 0 0 calc(33.333% - 10px);
+        min-width: 100px;
+    }
+    
+    .order-info-value {
+        font-size: 14px;
+    }
+    
+    .order-info-label {
+        font-size: 11px;
+    }
+    
+    .order-info-separator {
+        display: none;
+    }
+}
+
+/* Small tablets */
+@media (max-width: 992px) {
+    .order-info-header {
+        gap: 8px;
+        padding: 10px 12px;
+        min-height: auto;
+    }
+    
+    .order-info-item {
+        flex: 0 0 calc(50% - 6px);
+        min-width: 0;
+    }
+    
+    .order-info-item.table-number,
+    .order-info-item.order-id {
+        flex: 0 0 calc(50% - 6px);
+    }
+    
+    .order-info-item.date-time {
+        flex: 0 0 calc(50% - 6px);
+    }
+    
+    .order-info-item.status,
+    .order-info-item.assignee {
+        flex: 0 0 calc(50% - 6px);
+    }
+    
+    .order-info-item.invoice,
+    .order-info-item.send-invoice {
+        flex: 0 0 calc(50% - 6px);
+        min-width: 90px;
+    }
+    
+    .order-info-value {
+        font-size: 13px;
+    }
+    
+    .order-info-label {
+        font-size: 10px;
+    }
+    
+    .send-invoice-icon-btn,
+    .invoice-icon-btn {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        max-width: 36px !important;
+        max-height: 36px !important;
+    }
+}
+
+/* Mobile devices */
+@media (max-width: 768px) {
+    .order-info-header {
+        gap: 6px;
+        padding: 8px 10px;
+        margin-top: -20px !important;
+        flex-wrap: wrap !important;
+        display: flex !important;
+    }
+    
+    /* Show all items in a compact grid - 2 items per row */
+    .order-info-item {
+        flex: 0 0 calc(50% - 3px) !important;
+        min-width: 0;
+        margin-bottom: 6px;
+        padding: 4px 0;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+    
+    /* Smaller items (invoice, send invoice) - 2 per row */
+    .order-info-item.invoice,
+    .order-info-item.send-invoice {
+        flex: 0 0 calc(50% - 3px) !important;
+        min-width: 0;
+    }
+    
+    /* Table, Order ID - first row */
+    .order-info-item.table-number,
+    .order-info-item.order-id {
+        flex: 0 0 calc(50% - 3px) !important;
+    }
+    
+    /* Date/Time, Status - second row */
+    .order-info-item.date-time,
+    .order-info-item.status {
+        flex: 0 0 calc(50% - 3px) !important;
+    }
+    
+    /* Assignee, Invoice - third row */
+    .order-info-item.assignee,
+    .order-info-item.invoice {
+        flex: 0 0 calc(50% - 3px) !important;
+    }
+    
+    /* Send Invoice - can share row or be alone */
+    .order-info-item.send-invoice {
+        flex: 0 0 calc(50% - 3px) !important;
+    }
+    
+    .order-info-item:last-child {
+        margin-bottom: 6px;
+    }
+    
+    .order-info-separator {
+        display: none !important;
+    }
+    
+    .order-info-value {
+        font-size: 12px !important;
+        text-align: center !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    .order-info-label {
+        font-size: 9px !important;
+        margin-bottom: 3px !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
+    
+    .send-invoice-icon-btn,
+    .invoice-icon-btn {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        max-width: 36px !important;
+        max-height: 36px !important;
+        margin-top: 4px !important;
+    }
+    
+    .send-invoice-icon-btn i,
+    .invoice-icon-btn i {
+        font-size: 16px !important;
+    }
+    
+    /* Remove borders - cleaner look */
+    .order-info-item {
+        border-bottom: none !important;
+        padding-bottom: 4px !important;
+    }
+    
+    /* Make status badge smaller on mobile */
+    .order-info-item.status .order-info-value {
+        font-size: 11px !important;
+        padding: 3px 8px !important;
+    }
+    
+    /* Make assignee smaller on mobile */
+    .order-info-item.assignee .order-info-value {
+        font-size: 11px !important;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .order-info-header {
+        padding: 6px 8px;
+        margin-top: -15px !important;
+        gap: 4px !important;
+    }
+    
+    /* Ensure all items are visible - 2 per row */
+    .order-info-item {
+        flex: 0 0 calc(50% - 2px) !important;
+        margin-bottom: 4px;
+        padding: 3px 0;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    
+    .order-info-value {
+        font-size: 11px !important;
+        text-align: center !important;
+    }
+    
+    .order-info-label {
+        font-size: 8px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    .send-invoice-icon-btn,
+    .invoice-icon-btn {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        max-width: 32px !important;
+        max-height: 32px !important;
+        margin-top: 3px !important;
+    }
+    
+    .send-invoice-icon-btn i,
+    .invoice-icon-btn i {
+        font-size: 14px !important;
+    }
+    
+    /* Smaller status badge */
+    .order-info-item.status .order-info-value {
+        font-size: 10px !important;
+        padding: 2px 6px !important;
+    }
+    
+    /* Smaller assignee text */
+    .order-info-item.assignee .order-info-value {
+        font-size: 10px !important;
     }
 }
 </style>
@@ -386,10 +836,11 @@ div.toolbar-action a.btn-send-invoice {
             class="order-info-value status-value header-status-clickable"
             role="button"
             data-editor-control="load-status"
-            style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: #f0f9f7; border-radius: 6px; border: 1px solid #d1f2e8; color: #08815e; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;{{ $formModel->status ? ' border-bottom: 2px dashed;' : '' }}{{ $formModel->status && $formModel->status->status_color ? ' color: '.$formModel->status->status_color.';' : '' }}"
+            data-status-color="{{ $formModel->status && $formModel->status->status_color ? $formModel->status->status_color : '#364a63' }}"
+            style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 4px; background: #f1f4fb; border-radius: 10px; border: 1px solid #c9d2e3; color: #364a63; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;"
         >
             @if($formModel->status)
-                <i class="fa fa-circle" style="font-size: 8px;"></i>
+                <i class="fa fa-circle status-dot-icon" style="font-size: 8px; color: {{ $formModel->status->status_color ?? '#364a63' }} !important;"></i>
                 {{ $formModel->status->status_name }}
             @else
                 <span style="color: #8094ae;">--</span>
@@ -416,10 +867,25 @@ div.toolbar-action a.btn-send-invoice {
         </a>
     </div>
     
-    <div class="order-info-separator"></div>
-    
-    <!-- Send Invoice - Label with clickable icon button -->
     @if($formModel->hasInvoice())
+        <div class="order-info-separator"></div>
+        
+        <!-- Invoice - Label with clickable icon button -->
+        <div class="order-info-item invoice">
+            <label class="order-info-label">Invoice</label>
+            <a
+                class="invoice-icon-btn"
+                href="{{ admin_url('orders/invoice/'.$formModel->order_id) }}"
+                target="_blank"
+                title="View Invoice"
+            >
+                <i class="fa fa-file-text"></i>
+            </a>
+        </div>
+        
+        <div class="order-info-separator"></div>
+        
+        <!-- Send Invoice - Label with clickable icon button -->
         <div class="order-info-item send-invoice">
             <label class="order-info-label">Send Invoice</label>
             <a
@@ -563,8 +1029,8 @@ div.toolbar-action a.btn-send-invoice {
             'max-height': '40px',
             'aspect-ratio': '1 / 1',
             'box-sizing': 'border-box',
-            'margin': '8px auto 0 auto',
-            'margin-top': '8px',
+            'margin': '2px auto 0 auto',
+            'margin-top': '2px',
             'transform': 'translateY(0)',
             'padding': '0'
         });
@@ -584,6 +1050,198 @@ div.toolbar-action a.btn-send-invoice {
     // Re-run after AJAX updates
     $(document).on('ajaxUpdateComplete', function() {
         setTimeout(fixSendInvoiceIconCentering, 200);
+    });
+    
+    // Fix Invoice icon centering - Remove inline styles that interfere
+    function fixInvoiceIconCentering() {
+        var $ = window.jQuery || window.$;
+        if (!$) {
+            setTimeout(fixInvoiceIconCentering, 100);
+            return;
+        }
+        
+        $('.invoice-icon-btn i').each(function() {
+            var $icon = $(this);
+            var currentStyle = $icon.attr('style') || '';
+            
+            // Remove margin-related styles from inline style attribute
+            currentStyle = currentStyle.replace(/margin[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/margin-right[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/margin-left[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/margin-top[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/margin-bottom[^;]*;?/gi, '');
+            
+            // Clean up any double semicolons
+            currentStyle = currentStyle.replace(/;;+/g, ';').replace(/^;|;$/g, '');
+            
+            // Update or remove style attribute
+            if (currentStyle.trim()) {
+                $icon.attr('style', currentStyle);
+            } else {
+                $icon.removeAttr('style');
+            }
+            
+            // Force our CSS values - Center icon in button
+            $icon.css({
+                'margin': '0',
+                'margin-left': '0',
+                'margin-right': '0',
+                'margin-top': '0',
+                'margin-bottom': '0',
+                'position': 'relative',
+                'top': '0'
+            });
+        });
+        
+        // Ensure button is centered and perfect square
+        $('.invoice-icon-btn').css({
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'width': '40px',
+            'height': '40px',
+            'min-width': '40px',
+            'min-height': '40px',
+            'max-width': '40px',
+            'max-height': '40px',
+            'aspect-ratio': '1 / 1',
+            'box-sizing': 'border-box',
+            'margin': '2px auto 0 auto',
+            'margin-top': '2px',
+            'transform': 'translateY(0)',
+            'padding': '0'
+        });
+    }
+    
+    // Run on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fixInvoiceIconCentering);
+    } else {
+        fixInvoiceIconCentering();
+    }
+    
+    // Also run after delays to catch dynamically added elements
+    setTimeout(fixInvoiceIconCentering, 300);
+    setTimeout(fixInvoiceIconCentering, 800);
+    
+    // Re-run after AJAX updates
+    $(document).on('ajaxUpdateComplete', function() {
+        setTimeout(fixInvoiceIconCentering, 200);
+    });
+    
+    // Force STATUS and ASSIGNEE buttons to match invoice button colors exactly
+    function forceStatusAssigneeIceWhite() {
+        var $ = window.jQuery || window.$;
+        if (!$) {
+            setTimeout(forceStatusAssigneeIceWhite, 100);
+            return;
+        }
+        
+        // Fix STATUS button colors
+        $('.order-info-value.status-value, .status-value.header-status-clickable, a.status-value').each(function() {
+            var $btn = $(this);
+            $btn.css({
+                'background': '#f1f4fb',
+                'background-color': '#f1f4fb',
+                'border': '1px solid #c9d2e3',
+                'border-bottom': '1px solid #c9d2e3',
+                'border-radius': '10px',
+                'color': '#364a63',
+                'padding': '6px 4px'
+            });
+            
+            // Remove any inline styles that override colors
+            var currentStyle = $btn.attr('style') || '';
+            currentStyle = currentStyle.replace(/background[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/background-color[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/border[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/color[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/border-bottom[^;]*dashed[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/;;+/g, ';').replace(/^;|;$/g, '');
+            
+            if (currentStyle.trim()) {
+                $btn.attr('style', currentStyle);
+            }
+            
+            // Force colors with setProperty
+            if ($btn[0]) {
+                $btn[0].style.setProperty('background', '#f1f4fb', 'important');
+                $btn[0].style.setProperty('background-color', '#f1f4fb', 'important');
+                $btn[0].style.setProperty('border', '1px solid #c9d2e3', 'important');
+                $btn[0].style.setProperty('border-bottom', '1px solid #c9d2e3', 'important');
+                $btn[0].style.setProperty('border-radius', '10px', 'important');
+                $btn[0].style.setProperty('color', '#364a63', 'important');
+                // Set smaller horizontal padding for STATUS button
+                if ($btn.hasClass('status-value')) {
+                    $btn[0].style.setProperty('padding', '6px 4px', 'important');
+                }
+            }
+            
+            // Apply status color to dot icon
+            var $dotIcon = $btn.find('i.fa-circle, i.status-dot-icon');
+            if ($dotIcon.length) {
+                // Get status color from data attribute
+                var statusColor = $btn.data('status-color') || $btn.attr('data-status-color');
+                if (statusColor) {
+                    // Apply status color to dot icon with !important
+                    $dotIcon[0].style.setProperty('color', statusColor, 'important');
+                    $dotIcon.css('color', statusColor + ' !important');
+                }
+            }
+        });
+        
+        // Fix ASSIGNEE button colors
+        $('.order-info-value.assignee-value, .assignee-value.header-assignee-clickable, a.assignee-value').each(function() {
+            var $btn = $(this);
+            $btn.css({
+                'background': '#f1f4fb',
+                'background-color': '#f1f4fb',
+                'border': '1px solid #c9d2e3',
+                'border-bottom': '1px solid #c9d2e3',
+                'border-radius': '10px',
+                'color': '#364a63'
+            });
+            
+            // Remove any inline styles that override colors
+            var currentStyle = $btn.attr('style') || '';
+            currentStyle = currentStyle.replace(/background[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/background-color[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/border[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/color[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/border-bottom[^;]*dashed[^;]*;?/gi, '');
+            currentStyle = currentStyle.replace(/;;+/g, ';').replace(/^;|;$/g, '');
+            
+            if (currentStyle.trim()) {
+                $btn.attr('style', currentStyle);
+            }
+            
+            // Force colors with setProperty
+            if ($btn[0]) {
+                $btn[0].style.setProperty('background', '#f1f4fb', 'important');
+                $btn[0].style.setProperty('background-color', '#f1f4fb', 'important');
+                $btn[0].style.setProperty('border', '1px solid #c9d2e3', 'important');
+                $btn[0].style.setProperty('border-bottom', '1px solid #c9d2e3', 'important');
+                $btn[0].style.setProperty('border-radius', '10px', 'important');
+                $btn[0].style.setProperty('color', '#364a63', 'important');
+            }
+        });
+    }
+    
+    // Run on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', forceStatusAssigneeIceWhite);
+    } else {
+        forceStatusAssigneeIceWhite();
+    }
+    
+    // Also run after delays
+    setTimeout(forceStatusAssigneeIceWhite, 100);
+    setTimeout(forceStatusAssigneeIceWhite, 500);
+    setTimeout(forceStatusAssigneeIceWhite, 1000);
+    
+    // Re-run after AJAX updates
+    $(document).on('ajaxUpdateComplete', function() {
+        setTimeout(forceStatusAssigneeIceWhite, 200);
     });
 })();
 </script>

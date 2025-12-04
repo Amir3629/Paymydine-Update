@@ -402,10 +402,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     $table_id = $_POST['table_id'];
-    $menu_ids = $_POST['menu_id'];
-    $menu_prices = $_POST['menu_price'];
-    $quantities = $_POST['qty'];
-    $menu_names = $_POST['menu_name'];
+    $menu_ids = $_POST['menu_id'] ?? [];
+    $menu_prices = $_POST['menu_price'] ?? [];
+    $quantities = $_POST['qty'] ?? [];
+    $menu_names = $_POST['menu_name'] ?? [];
+    
+    // Handle combos - save them as special entries
+    $combo_entries = [];
+    if (isset($_POST['combo_id']) && is_array($_POST['combo_id'])) {
+        $combo_ids = $_POST['combo_id'];
+        $combo_qtys = $_POST['combo_qty'] ?? [];
+        
+        foreach ($combo_ids as $key => $combo_id) {
+            $combo = \Admin\Models\Menu_combos_model::with('combo_items.menu')->find($combo_id);
+            if ($combo) {
+                $combo_qty = isset($combo_qtys[$key]) ? intval($combo_qtys[$key]) : 1;
+                $combo_entries[] = [
+                    'combo_id' => $combo_id,
+                    'combo_name' => $combo->combo_name,
+                    'combo_price' => $combo->combo_price,
+                    'quantity' => $combo_qty,
+                    'items' => $combo->combo_items->map(function($item) {
+                        return $item->menu ? $item->menu->menu_name . ($item->quantity > 1 ? ' (x' . $item->quantity . ')' : '') : '';
+                    })->filter()->implode(', ')
+                ];
+            }
+        }
+    }
+    
     $total_price = 0;
     $total_qty = 0;
     $first_name = 'Chief';
@@ -521,10 +545,17 @@ foreach ($menu_ids as $key => $menu_id) {
         $total_qty += $qty;
     }
     
+    
     // Add all menu options prices to the order total
     $total_options_price = 0;
     foreach ($menu_option_totals as $menu_id => $option_total) {
         $total_options_price += floatval($option_total);
+    }
+    
+    // Add combo prices to totals before saving order
+    foreach ($combo_entries as $combo_entry) {
+        $total_price += ($combo_entry['combo_price'] * $combo_entry['quantity']);
+        $total_qty += $combo_entry['quantity'];
     }
     
     $order->created_at = now();
@@ -756,6 +787,11 @@ foreach ($menu_ids as $key => $menu_id) {
         //$menuData = DB::table('menus')->get();
         $menuData = \Admin\Models\Menus_model::with(['media', 'categories'])->get();
         
+        // Load combos
+        $comboData = \Admin\Models\Menu_combos_model::with(['media', 'combo_items.menu', 'locations'])
+            ->where('combo_status', 1)
+            ->get();
+        
         // Debug: Check if categories are loaded
         if ($menuData->isNotEmpty()) {
             $firstItem = $menuData->first();
@@ -895,9 +931,10 @@ $unavailableTables = DB::table('orders')
                                 <i class="fa fa-utensils"></i> {{ $category->name }}
                             </button>
                         @endforeach
-                    @else
-                        <button type="button" class="category-btn active" data-category="all">
-                            <i class="fa fa-th-large"></i> All Items
+                    @endif
+                    @if($comboData->isNotEmpty())
+                        <button type="button" class="category-btn" data-category="combo">
+                            <i class="fa fa-layer-group"></i> Combo
                         </button>
                     @endif
                 </div>
@@ -947,6 +984,82 @@ $unavailableTables = DB::table('orders')
                         <div class="options-content">
                             <div class="options-list">
                                 <!-- Options will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        <div class="back-actions">
+                            <button type="button" class="flip-back-btn" title="Back to Menu">
+                                <i class="fa fa-arrow-left"></i>
+                            </button>
+                            <button type="button" class="add-item-btn" title="Add to Cart">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+                
+                <!-- Combo Meals -->
+                @foreach($comboData as $comboRow)
+                <?php 
+                    $comboImage = $comboRow->media->isNotEmpty() ? $comboRow->media->first()->getPath() : ''; 
+                    $comboItems = $comboRow->combo_items->map(function($item) {
+                        return $item->menu ? $item->menu->menu_name : '';
+                    })->filter()->implode(', ');
+                ?>
+                    <div class="interactive-card combo-item" 
+                     data-id="combo_{{ $comboRow->combo_id }}" 
+                     data-price="{{ $comboRow->combo_price }}" 
+                    data-image="{{ $comboImage }}"
+                     data-name="{{ $comboRow->combo_name }}" 
+                     data-combo-id="{{ $comboRow->combo_id }}"
+                     data-is-combo="true"
+                     data-quantity="0"
+                    >
+                    <!-- Quantity Badge - Outside card structure -->
+                    <div class="quantity-badge" style="display: none;">
+                        <span class="quantity-number">0</span>
+                    </div>
+                    
+                    <!-- Front of card -->
+                    <div class="card-front">
+                        <div class="menu-image-container">
+                            <img src="{{ $comboImage }}" alt="{{ $comboRow->combo_name }}" class="menu-image">
+                            <div class="combo-badge">COMBO</div>
+                        </div>
+                        <div class="menu-info">
+                            <span class="menu-name">{{ $comboRow->combo_name }}</span>
+                            <span class="menu-price">{{ $comboRow->combo_price }}{{ app('currency')->getDefault()->currency_symbol }}</span>
+                            @if($comboItems)
+                            <span class="combo-items-text" style="font-size: 11px; color: #666; margin-top: 4px; display: block;">
+                                {{ $comboItems }}
+                            </span>
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <!-- Back of card (for combo details) -->
+                    <div class="card-back force-white-background">
+                        <div class="back-header">
+                            <h4>{{ $comboRow->combo_name }}</h4>
+                        </div>
+                        <div class="options-content">
+                            <div class="combo-details">
+                                <p><strong>Includes:</strong></p>
+                                <ul style="list-style: none; padding: 0; margin: 10px 0;">
+                                    @foreach($comboRow->combo_items as $item)
+                                        <li style="padding: 5px 0;">
+                                            {{ $item->menu ? $item->menu->menu_name : 'Unknown' }}
+                                            @if($item->quantity > 1)
+                                                <span style="color: #666;">(x{{ $item->quantity }})</span>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                                @if($comboRow->combo_description)
+                                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                                    {{ $comboRow->combo_description }}
+                                </p>
+                                @endif
                             </div>
                         </div>
                         <div class="back-actions">
@@ -1190,6 +1303,35 @@ $unavailableTables = DB::table('orders')
     height: 90px;
     object-fit: cover;
     border-radius: 8px;
+}
+
+/* Combo Badge Styles */
+.combo-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.combo-item .menu-image-container {
+    position: relative;
+}
+
+.combo-items-text {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+    display: block;
+    line-height: 1.3;
 }
 
 .menu-name,
@@ -3086,7 +3228,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
     menuItems.forEach(item => {
                         try {
-                            // Handle both string and array formats
+                            // Check if this is a combo item
+                            const isCombo = item.dataset.isCombo === 'true' || item.classList.contains('combo-item');
+                            
+                            // Handle "combo" category filter
+                            if (categoryId === 'combo') {
+                                const shouldShow = isCombo;
+                                if (shouldShow) {
+                                    item.style.display = 'block';
+                                    item.style.visibility = 'visible';
+                                    item.style.opacity = '1';
+                                    item.style.animation = 'fadeInUp 0.5s ease forwards';
+                                    item.classList.remove('category-hidden');
+                                    item.classList.add('category-visible');
+                                    visibleCount++;
+                                    visibleItems.push(item);
+                                } else {
+                                    item.style.display = 'none';
+                                    item.style.visibility = 'hidden';
+                                    item.style.opacity = '0';
+                                    item.classList.add('category-hidden');
+                                    item.classList.remove('category-visible');
+                                }
+                                return; // Skip the rest for combo filter
+                            }
+                            
+                            // For non-combo filters, hide combo items
+                            if (isCombo && categoryId !== 'all') {
+                                item.style.display = 'none';
+                                item.style.visibility = 'hidden';
+                                item.style.opacity = '0';
+                                item.classList.add('category-hidden');
+                                item.classList.remove('category-visible');
+                                return;
+                            }
+                            
+                            // Handle regular menu items with categories
                             let itemCategories = [];
                             const categoriesData = item.dataset.categories;
                             
@@ -3591,7 +3768,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const menuPrice = item.dataset.price;
             const menuName = item.dataset.name;
             const menuImage = item.dataset.image;
-            console.log('Menu data:', { menuId, menuPrice, menuName, menuImage });
+            const isCombo = item.dataset.isCombo === 'true';
+            const comboId = item.dataset.comboId;
+            console.log('Menu data:', { menuId, menuPrice, menuName, menuImage, isCombo, comboId });
             
             // Create unique key for items without sides (empty options)
             const uniqueKey = `${menuId}_no_sides`;
@@ -3607,7 +3786,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     basePrice: basePrice, // Keep original price for tax calculations
                     image: menuImage,
                     quantity: 0,
-                    options: []
+                    options: [],
+                    isCombo: isCombo,
+                    comboId: comboId || null
                 });
             }
             
@@ -3961,49 +4142,68 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 // Add selected items to form as hidden inputs
                 selectedItems.forEach((itemData, uniqueKey) => {
-                    // Extract the actual menu ID from the unique key or use the id property
-                    const menuId = itemData.id;
-                    
-                    console.log(`📦 Processing cart item: ${itemData.name} (ID: ${menuId}, Qty: ${itemData.quantity})`);
-                    
-                    // Add new inputs
-                    const menuIdInput = document.createElement('input');
-                    menuIdInput.type = 'hidden';
-                    menuIdInput.name = 'menu_id[]';
-                    menuIdInput.value = menuId;
-                    form.appendChild(menuIdInput);
-                    
-                    const menuNameInput = document.createElement('input');
-                    menuNameInput.type = 'hidden';
-                    menuNameInput.name = 'menu_name[]';
-                    menuNameInput.value = itemData.name;
-                    form.appendChild(menuNameInput);
-                    
-                    const menuPriceInput = document.createElement('input');
-                    menuPriceInput.type = 'hidden';
-                    menuPriceInput.name = 'menu_price[]';
-                    menuPriceInput.value = itemData.basePrice || itemData.price;
-                    form.appendChild(menuPriceInput);
-                    
-                    const qtyInput = document.createElement('input');
-                    qtyInput.type = 'hidden';
-                    qtyInput.name = 'qty[]';
-                    qtyInput.value = itemData.quantity;
-                    form.appendChild(qtyInput);
-                    
-                    // Add menu options/sides if they exist
-                    if (itemData.options && itemData.options.length > 0) {
-                        console.log(`✅ Adding ${itemData.options.length} unique options for menu ID ${menuId}:`, itemData.options);
-                        itemData.options.forEach(option => {
-                            const optionInput = document.createElement('input');
-                            optionInput.type = 'hidden';
-                            optionInput.name = `menu_options[${menuId}][]`;
-                            optionInput.value = option.value; // This is the option_value_id
-                            form.appendChild(optionInput);
-                            console.log(`   ➕ Option: ${option.text} (value_id: ${option.value})`);
-                        });
+                    // Check if this is a combo
+                    if (itemData.isCombo && itemData.comboId) {
+                        // For combos, we'll expand them into their component items
+                        // Add a marker to indicate this is a combo
+                        const comboMarkerInput = document.createElement('input');
+                        comboMarkerInput.type = 'hidden';
+                        comboMarkerInput.name = 'combo_id[]';
+                        comboMarkerInput.value = itemData.comboId;
+                        form.appendChild(comboMarkerInput);
+                        
+                        const comboQtyInput = document.createElement('input');
+                        comboQtyInput.type = 'hidden';
+                        comboQtyInput.name = 'combo_qty[]';
+                        comboQtyInput.value = itemData.quantity;
+                        form.appendChild(comboQtyInput);
+                        
+                        console.log(`📦 Processing combo: ${itemData.name} (Combo ID: ${itemData.comboId}, Qty: ${itemData.quantity})`);
                     } else {
-                        console.log(`ℹ️  No options for menu ID ${menuId}`);
+                        // Regular menu item
+                        const menuId = itemData.id;
+                        
+                        console.log(`📦 Processing cart item: ${itemData.name} (ID: ${menuId}, Qty: ${itemData.quantity})`);
+                        
+                        // Add new inputs
+                        const menuIdInput = document.createElement('input');
+                        menuIdInput.type = 'hidden';
+                        menuIdInput.name = 'menu_id[]';
+                        menuIdInput.value = menuId;
+                        form.appendChild(menuIdInput);
+                        
+                        const menuNameInput = document.createElement('input');
+                        menuNameInput.type = 'hidden';
+                        menuNameInput.name = 'menu_name[]';
+                        menuNameInput.value = itemData.name;
+                        form.appendChild(menuNameInput);
+                        
+                        const menuPriceInput = document.createElement('input');
+                        menuPriceInput.type = 'hidden';
+                        menuPriceInput.name = 'menu_price[]';
+                        menuPriceInput.value = itemData.basePrice || itemData.price;
+                        form.appendChild(menuPriceInput);
+                        
+                        const qtyInput = document.createElement('input');
+                        qtyInput.type = 'hidden';
+                        qtyInput.name = 'qty[]';
+                        qtyInput.value = itemData.quantity;
+                        form.appendChild(qtyInput);
+                        
+                        // Add menu options/sides if they exist
+                        if (itemData.options && itemData.options.length > 0) {
+                            console.log(`✅ Adding ${itemData.options.length} unique options for menu ID ${menuId}:`, itemData.options);
+                            itemData.options.forEach(option => {
+                                const optionInput = document.createElement('input');
+                                optionInput.type = 'hidden';
+                                optionInput.name = `menu_options[${menuId}][]`;
+                                optionInput.value = option.value; // This is the option_value_id
+                                form.appendChild(optionInput);
+                                console.log(`   ➕ Option: ${option.text} (value_id: ${option.value})`);
+                            });
+                        } else {
+                            console.log(`ℹ️  No options for menu ID ${menuId}`);
+                        }
                     }
                 });
                 

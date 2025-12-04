@@ -17,7 +17,11 @@ function restyleEditButtons() {
         button.style.setProperty('color', '#202938', 'important');
         button.style.setProperty('border', '1px solid #c9d2e3', 'important');
         button.style.setProperty('border-radius', '10px', 'important');
-        button.style.setProperty('padding', '6px 10px', 'important');
+        button.style.setProperty('min-height', '48px', 'important');
+        button.style.setProperty('min-width', '48px', 'important');
+        button.style.setProperty('height', '48px', 'important');
+        button.style.setProperty('width', '48px', 'important');
+        button.style.setProperty('padding', '12px 16px', 'important');
         button.style.setProperty('display', 'inline-flex', 'important');
         button.style.setProperty('align-items', 'center', 'important');
         button.style.setProperty('justify-content', 'center', 'important');
@@ -26,6 +30,8 @@ function restyleEditButtons() {
         const icons = button.querySelectorAll('i, svg, span.fa');
         icons.forEach(icon => {
             icon.style.setProperty('color', '#202938', 'important');
+            icon.style.setProperty('font-size', '20px', 'important');
+            icon.style.setProperty('margin', '0', 'important');
         });
 
         button.addEventListener('mouseenter', () => {

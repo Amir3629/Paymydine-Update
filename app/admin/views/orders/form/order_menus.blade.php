@@ -7,14 +7,20 @@
     $subtotalTotal = $orderTotals->firstWhere('code', 'subtotal');
     $finalTotal = $orderTotals->firstWhere('code', 'total') ?? $orderTotals->firstWhere('code', 'order_total');
     
-    // Calculate subtotal from actual menu items (more reliable)
+    // Calculate subtotal and item count from actual menu items (more reliable)
     $calculatedSubtotal = 0;
+    $calculatedTotalItems = 0;
     foreach($model->getOrderMenusWithOptions() as $menuItem) {
         $calculatedSubtotal += $menuItem->subtotal;
+        $calculatedTotalItems += $menuItem->quantity;
     }
     
-    // Use calculated subtotal if database value is 0 or invalid
-    $displaySubtotal = ($subtotalTotal && $subtotalTotal->value > 0) ? $subtotalTotal->value : $calculatedSubtotal;
+    // Always use calculated subtotal from displayed items for accuracy
+    // This ensures the subtotal matches what's actually shown in the bill
+    $displaySubtotal = $calculatedSubtotal;
+    
+    // Use calculated item count (always more reliable than database value)
+    $displayTotalItems = $calculatedTotalItems;
     
     // Get coupon code from order_totals title if available
     $couponCode = null;
@@ -87,8 +93,8 @@
             <tr>
                 <td class="total-label">
                     Subtotal
-                    @if($formModel->total_items)
-                        <span class="order-bill-subtotal-note">({{ $formModel->total_items }} item{{ $formModel->total_items > 1 ? 's' : '' }})</span>
+                    @if($displayTotalItems > 0)
+                        <span class="order-bill-subtotal-note">({{ $displayTotalItems }} item{{ $displayTotalItems > 1 ? 's' : '' }})</span>
                     @endif
                 </td>
                 <td></td>  <!-- Changed from colspan="2" to just empty td for QTY column -->
@@ -137,7 +143,7 @@
     </table>
     
     <!-- Add Item Button -->
-    <div class="order-bill-actions" style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #e5e9f2;">
+    <div class="order-bill-actions" style="margin-top: 20px; padding-top: 15px;">
         <button type="button" class="btn btn-primary btn-add-item" id="btn-add-item" onclick="event.preventDefault(); event.stopPropagation(); addItemToOrder({{ $model->order_id }});">
             <i class="fa fa-plus"></i> Add Item
         </button>
@@ -155,7 +161,9 @@
 .order-bill-table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
     margin: 0;
+    table-layout: auto;
 }
 
 .order-bill-table thead th {
@@ -165,6 +173,8 @@
     color: #526484;
     padding: 10px 6px;
     border-bottom: 2px solid #e5e9f2;
+    border-left: none;
+    border-right: none;
     text-align: left;
 }
 
@@ -175,6 +185,8 @@
 .order-bill-table tbody td {
     padding: 10px 6px;
     border-bottom: 1px solid #f5f6fa;
+    border-left: none;
+    border-right: none;
     vertical-align: top;
 }
 
@@ -244,6 +256,49 @@
 .order-bill-totals td {
     padding: 8px 6px;
     border-bottom: none;
+    border-left: none;
+    border-right: none;
+}
+
+/* Ensure separator line spans full width without gaps */
+.order-bill-totals tr:first-child td {
+    border-top: 2px solid #e5e9f2 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+}
+
+/* Ensure separator line before totals is continuous across all columns */
+.order-bill-totals tr:first-child td:first-child,
+.order-bill-totals tr:first-child td:nth-child(2),
+.order-bill-totals tr:first-child td:last-child {
+    border-top: 2px solid #e5e9f2 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+}
+
+/* Ensure separator line before final total is continuous */
+.final-total td:first-child,
+.final-total td:nth-child(2),
+.final-total td:last-child {
+    border-top: 2px solid #e5e9f2 !important;
+}
+
+/* Ensure Add Item button separator is continuous */
+.order-bill-actions {
+    position: relative;
+    overflow: hidden;
+}
+
+.order-bill-actions::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e5e9f2;
+    width: 100%;
+    display: block;
 }
 
 .total-label {
@@ -288,11 +343,58 @@
     font-size: 20px;
     color: #364a63;
     padding-top: 10px;
-    border-top: 2px solid #e5e9f2;
+}
+
+/* Ensure final total separator line spans full width */
+.final-total td {
+    border-top: 2px solid #e5e9f2 !important;
+    border-left: none !important;
+    border-right: none !important;
 }
 
 .order-bill-table tbody tr:last-child td {
     border-bottom: none;
+}
+
+/* Ensure continuous borders - remove side borders that could cause gaps */
+.order-bill-table tr {
+    border-left: 0 !important;
+    border-right: 0 !important;
+}
+
+/* Ensure continuous border lines - no gaps */
+.order-bill-table {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    border: none !important;
+}
+
+/* Remove any cell spacing that could cause gaps */
+.order-bill-table * {
+    box-sizing: border-box;
+}
+
+/* Ensure all table cells have no side borders to prevent gaps */
+.order-bill-table td,
+.order-bill-table th {
+    border-left: 0 !important;
+    border-right: 0 !important;
+}
+
+/* Header separator line */
+.order-bill-table thead th {
+    border-bottom: 2px solid #e5e9f2 !important;
+    border-top: 0 !important;
+}
+
+/* Item separator lines */
+.order-bill-table tbody td {
+    border-bottom: 1px solid #f5f6fa !important;
+    border-top: 0 !important;
+}
+
+.order-bill-table tbody tr:last-child td {
+    border-bottom: 0 !important;
 }
 
 /* Quantity Controls */
@@ -492,11 +594,9 @@ function updateOrderItemQuantity(orderMenuId, change) {
         return;
     }
     
-    // If quantity becomes 0, remove the item
+    // If quantity becomes 0, remove the item immediately without confirmation
     if (newQty === 0) {
-        if (confirm('Remove this item from the order?')) {
-            removeOrderItem(orderMenuId);
-        }
+        removeOrderItem(orderMenuId);
         return;
     }
     
@@ -526,8 +626,7 @@ function updateOrderItemQuantity(orderMenuId, change) {
                     updateOrderTotals(response.totals);
                 }
                 
-                // Show success message
-                showNotification('Quantity updated successfully', 'success');
+                // No success notification - updates happen silently
             } else {
                 showNotification(response?.error || 'Failed to update quantity', 'error');
                 // Revert display
@@ -604,7 +703,7 @@ function removeOrderItem(orderMenuId) {
                     }
                 }, 300);
                 
-                showNotification('Item removed successfully', 'success');
+                // No success notification - updates happen silently
             } else {
                 showNotification(response?.error || 'Failed to remove item', 'error');
                 row.style.opacity = '1';

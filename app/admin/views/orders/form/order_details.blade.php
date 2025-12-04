@@ -44,6 +44,11 @@
 </table>
 
 <style>
+/* Ensure style tag is not displayed as text */
+@supports not (display: none) {
+    /* Fallback for older browsers */
+}
+
 .order-details-table {
     width: 100%;
     border-collapse: collapse;
@@ -125,6 +130,22 @@
 
 .card.bg-light.shadow-sm .card-body {
     padding: 12px !important;
+}
+</style>
+<style>
+/* Hide any style/script tags displayed as text on mobile */
+@media (max-width: 768px) {
+    style,
+    script {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        opacity: 0 !important;
+    }
 }
 </style>
 

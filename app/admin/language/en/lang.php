@@ -659,6 +659,7 @@ return [
         'text_tab_general' => 'Menu',
         'text_tab_menu_option' => 'Options',
         'text_tab_special' => 'Specials',
+        'text_tab_pricing' => 'Pricing',
         'text_empty' => 'There are no menus available.',
         'text_filter_search' => 'Search by name, price or stock qty.',
         'text_filter_category' => 'View all categories',

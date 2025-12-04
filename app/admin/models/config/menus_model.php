@@ -36,6 +36,11 @@ $config['list']['toolbar'] = [
             'class' => 'btn btn-primary',
             'href' => 'menus/create',
         ],
+        'combi' => [
+            'label' => 'Combo',
+            'class' => 'btn btn-combi-ice-white',
+            'href' => 'combos',
+        ],
         'allergens' => [
             'label' => 'lang:admin::lang.allergens.text_allergens',
             'class' => 'btn btn-default',
@@ -394,6 +399,18 @@ $config['form']['tabs'] = [
             'tab' => 'lang:admin::lang.menus.text_tab_special',
             'type' => 'switch',
             'comment' => 'lang:admin::lang.menus.help_specials',
+        ],
+
+        'prices' => [
+            'label' => 'Multiple Price Levels',
+            'tab' => 'lang:admin::lang.menus.text_tab_pricing',
+            'type' => 'repeater',
+            'form' => 'menu_prices_model',
+            'prompt' => 'Add Price Level',
+            'sortable' => true,
+            'sortColumnName' => 'priority',
+            'context' => ['create', 'edit', 'preview'],
+            'comment' => 'Set different prices for different contexts (bar, dining room, room service, happy hour). You can also set time-based pricing for happy hour.',
         ],
     ],
 ];

@@ -1,10 +1,10 @@
 <div class="customer-card-content" data-order-id="{{ $formModel->order_id }}" data-edit-url="{{ admin_url('orders/edit/') }}" style="width: 100%;">
-    <h6 class="customer-card-title" style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">@lang($field->label)</h6>
+    <h6 class="customer-card-title" style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">@lang($field->label)</h6>
     <div class="customer-info" style="font-size: 13px; padding-bottom: 6px;">
         @if ($formModel->customer)
-            <a href="{{ admin_url('customers/preview/'.$formModel->customer_id) }}" style="font-weight: 600; color: #364a63;">{{ $formModel->customer_name }}</a>
+            <a href="{{ admin_url('customers/preview/'.$formModel->customer_id) }}" style="font-weight: normal; color: #364a63;">{{ $formModel->customer_name }}</a>
         @else
-            <span style="font-weight: 600; color: #364a63;">{{ $formModel->customer_name }}</span>
+            <span style="font-weight: normal; color: #364a63;">{{ $formModel->customer_name }}</span>
         @endif
     </div>
     

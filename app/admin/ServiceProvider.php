@@ -395,6 +395,13 @@ class ServiceProvider extends AppServiceProvider
                             'title' => lang('admin::lang.side_menu.payment'),
                             'permission' => 'Admin.Payments',
                         ],
+                        'tips' => [
+                            'priority' => 60,
+                            'class' => 'tips',
+                            'href' => admin_url('tips'),
+                            'title' => 'Tips',
+                            'permission' => 'Admin.Tips',
+                        ],
                     ],
                 ],
                 'marketing' => [
@@ -564,6 +571,7 @@ class ServiceProvider extends AppServiceProvider
             'menu_options' => 'Admin\Models\Menu_options_model',
             'menus' => 'Admin\Models\Menus_model',
             'menus_specials' => 'Admin\Models\Menus_specials_model',
+            'menu_combos' => 'Admin\Models\Menu_combos_model',
             'orders' => 'Admin\Models\Orders_model',
             'payment_logs' => 'Admin\Models\Payment_logs_model',
             'payments' => 'Admin\Models\Payments_model',
@@ -733,6 +741,12 @@ class ServiceProvider extends AppServiceProvider
                 'Admin.PosConfigs' => [
                     'label' => 'admin::lang.permissions.pos_configs', 'group' => 'admin::lang.permissions.name',
                 ],
+                'Admin.Tips' => [
+                    'label' => 'Tips Management', 'group' => 'admin::lang.permissions.name',
+                ],
+                'Admin.Combos' => [
+                    'label' => 'Combo Meals', 'group' => 'admin::lang.permissions.name',
+                ],
             ]);
         });
     }
@@ -845,3 +859,4 @@ class ServiceProvider extends AppServiceProvider
         });
     }
 }
+

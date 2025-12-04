@@ -19,6 +19,51 @@
         font-weight: 500;
     }
     
+    /* Make rows bigger - increased padding and height for better touch interaction */
+    .list-table tbody tr {
+        min-height: 60px !important;
+        height: auto !important;
+    }
+    
+    .list-table tbody tr td {
+        padding: 16px 12px !important;
+        vertical-align: middle !important;
+        font-size: 15px !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* Make buttons and icons bigger in rows */
+    .list-table tbody tr td .btn,
+    .list-table tbody tr td .list-action {
+        min-height: 40px !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+    }
+    
+    .list-table tbody tr td .btn i,
+    .list-table tbody tr td .list-action i {
+        font-size: 16px !important;
+    }
+    
+    /* Make edit button bigger - larger for better touch interaction */
+    .list-table tbody tr td .btn-edit {
+        min-height: 48px !important;
+        min-width: 48px !important;
+        height: 48px !important;
+        width: 48px !important;
+        padding: 12px 16px !important;
+        font-size: 16px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 10px !important;
+    }
+    
+    .list-table tbody tr td .btn-edit i {
+        font-size: 20px !important;
+        margin: 0 !important;
+    }
+    
     /* Keep buttons and checkboxes visible */
     .list-table tbody tr .list-action {
         background-color: transparent !important;
@@ -578,6 +623,71 @@
     setInterval(forceDropdownZIndex, 1000);
     
     console.log('✅ Status dropdown z-index enforcer active - dropdowns will ALWAYS be on top!');
+})();
+</script>
+
+<script>
+// ============================================
+// ENFORCE LARGER EDIT BUTTON SIZE
+// Make edit buttons at least 2 times bigger
+// ============================================
+(function() {
+    'use strict';
+    
+    function enforceLargeEditButtons() {
+        const editButtons = document.querySelectorAll('.list-table .btn-edit');
+        
+        editButtons.forEach(button => {
+            button.style.setProperty('min-height', '48px', 'important');
+            button.style.setProperty('min-width', '48px', 'important');
+            button.style.setProperty('height', '48px', 'important');
+            button.style.setProperty('width', '48px', 'important');
+            button.style.setProperty('padding', '12px 16px', 'important');
+            button.style.setProperty('display', 'inline-flex', 'important');
+            button.style.setProperty('align-items', 'center', 'important');
+            button.style.setProperty('justify-content', 'center', 'important');
+            
+            const icons = button.querySelectorAll('i, svg, span.fa');
+            icons.forEach(icon => {
+                icon.style.setProperty('font-size', '20px', 'important');
+                icon.style.setProperty('margin', '0', 'important');
+            });
+        });
+    }
+    
+    // Run immediately
+    enforceLargeEditButtons();
+    
+    // Run on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', enforceLargeEditButtons);
+    } else {
+        setTimeout(enforceLargeEditButtons, 100);
+    }
+    
+    // Run on AJAX updates
+    document.addEventListener('ajaxUpdate', function() {
+        setTimeout(enforceLargeEditButtons, 100);
+    });
+    
+    // Watch for new buttons being added
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length > 0) {
+                setTimeout(enforceLargeEditButtons, 100);
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // Re-apply periodically
+    setInterval(enforceLargeEditButtons, 2000);
+    
+    console.log('✅ Large edit button enforcer active - edit buttons will be 2x bigger!');
 })();
 </script>
 
