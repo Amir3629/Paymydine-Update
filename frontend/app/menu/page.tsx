@@ -1151,6 +1151,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
   const addToCart = useCartStore((state) => state.addToCart)
   const { items } = useCartStore()
   const { t } = useLanguageStore()
+  const { toast } = useToast()
   
   // NOTE: item.price from filteredItems is already adjusted, so we don't adjust again
 
@@ -1158,8 +1159,22 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
   const currentItem = items.find(cartItem => cartItem.item.id === item.id)
   const quantity = currentItem?.quantity || 0
 
+  const isStockOut = item.is_stock_out || false
+  const isAvailable = item.available !== false && !isStockOut
+
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation()
+    
+    // Prevent adding stock-out items to cart
+    if (isStockOut || !isAvailable) {
+      toast({
+        title: "Item Unavailable",
+        description: "This item is currently out of stock.",
+        variant: "destructive",
+      })
+      return
+    }
+    
     // IMPORTANT: item from filteredItems has adjusted price, but cart needs ORIGINAL price
     // So we need to revert the price adjustment before adding to cart
     const { taxSettings } = useCmsStore.getState()
@@ -1192,35 +1207,51 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
 
   return (
     <div
-      className="flex items-center space-x-4 group cursor-pointer"
-      onClick={() => onSelect(item)}
+      className={`flex items-center space-x-4 group ${
+        isStockOut ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+      }`}
+      onClick={() => !isStockOut && onSelect(item)}
     >
       <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
         <OptimizedImage
           src={item.image || "/placeholder.svg"}
           alt={itemName}
           fill
-          className="object-contain transition-transform duration-700 ease-in-out group-hover:scale-110"
+          className={`object-contain transition-transform duration-700 ease-in-out ${
+            isStockOut ? '' : 'group-hover:scale-110'
+          }`}
         />
+        {isStockOut && (
+          <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+            <span className="text-white text-xs font-bold bg-red-500 px-2 py-1 rounded">OUT OF STOCK</span>
+          </div>
+        )}
       </div>
       <div className="flex-grow">
-        <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
+        <h3 className={`text-lg font-bold ${
+          isStockOut ? 'text-gray-400' : 'text-paydine-elegant-gray'
+        }`}>{itemName}</h3>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
-        <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
+        <p className={`text-lg font-semibold menu-item-price ${
+          isStockOut ? 'text-gray-400' : ''
+        }`}>{formatCurrency(item.price || 0)}</p>
           <div className="relative">
             <button
-              className="quantity-btn w-12 h-12 font-bold text-lg"
+              className={`quantity-btn w-12 h-12 font-bold text-lg ${
+                isStockOut ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               onClick={handleAdd}
+              disabled={isStockOut || !isAvailable}
             >
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
               ) : (
                 <Plus className="h-5 w-5" strokeWidth={3.5} />
               )}
-              <span className="sr-only">Add to cart</span>
+              <span className="sr-only">{isStockOut ? 'Out of stock' : 'Add to cart'}</span>
             </button>
-            {quantity > 0 && (
+            {quantity > 0 && !isStockOut && (
               <button
                 className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10"
                 style={{ color: 'var(--theme-secondary)' }}

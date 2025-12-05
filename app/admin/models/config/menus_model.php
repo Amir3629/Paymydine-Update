@@ -69,6 +69,25 @@ $config['list']['bulkActions'] = [
             ],
         ],
     ],
+    'stockout' => [
+        'label' => 'Stock Out',
+        'type' => 'dropdown',
+        'class' => 'btn btn-light',
+        'widget' => 'Admin\BulkActionWidgets\StockOut',
+        'stockOutColumn' => 'is_stock_out',
+        'menuItems' => [
+            'mark' => [
+                'label' => 'Mark as Stock Out',
+                'type' => 'button',
+                'class' => 'dropdown-item text-warning',
+            ],
+            'restore' => [
+                'label' => 'Restore to In Stock',
+                'type' => 'button',
+                'class' => 'dropdown-item text-success',
+            ],
+        ],
+    ],
     'delete' => [
         'label' => 'lang:admin::lang.button_delete',
         'class' => 'btn btn-light text-danger',
@@ -124,6 +143,13 @@ $config['list']['columns'] = [
     'menu_status' => [
         'label' => 'lang:admin::lang.label_status',
         'type' => 'switch',
+    ],
+    'is_stock_out' => [
+        'label' => 'Stock Out',
+        'type' => 'switch',
+        'onText' => 'Out of Stock',
+        'offText' => 'In Stock',
+        'sortable' => false,
     ],
     'menu_id' => [
         'label' => 'lang:admin::lang.column_id',

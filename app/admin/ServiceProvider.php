@@ -161,6 +161,10 @@ class ServiceProvider extends AppServiceProvider
             $manager->registerBulkActionWidget(\Admin\BulkActionWidgets\Delete::class, [
                 'code' => 'delete',
             ]);
+
+            $manager->registerBulkActionWidget(\Admin\BulkActionWidgets\StockOut::class, [
+                'code' => 'stockout',
+            ]);
         });
     }
 

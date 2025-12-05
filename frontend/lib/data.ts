@@ -18,6 +18,7 @@ export type MenuItem = {
   stock_qty?: number
   minimum_qty?: number
   available?: boolean
+  is_stock_out?: boolean
   options?: MenuItemOption[]
 }
 
@@ -72,7 +73,9 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     allergens: apiItem.allergens || [],
     stock_qty: apiItem.stock_qty,
     minimum_qty: apiItem.minimum_qty || 1,
-    available: apiItem.available !== false && (apiItem.stock_qty === null || (apiItem.stock_qty ?? 0) > 0),
+    is_stock_out: apiItem.is_stock_out || false,
+    // Item is available if: not stock out AND (available flag is true OR stock_qty is null/positive)
+    available: !(apiItem.is_stock_out) && (apiItem.available !== false && (apiItem.stock_qty === null || (apiItem.stock_qty ?? 0) > 0)),
     options: apiItem.options || []
   }
 }

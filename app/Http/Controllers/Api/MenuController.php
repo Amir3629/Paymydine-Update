@@ -23,7 +23,12 @@ class MenuController extends Controller
                     m.menu_description as description,
                     CAST(m.menu_price AS DECIMAL(10,2)) as price,
                     COALESCE(c.name, 'Main') as category_name,
-                    ma.name as image
+                    ma.name as image,
+                    COALESCE(m.is_stock_out, 0) as is_stock_out,
+                    CASE 
+                        WHEN m.is_stock_out = 1 THEN 0
+                        ELSE 1
+                    END as available
                 FROM {$p}menus m
                 LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                 LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
@@ -39,6 +44,9 @@ class MenuController extends Controller
             // Convert prices to float, fix image paths, and add options
             foreach ($items as &$item) {
                 $item->price = (float)$item->price;
+                $item->is_stock_out = (bool)($item->is_stock_out ?? 0);
+                $item->available = (bool)($item->available ?? 1);
+                
                 if ($item->image) {
                     // If image exists, construct the relative URL for Next.js proxy
                     $item->image = "/api/media/" . $item->image;
@@ -91,6 +99,10 @@ class MenuController extends Controller
                 
                 // Combos don't have options (they're pre-configured)
                 $combo->options = [];
+                
+                // Combos are always available (no stock-out for combos yet)
+                $combo->is_stock_out = false;
+                $combo->available = true;
             }
             
             // Merge combos with regular menu items

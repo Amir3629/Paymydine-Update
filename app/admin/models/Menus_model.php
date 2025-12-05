@@ -41,6 +41,7 @@ class Menus_model extends Model
         'order_restriction' => 'array',
         'menu_status' => 'boolean',
         'menu_priority' => 'integer',
+        'is_stock_out' => 'boolean',
     ];
 
     public $relation = [
@@ -183,6 +184,38 @@ class Menus_model extends Model
     public function scopeIsEnabled($query)
     {
         return $query->where('menu_status', 1);
+    }
+
+    /**
+     * Scope to filter items that are NOT stock out
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInStock($query)
+    {
+        return $query->where('is_stock_out', 0);
+    }
+
+    /**
+     * Scope to filter items that ARE stock out
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeStockOut($query)
+    {
+        return $query->where('is_stock_out', 1);
+    }
+
+    /**
+     * Check if item is stock out
+     * 
+     * @return bool
+     */
+    public function isStockOut()
+    {
+        return (bool) $this->is_stock_out;
     }
 
     //
@@ -379,6 +412,11 @@ class Menus_model extends Model
      */
     public function isAvailable($datetime = null)
     {
+        // First check if item is enabled and not stock out
+        if ($this->menu_status != 1 || $this->is_stock_out == 1) {
+            return false;
+        }
+
         if (is_null($datetime))
             $datetime = Carbon::now();
 

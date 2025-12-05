@@ -426,19 +426,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $combo_qty = isset($combo_qtys[$key]) ? intval($combo_qtys[$key]) : 1;
             
             if (!isset($combo_aggregated[$combo_id])) {
-                $combo = \Admin\Models\Menu_combos_model::with('combo_items.menu')->find($combo_id);
-                if ($combo) {
+            $combo = \Admin\Models\Menu_combos_model::with('combo_items.menu')->find($combo_id);
+            if ($combo) {
                     $combo_aggregated[$combo_id] = [
-                        'combo_id' => $combo_id,
-                        'combo_name' => $combo->combo_name,
-                        'combo_price' => $combo->combo_price,
+                    'combo_id' => $combo_id,
+                    'combo_name' => $combo->combo_name,
+                    'combo_price' => $combo->combo_price,
                         'quantity' => 0,
-                        'items' => $combo->combo_items->map(function($item) {
-                            return $item->menu ? $item->menu->menu_name . ($item->quantity > 1 ? ' (x' . $item->quantity . ')' : '') : '';
-                        })->filter()->implode(', ')
-                    ];
-                }
+                    'items' => $combo->combo_items->map(function($item) {
+                        return $item->menu ? $item->menu->menu_name . ($item->quantity > 1 ? ' (x' . $item->quantity . ')' : '') : '';
+                    })->filter()->implode(', ')
+                ];
             }
+        }
             
             // Aggregate quantity
             if (isset($combo_aggregated[$combo_id])) {
@@ -825,6 +825,7 @@ foreach ($menu_ids as $key => $menu_id) {
         $tableData = \Admin\Models\Tables_model::orderBy('table_no', 'asc')
             ->get(['table_id','table_no','table_name','min_capacity','max_capacity','table_status','qr_code']);
         //$menuData = DB::table('menus')->get();
+        // Load all menus including stock-out items (they will be shown but disabled)
         $menuData = \Admin\Models\Menus_model::with(['media', 'categories'])->get();
         
         // Load combos
@@ -989,8 +990,9 @@ $unavailableTables = DB::table('orders')
                     $menuOptionsJson = json_encode($optionsForDish);
                     $menuCategories = $menuRow->categories->pluck('category_id')->toArray();
                     $menuCategoriesJson = json_encode($menuCategories);
+                    $isStockOut = $menuRow->is_stock_out ?? false;
                 ?>
-                    <div class="interactive-card" 
+                    <div class="interactive-card {{ $isStockOut ? 'stock-out disabled' : '' }}" 
                      data-id="{{ $menuRow->menu_id }}" 
                      data-price="{{ $menuRow->menu_price }}" 
                     data-image="{{ $menuImage }}"
@@ -999,6 +1001,7 @@ $unavailableTables = DB::table('orders')
                      data-categories='{{ $menuCategoriesJson }}'
                      data-category-names='{{ json_encode($menuRow->categories->pluck('name')->toArray()) }}'
                      data-quantity="0"
+                     data-stock-out="{{ $isStockOut ? '1' : '0' }}"
                     >
                     <!-- Quantity Badge - Outside card structure -->
                     <div class="quantity-badge" style="display: none;">
@@ -1009,6 +1012,11 @@ $unavailableTables = DB::table('orders')
                     <div class="card-front">
                         <div class="menu-image-container">
                             <img src="{{ $menuImage }}" alt="{{ $menuRow->menu_name }}" class="menu-image">
+                            @if($isStockOut)
+                            <div class="stock-out-overlay">
+                                <span class="stock-out-badge">OUT OF STOCK</span>
+                            </div>
+                            @endif
                         </div>
                         <div class="menu-info">
                             <span class="menu-name">{{ $menuRow->menu_name }}</span>
@@ -1485,6 +1493,64 @@ $unavailableTables = DB::table('orders')
 
         .interactive-card.flipped .card-back {
             transform: rotateY(0deg);
+        }
+
+        /* Stock Out Styles - Grayed out and disabled */
+        .interactive-card.stock-out,
+        .interactive-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+            pointer-events: none;
+            filter: grayscale(100%);
+        }
+
+        .interactive-card.stock-out .card-front,
+        .interactive-card.disabled .card-front {
+            background: #f5f5f5 !important;
+            border: 2px dashed #ccc !important;
+        }
+
+        .interactive-card.stock-out .menu-image,
+        .interactive-card.disabled .menu-image {
+            opacity: 0.4;
+            filter: grayscale(100%);
+        }
+
+        .interactive-card.stock-out .menu-name,
+        .interactive-card.disabled .menu-name,
+        .interactive-card.stock-out .menu-price,
+        .interactive-card.disabled .menu-price {
+            color: #999 !important;
+        }
+
+        .stock-out-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            z-index: 5;
+        }
+
+        .stock-out-badge {
+            background: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .menu-image-container {
+            position: relative;
         }
 
         .back-header {
@@ -3724,6 +3790,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Add item to cart with sides (for back add button)
         function addToCartWithSides() {
+            // Check if item is stock-out
+            const isStockOut = item.dataset.stockOut === '1' || item.classList.contains('stock-out') || item.classList.contains('disabled');
+            if (isStockOut) {
+                alert('This item is currently out of stock and cannot be added to the order.');
+                return;
+            }
+            
             console.log('addToCartWithSides function called!');
             const menuId = item.dataset.id;
             const menuPrice = item.dataset.price;
@@ -3803,6 +3876,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Add item to cart (for front plus button - no sides)
         function addToCart() {
+            // Check if item is stock-out
+            const isStockOut = item.dataset.stockOut === '1' || item.classList.contains('stock-out') || item.classList.contains('disabled');
+            if (isStockOut) {
+                alert('This item is currently out of stock and cannot be added to the order.');
+                return;
+            }
+            
             console.log('addToCart function called (front plus button)!');
             const menuId = item.dataset.id;
             const menuPrice = item.dataset.price;
@@ -4102,6 +4182,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Click on card to flip to options (if has options)
         item.addEventListener('click', function(e) {
+            // Prevent interaction with stock-out items
+            const isStockOut = this.dataset.stockOut === '1' || this.classList.contains('stock-out') || this.classList.contains('disabled');
+            if (isStockOut) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('This item is currently out of stock and cannot be added to the order.');
+                return;
+            }
+            
             if (e.target.closest('.add-item-btn') || e.target.closest('.flip-back-btn')) {
                 return;
             }
