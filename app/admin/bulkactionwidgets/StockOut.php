@@ -3,7 +3,9 @@
 namespace Admin\BulkActionWidgets;
 
 use Admin\Classes\BaseBulkActionWidget;
+use App\Helpers\NotificationHelper;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Stock Out Bulk Action Widget
@@ -48,6 +50,33 @@ class StockOut extends BaseBulkActionWidget
                     $record->save();
                 }
             });
+
+            // Create notification for stock-out/stock-in action
+            try {
+                $action = ($stockOutAction === 'mark') ? 'stock_out' : 'stock_in';
+                $menuItemsArray = $records->toArray();
+                
+                // Convert to objects for notification helper
+                $menuItems = [];
+                foreach ($records as $record) {
+                    $menuItems[] = (object)[
+                        'menu_id' => $record->menu_id,
+                        'menu_name' => $record->menu_name
+                    ];
+                }
+                
+                NotificationHelper::createStockOutNotification([
+                    'action' => $action,
+                    'menu_items' => $menuItems
+                ]);
+            } catch (\Exception $e) {
+                // Log error but don't fail the bulk action
+                Log::warning('Failed to create stock-out notification', [
+                    'error' => $e->getMessage(),
+                    'action' => $stockOutAction,
+                    'count' => $count
+                ]);
+            }
 
             $prefix = ($count > 1) ? ' records' : ' record';
             $actionText = ($stockOutAction === 'mark') ? 'marked as stock out' : 'restored to in stock';

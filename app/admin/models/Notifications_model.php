@@ -76,8 +76,10 @@ class Notifications_model extends Model
             'valet_request' => 'car',
             'table_note' => 'note',
             'order_ready' => 'check-circle',
+            'order_status' => 'shopping-cart',
             'payment_issue' => 'alert-circle',
-            'system_alert' => 'info'
+            'system_alert' => 'info',
+            'stock_out' => 'package'
         ];
         
         return $icons[$this->type] ?? 'bell';
