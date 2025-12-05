@@ -183,9 +183,54 @@ App::before(function () {
                                 $item->image = '/images/pasta.png';
                             }
                             
+                            // Mark as regular menu item (not a combo)
+                            $item->isCombo = false;
+                            $item->comboId = null;
+                            
                             // Fetch menu options for this item
                             $item->options = getMenuItemOptions($item->id);
                         }
+                        
+                        // Get combos from menu_combos table
+                        $combosQuery = "
+                            SELECT 
+                                mc.combo_id as id,
+                                mc.combo_name as name,
+                                mc.combo_description as description,
+                                CAST(mc.combo_price AS DECIMAL(10,2)) as price,
+                                'Combos' as category_name,
+                                ma.name as image
+                            FROM {$p}menu_combos mc
+                            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos' 
+                                AND ma.attachment_id = mc.combo_id 
+                                AND ma.tag = 'thumb'
+                            WHERE mc.combo_status = 1
+                            ORDER BY mc.combo_priority ASC, mc.combo_name ASC
+                        ";
+                        
+                        $combos = DB::select($combosQuery);
+                        
+                        // Format combos same as menu items
+                        foreach ($combos as &$combo) {
+                            $combo->price = (float)$combo->price;
+                            if ($combo->image) {
+                                // If image exists, construct the relative URL for Next.js proxy
+                                $combo->image = "/api/media/" . $combo->image;
+                            } else {
+                                // Use default image if none exists
+                                $combo->image = '/images/pasta.png';
+                            }
+                            
+                            // Mark as combo
+                            $combo->isCombo = true;
+                            $combo->comboId = $combo->id;
+                            
+                            // Combos don't have options (they're pre-configured)
+                            $combo->options = [];
+                        }
+                        
+                        // Merge combos with regular menu items
+                        $allItems = array_merge($items, $combos);
                         
                         // Get all enabled categories
                         $categoriesQuery = "
@@ -196,10 +241,28 @@ App::before(function () {
                         ";
                         $categories = DB::select($categoriesQuery);
                         
+                        // Add "Combos" category if it doesn't exist and we have combos
+                        if (count($combos) > 0) {
+                            $hasCombosCategory = false;
+                            foreach ($categories as $cat) {
+                                if ($cat->name === 'Combos') {
+                                    $hasCombosCategory = true;
+                                    break;
+                                }
+                            }
+                            if (!$hasCombosCategory) {
+                                $categories[] = (object)[
+                                    'id' => 'combos',
+                                    'name' => 'Combos',
+                                    'priority' => 999
+                                ];
+                            }
+                        }
+                        
                         return response()->json([
                             'success' => true,
                             'data' => [
-                                'items' => $items,
+                                'items' => $allItems,
                                 'categories' => $categories
                             ]
                         ]);
