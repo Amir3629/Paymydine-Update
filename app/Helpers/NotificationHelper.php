@@ -338,21 +338,19 @@ class NotificationHelper
                     ? implode(' and ', $menuNames)
                     : implode(', ', array_slice($menuNames, 0, 2)) . ' and ' . ($count - 2) . ' more');
             
-            // Create title and message based on action
+            // Create title based on action (user-friendly restaurant language)
             if ($action === 'stock_out') {
-                $title = $count === 1 
-                    ? "Item Stock Out - {$menuNamesText}"
-                    : "Items Stock Out - {$count} items";
-                $message = $count === 1
-                    ? "{$menuNamesText} has been marked as stock out"
-                    : "{$count} items have been marked as stock out: {$menuNamesText}";
+                if ($count === 1) {
+                    $title = "{$menuNamesText} is not in stock anymore";
+                } else {
+                    $title = "{$count} items are not in stock anymore: {$menuNamesText}";
+                }
             } else {
-                $title = $count === 1 
-                    ? "Item Stock In - {$menuNamesText}"
-                    : "Items Stock In - {$count} items";
-                $message = $count === 1
-                    ? "{$menuNamesText} has been restored to in stock"
-                    : "{$count} items have been restored to in stock: {$menuNamesText}";
+                if ($count === 1) {
+                    $title = "{$menuNamesText} is back in stock";
+                } else {
+                    $title = "{$count} items are back in stock: {$menuNamesText}";
+                }
             }
             
             $payload = [
@@ -364,28 +362,22 @@ class NotificationHelper
                     ];
                 }, $menuItems),
                 'count' => $count,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toIso8601String()
             ];
 
-            $tenantId = self::getCurrentTenantId();
-
             $notificationId = DB::table('notifications')->insertGetId([
-                'tenant_id' => $tenantId,
                 'type' => 'stock_out',
                 'title' => $title,
-                'message' => $message,
                 'table_id' => null, // Stock-out notifications don't have table_id
                 'table_name' => null,
                 'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE),
                 'status' => 'new',
-                'priority' => 'medium',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
             
             Log::info('Stock-out notification created', [
                 'notification_id' => $notificationId,
-                'tenant_id' => $tenantId,
                 'action' => $action,
                 'count' => $count
             ]);

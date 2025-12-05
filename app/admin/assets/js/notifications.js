@@ -131,6 +131,9 @@
     } else if (item.type === 'waiter_call') {
       // For waiter calls: show "TABLE X • Waiter Call"
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Waiter Call</span>`;
+    } else if (item.type === 'stock_out') {
+      // For stock out: don't show table, just show "Stock Status" label
+      tableDiv.innerHTML = `<strong style="color: #000000; font-weight: 600;">Stock Status</strong>`;
     } else {
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
     }
@@ -165,6 +168,25 @@
     } else if (item.type === 'order_status') {
       // For order status, we've already shown order ID and status, so no additional text needed
       text = "";
+    } else if (item.type === 'table_move') {
+      // For table move: extract source and destination from payload and format as "Table X move to Table Y"
+      let payload = {};
+      try {
+        if (item.payload) {
+          payload = typeof item.payload === 'string' ? JSON.parse(item.payload) : item.payload;
+        }
+      } catch (e) {
+        console.error('Failed to parse notification payload:', e);
+      }
+      if (payload.source_table_name && payload.dest_table_name) {
+        text = payload.source_table_name + ' move to ' + payload.dest_table_name;
+      } else {
+        // Fallback to title if payload doesn't have the info
+        text = item.title || 'Table Move';
+      }
+    } else if (item.type === 'stock_out') {
+      // For stock out: show the title directly (e.g., "Item name is not in stock anymore")
+      text = item.title || 'Item stock status changed';
     } else {
       text = item.title || type;
     }

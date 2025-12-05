@@ -283,6 +283,19 @@ class PushNotificationManager {
                 // For table note: just show "Note" without content in push notification
                 title = '';  // No title, just time
                 message = tableName + ' • Note';
+            } else if (notif.type === 'table_move') {
+                // For table move: extract source and destination from payload and format as "Table X move to Table Y"
+                title = '';  // No title, just time
+                if (payload.source_table_name && payload.dest_table_name) {
+                    message = payload.source_table_name + ' move to ' + payload.dest_table_name;
+                } else {
+                    // Fallback to title if payload doesn't have the info
+                    message = notif.title || 'Table Move';
+                }
+            } else if (notif.type === 'stock_out') {
+                // For stock out: show the title directly (e.g., "Item name is not in stock anymore")
+                title = '';  // No title, just time
+                message = notif.title || 'Item stock status changed';
             } else {
                 // For other notification types
                 title = tableName;

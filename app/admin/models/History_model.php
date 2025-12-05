@@ -59,6 +59,23 @@ class History_model extends Model
                 $full = "Order #{$orderId} - {$message}";
                 break;
 
+            case 'table_move':
+                // For table move: format as "Table X move to Table Y"
+                $sourceTable = $p['source_table_name'] ?? '';
+                $destTable = $p['dest_table_name'] ?? '';
+                if ($sourceTable && $destTable) {
+                    $full = $sourceTable . ' move to ' . $destTable;
+                } else {
+                    // Fallback to title if payload doesn't have the info
+                    $full = $this->title ?: 'Table Move';
+                }
+                break;
+
+            case 'stock_out':
+                // For stock out: use the title directly (e.g., "Item name is not in stock anymore")
+                $full = $this->title ?: 'Item stock status changed';
+                break;
+
             default:
                 $full = $this->title ?: ($p ? json_encode($p) : '');
         }

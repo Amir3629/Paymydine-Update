@@ -2019,39 +2019,7 @@ body, html {
     }
 }
 
-/* Move instruction overlay */
-.move-instruction {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.85);
-    color: white;
-    padding: 20px 30px;
-    border-radius: 12px;
-    z-index: 10000;
-    font-size: 16px;
-    font-weight: 600;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    display: none;
-}
-
-.move-instruction.show {
-    display: block;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
+/* Move instruction - removed custom styles, using flash message style instead */
 
 .table-grid-container {
     position: relative;
@@ -4742,10 +4710,46 @@ document.addEventListener("DOMContentLoaded", function () {
     let isMoveMode = false;
     let moveSourceTable = null;
     const moveTableBtn = document.getElementById('move-table-btn');
-    const moveInstruction = document.createElement('div');
-    moveInstruction.className = 'move-instruction';
-    moveInstruction.id = 'move-instruction';
-    document.body.appendChild(moveInstruction);
+    let moveInstructionElement = null;
+
+    // Function to show move instruction as flash message
+    function showMoveInstruction(message) {
+        // Remove existing move instruction if any
+        if (moveInstructionElement) {
+            moveInstructionElement.remove();
+        }
+        
+        // Get notification container
+        const notificationContainer = document.getElementById('notification');
+        if (!notificationContainer) {
+            console.error('Notification container not found');
+            return;
+        }
+        
+        // Create flash message element (exactly like other flash messages)
+        moveInstructionElement = document.createElement('div');
+        moveInstructionElement.className = 'alert alert-success flash-message animated fadeInDown alert-dismissible show';
+        moveInstructionElement.setAttribute('data-allow-dismiss', 'true');
+        moveInstructionElement.setAttribute('role', 'alert');
+        moveInstructionElement.setAttribute('id', 'move-instruction');
+        moveInstructionElement.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true"></button>';
+        
+        // Prepend to notification container (so it appears at top)
+        notificationContainer.insertBefore(moveInstructionElement, notificationContainer.firstChild);
+    }
+
+    // Function to hide move instruction
+    function hideMoveInstruction() {
+        if (moveInstructionElement) {
+            moveInstructionElement.classList.add('fadeOutUp');
+            moveInstructionElement.addEventListener('animationend', function() {
+                if (moveInstructionElement && moveInstructionElement.parentNode) {
+                    moveInstructionElement.remove();
+                }
+                moveInstructionElement = null;
+            });
+        }
+    }
 
     moveTableBtn.addEventListener("click", function () {
         isMoveMode = !isMoveMode;
@@ -4757,9 +4761,8 @@ document.addEventListener("DOMContentLoaded", function () {
             tableGrid.classList.add("move-mode");
             moveSourceTable = null;
             
-            // Show instruction
-            moveInstruction.textContent = 'Click on source table (table with order)';
-            moveInstruction.classList.add('show');
+            // Show instruction as flash message
+            showMoveInstruction('Click on source table');
             
             // Disable edit mode if active
             if (isEditMode) {
@@ -4777,7 +4780,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             
             moveSourceTable = null;
-            moveInstruction.classList.remove("show");
+            hideMoveInstruction();
         }
     });
 
@@ -4814,14 +4817,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.classList.add("move-source");
                 
                 // Update instruction
-                moveInstruction.textContent = `Source: ${tableName} selected. Click on destination table.`;
+                showMoveInstruction(`${tableName} selected. Click on destination table.`);
             } else {
                 // Second click: Select destination table
                 if (this === moveSourceTable.element) {
                     // Clicked same table, cancel selection
                     this.classList.remove("move-source");
                     moveSourceTable = null;
-                    moveInstruction.textContent = 'Click on source table (table with order)';
+                    showMoveInstruction('Click on source table');
                     return;
                 }
                 
@@ -4871,7 +4874,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     // TastyIgniter returns data in response object
                     const result = data.success !== undefined ? data : (data.result || data);
                     if (result && result.success) {
-                        alert(result.message || `Order successfully moved from ${sourceTableName} to ${destTableName}!`);
+                        // Hide move instruction
+                        hideMoveInstruction();
+                        // Exit move mode
+                        moveTableBtn.click();
+                        // Reload page to show updated table states
                         window.location.reload();
                     } else {
                         alert(result && result.message ? result.message : 'Failed to move order. Please try again.');

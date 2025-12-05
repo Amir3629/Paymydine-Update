@@ -220,8 +220,16 @@ class Orders extends \Admin\Classes\AdminController
                     $notificationMessage = "{$movedCount} order(s) moved from {$sourceTableDisplayName} to {$destTableDisplayName}";
                 } elseif ($swappedCount > 0) {
                     $notificationMessage = "{$swappedCount} order(s) moved from {$destTableDisplayName} to {$sourceTableDisplayName}";
-                } else {
-                    $notificationMessage = "Table move completed: {$sourceTableDisplayName} ↔ {$destTableDisplayName}";
+                }
+                // If no orders moved/swapped, don't create notification
+                if (empty($notificationMessage)) {
+                    DB::commit();
+                    return [
+                        'success' => true,
+                        'message' => 'No active orders to move',
+                        'moved_count' => 0,
+                        'swapped_count' => 0
+                    ];
                 }
                 
                 // Get current user for notification
