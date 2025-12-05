@@ -21,7 +21,6 @@ export interface MenuItem {
   stock_qty?: number;
   minimum_qty?: number;
   available?: boolean;
-  is_stock_out?: boolean;
   options?: MenuItemOption[];
 }
 
