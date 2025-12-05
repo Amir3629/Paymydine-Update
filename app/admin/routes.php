@@ -296,7 +296,152 @@ App::before(function () {
 
 
 
-    // Save table layout for the order create page
+    // Move order between tables
+    Route::post('/orders/move-table', function (Request $request) {
+        try {
+            $sourceTableName = $request->input('source_table_name');
+            $sourceTableId = $request->input('source_table_id');
+            $destTableName = $request->input('dest_table_name');
+            $destTableId = $request->input('dest_table_id');
+            
+            if (!$sourceTableName || !$destTableName) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Source and destination table names are required'
+                ], 400);
+            }
+            
+            // Get paid status ID
+            $paidStatus = DB::table('statuses')->where('status_name', 'Paid')->first();
+            $paidStatusId = $paidStatus ? $paidStatus->status_id : 10;
+            
+            // Get active orders for source table (not paid)
+            $sourceOrders = DB::table('orders')
+                ->where('order_type', $sourceTableName)
+                ->where('status_id', '!=', $paidStatusId)
+                ->get();
+            
+            // Get active orders for destination table (not paid)
+            $destOrders = DB::table('orders')
+                ->where('order_type', $destTableName)
+                ->where('status_id', '!=', $paidStatusId)
+                ->get();
+            
+            // Get table info for notifications
+            $sourceTableInfo = DB::table('tables')->where('table_id', $sourceTableId)->first();
+            $destTableInfo = DB::table('tables')->where('table_id', $destTableId)->first();
+            $sourceTableDisplayName = $sourceTableInfo ? $sourceTableInfo->table_name : $sourceTableName;
+            $destTableDisplayName = $destTableInfo ? $destTableInfo->table_name : $destTableName;
+            
+            DB::beginTransaction();
+            
+            try {
+                // Move orders from source to destination
+                foreach ($sourceOrders as $order) {
+                    DB::table('orders')
+                        ->where('order_id', $order->order_id)
+                        ->update([
+                            'order_type' => $destTableName,
+                            'updated_at' => now()
+                        ]);
+                    
+                    // Update comment if it contains table reference
+                    if ($order->comment) {
+                        $updatedComment = str_replace($sourceTableName, $destTableName, $order->comment);
+                        DB::table('orders')
+                            ->where('order_id', $order->order_id)
+                            ->update(['comment' => $updatedComment]);
+                    }
+                }
+                
+                // Move orders from destination to source (swap)
+                foreach ($destOrders as $order) {
+                    DB::table('orders')
+                        ->where('order_id', $order->order_id)
+                        ->update([
+                            'order_type' => $sourceTableName,
+                            'updated_at' => now()
+                        ]);
+                    
+                    // Update comment if it contains table reference
+                    if ($order->comment) {
+                        $updatedComment = str_replace($destTableName, $sourceTableName, $order->comment);
+                        DB::table('orders')
+                            ->where('order_id', $order->order_id)
+                            ->update(['comment' => $updatedComment]);
+                    }
+                }
+                
+                // Create notification for table move
+                $movedCount = $sourceOrders->count();
+                $swappedCount = $destOrders->count();
+                
+                $notificationMessage = '';
+                if ($movedCount > 0 && $swappedCount > 0) {
+                    $notificationMessage = "Orders swapped: {$movedCount} order(s) moved from {$sourceTableDisplayName} to {$destTableDisplayName}, {$swappedCount} order(s) moved from {$destTableDisplayName} to {$sourceTableDisplayName}";
+                } elseif ($movedCount > 0) {
+                    $notificationMessage = "{$movedCount} order(s) moved from {$sourceTableDisplayName} to {$destTableDisplayName}";
+                } elseif ($swappedCount > 0) {
+                    $notificationMessage = "{$swappedCount} order(s) moved from {$destTableDisplayName} to {$sourceTableDisplayName}";
+                } else {
+                    $notificationMessage = "Table move completed: {$sourceTableDisplayName} ↔ {$destTableDisplayName}";
+                }
+                
+                // Get current user for notification
+                $userId = auth('admin')->id() ?? null;
+                
+                // Create notification
+                $notificationId = DB::table('notifications')->insertGetId([
+                    'type' => 'table_move',
+                    'title' => "Table Move: {$sourceTableDisplayName} → {$destTableDisplayName}",
+                    'message' => $notificationMessage,
+                    'table_id' => $destTableId,
+                    'table_name' => $destTableDisplayName,
+                    'payload' => json_encode([
+                        'source_table_name' => $sourceTableDisplayName,
+                        'source_table_id' => $sourceTableId,
+                        'dest_table_name' => $destTableDisplayName,
+                        'dest_table_id' => $destTableId,
+                        'moved_orders_count' => $movedCount,
+                        'swapped_orders_count' => $swappedCount,
+                        'moved_by' => $userId,
+                        'timestamp' => now()->toISOString()
+                    ], JSON_UNESCAPED_UNICODE),
+                    'status' => 'new',
+                    'priority' => 'medium',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                DB::commit();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => $notificationMessage,
+                    'moved_count' => $movedCount,
+                    'swapped_count' => $swappedCount,
+                    'notification_id' => $notificationId
+                ]);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Move table error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to move orders: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
     Route::post('/orders/save-table-layout', function (Request $request) {
         try {
             $layout = $request->input('layout');

@@ -79,7 +79,8 @@ class Notifications_model extends Model
             'order_status' => 'shopping-cart',
             'payment_issue' => 'alert-circle',
             'system_alert' => 'info',
-            'stock_out' => 'package'
+            'stock_out' => 'package',
+            'table_move' => 'exchange-alt'
         ];
         
         return $icons[$this->type] ?? 'bell';

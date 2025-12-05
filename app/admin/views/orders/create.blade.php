@@ -352,6 +352,9 @@
                 <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-edit"></i> Edit Layout
                 </button>
+                <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
+                    <i class="fa fa-exchange-alt"></i> Move Table
+                </button>
             </div>
             <div id="selected-table-info" class="selected-table-info" style="display: none;">
                 <span class="badge badge-primary"><span>Table&nbsp;</span><span id="current-table-name"></span><span>&nbsp;-&nbsp;</span><span id="table-status-badge-text">Available</span></span>
@@ -1901,6 +1904,153 @@ body, html {
     border-color: rgb(201, 210, 227) !important;
     color: rgb(32, 41, 56) !important;
     box-shadow: none !important;
+}
+
+/* Move Table Button Styles - Match Edit Layout Button */
+#move-table-btn {
+    padding: 0.55rem 1.75rem !important;
+    font-size: 14px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    background: rgb(241, 244, 251) !important;
+    border: 1px solid rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: none !important;
+    line-height: 1.3 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#move-table-btn:hover {
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.15) !important;
+    transform: scale(1.05) !important;
+}
+
+#move-table-btn.active {
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.15) !important;
+    transform: scale(1.05) !important;
+}
+
+#move-table-btn.active:hover {
+    background: rgb(241, 244, 251) !important;
+    border-color: rgb(201, 210, 227) !important;
+    color: rgb(32, 41, 56) !important;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.15) !important;
+    transform: scale(1.05) !important;
+}
+
+#move-table-btn .fa {
+    margin-right: 6px;
+}
+
+/* Move Mode Styles - Preserve Icons, Add Shadow Effects */
+.table-grid.move-mode {
+    cursor: crosshair;
+}
+
+.table-item.move-source {
+    /* Keep all existing styles, just add shadow effect */
+}
+
+.table-item.move-source .table-circle {
+    /* Add blue shadow effect while preserving icon */
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.6), 0 0 40px rgba(0, 123, 255, 0.4) !important;
+    border: 3px solid rgba(0, 123, 255, 0.8) !important;
+    animation: pulse-shadow-blue 1.5s ease-in-out infinite;
+}
+
+.table-item.move-source .table-circle .table-number,
+.table-item.move-source .table-circle .table-capacity,
+.table-item.move-source .table-circle i,
+.table-item.move-source .table-circle .menu-link-icon,
+.table-item.move-source .table-circle .unavailable-icon {
+    /* Ensure icons remain visible */
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+.table-item.move-target {
+    /* Keep all existing styles, just add shadow effect */
+}
+
+.table-item.move-target .table-circle {
+    /* Add green shadow effect while preserving icon */
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.6), 0 0 40px rgba(40, 167, 69, 0.4) !important;
+    border: 3px solid rgba(40, 167, 69, 0.8) !important;
+    animation: pulse-shadow-green 1.5s ease-in-out infinite;
+}
+
+.table-item.move-target .table-circle .table-number,
+.table-item.move-target .table-circle .table-capacity,
+.table-item.move-target .table-circle i,
+.table-item.move-target .table-circle .menu-link-icon,
+.table-item.move-target .table-circle .unavailable-icon {
+    /* Ensure icons remain visible */
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+@keyframes pulse-shadow-blue {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 123, 255, 0.6), 0 0 40px rgba(0, 123, 255, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(0, 123, 255, 0.8), 0 0 50px rgba(0, 123, 255, 0.6);
+    }
+}
+
+@keyframes pulse-shadow-green {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.6), 0 0 40px rgba(40, 167, 69, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(40, 167, 69, 0.8), 0 0 50px rgba(40, 167, 69, 0.6);
+    }
+}
+
+/* Move instruction overlay */
+.move-instruction {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 12px;
+    z-index: 10000;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: none;
+}
+
+.move-instruction.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
 .table-grid-container {
@@ -4512,6 +4662,11 @@ document.addEventListener("DOMContentLoaded", function () {
             event.preventDefault(); // Prevent any default behavior
             event.stopPropagation(); // Stop event bubbling
             
+            // Check if move mode is active - handled by move mode handler
+            if (isMoveMode) {
+                return; // Move mode handler will process this
+            }
+            
             if (isEditMode) {
                 console.log('Edit mode active, ignoring table click');
                 return; // Don't select tables in edit mode
@@ -4582,6 +4737,185 @@ document.addEventListener("DOMContentLoaded", function () {
             saveLayout();
         }
     });
+
+    // Move Table Mode
+    let isMoveMode = false;
+    let moveSourceTable = null;
+    const moveTableBtn = document.getElementById('move-table-btn');
+    const moveInstruction = document.createElement('div');
+    moveInstruction.className = 'move-instruction';
+    moveInstruction.id = 'move-instruction';
+    document.body.appendChild(moveInstruction);
+
+    moveTableBtn.addEventListener("click", function () {
+        isMoveMode = !isMoveMode;
+        
+        if (isMoveMode) {
+            // Enter move mode
+            this.classList.add("active");
+            this.innerHTML = '<i class="fa fa-times"></i> Cancel Move';
+            tableGrid.classList.add("move-mode");
+            moveSourceTable = null;
+            
+            // Show instruction
+            moveInstruction.textContent = 'Click on source table (table with order)';
+            moveInstruction.classList.add('show');
+            
+            // Disable edit mode if active
+            if (isEditMode) {
+                editLayoutBtn.click();
+            }
+        } else {
+            // Exit move mode
+            this.classList.remove("active");
+            this.innerHTML = '<i class="fa fa-exchange-alt"></i> Move Table';
+            tableGrid.classList.remove("move-mode");
+            
+            // Clear selections
+            tableItems.forEach(item => {
+                item.classList.remove("move-source", "move-target");
+            });
+            
+            moveSourceTable = null;
+            moveInstruction.classList.remove("show");
+        }
+    });
+
+    // Handle table clicks in move mode (use capture phase to run before normal handlers)
+    tableItems.forEach(item => {
+        item.addEventListener("click", function (event) {
+            if (!isMoveMode) {
+                return; // Let normal click handler work
+            }
+            
+            // Stop event from reaching normal handler
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            
+            // Skip cashier
+            if (this.classList.contains('cashier-option')) {
+                return;
+            }
+            
+            const tableName = this.dataset.value.split('_')[0];
+            const tableId = this.dataset.tableId;
+            
+            if (!moveSourceTable) {
+                // First click: Select source table
+                moveSourceTable = {
+                    element: this,
+                    tableName: tableName,
+                    tableId: tableId
+                };
+                
+                // Visual feedback
+                tableItems.forEach(i => i.classList.remove("move-source", "move-target"));
+                this.classList.add("move-source");
+                
+                // Update instruction
+                moveInstruction.textContent = `Source: ${tableName} selected. Click on destination table.`;
+            } else {
+                // Second click: Select destination table
+                if (this === moveSourceTable.element) {
+                    // Clicked same table, cancel selection
+                    this.classList.remove("move-source");
+                    moveSourceTable = null;
+                    moveInstruction.textContent = 'Click on source table (table with order)';
+                    return;
+                }
+                
+                const destTableName = tableName;
+                const destTableId = tableId;
+                
+                // Visual feedback
+                this.classList.add("move-target");
+                
+                // Confirm and execute move
+                const confirmMessage = `Move order from ${moveSourceTable.tableName} to ${destTableName}?`;
+                if (confirm(confirmMessage)) {
+                    moveOrderBetweenTables(
+                        moveSourceTable.tableName,
+                        moveSourceTable.tableId,
+                        destTableName,
+                        destTableId
+                    );
+                } else {
+                    // User cancelled, reset visual feedback
+                    this.classList.remove("move-target");
+                }
+            }
+        }, true); // Use capture phase to run before normal handlers
+    });
+
+    // Function to move order between tables
+    function moveOrderBetweenTables(sourceTableName, sourceTableId, destTableName, destTableId) {
+        // Use TastyIgniter's AJAX handler system
+        const formData = new FormData();
+        formData.append('_handler', 'create_onMoveTable');
+        formData.append('source_table_name', sourceTableName);
+        formData.append('source_table_id', sourceTableId);
+        formData.append('dest_table_name', destTableName);
+        formData.append('dest_table_id', destTableId);
+        
+        // Use TastyIgniter's request system if available, otherwise fallback to fetch
+        if (typeof $.request !== 'undefined') {
+            $.request('onMoveTable', {
+                data: {
+                    source_table_name: sourceTableName,
+                    source_table_id: sourceTableId,
+                    dest_table_name: destTableName,
+                    dest_table_id: destTableId
+                },
+                success: function(data) {
+                    // TastyIgniter returns data in response object
+                    const result = data.success !== undefined ? data : (data.result || data);
+                    if (result && result.success) {
+                        alert(result.message || `Order successfully moved from ${sourceTableName} to ${destTableName}!`);
+                        window.location.reload();
+                    } else {
+                        alert(result && result.message ? result.message : 'Failed to move order. Please try again.');
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Move order error:', textStatus, errorThrown, jqXHR);
+                    let errorMsg = 'An error occurred while moving the order. Please try again.';
+                    if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                        errorMsg = jqXHR.responseJSON.message;
+                    }
+                    alert(errorMsg);
+                }
+            });
+        } else {
+            // Fallback to fetch if TastyIgniter request system not available
+            fetch('/admin/orders/create', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-IGNITER-REQUEST-HANDLER': 'onMoveTable'
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || `Order successfully moved from ${sourceTableName} to ${destTableName}!`);
+                    window.location.reload();
+                } else {
+                    alert(`Error: ${data.message || 'Failed to move order'}`);
+                }
+            })
+            .catch(error => {
+                console.error('Move order error:', error);
+                alert('An error occurred while moving the order: ' + error.message + '. Please try again.');
+            });
+        }
+    }
 
     // Enable free positioning drag and drop for tables
     function enableTableDragging() {
