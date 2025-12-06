@@ -128,6 +128,9 @@
     } else if (item.type === 'table_note') {
       // For table notes: show "TABLE X • Note"
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Note</span>`;
+    } else if (item.type === 'staff_note') {
+      // For staff notes: show just "TABLE X" (note text will be in body)
+      tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
     } else if (item.type === 'waiter_call') {
       // For waiter calls: show "TABLE X • Waiter Call"
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Waiter Call</span>`;
@@ -150,6 +153,21 @@
       // Show the note content in dropdown (full text)
       const noteContent = payload.note || '(no note text)';
       text = noteContent;
+    } else if (item.type === 'staff_note') {
+      // Show the note content in dropdown with "Staff Note: " prefix
+      // Try multiple sources for the note text
+      let noteContent = '';
+      if (payload && payload.note) {
+        noteContent = payload.note;
+      } else if (item.message) {
+        noteContent = item.message;
+      } else if (item.title && item.title.includes('Staff Note')) {
+        // If title exists but no payload note, try to extract from title or use empty
+        noteContent = '(no note text)';
+      } else {
+        noteContent = '(no note text)';
+      }
+      text = 'Staff Note: ' + noteContent;
     } else if (item.type === 'valet_request') {
       const name = payload.name || '';
       const plate = payload.license_plate || '';

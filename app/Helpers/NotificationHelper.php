@@ -395,6 +395,73 @@ class NotificationHelper
     }
 
     /**
+     * Create staff note notification for orders
+     *
+     * @param array $data
+     * @return int|null
+     */
+    public static function createStaffNoteNotification($data)
+    {
+        try {
+            self::ensureTenantDatabase();
+            
+            $orderId = $data['order_id'] ?? '';
+            $tableId = $data['table_id'] ?? '';
+            
+            // Build proper table name with fallback
+            if (!empty($data['table_name'])) {
+                $tableName = $data['table_name'];
+            } elseif (!empty($tableId)) {
+                // Try to look up the table name from the tables table
+                $tableData = DB::table('tables')->where('table_id', $tableId)->first();
+                if ($tableData && !empty($tableData->table_name)) {
+                    $tableName = $tableData->table_name;
+                } else {
+                    // Fallback to "Table X" format
+                    $tableName = "Table {$tableId}";
+                }
+            } else {
+                $tableName = ''; // Will be handled by frontend
+            }
+            
+            $payload = [
+                'order_id' => $orderId,
+                'note' => $data['note'] ?? '',
+                'timestamp' => now()->toIso8601String()
+            ];
+
+            $title = $tableName ? "Staff Note - {$tableName}" : "Staff Note";
+
+            $notificationId = DB::table('notifications')->insertGetId([
+                'type' => 'staff_note',
+                'title' => $title,
+                'table_id' => $tableId,
+                'table_name' => $tableName,
+                'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+                'status' => 'new',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            Log::info('Staff note notification created', [
+                'notification_id' => $notificationId,
+                'order_id' => $orderId,
+                'table_id' => $tableId
+            ]);
+
+            return $notificationId;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create staff note notification', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Get notification counts for tenant
      *
      * @param int $tenantId

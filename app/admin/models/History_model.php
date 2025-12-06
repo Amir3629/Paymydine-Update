@@ -33,6 +33,20 @@ class History_model extends Model
                 $full = $note !== '' ? $note : 'Table Note';
                 break;
 
+            case 'staff_note':
+                // For staff notes: show "Staff Note: [note text]"
+                $note = trim((string)($p['note'] ?? ''));
+                $orderId = $p['order_id'] ?? '';
+                
+                if ($note !== '') {
+                    // Show the note text with Staff Note prefix
+                    $full = 'Staff Note: ' . $note;
+                } else {
+                    // Fallback if note is empty
+                    $full = $orderId ? "Staff Note for Order #{$orderId}" : 'Staff Note';
+                }
+                break;
+
             case 'valet_request':
                 $name  = trim((string)($p['name'] ?? ''));
                 $plate = trim((string)($p['license_plate'] ?? ''));

@@ -54,7 +54,6 @@ class StockOut extends BaseBulkActionWidget
             // Create notification for stock-out/stock-in action
             try {
                 $action = ($stockOutAction === 'mark') ? 'stock_out' : 'stock_in';
-                $menuItemsArray = $records->toArray();
                 
                 // Convert to objects for notification helper
                 $menuItems = [];
@@ -65,16 +64,38 @@ class StockOut extends BaseBulkActionWidget
                     ];
                 }
                 
-                NotificationHelper::createStockOutNotification([
+                Log::info('StockOut widget: Attempting to create notification', [
+                    'action' => $action,
+                    'count' => $count,
+                    'menu_items_count' => count($menuItems),
+                    'menu_names' => array_map(function($item) { return $item->menu_name; }, $menuItems)
+                ]);
+                
+                $notificationId = NotificationHelper::createStockOutNotification([
                     'action' => $action,
                     'menu_items' => $menuItems
                 ]);
+                
+                if ($notificationId) {
+                    Log::info('StockOut widget: Notification created successfully', [
+                        'notification_id' => $notificationId,
+                        'action' => $action
+                    ]);
+                } else {
+                    Log::warning('StockOut widget: Notification creation returned null', [
+                        'action' => $action,
+                        'count' => $count
+                    ]);
+                }
             } catch (\Exception $e) {
                 // Log error but don't fail the bulk action
-                Log::warning('Failed to create stock-out notification', [
+                Log::error('StockOut widget: Failed to create stock-out notification', [
                     'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
                     'action' => $stockOutAction,
-                    'count' => $count
+                    'count' => $count,
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
                 ]);
             }
 

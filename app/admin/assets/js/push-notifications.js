@@ -283,6 +283,18 @@ class PushNotificationManager {
                 // For table note: just show "Note" without content in push notification
                 title = '';  // No title, just time
                 message = tableName + ' • Note';
+            } else if (notif.type === 'staff_note') {
+                // For staff note (order notes): Title = "Order #X", Message = "TABLE Y • Staff Note"
+                const staffNoteOrderId = payload.order_id || notif.order_id;
+                title = staffNoteOrderId ? `Order #${staffNoteOrderId}` : '';
+                message = tableName + ' • Staff Note';
+                
+                console.log('📝 Staff Note notification:', {
+                    orderId: staffNoteOrderId,
+                    tableName: tableName,
+                    title: title,
+                    message: message
+                });
             } else if (notif.type === 'table_move') {
                 // For table move: extract source and destination from payload and format as "Table X move to Table Y"
                 title = '';  // No title, just time
@@ -312,9 +324,20 @@ class PushNotificationManager {
                 type = 'reservation';
             } else if (text.includes('alert') || text.includes('urgent') || text.includes('canceled')) {
                 type = 'alert';
+            } else if (notif.type === 'staff_note' || text.includes('staff note')) {
+                // Staff notes use order type styling
+                type = 'order';
             }
             
             // Show the push notification
+            console.log('🔔 Showing push notification:', {
+                notifId: notifId,
+                type: notif.type,
+                title: title,
+                message: message,
+                notificationType: type
+            });
+            
             this.show({
                 title: title,
                 message: message || 'New notification',

@@ -94,6 +94,7 @@ class Orders_model extends Model
         ],
         'hasMany' => [
             'payment_logs' => 'Admin\Models\Payment_logs_model',
+            'order_notes' => 'Admin\Models\Order_notes_model',
         ],
     ];
 

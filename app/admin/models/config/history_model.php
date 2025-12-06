@@ -44,6 +44,7 @@ $config['list']['filter'] = [
                 'order_status'  => 'Order Status',
                 'waiter_call'   => 'Waiter Call',
                 'table_note'    => 'Table Note',
+                'staff_note'    => 'Staff Note',
                 'valet_request' => 'Valet Request',
             ],
         ],

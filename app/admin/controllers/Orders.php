@@ -7,6 +7,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Models\Orders_model;
 use Admin\Models\Statuses_model;
 use Admin\Models\Payments_model;
+use Admin\Models\Order_notes_model;
 use Igniter\Flame\Exception\ApplicationException;
 use App\Helpers\NotificationHelper;
 use Illuminate\Support\Facades\Mail;
@@ -442,6 +443,9 @@ class Orders extends \Admin\Classes\AdminController
             'status_history' => function ($q) {
                 $q->orderBy('created_at', 'desc');
             },
+            'order_notes' => function ($q) {
+                $q->orderBy('created_at', 'desc');
+            },
         ]);
     }
 
@@ -655,4 +659,74 @@ class Orders extends \Admin\Classes\AdminController
         }
     }
 
+    /**
+     * Add a note to an order
+     */
+    public function edit_onAddOrderNote($context, $recordId = null)
+    {
+        $order = $this->formFindModelObject($recordId);
+        $noteText = post('note');
+
+        if (empty($noteText)) {
+            flash()->error('Note cannot be empty')->now();
+            return ['#notification' => $this->makePartial('flash')];
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Create the note
+            $note = new Order_notes_model();
+            $note->order_id = $order->order_id;
+            $note->staff_id = $this->getUser() ? $this->getUser()->staff_id : null;
+            $note->note = $noteText;
+            $note->status = 'active';
+            $note->save();
+
+            // Create notification for staff note
+            try {
+                $notificationData = [
+                    'tenant_id' => $order->location_id ?? 1,
+                    'order_id' => $order->order_id,
+                    'table_id' => $order->table_id,
+                    'note' => $noteText,
+                    'message' => 'Staff note added',
+                    'priority' => 'low'
+                ];
+                
+                // Use the order's order_type_name attribute if available
+                if (!empty($order->order_type_name)) {
+                    $notificationData['table_name'] = $order->order_type_name;
+                }
+                
+                NotificationHelper::createStaffNoteNotification($notificationData);
+            } catch (\Exception $e) {
+                // Log notification error but don't fail the note creation
+                \Log::warning('Failed to create staff note notification', [
+                    'order_id' => $order->order_id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            DB::commit();
+
+            flash()->success('Note added successfully!')->now();
+            return [
+                '#notification' => $this->makePartial('flash'),
+                'success' => true
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to add order note', [
+                'order_id' => $order->order_id,
+                'error' => $e->getMessage()
+            ]);
+
+            flash()->error('Failed to add note: ' . $e->getMessage())->now();
+            return ['#notification' => $this->makePartial('flash')];
+        }
+    }
+
 }
+

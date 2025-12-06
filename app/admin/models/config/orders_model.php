@@ -289,6 +289,23 @@ $config['form']['tabs'] = [
                 ],
             ],
         ],
+        'order_notes' => [
+            'tab' => 'lang:admin::lang.orders.text_note_history',
+            'type' => 'datatable',
+            'useAjax' => true,
+            'defaultSort' => ['created_at', 'desc'],
+            'columns' => [
+                'date_added_since' => [
+                    'title' => 'lang:admin::lang.orders.column_time_date',
+                ],
+                'note' => [
+                    'title' => 'lang:admin::lang.orders.column_note',
+                ],
+                'staff_name' => [
+                    'title' => 'lang:admin::lang.orders.column_staff',
+                ],
+            ],
+        ],
     ],
 ];
 
