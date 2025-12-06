@@ -413,7 +413,15 @@ class ServiceProvider extends AppServiceProvider
                     'class' => 'marketing',
                     'icon' => 'fa-bullseye',
                     'title' => lang('admin::lang.side_menu.marketing'),
-                    'child' => [],
+                    'child' => [
+                        'coupons' => [
+                            'priority' => 10,
+                            'class' => 'coupons',
+                            'href' => admin_url('coupons'),
+                            'title' => 'Coupons & Gift Cards',
+                            'permission' => 'Admin',
+                        ],
+                    ],
                 ],
                 'design' => [
                     'priority' => 200,
