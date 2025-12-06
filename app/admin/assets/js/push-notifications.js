@@ -295,6 +295,12 @@ class PushNotificationManager {
                     title: title,
                     message: message
                 });
+            } else if (notif.type === 'general_staff_note') {
+                // For general staff note: Title = "General Note", Message = "Staff Name • Note preview"
+                const staffName = payload.staff_name || 'Staff';
+                const notePreview = payload.note ? (payload.note.length > 50 ? payload.note.substring(0, 50) + '...' : payload.note) : 'Note';
+                title = 'Note';
+                message = staffName + ' • ' + notePreview;
             } else if (notif.type === 'table_move') {
                 // For table move: extract source and destination from payload and format as "Table X move to Table Y"
                 title = '';  // No title, just time
@@ -326,6 +332,9 @@ class PushNotificationManager {
                 type = 'alert';
             } else if (notif.type === 'staff_note' || text.includes('staff note')) {
                 // Staff notes use order type styling
+                type = 'order';
+            } else if (notif.type === 'general_staff_note' || text.includes('general note')) {
+                // General staff notes use order type styling
                 type = 'order';
             }
             

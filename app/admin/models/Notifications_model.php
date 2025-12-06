@@ -76,6 +76,7 @@ class Notifications_model extends Model
             'valet_request' => 'car',
             'table_note' => 'note',
             'staff_note' => 'sticky-note',
+            'general_staff_note' => 'sticky-note',
             'order_ready' => 'check-circle',
             'order_status' => 'shopping-cart',
             'payment_issue' => 'alert-circle',

@@ -1272,6 +1272,7 @@ Route::group([
         Route::get('/', [\Admin\Controllers\NotificationsApi::class, 'index']);
         Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);
         Route::patch('mark-all-seen', [\Admin\Controllers\NotificationsApi::class, 'markAllSeen']);
+        Route::post('general-staff-note', [\Admin\Controllers\NotificationsApi::class, 'createGeneralStaffNote']);
     });
 
 }); // Close App::before function
@@ -1282,6 +1283,7 @@ Route::middleware(['web'])->prefix('admin/notifications-api')->group(function ()
     Route::get('/', [\Admin\Controllers\NotificationsApi::class, 'index']);
     Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);
     Route::patch('mark-all-seen', [\Admin\Controllers\NotificationsApi::class, 'markAllSeen']);
+    Route::post('general-staff-note', [\Admin\Controllers\NotificationsApi::class, 'createGeneralStaffNote']);
 });
 
 Route::middleware(['web'])->prefix('admin/webhook/pos')->group(function () {

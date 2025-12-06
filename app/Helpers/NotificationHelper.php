@@ -462,6 +462,91 @@ class NotificationHelper
     }
 
     /**
+     * Create general staff note notification (not tied to order or table)
+     *
+     * @param array $data
+     * @return int|null
+     */
+    public static function createGeneralStaffNoteNotification($data)
+    {
+        try {
+            self::ensureTenantDatabase();
+            
+            $staffId = $data['staff_id'] ?? null;
+            $note = $data['note'] ?? '';
+            
+            // Get staff name if available
+            $staffName = 'Staff';
+            if ($staffId) {
+                try {
+                    $staff = DB::table('staffs')->where('staff_id', $staffId)->first();
+                    if ($staff && !empty($staff->staff_name)) {
+                        $staffName = $staff->staff_name;
+                    }
+                } catch (\Exception $e) {
+                    // Ignore if staff lookup fails
+                }
+            }
+            
+            $payload = [
+                'staff_id' => $staffId,
+                'staff_name' => $staffName,
+                'note' => $note,
+                'timestamp' => now()->toIso8601String()
+            ];
+
+            $title = "General Staff Note from {$staffName}";
+
+            // Build insert data - match production table structure (ti_notifications)
+            // Production table has: id, type, title, table_id, table_name, payload, status, created_at, updated_at
+            // No message, priority, or tenant_id columns in production
+            $insertData = [
+                'type' => 'general_staff_note',
+                'title' => $title,
+                'table_id' => null, // General notes don't have table_id
+                'table_name' => null,
+                'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+                'status' => 'new',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            
+            // Try to insert into notifications table (Laravel will add ti_ prefix if configured)
+            // If that fails, try ti_notifications directly
+            try {
+                $notificationId = DB::table('notifications')->insertGetId($insertData);
+            } catch (\Exception $e) {
+                // If failed, try with ti_ prefix
+                try {
+                    $notificationId = DB::table('ti_notifications')->insertGetId($insertData);
+                } catch (\Exception $e2) {
+                    // Log and re-throw
+                    Log::error('Failed to insert notification into both notifications and ti_notifications', [
+                        'error1' => $e->getMessage(),
+                        'error2' => $e2->getMessage()
+                    ]);
+                    throw $e2;
+                }
+            }
+            
+            Log::info('General staff note notification created', [
+                'notification_id' => $notificationId,
+                'staff_id' => $staffId
+            ]);
+
+            return $notificationId;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create general staff note notification', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Get notification counts for tenant
      *
      * @param int $tenantId

@@ -104,6 +104,9 @@
     if (item.type === 'order_status') {
       const orderId = payload.order_id || 'Unknown Order';
       metaDiv.textContent = `${time} • Order #${orderId}`;
+    } else if (item.type === 'general_staff_note') {
+      // For general staff notes: just show time
+      metaDiv.textContent = time;
     } else {
       // For all other types: just show time without bullet
       metaDiv.textContent = time;
@@ -131,6 +134,10 @@
     } else if (item.type === 'staff_note') {
       // For staff notes: show just "TABLE X" (note text will be in body)
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
+    } else if (item.type === 'general_staff_note') {
+      // For general staff notes: show "General Note" label
+      const staffName = payload.staff_name || 'Staff';
+      tableDiv.innerHTML = `<strong style="color: #000000; font-weight: 600;">Note</strong> • <span style="color: #6c757d; font-weight: 500;">${escapeHtml(staffName)}</span>`;
     } else if (item.type === 'waiter_call') {
       // For waiter calls: show "TABLE X • Waiter Call"
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Waiter Call</span>`;
@@ -168,6 +175,17 @@
         noteContent = '(no note text)';
       }
       text = 'Staff Note: ' + noteContent;
+    } else if (item.type === 'general_staff_note') {
+      // For general staff notes: show the note content directly
+      let noteContent = '';
+      if (payload && payload.note) {
+        noteContent = payload.note;
+      } else if (item.message) {
+        noteContent = item.message;
+      } else {
+        noteContent = '(no note text)';
+      }
+      text = noteContent;
     } else if (item.type === 'valet_request') {
       const name = payload.name || '';
       const plate = payload.license_plate || '';
