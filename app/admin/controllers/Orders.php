@@ -532,9 +532,42 @@ class Orders extends \Admin\Classes\AdminController
                 ];
             }
 
-            // Update quantity and subtotal
+            // Update quantity and subtotal (including option prices)
             $price = (float)$orderMenu->price;
-            $newSubtotal = $price * $quantity;
+            $baseSubtotal = $price * $quantity;
+            
+            // Calculate option prices for this item
+            // Option prices are stored per option, so we need to scale them by the new item quantity
+            $originalItemQty = (int)$orderMenu->quantity;
+            $optionTotal = 0;
+            
+            // Get all options for this menu item
+            $options = DB::table('order_menu_options')
+                ->where('order_menu_id', $orderMenuId)
+                ->where('order_id', $order->order_id)
+                ->get();
+            
+            if ($options->count() > 0 && $originalItemQty > 0) {
+                // Calculate option price per item, then multiply by new quantity
+                $totalOptionPrice = $options->sum(function($option) {
+                    return (float)$option->order_option_price * (int)$option->quantity;
+                });
+                
+                $optionPricePerItem = $totalOptionPrice / $originalItemQty;
+                $optionTotal = $optionPricePerItem * $quantity;
+                
+                // Update option quantities proportionally
+                foreach ($options as $option) {
+                    $newOptionQty = (int)round(((int)$option->quantity / $originalItemQty) * $quantity);
+                    if ($newOptionQty < 1) $newOptionQty = 1; // Ensure at least 1 if option existed
+                    
+                    DB::table('order_menu_options')
+                        ->where('order_menu_option_id', $option->order_menu_option_id)
+                        ->update(['quantity' => $newOptionQty]);
+                }
+            }
+            
+            $newSubtotal = $baseSubtotal + (float)$optionTotal;
 
             DB::table('order_menus')
                 ->where('order_menu_id', $orderMenuId)

@@ -204,9 +204,11 @@ trait ManagesOrderItems
             ->where('order_id', $this->getKey())
             ->sum('subtotal');
 
+        // Sum only tax, tip, coupon, and other fees (exclude subtotal to avoid double-counting)
         $total = $this->orderTotalsQuery()
             ->where('order_id', $this->getKey())
             ->where('is_summable', true)
+            ->where('code', '!=', 'subtotal')  // Exclude subtotal from sum
             ->sum('value');
 
         $orderTotal = max(0, $subtotal + $total);

@@ -46,9 +46,9 @@
                     <button id="notif-note-btn" class="btn btn-light btn-sm" type="button" title="Add General Staff Note">
                       {{ __('Note') }}
                     </button>
-                    <a id="notif-history-link" class="btn btn-light btn-sm" href="{{ url('/admin/history') }}">
-                      {{ __('History') }}
-                    </a>
+                  <a id="notif-history-link" class="btn btn-light btn-sm" href="{{ url('/admin/history') }}">
+                    {{ __('History') }}
+                  </a>
                   </div>
                 </div>
 
