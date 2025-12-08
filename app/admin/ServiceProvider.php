@@ -488,6 +488,13 @@ class ServiceProvider extends AppServiceProvider
                     'icon' => 'fa-wrench',
                     'title' => lang('admin::lang.side_menu.tool'),
                     'child' => [
+                        'kitchen_display' => [
+                            'priority' => 5,
+                            'class' => 'kitchen_display',
+                            'href' => admin_url('kitchendisplay'),
+                            'title' => 'Kitchen Display',
+                            'permission' => 'Admin.KitchenDisplay',
+                        ],
                         'media_manager' => [
                             'priority' => 10,
                             'class' => 'media_manager',
@@ -713,6 +720,9 @@ class ServiceProvider extends AppServiceProvider
                 ],
                 'Admin.AssignOrders' => [
                     'label' => 'admin::lang.permissions.assign_orders', 'group' => 'admin::lang.permissions.name',
+                ],
+                'Admin.KitchenDisplay' => [
+                    'label' => 'Kitchen Display System', 'group' => 'admin::lang.permissions.name',
                 ],
                 'Admin.Reservations' => [
                     'label' => 'admin::lang.permissions.reservations', 'group' => 'admin::lang.permissions.name',
