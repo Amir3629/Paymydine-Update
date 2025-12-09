@@ -736,6 +736,7 @@ Route::group([
             return response()->json([
                 'site_name' => $settings['site_name']->value ?? 'PayMyDine',
                 'site_logo' => $settings['site_logo']->value ?? '',
+                'favicon_logo' => $settings['favicon_logo']->value ?? '',
                 'default_currency' => $settings['default_currency']->value ?? 'USD',
                 'default_language' => $settings['default_language']->value ?? 'en',
                 'order_prefix' => $settings['invoice_prefix']->value ?? '#',

@@ -65,6 +65,9 @@ App::before(function () {
     Route::group([
         'middleware' => ['web'],
     ], function () {
+        // Load Gift Card routes
+        require __DIR__ . '/routes_gift_cards.php';
+        
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 

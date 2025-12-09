@@ -67,14 +67,6 @@
             logoElement.setAttribute("src", imagePath);
         }
     });
-    document.addEventListener("DOMContentLoaded", function () {
-                    let imgElementDash = document.querySelector("#mediafinder-formloaderlogo-loader-logo img");
-                    let logoElementDash = document.querySelector(".progress-indicator img");
-                    if (imgElementDash && logoElementDash) {
-                        let imagePathDash = imgElement.getAttribute("src");
-                        logoElement.setAttribute("src", imagePathDash);
-                    }
-                });
             </script>
 <body class="page {{ $this->bodyClass }}">
 @if(AdminAuth::isLogged())

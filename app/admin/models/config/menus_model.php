@@ -77,12 +77,12 @@ $config['list']['bulkActions'] = [
         'stockOutColumn' => 'is_stock_out',
         'menuItems' => [
             'mark' => [
-                'label' => 'Mark as Stock Out',
+                'label' => 'Stock Out',
                 'type' => 'button',
                 'class' => 'dropdown-item text-warning',
             ],
             'restore' => [
-                'label' => 'Restore to In Stock',
+                'label' => 'Stock In',
                 'type' => 'button',
                 'class' => 'dropdown-item text-success',
             ],
