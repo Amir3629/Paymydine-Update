@@ -4,6 +4,7 @@ namespace Admin\Models;
 
 use Admin\Traits\Locationable;
 use Igniter\Flame\Database\Model;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Order Notes Model Class
@@ -49,6 +50,54 @@ class Order_notes_model extends Model
             'staff' => ['Admin\Models\Staffs_model', 'foreignKey' => 'staff_id'],
         ],
     ];
+    
+    /**
+     * Get location through order relationship
+     * This is required by the Locationable trait
+     * Order notes don't have a direct location_id, so we get it through the order
+     * Note: This is a placeholder relationship for trait compatibility
+     * The actual location filtering is handled in applyLocationScope override
+     */
+    public function location()
+    {
+        // Return a belongsTo relationship for Locationable trait compatibility
+        // The actual location comes through $this->order->location
+        // Location filtering is handled in the applyLocationScope override
+        return $this->belongsTo(
+            'Admin\Models\Locations_model',
+            'order_id', // Placeholder - not actually used for queries
+            'location_id'
+        );
+    }
+    
+    /**
+     * Override applyLocationScope to handle location filtering through order
+     * This is needed because order_notes doesn't have a direct location_id column
+     */
+    protected function applyLocationScope($builder, $userLocation)
+    {
+        $locationId = is_object($userLocation)
+            ? $userLocation->getKey()
+            : $userLocation;
+
+        if (!is_array($locationId))
+            $locationId = [$locationId];
+
+        // Filter order_notes by location through the order relationship
+        // This is the actual implementation since order_notes.location_id doesn't exist
+        $builder->whereHas('order', function($query) use ($locationId) {
+            $query->whereIn('location_id', $locationId);
+        });
+    }
+    
+    /**
+     * Override locationableIsSingleRelationType to return true
+     * This tells the trait that location is a single relation (not many-to-many)
+     */
+    public function locationableIsSingleRelationType()
+    {
+        return true;
+    }
 
     /**
      * Get the time ago attribute

@@ -144,6 +144,28 @@ App::before(function () {
             }
         }
 
+        // KDS Station Routes - Must be before the catch-all route
+        Route::get('kitchendisplay/{stationSlug}', function ($stationSlug) {
+            $controller = app()->make(\Admin\Controllers\KitchenDisplay::class);
+            $controller->initialize();
+            return $controller->index($stationSlug);
+        })->where('stationSlug', '[a-z0-9\-]+');
+        
+        Route::post('kitchendisplay/{stationSlug}', function ($stationSlug) {
+            $controller = app()->make(\Admin\Controllers\KitchenDisplay::class);
+            $controller->initialize();
+            
+            // Handle AJAX requests (onRefresh, onUpdateStatus)
+            $handler = request()->post('_handler');
+            if ($handler === 'onRefresh') {
+                return $controller->index_onRefresh();
+            } elseif ($handler === 'onUpdateStatus') {
+                return $controller->index_onUpdateStatus();
+            }
+            
+            return $controller->index($stationSlug);
+        })->where('stationSlug', '[a-z0-9\-]+');
+
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 

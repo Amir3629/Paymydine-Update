@@ -50,6 +50,15 @@ return [
                 'sortable' => true,
                 'prompt' => 'Add new suggestion',
             ],
+            'kds_sound_section' => [
+                'label' => 'Kitchen Display System (KDS) Sound Settings',
+                'type' => 'section',
+                'comment' => 'Configure the notification sound that plays when new orders arrive in the Kitchen Display System.',
+            ],
+            'kds_notification_sound' => [
+                'type' => 'partial',
+                'path' => '~/app/admin/views/settings/kds_sound_selector',
+            ],
         ],
     ],
 ];

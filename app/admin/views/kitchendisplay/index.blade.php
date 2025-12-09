@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kitchen Display System - {{ $title }}</title>
+    <title>{{ $title }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --theme-color: {{ $themeColor ?? '#4CAF50' }};
+            --theme-color-light: {{ $themeColor ?? '#4CAF50' }}33;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -33,19 +38,32 @@
             border-radius: 12px;
             margin-bottom: 30px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-left: 6px solid var(--theme-color);
+        }
+        
+        .kds-header-left {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .kds-header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
         }
 
-        .kds-title {
-            font-size: 36px;
+        .kds-station-name {
+            font-size: 24px;
             font-weight: 700;
-            color: #ffffff;
+            color: var(--theme-color);
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
 
-        .kds-title i {
-            color: #4CAF50;
+        .kds-station-name i {
+            font-size: 20px;
         }
 
         .kds-clock {
@@ -53,6 +71,53 @@
             font-weight: 600;
             color: #90CAF9;
             font-variant-numeric: tabular-nums;
+        }
+
+        .mute-btn-icon {
+            background: #424242;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            transition: background 0.2s ease;
+        }
+
+        .mute-btn-icon:hover {
+            background: #525252;
+        }
+
+        .mute-btn-icon.muted {
+            background: #F44336;
+        }
+
+        .mute-btn-icon.muted:hover {
+            background: #E53935;
+        }
+
+        .mute-btn-icon i {
+            font-size: 18px;
+        }
+
+        .station-selector {
+            background: #424242;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        .station-selector:hover {
+            background: #525252;
         }
 
         .kds-stats {
@@ -86,7 +151,7 @@
             border-radius: 16px;
             padding: 25px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            border-left: 6px solid #4CAF50;
+            border-left: 6px solid var(--theme-color);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             position: relative;
         }
@@ -178,7 +243,7 @@
             padding: 18px;
             border-radius: 10px;
             margin-bottom: 15px;
-            border-left: 3px solid #4CAF50;
+            border-left: 3px solid var(--theme-color);
         }
 
         .item-header {
@@ -197,8 +262,8 @@
         .item-quantity {
             font-size: 28px;
             font-weight: 900;
-            color: #4CAF50;
-            background: #1a3a1a;
+            color: var(--theme-color);
+            background: var(--theme-color-light);
             padding: 8px 20px;
             border-radius: 8px;
             min-width: 60px;
@@ -281,9 +346,38 @@
             text-transform: uppercase;
         }
 
+        /* Cancel button should be smaller and less prominent */
+        .status-btn.status-cancel,
+        .status-btn.status-canceled {
+            flex: 0 0 auto;
+            min-width: 70px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.75;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-btn.status-cancel:hover,
+        .status-btn.status-canceled:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+        }
+
+        .status-btn.status-cancel i,
+        .status-btn.status-canceled i {
+            font-size: 10px;
+            margin-right: 4px;
+        }
+
         .status-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .status-btn.status-preparing {
+            background: #FFC107;
+            color: #1a1a1a;
         }
 
         .status-btn.status-preparation {
@@ -291,14 +385,32 @@
             color: #1a1a1a;
         }
 
-        .status-btn.status-delivery {
-            background: #4CAF50;
+        .status-btn.status-cancel {
+            background: #F44336;
             color: #ffffff;
+            font-size: 12px;
+            padding: 8px 12px;
+            min-width: 80px;
+            flex: 0 0 auto;
+        }
+
+        .status-btn.status-canceled {
+            background: #F44336;
+            color: #ffffff;
+            font-size: 12px;
+            padding: 8px 12px;
+            min-width: 80px;
+            flex: 0 0 auto;
         }
 
         .status-btn.status-completed {
             background: #2196F3;
             color: #ffffff;
+        }
+
+        .status-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .empty-state {
@@ -343,69 +455,95 @@
 
         /* Loading indicator */
         .loading-indicator {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4CAF50;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            display: none;
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
         }
 
         .loading-indicator.active {
-            display: block;
+            opacity: 1;
+        }
+        
+        .loading-indicator i {
+            font-size: 18px;
+            color: #90CAF9;
         }
 
-        /* Fullscreen button */
-        .fullscreen-btn {
+        /* Settings/Back button */
+        .settings-btn {
             background: #424242;
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
             cursor: pointer;
+            text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 10px;
-            transition: background 0.2s ease;
+            gap: 8px;
         }
 
-        .fullscreen-btn:hover {
+        .settings-btn:hover {
             background: #525252;
+            color: white;
         }
+
     </style>
 </head>
 <body>
-    <div class="loading-indicator" id="loading-indicator">
-        <i class="fas fa-sync fa-spin"></i> Refreshing...
-    </div>
 
     <div class="kds-container">
         <!-- Header -->
         <div class="kds-header">
-            <div class="kds-title">
-                <i class="fas fa-utensils"></i>
-                Kitchen Display System
-            </div>
-            <div class="kds-stats">
+            <div class="kds-header-left">
+                @if(isset($station) && $station)
+                <div class="kds-station-name">
+                    <i class="fas fa-tv"></i>
+                    {{ $station->name }}
+                </div>
+                @else
+                <div class="kds-station-name">
+                    <i class="fas fa-utensils"></i>
+                    Kitchen Display
+                </div>
+                @endif
                 <div class="kds-stat">
-                    <span>Active Orders:</span>
+                    <span>Orders:</span>
                     <span class="kds-stat-value" id="order-count">{{ count($orders) }}</span>
                 </div>
+                <div class="kds-stat">
+                    <span>Reservations:</span>
+                    <span class="kds-stat-value" id="reservations-count">{{ $reservationsCount }}</span>
+                </div>
             </div>
-            <div>
-                <button class="fullscreen-btn" onclick="toggleFullscreen()">
-                    <i class="fas fa-expand"></i>
-                    <span id="fullscreen-text">Fullscreen</span>
+            <div class="kds-header-right">
+                @if(isset($allStations) && count($allStations) > 0)
+                <select class="station-selector" id="station-selector" onchange="changeStation(this.value)">
+                    <option value="">All Stations</option>
+                    @foreach($allStations as $s)
+                    <option value="{{ $s->slug }}" {{ (isset($station) && $station && $station->slug === $s->slug) ? 'selected' : '' }}>
+                        {{ $s->name }}
+                    </option>
+                    @endforeach
+                </select>
+                @endif
+                <div class="loading-indicator" id="loading-indicator">
+                    <i class="fas fa-sync fa-spin"></i>
+                </div>
+                <button class="mute-btn-icon" id="mute-btn" onclick="toggleMute()" title="Toggle sound notifications">
+                    <i class="fas fa-volume-up" id="mute-icon"></i>
                 </button>
+                <div class="kds-clock" id="clock">--:--:--</div>
+                <a href="{{ admin_url('kds_stations') }}" class="settings-btn" title="Manage KDS Stations">
+                    <i class="fas fa-cog"></i>
+                </a>
             </div>
-            <div class="kds-clock" id="clock">--:--:--</div>
         </div>
 
         <!-- Orders Grid -->
@@ -414,7 +552,7 @@
                 <div class="empty-state" style="grid-column: 1 / -1;">
                     <i class="fas fa-check-circle"></i>
                     <h2>All Caught Up!</h2>
-                    <p>No active orders in the kitchen</p>
+                    <p>No active orders {{ isset($station) && $station ? 'for ' . $station->name : 'in the kitchen' }}</p>
                 </div>
             @else
                 @foreach($orders as $order)
@@ -487,17 +625,23 @@
                         @endif
 
                         <!-- Status Change Buttons -->
+                        @if($canChangeStatus ?? true)
                         <div class="order-status-buttons">
                             @foreach($statuses as $status)
                                 @if($status['status_id'] != $order['status_id'])
                                     <button 
                                         class="status-btn status-{{ strtolower($status['status_name']) }}"
                                         onclick="updateOrderStatus({{ $order['order_id'] }}, {{ $status['status_id'] }}, '{{ $status['status_name'] }}')">
-                                        {{ $status['status_name'] }}
+                                        @if(strtolower($status['status_name']) === 'cancel')
+                                            <i class="fas fa-times"></i> {{ $status['status_name'] }}
+                                        @else
+                                            {{ $status['status_name'] }}
+                                        @endif
                                     </button>
                                 @endif
                             @endforeach
                         </div>
+                        @endif
                     </div>
                 @endforeach
             @endif
@@ -505,6 +649,12 @@
     </div>
 
     <script>
+        // Station configuration
+        const currentStationSlug = '{{ isset($station) && $station ? $station->slug : "" }}';
+        const currentStationName = '{{ isset($station) && $station ? $station->name : "Kitchen" }}';
+        const canChangeStatus = {{ ($canChangeStatus ?? true) ? 'true' : 'false' }};
+        const refreshInterval = {{ $refreshInterval ?? 5 }} * 1000; // Convert to milliseconds
+
         // Update clock
         function updateClock() {
             const now = new Date();
@@ -549,18 +699,205 @@
             });
         }
 
+        // Sound notification management
+        let isMuted = localStorage.getItem('kds-muted') === 'true';
+        let previousOrderCount = {{ count($orders) }};
+        let previousOrderIds = new Set([@foreach($orders as $order){{ $order['order_id'] }}{{ !$loop->last ? ',' : '' }}@endforeach]);
+        let audioContext = null;
+        let audioContextInitialized = false;
+        const selectedSound = '{{ $kdsNotificationSound ?? "doorbell" }}';
+
+        // Initialize sound using Web Audio API
+        function initNotificationSound() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                audioContextInitialized = true;
+                console.log('🔊 Audio context initialized');
+            } catch (e) {
+                console.warn('⚠️ Audio context initialization failed:', e);
+                audioContextInitialized = false;
+            }
+        }
+
+        // Resume audio context if suspended
+        async function ensureAudioContext() {
+            if (!audioContext) {
+                initNotificationSound();
+            }
+            if (audioContext && audioContext.state === 'suspended') {
+                try {
+                    await audioContext.resume();
+                    console.log('🔊 Audio context resumed');
+                } catch (e) {
+                    console.warn('⚠️ Failed to resume audio context:', e);
+                }
+            }
+            return audioContext && audioContext.state === 'running';
+        }
+
+        // Helper function to play a tone
+        function playTone(freq, startTime, duration, type = 'sine', volume = 0.5) {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.frequency.value = freq;
+            osc.type = type;
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
+        // Sound Library
+        const soundLibrary = {
+            'doorbell': function(now) {
+                playTone(800, now, 0.2);
+                playTone(600, now + 0.15, 0.3);
+            },
+            'chime': function(now) {
+                playTone(523.25, now, 0.3);
+                playTone(659.25, now + 0.2, 0.3);
+                playTone(783.99, now + 0.4, 0.4);
+            },
+            'bell': function(now) {
+                playTone(880, now, 0.4, 'sine', 0.6);
+                playTone(1320, now + 0.1, 0.3, 'sine', 0.4);
+            },
+            'alert': function(now) {
+                playTone(800, now, 0.1);
+                playTone(800, now + 0.15, 0.1);
+            },
+            'notification': function(now) {
+                playTone(800, now, 0.15);
+                playTone(1000, now + 0.1, 0.2);
+            },
+            'ding': function(now) {
+                playTone(800, now, 0.3);
+            },
+            'double-beep': function(now) {
+                playTone(600, now, 0.1);
+                playTone(600, now + 0.2, 0.1);
+            },
+            'triple-beep': function(now) {
+                playTone(600, now, 0.1);
+                playTone(600, now + 0.15, 0.1);
+                playTone(600, now + 0.3, 0.1);
+            },
+            'whoosh': function(now) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            },
+            'pop': function(now) {
+                playTone(400, now, 0.05, 'square', 0.3);
+            },
+            'success': function(now) {
+                playTone(523.25, now, 0.15);
+                playTone(659.25, now + 0.15, 0.15);
+                playTone(783.99, now + 0.3, 0.2);
+            },
+            'warning': function(now) {
+                playTone(783.99, now, 0.15);
+                playTone(659.25, now + 0.15, 0.15);
+                playTone(523.25, now + 0.3, 0.2);
+            }
+        };
+
+        // Play notification sound
+        async function playNotificationSound() {
+            if (isMuted) return;
+            
+            const soundFunction = soundLibrary[selectedSound] || soundLibrary['doorbell'];
+            
+            const isReady = await ensureAudioContext();
+            if (!audioContext || !audioContextInitialized) {
+                initNotificationSound();
+                if (!audioContext) return;
+            }
+            
+            if (audioContext.state !== 'running') {
+                try {
+                    await audioContext.resume();
+                } catch (e) {
+                    return;
+                }
+            }
+            
+            try {
+                const now = audioContext.currentTime;
+                soundFunction(now);
+            } catch (e) {
+                console.error('❌ Sound notification failed:', e);
+            }
+        }
+
+        // Toggle mute/unmute
+        async function toggleMute() {
+            isMuted = !isMuted;
+            localStorage.setItem('kds-muted', isMuted);
+            updateMuteButton();
+            if (!isMuted) {
+                const isReady = await ensureAudioContext();
+                if (isReady) {
+                    setTimeout(() => {
+                        playNotificationSound().catch(e => {});
+                    }, 100);
+                }
+            }
+        }
+
+        // Update mute button appearance
+        function updateMuteButton() {
+            const btn = document.getElementById('mute-btn');
+            const icon = document.getElementById('mute-icon');
+            
+            if (isMuted) {
+                btn.classList.add('muted');
+                icon.className = 'fas fa-volume-mute';
+                btn.title = 'Sound Off - Click to unmute';
+            } else {
+                btn.classList.remove('muted');
+                icon.className = 'fas fa-volume-up';
+                btn.title = 'Sound On - Click to mute';
+            }
+        }
+
+        // Change station
+        function changeStation(stationSlug) {
+            if (stationSlug) {
+                window.location.href = '{{ admin_url("kitchendisplay") }}/' + stationSlug;
+            } else {
+                window.location.href = '{{ admin_url("kitchendisplay") }}';
+            }
+        }
+
         // Auto-refresh orders from server
         async function refreshOrders() {
             const indicator = document.getElementById('loading-indicator');
             indicator.classList.add('active');
 
             try {
-                // Use absolute URL from PHP helper (handler is passed in POST data, not URL)
                 const refreshUrl = '{{ admin_url("kitchendisplay/index") }}';
                 
-                // Create form data with handler parameter
                 const formData = new URLSearchParams();
                 formData.append('_handler', 'onRefresh');
+                if (currentStationSlug) {
+                    formData.append('station_slug', currentStationSlug);
+                }
                 
                 const response = await fetch(refreshUrl, {
                     method: 'POST',
@@ -572,7 +909,6 @@
                     body: formData.toString()
                 });
 
-                // Check if response is OK and is JSON
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -585,12 +921,31 @@
 
                 const data = await response.json();
                 
-                if (data.orders) {
+                if (data.orders && Array.isArray(data.orders)) {
+                    const currentOrderCount = data.orders.length;
+                    const currentOrderIds = new Set(data.orders.map(order => order.order_id));
+                    
+                    // Check if new orders arrived
+                    let hasNewOrders = false;
+                    currentOrderIds.forEach(orderId => {
+                        if (!previousOrderIds.has(orderId)) {
+                            hasNewOrders = true;
+                            console.log(`🆕 New order detected: #${orderId}`);
+                        }
+                    });
+                    
+                    if (hasNewOrders) {
+                        playNotificationSound().catch(e => {});
+                    }
+                    
+                    previousOrderCount = currentOrderCount;
+                    previousOrderIds = new Set(currentOrderIds);
+                    
                     updateOrdersDisplay(data.orders);
+                    document.getElementById('order-count').textContent = currentOrderCount;
                 }
             } catch (error) {
-                console.error('Failed to refresh orders:', error);
-                // Don't show alert on every refresh failure, just log it
+                console.error('❌ Failed to refresh orders:', error);
             } finally {
                 setTimeout(() => {
                     indicator.classList.remove('active');
@@ -598,10 +953,155 @@
             }
         }
 
+        // Parse date string to timestamp
+        function parseDateToTimestamp(dateString) {
+            if (typeof dateString === 'string') {
+                return Math.floor(new Date(dateString).getTime() / 1000);
+            }
+            return dateString;
+        }
+
+        // Format elapsed time
+        function formatElapsedTime(createdAtTimestamp) {
+            const timestamp = parseDateToTimestamp(createdAtTimestamp);
+            const now = Math.floor(Date.now() / 1000);
+            const elapsed = now - timestamp;
+            
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        // Get age class for order card
+        function getAgeClass(createdAtTimestamp) {
+            const timestamp = parseDateToTimestamp(createdAtTimestamp);
+            const now = Math.floor(Date.now() / 1000);
+            const elapsed = now - timestamp;
+            const minutes = Math.floor(elapsed / 60);
+            
+            if (minutes > 15) {
+                return 'age-late';
+            } else if (minutes > 5) {
+                return 'age-normal';
+            } else {
+                return 'age-new';
+            }
+        }
+
+        // Render order card HTML
+        function renderOrderCard(order, statuses) {
+            const createdAtTimestamp = parseDateToTimestamp(order.created_at);
+            const elapsedTime = formatElapsedTime(createdAtTimestamp);
+            const ageClass = getAgeClass(createdAtTimestamp);
+            const now = Math.floor(Date.now() / 1000);
+            const isLate = Math.floor((now - createdAtTimestamp) / 60) > 15;
+            
+            let itemsHtml = '';
+            order.items.forEach(item => {
+                let modifiersHtml = '';
+                if (item.modifiers && item.modifiers.length > 0) {
+                    modifiersHtml = '<div class="item-modifiers">';
+                    item.modifiers.forEach(modifier => {
+                        modifiersHtml += `
+                            <div class="item-modifier">
+                                <i class="fas fa-circle modifier-icon"></i>
+                                ${modifier.quantity > 1 ? `<strong>${modifier.quantity}×</strong>` : ''}
+                                ${modifier.name}
+                                ${modifier.category ? `<span style="color: #707070; font-size: 14px;">(${modifier.category})</span>` : ''}
+                            </div>
+                        `;
+                    });
+                    modifiersHtml += '</div>';
+                }
+                
+                const commentHtml = item.comment ? `
+                    <div class="item-comment">${item.comment}</div>
+                ` : '';
+                
+                itemsHtml += `
+                    <div class="order-item">
+                        <div class="item-header">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-quantity">${item.quantity}×</div>
+                        </div>
+                        ${modifiersHtml}
+                        ${commentHtml}
+                    </div>
+                `;
+            });
+            
+            let notesHtml = '';
+            if (order.notes && order.notes.length > 0) {
+                notesHtml = '<div class="order-notes"><div class="order-notes-title"><i class="fas fa-sticky-note"></i> Order Notes:</div>';
+                order.notes.forEach(note => {
+                    notesHtml += `<div class="order-note">${note.note}</div>`;
+                });
+                notesHtml += '</div>';
+            }
+            
+            let statusButtonsHtml = '';
+            if (canChangeStatus && statuses && Array.isArray(statuses)) {
+                statuses.forEach(status => {
+                    if (status.status_id != order.status_id) {
+                        let displayName = status.status_name;
+                        if (displayName === 'Canceled' || displayName === 'Cancelled') {
+                            displayName = 'Cancel';
+                        } else if (displayName === 'Preparation') {
+                            displayName = 'Preparing';
+                        }
+                        
+                        const statusClass = `status-${status.status_name.toLowerCase().replace(/\s+/g, '-')}`;
+                        const buttonText = status.status_name === 'Canceled' || status.status_name === 'Cancelled' 
+                            ? '<i class="fas fa-times"></i> Cancel' 
+                            : status.status_name === 'Preparation' 
+                            ? 'Preparing' 
+                            : status.status_name;
+                        statusButtonsHtml += `
+                            <button 
+                                class="status-btn ${statusClass}"
+                                onclick="updateOrderStatus(${order.order_id}, ${status.status_id}, '${status.status_name}')">
+                                ${buttonText}
+                            </button>
+                        `;
+                    }
+                });
+            }
+            
+            return `
+                <div class="order-card ${ageClass}" data-order-id="${order.order_id}">
+                    <div class="order-header">
+                        <div>
+                            <div class="order-number">#${order.order_id}</div>
+                            <div class="order-table">${order.order_type_name}</div>
+                        </div>
+                        <div class="order-time">
+                            <span class="order-time-label">Time Elapsed</span>
+                            <div class="order-elapsed ${isLate ? 'late' : ''}" data-created="${createdAtTimestamp}">
+                                ${elapsedTime}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="order-items">${itemsHtml}</div>
+                    ${notesHtml}
+                    ${statusButtonsHtml ? `<div class="order-status-buttons">${statusButtonsHtml}</div>` : ''}
+                </div>
+            `;
+        }
+
         // Update orders display with new data
         function updateOrdersDisplay(orders) {
             const grid = document.getElementById('orders-grid');
             const orderCount = document.getElementById('order-count');
+            
+            if (!grid) return;
             
             orderCount.textContent = orders.length;
 
@@ -610,18 +1110,26 @@
                     <div class="empty-state" style="grid-column: 1 / -1;">
                         <i class="fas fa-check-circle"></i>
                         <h2>All Caught Up!</h2>
-                        <p>No active orders in the kitchen</p>
+                        <p>No active orders ${currentStationName ? 'for ' + currentStationName : 'in the kitchen'}</p>
                     </div>
                 `;
                 return;
             }
 
-            // For simplicity, reload the entire page if order count changes significantly
-            // In production, you'd want to do a smart diff update
-            const currentCards = document.querySelectorAll('.order-card').length;
-            if (Math.abs(currentCards - orders.length) > 0) {
-                location.reload();
-            }
+            const statuses = @json($statuses);
+            
+            grid.innerHTML = '';
+            
+            orders.forEach((order, index) => {
+                try {
+                    const cardHtml = renderOrderCard(order, statuses);
+                    grid.insertAdjacentHTML('beforeend', cardHtml);
+                } catch (error) {
+                    console.error(`❌ Error rendering order ${order.order_id}:`, error);
+                }
+            });
+            
+            updateElapsedTimes();
         }
 
         // Update order status
@@ -631,14 +1139,14 @@
             }
 
             try {
-                // Use absolute URL from PHP helper (handler is passed in POST data, not URL)
                 const updateUrl = '{{ admin_url("kitchendisplay/index") }}';
                 
-                // Create form data with handler parameter and order data
                 const formData = new URLSearchParams();
                 formData.append('_handler', 'onUpdateStatus');
                 formData.append('order_id', orderId);
                 formData.append('status_id', statusId);
+                formData.append('station_slug', currentStationSlug);
+                formData.append('station_name', currentStationName);
                 
                 const response = await fetch(updateUrl, {
                     method: 'POST',
@@ -650,7 +1158,6 @@
                     body: formData.toString()
                 });
 
-                // Check if response is OK and is JSON
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -664,8 +1171,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Reload orders to reflect changes
-                    location.reload();
+                    // Refresh orders to reflect changes
+                    refreshOrders();
                 } else {
                     alert('Failed to update status: ' + (data.error || 'Unknown error'));
                 }
@@ -675,40 +1182,39 @@
             }
         }
 
-        // Toggle fullscreen
-        function toggleFullscreen() {
-            const elem = document.documentElement;
-            const btn = document.getElementById('fullscreen-text');
-            
-            if (!document.fullscreenElement) {
-                elem.requestFullscreen().then(() => {
-                    btn.textContent = 'Exit Fullscreen';
-                    btn.parentElement.querySelector('i').classList.remove('fa-expand');
-                    btn.parentElement.querySelector('i').classList.add('fa-compress');
-                }).catch(err => {
-                    console.error('Failed to enter fullscreen:', err);
-                });
-            } else {
-                document.exitFullscreen().then(() => {
-                    btn.textContent = 'Fullscreen';
-                    btn.parentElement.querySelector('i').classList.remove('fa-compress');
-                    btn.parentElement.querySelector('i').classList.add('fa-expand');
-                });
-            }
-        }
 
         // Initialize
-        setInterval(updateClock, 1000);
-        setInterval(updateElapsedTimes, 1000);
-        setInterval(refreshOrders, 5000); // Refresh every 5 seconds
-
+        initNotificationSound();
+        updateMuteButton();
         updateClock();
         updateElapsedTimes();
+        
+        // Set up intervals
+        setInterval(updateClock, 1000);
+        setInterval(updateElapsedTimes, 1000);
+        
+        // Start auto-refresh
+        console.log('🔄 Starting auto-refresh...');
+        refreshOrders();
+        setInterval(refreshOrders, refreshInterval);
+
+        // Enable audio on user interaction
+        function enableAudioOnInteraction() {
+            ensureAudioContext().then(isReady => {
+                if (isReady) {
+                    console.log('🔊 Audio enabled and ready');
+                }
+            });
+        }
+        
+        ['click', 'touchstart', 'keydown'].forEach(eventType => {
+            document.addEventListener(eventType, enableAudioOnInteraction, { once: true });
+        });
 
         console.log('✅ Kitchen Display System initialized');
-        console.log('🔄 Auto-refresh: Every 5 seconds');
-        console.log('⏰ Clock and timers updating every second');
+        console.log('📍 Station:', currentStationName || 'All Stations');
+        console.log('🔄 Auto-refresh:', refreshInterval / 1000, 'seconds');
+        console.log('🔔 Sound:', isMuted ? 'OFF' : 'ON');
     </script>
 </body>
 </html>
-

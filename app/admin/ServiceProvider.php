@@ -488,10 +488,17 @@ class ServiceProvider extends AppServiceProvider
                     'icon' => 'fa-wrench',
                     'title' => lang('admin::lang.side_menu.tool'),
                     'child' => [
+                        'kds_stations' => [
+                            'priority' => 1,
+                            'class' => 'kds_stations',
+                            'href' => admin_url('kds_stations'),
+                            'title' => 'Manage KDS Stations',
+                            'permission' => 'Admin.KdsStations',
+                        ],
                         'kitchen_display' => [
                             'priority' => 5,
                             'class' => 'kitchen_display',
-                            'href' => admin_url('kitchendisplay'),
+                            'href' => admin_url('kitchendisplay/main-kitchen'),
                             'title' => 'Kitchen Display',
                             'permission' => 'Admin.KitchenDisplay',
                         ],
@@ -567,6 +574,54 @@ class ServiceProvider extends AppServiceProvider
                     'href' => admin_url('locations/settings'),
                     'title' => lang('admin::lang.locations.text_form_name'),
                 ], 'restaurant');
+            }
+            
+            // Update Kitchen Display to point to first active station
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('kds_stations')) {
+                    $station = \Illuminate\Support\Facades\DB::table('kds_stations')
+                        ->where('is_active', true)
+                        ->orderBy('priority', 'asc')
+                        ->orderBy('name', 'asc')
+                        ->first();
+                    
+                    if ($station && !empty($station->slug)) {
+                        $manager->mergeNavItem('kitchen_display', [
+                            'href' => admin_url('kitchendisplay/' . $station->slug),
+                        ], 'tools');
+                    }
+                }
+            } catch (\Exception $e) {
+                // Table might not exist yet, use default main-kitchen
+                $manager->mergeNavItem('kitchen_display', [
+                    'href' => admin_url('kitchendisplay/main-kitchen'),
+                ], 'tools');
+            }
+            
+            // Add dynamic KDS station links under tools menu
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('kds_stations')) {
+                    $stations = \Illuminate\Support\Facades\DB::table('kds_stations')
+                        ->where('is_active', true)
+                        ->orderBy('priority', 'asc')
+                        ->orderBy('name', 'asc')
+                        ->get();
+                    
+                    $priority = 20; // Start after media_manager (10)
+                    foreach ($stations as $station) {
+                        $manager->addNavItem('kds_' . $station->slug, [
+                            'priority' => $priority,
+                            'class' => 'kds_station',
+                            'href' => admin_url('kitchendisplay/' . $station->slug),
+                            'title' => $station->name,
+                            'permission' => 'Admin.KitchenDisplay',
+                        ], 'tools');
+                        $priority += 5;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Table might not exist yet, silently ignore
+                \Log::debug('KDS stations menu load failed: ' . $e->getMessage());
             }
         });
     }
@@ -723,6 +778,9 @@ class ServiceProvider extends AppServiceProvider
                 ],
                 'Admin.KitchenDisplay' => [
                     'label' => 'Kitchen Display System', 'group' => 'admin::lang.permissions.name',
+                ],
+                'Admin.KdsStations' => [
+                    'label' => 'Manage KDS Stations', 'group' => 'admin::lang.permissions.name',
                 ],
                 'Admin.Reservations' => [
                     'label' => 'admin::lang.permissions.reservations', 'group' => 'admin::lang.permissions.name',
@@ -881,4 +939,6 @@ class ServiceProvider extends AppServiceProvider
         });
     }
 }
+
+
 
