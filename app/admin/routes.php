@@ -1274,6 +1274,41 @@ Route::group([
         Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);
         Route::patch('mark-all-seen', [\Admin\Controllers\NotificationsApi::class, 'markAllSeen']);
         Route::post('general-staff-note', [\Admin\Controllers\NotificationsApi::class, 'createGeneralStaffNote']);
+        Route::get('note-suggestions', [\Admin\Controllers\NotificationsApi::class, 'getNoteSuggestions']);
+        Route::get('note-suggestions-debug', function() {
+            $debug = [];
+            
+            // Check extension_settings
+            $ext = DB::table('extension_settings')->where('item', 'core.panel')->first();
+            if ($ext) {
+                $parsed = is_string($ext->data) ? json_decode($ext->data, true) : $ext->data;
+                $debug['extension_settings'] = [
+                    'item' => $ext->item,
+                    'data_type' => gettype($ext->data),
+                    'data_raw' => substr($ext->data, 0, 1000),
+                    'data_parsed' => $parsed,
+                    'has_note_suggestions' => is_array($parsed) && isset($parsed['note_suggestion_sentences']),
+                    'note_suggestions_data' => is_array($parsed) && isset($parsed['note_suggestion_sentences']) ? $parsed['note_suggestion_sentences'] : null
+                ];
+            } else {
+                $debug['extension_settings'] = 'NOT FOUND';
+            }
+            
+            // Check settings table
+            $set = DB::table('settings')->where('item', 'core.panel')->first();
+            if ($set) {
+                $debug['settings'] = [
+                    'item' => $set->item,
+                    'value_type' => gettype($set->value),
+                    'serialized' => $set->serialized ?? false,
+                    'value_sample' => substr($set->value, 0, 500)
+                ];
+            } else {
+                $debug['settings'] = 'NOT FOUND';
+            }
+            
+            return response()->json($debug);
+        });
     });
 
 }); // Close App::before function
@@ -1285,6 +1320,7 @@ Route::middleware(['web'])->prefix('admin/notifications-api')->group(function ()
     Route::patch('{id}', [\Admin\Controllers\NotificationsApi::class, 'update']);
     Route::patch('mark-all-seen', [\Admin\Controllers\NotificationsApi::class, 'markAllSeen']);
     Route::post('general-staff-note', [\Admin\Controllers\NotificationsApi::class, 'createGeneralStaffNote']);
+    Route::get('note-suggestions', [\Admin\Controllers\NotificationsApi::class, 'getNoteSuggestions']);
 });
 
 Route::middleware(['web'])->prefix('admin/webhook/pos')->group(function () {

@@ -184,6 +184,14 @@
                                         This note will be visible to all staff members and shown as a push notification.
                                     </small>
                                 </div>
+                                
+                                <!-- Suggestion Buttons Container -->
+                                <div class="form-group" id="note-suggestions-container" style="display: none;">
+                                    <label class="mb-2" style="font-size: 13px; color: #6c757d; font-weight: 500;">Quick Suggestions:</label>
+                                    <div id="note-suggestions-buttons" class="d-flex flex-wrap gap-2" style="margin-top: 8px;">
+                                        <!-- Suggestion buttons will be dynamically inserted here -->
+                                    </div>
+                                </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="$('#addGeneralStaffNoteModal').modal('hide');">Cancel</button>
@@ -214,12 +222,121 @@
                     // Initialize modal properly
                     $('#addGeneralStaffNoteModal').on('shown.bs.modal', function() {
                         $('#generalStaffNoteText').focus();
+                        
+                        // Load and display suggestion sentences
+                        loadNoteSuggestions();
                     });
                     
                     // Clear form when modal is hidden
                     $('#addGeneralStaffNoteModal').on('hidden.bs.modal', function() {
                         $('#generalStaffNoteText').val('');
+                        $('#note-suggestions-container').hide();
                     });
+                    
+                    // Function to load note suggestions from API
+                    function loadNoteSuggestions() {
+                        fetch('/admin/notifications-api/note-suggestions', {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            credentials: 'same-origin'
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Failed to load suggestions');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.ok && data.suggestions && data.suggestions.length > 0) {
+                                displayNoteSuggestions(data.suggestions);
+                            } else {
+                                $('#note-suggestions-container').hide();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading note suggestions:', error);
+                            $('#note-suggestions-container').hide();
+                        });
+                    }
+                    
+                    // Function to display suggestion buttons
+                    function displayNoteSuggestions(suggestions) {
+                        var $container = $('#note-suggestions-buttons');
+                        $container.empty();
+                        
+                        if (suggestions.length === 0) {
+                            $('#note-suggestions-container').hide();
+                            return;
+                        }
+                        
+                        suggestions.forEach(function(suggestion) {
+                            if (suggestion && suggestion.trim()) {
+                                var $btn = $('<button>')
+                                    .attr('type', 'button')
+                                    .addClass('btn btn-sm suggestion-btn')
+                                    .text(suggestion.trim())
+                                    .css({
+                                        'background-color': '#f8f9fa',
+                                        'border': '1px solid #dee2e6',
+                                        'color': '#495057',
+                                        'font-size': '12px',
+                                        'padding': '6px 12px',
+                                        'border-radius': '6px',
+                                        'white-space': 'nowrap',
+                                        'transition': 'all 0.2s ease',
+                                        'cursor': 'pointer'
+                                    })
+                                    .hover(
+                                        function() {
+                                            $(this).css({
+                                                'background-color': '#e9ecef',
+                                                'border-color': '#adb5bd',
+                                                'transform': 'translateY(-1px)',
+                                                'box-shadow': '0 2px 4px rgba(0,0,0,0.1)'
+                                            });
+                                        },
+                                        function() {
+                                            $(this).css({
+                                                'background-color': '#f8f9fa',
+                                                'border-color': '#dee2e6',
+                                                'transform': 'translateY(0)',
+                                                'box-shadow': 'none'
+                                            });
+                                        }
+                                    )
+                                    .on('click', function(e) {
+                                        e.preventDefault();
+                                        var currentText = $('#generalStaffNoteText').val().trim();
+                                        var newText = suggestion.trim();
+                                        
+                                        // If there's existing text, add a space before the suggestion
+                                        if (currentText && !currentText.endsWith('.')) {
+                                            newText = ' ' + newText;
+                                        }
+                                        
+                                        // Append suggestion to textarea
+                                        $('#generalStaffNoteText').val(currentText + newText);
+                                        
+                                        // Focus back to textarea
+                                        $('#generalStaffNoteText').focus();
+                                        
+                                        // Move cursor to end
+                                        var textarea = document.getElementById('generalStaffNoteText');
+                                        if (textarea) {
+                                            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+                                        }
+                                    });
+                                
+                                $container.append($btn);
+                            }
+                        });
+                        
+                        // Show the container
+                        $('#note-suggestions-container').show();
+                    }
                     
                     // Handle save note button click
                     $('#generalStaffNoteSubmitBtn').off('click.saveGeneralNote').on('click.saveGeneralNote', function(e) {
@@ -507,6 +624,46 @@
             #notification-panel {
                 scrollbar-width: thin !important;
                 scrollbar-color: #c9d2e3 transparent !important;
+            }
+            
+            /* Note Suggestion Buttons Styling */
+            #addGeneralStaffNoteModal .suggestion-btn {
+                background-color: #f0f4f8 !important; /* Ice/white color */
+                border: 1px solid #d1d9e6 !important;
+                color: #2d3748 !important;
+                font-size: 12px !important;
+                padding: 6px 14px !important;
+                border-radius: 8px !important;
+                white-space: nowrap !important;
+                transition: all 0.2s ease !important;
+                cursor: pointer !important;
+                font-weight: 500 !important;
+                margin: 2px !important;
+            }
+            
+            #addGeneralStaffNoteModal .suggestion-btn:hover {
+                background-color: #e2e8f0 !important;
+                border-color: #a0aec0 !important;
+                color: #1a202c !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+            }
+            
+            #addGeneralStaffNoteModal .suggestion-btn:active {
+                transform: translateY(0) !important;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+            }
+            
+            #addGeneralStaffNoteModal #note-suggestions-container {
+                margin-top: 12px;
+                padding-top: 12px;
+                border-top: 1px solid #e5e9f2;
+            }
+            
+            #addGeneralStaffNoteModal #note-suggestions-buttons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
             }
             </style>
         @endif

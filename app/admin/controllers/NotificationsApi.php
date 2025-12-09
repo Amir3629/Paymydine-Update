@@ -298,4 +298,131 @@ class NotificationsApi extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get note suggestion sentences from panel settings
+     * 
+     * TastyIgniter stores settings using SettingStore which uses array_dot() to flatten data.
+     * Repeater fields are stored as: note_suggestion_sentences.0.sentence, note_suggestion_sentences.1.sentence, etc.
+     */
+    public function getNoteSuggestions()
+    {
+        try {
+            $suggestions = [];
+            
+            // TastyIgniter stores core settings in settings table with sort='config'
+            // Settings are flattened using array_dot(), so repeater data looks like:
+            // note_suggestion_sentences.0.sentence => 'text1'
+            // note_suggestion_sentences.1.sentence => 'text2'
+            try {
+                $settings = DB::table('settings')
+                    ->where('sort', 'config')
+                    ->where('item', 'like', 'note_suggestion_sentences.%')
+                    ->get();
+                
+                if ($settings && $settings->count() > 0) {
+                    // Group by index and extract sentences
+                    $indexedData = [];
+                    foreach ($settings as $setting) {
+                        // Parse item like "note_suggestion_sentences.1.sentence" or "note_suggestion_sentences.2.sentence"
+                        if (preg_match('/^note_suggestion_sentences\.(\d+)\.sentence$/', $setting->item, $matches)) {
+                            $index = (int)$matches[1];
+                            
+                            // Get value - handle serialized and non-serialized
+                            $value = $setting->value;
+                            if (isset($setting->serialized) && $setting->serialized) {
+                                $unserialized = @unserialize($value);
+                                if ($unserialized !== false) {
+                                    $value = $unserialized;
+                                }
+                            }
+                            
+                            // Only add non-empty string values
+                            if (is_string($value) && !empty(trim($value))) {
+                                $indexedData[$index] = trim($value);
+                            }
+                        }
+                    }
+                    
+                    // Sort by index and add to suggestions (maintain order)
+                    ksort($indexedData);
+                    $suggestions = array_values($indexedData);
+                    
+                    Log::info('Note suggestions loaded from settings table', [
+                        'count' => count($suggestions),
+                        'suggestions' => $suggestions
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error reading settings table for suggestions', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+            
+            // Fallback: Try extension_settings table (if panel uses SettingsModel)
+            if (empty($suggestions)) {
+                try {
+                    $extensionSettings = DB::table('extension_settings')
+                        ->where('item', 'core.panel')
+                        ->first();
+                    
+                    if ($extensionSettings && $extensionSettings->data) {
+                        $data = is_string($extensionSettings->data) 
+                            ? json_decode($extensionSettings->data, true)
+                            : $extensionSettings->data;
+                        
+                        if (is_array($data) && isset($data['note_suggestion_sentences'])) {
+                            $repeaterData = $data['note_suggestion_sentences'];
+                            
+                            if (is_array($repeaterData)) {
+                                foreach ($repeaterData as $item) {
+                                    if (is_array($item) && isset($item['sentence']) && !empty(trim($item['sentence']))) {
+                                        $suggestions[] = trim($item['sentence']);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Error reading extension_settings for suggestions', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            // Return default suggestions only if NO custom suggestions found
+            if (empty($suggestions)) {
+                $suggestions = [
+                    'Please check table',
+                    'Customer needs assistance',
+                    'Order ready for pickup',
+                    'Special request from customer',
+                    'Table needs cleaning'
+                ];
+            }
+            
+            return response()->json([
+                'ok' => true,
+                'suggestions' => $suggestions
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to get note suggestions', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Return default suggestions on error
+            return response()->json([
+                'ok' => true,
+                'suggestions' => [
+                    'Please check table',
+                    'Customer needs assistance',
+                    'Order ready for pickup',
+                    'Special request from customer',
+                    'Table needs cleaning'
+                ]
+            ]);
+        }
+    }
 }
