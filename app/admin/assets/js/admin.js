@@ -1401,8 +1401,8 @@ if (window.jQuery.request !== undefined)
         $('.sidebar').removeClass('show')
     })
 
-    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #0f9d58 0%, #0bb87a 100%)';
-    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #0c7d47 0%, #0aa868 100%)';
+    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)';
+    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
 
     function applyDeleteIconColor(context) {
         var scope = context || document;

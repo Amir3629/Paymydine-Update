@@ -30691,7 +30691,7 @@ body.nav-shown {
   transform: translateX(-100%);
   z-index: 1021;
   width: 290px;
-  transition: transform 450ms ease, width 450ms ease;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Smooth slide animation */
 }
 .nk-sidebar + .nk-wrap {
   transition: padding 450ms ease;
@@ -30727,7 +30727,16 @@ body.nav-shown {
   max-height: 100%;
 }
 .nk-sidebar.nk-sidebar-active {
-  transform: translateX(0);
+  transform: translateX(0) !important;
+}
+
+/* Hide star icon on mobile/tablet */
+@media (max-width: 991.98px) {
+  #sidebar-star-icon {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
 }
 .nk-sidebar-fixed {
   position: fixed;
@@ -43534,4 +43543,170 @@ body.pg-auth img.logo-img,
 .nk-auth-body {
   margin-top: 40px !important;
   padding-top: 40px !important;
+}
+
+/* ============================================
+   CRITICAL FIX: ADMIN PANEL HEADER & SIDEBAR BLUE GRADIENT
+   This must be at the END of dashboard.css to override admin.css
+   ============================================ */
+
+/* Header - Blue Gradient (same as login page) - MAXIMUM SPECIFICITY */
+/* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+/* Similar smooth effect as sidebar, but horizontal (left to right) */
+body .navbar-top,
+body nav.navbar-top,
+body .navbar.navbar-top,
+body .navbar.navbar-top.navbar-expand,
+body .navbar.navbar-top.navbar-expand.navbar-fixed-top {
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* Sidebar - Blue Gradient CONTINUES seamlessly from header - MAXIMUM SPECIFICITY */
+/* CRITICAL: Sidebar starts with #526484 (header's end color) for seamless connection */
+body .sidebar,
+body div.sidebar,
+body .sidebar[role="navigation"],
+body #navSidebar,
+body .nav-sidebar,
+body .sidebar .nav-sidebar,
+body #navSidebar.nav-sidebar,
+body div.sidebar .nav-sidebar {
+  /* Continues from header: starts at #516584 (brighter, matching header left) */
+  /* ADJUSTED: Left side is brighter, middle section is less dark, bottom part is also brighter */
+  background: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* CRITICAL: .nav-sidebar child element - Match parent sidebar gradient */
+/* REMOVED padding-top: 20px - THIS WAS CREATING THE DARK GAP AT TOP! */
+/* ADJUSTED: Bottom part is now darker */
+body .nav-sidebar,
+body .sidebar .nav-sidebar,
+body #navSidebar.nav-sidebar,
+body div.sidebar .nav-sidebar,
+body .sidebar > .nav-sidebar,
+body #navSidebar {
+  /* Continues seamlessly from header */
+  /* ADJUSTED: Left side is brighter, middle section is less dark, bottom part is also brighter */
+  background: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important; /* CRITICAL: Remove padding that creates dark gap */
+  padding-bottom: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Also ensure sidebar wrapper has no top padding/margin */
+body .sidebar,
+body div.sidebar,
+body .sidebar[role="navigation"] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  outline: none !important;
+}
+
+/* Ensure header and sidebar connect seamlessly */
+body .navbar-top + .sidebar,
+body .navbar-top ~ .sidebar,
+body .navbar-top + .nav-sidebar,
+body .navbar-top ~ .nav-sidebar {
+  border-top: none !important;
+}
+
+/* All text and icons in header - white for contrast */
+body .navbar-top .page-title,
+body .navbar-top .page-title span,
+body .navbar-top .navbar-brand,
+body .navbar-top .navbar-brand a,
+body .navbar-top .navbar-nav .nav-link,
+body .navbar-top .navbar-nav .nav-link i,
+body .navbar-top .navbar-nav .nav-link em.icon,
+body .navbar-top .dropdown-toggle,
+body .navbar-top .dropdown-toggle i,
+body .navbar-top .navbar-tour-btn,
+body .navbar-top .navbar-tour-btn i,
+body .navbar-top a,
+body .navbar-top .icon,
+body .navbar-top em.icon {
+  color: #ffffff !important;
+}
+
+/* All text and icons in sidebar - white for contrast */
+body .nav-sidebar .nav > li > a,
+body .nav-sidebar .nav > li > a i,
+body .nav-sidebar .nav > li > a em.icon,
+body #navSidebar .nav > li > a,
+body #navSidebar .nav > li > a i,
+body .sidebar .nav > li > a,
+body .sidebar .nav > li > a i {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Sidebar active/hover states - lighter white */
+body .nav-sidebar .nav > li > a:hover,
+body .nav-sidebar .nav > li > a:focus,
+body .nav-sidebar .nav li.active > a,
+body #navSidebar .nav > li > a:hover,
+body #navSidebar .nav > li > a:focus,
+body #navSidebar .nav li.active > a,
+body .sidebar .nav > li > a:hover,
+body .sidebar .nav > li > a:focus,
+body .sidebar .nav li.active > a {
+  color: #ffffff !important;
+}
+
+/* ============================================
+   SUPERADMIN HEADER - FORCE MATCH ADMIN PANEL
+   Override dashboard.css header rules to match admin panel exactly
+   ============================================ */
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light,
+.nk-header.is-dark,
+.nk-header.is-theme {
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  border-bottom: none !important;
+  border-bottom-right-radius: 25px !important;
+}
+
+.nk-header .container-fluid,
+.nk-header-wrap {
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+}
+
+/* ============================================
+   SUPERADMIN LOGO SECTION GRADIENT - FINAL OVERRIDE
+   Logo section must transition to #516584 at bottom
+   ============================================ */
+.nk-sidebar-brand,
+.nk-sidebar-element.nk-sidebar-head {
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
 }

@@ -147,9 +147,9 @@
     const BUTTON_BORDER_RADIUS = '12px';
     const BUTTON_FONT_WEIGHT = '600';
     const BUTTON_MIN_HEIGHT = '40px';
-    const PRIMARY_BACKGROUND = 'linear-gradient(135deg, #08815e 0%, #0bb87a 100%)';
-    const PRIMARY_SOLID_BACKGROUND = '#08815e';
-    const PRIMARY_BORDER = '#0bb87a';
+    const PRIMARY_BACKGROUND = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)';
+    const PRIMARY_SOLID_BACKGROUND = '#1f2b3a';
+    const PRIMARY_BORDER = '#364a63';
     const PRIMARY_TEXT_COLOR = '#ffffff';
     const ICE_BACKGROUND = '#f1f4fb';
     const ICE_BORDER = '#c9d2e3';
@@ -185,7 +185,7 @@
         btn.style.setProperty('align-items', 'center', 'important');
         btn.style.setProperty('justify-content', 'center', 'important');
         btn.style.setProperty('color', PRIMARY_TEXT_COLOR, 'important');
-        btn.style.setProperty('box-shadow', '0 4px 10px rgba(8, 129, 94, 0.24)', 'important');
+        btn.style.setProperty('box-shadow', '0 4px 15px rgba(31, 43, 58, 0.3)', 'important');
         btn.style.setProperty('min-height', '40px', 'important');
 
         const icon = btn.querySelector('i');
@@ -220,7 +220,7 @@
                 btn.style.setProperty('background-color', PRIMARY_SOLID_BACKGROUND, 'important');
                 btn.style.setProperty('border', `1px solid ${PRIMARY_BORDER}`, 'important');
                 btn.style.setProperty('color', PRIMARY_TEXT_COLOR, 'important');
-                btn.style.setProperty('box-shadow', '0 4px 10px rgba(8, 129, 94, 0.24)', 'important');
+                btn.style.setProperty('box-shadow', '0 4px 15px rgba(31, 43, 58, 0.3)', 'important');
             }
         });
     }
@@ -434,18 +434,19 @@
                         button.style.setProperty('display', 'flex', 'important');
                         button.style.setProperty('align-items', 'center', 'important');
                         button.style.setProperty('padding', '0 15px', 'important');
-                        button.style.setProperty('background', '#08815e', 'important'); // Same as New button
-                        button.style.setProperty('background-color', '#08815e', 'important');
-                        button.style.setProperty('border', '1px solid #08815e', 'important');
+                        button.style.setProperty('background', 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)', 'important'); // Same as New button
+                        button.style.setProperty('background-color', '#1f2b3a', 'important');
+                        button.style.setProperty('border', '2px solid #364a63', 'important');
                         button.style.setProperty('color', '#fff', 'important'); // White text
-                        button.style.setProperty('border-radius', '4px', 'important');
+                        button.style.setProperty('border-radius', '12px', 'important');
                         button.style.setProperty('opacity', '1', 'important');
                         button.style.setProperty('visibility', 'visible', 'important');
+                        button.style.setProperty('box-shadow', '0 4px 15px rgba(31, 43, 58, 0.3)', 'important');
                         
                         // Force remove any hover styles
                         button.addEventListener('mouseenter', function() {
-                            this.style.setProperty('background', '#08815e', 'important');
-                            this.style.setProperty('background-color', '#08815e', 'important');
+                            this.style.setProperty('background', 'linear-gradient(135deg, #364a63 0%, #526484 100%)', 'important');
+                            this.style.setProperty('background-color', '#364a63', 'important');
                             this.style.setProperty('color', '#fff', 'important');
                         });
                     }

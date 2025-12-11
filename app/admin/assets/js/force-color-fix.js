@@ -75,9 +75,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const buttons = document.querySelectorAll('button, .btn');
         buttons.forEach(button => {
             if (button.classList.contains('btn-primary')) {
-                button.style.backgroundColor = '#08815e';
-                button.style.borderColor = '#08815e';
+                button.style.background = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)';
+                button.style.backgroundColor = '#1f2b3a';
+                button.style.borderColor = '#364a63';
                 button.style.color = '#ffffff';
+                button.style.boxShadow = '0 4px 15px rgba(31, 43, 58, 0.3)';
             }
         });
 

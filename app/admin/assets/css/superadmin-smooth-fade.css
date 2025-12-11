@@ -26,13 +26,15 @@ body {
 }
 
 /* Lock wrap at exact position */
+/* CRITICAL: Must be at 64px (header height), NOT 65px - to prevent white gap */
 .nk-wrap {
     position: fixed !important;
-    top: 65px !important;
+    top: 64px !important; /* Exactly at header bottom (64px) - was incorrectly 65px */
     left: 230px !important;
     right: 0 !important;
     bottom: 0 !important;
     margin: 0 !important;
+    z-index: 1 !important; /* Below header (1031) */
 }
 
 /* Lock header at exact position */

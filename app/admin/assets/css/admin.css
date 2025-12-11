@@ -27402,10 +27402,17 @@ body.dragging .dragged, body.dragging .dragged {
   bottom: 0;
   width: 230px;
   z-index: 1030;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
 }
 
 .nav-sidebar {
-  background-color: #202938;
+  /* Gradient CONTINUES from header: starts with #516584 (brighter, matching header left) */
+  /* ADJUSTED: Left side is brighter, middle section is less dark, bottom part is also brighter */
+  background: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
   overflow-x: hidden;
   overflow-y: scroll;
   table-layout: fixed;
@@ -27415,7 +27422,8 @@ body.dragging .dragged, body.dragging .dragged {
   bottom: 0;
   left: 0;
   right: 0;
-  padding-top: 20px;
+  padding-top: 0 !important; /* REMOVED: This was creating the dark gap at top! */
+  margin-top: 0 !important;
 }
 .nav-sidebar::-webkit-scrollbar {
   display: none;
@@ -27445,19 +27453,26 @@ body.dragging .dragged, body.dragging .dragged {
 }
 .nav-sidebar .nav > li > a:focus,
 .nav-sidebar .nav > li > a:hover {
-  color: #FFFFFF;
-  transform: scale(1.1) !important; /* Size effect only */
-  background-color: transparent !important;
+  color: #FFFFFF !important;
+  transform: scale(1.05) !important; /* Slight size effect */
+  background-color: rgba(81, 101, 132, 0.6) !important; /* Brighter background on hover (60% opacity) */
+  background: rgba(81, 101, 132, 0.6) !important;
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
 }
 .nav-sidebar .nav li.active > a,
 .nav-sidebar .nav .nav li.active > a,
 .nav-sidebar .nav .nav li > a.active {
-  background-color: transparent;
-  color: #FFFFFF;
+  background-color: rgba(81, 101, 132, 0.75) !important; /* Even brighter blue background for selected items (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #FFFFFF !important;
   font-weight: 600;
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
 }
 .nav-sidebar .nav .nav {
-  background-color: #2a3447;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 .nav-sidebar .nav .nav.show {
   display: block;
@@ -27473,8 +27488,11 @@ body.dragging .dragged, body.dragging .dragged {
 }
 .nav-sidebar .nav .nav li > a:hover,
 .nav-sidebar .nav .nav li > a:focus {
-  background-color: transparent;
-  transform: scale(1.1) !important; /* Size effect only */
+  background-color: rgba(81, 101, 132, 0.6) !important; /* Brighter background on hover (60% opacity) */
+  background: rgba(81, 101, 132, 0.6) !important;
+  transform: scale(1.02) !important; /* Slight size effect */
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
 }
 
 /* Also apply scale effect to nav-link class used in admin panel */
@@ -27485,8 +27503,11 @@ body.dragging .dragged, body.dragging .dragged {
 
 .nav-sidebar .nav-link:hover,
 #side-nav-menu .nav-link:hover {
-  transform: scale(1.1) !important; /* Size effect only */
-  background-color: transparent !important;
+  transform: scale(1.02) !important; /* Slight size effect */
+  background-color: rgba(81, 101, 132, 0.6) !important; /* Brighter background on hover (60% opacity) */
+  background: rgba(81, 101, 132, 0.6) !important;
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
 }
 
 /* Submenu nav-link items */
@@ -27497,8 +27518,11 @@ body.dragging .dragged, body.dragging .dragged {
 
 .nav-sidebar .nav.collapse .nav-link:hover,
 #side-nav-menu .nav.collapse .nav-link:hover {
-  transform: scale(1.1) !important; /* Size effect only */
-  background-color: transparent !important;
+  transform: scale(1.02) !important; /* Slight size effect */
+  background-color: rgba(81, 101, 132, 0.6) !important; /* Brighter background on hover (60% opacity) */
+  background: rgba(81, 101, 132, 0.6) !important;
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
 }
 .nav-sidebar .nav .arrow {
   line-height: 50px;
@@ -27536,23 +27560,45 @@ body.dragging .dragged, body.dragging .dragged {
   }
   .sidebar {
     width: 100%;
+    transform: translateX(-100%) !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Smooth slide animation */
+    z-index: 1030 !important;
+  }
+  .sidebar.show {
+    transform: translateX(0) !important;
+    height: auto !important;
   }
   .sidebar:not(.show) {
-    height: 0;
+    height: 100vh !important;
   }
   .nav-sidebar {
-    display: none;
+    display: block !important;
     position: relative;
   }
   .nav-sidebar.show {
     display: block;
   }
 }
+
+/* Mobile sidebar animations for tablets and larger phones */
+@media (max-width: 991.98px) and (min-width: 576px) {
+  .sidebar {
+    transform: translateX(-100%) !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Smooth slide animation */
+    z-index: 1030 !important;
+  }
+  .sidebar.show {
+    transform: translateX(0) !important;
+  }
+}
 .navbar-top {
-  background-color: #202938;
+  /* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
   padding: 0;
-  border-bottom: 1px solid #202938;
-  box-shadow: none;
+  border-bottom: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 .navbar-top.navbar-expand .navbar {
   padding: 0 15px;

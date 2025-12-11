@@ -19,6 +19,8 @@
     <!-- Admin Tour Enhanced Styles -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/introjs.min.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-tour-enhanced.css') }}">
+    <!-- Blue Buttons Override - Replace all green buttons with login button style -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -111,6 +113,12 @@
 <!-- Admin Tour Enhanced System -->
 <script src="{{ asset('app/admin/assets/js/introjs.min.js') }}"></script>
 <script src="{{ asset('app/admin/assets/js/admin-tour-enhanced.js') }}?v={{ time() }}"></script>
+
+<!-- Sidebar Star Icon -->
+<script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script>
+
+<!-- Force Blue Buttons Override -->
+<script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?v={{ time() }}"></script>
 
 <!-- Guide Tour Button Handler -->
 <script>

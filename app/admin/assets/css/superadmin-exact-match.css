@@ -17,16 +17,19 @@ nav.navbar-top {
   position: fixed !important;
   display: flex !important;
   width: calc(100% - 230px) !important;
-  height: 65px !important;
-  min-height: 65px !important;
-  max-height: 65px !important;
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
   top: 0px !important;
   left: 230px !important; /* Start after logo */
   right: 0px !important;
   margin: 0px !important;
   padding: 0px !important;
-  background: rgb(32, 41, 56) !important;
-  background-color: rgb(32, 41, 56) !important;
+  /* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+  /* EXACT same as admin panel */
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
   border-radius: 0px 0px 25px 0px !important; /* Only bottom-right corner */
   border-top-left-radius: 0px !important;
   border-top-right-radius: 0px !important;
@@ -42,12 +45,12 @@ nav.navbar-top {
   justify-content: flex-start !important;
   align-items: center !important;
   overflow: visible !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important; /* EXACT same as admin panel */
   border-bottom: none !important;
 }
 
 .nk-header .container-fluid {
-  height: 65px !important;
+  height: 64px !important; /* EXACT same as admin panel */
   display: flex !important;
   align-items: center !important;
   padding: 0 20px !important;
@@ -55,7 +58,7 @@ nav.navbar-top {
 }
 
 .nk-header-wrap {
-  height: 65px !important;
+  height: 64px !important; /* EXACT same as admin panel */
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -80,7 +83,10 @@ div.nk-sidebar-element.nk-sidebar-head,
   max-height: 170px !important; /* FORCE 2X bigger frame */
   min-height: 170px !important; /* FORCE 2X bigger frame */
   line-height: 170px !important; /* FORCE 2X bigger frame */
-  background-color: rgb(32, 41, 56) !important;
+  /* Logo area gradient - smooth transition from top to #516584 (bottom) */
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -89,8 +95,8 @@ div.nk-sidebar-element.nk-sidebar-head,
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   margin: 0 !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-right: none !important;
+  border-bottom: none !important;
   overflow: visible !important; /* Ensure logo isn't clipped */
 }
 
@@ -143,18 +149,63 @@ div.nk-sidebar-element.nk-sidebar-head,
   line-height: 170px !important;
 }
 
-/* Mobile: Show logo in sidebar brand */
+/* Logo area gradient - smooth transition from top to #516584 (bottom) */
+.nk-sidebar-element.nk-sidebar-head {
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+}
+
+/* Mobile: Hide logo by default, show only when sidebar is open */
 @media (max-width: 1199px) {
   .nk-header .navbar-brand,
   .nk-header .nk-header-brand {
     display: none !important; /* Keep hidden on mobile too */
   }
   
+  /* Hide logo section by default on mobile - COMPLETE HIDE */
+  /* Logo should NOT be visible before opening sidebar */
   .nk-sidebar-brand,
-  .nk-sidebar-element.nk-sidebar-head {
-    display: flex !important; /* Keep visible on mobile */
+  .nk-sidebar-element.nk-sidebar-head,
+  div.nk-sidebar-brand,
+  div.nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar .nk-sidebar-brand,
+  .nk-sidebar .nk-sidebar-element.nk-sidebar-head {
+    display: none !important; /* Hidden by default on mobile */
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Show logo ONLY when sidebar is open - slides in with sidebar */
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand,
+  .nk-sidebar.show .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.show div.nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active div.nk-sidebar-brand,
+  .nk-sidebar.show div.nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.nk-sidebar-active div.nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand {
+    display: flex !important; /* Show when sidebar is open */
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
     height: 170px !important;
     max-height: 170px !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Smooth slide in */
+  }
+  
+  @keyframes slideInLogo {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 }
 
@@ -298,9 +349,12 @@ div.sidebar {
   bottom: 0px !important;
   margin: 0px !important;
   padding: 0px !important;
-  padding-top: 170px !important; /* Space for 2X BIGGER fixed logo frame - MUST come after padding: 0 */
-  background: rgb(32, 41, 56) !important; /* DARK background, not transparent! */
-  background-color: rgb(32, 41, 56) !important;
+  padding-top: 170px !important; /* CRITICAL: Space for logo (170px) - menu items start below logo */
+  /* CRITICAL: Top must match header left side (#516584) for seamless connection */
+  /* Smoothly transitions: #516584 (top, matches header) -> #475c75 (below logo) -> darker colors */
+  background: linear-gradient(180deg, #516584 0%, #516584 20%, #475c75 25%, #475c75 35%, #455a73 50%, #455a73 70%, #364a63 85%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #516584 20%, #475c75 25%, #475c75 35%, #455a73 50%, #455a73 70%, #364a63 85%, #364a63 100%) !important;
   border-radius: 0px 0px 15px 0px !important; /* Only bottom-right corner */
   border-top-left-radius: 0px !important;
   border-top-right-radius: 0px !important;
@@ -316,7 +370,49 @@ div.sidebar {
   overflow-x: visible !important; /* FORCE X visible - Star can overflow to the right! */
   overflow-y: auto !important; /* Keep Y scrollable */
   border-right: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
   -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+}
+
+/* Ensure header and sidebar connect seamlessly */
+.nk-header + .nk-sidebar,
+.nk-header ~ .nk-sidebar {
+  border-top: none !important;
+}
+
+/* Star icon in sidebar top right - gradient from #4e6381 (left) to #506584 (right) */
+/* Smooth gradient: left half #4e6381, smoothly transitions to #506584 on right */
+#sidebar-star-icon,
+.nk-sidebar .star-icon,
+.nk-sidebar [class*="star"],
+.nk-sidebar .fa-star,
+.nk-sidebar .icon-star,
+.sidebar .star-icon,
+.sidebar [class*="star"],
+.sidebar .fa-star,
+.sidebar .icon-star {
+  background: linear-gradient(90deg, #4e6381 0%, #4e6381 45%, #506584 55%, #506584 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important; /* Fallback for browsers that don't support background-clip */
+}
+
+/* Hide star icon on mobile/tablet - only show on desktop */
+@media (max-width: 991.98px) {
+  #sidebar-star-icon,
+  .nk-sidebar .star-icon,
+  .nk-sidebar [class*="star"],
+  .nk-sidebar .fa-star,
+  .nk-sidebar .icon-star,
+  .sidebar .star-icon,
+  .sidebar [class*="star"],
+  .sidebar .fa-star,
+  .sidebar .icon-star {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
 }
 
 /* FORCE sidebar inner containers to not clip the star */
@@ -338,14 +434,75 @@ div.sidebar * {
    We use a real DOM element instead of ::before pseudo-element
    to avoid overflow/clipping issues */
 
-/* Hide sidebar menu toggle icon */
+/* Hide sidebar menu toggle icon on desktop, show on mobile */
 .nk-sidebar .nk-menu-trigger,
 .nk-sidebar .nk-nav-toggle,
-.nk-sidebar .nk-nav-compact,
-.nk-sidebar .icon.ni-menu,
-.nk-sidebar em.icon.ni-menu {
+.nk-sidebar .nk-nav-compact {
   display: none !important;
   visibility: hidden !important;
+}
+
+/* Show menu toggle on mobile/tablet */
+@media (max-width: 1199.98px) {
+  /* Hide logo section by default on mobile - COMPLETE HIDE */
+  /* Logo should NOT be visible before opening sidebar - menu icon replaces it */
+  .nk-sidebar-brand,
+  .nk-sidebar-element.nk-sidebar-head,
+  div.nk-sidebar-brand,
+  div.nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar .nk-sidebar-brand,
+  .nk-sidebar .nk-sidebar-element.nk-sidebar-head {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Show logo ONLY when sidebar is open - slides in with sidebar */
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand,
+  .nk-sidebar.show .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.show div.nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active div.nk-sidebar-brand,
+  .nk-sidebar.show div.nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.nk-sidebar-active div.nk-sidebar-element.nk-sidebar-head {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  @keyframes slideInLogo {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* Menu toggle in sidebar - hide it, we use header toggle instead */
+  .nk-sidebar .nk-menu-trigger,
+  .nk-sidebar .nk-nav-toggle {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  /* Header menu toggle - always visible on mobile (replaces logo position) */
+  .nk-header .nk-menu-trigger,
+  .nk-header .nk-menu-trigger a,
+  .nk-header .nk-nav-toggle {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 15px !important;
+    left: 15px !important;
+    z-index: 1051 !important; /* Above everything, including logo area */
+  }
 }
 
 /* Sidebar Inner Container - Enable scrolling */
@@ -364,20 +521,24 @@ div.sidebar * {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   min-height: 0 !important; /* Important for flex scrolling */
-  padding-top: 20px !important; /* More space below logo */
+  padding-top: 0px !important; /* No padding - sidebar already has padding-top: 170px */
+  margin-top: 0px !important;
 }
 
 .nk-sidebar-main,
 .nk-sidebar-content,
 .nav-sidebar {
-  padding: 50px 0 20px 0 !important; /* More top padding to avoid logo overlap */
+  padding: 0px 0 20px 0 !important; /* No top padding - sidebar already has padding-top: 170px */
+  padding-top: 0px !important; /* Ensure no top padding */
+  margin-top: 0px !important;
   width: 100% !important;
 }
 
 .nk-sidebar-menu {
   width: 100% !important;
   overflow-y: visible !important;
-  padding-top: 25px !important; /* More spacing below logo */
+  padding-top: 0px !important; /* No padding - sidebar already has padding-top: 170px to account for logo */
+  margin-top: 0px !important;
 }
 
 /* Sidebar Menu */
@@ -406,6 +567,7 @@ div.sidebar * {
   display: flex !important;
   align-items: center !important;
   padding: 16px 16px !important;
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease, color 0.2s ease !important; /* Smooth transitions */
   height: 50px !important;
   color: rgba(255, 255, 255, 0.7) !important;
   text-decoration: none !important;
@@ -416,17 +578,25 @@ div.sidebar * {
 .nk-sidebar-menu .nk-menu-link:hover,
 .nav-sidebar .nav-link:hover,
 #side-nav-menu .nav-link:hover {
-  background-color: transparent !important;
-  transform: scale(1.1) !important; /* Size effect only */
+  background-color: rgba(81, 101, 132, 0.65) !important; /* EXACT same as admin panel hover (65% opacity) */
+  background: rgba(81, 101, 132, 0.65) !important;
+  color: #FFFFFF !important;
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
 }
 
 /* Active Menu Item */
 .nk-sidebar-menu .nk-menu-item.active > .nk-menu-link,
 .nav-sidebar .nav-item.active > .nav-link,
 #side-nav-menu .nav-item.active > .nav-link {
-  background-color: rgba(8, 129, 94, 0.15) !important;
-  color: #08815e !important;
+  background-color: rgba(81, 101, 132, 0.75) !important; /* EXACT same as admin panel active (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #FFFFFF !important; /* White text like admin */
   font-weight: 600 !important;
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow like admin */
 }
 
 /* Sidebar Icons */
@@ -475,8 +645,12 @@ div.sidebar * {
 .nk-sidebar-menu .nk-menu-sub .nk-menu-link:hover,
 .nav-sidebar .nav.collapse .nav-link:hover,
 #side-nav-menu .nav.collapse .nav-link:hover {
-  background-color: transparent !important;
-  transform: scale(1.1) !important; /* Size effect only */
+  background-color: rgba(81, 101, 132, 0.65) !important; /* EXACT same as admin panel hover (65% opacity) */
+  background: rgba(81, 101, 132, 0.65) !important;
+  color: #FFFFFF !important;
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
 }
 
 /* ============================================
@@ -841,21 +1015,357 @@ select:focus {
    ============================================ */
 
 @media (max-width: 1199px) {
-  .nk-sidebar,
-  div.sidebar {
+  /* Hide star icon on mobile - COMPLETE HIDE for both admin and superadmin */
+  #sidebar-star-icon {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Sidebar starts hidden on mobile - slides in from left with smooth animation */
+  /* AGGRESSIVE: Force sidebar to be hidden by default - MAXIMUM SPECIFICITY */
+  body .nk-app-root .nk-main .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  body .nk-app-root .nk-main div.sidebar:not(.show),
+  .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  div.sidebar:not(.show) {
     transform: translateX(-100%) !important;
-    transition: transform 0.3s ease !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Smooth slide animation */
+    z-index: 1040 !important; /* Above content when open */
+  }
+  
+  /* AGGRESSIVE: Force initial state on page load */
+  .nk-sidebar.nk-sidebar-mobile:not(.show):not(.nk-sidebar-active),
+  .nk-sidebar.nk-sidebar-fixed:not(.show):not(.nk-sidebar-active) {
+    transform: translateX(-100%) !important;
   }
 
+  /* Sidebar visible when toggled - smooth slide in */
   .nk-sidebar.show,
+  .nk-sidebar.nk-sidebar-active,
   div.sidebar.show {
     transform: translateX(0) !important;
+  }
+  
+  /* Logo hidden by default on mobile - COMPLETE HIDE */
+  /* BUT: Keep toggle container visible so toggle can work */
+  .nk-sidebar-brand,
+  div.nk-sidebar-brand {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Logo section: Keep visible but only show toggle, hide logo */
+  /* FIXED: pointer-events must be 'auto' to allow clicks on children */
+  .nk-sidebar-element.nk-sidebar-head,
+  div.nk-sidebar-element.nk-sidebar-head {
+    display: flex !important; /* Keep visible for toggle */
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: fixed !important; /* Fixed so it's always visible */
+    top: 0 !important;
+    left: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: auto !important;
+    min-height: auto !important;
+    background: transparent !important; /* No background */
+    z-index: 1050 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: auto !important; /* FIXED: Allow clicks on children - was 'none' which blocked clicks */
+  }
+  
+  /* Toggle must be visible and clickable */
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger,
+  .nk-sidebar-element.nk-sidebar-head .nk-nav-toggle {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important; /* Allow clicks */
+  }
+  
+  /* Toggle links inside must be clickable */
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger a,
+  .nk-sidebar-element.nk-sidebar-head .nk-nav-toggle a {
+    pointer-events: auto !important; /* Ensure clicks work */
+  }
+  
+  /* Header toggle - also ensure it's clickable */
+  .nk-header .nk-menu-trigger,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle {
+    pointer-events: auto !important;
+  }
+  
+  /* Logo slides in with sidebar when sidebar is open - smooth animation */
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand,
+  .nk-sidebar.show div.nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active div.nk-sidebar-brand {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* When sidebar is open, logo section should be in normal position */
+  .nk-sidebar.show .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.show div.nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.nk-sidebar-active div.nk-sidebar-element.nk-sidebar-head {
+    position: fixed !important; /* Keep fixed */
+    top: 0 !important;
+    left: 0 !important;
+    width: 230px !important; /* Full sidebar width */
+    height: 170px !important; /* Logo height */
+    background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important; /* Show background */
+    z-index: 1031 !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  @keyframes slideInLogo {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Overlay when sidebar is open - REMOVED or TRANSPARENT */
+  /* No dark overlay - just let content show through */
+  .nk-sidebar-overlay,
+  .sidebar-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: transparent !important; /* NO DARK BACKGROUND */
+    z-index: 1039 !important;
+    opacity: 0 !important;
+    pointer-events: none !important; /* Don't block clicks */
+    transition: opacity 0.3s ease !important;
+    display: none !important; /* COMPLETE HIDE - no overlay needed */
+  }
+  
+  .nk-sidebar.show ~ .nk-sidebar-overlay,
+  .nk-sidebar.nk-sidebar-active ~ .nk-sidebar-overlay,
+  body.sidebar-open .nk-sidebar-overlay,
+  body.sidebar-open .sidebar-overlay {
+    opacity: 0 !important; /* Still transparent */
+    pointer-events: none !important; /* Don't block clicks */
+    display: none !important; /* Still hidden */
   }
 
   .nk-main,
   .nk-wrap,
   body {
     margin-left: 0 !important;
+  }
+  
+  /* Header - FULL WIDTH on mobile when sidebar is hidden */
+  .nk-header,
+  .nk-header.nk-header-fixed,
+  .nk-header.is-light {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+  
+  /* Header menu toggle - show on mobile */
+  /* AGGRESSIVE: Make sure toggle is visible even when parent is hidden */
+  .nk-header .nk-menu-trigger,
+  .nk-header .nk-nav-toggle,
+  .nk-sidebar .nk-menu-trigger,
+  .nk-sidebar .nk-nav-toggle,
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger,
+  .nk-sidebar-element.nk-sidebar-head .nk-nav-toggle {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #ffffff !important;
+    font-size: 24px !important;
+    padding: 0 !important; /* Remove padding from container */
+    cursor: pointer !important;
+    background: transparent !important; /* No background on container */
+    border-radius: 0 !important;
+    transition: none !important; /* No transition on container */
+    position: fixed !important;
+    top: 15px !important;
+    left: 15px !important;
+    z-index: 1050 !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: auto !important;
+    min-height: auto !important;
+    pointer-events: auto !important;
+  }
+  
+  /* HIDE toggle when sidebar is open */
+  .nk-sidebar.show .nk-menu-trigger,
+  .nk-sidebar.nk-sidebar-active .nk-menu-trigger,
+  .nk-sidebar.show .nk-nav-toggle,
+  .nk-sidebar.nk-sidebar-active .nk-nav-toggle,
+  .nk-sidebar.show ~ .nk-header .nk-menu-trigger,
+  .nk-sidebar.nk-sidebar-active ~ .nk-header .nk-menu-trigger,
+  body.sidebar-open .nk-header .nk-menu-trigger,
+  body.sidebar-open .nk-sidebar .nk-menu-trigger,
+  body.sidebar-open .nk-sidebar .nk-nav-toggle {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Hide toggle links when sidebar is open */
+  .nk-sidebar.show .nk-menu-trigger a,
+  .nk-sidebar.nk-sidebar-active .nk-menu-trigger a,
+  .nk-sidebar.show .nk-nav-toggle a,
+  .nk-sidebar.nk-sidebar-active .nk-nav-toggle a,
+  .nk-sidebar.show ~ .nk-header .nk-menu-trigger a,
+  .nk-sidebar.nk-sidebar-active ~ .nk-header .nk-menu-trigger a,
+  body.sidebar-open .nk-header .nk-menu-trigger a,
+  body.sidebar-open .nk-sidebar .nk-menu-trigger a {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Make sure toggle links inside are visible and styled */
+  /* NO BACKGROUND - just icon, scale on hover */
+  .nk-sidebar .nk-menu-trigger a,
+  .nk-sidebar .nk-nav-toggle a,
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger a,
+  .nk-sidebar-element.nk-sidebar-head .nk-nav-toggle a,
+  .nk-sidebar .nk-menu-trigger a.nk-nav-toggle,
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger a.nk-nav-toggle,
+  .nk-header .nk-menu-trigger a,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 8px !important;
+    cursor: pointer !important;
+    color: #ffffff !important;
+    background: transparent !important; /* NO BACKGROUND */
+    border-radius: 0 !important; /* NO BORDER RADIUS */
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    transition: transform 0.3s ease !important; /* Only transform transition */
+    pointer-events: auto !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important; /* NO SHADOW */
+  }
+  
+  /* Hover effect - ONLY SCALE, NO BACKGROUND */
+  .nk-sidebar .nk-menu-trigger a:hover,
+  .nk-sidebar .nk-nav-toggle a:hover,
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger a:hover,
+  .nk-sidebar-element.nk-sidebar-head .nk-nav-toggle a:hover,
+  .nk-sidebar .nk-menu-trigger a.nk-nav-toggle:hover,
+  .nk-header .nk-menu-trigger a:hover,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle:hover {
+    background: transparent !important; /* NO BACKGROUND ON HOVER */
+    transform: scale(1.1) !important; /* ONLY SCALE EFFECT */
+    color: #ffffff !important;
+    box-shadow: none !important; /* NO SHADOW */
+  }
+  
+  /* Active/pressed state - ONLY SCALE */
+  .nk-sidebar .nk-menu-trigger a:active,
+  .nk-sidebar .nk-nav-toggle a:active,
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger a:active,
+  .nk-sidebar-element.nk-sidebar-head .nk-nav-toggle a:active,
+  .nk-header .nk-menu-trigger a:active,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle:active {
+    background: transparent !important; /* NO BACKGROUND */
+    transform: scale(0.95) !important; /* ONLY SCALE */
+    box-shadow: none !important; /* NO SHADOW */
+  }
+  
+  /* Icon inside toggle link */
+  .nk-sidebar .nk-menu-trigger a em.icon,
+  .nk-sidebar .nk-nav-toggle a em.icon,
+  .nk-sidebar-element.nk-sidebar-head .nk-menu-trigger a em.icon,
+  .nk-header .nk-menu-trigger a em.icon {
+    font-size: 24px !important;
+    color: inherit !important;
+    line-height: 1 !important;
+  }
+  
+  /* OVERRIDE framework styles that add white circle - COMPLETE REMOVAL */
+  /* Hide the :before pseudo-element that creates the circle */
+  .nk-quick-nav-icon:before,
+  .nk-nav-toggle.nk-quick-nav-icon:before,
+  .nk-header .nk-quick-nav-icon:before,
+  .nk-sidebar .nk-quick-nav-icon:before,
+  .nk-sidebar-element.nk-sidebar-head .nk-quick-nav-icon:before,
+  .nk-menu-trigger .nk-quick-nav-icon:before,
+  .nk-menu-trigger a.nk-quick-nav-icon:before {
+    display: none !important; /* COMPLETE HIDE */
+    visibility: hidden !important;
+    opacity: 0 !important;
+    content: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  /* Hover - NO CIRCLE, ONLY SCALE */
+  .nk-quick-nav-icon:hover:before,
+  .nk-nav-toggle.nk-quick-nav-icon:hover:before,
+  .nk-header .nk-quick-nav-icon:hover:before,
+  .nk-sidebar .nk-quick-nav-icon:hover:before,
+  .nk-sidebar-element.nk-sidebar-head .nk-quick-nav-icon:hover:before,
+  .nk-menu-trigger .nk-quick-nav-icon:hover:before,
+  .nk-menu-trigger a.nk-quick-nav-icon:hover:before {
+    display: none !important; /* STILL HIDDEN ON HOVER */
+    opacity: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  
+  /* Toggle links - NO BACKGROUND, ONLY SCALE ON HOVER */
+  .nk-quick-nav-icon,
+  .nk-nav-toggle.nk-quick-nav-icon,
+  .nk-header .nk-quick-nav-icon,
+  .nk-sidebar .nk-quick-nav-icon {
+    background: transparent !important;
+    background-color: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transition: transform 0.3s ease !important; /* Only transform */
+  }
+  
+  /* Hover effect - ONLY SCALE, NO BACKGROUND */
+  .nk-quick-nav-icon:hover,
+  .nk-nav-toggle.nk-quick-nav-icon:hover,
+  .nk-header .nk-quick-nav-icon:hover,
+  .nk-sidebar .nk-quick-nav-icon:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    transform: scale(1.1) !important; /* ONLY SCALE */
+    box-shadow: none !important;
   }
 }
 
@@ -873,6 +1383,249 @@ select:focus {
 
 .border-primary {
   border-color: #08815e !important;
+}
+
+/* ============================================
+   AGGRESSIVE HEADER OVERRIDE - MAXIMUM SPECIFICITY
+   Force header to match admin panel exactly
+   ============================================ */
+
+/* CRITICAL FIX: Override any rules that set header left to 300px */
+/* Header MUST be at 230px (desktop) or 0px (mobile) - NEVER 300px */
+/* AGGRESSIVE OVERRIDE - Maximum specificity to beat all other rules */
+.nk-sidebar + .nk-wrap > .nk-header-fixed,
+.nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+body .nk-sidebar + .nk-wrap > .nk-header-fixed,
+body .nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+html body .nk-sidebar + .nk-wrap > .nk-header-fixed,
+html body .nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed,
+body .nk-body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed {
+  left: 230px !important; /* FORCE 230px - override any 300px rules */
+}
+
+/* Also override header directly */
+.nk-header.nk-header-fixed,
+.nk-header.nk-header-fixed.is-light,
+body .nk-header.nk-header-fixed,
+html body .nk-header.nk-header-fixed {
+  left: 230px !important; /* FORCE 230px on desktop */
+  width: calc(100% - 230px) !important; /* Match sidebar width */
+}
+
+/* MAXIMUM SPECIFICITY - Override ALL possible header rules */
+body .nk-app-root .nk-main .nk-header,
+body .nk-app-root .nk-main .nk-header.nk-header-fixed,
+body .nk-app-root .nk-main .nk-header.is-light,
+body .nk-app-root .nk-main .nk-header.is-dark,
+body .nk-app-root .nk-main .nk-header.is-theme,
+body .nk-body .nk-app-root .nk-main .nk-header,
+body .nk-body .nk-app-root .nk-main .nk-header.nk-header-fixed,
+html body .nk-app-root .nk-main .nk-header,
+html body .nk-app-root .nk-main .nk-header.nk-header-fixed {
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  border-bottom: none !important;
+  border-bottom-right-radius: 25px !important;
+}
+
+body .nk-app-root .nk-main .nk-header .container-fluid,
+body .nk-app-root .nk-main .nk-header-wrap {
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+}
+
+/* ============================================
+   SIDEBAR TOP PART - FORCE #516584 COLOR
+   Ensure the top part of the menu area (below logo) is #516584
+   ============================================ */
+
+/* Force sidebar to start at #475c75 - matches logo section bottom for seamless transition */
+.nk-sidebar,
+div.sidebar {
+  /* Gradient MUST start with #475c75 at 0% to seamlessly continue from logo section bottom */
+  /* Logo section ends at #475c75, sidebar starts at #475c75 for smooth transition */
+  background: linear-gradient(180deg, #475c75 0%, #475c75 10%, #455a73 30%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #475c75 !important;
+  background-image: linear-gradient(180deg, #475c75 0%, #475c75 10%, #455a73 30%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+}
+
+/* ============================================
+   AGGRESSIVE LOGO SECTION GRADIENT OVERRIDE
+   Force logo section to transition to #485d76 at bottom
+   ============================================ */
+
+/* Maximum specificity to override any conflicting rules */
+body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-brand,
+body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-element.nk-sidebar-head,
+body .nk-sidebar-brand,
+body .nk-sidebar-element.nk-sidebar-head,
+html body .nk-sidebar-brand,
+html body .nk-sidebar-element.nk-sidebar-head {
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+}
+
+/* Ensure the menu area (below logo) inherits the sidebar background */
+.nk-sidebar-element.nk-sidebar-body,
+.nk-sidebar-body,
+.nk-sidebar-content,
+.nk-sidebar-main,
+.nk-sidebar-menu {
+  /* Transparent background to show parent sidebar gradient */
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ============================================
+   FINAL AGGRESSIVE LOGO GRADIENT OVERRIDE
+   This must be at the end to override everything
+   ============================================ */
+
+/* Maximum specificity - override ALL possible logo section rules */
+body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-brand,
+body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-element.nk-sidebar-head,
+body .nk-body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-brand,
+body .nk-body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-element.nk-sidebar-head,
+html body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-brand,
+html body .nk-app-root .nk-main .nk-sidebar .nk-sidebar-element.nk-sidebar-head,
+.nk-sidebar-brand,
+.nk-sidebar-element.nk-sidebar-head,
+div.nk-sidebar-brand,
+div.nk-sidebar-element.nk-sidebar-head {
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+}
+
+/* ============================================
+   FINAL NUCLEAR OVERRIDE - HEADER POSITION & SIDEBAR BACKGROUND
+   MUST BE AT END OF FILE TO OVERRIDE EVERYTHING
+   ============================================ */
+
+/* FORCE header to be at 230px (desktop) - override ALL other rules including 300px */
+.nk-sidebar + .nk-wrap > .nk-header-fixed,
+.nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+body .nk-sidebar + .nk-wrap > .nk-header-fixed,
+body .nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+html body .nk-sidebar + .nk-wrap > .nk-header-fixed,
+html body .nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed,
+body .nk-body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed,
+html body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed {
+  left: 230px !important; /* FORCE 230px - NEVER 300px */
+}
+
+/* Also force header directly - maximum specificity */
+.nk-header.nk-header-fixed,
+.nk-header.nk-header-fixed.is-light,
+body .nk-header.nk-header-fixed,
+body .nk-body .nk-header.nk-header-fixed,
+html body .nk-header.nk-header-fixed {
+  left: 230px !important; /* FORCE 230px on desktop */
+  width: calc(100% - 230px) !important; /* Match sidebar width */
+}
+
+/* CRITICAL: Ensure sidebar covers the left 230px completely - NO WHITE GAP */
+/* TOP MUST BE #516584 to match header left side for seamless connection */
+.nk-sidebar,
+div.sidebar,
+body .nk-sidebar,
+html body .nk-sidebar,
+body .nk-app-root .nk-main .nk-sidebar,
+html body .nk-app-root .nk-main .nk-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 230px !important;
+  min-width: 230px !important;
+  max-width: 230px !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  z-index: 1029 !important; /* Below header (1030) but above body background */
+  /* CRITICAL: Top must be #516584 to match header left side */
+  background: linear-gradient(180deg, #516584 0%, #516584 20%, #475c75 25%, #475c75 35%, #455a73 50%, #455a73 70%, #364a63 85%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #516584 20%, #475c75 25%, #475c75 35%, #455a73 50%, #455a73 70%, #364a63 85%, #364a63 100%) !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  background-size: 230px 100vh !important;
+  background-position: 0 0 !important;
+}
+
+/* CRITICAL: Body/HTML background - ensure white doesn't show in sidebar area */
+body:has(.nk-sidebar),
+html:has(.nk-sidebar),
+body.nk-body:has(.nk-sidebar),
+html body.nk-body:has(.nk-sidebar) {
+  background-color: #f5f5f5 !important; /* Light gray for content area only */
+  background-image: none !important;
+}
+
+/* NUCLEAR FIX: Pseudo-element to cover sidebar area - prevents ANY white from showing */
+/* This ensures the left 230px is ALWAYS covered, even if sidebar background fails */
+/* TOP MUST BE #516584 to match header left side */
+body:has(.nk-sidebar)::before,
+html:has(.nk-sidebar)::before,
+body.nk-body:has(.nk-sidebar)::before,
+html body.nk-body:has(.nk-sidebar)::before {
+  content: '' !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 230px !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  /* CRITICAL: Top must be #516584 to match header left side */
+  background: linear-gradient(180deg, #516584 0%, #516584 20%, #475c75 25%, #475c75 35%, #455a73 50%, #455a73 70%, #364a63 85%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #516584 20%, #475c75 25%, #475c75 35%, #455a73 50%, #455a73 70%, #364a63 85%, #364a63 100%) !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  background-size: 230px 100vh !important;
+  background-position: 0 0 !important;
+  z-index: 1028 !important; /* Behind sidebar (1029) but above body (1) */
+  pointer-events: none !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* ADDITIONAL FIX: Ensure parent containers don't create gaps */
+.nk-app-root,
+.nk-main,
+.nk-wrap {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Ensure no white background shows in sidebar area from any parent */
+.nk-app-root:has(.nk-sidebar),
+.nk-main:has(.nk-sidebar),
+.nk-wrap:has(.nk-sidebar) {
+  background-color: transparent !important;
+}
+
+/* CRITICAL: Force sidebar to extend full height and cover area */
+.nk-sidebar::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: inherit !important;
+  background-color: inherit !important;
+  background-image: inherit !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
 }
 
 /* ============================================

@@ -47,21 +47,47 @@ body {
 }
 
 /* ============================================
-   HEADER - Matching Admin Panel Exactly
+   HEADER - Blue Gradient (Same as Login Page)
    ============================================ */
 .nk-header {
-  background-color: var(--white-bg) !important;
-  border-bottom: 1px solid var(--border-color) !important;
-  box-shadow: var(--shadow-sm) !important;
-  height: 63px !important;
+  /* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+  /* EXACT same as admin panel */
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  border-bottom: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important; /* EXACT same as admin panel */
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
   padding: 0 !important;
+  border-bottom-right-radius: 25px !important; /* EXACT same as admin panel */
+}
+
+/* All text and icons in header - white for contrast */
+.nk-header .title,
+.nk-header .user-name,
+.nk-header .page-title,
+.nk-header .page-title span,
+.nk-header a,
+.nk-header .icon,
+.nk-header em.icon,
+.nk-header .nk-menu-trigger,
+.nk-header .nk-quick-nav-icon,
+.nk-header .user-toggle,
+.nk-header .user-status,
+.nk-header .dropdown-toggle,
+.nk-header .badge,
+.nk-header .nk-block-head-content h3 {
+  color: #ffffff !important;
 }
 
 .nk-header-wrap {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  height: 63px !important;
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
 }
 
 /* Page Title in Header - Same as Admin Panel */
@@ -73,36 +99,99 @@ body {
 }
 
 /* ============================================
-   SIDEBAR - Dark Theme Like Admin
+   SIDEBAR - Blue Gradient (Unified with Header)
    ============================================ */
 .nk-sidebar {
-  background-color: #1f2b3a !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: var(--shadow-md) !important;
+  /* Smoothly continues from logo section: starts at #475c75 (matching logo bottom) */
+  /* Logo section ends at #475c75, so sidebar starts at #475c75 for seamless transition */
+  background: linear-gradient(180deg, #475c75 0%, #475c75 10%, #455a73 30%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #475c75 !important;
+  background-image: linear-gradient(180deg, #475c75 0%, #475c75 10%, #455a73 30%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-right: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
 .nk-sidebar-brand {
-  background-color: #1a2532 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  /* Logo area gradient - smooth transition from top to #516584 (bottom) */
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  border-bottom: none !important;
 }
 
+/* Ensure header and sidebar connect seamlessly - no border between them */
+.nk-header + .nk-sidebar,
+.nk-header ~ .nk-sidebar {
+  border-top: none !important;
+}
+
+/* Remove any border-bottom from header that might create a line */
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  border-bottom: none !important;
+}
+
+/* Remove any border-top from sidebar that might create a line */
+.nk-sidebar,
+.nk-sidebar-brand {
+  border-top: none !important;
+}
+
+/* Menu links - EXACT same as admin panel */
 .nk-menu-link {
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   padding: 12px 20px !important;
   border-radius: 4px !important;
-  transition: all 0.3s ease !important;
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease, color 0.2s ease !important;
 }
 
-.nk-menu-link:hover {
-  background-color: rgba(8, 129, 94, 0.15) !important;
-  color: var(--primary-green) !important;
-  transform: translateX(4px) !important;
+.nk-menu-link:hover,
+.nk-menu-link:focus {
+  background-color: rgba(81, 101, 132, 0.65) !important; /* EXACT same as admin panel hover */
+  background: rgba(81, 101, 132, 0.65) !important;
+  color: #ffffff !important;
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  border-radius: 4px !important;
 }
 
-.nk-menu-link.active {
-  background-color: rgba(8, 129, 94, 0.2) !important;
-  color: var(--primary-green) !important;
-  border-left: 3px solid var(--primary-green) !important;
+.nk-menu-link.active,
+.nk-menu-item.active > .nk-menu-link {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* EXACT same as admin panel active (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-left: none !important; /* Remove border, use background like admin */
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow like admin */
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+}
+
+/* Star icon in sidebar top right - gradient from #4e6381 (left) to #506584 (right) */
+/* Smooth gradient: left half #4e6381, smoothly transitions to #506584 on right */
+#sidebar-star-icon,
+.nk-sidebar .star-icon,
+.nk-sidebar [class*="star"],
+.nk-sidebar .fa-star,
+.nk-sidebar .icon-star {
+  background: linear-gradient(90deg, #4e6381 0%, #4e6381 45%, #506584 55%, #506584 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important; /* Fallback for browsers that don't support background-clip */
+}
+
+/* Hide star icon on mobile/tablet - only show on desktop */
+@media (max-width: 991.98px) {
+  #sidebar-star-icon,
+  .nk-sidebar .star-icon,
+  .nk-sidebar [class*="star"],
+  .nk-sidebar .fa-star,
+  .nk-sidebar .icon-star {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
 }
 
 /* ============================================
@@ -613,6 +702,39 @@ select:focus {
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
+
+/* Hide logo on mobile - show only when sidebar is open */
+@media (max-width: 1199.98px) {
+  /* Hide logo section by default on mobile */
+  .nk-sidebar-brand {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Show logo only when sidebar is open */
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  @keyframes slideInLogo {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .nk-header-wrap {
     padding: 0 12px !important;

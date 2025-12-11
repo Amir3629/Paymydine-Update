@@ -378,17 +378,234 @@ div.modal-content,
   color: #364a63 !important;
 }
 
-/* ROUND THE HEADER FROM RIGHT SIDE - MORE PRONOUNCED */
+/* ============================================
+   ADMIN PANEL HEADER & SIDEBAR - CONTINUOUS BLUE GRADIENT
+   Same beautiful blue gradient as login page (bg-abstract)
+   Header and sidebar appear as ONE CONTINUOUS PIECE with seamless gradient flow
+   ============================================ */
+
+/* ============================================
+   SEAMLESS GRADIENT: Header and Sidebar as ONE CONTINUOUS PIECE
+   The gradient flows continuously from header to sidebar with NO color contrast
+   ============================================ */
+
+/* Header - Blue Gradient */
+/* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+/* Similar smooth effect as sidebar, but horizontal (left to right) */
 .navbar-top {
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  border-bottom: none !important;
   border-bottom-right-radius: 25px !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Round the left sidebar menu from right side */
+/* Sidebar - Blue Gradient CONTINUES seamlessly from header */
+/* CRITICAL: Sidebar starts with the SAME color that header ends with */
+/* Header ends at #526484 (100%), so sidebar starts at #526484 (0%) */
+/* This creates a seamless flow - one continuous gradient piece! */
 .nav-sidebar,
 #navSidebar,
 .sidebar {
+  /* Sidebar gradient CONTINUES from header: starts where header ended */
+  /* ADJUSTED: Left side is brighter, middle section is less dark, bottom part is also brighter */
+  /* Using brighter colors throughout: #516584 at top, lighter middle, brighter bottom */
+  background: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-right: none !important;
   border-bottom-right-radius: 0 !important;
   position: relative !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* CRITICAL: Ensure header and sidebar are positioned to connect seamlessly */
+/* Remove any margin/padding that could create a gap */
+.navbar-top {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+  outline: none !important;
+}
+
+.sidebar,
+.nav-sidebar,
+#navSidebar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* CRITICAL: Remove any gap between header and sidebar */
+.navbar-top + .sidebar,
+.navbar-top ~ .sidebar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+}
+
+/* Ensure nav items inside don't create visual gaps at the very top */
+/* But allow spacing for menu items below */
+.nav-sidebar > .nav:first-child,
+#navSidebar > .nav:first-child,
+.sidebar > .nav-sidebar > .nav:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Allow normal spacing for nav items, but ensure first item starts at top */
+.nav-sidebar .nav,
+.nav-sidebar .nav .nav,
+#navSidebar .nav,
+#navSidebar .nav .nav {
+  /* Keep normal spacing for menu items, but no gap at very top */
+}
+
+/* CRITICAL FIX: .nav-sidebar is a child element inside .sidebar that has its own background color */
+/* This overrides admin.css line 27408 which sets background-color: #202938 */
+/* This is the element causing the color difference at the top edge! */
+/* Using SAME gradient as parent .sidebar so it continues seamlessly from header */
+/* REMOVED padding-top: 20px - THIS WAS CREATING THE DARK GAP! */
+/* ADJUSTED: Bottom part is now darker */
+.nav-sidebar,
+#navSidebar .nav-sidebar,
+.sidebar .nav-sidebar,
+#navSidebar {
+  /* Match parent sidebar gradient - continues seamlessly from header */
+  /* ADJUSTED: Left side is brighter, middle section is less dark, bottom part is also brighter */
+  background: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important; /* CRITICAL: Remove padding that creates dark gap */
+  padding-bottom: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Also ensure the .sidebar wrapper has no padding/margin at top */
+.sidebar,
+div.sidebar,
+.sidebar[role="navigation"] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  outline: none !important;
+}
+
+/* Also fix nested nav elements that might have different backgrounds */
+/* This overrides admin.css line 27460 which sets .nav-sidebar .nav .nav background-color: #2a3447 */
+.nav-sidebar .nav,
+.nav-sidebar .nav .nav,
+#navSidebar .nav,
+#navSidebar .nav .nav {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Ensure the very top of nav-sidebar (first few pixels) has the blue gradient */
+.nav-sidebar::before {
+  content: '' !important;
+  display: none !important;
+}
+
+.nav-sidebar::after {
+  content: '' !important;
+  display: none !important;
+}
+
+/* Ensure header and sidebar connect seamlessly - no border between them */
+.navbar-top + .sidebar,
+.navbar-top ~ .sidebar,
+.navbar-top + .nav-sidebar,
+.navbar-top ~ .nav-sidebar,
+.navbar-top + #navSidebar,
+.navbar-top ~ #navSidebar {
+  border-top: none !important;
+}
+
+/* Remove any border-bottom from header that might create a line */
+.navbar-top {
+  border-bottom: none !important;
+}
+
+/* Remove any border-top from sidebar that might create a line */
+.sidebar,
+.nav-sidebar,
+#navSidebar {
+  border-top: none !important;
+}
+
+/* All text and icons in header - white for contrast */
+.navbar-top .page-title,
+.navbar-top .page-title span,
+.navbar-top .navbar-brand,
+.navbar-top .navbar-brand a,
+.navbar-top .navbar-nav .nav-link,
+.navbar-top .navbar-nav .nav-link i,
+.navbar-top .navbar-nav .nav-link em.icon,
+.navbar-top .dropdown-toggle,
+.navbar-top .dropdown-toggle i,
+.navbar-top .navbar-tour-btn,
+.navbar-top .navbar-tour-btn i,
+.navbar-top a,
+.navbar-top .icon,
+.navbar-top em.icon {
+  color: #ffffff !important;
+}
+
+/* All text and icons in sidebar - white for contrast */
+.nav-sidebar .nav > li > a,
+.nav-sidebar .nav > li > a i,
+.nav-sidebar .nav > li > a em.icon,
+.nav-sidebar .nav .nav-item .nav-link,
+.nav-sidebar .nav .nav-item .nav-link i,
+#navSidebar .nav > li > a,
+#navSidebar .nav > li > a i,
+.sidebar .nav > li > a,
+.sidebar .nav > li > a i {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Sidebar active/hover states - lighter white */
+.nav-sidebar .nav > li > a:hover,
+.nav-sidebar .nav > li > a:focus,
+/* Selected/Active menu items - Brighter background with smooth transition */
+.nav-sidebar .nav li.active > a,
+.nav-sidebar .nav .nav li.active > a,
+.nav-sidebar .nav .nav li > a.active,
+#navSidebar .nav li.active > a,
+#navSidebar .nav .nav li.active > a,
+#navSidebar .nav .nav li > a.active,
+.sidebar .nav li.active > a,
+.sidebar .nav .nav li.active > a,
+.sidebar .nav .nav li > a.active {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* Even brighter blue background (#516584 with 75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+}
+
+/* Hover state for menu items - also brighter */
+.nav-sidebar .nav > li > a:hover,
+.nav-sidebar .nav .nav li > a:hover,
+#navSidebar .nav > li > a:hover,
+#navSidebar .nav > li > a:focus,
+#navSidebar .nav li.active > a,
+.sidebar .nav > li > a:hover,
+.sidebar .nav > li > a:focus,
+.sidebar .nav li.active > a {
+  color: #ffffff !important;
 }
 
 /* Keep sidebar full height of viewport minus top navbar */
@@ -422,17 +639,6 @@ div.modal-content,
 .nav-sidebar {
   scrollbar-width: thin !important;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent !important;
-}
-
-/* Create star/sparkle icon in top-right corner (sidebar only) */
-.sidebar::before {
-  content: '✦' !important; /* Star/sparkle character */
-  position: absolute !important;
-  top: -54px !important;
-  right: -19px !important;
-  color: #202938 !important;
-  font-size: 64px !important;
-  z-index: 10 !important;
 }
 
 /* Remove any decorative bottom-right shape */
@@ -2016,7 +2222,7 @@ button.navbar-toggler:not(.navbar-top .navbar-toggler),
     left: -9999px !important;
 }
 
-/* Keep navbar-toggler hidden in navbar-top (user doesn't want it visible) */
+/* Show navbar-toggler on mobile/tablet - hide on desktop */
 .navbar-top .navbar-toggler,
 .navbar-top button.navbar-toggler,
 .navbar-top .navbar-toggler[data-bs-toggle="collapse"] {
@@ -2030,6 +2236,75 @@ button.navbar-toggler:not(.navbar-top .navbar-toggler),
     height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+}
+
+/* Show menu toggle on mobile/tablet */
+@media (max-width: 991.98px) {
+    .navbar-top .navbar-toggler,
+    .navbar-top button.navbar-toggler,
+    .navbar-top .navbar-toggler[data-bs-toggle="collapse"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: all !important;
+        position: relative !important;
+        left: auto !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 10px 0 0 !important;
+        padding: 8px 12px !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: none !important;
+        border-radius: 4px !important;
+        color: #ffffff !important;
+        font-size: 20px !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .navbar-top .navbar-toggler:hover {
+        background: rgba(255, 255, 255, 0.2) !important;
+        transform: scale(1.1) !important;
+    }
+    
+    /* Admin sidebar - smooth slide animation on mobile */
+    .sidebar,
+    .nav-sidebar,
+    #navSidebar {
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    /* Sidebar overlay for mobile - REMOVED (no dark overlay) */
+    .sidebar-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: transparent !important; /* NO DARK BACKGROUND */
+        z-index: 1029 !important;
+        opacity: 0 !important;
+        pointer-events: none !important; /* Don't block clicks */
+        transition: opacity 0.3s ease !important;
+        display: none !important; /* COMPLETE HIDE */
+    }
+    
+    body.sidebar-open .sidebar-overlay {
+        opacity: 0 !important; /* Still transparent */
+        pointer-events: none !important; /* Don't block clicks */
+        display: none !important; /* Still hidden */
+    }
+    
+    /* Hide menu toggle when sidebar is open */
+    body.sidebar-open .navbar-top .navbar-toggler,
+    body.sidebar-open .navbar-toggler[data-bs-toggle="collapse"],
+    .sidebar.show ~ .navbar-top .navbar-toggler,
+    .nav-sidebar.show ~ .navbar-top .navbar-toggler {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
 }
 
 /* FIX SETTINGS CARDS - Make them smaller and properly aligned */
@@ -3433,4 +3708,90 @@ a[data-request="onSendInvoiceEmail"] i::before {
 a.btn-send-invoice[style*="color"] i,
 a.btn-send-invoice[style*="background"] i {
     color: #364a63 !important;
+}
+
+/* ============================================
+   SIDEBAR STAR ICON - ADMIN PANEL
+   Star icon in top right of sidebar
+   ============================================ */
+
+/* Star icon in sidebar top right - color #516484 for admin panel */
+#sidebar-star-icon,
+.sidebar .star-icon,
+.sidebar [class*="star"],
+.sidebar .fa-star,
+.sidebar .icon-star,
+.nav-sidebar .star-icon,
+.nav-sidebar [class*="star"],
+.nav-sidebar .fa-star,
+.nav-sidebar .icon-star,
+#navSidebar .star-icon,
+#navSidebar [class*="star"],
+#navSidebar .fa-star,
+#navSidebar .icon-star {
+  color: #516484 !important;
+}
+
+/* Hide star icon on mobile/tablet - only show on desktop */
+@media (max-width: 991.98px) {
+  #sidebar-star-icon,
+  .sidebar .star-icon,
+  .sidebar [class*="star"],
+  .sidebar .fa-star,
+  .sidebar .icon-star,
+  .nav-sidebar .star-icon,
+  .nav-sidebar [class*="star"],
+  .nav-sidebar .fa-star,
+  .nav-sidebar .icon-star,
+  #navSidebar .star-icon,
+  #navSidebar [class*="star"],
+  #navSidebar .fa-star,
+  #navSidebar .icon-star {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Hide any logo in admin panel sidebar on mobile */
+  .sidebar .logo,
+  .sidebar .brand-logo,
+  .sidebar img[src*="logo"],
+  .nav-sidebar .logo,
+  .nav-sidebar .brand-logo,
+  .nav-sidebar img[src*="logo"],
+  #navSidebar .logo,
+  #navSidebar .brand-logo,
+  #navSidebar img[src*="logo"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+  
+  /* Show logo only when sidebar is open */
+  .sidebar.show .logo,
+  .sidebar.show .brand-logo,
+  .sidebar.show img[src*="logo"],
+  .nav-sidebar.show .logo,
+  .nav-sidebar.show .brand-logo,
+  .nav-sidebar.show img[src*="logo"],
+  #navSidebar.show .logo,
+  #navSidebar.show .brand-logo,
+  #navSidebar.show img[src*="logo"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  @keyframes slideInLogo {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 }
