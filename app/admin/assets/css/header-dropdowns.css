@@ -233,7 +233,7 @@
     background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
     border: none !important;
     border-radius: 10px !important;
-    box-shadow: 0 8px 30px rgba(8, 129, 94, 0.20) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important; /* Changed from green to neutral gray */
     padding: 8px !important;
     overflow: hidden !important;
   
@@ -245,6 +245,20 @@
     /* Ensure dropdown never expands header height */
     position: absolute !important;
     top: 100% !important;
+  }
+  
+  /* Profile dropdown - remove green border/outline */
+  .profile-dropdown-menu,
+  .profile-dropdown-menu.show {
+    border: none !important;
+    outline: none !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important; /* Neutral gray shadow, no green */
+  }
+  
+  /* User profile section at top - adjust padding to match reduced width */
+  .profile-dropdown-menu .d-flex.flex-column {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
   
   /* Profile dropdown - NO smooth animation */
@@ -458,10 +472,28 @@
   }
   
   .profile-dropdown-menu {
-    min-width: 260px !important;
-    max-width: 280px !important;
-    padding: 18px 20px 16px !important;
+    min-width: 220px !important; /* Reduced from 260px */
+    max-width: 240px !important; /* Reduced from 280px */
+    padding: 18px 12px 16px !important; /* Reduced horizontal padding */
     gap: 0 !important;
+    max-height: 500px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border: none !important; /* Remove any border */
+    outline: none !important; /* Remove any outline */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important; /* Neutral gray shadow, no green */
+  }
+  
+  /* Ensure the dropdown menu container can scroll */
+  .dropdown-menu.profile-dropdown-menu,
+  .dropdown-menu.profile-dropdown-menu.show,
+  .navbar-top .dropdown-menu.profile-dropdown-menu,
+  .navbar-top .dropdown-menu.profile-dropdown-menu.show {
+    max-height: 500px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
   
   .profile-dropdown-menu .rounded-circle {
@@ -477,14 +509,19 @@
   }
   
   .profile-dropdown-menu .dropdown-header {
-    padding: 0 0 6px !important;
+    padding: 0 16px 6px !important;
+    padding-left: 24px !important;
     margin-bottom: 6px !important;
     border-bottom: none !important;
     letter-spacing: 0.15em !important;
     color: #202938 !important;
-    padding-left: 19.5px !important;
     display: flex !important;
     align-items: center !important;
+  }
+  
+  /* Locations header is now a dropdown-item (clickable link) - style it like other items */
+  .profile-dropdown-menu .dropdown-item[href*="locations/settings"] {
+    /* Uses same styling as regular dropdown-items */
   }
   
   .profile-dropdown-menu .dropdown-item {
@@ -492,17 +529,55 @@
     align-items: center !important;
     gap: 10px !important;
     padding: 10px 0 !important;
+    padding-left: 20px !important; /* Move all text more to the right */
     margin: 0 !important;
     border-radius: 0 !important;
     color: #202938 !important;
     font-weight: 600 !important;
   }
   
+  /* Location items - MATCH EXACT STRUCTURE OF REGULAR ITEMS */
+  /* Regular items: <i class="icon"></i><span>Text</span> */
+  /* Location items: <i class="location-number">1.</i><span>Location Name</span> */
+  /* Use EXACT same styling as regular items, just adjust spacing to bring number closer to text */
+  
+  /* Location items - MATCH EXACT STRUCTURE OF REGULAR ITEMS */
+  /* Regular items: <i class="fa fa-icon"></i><span>Text</span> */
+  /* Location items: <i class="location-number">1.</i><span>Location Name</span> */
+  /* Use EXACT same styling as regular items - just reduce gap between number and text */
+  
+  /* Location number as <i> element - reduce right margin to bring closer to text */
+  .profile-dropdown-menu .dropdown-item[href*="locations/settings"] ~ .dropdown-item i.location-number,
+  .profile-dropdown-menu .dropdown-item:has(i.fa-location-dot) ~ .dropdown-item i.location-number {
+    margin-right: 4px !important; /* Reduced from default 10px to bring closer to text */
+  }
+  
+  /* Location text as <span> - matches regular spans exactly, no changes needed */
+  
+  /* Header text - moved more to the right */
+  .profile-dropdown-menu .dropdown-header span {
+    margin-left: 12px !important;
+  }
+  
   .profile-dropdown-menu .dropdown-item i,
-  .profile-dropdown-menu .dropdown-item span,
-  .profile-dropdown-menu .dropdown-item.text-danger,
-  .profile-dropdown-menu .dropdown-item.text-danger i {
+  .profile-dropdown-menu .dropdown-item span {
     color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item.text-danger,
+  .profile-dropdown-menu .dropdown-item.text-danger i,
+  .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+  .profile-dropdown-menu .dropdown-item.text-danger .fa,
+  .profile-dropdown-menu a.dropdown-item.text-danger,
+  .profile-dropdown-menu a.dropdown-item.text-danger i,
+  .profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger i,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+  html body .profile-dropdown-menu .dropdown-item.text-danger,
+  html body .profile-dropdown-menu .dropdown-item.text-danger i,
+  html body .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off {
+    color: #dc3545 !important;
   }
   
   .profile-dropdown-menu .dropdown-item span {
@@ -520,6 +595,10 @@
     color: #202938 !important;
   }
   
+  .profile-dropdown-menu .dropdown-item.text-danger:hover {
+    color: #dc3545 !important;
+  }
+  
   .profile-dropdown-menu .dropdown-item {
     transition: transform 0.1s ease !important;
   }
@@ -533,8 +612,76 @@
     color: #202938 !important;
   }
   
+  /* Logout item - Red color override - Must come after general hover rules */
+  .profile-dropdown-menu .dropdown-item.text-danger,
+  .profile-dropdown-menu .dropdown-item.text-danger i,
+  .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+  .profile-dropdown-menu .dropdown-item.text-danger .fa,
+  .profile-dropdown-menu a.dropdown-item.text-danger,
+  .profile-dropdown-menu a.dropdown-item.text-danger i,
+  .profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger i,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+  html body .profile-dropdown-menu .dropdown-item.text-danger,
+  html body .profile-dropdown-menu .dropdown-item.text-danger i,
+  html body .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off {
+    color: #dc3545 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item.text-danger:hover,
+  .profile-dropdown-menu .dropdown-item.text-danger:hover i,
+  .profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off,
+  .profile-dropdown-menu .dropdown-item.text-danger:hover .fa,
+  .profile-dropdown-menu .dropdown-item.text-danger:focus,
+  .profile-dropdown-menu .dropdown-item.text-danger:focus i,
+  .profile-dropdown-menu .dropdown-item.text-danger:focus .fa-power-off,
+  .profile-dropdown-menu .dropdown-item.text-danger:active,
+  .profile-dropdown-menu .dropdown-item.text-danger:active i,
+  .profile-dropdown-menu .dropdown-item.text-danger:active .fa-power-off,
+  .profile-dropdown-menu a.dropdown-item.text-danger:hover,
+  .profile-dropdown-menu a.dropdown-item.text-danger:hover i,
+  .profile-dropdown-menu a.dropdown-item.text-danger:hover .fa-power-off,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger:hover,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger:hover i,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off,
+  html body .profile-dropdown-menu .dropdown-item.text-danger:hover,
+  html body .profile-dropdown-menu .dropdown-item.text-danger:hover i,
+  html body .profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off {
+    color: #dc3545 !important;
+  }
+  
   .profile-dropdown-menu .dropdown-item + .dropdown-item {
     border-top: 1px solid rgba(32, 41, 56, 0.1) !important;
+  }
+  
+  /* Custom scrollbar for profile dropdown - Smaller/thinner */
+  .profile-dropdown-menu::-webkit-scrollbar,
+  .dropdown-menu.profile-dropdown-menu::-webkit-scrollbar {
+    width: 4px !important;
+  }
+  
+  .profile-dropdown-menu::-webkit-scrollbar-track,
+  .dropdown-menu.profile-dropdown-menu::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+  
+  .profile-dropdown-menu::-webkit-scrollbar-thumb,
+  .dropdown-menu.profile-dropdown-menu::-webkit-scrollbar-thumb {
+    background: rgba(32, 41, 56, 0.2) !important;
+    border-radius: 2px !important;
+  }
+  
+  .profile-dropdown-menu::-webkit-scrollbar-thumb:hover,
+  .dropdown-menu.profile-dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(32, 41, 56, 0.3) !important;
+  }
+  
+  /* Firefox scrollbar */
+  .profile-dropdown-menu,
+  .dropdown-menu.profile-dropdown-menu {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(32, 41, 56, 0.2) transparent !important;
   }
   
   .profile-dropdown-menu .dropdown-item i {
@@ -563,23 +710,37 @@
   }
   
   .profile-dropdown-menu .dropdown-header span {
-    margin-left: 18px !important;
+    margin-left: 12px !important; /* Moved more to the right */
+  }
+  
+  /* Align locations header icon and text with other items */
+  .profile-dropdown-menu .dropdown-header i {
+    margin-right: 6px !important;
+    margin-left: 0 !important;
   }
   
   .profile-dropdown-menu .dropdown-item.active {
-    background: transparent !important;
+    background: rgb(241, 244, 251) !important; /* Ice white background (exact match to button) */
+    color: rgb(32, 41, 56) !important; /* Dark text (exact match to button) */
     font-weight: 700 !important;
     transform: none !important;
+    border: 1px solid rgb(201, 210, 227) !important; /* Light border (exact match to button) */
   }
   
   .profile-dropdown-menu .dropdown-item.active:hover {
-    transform: scale(1.05) !important;
+    background: rgb(241, 244, 251) !important; /* Keep ice white on hover */
+    color: rgb(32, 41, 56) !important; /* Keep dark text */
+    transform: none !important; /* Remove scale to prevent jumping */
   }
   
-  .profile-dropdown-menu .dropdown-header ~ .dropdown-item {
-    padding-left: 50px !important;
-    border-left: 3px solid transparent !important;
+  /* Active location item text and icons - dark color (matching button) */
+  .profile-dropdown-menu .dropdown-item.active i,
+  .profile-dropdown-menu .dropdown-item.active span,
+  .profile-dropdown-menu .dropdown-item.active i.location-number {
+    color: rgb(32, 41, 56) !important; /* Dark text/icons (exact match to button) */
   }
+  
+  /* Location items alignment is now handled by the rules above with specific classes (.location-number, .location-text) */
   
   /* Notification panel specific - SIMPLE FIX: Align right edge to parent right edge */
   #notification-panel,
@@ -737,15 +898,23 @@
   
   /* Active location item - light green background */
   .navbar-top .dropdown-menu .dropdown-item.active {
-    background: rgba(11, 184, 122, 0.15) !important;
-    color: #08815e !important;
-    border-left: 3px solid #0bb87a !important;
+    background: rgb(241, 244, 251) !important; /* Ice white background (exact match to button) */
+    color: rgb(32, 41, 56) !important; /* Dark text (exact match to button) */
+    border-left: 3px solid rgb(201, 210, 227) !important; /* Light border (exact match to button) */
     font-weight: 600 !important;
   }
   
   .navbar-top .dropdown-menu .dropdown-item.active:hover {
-    background: rgba(11, 184, 122, 0.2) !important;
-    color: #08815e !important;
+    background: rgb(241, 244, 251) !important; /* Keep ice white on hover */
+    color: rgb(32, 41, 56) !important; /* Keep dark text */
+    transform: none !important; /* Remove any transform to prevent jumping */
+  }
+  
+  /* Active location item text and icons in navbar - dark color (matching button) */
+  .navbar-top .dropdown-menu .dropdown-item.active i,
+  .navbar-top .dropdown-menu .dropdown-item.active span,
+  .navbar-top .dropdown-menu .dropdown-item.active i.location-number {
+    color: rgb(32, 41, 56) !important; /* Dark text/icons (exact match to button) */
   }
   
   /* ============================================
@@ -772,4 +941,45 @@
     margin-right: 8px !important;
   }
   
+  /* Logout icon red color - Final override at end of file */
+  .profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+  .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+  .profile-dropdown-menu a.dropdown-item.text-danger i.fa-power-off,
+  .profile-dropdown-menu .dropdown-item.text-danger i.fa-power-off,
+  .navbar-top .profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+  html body .profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+  html body .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off {
+    color: #dc3545 !important;
+  }
+  
+  .profile-dropdown-menu a.dropdown-item.text-danger,
+  .profile-dropdown-menu .dropdown-item.text-danger,
+  .navbar-top .profile-dropdown-menu a.dropdown-item.text-danger,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger,
+  html body .profile-dropdown-menu a.dropdown-item.text-danger,
+  html body .profile-dropdown-menu .dropdown-item.text-danger {
+    color: #dc3545 !important;
+  }
+  
+  .profile-dropdown-menu a.dropdown-item.text-danger:hover,
+  .profile-dropdown-menu .dropdown-item.text-danger:hover,
+  .profile-dropdown-menu a.dropdown-item.text-danger:hover .fa-power-off,
+  .profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off,
+  .navbar-top .profile-dropdown-menu a.dropdown-item.text-danger:hover,
+  .navbar-top .profile-dropdown-menu .dropdown-item.text-danger:hover,
+  html body .profile-dropdown-menu a.dropdown-item.text-danger:hover,
+  html body .profile-dropdown-menu .dropdown-item.text-danger:hover {
+    color: #dc3545 !important;
+  }
+  
+  /* Force scrollbar on profile dropdown - override any inline styles */
+  .dropdown-menu.profile-dropdown-menu[style],
+  .dropdown-menu.profile-dropdown-menu.show[style],
+  html body .dropdown-menu.profile-dropdown-menu,
+  html body .dropdown-menu.profile-dropdown-menu.show {
+    max-height: 500px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
   

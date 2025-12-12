@@ -92,8 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Use a MutationObserver to catch any elements added dynamically
+        // Use a MutationObserver to catch any elements added dynamically - OPTIMIZED with debouncing
+        let fixTimeout = null;
         const observer = new MutationObserver(function(mutations) {
+            let needsFix = false;
             mutations.forEach(function(mutation) {
                 if (mutation.addedNodes.length) {
                     mutation.addedNodes.forEach(function(node) {
@@ -104,29 +106,38 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (classStr.includes('toolbar') || 
                                     classStr.includes('progress') || 
                                     node.tagName === 'DIV' && node.children.length === 0) {
-                                    nukeElement(node);
+                                    nukeElement(node); // Apply immediately
                                 }
                                 
                                 // Also check for newly added elements that match our selectors
                                 selectors.forEach(selector => {
                                     if (node.matches && node.matches(selector)) {
-                                        nukeElement(node);
-                                    }
-                                    
-                                    // And check children
-                                    if (node.querySelectorAll) {
-                                        node.querySelectorAll(selector).forEach(nukeElement);
+                                        nukeElement(node); // Apply immediately
                                     }
                                 });
                             }
+                            needsFix = true; // Mark that a fix might be needed
                         }
                     });
                 }
             });
+            
+            // OPTIMIZED: Debounce bulk fixes to prevent CPU overload
+            if (needsFix) {
+                clearTimeout(fixTimeout);
+                fixTimeout = setTimeout(() => {
+                    // Re-run selectors only when needed
+                    selectors.forEach(selector => {
+                        document.querySelectorAll(selector).forEach(nukeElement);
+                    });
+                }, 300); // Debounce to 300ms
+            }
         });
 
-        // Observe the entire document body for changes
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+        // OPTIMIZED: Observe only page content area instead of entire body
+        const pageContent = document.querySelector('.page-content, .content-wrapper');
+        const targetToObserve = pageContent || document.body;
+        observer.observe(targetToObserve, { childList: true, subtree: true, attributes: true });
 
         // Run multiple delayed checks for elements that might render later
         [100, 300, 500, 1000, 2000].forEach(delay => {

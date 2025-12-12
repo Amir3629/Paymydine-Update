@@ -82,7 +82,8 @@ class Notifications_model extends Model
             'payment_issue' => 'alert-circle',
             'system_alert' => 'info',
             'stock_out' => 'package',
-            'table_move' => 'exchange-alt'
+            'table_move' => 'exchange-alt',
+            'staff_status_change' => 'user-circle'
         ];
         
         return $icons[$this->type] ?? 'bell';

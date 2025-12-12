@@ -504,20 +504,29 @@
             console.log('✅ Observing bulk actions row for changes');
         }
         
-        // Also observe the body for new bulk actions rows
+        // Also observe the body for new bulk actions rows - OPTIMIZED with debouncing
+        let bulkButtonsTimeout = null;
         const bodyObserver = new MutationObserver(function(mutations) {
-            const bulkActionsRow = document.querySelector('tr.bulk-actions');
-            if (bulkActionsRow) {
-                moveBulkButtons();
-            }
+            // OPTIMIZED: Debounce to prevent excessive calls
+            clearTimeout(bulkButtonsTimeout);
+            bulkButtonsTimeout = setTimeout(function() {
+                const bulkActionsRow = document.querySelector('tr.bulk-actions');
+                if (bulkActionsRow) {
+                    moveBulkButtons();
+                }
+            }, 300); // Debounce to 300ms
         });
         
-        bodyObserver.observe(document.body, {
+        // OPTIMIZED: Try to observe page content instead of entire body
+        const pageContent = document.querySelector('.page-content, .content-wrapper, .page-wrapper');
+        const targetToObserve = pageContent || document.body;
+        
+        bodyObserver.observe(targetToObserve, {
             childList: true,
             subtree: true
         });
         
-        console.log('✅ Observing body for new bulk actions rows');
+        console.log('✅ Observing ' + (targetToObserve === document.body ? 'body' : 'page content') + ' for new bulk actions rows');
 
         applyToolbarButtonPalette();
     }

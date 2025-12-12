@@ -2619,9 +2619,9 @@ div.modal,
 }
 
 .navbar-top .dropdown-menu .dropdown-item.active {
-    background: rgba(32, 41, 56, 0.08) !important;
-    border-left: 3px solid var(--pmdb-ink) !important;
-    color: var(--pmdb-ink) !important;
+    background: rgb(241, 244, 251) !important; /* Ice white background (exact match to button) */
+    border-left: 3px solid rgb(201, 210, 227) !important; /* Light border (exact match to button) */
+    color: rgb(32, 41, 56) !important; /* Dark text (exact match to button) */
 }
 
 #navSidebar .nav-link.active,
@@ -2651,6 +2651,71 @@ html body .profile-dropdown-menu a.dropdown-item:hover,
 .profile-dropdown-menu .dropdown-item:hover i,
 .profile-dropdown-menu .dropdown-item:hover span {
     color: #202938 !important;
+}
+
+/* Override for logout item - keep it red */
+.profile-dropdown-menu .dropdown-item.text-danger,
+.profile-dropdown-menu .dropdown-item.text-danger i,
+.profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+.profile-dropdown-menu a.dropdown-item.text-danger,
+.profile-dropdown-menu a.dropdown-item.text-danger i,
+.profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+.profile-dropdown-menu .dropdown-item.text-danger:hover,
+.profile-dropdown-menu .dropdown-item.text-danger:hover i,
+.profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off,
+.profile-dropdown-menu a.dropdown-item.text-danger:hover,
+.profile-dropdown-menu a.dropdown-item.text-danger:hover i,
+.profile-dropdown-menu a.dropdown-item.text-danger:hover .fa-power-off {
+    color: #dc3545 !important;
+}
+
+/* Logout icon in profile dropdown - Red color */
+.profile-dropdown-menu a[href*="signout"] i,
+.profile-dropdown-menu a[href*="signout"] em,
+.profile-dropdown-menu a[href*="logout"] i,
+.profile-dropdown-menu a[href*="logout"] .fa-power-off,
+.profile-dropdown-menu .dropdown-item.text-danger i,
+.profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+.profile-dropdown-menu a.dropdown-item.text-danger i,
+.profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+.user-dropdown a[href*="signout"] i,
+.user-dropdown a[href*="signout"] em,
+.dropdown-menu a[href*="signout"] i,
+.dropdown-menu a[href*="signout"] em,
+.dropdown-menu .link-list a[href*="signout"] i,
+.dropdown-menu .link-list a[href*="signout"] em,
+.dropdown-menu .link-list a[href*="signout"] .icon.ni-signout,
+.profile-dropdown-menu a[href*="signout"] i,
+.profile-dropdown-menu a[href*="signout"] em,
+.profile-dropdown-menu a[href*="logout"] i,
+.profile-dropdown-menu a[href*="logout"] .fa-power-off,
+.profile-dropdown-menu .dropdown-item.text-danger i,
+.profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+.profile-dropdown-menu a.dropdown-item.text-danger i,
+.profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+.profile-dropdown-menu a.dropdown-item.text-danger,
+.profile-dropdown-menu .dropdown-item.text-danger {
+    color: #dc3545 !important;
+}
+
+.profile-dropdown-menu a[href*="signout"]:hover i,
+.profile-dropdown-menu a[href*="signout"]:hover em,
+.profile-dropdown-menu a[href*="logout"]:hover i,
+.profile-dropdown-menu a[href*="logout"]:hover .fa-power-off,
+.profile-dropdown-menu .dropdown-item.text-danger:hover i,
+.profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off,
+.profile-dropdown-menu a.dropdown-item.text-danger:hover i,
+.profile-dropdown-menu a.dropdown-item.text-danger:hover .fa-power-off,
+.profile-dropdown-menu a.dropdown-item.text-danger:hover,
+.profile-dropdown-menu .dropdown-item.text-danger:hover,
+.user-dropdown a[href*="signout"]:hover i,
+.user-dropdown a[href*="signout"]:hover em,
+.dropdown-menu a[href*="signout"]:hover i,
+.dropdown-menu a[href*="signout"]:hover em,
+.dropdown-menu .link-list a[href*="signout"]:hover i,
+.dropdown-menu .link-list a[href*="signout"]:hover em,
+.dropdown-menu .link-list a[href*="signout"]:hover .icon.ni-signout {
+    color: #dc3545 !important;
 }
 
 .note-editor.note-frame.card,
@@ -3794,4 +3859,24 @@ a.btn-send-invoice[style*="background"] i {
       transform: translateX(0);
     }
   }
+}
+
+/* LOGOUT ICON RED - ONLY THE ICON, NOT THE TEXT */
+html body .profile-dropdown-menu a.dropdown-item.text-danger[href*="logout"] i,
+html body .profile-dropdown-menu a.dropdown-item.text-danger[href*="logout"] i.fa-power-off,
+html body .profile-dropdown-menu a.dropdown-item.text-danger[href*="logout"] i.fa,
+html body .profile-dropdown-menu.show a.dropdown-item.text-danger[href*="logout"] i,
+html body .profile-dropdown-menu.show a.dropdown-item.text-danger[href*="logout"] i.fa-power-off,
+.dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger[href*="logout"] i,
+.dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger[href*="logout"] i.fa-power-off,
+a.dropdown-item.text-danger[href*="logout"] i,
+a.dropdown-item.text-danger[href*="logout"] i.fa-power-off {
+    color: #dc3545 !important;
+}
+
+html body .profile-dropdown-menu a.dropdown-item.text-danger[href*="logout"]:hover i,
+html body .profile-dropdown-menu a.dropdown-item.text-danger[href*="logout"]:hover i.fa-power-off,
+a.dropdown-item.text-danger[href*="logout"]:hover i,
+a.dropdown-item.text-danger[href*="logout"]:hover i.fa-power-off {
+    color: #dc3545 !important;
 }

@@ -33,10 +33,10 @@
         {{-- Location Picker --}}
         @if(AdminLocation::listLocations()->isNotEmpty())
             <div role="separator" class="dropdown-divider"></div>
-            <div class="dropdown-header">
+            <a class="dropdown-item" href="{{ admin_url('locations/settings') }}">
                 <i class="fa fa-location-dot"></i>
                 <span>@lang('admin::lang.side_menu.location')</span>
-            </div>
+            </a>
             @php
                 $locations = \Admin\Classes\UserPanel::listLocations(null, null, null);
             @endphp

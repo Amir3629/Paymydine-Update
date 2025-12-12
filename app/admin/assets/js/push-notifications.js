@@ -314,6 +314,10 @@ class PushNotificationManager {
                 // For stock out: show the title directly (e.g., "Item name is not in stock anymore")
                 title = '';  // No title, just time
                 message = notif.title || 'Item stock status changed';
+            } else if (notif.type === 'staff_status_change') {
+                // For staff status changes: show "Staff Status" and the status message
+                title = '';  // No title, just time
+                message = notif.title || 'Staff status changed'; // e.g., "chef admin is online again"
             } else {
                 // For other notification types
                 title = tableName;

@@ -129,7 +129,8 @@
     setTimeout(scanAndForceBlueButtons, 1000);
     setTimeout(scanAndForceBlueButtons, 2000);
     
-    // Observe DOM changes to catch new buttons
+    // Observe DOM changes to catch new buttons - OPTIMIZED with debouncing
+    let scanTimeout = null;
     const observer = new MutationObserver(function(mutations) {
         let shouldScan = false;
         mutations.forEach(function(mutation) {
@@ -145,24 +146,32 @@
                 });
             }
             
-            // Also check for style attribute changes
+            // Also check for style attribute changes - only on buttons
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                 const target = mutation.target;
                 if (target.matches && target.matches('button, .btn, a.btn-primary, a.btn-success')) {
                     const currentBackground = target.style.background || target.style.backgroundColor;
                     if (hasGreenColor(currentBackground)) {
-                        forceBlueButton(target);
+                        forceBlueButton(target); // Apply immediately without triggering scan
+                        return; // Skip adding to shouldScan to avoid double processing
                     }
                 }
             }
         });
         
+        // OPTIMIZED: Debounce scans to prevent excessive CPU usage
         if (shouldScan) {
-            setTimeout(scanAndForceBlueButtons, 50);
+            clearTimeout(scanTimeout);
+            scanTimeout = setTimeout(scanAndForceBlueButtons, 200); // Debounce to 200ms
         }
     });
     
-    observer.observe(document.body, {
+    // OPTIMIZED: Only observe relevant parts of DOM, not entire body
+    // Try to find a container element first
+    const pageContent = document.querySelector('.page-content, .content-wrapper, .page-wrapper');
+    const targetToObserve = pageContent || document.body;
+    
+    observer.observe(targetToObserve, {
         childList: true,
         subtree: true,
         attributes: true,
@@ -177,3 +186,4 @@
     
     console.log('✅ Force Blue Buttons: Initialized and monitoring for green buttons');
 })();
+

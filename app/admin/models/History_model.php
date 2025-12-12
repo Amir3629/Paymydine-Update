@@ -27,19 +27,32 @@ class History_model extends Model
             return 'Staff Note';
         }
         
+        if ($value === 'staff_status_change') {
+            return 'Staff Status';
+        }
+        
         // Format other types: convert snake_case to Title Case
         return str_replace('_', ' ', ucwords($value, '_'));
     }
 
     /**
-     * Format table_name to show staff name for general_staff_note
+     * Format table_name to show staff name for general_staff_note and staff_status_change
      */
     public function getTableNameAttribute($value)
     {
-        // For general_staff_note, show staff name from payload
         $rawType = $this->attributes['type'] ?? $this->getOriginal('type') ?? '';
+        $p = $this->payload ?? [];
+        
+        // For general_staff_note, show staff name from payload
         if ($rawType === 'general_staff_note') {
-            $p = $this->payload ?? [];
+            $staffName = trim((string)($p['staff_name'] ?? ''));
+            if ($staffName !== '') {
+                return $staffName;
+            }
+        }
+        
+        // For staff_status_change, show staff name from payload
+        if ($rawType === 'staff_status_change') {
             $staffName = trim((string)($p['staff_name'] ?? ''));
             if ($staffName !== '') {
                 return $staffName;
@@ -133,6 +146,25 @@ class History_model extends Model
                     $full = $note;
                 } else {
                     $full = 'Note';
+                }
+                break;
+
+            case 'staff_status_change':
+                // For staff status changes: show staff name and status
+                $staffName = $p['staff_name'] ?? 'Staff';
+                $statusName = $p['status_name'] ?? 'Unknown';
+                $customMessage = trim((string)($p['message'] ?? ''));
+                $timePeriod = trim((string)($p['time_period'] ?? ''));
+                
+                if ($customMessage) {
+                    // Add time period if available
+                    if ($timePeriod) {
+                        $full = "{$staffName} is {$customMessage} {$timePeriod}";
+                    } else {
+                        $full = "{$staffName} is {$customMessage}";
+                    }
+                } else {
+                    $full = "{$staffName} is now {$statusName}";
                 }
                 break;
 

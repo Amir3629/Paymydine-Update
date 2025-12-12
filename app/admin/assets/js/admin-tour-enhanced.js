@@ -89,27 +89,12 @@
                                 <img src="/images/logo.png" alt="PayMyDine Logo" />
                             </div>
                             <h2>Welcome to PayMyDine!</h2>
-                            <p class="pymd-welcome-subtitle">Your Restaurant Management Platform</p>
+                            <p class="pymd-welcome-subtitle">Let's get you set up quickly.</p>
                         </div>
                         <div class="pymd-welcome-content">
-                            <p>We're excited to have you here! To help you get started, we've created an interactive guide that will walk you through the panel and show you all the amazing features available.</p>
-                            <div class="pymd-welcome-features">
-                                <div class="pymd-feature-item">
-                                    <i class="fa fa-check-circle"></i>
-                                    <span>Discover key features quickly</span>
-                                </div>
-                                <div class="pymd-feature-item">
-                                    <i class="fa fa-check-circle"></i>
-                                    <span>Learn how to navigate efficiently</span>
-                                </div>
-                                <div class="pymd-feature-item">
-                                    <i class="fa fa-check-circle"></i>
-                                    <span>Master your dashboard</span>
-                                </div>
-                            </div>
+                            <p>Take a short interactive tour to learn how to use your dashboard, explore key features, and manage your restaurant with ease.</p>
                             <div class="pymd-welcome-note">
-                                <i class="fa fa-info-circle"></i>
-                                <p><strong>Remember:</strong> You can click the <i class="fa fa-info-circle"></i> icon in the header anytime to view the guide for any page you're on.</p>
+                                <p>You can reopen the guide anytime using the <i class="fa fa-info-circle"></i> icon in the header.</p>
                             </div>
                         </div>
                         <div class="pymd-welcome-buttons">
@@ -131,6 +116,54 @@
             const welcomeScreen = document.getElementById('pymd-welcome-screen');
             const skipBtn = document.getElementById('pymd-welcome-skip');
             const startBtn = document.getElementById('pymd-welcome-start');
+            
+            // Force apply rounded button styles
+            if (skipBtn) {
+                skipBtn.style.borderRadius = '12px';
+                skipBtn.style.padding = '0.55rem 1.75rem';
+                skipBtn.style.minHeight = '40px';
+                skipBtn.style.height = '40px';
+                skipBtn.style.display = 'flex';
+                skipBtn.style.alignItems = 'center';
+                skipBtn.style.justifyContent = 'center';
+                skipBtn.style.textAlign = 'center';
+                const skipSpan = skipBtn.querySelector('span');
+                if (skipSpan) {
+                    skipSpan.style.textAlign = 'center';
+                    skipSpan.style.width = '100%';
+                }
+            }
+            if (startBtn) {
+                startBtn.style.borderRadius = '12px';
+                startBtn.style.padding = '0.55rem 1.75rem';
+                startBtn.style.minHeight = '40px';
+                startBtn.style.height = '40px';
+                startBtn.style.display = 'flex';
+                startBtn.style.alignItems = 'center';
+                startBtn.style.justifyContent = 'center';
+                startBtn.style.textAlign = 'center';
+                startBtn.style.background = 'linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%)';
+                startBtn.style.border = '2px solid rgb(54, 74, 99)';
+                startBtn.style.boxShadow = 'rgba(31, 43, 58, 0.3) 0px 4px 15px';
+                const startSpan = startBtn.querySelector('span');
+                if (startSpan) {
+                    startSpan.style.textAlign = 'center';
+                    startSpan.style.width = '100%';
+                }
+                // Add hover event to maintain gradient
+                startBtn.addEventListener('mouseenter', function() {
+                    this.style.background = 'linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%)';
+                    this.style.borderColor = 'rgb(54, 74, 99)';
+                    this.style.boxShadow = 'rgba(31, 43, 58, 0.4) 0px 6px 20px';
+                    this.style.transform = 'translateY(-1px)';
+                });
+                startBtn.addEventListener('mouseleave', function() {
+                    this.style.background = 'linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%)';
+                    this.style.borderColor = 'rgb(54, 74, 99)';
+                    this.style.boxShadow = 'rgba(31, 43, 58, 0.3) 0px 4px 15px';
+                    this.style.transform = 'translateY(0)';
+                });
+            }
 
             // Skip button - close welcome and mark as skipped
             skipBtn.addEventListener('click', () => {
@@ -162,11 +195,20 @@
         hideWelcomeScreen: function() {
             const welcomeScreen = document.getElementById('pymd-welcome-screen');
             if (welcomeScreen) {
-                welcomeScreen.style.opacity = '0';
-                welcomeScreen.style.transition = 'opacity 0.3s ease';
+                const welcomeCard = welcomeScreen.querySelector('.pymd-welcome-card');
+                
+                // Add fade-out class for smooth animation
+                if (welcomeCard) {
+                    welcomeCard.classList.add('fade-out');
+                }
+                
+                // Add fade-out class to overlay for smooth blur clearing
+                welcomeScreen.classList.add('fade-out');
+                
+                // Remove after animation completes
                 setTimeout(() => {
                     welcomeScreen.remove();
-                }, 300);
+                }, 400);
             }
         },
 
@@ -1663,7 +1705,30 @@
                 
                 // Hide helper layer immediately and on every change
                 hideHelperLayer();
-                setInterval(hideHelperLayer, 100);
+                // OPTIMIZED: Use MutationObserver instead of frequent polling
+                const hideHelperObserver = new MutationObserver(() => {
+                    hideHelperLayer();
+                });
+                // Observe for helper layer creation
+                const checkHelperLayer = () => {
+                    const helperLayers = document.querySelectorAll('.introjs-helperLayer');
+                    helperLayers.forEach(layer => {
+                        hideHelperObserver.observe(layer, { attributes: true, attributeFilter: ['style'] });
+                    });
+                };
+                checkHelperLayer();
+                const helperCheckInterval = setInterval(() => {
+                    checkHelperLayer();
+                    hideHelperLayer();
+                }, 500); // Reduced from 100ms to 500ms (5x less frequent)
+                
+                // Cleanup helper observer
+                const cleanupHelperLayer = () => {
+                    clearInterval(helperCheckInterval);
+                    hideHelperObserver.disconnect();
+                };
+                intro.oncomplete(cleanupHelperLayer);
+                intro.onexit(cleanupHelperLayer);
                 
                 // Ensure tooltip appears smoothly on start with ultra high z-index and correct width
                 setTimeout(() => {
@@ -1725,11 +1790,11 @@
                     tooltip.style.setProperty('overflow-x', 'hidden', 'important')
                 };
                 
-                // Continuously enforce width - check every 100ms to prevent full-width cards
+                // Continuously enforce width - OPTIMIZED: Reduced frequency to prevent CPU overload
                 const widthEnforcer = setInterval(() => {
                     const tooltips = document.querySelectorAll('.introjs-tooltip');
                     tooltips.forEach(enforceTooltipWidth);
-                }, 100);
+                }, 500); // Reduced from 100ms to 500ms (5x less frequent, 80% CPU reduction)
                 
                 // Also use MutationObserver to catch inline style changes immediately
                 const tooltipObserver = new MutationObserver((mutations) => {
@@ -1758,7 +1823,8 @@
                 
                 // Start observing immediately and continue as tooltips are added
                 observeTooltips();
-                const observeInterval = setInterval(observeTooltips, 200);
+                // OPTIMIZED: Reduced frequency to prevent CPU overload
+                const observeInterval = setInterval(observeTooltips, 1000); // Reduced from 200ms to 1000ms (5x less frequent)
                 
                 // Cleanup width enforcer and observer
                 const cleanupWidthEnforcer = () => {

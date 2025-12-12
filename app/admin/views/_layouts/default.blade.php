@@ -120,6 +120,9 @@
 <!-- Force Blue Buttons Override -->
 <script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?v={{ time() }}"></script>
 
+<!-- Mobile Sidebar Toggle & Profile Dropdown Fixes -->
+<script src="{{ asset('app/admin/assets/js/mobile-sidebar-toggle.js') }}?v={{ time() }}"></script>
+
 <!-- Guide Tour Button Handler -->
 <script>
 (function() {

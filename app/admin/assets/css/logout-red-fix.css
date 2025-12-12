@@ -1,0 +1,39 @@
+/* Logout Icon Red Color - Maximum Specificity Override */
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger i,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger .fa,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu .dropdown-item.text-danger,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu .dropdown-item.text-danger i,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu .dropdown-item.text-danger .fa,
+html body .profile-dropdown-menu a.dropdown-item.text-danger,
+html body .profile-dropdown-menu a.dropdown-item.text-danger i,
+html body .profile-dropdown-menu a.dropdown-item.text-danger .fa-power-off,
+html body .profile-dropdown-menu .dropdown-item.text-danger,
+html body .profile-dropdown-menu .dropdown-item.text-danger i,
+html body .profile-dropdown-menu .dropdown-item.text-danger .fa-power-off,
+a.dropdown-item.text-danger[href*="logout"] i,
+a.dropdown-item.text-danger[href*="logout"] .fa-power-off,
+a.dropdown-item.text-danger[href*="logout"] {
+    color: #dc3545 !important;
+}
+
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger:hover,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger:hover i,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu a.dropdown-item.text-danger:hover .fa-power-off,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu .dropdown-item.text-danger:hover,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu .dropdown-item.text-danger:hover i,
+html body .navbar-top .navbar-nav .dropdown-menu.profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off,
+html body .profile-dropdown-menu a.dropdown-item.text-danger:hover,
+html body .profile-dropdown-menu a.dropdown-item.text-danger:hover i,
+html body .profile-dropdown-menu a.dropdown-item.text-danger:hover .fa-power-off,
+html body .profile-dropdown-menu .dropdown-item.text-danger:hover,
+html body .profile-dropdown-menu .dropdown-item.text-danger:hover i,
+html body .profile-dropdown-menu .dropdown-item.text-danger:hover .fa-power-off,
+a.dropdown-item.text-danger[href*="logout"]:hover i,
+a.dropdown-item.text-danger[href*="logout"]:hover .fa-power-off,
+a.dropdown-item.text-danger[href*="logout"]:hover {
+    color: #dc3545 !important;
+}
+

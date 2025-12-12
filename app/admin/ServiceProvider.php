@@ -843,7 +843,7 @@ class ServiceProvider extends AppServiceProvider
 
             $schedule->call(function () {
                 Classes\UserState::clearExpiredStatus();
-            })->name('Clear user custom away status')->withoutOverlapping(5)->runInBackground()->everyMinute();
+            })->name('Clear user custom away status')->withoutOverlapping(5)->runInBackground()->everyFiveMinutes();
         });
     }
 

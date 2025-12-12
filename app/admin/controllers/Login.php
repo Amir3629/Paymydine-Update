@@ -9,6 +9,9 @@ use Admin\Models\Users_model;
 use Admin\Traits\ValidatesForm;
 use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class Login extends \Admin\Classes\AdminController
 {
@@ -80,6 +83,9 @@ class Login extends \Admin\Classes\AdminController
 
         session()->regenerate();
 
+        // Create login notification
+        $this->createLoginNotification();
+
         if ($redirectUrl = input('redirect'))
             return $this->redirect($redirectUrl);
 
@@ -145,5 +151,58 @@ class Login extends \Admin\Classes\AdminController
         flash()->success(lang('admin::lang.login.alert_success_reset'));
 
         return $this->redirect('login');
+    }
+
+    /**
+     * Create notification when staff logs in
+     *
+     * @return void
+     */
+    protected function createLoginNotification()
+    {
+        try {
+            $user = AdminAuth::getUser();
+            if (!$user) {
+                return;
+            }
+
+            // Get staff name
+            $staffName = 'Staff';
+            if ($user && $user->staff) {
+                $staffName = $user->staff->staff_name ?? $user->staff_name ?? 'Staff';
+            } elseif ($user) {
+                $staffName = $user->staff_name ?? 'Staff';
+            }
+
+            // Create notification
+            DB::table('notifications')->insertGetId([
+                'type' => 'staff_status_change',
+                'title' => "{$staffName} is online again",
+                'table_id' => null,
+                'table_name' => 'Staff Status',
+                'payload' => json_encode([
+                    'staff_id' => $user->user_id ?? null,
+                    'staff_name' => $staffName,
+                    'status' => 1, // Online
+                    'status_name' => 'Online',
+                    'message' => '',
+                    'changed_at' => Carbon::now()->toDateTimeString(),
+                    'login_notification' => true
+                ], JSON_UNESCAPED_UNICODE),
+                'status' => 'new',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ]);
+
+            Log::info('Login notification created', [
+                'staff_name' => $staffName,
+                'user_id' => $user->user_id ?? null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to create login notification', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 }

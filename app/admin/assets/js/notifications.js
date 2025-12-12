@@ -144,6 +144,9 @@
     } else if (item.type === 'stock_out') {
       // For stock out: don't show table, just show "Stock Status" label
       tableDiv.innerHTML = `<strong style="color: #000000; font-weight: 600;">Stock Status</strong>`;
+    } else if (item.type === 'staff_status_change') {
+      // For staff status changes: show "Staff Status" label
+      tableDiv.innerHTML = `<strong style="color: #000000; font-weight: 600;">Staff Status</strong>`;
     } else {
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
     }
@@ -223,6 +226,9 @@
     } else if (item.type === 'stock_out') {
       // For stock out: show the title directly (e.g., "Item name is not in stock anymore")
       text = item.title || 'Item stock status changed';
+    } else if (item.type === 'staff_status_change') {
+      // For staff status changes: show the title (e.g., "chef admin is online again")
+      text = item.title || 'Staff status changed';
     } else {
       text = item.title || type;
     }
