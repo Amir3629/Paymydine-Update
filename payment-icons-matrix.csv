@@ -1,0 +1,8 @@
+code,api_returned?,expected_helper_path,exists_frontend_svg?,exists_frontend_png?,sample_filename_found,served_3000_status,served_3000_content_type,served_8000_status,served_8000_content_type,uses_Image_or_img_in_bill_card,has_asymmetric_size_rules?,notes
+cod,true,/images/payments/cod.svg,true,false,cod.svg,200,image/svg+xml,200,image/svg+xml,Image,true,width=40 height=20
+paypal,true,/images/payments/paypal.svg,true,false,paypal.svg,200,image/svg+xml,200,image/svg+xml,Image,true,width=40 height=20
+stripe,true,/images/payments/stripe.svg,true,false,stripe.svg,200,image/svg+xml,200,image/svg+xml,Image,true,width=40 height=20
+authorizenetaim,true,/images/payments/authorizenetaim.svg,true,false,authorizenetaim.svg,200,image/svg+xml,200,image/svg+xml,Image,true,width=40 height=20
+google_pay,true,/images/payments/google_pay.svg,true,false,google_pay.svg,200,image/svg+xml,200,image/svg+xml,Image,true,width=40 height=20
+apple_pay,true,/images/payments/apple_pay.svg,true,false,apple_pay.svg,200,image/svg+xml,200,image/svg+xml,Image,true,width=40 height=20
+square,true,/images/payments/square.svg,true,false,square.svg,200,image/svg+xml,200,image/svg+xml,Image,true,width=40 height=20

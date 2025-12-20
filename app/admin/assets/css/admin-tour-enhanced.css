@@ -1,0 +1,879 @@
+/* ============================================
+   PayMyDine Admin Tour - Minimal & Simple
+   No colors, not crowded, clean design
+   ============================================ */
+
+/* Welcome Screen Overlay */
+.pymd-welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2147483647;
+    opacity: 0;
+    animation: welcomeOverlayFadeIn 0.4s ease-out forwards;
+    transition: opacity 0.3s ease;
+}
+
+@keyframes welcomeOverlayFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Welcome Card */
+.pymd-welcome-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 480px;
+    width: 90%;
+    padding: 0;
+    animation: welcomeFadeIn 0.4s ease-out;
+    overflow: hidden;
+}
+
+@keyframes welcomeFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Welcome Header */
+.pymd-welcome-header {
+    background: linear-gradient(135deg, #202938 0%, #08815e 100%);
+    color: #ffffff;
+    padding: 32px 32px 24px;
+    text-align: center;
+}
+
+.pymd-welcome-logo {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pymd-welcome-logo img {
+    max-width: 280px;
+    max-height: 120px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    animation: welcomeLogoFadeIn 0.6s ease-out;
+}
+
+@keyframes welcomeLogoFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.pymd-welcome-header h2 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.3;
+}
+
+.pymd-welcome-subtitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.9);
+    opacity: 0.95;
+}
+
+/* Welcome Content */
+.pymd-welcome-content {
+    padding: 32px;
+    color: #333333;
+}
+
+.pymd-welcome-content p {
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 24px 0;
+    color: #555555;
+}
+
+/* Welcome Features List */
+.pymd-welcome-features {
+    margin: 24px 0;
+    padding: 0;
+}
+
+.pymd-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 8px 0;
+}
+
+.pymd-feature-item i {
+    color: #08815e;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.pymd-feature-item span {
+    font-size: 14px;
+    color: #555555;
+    line-height: 1.5;
+}
+
+.pymd-welcome-note {
+    background: #f8f9fa;
+    border-left: 3px solid #08815e;
+    border-radius: 6px;
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.pymd-welcome-note i {
+    color: #08815e;
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.pymd-welcome-note p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #666666;
+}
+
+.pymd-welcome-note p strong {
+    color: #202938;
+    font-weight: 600;
+}
+
+.pymd-welcome-note p .fa-info-circle {
+    color: #08815e;
+    margin: 0 4px;
+    font-size: 16px;
+}
+
+/* Welcome Buttons */
+.pymd-welcome-buttons {
+    display: flex;
+    gap: 12px;
+    padding: 24px 32px 32px;
+    border-top: 1px solid #e8e8e8;
+    background: #fafafa;
+}
+
+.pymd-welcome-btn {
+    flex: 1;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pymd-welcome-skip {
+    background: #ffffff;
+    color: #666666;
+    border: 1px solid #d0d0d0;
+}
+
+.pymd-welcome-skip:hover {
+    background: #f5f5f5;
+    border-color: #b0b0b0;
+    color: #333333;
+}
+
+.pymd-welcome-start {
+    background: #202938;
+    color: #ffffff;
+    border: 1px solid #202938;
+}
+
+.pymd-welcome-start:hover {
+    background: #08815e;
+    border-color: #08815e;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(32, 41, 56, 0.2);
+}
+
+.pymd-welcome-start:active {
+    transform: translateY(0);
+}
+
+/* PROTECT STAR ICON - Keep it visible and fixed during tour */
+#sidebar-star-icon {
+    z-index: 2147483647 !important; /* Above tour overlay */
+    transform: none !important;
+    scale: 1 !important;
+    transition: none !important;
+    position: fixed !important;
+    pointer-events: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    will-change: auto !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    -o-transform: none !important;
+}
+
+/* Ensure star icon stays visible even when tour overlay is active */
+body.introjs-fixParent #sidebar-star-icon,
+.introjs-showElement #sidebar-star-icon,
+body #sidebar-star-icon {
+    z-index: 2147483647 !important;
+    transform: none !important;
+    scale: 1 !important;
+    position: fixed !important;
+    top: 33px !important;
+    left: 201px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    pointer-events: none !important;
+}
+
+/* Prevent star icon from being affected by parent element transforms */
+.introjs-showElement #sidebar-star-icon,
+body.introjs-fixParent .introjs-showElement #sidebar-star-icon {
+    transform: none !important;
+    scale: 1 !important;
+}
+
+/* Overlay - Subtle gray backdrop - Ultra high z-index */
+.introjs-overlay {
+    background: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: opacity 0.2s ease !important;
+    z-index: 2147483646 !important;
+}
+
+/* Helper Layer - Completely invisible, no borders, no highlighting */
+.introjs-helperLayer {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    transition: none !important;
+    background: transparent !important;
+    z-index: 2147483646 !important;
+    outline: none !important;
+    pointer-events: none !important;
+    display: none !important;
+}
+
+/* Highlighted element effects - No scale/size effects, just positioning */
+.introjs-showElement {
+    transition: none !important;
+    transform: none !important;
+    transform-origin: center center !important;
+    z-index: 2147483645 !important;
+    position: relative !important;
+    /* Prevent layout shifts */
+    will-change: auto !important;
+    contain: layout style paint !important;
+    /* Prevent jumping by isolating transform from layout */
+    isolation: isolate !important;
+}
+
+/* PREVENT SIZE/SCALE EFFECTS ON LARGE SECTIONS - No scaling for containers/wrappers/tables/cards */
+.introjs-showElement.page-wrapper,
+.introjs-showElement.page-content,
+.introjs-showElement.sidebar,
+.introjs-showElement.main-content,
+.introjs-showElement.content-wrapper,
+.introjs-showElement[class*="container"],
+.introjs-showElement[class*="wrapper"],
+.introjs-showElement table,
+.introjs-showElement.table,
+.introjs-showElement.card,
+.introjs-showElement.panel,
+.introjs-showElement.box,
+.introjs-showElement.form-group,
+.introjs-showElement.navbar,
+.introjs-showElement.header,
+.introjs-showElement footer,
+.introjs-showElement section,
+.introjs-showElement article,
+.introjs-showElement div[class*="section"],
+body.introjs-fixParent .page-wrapper,
+body.introjs-fixParent .page-content,
+body.introjs-fixParent .sidebar,
+body.introjs-fixParent .main-content,
+body.introjs-fixParent .content-wrapper,
+body.introjs-fixParent [class*="container"],
+body.introjs-fixParent [class*="wrapper"],
+body.introjs-fixParent table,
+body.introjs-fixParent .table,
+body.introjs-fixParent .card,
+body.introjs-fixParent .panel,
+body.introjs-fixParent .box {
+    transform: none !important;
+    scale: 1 !important;
+    transition: none !important;
+    will-change: auto !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    -o-transform: none !important;
+}
+
+/* Prevent ALL child elements inside large sections from scaling */
+.introjs-showElement.page-wrapper *,
+.introjs-showElement.page-content *,
+.introjs-showElement.sidebar *,
+.introjs-showElement.main-content *,
+.introjs-showElement.content-wrapper *,
+.introjs-showElement[class*="container"] *,
+.introjs-showElement[class*="wrapper"] *,
+.introjs-showElement.table *,
+.introjs-showElement.card *,
+.introjs-showElement.panel *,
+.introjs-showElement.box * {
+    transform: none !important;
+    scale: 1 !important;
+    transition: none !important;
+}
+
+/* Prevent tooltip and reference layer from being scaled or jumping */
+/* Only prevent scale, allow translate for animations */
+.introjs-tooltip:not(.introjs-hide),
+.introjs-tooltipReferenceLayer:not(.introjs-hide) {
+    transform: none !important;
+}
+
+/* CRITICAL FIX: Keep navbar fixed when highlighted - DON'T break header positioning */
+.navbar-top.introjs-showElement,
+.navbar.introjs-showElement,
+nav.navbar.introjs-showElement {
+    position: fixed !important;
+    background-color: #202938 !important;
+    background: #202938 !important;
+    background-image: none !important;
+    border-bottom: 1px solid rgb(32, 41, 56) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* No transition when element is no longer highlighted - prevent size effects */
+.introjs-showElement:not(.introjs-relativePosition) {
+    transition: none !important;
+    transform: none !important;
+}
+
+/* Blur other elements when tour is active - subtle */
+body.introjs-fixParent .introjs-overlay {
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+/* Dim other parts slightly - but make sure highlighted element is fully visible */
+body.introjs-fixParent .introjs-showElement {
+    opacity: 1 !important;
+}
+
+/* Hide all helper layer children */
+.introjs-helperLayer * {
+    display: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Remove any colored animations */
+.introjs-helperLayer:before,
+.introjs-helperLayer:after {
+    display: none !important;
+}
+
+/* Tooltip Reference Layer - Ultra high z-index to appear on top of everything including modals */
+.introjs-tooltipReferenceLayer {
+    z-index: 2147483647 !important;
+    position: fixed !important;
+}
+
+/* Ensure tooltip reference layer is always on top */
+body .introjs-tooltipReferenceLayer {
+    z-index: 2147483647 !important;
+}
+
+/* Smooth scrolling for entire page */
+html {
+    scroll-behavior: smooth !important;
+}
+
+body {
+    scroll-behavior: smooth !important;
+}
+
+* {
+    scroll-behavior: smooth !important;
+}
+
+/* Tooltip Container - Simple white card - Smaller size - Ultra high z-index */
+/* ALWAYS on the LEFT, FIXED width at 230px (sidebar width), grows in HEIGHT only */
+.introjs-tooltip {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    background: #ffffff !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12) !important;
+    border: 1px solid #e0e0e0 !important;
+    padding: 0 !important;
+    /* FIXED WIDTH - Match sidebar width (230px) - ABSOLUTELY NEVER changes */
+    min-width: 230px !important;
+    max-width: 230px !important;
+    width: 230px !important;
+    /* FLEXIBLE HEIGHT - Can grow as needed */
+    min-height: auto !important;
+    max-height: calc(100vh - 80px) !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 2147483647 !important;
+    position: relative !important;
+    display: block !important;
+    visibility: visible !important;
+    /* Prevent layout shifts during animation */
+    contain: layout style paint !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    /* Prevent tooltip from jumping - no transform scale */
+    transform: none !important;
+    transition: opacity 0.3s ease !important;
+    /* Force width constraints - NEVER exceed 230px (sidebar width) */
+    box-sizing: border-box !important;
+    /* Force disable any flex or grid that might change width */
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    flex-basis: 230px !important;
+}
+
+/* Force FIXED 230px width (sidebar width) on ALL tooltip alignment variants - override inline styles */
+.introjs-tooltip[style*="width"],
+.introjs-tooltip[style*="max-width"],
+.introjs-tooltip[style*="min-width"],
+.introjs-tooltip[style] {
+    min-width: 230px !important;
+    max-width: 230px !important;
+    width: 230px !important;
+    height: auto !important;
+    max-height: calc(100vh - 80px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Force ALL tooltip variants to ALWAYS have FIXED 230px WIDTH (sidebar width) */
+.introjs-tooltip.introjs-top-middle-aligned,
+.introjs-tooltip.introjs-bottom-middle-aligned,
+.introjs-tooltip.introjs-left-middle-aligned,
+.introjs-tooltip.introjs-right-middle-aligned,
+.introjs-tooltip.introjs-top-left-aligned,
+.introjs-tooltip.introjs-top-right-aligned,
+.introjs-tooltip.introjs-bottom-left-aligned,
+.introjs-tooltip.introjs-bottom-right-aligned,
+.introjs-tooltip.introjs-top,
+.introjs-tooltip.introjs-bottom,
+.introjs-tooltip.introjs-left,
+.introjs-tooltip.introjs-right,
+.introjs-tooltip.introjs-floating {
+    /* ABSOLUTELY FIXED WIDTH - ALWAYS 230px (sidebar width) - NEVER EVER changes */
+    min-width: 230px !important;
+    max-width: 230px !important;
+    width: 230px !important;
+    /* FLEXIBLE HEIGHT - Grows as needed */
+    height: auto !important;
+    max-height: calc(100vh - 80px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    /* Prevent any flex/grid changes */
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    flex-basis: 230px !important;
+}
+
+/* Override ANY and ALL width styles set via inline style attribute */
+.introjs-tooltip.introjs-top-middle-aligned[style],
+.introjs-tooltip.introjs-bottom-middle-aligned[style],
+.introjs-tooltip.introjs-left-middle-aligned[style],
+.introjs-tooltip.introjs-right-middle-aligned[style],
+.introjs-tooltip.introjs-top-left-aligned[style],
+.introjs-tooltip.introjs-top-right-aligned[style],
+.introjs-tooltip.introjs-bottom-left-aligned[style],
+.introjs-tooltip.introjs-bottom-right-aligned[style],
+.introjs-tooltip.introjs-top[style],
+.introjs-tooltip.introjs-bottom[style],
+.introjs-tooltip.introjs-left[style],
+.introjs-tooltip.introjs-right[style],
+.introjs-tooltip.introjs-floating[style],
+.introjs-tooltip[style],
+div.introjs-tooltip,
+div.introjs-tooltip[style] {
+    /* ABSOLUTELY FORCE FIXED 230px WIDTH (sidebar width) - Override ALL inline styles */
+    min-width: 230px !important;
+    max-width: 230px !important;
+    width: 230px !important;
+    /* FLEXIBLE HEIGHT */
+    height: auto !important;
+    max-height: calc(100vh - 80px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Tooltip Reference Layer - Ensure it stays in viewport */
+.introjs-tooltipReferenceLayer {
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+}
+
+/* Force tooltip to be on top of everything, including modals */
+body .introjs-tooltip,
+.modal .introjs-tooltip,
+[class*="modal"] .introjs-tooltip {
+    z-index: 2147483647 !important;
+    position: relative !important;
+}
+
+/* Hide tooltip - slide out smoothly */
+.introjs-tooltip.introjs-hide {
+    opacity: 0 !important;
+    transform: translateX(-30px) !important;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
+    pointer-events: none !important;
+}
+
+/* Ensure buttons are clickable and responsive */
+.introjs-button {
+    pointer-events: auto !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.introjs-button:not(.introjs-disabled) {
+    cursor: pointer !important;
+}
+
+/* Smooth transition for tooltip reference layer */
+.introjs-tooltipReferenceLayer .introjs-tooltip {
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
+}
+
+/* Smooth tooltip entry - prevent jump when opening */
+.introjs-tooltipReferenceLayer {
+    animation: tooltipFadeIn 0.3s ease-out !important;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Hide state - slide out to side */
+.introjs-tooltipReferenceLayer .introjs-tooltip.introjs-hide {
+    opacity: 0 !important;
+    transform: translateX(-30px) !important;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
+}
+
+/* Tooltip Content - More compact - Can grow in height */
+.introjs-tooltip-content {
+    padding: 16px !important;
+    color: #333333 !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+}
+
+.introjs-tooltip-title {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #1a1a1a !important;
+    margin: 0 0 6px 0 !important;
+    line-height: 1.3 !important;
+}
+
+.introjs-tooltip-content p {
+    margin: 0 0 8px 0 !important;
+    color: #333333 !important;
+}
+
+.introjs-tooltip-content ul {
+    text-align: left !important;
+    margin: 8px 0 !important;
+    padding-left: 18px !important;
+}
+
+.introjs-tooltip-content li {
+    margin: 6px 0 !important;
+    color: #333333 !important;
+}
+
+.introjs-tooltip-content strong {
+    font-weight: 600 !important;
+    color: #1a1a1a !important;
+}
+
+/* Tooltip Buttons - Small, simple gray buttons */
+.introjs-tooltipbuttons {
+    border-top: 1px solid #e8e8e8 !important;
+    padding: 8px 16px !important;
+    margin: 0 !important;
+    background: #fafafa !important;
+    display: flex !important;
+    gap: 6px !important;
+    justify-content: space-between !important;
+    border-radius: 0 0 8px 8px !important;
+}
+
+.introjs-button {
+    padding: 5px 12px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border-radius: 4px !important;
+    border: 1px solid #d0d0d0 !important;
+    background: #ffffff !important;
+    color: #333333 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    text-shadow: none !important;
+    min-width: 60px !important;
+    text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.introjs-button:hover {
+    background: #f5f5f5 !important;
+    border-color: #b0b0b0 !important;
+}
+
+.introjs-button:active {
+    background: #eeeeee !important;
+}
+
+/* Next Button - Custom color #202938 */
+.introjs-button.introjs-nextbutton {
+    background: #202938 !important;
+    color: #ffffff !important;
+    border-color: #202938 !important;
+    text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.introjs-button.introjs-nextbutton:hover {
+    background: #202938 !important;
+    border-color: #202938 !important;
+    opacity: 0.9 !important;
+}
+
+/* Previous Button - Light gray */
+.introjs-button.introjs-prevbutton {
+    background: #ffffff !important;
+    color: #666666 !important;
+    border-color: #d0d0d0 !important;
+    text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.introjs-button.introjs-prevbutton:hover {
+    background: #f5f5f5 !important;
+}
+
+/* Skip Button - Very subtle */
+.introjs-button.introjs-skipbutton {
+    background: transparent !important;
+    color: #999999 !important;
+    border: none !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    min-width: auto !important;
+}
+
+.introjs-button.introjs-skipbutton:hover {
+    background: #f5f5f5 !important;
+    color: #666666 !important;
+}
+
+/* Done Button - Same as Next */
+.introjs-button.introjs-donebutton {
+    background: #202938 !important;
+    color: #ffffff !important;
+    border-color: #202938 !important;
+    text-align: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.introjs-button.introjs-donebutton:hover {
+    background: #202938 !important;
+    border-color: #202938 !important;
+    opacity: 0.9 !important;
+}
+
+/* Tooltip Arrows - Simple gray */
+.introjs-arrow {
+    border-width: 10px !important;
+}
+
+.introjs-arrow.top {
+    border-bottom-color: #ffffff !important;
+    top: -20px !important;
+}
+
+.introjs-arrow.bottom {
+    border-top-color: #ffffff !important;
+    bottom: -20px !important;
+}
+
+.introjs-arrow.left {
+    border-right-color: #ffffff !important;
+    left: -20px !important;
+}
+
+.introjs-arrow.right {
+    border-left-color: #ffffff !important;
+    right: -20px !important;
+}
+
+/* Progress Bar - Subtle gray */
+.introjs-progress {
+    background: #e8e8e8 !important;
+    height: 2px !important;
+    margin: 0 16px 12px 16px !important;
+    border-radius: 1px !important;
+}
+
+.introjs-progressbar {
+    background: #666666 !important;
+    border-radius: 1px !important;
+    transition: width 0.3s ease !important;
+}
+
+/* Step Bullets - Small gray dots */
+.introjs-bullets {
+    margin-bottom: 10px !important;
+    padding: 0 16px !important;
+}
+
+.introjs-bullets ul {
+    display: flex !important;
+    gap: 5px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+    justify-content: center !important;
+}
+
+.introjs-bullets li {
+    width: 5px !important;
+    height: 5px !important;
+    background: #d0d0d0 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    transition: background 0.2s ease !important;
+}
+
+.introjs-bullets li.active {
+    background: #666666 !important;
+}
+
+.introjs-bullets li a {
+    display: none !important;
+}
+
+/* Step Counter - Small gray badge */
+.introjs-tooltipstep {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    background: #f0f0f0 !important;
+    color: #666666 !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    padding: 3px 6px !important;
+    border-radius: 4px !important;
+}
+
+/* Disabled buttons */
+.introjs-disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}
+
+/* Remove any colored tooltip classes */
+.custom-introjs-enhanced {
+    background: #ffffff !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .introjs-tooltip {
+        min-width: 230px !important;
+        max-width: 90% !important;
+    }
+
+    .introjs-tooltip-content {
+        padding: 16px !important;
+        font-size: 13px !important;
+    }
+
+    .introjs-tooltip-title {
+        font-size: 15px !important;
+    }
+
+    .introjs-button {
+        padding: 5px 12px !important;
+        font-size: 12px !important;
+    }
+}

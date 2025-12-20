@@ -1,0 +1,31 @@
+:root {
+  --ss-primary-color: #4d5b7c;
+  --ss-bg-color: var(--bs-white);
+  --ss-font-color: var(--bs-body-color);
+  --ss-font-placeholder-color: var(--bs-gray);
+  --ss-disabled-color: var(--bs-gray-300);
+  --ss-border-color: #c9d2e3;
+  --ss-highlight-color: #f1f4fb;
+  --ss-success-color: var(--bs-success);
+  --ss-error-color: var(--bs-danger);
+
+  --ss-main-height: 40px;
+  --ss-content-height: 300px;
+
+  --ss-spacing-l: 7px;
+  --ss-spacing-m: 5px;
+  --ss-spacing-s: 3px;
+
+  --ss-animation-timing: 0s;
+  --ss-border-radius: 12px;
+}
+.ss-content .ss-list .ss-option:hover {
+  background-color: var(--bs-gray-200);
+  color: var(--bs-body-color);
+}
+.ss-main .ss-values .ss-value {
+  margin: var(--ss-spacing-s) 0;
+}
+.ss-main .ss-values .ss-value .ss-value-delete {
+  width: auto;
+}

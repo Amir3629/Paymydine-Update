@@ -1,0 +1,775 @@
+/* ============================================
+   HEADER DROPDOWN MENUS - Brown/Cream Theme
+   Global styles for all admin header dropdowns
+   ============================================ */
+
+/* Center the page title in header */
+.navbar-top .container-fluid {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+/* Lock header height to prevent expansion on clicks */
+.navbar-top {
+  height: 64px !important;
+  min-height: 64px !important;
+}
+.navbar-top .container-fluid,
+.navbar-top .navbar,
+.navbar-top .navbar-right {
+  height: 64px !important;
+  min-height: 64px !important;
+  align-items: center !important;
+  display: flex !important;
+  gap: 0 !important;
+}
+
+/* Ensure navbar-right container aligns items properly */
+.navbar-top .navbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Ensure all direct children of navbar-right are inline-flex */
+.navbar-top .navbar-right > * {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+
+.navbar-top .navbar-nav {
+  align-items: center !important;
+  display: flex !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* Uniform, consistent spacing between ALL header nav items */
+.navbar-top .navbar-nav > .nav-item {
+  margin-right: 8px !important;
+  margin-left: 0 !important;
+}
+.navbar-top .navbar-nav > .nav-item:first-child {
+  margin-left: 0 !important;
+}
+.navbar-top .navbar-nav > .nav-item:last-child {
+  margin-right: 0 !important;
+}
+
+/* Ensure notification button has same spacing as other items */
+.navbar-top #notif-root.nav-item.dropdown,
+.navbar-top #notif-root,
+.navbar-top li#notif-root {
+  margin-right: 8px !important;
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure notification link has no extra padding causing spacing issues */
+.navbar-top #notif-root .nav-link,
+.navbar-top #notifDropdown {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove special positioning from storefront icon for consistent spacing */
+.navbar-top #menu-mainmenu > li#menuitem-preview {
+  margin-left: 0 !important;
+  transform: none !important;
+}
+
+/* Remove special positioning from storefront icon anchor */
+.navbar-top #menu-mainmenu > li#menuitem-preview > a.nav-link.front-end {
+  position: relative !important;
+  left: 0 !important;
+}
+
+/* Remove extra left padding on the UL so first item sits closer to edge */
+.navbar-top #menu-mainmenu {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+/* Guide Tour Icon Button - Consistent spacing with other icons */
+.navbar-tour-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 18px !important;
+  padding: 8px 12px !important;
+  margin-left: 4px !important;
+  margin-right: 4px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  line-height: 1 !important;
+  border-radius: 4px !important;
+  position: relative !important;
+  vertical-align: middle !important;
+}
+
+.navbar-tour-btn:hover {
+  transform: scale(1.1) !important;
+}
+
+.navbar-tour-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.navbar-tour-btn i {
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+/* Hide hamburger menu button in navbar-top - user doesn't want it visible */
+.navbar-top .navbar-toggler,
+.navbar-top button.navbar-toggler,
+.navbar-top .navbar-toggler[data-bs-toggle="collapse"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  overflow: hidden !important;
+}
+.navbar-top .navbar-nav .nav-link {
+  line-height: 48px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  transition: transform 0.2s ease !important;
+}
+
+/* Ensure all header buttons have transition for scale effect */
+.navbar-top .nav-link,
+.navbar-top .dropdown-toggle,
+.navbar-top .btn-icon,
+.navbar-top .btn-trigger,
+.navbar-top .nav-item .nav-link,
+.navbar-top .nav-item .dropdown-toggle {
+  transition: transform 0.2s ease !important;
+}
+
+/* Consistent scale hover effect for all header buttons */
+.navbar-top .navbar-nav .nav-link:hover,
+.navbar-top .nav-link:hover,
+.navbar-top .dropdown-toggle:hover,
+.navbar-top .btn-icon:hover,
+.navbar-top .btn-trigger:hover,
+.navbar-top .nav-item .nav-link:hover,
+.navbar-top .nav-item .dropdown-toggle:hover {
+  transform: scale(1.1) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+  
+  .navbar-top .page-title {
+    flex: 1 !important;
+    text-align: center !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important; /* Light cream color */
+    margin: 0 20px !important;
+    letter-spacing: 0.5px !important;
+  }
+  
+  .navbar-top .page-title span {
+    color: #ffffff !important; /* Light cream color */
+  }
+  
+  /* Ensure page title is centered on ALL pages including orders/create */
+  body.orders .navbar-top .page-title,
+  body.orders.create .navbar-top .page-title,
+  .navbar-top .page-title {
+    flex: 1 !important;
+    text-align: center !important;
+    position: relative !important;
+    left: 0 !important;
+    transform: none !important;
+  }
+  
+  /* Override admin.css which sets right: 25px */
+  /* Force ALL navbar dropdowns to align right edge to parent right edge */
+  /* Using very high specificity to override Bootstrap's positioning */
+  .navbar-top .nav-item.dropdown .dropdown-menu,
+  .navbar-top .dropdown-menu,
+  #notification-panel.dropdown-menu,
+  .navbar-top .nav-item.dropdown .dropdown-menu.dropdown-menu-right,
+  .navbar-top .dropdown-menu.show {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    transform-origin: top right !important; /* Ensure animation originates from top-right */
+  }
+  
+  /* All dropdown menus in header (account, location, notifications, etc.) */
+  .navbar-top .dropdown-menu,
+  .navbar-top .nav-item .dropdown-menu {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 30px rgba(8, 129, 94, 0.20) !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+  
+    /* Smooth open/close animations */
+    opacity: 0 !important;
+    transform: translateY(-20px) scale(0.95) !important;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    pointer-events: none !important;
+    /* Ensure dropdown never expands header height */
+    position: absolute !important;
+    top: 100% !important;
+  }
+  
+  /* Profile dropdown - NO smooth animation */
+  .profile-dropdown-menu {
+    opacity: 0 !important;
+    transform: none !important;
+    transition: none !important;
+    pointer-events: none !important;
+  }
+  
+  /* Show state - smooth entrance */
+  .dropdown-menu.show,
+  .navbar-top .dropdown-menu.show {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: all !important;
+  }
+  
+  /* Profile dropdown show state - instant, no animation */
+  .profile-dropdown-menu.show {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    pointer-events: all !important;
+  }
+  
+  /* Dropdown header */
+  .dropdown-menu .dropdown-header {
+    color: #202938 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    padding: 12px 16px 8px !important;
+    border-bottom: 2px solid #ffffff !important;
+    background: transparent !important;
+  }
+  
+  /* Dropdown items */
+  .dropdown-menu .dropdown-item:not([data-request="onUpdateStatus"]),
+  .dropdown-menu .menu-link,
+  .dropdown-menu a:not(.btn) {
+    color: #364a63 !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    font-weight: 500 !important;
+    margin: 2px 0 !important;
+    background: transparent !important;
+    
+    /* Staggered fade-in animation */
+    opacity: 0;
+    transform: translateX(-10px);
+    animation: slideInItem 0.3s ease forwards;
+  }
+  
+  /* Profile dropdown items - NO animation */
+  .profile-dropdown-menu .dropdown-item {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  
+  /* Staggered animation delays */
+  .dropdown-menu.show .dropdown-item:nth-child(1),
+  .dropdown-menu.show .menu-item:nth-child(1) { animation-delay: 0.05s; }
+  .dropdown-menu.show .dropdown-item:nth-child(2),
+  .dropdown-menu.show .menu-item:nth-child(2) { animation-delay: 0.1s; }
+  .dropdown-menu.show .dropdown-item:nth-child(3),
+  .dropdown-menu.show .menu-item:nth-child(3) { animation-delay: 0.15s; }
+  .dropdown-menu.show .dropdown-item:nth-child(4),
+  .dropdown-menu.show .menu-item:nth-child(4) { animation-delay: 0.2s; }
+  .dropdown-menu.show .dropdown-item:nth-child(5),
+  .dropdown-menu.show .menu-item:nth-child(5) { animation-delay: 0.25s; }
+  .dropdown-menu.show .dropdown-item:nth-child(n+6),
+  .dropdown-menu.show .menu-item:nth-child(n+6) { animation-delay: 0.3s; }
+  
+  @keyframes slideInItem {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* Dropdown item hover - NO movement for profile dropdown */
+  .profile-dropdown-menu .dropdown-item:hover {
+    background: transparent !important;
+    color: #202938 !important;
+    transform: scale(1.05) !important;
+  }
+  
+  /* Other dropdown items can keep their effects */
+  .dropdown-menu:not(.profile-dropdown-menu) .dropdown-item:not([data-request="onUpdateStatus"]):hover,
+  .dropdown-menu:not(.profile-dropdown-menu) .menu-link:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+    color: #202938 !important;
+    transform: translateX(3px) !important;
+  }
+  
+  /* Allow status dropdown items to use their inline hover colors */
+  .list-table .dropdown-menu a[data-request="onUpdateStatus"]:hover {
+    background-color: unset !important;
+  }
+  
+  /* Settings menu grid layout - 3 COLUMNS */
+  .dropdown-menu .menu-grid {
+    padding: 8px 6px !important;
+    min-width: 360px !important;
+    max-width: 380px !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-item {
+    border: none !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    margin: 3px !important;
+    text-align: center !important;
+    padding: 0 !important;
+    flex: 0 0 calc(33.333% - 6px) !important;
+    max-width: calc(33.333% - 6px) !important;
+  }
+  
+  /* Remove green border from parent .menu-item when child is active/focused/hovered */
+  .dropdown-menu .menu-grid .menu-item:has(.menu-link:hover),
+  .dropdown-menu .menu-grid .menu-item:has(.menu-link:focus),
+  .dropdown-menu .menu-grid .menu-item:has(.menu-link:active),
+  .dropdown-menu .menu-grid .menu-item:hover,
+  .dropdown-menu .menu-grid .menu-item:focus,
+  .dropdown-menu .menu-grid .menu-item:active,
+  .dropdown-menu .menu-grid .menu-item:focus-within {
+    border: none !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px 8px !important;
+    min-height: 75px !important;
+    border-radius: 10px !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+  
+  /* Remove green/3D border effects on click/focus */
+  .dropdown-menu .menu-grid .menu-link:focus,
+  .dropdown-menu .menu-grid .menu-link:active,
+  .dropdown-menu .menu-grid .menu-link:focus-visible,
+  .dropdown-menu .dropdown-item:focus,
+  .dropdown-menu .dropdown-item:active,
+  .dropdown-menu .dropdown-item:focus-visible {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #202938 !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link i {
+    font-size: 24px !important;
+    margin-bottom: 6px !important;
+    margin-right: 0 !important;
+    color: #4b5563 !important;
+    transition: color 0.15s ease !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link span {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #364a63 !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+    display: block !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link:hover {
+    background: #ffffff !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link:hover i {
+    color: #000000 !important;
+    transform: none !important;
+  }
+  
+  .dropdown-menu .menu-grid .menu-link:hover span {
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu {
+    min-width: 260px !important;
+    max-width: 280px !important;
+    padding: 18px 20px 16px !important;
+    gap: 0 !important;
+  }
+  
+  .profile-dropdown-menu .rounded-circle {
+    width: 72px !important;
+    height: 72px !important;
+    object-fit: cover !important;
+    border: 3px solid #e5ebf7 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-divider {
+    margin: 14px 0 !important;
+    border-top: 1px solid rgba(32, 41, 56, 0.15) !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header {
+    padding: 0 0 6px !important;
+    margin-bottom: 6px !important;
+    border-bottom: none !important;
+    letter-spacing: 0.15em !important;
+    color: #202938 !important;
+    padding-left: 19.5px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    color: #202938 !important;
+    font-weight: 600 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item i,
+  .profile-dropdown-menu .dropdown-item span,
+  .profile-dropdown-menu .dropdown-item.text-danger,
+  .profile-dropdown-menu .dropdown-item.text-danger i {
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item span {
+    flex: 1 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item:first-of-type span {
+    margin-left: 8px !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item:hover {
+    background: transparent !important;
+    transform: scale(1.05) !important;
+    transition: transform 0.1s ease !important;
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item {
+    transition: transform 0.1s ease !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item:hover i,
+  .profile-dropdown-menu .dropdown-item:hover span,
+  .profile-dropdown-menu .dropdown-item:focus i,
+  .profile-dropdown-menu .dropdown-item:focus span,
+  .profile-dropdown-menu .dropdown-item:active i,
+  .profile-dropdown-menu .dropdown-item:active span {
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item + .dropdown-item {
+    border-top: 1px solid rgba(32, 41, 56, 0.1) !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item i {
+    font-size: 16px !important;
+    color: #202938 !important;
+    transition: none !important;
+  }
+  
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:hover,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:focus,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:active {
+    color: #202938 !important;
+  }
+  
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item i,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:hover i,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:focus i,
+  .navbar-top .navbar-nav > li:last-child .dropdown-menu .dropdown-item:active i {
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header i {
+    margin-right: 6px !important;
+    color: #202938 !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header span {
+    margin-left: 18px !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item.active {
+    background: transparent !important;
+    font-weight: 700 !important;
+    transform: none !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-item.active:hover {
+    transform: scale(1.05) !important;
+  }
+  
+  .profile-dropdown-menu .dropdown-header ~ .dropdown-item {
+    padding-left: 50px !important;
+    border-left: 3px solid transparent !important;
+  }
+  
+  /* Notification panel specific - SIMPLE FIX: Align right edge to parent right edge */
+  #notification-panel,
+  #notification-panel.dropdown-menu {
+    min-width: 420px !important;
+    max-width: 420px !important; /* Force consistent width */
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 8px !important;
+    /* Position from the RIGHT side of parent */
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    /* No offset - align with parent bell icon */
+    margin-right: -85px !important;
+  }
+  
+  /* Fix notification parent positioning */
+  #notif-root.nav-item.dropdown {
+    position: relative !important;
+  }
+  
+  /* GENTLE FIX: Force notification dropdown to align right without breaking animations */
+  #notif-root .dropdown-menu,
+  #notif-root > .dropdown-menu,
+  li#notif-root .dropdown-menu {
+    position: absolute !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+  
+  /* Only override left positioning from Popper.js */
+  #notification-panel.show {
+    right: 0 !important;
+    left: auto !important;
+  }
+  
+  /* Notification header - MATCH DROPDOWN HEADERS */
+  #notification-panel .d-flex.align-items-center,
+  #notification-panel > div:first-child {
+    background: transparent !important;
+    color: #202938 !important;
+    padding: 12px 16px !important;
+    border-bottom: 2px solid #ffffff !important;
+    border-radius: 0 !important;
+  }
+  
+  #notification-panel .d-flex.align-items-center strong,
+  #notification-panel strong {
+    color: #202938 !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+  
+  /* ============================================
+     CRITICAL FIX: Status Dropdown in Orders Table
+     ============================================ */
+  
+  /* Prevent the general dropdown hover rule from overriding inline background colors */
+  .list-table .dropdown-menu .dropdown-item:hover,
+  .list-table .dropdown-menu .status-dropdown-item:hover,
+  .list-table .dropdown-menu a[data-request="onUpdateStatus"]:hover {
+    background: none !important;
+    background-color: revert !important;
+    /* This allows the inline onmouseover handler to work */
+  }
+  
+  /* Ensure status items are always visible (no animation delay) */
+  .list-table .dropdown-menu .status-dropdown-item,
+  .list-table .dropdown-menu a[data-request="onUpdateStatus"] {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+    animation: none !important;
+  }
+  
+  /* Hide the 'updates available' row inside the header settings dropdown */
+  .navbar-top .dropdown-menu .dropdown-item.alert-warning {
+    display: none !important;
+  }
+
+  /* Make the three-dots button a small green box with white dots */
+  .navbar-top .dropdown-menu .dropdown-footer {
+    padding: 8px 12px !important;
+    text-align: center !important;
+  }
+  .navbar-top .dropdown-menu .dropdown-footer a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 32px !important;
+    background: #08815e !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    border: 1px solid #08815e !important;
+    text-decoration: none !important;
+  }
+  .navbar-top .dropdown-menu .dropdown-footer a i {
+    color: #ffffff !important;
+  }
+  .navbar-top .dropdown-menu .dropdown-footer a:hover {
+    background: #0bb87a !important;
+    border-color: #0bb87a !important;
+  }
+  
+  /* Remove any green frame/border on settings tiles in all states */
+  .navbar-top .dropdown-menu .menu-grid .menu-link,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:hover,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:active,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus-visible {
+    border: 1px solid transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    background: #ffffff !important;
+    color: #202938 !important;
+    transform: none !important;
+  }
+  
+  /* Kill any green frame/active animation on settings tiles and their children */
+  .navbar-top .dropdown-menu .menu-grid .menu-link,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *,
+  .navbar-top .dropdown-menu .dropdown-item,
+  .navbar-top .dropdown-menu .dropdown-item * {
+    box-shadow: none !important;
+    outline: none !important;
+    border-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  .navbar-top .dropdown-menu .menu-grid .menu-link:active,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *:active,
+  .navbar-top .dropdown-menu .dropdown-item:active,
+  .navbar-top .dropdown-menu .dropdown-item *:active,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *:focus,
+  .navbar-top .dropdown-menu .dropdown-item:focus,
+  .navbar-top .dropdown-menu .dropdown-item *:focus,
+  .navbar-top .dropdown-menu .menu-grid .menu-link:focus-visible,
+  .navbar-top .dropdown-menu .menu-grid .menu-link *:focus-visible,
+  .navbar-top .dropdown-menu .dropdown-item:focus-visible,
+  .navbar-top .dropdown-menu .dropdown-item *:focus-visible {
+    background: #ffffff !important;
+    color: #202938 !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  
+  /* Active location item - light green background */
+  .navbar-top .dropdown-menu .dropdown-item.active {
+    background: rgba(11, 184, 122, 0.15) !important;
+    color: #08815e !important;
+    border-left: 3px solid #0bb87a !important;
+    font-weight: 600 !important;
+  }
+  
+  .navbar-top .dropdown-menu .dropdown-item.active:hover {
+    background: rgba(11, 184, 122, 0.2) !important;
+    color: #08815e !important;
+  }
+  
+  /* ============================================
+     ADMIN PANEL ONLY: Push Profile Icon to Right
+     Keep notification, settings, store front, and info icons on the left
+     ============================================ */
+  
+  /* Push the user profile dropdown (last nav-item) to the right */
+  .navbar-top .navbar-nav > .nav-item:last-child {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    /* Add extra spacing before the profile icon */
+    padding-left: 12px !important;
+  }
+  
+  /* Ensure all other icons stay on the left with consistent spacing */
+  .navbar-top .navbar-nav > .nav-item:not(:last-child) {
+    margin-left: 0 !important;
+    margin-right: 8px !important;
+  }
+  
+  /* Guide tour button positioning */
+  .navbar-top .navbar-tour-btn {
+    margin-right: 8px !important;
+  }
+  
+  

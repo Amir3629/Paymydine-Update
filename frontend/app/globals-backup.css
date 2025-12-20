@@ -1,0 +1,1284 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Theme Variables - Will be dynamically set by theme system */
+    --theme-primary: #E7CBA9;
+    --theme-secondary: #EFC7B1;
+    --theme-accent: #3B3B3B;
+    --theme-background: #FAFAFA;
+    --theme-text-primary: #3B3B3B;
+    --theme-text-secondary: #7E7E7E;
+    --theme-text-muted: #9CA3AF;
+    --theme-border: #EDEDED;
+    --theme-input: #FFFFFF;
+    --theme-button: #E7CBA9;
+    --theme-button-hover: #D4B89A;
+    --theme-menu-item-bg: #FFFFFF;
+    --theme-menu-item-border: #F3F4F6;
+    --theme-category-active: #E7CBA9;
+    --theme-category-inactive: #9CA3AF;
+    --theme-price: #EFC7B1;
+    --theme-cart-bg: #FAFAFA;
+    --theme-cart-border: #EDEDED;
+    --theme-payment-button: #E7CBA9;
+    --theme-payment-button-hover: #D4B89A;
+    --theme-success: #10B981;
+    --theme-warning: #F59E0B;
+    --theme-error: #EF4444;
+    --theme-info: #3B82F6;
+    
+    /* Legacy variables for backward compatibility */
+    --paymydine-primary: var(--theme-primary);
+    --paymydine-secondary: var(--theme-secondary);
+    --paymydine-accent: var(--theme-accent);
+    --paymydine-background: var(--theme-background);
+    --paydine-champagne: var(--theme-primary);
+    --paydine-rose-beige: var(--theme-secondary);
+    --paydine-elegant-gray: var(--theme-text-primary);
+    --paydine-soft-white: var(--theme-background);
+    --paydine-muted-gray: var(--theme-text-secondary);
+    --paydine-border: var(--theme-border);
+    
+    /* Default CSS variables */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Theme utility classes */
+@layer utilities {
+  .text-theme-primary { color: var(--theme-primary); }
+  .text-theme-secondary { color: var(--theme-secondary); }
+  .text-theme-accent { color: var(--theme-accent); }
+  .text-theme-text-primary { color: var(--theme-text-primary); }
+  .text-theme-text-secondary { color: var(--theme-text-secondary); }
+  .text-theme-text-muted { color: var(--theme-text-muted); }
+  .text-theme-price { color: var(--theme-price); }
+  
+  .bg-theme-primary { background-color: var(--theme-primary); }
+  .bg-theme-secondary { background-color: var(--theme-secondary); }
+  .bg-theme-accent { background-color: var(--theme-accent); }
+  .bg-theme-background { background-color: var(--theme-background); }
+  .bg-theme-menu-item { background-color: var(--theme-menu-item-bg); }
+  .bg-theme-cart { background-color: var(--theme-cart-bg); }
+  
+  .border-theme-primary { border-color: var(--theme-primary); }
+  .border-theme-secondary { border-color: var(--theme-secondary); }
+  .border-theme-border { border-color: var(--theme-border); }
+  .border-theme-menu-item { border-color: var(--theme-menu-item-border); }
+  .border-theme-cart { border-color: var(--theme-cart-border); }
+  
+  .hover\:bg-theme-button-hover:hover { background-color: var(--theme-button-hover); }
+  .hover\:bg-theme-payment-button-hover:hover { background-color: var(--theme-payment-button-hover); }
+  
+  /* Legacy utility classes for backward compatibility */
+  .text-paydine-champagne { color: var(--paydine-champagne); }
+  .text-paydine-rose-beige { color: var(--paydine-rose-beige); }
+  .text-paydine-elegant-gray { color: var(--paydine-elegant-gray); }
+  .text-paydine-soft-white { color: var(--paydine-soft-white); }
+  .text-paydine-muted-gray { color: var(--paydine-muted-gray); }
+  
+  .bg-paydine-champagne { background-color: var(--paydine-champagne); }
+  .bg-paydine-rose-beige { background-color: var(--paydine-rose-beige); }
+  .bg-paydine-soft-white { background-color: var(--paydine-soft-white); }
+  
+  .border-paydine-champagne { border-color: var(--paydine-champagne); }
+  .border-paydine-border { border-color: var(--paydine-border); }
+}
+
+/* Existing utilities */
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .mask-gradient-left {
+    mask-image: linear-gradient(to right, transparent 0%, black 20%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%);
+  }
+  
+  .mask-gradient-right {
+    mask-image: linear-gradient(to left, transparent 0%, black 20%);
+    -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20%);
+  }
+  
+  .mask-gradient-both {
+    mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(242, 195, 195, 0.05);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-secondary);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-primary);
+}
+
+/* Remove number input arrows */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"],
+input[type="number"]:focus {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* === Dev-Only scoped theme backgrounds for 3 pages === */
+/* Defaults (clean-light) are harmless if data-theme is missing */
+:root {
+  --page-bg: #FAFAFA; /* default clean-light background */
+  --theme-background: #FAFAFA; /* default clean-light background */
+}
+
+/* Per-theme background colors — ONLY affect pages with .page--* classes */
+:root[data-theme="clean-light"] {
+  --theme-background: #FAFAFA;
+}
+
+:root[data-theme="clean-light"] .page--home,
+:root[data-theme="clean-light"] .page--menu,
+:root[data-theme="clean-light"] .page--valet {
+  --page-bg: #FAFAFA;
+}
+
+:root[data-theme="modern-dark"] {
+  --theme-background: #0A0E12; /* Deep charcoal with blue undertones */
+}
+
+:root[data-theme="modern-dark"] .page--home,
+:root[data-theme="modern-dark"] .page--menu,
+:root[data-theme="modern-dark"] .page--valet {
+  --page-bg: #0A0E12; /* Deep charcoal with blue undertones */
+}
+
+:root[data-theme="gold-luxury"] {
+  --theme-background: #0F0B05; /* Deep warm black */
+}
+
+:root[data-theme="gold-luxury"] .page--home,
+:root[data-theme="gold-luxury"] .page--menu,
+:root[data-theme="gold-luxury"] .page--valet {
+  --page-bg: #0F0B05; /* Deep warm black */
+}
+
+:root[data-theme="vibrant-colors"] {
+  --theme-background: #e2ceb1; /* Cooler, darker warm beige with subtle gray undertones */
+}
+
+:root[data-theme="vibrant-colors"] .page--home,
+:root[data-theme="vibrant-colors"] .page--menu,
+:root[data-theme="vibrant-colors"] .page--valet {
+  --page-bg: #e2ceb1; /* Cooler, darker warm beige with subtle gray undertones */
+}
+
+:root[data-theme="minimal"] {
+  --theme-background: #CFEBF7; /* Light Blue */
+}
+
+:root[data-theme="minimal"] .page--home,
+:root[data-theme="minimal"] .page--menu,
+:root[data-theme="minimal"] .page--valet {
+  --page-bg: #CFEBF7; /* Light Blue */
+}
+
+/* Only update the background color for the 3 target pages */
+.page--home,
+.page--menu,
+.page--valet {
+  background: var(--page-bg) !important;
+  /* ensure content still looks correct */
+  min-height: 100dvh;
+}
+
+/* ---- modern-dark category accent ---- */
+html.theme-dark .category-tab.is-active,
+:root[data-theme="modern-dark"] .category-tab.is-active {
+  color: var(--theme-category-active, var(--theme-secondary));
+}
+
+html.theme-dark .category-tab.is-active::after,
+:root[data-theme="modern-dark"] .category-tab.is-active::after {
+  background-color: var(--theme-category-active, var(--theme-secondary));
+}
+
+/* ---- modern-dark food title in rose ---- */
+html.theme-dark .item-title,
+html.theme-dark h3.font-serif,
+:root[data-theme="modern-dark"] .item-title,
+:root[data-theme="modern-dark"] h3.font-serif {
+  color: var(--theme-secondary, #F0C6B1);
+}
+
+/* ---- modern-dark: dish details modal surface ---- */
+html.theme-dark .dish-modal,
+html.theme-dark .dish-modal .modal-content,
+html.theme-dark .bg-\[#FDF8F7\],
+:root[data-theme="modern-dark"] .dish-modal,
+:root[data-theme="modern-dark"] .dish-modal .modal-content,
+:root[data-theme="modern-dark"] .bg-\[#FDF8F7\] {
+  background-color: var(--theme-input, #121923) !important;
+  color: var(--theme-text-primary, #F3F4F6);
+  border: 1px solid var(--theme-border, #223042);
+}
+
+/* subtle inner cards inside the modal */
+html.theme-dark .dish-modal .card,
+html.theme-dark .bg-white\/80,
+html.theme-dark .bg-white\/90,
+:root[data-theme="modern-dark"] .dish-modal .card,
+:root[data-theme="modern-dark"] .bg-white\/80,
+:root[data-theme="modern-dark"] .bg-white\/90 {
+  background-color: transparent;
+  border-color: var(--theme-border, #223042);
+  color: var(--theme-text-secondary, #C7CDD4);
+}
+
+/* ---- modern-dark: waiter & note modals ---- */
+html.theme-dark .waiter-modal,
+html.theme-dark .note-modal,
+html.theme-dark .pm-dialog,
+html.theme-dark [data-radix-dialog-content],
+:root[data-theme="modern-dark"] .waiter-modal,
+:root[data-theme="modern-dark"] .note-modal,
+:root[data-theme="modern-dark"] .pm-dialog,
+:root[data-theme="modern-dark"] [data-radix-dialog-content] {
+  background-color: var(--theme-input, #121923) !important;
+  color: var(--theme-text-primary, #F3F4F6);
+  border: 1px solid var(--theme-border, #223042);
+}
+
+/* AGGRESSIVE MODAL OVERRIDES - TARGET EXACT MODAL STRUCTURE */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .rounded-3xl.shadow-2xl {
+  background-color: #0B0F14 !important;
+  color: #F3F4F6 !important;
+  border: 1px solid #223042 !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .rounded-3xl.shadow-2xl {
+  background-color: #0E0B05 !important;
+  color: #FFF8DC !important;
+  border: 1px solid #4A3C00 !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .rounded-3xl.shadow-2xl {
+  background-color: #e2ceb1 !important;
+  color: #4A3C00 !important;
+  border: 1px solid #6b5e4f !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .rounded-3xl.shadow-2xl {
+  background-color: #CFEBF7 !important;
+  color: #1A202C !important;
+  border: 1px solid #87CEEB !important;
+}
+
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .rounded-3xl.shadow-2xl {
+  background-color: #FAFAFA !important;
+  color: #1A202C !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* MODAL TEXT OVERRIDES */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 h3,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 p {
+  color: #F3F4F6 !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 h3,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 p {
+  color: #FFF8DC !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 h3,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 p {
+  color: #4A3C00 !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0.z-50 h3,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 p {
+  color: #1A202C !important;
+}
+
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 h3,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 p {
+  color: #1A202C !important;
+}
+
+/* BILL/ORDER MODAL OVERRIDES - TARGET EXACT STRUCTURE */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-white.rounded-3xl {
+  background-color: #0B0F14 !important;
+  color: #F3F4F6 !important;
+  border: 1px solid #223042 !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-white.rounded-3xl {
+  background-color: #0E0B05 !important;
+  color: #FFF8DC !important;
+  border: 1px solid #4A3C00 !important;
+}
+
+/* NUCLEAR OPTION - MORE AGGRESSIVE TARGETING */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .w-full.max-w-md.bg-white.rounded-3xl,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-white,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 [class*="bg-white"],
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .rounded-3xl {
+  background-color: #0B0F14 !important;
+  color: #F3F4F6 !important;
+  border: 1px solid #223042 !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .w-full.max-w-md.bg-white.rounded-3xl,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-white,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 [class*="bg-white"],
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .rounded-3xl {
+  background-color: #0E0B05 !important;
+  color: #FFF8DC !important;
+  border: 1px solid #4A3C00 !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .bg-white.rounded-3xl {
+  background-color: #e2ceb1 !important;
+  color: #4A3C00 !important;
+  border: 1px solid #6b5e4f !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .bg-white.rounded-3xl {
+  background-color: #CFEBF7 !important;
+  color: #1A202C !important;
+  border: 1px solid #87CEEB !important;
+}
+
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .bg-white.rounded-3xl {
+  background-color: #FAFAFA !important;
+  color: #1A202C !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* BILL MODAL TEXT OVERRIDES */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h2,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h3,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-white.rounded-3xl p,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-white.rounded-3xl span,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-white.rounded-3xl div {
+  color: #F3F4F6 !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h2,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h3,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-white.rounded-3xl p,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-white.rounded-3xl span,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-white.rounded-3xl div {
+  color: #FFF8DC !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h2,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h3,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .bg-white.rounded-3xl p,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .bg-white.rounded-3xl span,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .bg-white.rounded-3xl div {
+  color: #4A3C00 !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h2,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h3,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .bg-white.rounded-3xl p,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .bg-white.rounded-3xl span,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .bg-white.rounded-3xl div {
+  color: #1A202C !important;
+}
+
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h2,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .bg-white.rounded-3xl h3,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .bg-white.rounded-3xl p,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .bg-white.rounded-3xl span,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .bg-white.rounded-3xl div {
+  color: #1A202C !important;
+}
+
+/* BILL MODAL INPUT FIELDS - BLACK TEXT FOR READABILITY */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 input,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 textarea,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 select,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .form-input,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .form-textarea {
+  color: #000000 !important;
+  background-color: #FFFFFF !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 input,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 textarea,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 select,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .form-input,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .form-textarea {
+  color: #000000 !important;
+  background-color: #FFFFFF !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 input,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 textarea,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 select,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .form-input,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .form-textarea {
+  color: #000000 !important;
+  background-color: #FFFFFF !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0.z-50 input,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 textarea,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 select,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .form-input,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .form-textarea {
+  color: #000000 !important;
+  background-color: #FFFFFF !important;
+}
+
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 input,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 textarea,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 select,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .form-input,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .form-textarea {
+  color: #000000 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* ULTRA AGGRESSIVE - CATCH ALL POSSIBLE MODAL STRUCTURES */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 * {
+  background-color: #0B0F14 !important;
+  color: #F3F4F6 !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 * {
+  background-color: #0E0B05 !important;
+  color: #FFF8DC !important;
+}
+
+/* BUT KEEP INPUT FIELDS WHITE WITH BLACK TEXT */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 input,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 textarea,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 select {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 input,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 textarea,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 select {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+/* TIP PERCENTAGE BUTTONS - ENHANCED VISUAL EFFECTS */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 button[class*="bg-paydine-champagne"],
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 button[class*="bg-"],
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .tip-button,
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 button:has-text("10%"),
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 button:has-text("15%"),
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 button:has-text("20%") {
+  background: linear-gradient(135deg, #F0C6B1, #E7CBA9) !important;
+  color: #1A202C !important;
+  border: 3px solid #F0C6B1 !important;
+  box-shadow: 0 4px 12px rgba(240, 198, 177, 0.5), inset 0 0 0 1px #F0C6B1 !important;
+  transform: scale(1.05) !important;
+  font-weight: 600 !important;
+  outline: 2px solid #F0C6B1 !important;
+  outline-offset: 1px !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 button[class*="bg-paydine-champagne"],
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 button[class*="bg-"],
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .tip-button,
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 button:has-text("10%"),
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 button:has-text("15%"),
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 button:has-text("20%") {
+  background: linear-gradient(135deg, #FFF8DC, #FFD700) !important;
+  color: #1A202C !important;
+  border: 3px solid #FFD700 !important;
+  box-shadow: 0 4px 12px rgba(255, 248, 220, 0.5), inset 0 0 0 1px #FFD700 !important;
+  transform: scale(1.05) !important;
+  font-weight: 600 !important;
+  outline: 2px solid #FFD700 !important;
+  outline-offset: 1px !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 button[class*="bg-paydine-champagne"],
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 button[class*="bg-"],
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .tip-button,
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 button:has-text("10%"),
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 button:has-text("15%"),
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 button:has-text("20%") {
+  background: linear-gradient(135deg, #6b5e4f, #8B7355) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #6b5e4f !important;
+  box-shadow: 0 4px 12px rgba(107, 94, 79, 0.3) !important;
+  transform: scale(1.05) !important;
+  font-weight: 600 !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button[class*="bg-paydine-champagne"],
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button[class*="bg-"],
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .tip-button,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button:has-text("10%"),
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button:has-text("15%"),
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button:has-text("20%") {
+  background: linear-gradient(135deg, #87CEEB, #4682B4) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #87CEEB !important;
+  box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3) !important;
+  transform: scale(1.05) !important;
+  font-weight: 600 !important;
+}
+
+/* MINIMAL THEME - FORCE WHITE TEXT ON SELECTED TIP BUTTONS */
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button[class*="bg-paydine-champagne"] span,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button[class*="bg-"] span,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .tip-button span,
+:root[data-theme="minimal"] .fixed.inset-0.z-50 button span {
+  color: #FFFFFF !important;
+}
+
+/* EXACT TIP BUTTON TARGETING - MATCHING THEME COLORS */
+:root[data-theme="modern-dark"] .fixed.inset-0.z-50 .bg-paydine-champagne.text-paydine-elegant-gray {
+  background: linear-gradient(135deg, #F0C6B1, #E7CBA9) !important;
+  color: #1A202C !important;
+  border: 2px solid #F0C6B1 !important;
+  box-shadow: 0 2px 8px rgba(240, 198, 177, 0.3) !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0.z-50 .bg-paydine-champagne.text-paydine-elegant-gray {
+  background: linear-gradient(135deg, #D4AF37, #B8860B) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #D4AF37 !important;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3) !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0.z-50 .bg-paydine-champagne.text-paydine-elegant-gray {
+  background: linear-gradient(135deg, #6b5e4f, #8B7355) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #6b5e4f !important;
+  box-shadow: 0 2px 8px rgba(107, 94, 79, 0.3) !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0.z-50 .bg-paydine-champagne.text-paydine-elegant-gray {
+  background: linear-gradient(135deg, #87CEEB, #4682B4) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #87CEEB !important;
+  box-shadow: 0 2px 8px rgba(135, 206, 235, 0.3) !important;
+}
+
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .bg-paydine-champagne.text-paydine-elegant-gray {
+  background: linear-gradient(135deg, #E7CBA9, #F0C6B1) !important;
+  color: #1A202C !important;
+  border: 2px solid #E7CBA9 !important;
+  box-shadow: 0 2px 8px rgba(231, 203, 169, 0.3) !important;
+}
+
+/* === Cash Payment Button Theme Styling === */
+/* Modern Dark - Rose/beige gradient */
+:root[data-theme="modern-dark"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #F0C6B1, #E7CBA9) !important;
+  color: #1A202C !important;
+  border: 2px solid #F0C6B1 !important;
+  box-shadow: 0 4px 12px rgba(240, 198, 177, 0.3) !important;
+}
+
+/* Gold Luxury - Elegant gold gradient */
+:root[data-theme="gold-luxury"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #D4AF37, #B8860B) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #D4AF37 !important;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Vibrant Colors - Warm brown gradient */
+:root[data-theme="vibrant-colors"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #6b5e4f, #8B7355) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #6b5e4f !important;
+  box-shadow: 0 4px 12px rgba(107, 94, 79, 0.3) !important;
+}
+
+/* Minimal - Sky blue gradient */
+:root[data-theme="minimal"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #87CEEB, #4682B4) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #87CEEB !important;
+  box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3) !important;
+}
+
+/* Clean Light - Keep original light rose (no changes) */
+
+/* Remove black frames and ensure theme colors for all payment buttons */
+:root[data-theme="modern-dark"] button[style*="backgroundColor: 'var(--theme-button"],
+:root[data-theme="modern-dark"] .fixed.inset-0 button[class*="font-bold"],
+:root[data-theme="modern-dark"] button:has-text("Confirm Cash Payment") {
+  background: linear-gradient(135deg, #F0C6B1, #E7CBA9) !important;
+  color: #1A202C !important;
+  border: 2px solid #F0C6B1 !important;
+  box-shadow: 0 4px 12px rgba(240, 198, 177, 0.3) !important;
+}
+
+:root[data-theme="gold-luxury"] button[style*="backgroundColor: 'var(--theme-button"],
+:root[data-theme="gold-luxury"] .fixed.inset-0 button[class*="font-bold"],
+:root[data-theme="gold-luxury"] button:has-text("Confirm Cash Payment") {
+  background: linear-gradient(135deg, #D4AF37, #B8860B) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #D4AF37 !important;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+:root[data-theme="vibrant-colors"] button[style*="backgroundColor: 'var(--theme-button"],
+:root[data-theme="vibrant-colors"] .fixed.inset-0 button[class*="font-bold"],
+:root[data-theme="vibrant-colors"] button:has-text("Confirm Cash Payment") {
+  background: linear-gradient(135deg, #6b5e4f, #8B7355) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #6b5e4f !important;
+  box-shadow: 0 4px 12px rgba(107, 94, 79, 0.3) !important;
+}
+
+:root[data-theme="minimal"] button[style*="backgroundColor: 'var(--theme-button"],
+:root[data-theme="minimal"] .fixed.inset-0 button[class*="font-bold"],
+:root[data-theme="minimal"] button:has-text("Confirm Cash Payment") {
+  background: linear-gradient(135deg, #87CEEB, #4682B4) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #87CEEB !important;
+  box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3) !important;
+}
+
+/* Remove any black frames or borders from payment buttons */
+:root[data-theme]:not([data-theme="clean-light"]) button[class*="font-bold"] div,
+:root[data-theme]:not([data-theme="clean-light"]) button[style*="backgroundColor"] div {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+}
+
+/* NUCLEAR OPTION: Target payment button with inline styles */
+:root[data-theme="modern-dark"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #F0C6B1, #E7CBA9) !important;
+  color: #1A202C !important;
+  border: 2px solid #F0C6B1 !important;
+  box-shadow: 0 4px 12px rgba(240, 198, 177, 0.3) !important;
+}
+
+:root[data-theme="gold-luxury"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #D4AF37, #B8860B) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #D4AF37 !important;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+:root[data-theme="vibrant-colors"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #6b5e4f, #8B7355) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #6b5e4f !important;
+  box-shadow: 0 4px 12px rgba(107, 94, 79, 0.3) !important;
+}
+
+:root[data-theme="minimal"] button[style*="var(--theme-button"] {
+  background: linear-gradient(135deg, #87CEEB, #4682B4) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #87CEEB !important;
+  box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3) !important;
+}
+
+/* ULTRA AGGRESSIVE: Target any button with font-bold class in payment context */
+:root[data-theme="modern-dark"] .fixed.inset-0 button.font-bold,
+:root[data-theme="modern-dark"] button.font-bold.py-3 {
+  background: linear-gradient(135deg, #F0C6B1, #E7CBA9) !important;
+  color: #1A202C !important;
+  border: 2px solid #F0C6B1 !important;
+  box-shadow: 0 4px 12px rgba(240, 198, 177, 0.3) !important;
+}
+
+:root[data-theme="gold-luxury"] .fixed.inset-0 button.font-bold,
+:root[data-theme="gold-luxury"] button.font-bold.py-3 {
+  background: linear-gradient(135deg, #D4AF37, #B8860B) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #D4AF37 !important;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+:root[data-theme="vibrant-colors"] .fixed.inset-0 button.font-bold,
+:root[data-theme="vibrant-colors"] button.font-bold.py-3 {
+  background: linear-gradient(135deg, #6b5e4f, #8B7355) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #6b5e4f !important;
+  box-shadow: 0 4px 12px rgba(107, 94, 79, 0.3) !important;
+}
+
+:root[data-theme="minimal"] .fixed.inset-0 button.font-bold,
+:root[data-theme="minimal"] button.font-bold.py-3 {
+  background: linear-gradient(135deg, #87CEEB, #4682B4) !important;
+  color: #FFFFFF !important;
+  border: 2px solid #87CEEB !important;
+  box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3) !important;
+}
+
+/* ONLY remove black frame from payment button text - DO NOT TOUCH ANYTHING ELSE */
+:root[data-theme="modern-dark"] button[style*="var(--theme-button"] div,
+:root[data-theme="modern-dark"] button.font-bold.py-3 div {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+}
+
+:root[data-theme="gold-luxury"] button[style*="var(--theme-button"] div,
+:root[data-theme="gold-luxury"] button.font-bold.py-3 div {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+}
+
+/* ONLY remove lock icon from payment button - NO OTHER ICONS */
+:root[data-theme] button[style*="var(--theme-button"] svg[data-lucide="lock"] {
+  display: none !important;
+}
+
+/* ONLY remove black background from payment button text - NO OTHER ELEMENTS */
+:root[data-theme] button[style*="var(--theme-button"] div.flex {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+}
+
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 button[class*="bg-paydine-champagne"],
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 button[class*="bg-"],
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 .tip-button,
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 button:has-text("10%"),
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 button:has-text("15%"),
+:root[data-theme="clean-light"] .fixed.inset-0.z-50 button:has-text("20%") {
+  background: linear-gradient(135deg, #E7CBA9, #D4AF37) !important;
+  color: #1A202C !important;
+  border: 2px solid #E7CBA9 !important;
+  box-shadow: 0 4px 12px rgba(231, 203, 169, 0.3) !important;
+  transform: scale(1.05) !important;
+  font-weight: 600 !important;
+}
+
+html.theme-dark .waiter-modal .btn-primary,
+html.theme-dark .note-modal .btn-primary,
+html.theme-dark [data-radix-dialog-content] button[type="submit"],
+:root[data-theme="modern-dark"] .waiter-modal .btn-primary,
+:root[data-theme="modern-dark"] .note-modal .btn-primary,
+:root[data-theme="modern-dark"] [data-radix-dialog-content] button[type="submit"] {
+  background-color: var(--theme-button, #E7CBA9);
+  color: #1a1a1a;
+}
+
+html.theme-dark .waiter-modal .btn-secondary,
+html.theme-dark .note-modal .btn-secondary,
+html.theme-dark [data-radix-dialog-content] button[type="button"],
+:root[data-theme="modern-dark"] .waiter-modal .btn-secondary,
+:root[data-theme="modern-dark"] .note-modal .btn-secondary,
+:root[data-theme="modern-dark"] [data-radix-dialog-content] button[type="button"] {
+  background-color: rgba(255,255,255,0.06);
+  color: var(--theme-text-secondary, #C7CDD4);
+  border: 1px solid var(--theme-border, #223042);
+}
+
+/* ===== ENHANCED THEME STYLING ===== */
+
+/* Gold Luxury Theme Styling */
+:root[data-theme="gold-luxury"] .category-tab.is-active,
+html.theme-dark:root[data-theme="gold-luxury"] .category-tab.is-active {
+  color: var(--theme-category-active, #FFF8DC) !important;
+}
+
+:root[data-theme="gold-luxury"] .category-tab.is-active::after,
+html.theme-dark:root[data-theme="gold-luxury"] .category-tab.is-active::after {
+  background-color: var(--theme-category-active, #FFF8DC) !important;
+}
+
+:root[data-theme="gold-luxury"] h3.font-serif,
+html.theme-dark:root[data-theme="gold-luxury"] h3.font-serif {
+  color: var(--theme-secondary, #FFF8DC);
+}
+
+:root[data-theme="gold-luxury"] [data-radix-dialog-content],
+html.theme-dark:root[data-theme="gold-luxury"] [data-radix-dialog-content] {
+  background-color: var(--theme-input, #1A1612) !important;
+  color: var(--theme-text-primary, #FFF8DC);
+  border: 1px solid var(--theme-border, #CD853F);
+}
+
+/* Vibrant Colors Theme Styling */
+:root[data-theme="vibrant-colors"] .category-tab.is-active,
+html.theme-dark:root[data-theme="vibrant-colors"] .category-tab.is-active {
+  color: var(--theme-category-active, var(--theme-secondary));
+}
+
+:root[data-theme="vibrant-colors"] .category-tab.is-active::after,
+html.theme-dark:root[data-theme="vibrant-colors"] .category-tab.is-active::after {
+  background-color: var(--theme-category-active, var(--theme-secondary));
+}
+
+:root[data-theme="vibrant-colors"] h3.font-serif,
+html.theme-dark:root[data-theme="vibrant-colors"] h3.font-serif {
+  color: var(--theme-primary, #FF6B6B);
+}
+
+:root[data-theme="vibrant-colors"] [data-radix-dialog-content],
+html.theme-dark:root[data-theme="vibrant-colors"] [data-radix-dialog-content] {
+  background-color: var(--theme-background, #FFFFFF) !important;
+  color: var(--theme-text-primary, #1E293B);
+  border: 1px solid var(--theme-border, #E2E8F0);
+}
+
+/* Minimal Theme Styling */
+:root[data-theme="minimal"] .category-tab.is-active,
+html.theme-dark:root[data-theme="minimal"] .category-tab.is-active {
+  color: var(--theme-category-active, var(--theme-secondary));
+}
+
+:root[data-theme="minimal"] .category-tab.is-active::after,
+html.theme-dark:root[data-theme="minimal"] .category-tab.is-active::after {
+  background-color: var(--theme-category-active, var(--theme-secondary));
+}
+
+:root[data-theme="minimal"] h3.font-serif,
+html.theme-dark:root[data-theme="minimal"] h3.font-serif {
+  color: var(--theme-primary, #2D3748);
+}
+
+:root[data-theme="minimal"] [data-radix-dialog-content],
+html.theme-dark:root[data-theme="minimal"] [data-radix-dialog-content] {
+  background-color: var(--theme-background, #FFFFFF) !important;
+  color: var(--theme-text-primary, #1A202C);
+  border: 1px solid var(--theme-border, #E2E8F0);
+}
+
+/* Enhanced Modern Dark Theme Styling */
+:root[data-theme="modern-dark"] .category-tab.is-active,
+html.theme-dark:root[data-theme="modern-dark"] .category-tab.is-active {
+  color: var(--theme-category-active, var(--theme-secondary));
+}
+
+:root[data-theme="modern-dark"] .category-tab.is-active::after,
+html.theme-dark:root[data-theme="modern-dark"] .category-tab.is-active::after {
+  background-color: var(--theme-category-active, var(--theme-secondary));
+}
+
+:root[data-theme="modern-dark"] h3.font-serif,
+html.theme-dark:root[data-theme="modern-dark"] h3.font-serif {
+  color: var(--theme-primary, #F0C6B1);
+}
+
+:root[data-theme="modern-dark"] [data-radix-dialog-content],
+html.theme-dark:root[data-theme="modern-dark"] [data-radix-dialog-content] {
+  background-color: var(--theme-input, #1E293B) !important;
+  color: var(--theme-text-primary, #F8FAFC);
+  border: 1px solid var(--theme-border, #334155);
+}
+
+/* Theme-specific button styling */
+:root[data-theme="gold-luxury"] [data-radix-dialog-content] button[type="submit"],
+html.theme-dark:root[data-theme="gold-luxury"] [data-radix-dialog-content] button[type="submit"] {
+  background-color: var(--theme-button, #FFD700);
+  color: #1A1612;
+}
+
+:root[data-theme="vibrant-colors"] [data-radix-dialog-content] button[type="submit"],
+html.theme-dark:root[data-theme="vibrant-colors"] [data-radix-dialog-content] button[type="submit"] {
+  background-color: var(--theme-button, #FF6B6B);
+  color: var(--theme-background, #e2ceb1);
+}
+
+:root[data-theme="minimal"] [data-radix-dialog-content] button[type="submit"],
+html.theme-dark:root[data-theme="minimal"] [data-radix-dialog-content] button[type="submit"] {
+  background-color: var(--theme-button, #2D3748);
+  color: var(--theme-background, #FEFCF8);
+}
+
+/* Enhanced price colors for each theme */
+:root[data-theme="gold-luxury"] .text-paydine-rose-beige,
+html.theme-dark:root[data-theme="gold-luxury"] .text-paydine-rose-beige,
+:root[data-theme="gold-luxury"] [class*="text-paydine-rose-beige"],
+html.theme-dark:root[data-theme="gold-luxury"] [class*="text-paydine-rose-beige"] {
+  color: var(--theme-priceColor, #FFF8DC) !important;
+}
+
+:root[data-theme="vibrant-colors"] .text-paydine-rose-beige,
+html.theme-dark:root[data-theme="vibrant-colors"] .text-paydine-rose-beige {
+  color: var(--theme-priceColor, #6b5e4f) !important;
+}
+
+:root[data-theme="minimal"] .text-paydine-rose-beige,
+html.theme-dark:root[data-theme="minimal"] .text-paydine-rose-beige {
+  color: var(--theme-priceColor, #4A5568) !important;
+}
+
+:root[data-theme="modern-dark"] .text-paydine-rose-beige,
+html.theme-dark:root[data-theme="modern-dark"] .text-paydine-rose-beige {
+  color: var(--theme-priceColor, #E8B4A0) !important;
+}
+
+/* More specific price color selectors for better coverage */
+:root[data-theme="gold-luxury"] .text-lg.font-semibold,
+html.theme-dark:root[data-theme="gold-luxury"] .text-lg.font-semibold {
+  color: var(--theme-priceColor, #FFF8DC) !important;
+}
+
+:root[data-theme="vibrant-colors"] .text-lg.font-semibold,
+html.theme-dark:root[data-theme="vibrant-colors"] .text-lg.font-semibold {
+  color: var(--theme-priceColor, #6b5e4f) !important;
+}
+
+:root[data-theme="minimal"] .text-lg.font-semibold,
+html.theme-dark:root[data-theme="minimal"] .text-lg.font-semibold {
+  color: var(--theme-priceColor, #4A5568) !important;
+}
+
+:root[data-theme="modern-dark"] .text-lg.font-semibold,
+html.theme-dark:root[data-theme="modern-dark"] .text-lg.font-semibold {
+  color: var(--theme-priceColor, #E8B4A0) !important;
+}
+
+/* Plus icon and quantity number colors for each theme */
+:root[data-theme="gold-luxury"] svg[data-lucide="plus"],
+:root[data-theme="gold-luxury"] svg[data-lucide="minus"],
+:root[data-theme="gold-luxury"] .text-center span,
+html.theme-dark:root[data-theme="gold-luxury"] svg[data-lucide="plus"],
+html.theme-dark:root[data-theme="gold-luxury"] svg[data-lucide="minus"],
+html.theme-dark:root[data-theme="gold-luxury"] .text-center span {
+  color: var(--theme-background, #0F0B05) !important;
+}
+
+:root[data-theme="vibrant-colors"] svg[data-lucide="plus"],
+:root[data-theme="vibrant-colors"] svg[data-lucide="minus"],
+:root[data-theme="vibrant-colors"] .text-center span,
+html.theme-dark:root[data-theme="vibrant-colors"] svg[data-lucide="plus"],
+html.theme-dark:root[data-theme="vibrant-colors"] svg[data-lucide="minus"],
+html.theme-dark:root[data-theme="vibrant-colors"] .text-center span {
+  color: var(--theme-background, #e2ceb1) !important;
+}
+
+:root[data-theme="minimal"] svg[data-lucide="plus"],
+:root[data-theme="minimal"] svg[data-lucide="minus"],
+:root[data-theme="minimal"] .text-center span,
+html.theme-dark:root[data-theme="minimal"] svg[data-lucide="plus"],
+html.theme-dark:root[data-theme="minimal"] svg[data-lucide="minus"],
+html.theme-dark:root[data-theme="minimal"] .text-center span {
+  color: var(--theme-background, #FEFCF8) !important;
+}
+
+:root[data-theme="modern-dark"] svg[data-lucide="plus"],
+:root[data-theme="modern-dark"] svg[data-lucide="minus"],
+:root[data-theme="modern-dark"] .text-center span,
+html.theme-dark:root[data-theme="modern-dark"] svg[data-lucide="plus"],
+html.theme-dark:root[data-theme="modern-dark"] svg[data-lucide="minus"],
+html.theme-dark:root[data-theme="modern-dark"] .text-center span {
+  color: var(--theme-background, #0A0E12) !important;
+}
+
+/* Target menu item plus buttons with exact class matching */
+:root[data-theme="gold-luxury"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+:root[data-theme="gold-luxury"] .rounded-full.bg-paydine-rose-beige\/50 span,
+:root[data-theme="gold-luxury"] .rounded-full.bg-paydine-rose-beige\/50 *,
+html.theme-dark:root[data-theme="gold-luxury"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+html.theme-dark:root[data-theme="gold-luxury"] .rounded-full.bg-paydine-rose-beige\/50 span,
+html.theme-dark:root[data-theme="gold-luxury"] .rounded-full.bg-paydine-rose-beige\/50 * {
+  color: var(--theme-background, #0F0B05) !important;
+  fill: var(--theme-background, #0F0B05) !important;
+}
+
+:root[data-theme="vibrant-colors"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+:root[data-theme="vibrant-colors"] .rounded-full.bg-paydine-rose-beige\/50 span,
+:root[data-theme="vibrant-colors"] .rounded-full.bg-paydine-rose-beige\/50 *,
+html.theme-dark:root[data-theme="vibrant-colors"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+html.theme-dark:root[data-theme="vibrant-colors"] .rounded-full.bg-paydine-rose-beige\/50 span,
+html.theme-dark:root[data-theme="vibrant-colors"] .rounded-full.bg-paydine-rose-beige\/50 * {
+  color: var(--theme-background, #e2ceb1) !important;
+  fill: var(--theme-background, #e2ceb1) !important;
+}
+
+:root[data-theme="minimal"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+:root[data-theme="minimal"] .rounded-full.bg-paydine-rose-beige\/50 span,
+:root[data-theme="minimal"] .rounded-full.bg-paydine-rose-beige\/50 *,
+html.theme-dark:root[data-theme="minimal"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+html.theme-dark:root[data-theme="minimal"] .rounded-full.bg-paydine-rose-beige\/50 span,
+html.theme-dark:root[data-theme="minimal"] .rounded-full.bg-paydine-rose-beige\/50 * {
+  color: var(--theme-background, #FEFCF8) !important;
+  fill: var(--theme-background, #FEFCF8) !important;
+}
+
+:root[data-theme="modern-dark"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+:root[data-theme="modern-dark"] .rounded-full.bg-paydine-rose-beige\/50 span,
+:root[data-theme="modern-dark"] .rounded-full.bg-paydine-rose-beige\/50 *,
+html.theme-dark:root[data-theme="modern-dark"] .rounded-full.bg-paydine-rose-beige\/50 svg,
+html.theme-dark:root[data-theme="modern-dark"] .rounded-full.bg-paydine-rose-beige\/50 span,
+html.theme-dark:root[data-theme="modern-dark"] .rounded-full.bg-paydine-rose-beige\/50 * {
+  color: var(--theme-background, #0A0E12) !important;
+  fill: var(--theme-background, #0A0E12) !important;
+}
+
+/* Target specific menu item plus buttons with multiple selectors */
+:root[data-theme="gold-luxury"] button[class*="bg-paydine-rose-beige"] svg,
+:root[data-theme="gold-luxury"] button[class*="bg-paydine-rose-beige"] span,
+:root[data-theme="gold-luxury"] button[class*="bg-paydine-rose-beige"] *,
+html.theme-dark:root[data-theme="gold-luxury"] button[class*="bg-paydine-rose-beige"] svg,
+html.theme-dark:root[data-theme="gold-luxury"] button[class*="bg-paydine-rose-beige"] span,
+html.theme-dark:root[data-theme="gold-luxury"] button[class*="bg-paydine-rose-beige"] * {
+  color: var(--theme-background, #0F0B05) !important;
+  fill: var(--theme-background, #0F0B05) !important;
+  stroke: var(--theme-background, #0F0B05) !important;
+}
+
+:root[data-theme="vibrant-colors"] button[class*="bg-paydine-rose-beige"] svg,
+:root[data-theme="vibrant-colors"] button[class*="bg-paydine-rose-beige"] span,
+:root[data-theme="vibrant-colors"] button[class*="bg-paydine-rose-beige"] *,
+html.theme-dark:root[data-theme="vibrant-colors"] button[class*="bg-paydine-rose-beige"] svg,
+html.theme-dark:root[data-theme="vibrant-colors"] button[class*="bg-paydine-rose-beige"] span,
+html.theme-dark:root[data-theme="vibrant-colors"] button[class*="bg-paydine-rose-beige"] * {
+  color: var(--theme-background, #e2ceb1) !important;
+  fill: var(--theme-background, #e2ceb1) !important;
+  stroke: var(--theme-background, #e2ceb1) !important;
+}
+
+:root[data-theme="minimal"] button[class*="bg-paydine-rose-beige"] svg,
+:root[data-theme="minimal"] button[class*="bg-paydine-rose-beige"] span,
+:root[data-theme="minimal"] button[class*="bg-paydine-rose-beige"] *,
+html.theme-dark:root[data-theme="minimal"] button[class*="bg-paydine-rose-beige"] svg,
+html.theme-dark:root[data-theme="minimal"] button[class*="bg-paydine-rose-beige"] span,
+html.theme-dark:root[data-theme="minimal"] button[class*="bg-paydine-rose-beige"] * {
+  color: var(--theme-background, #FEFCF8) !important;
+  fill: var(--theme-background, #FEFCF8) !important;
+  stroke: var(--theme-background, #FEFCF8) !important;
+}
+
+:root[data-theme="modern-dark"] button[class*="bg-paydine-rose-beige"] svg,
+:root[data-theme="modern-dark"] button[class*="bg-paydine-rose-beige"] span,
+:root[data-theme="modern-dark"] button[class*="bg-paydine-rose-beige"] *,
+html.theme-dark:root[data-theme="modern-dark"] button[class*="bg-paydine-rose-beige"] svg,
+html.theme-dark:root[data-theme="modern-dark"] button[class*="bg-paydine-rose-beige"] span,
+html.theme-dark:root[data-theme="modern-dark"] button[class*="bg-paydine-rose-beige"] * {
+  color: var(--theme-background, #0A0E12) !important;
+  fill: var(--theme-background, #0A0E12) !important;
+  stroke: var(--theme-background, #0A0E12) !important;
+}
+
+/* Bottom toolbar background colors for each theme */
+:root[data-theme="gold-luxury"] .backdrop-blur-lg {
+  background-color: rgba(15, 11, 5, 0.7) !important;
+}
+
+:root[data-theme="vibrant-colors"] .backdrop-blur-lg {
+  background-color: rgba(226, 206, 177, 0.7) !important;
+}
+
+:root[data-theme="minimal"] .backdrop-blur-lg {
+  background-color: rgba(207, 235, 247, 0.7) !important;
+}
+
+:root[data-theme="modern-dark"] .backdrop-blur-lg {
+  background-color: rgba(10, 14, 18, 0.7) !important;
+}
+
+html.theme-dark:root[data-theme="gold-luxury"] .backdrop-blur-lg {
+  background-color: rgba(15, 11, 5, 0.7) !important;
+}
+
+html.theme-dark:root[data-theme="vibrant-colors"] .backdrop-blur-lg {
+  background-color: rgba(226, 206, 177, 0.7) !important;
+}
+
+html.theme-dark:root[data-theme="minimal"] .backdrop-blur-lg {
+  background-color: rgba(207, 235, 247, 0.7) !important;
+}
+
+html.theme-dark:root[data-theme="modern-dark"] .backdrop-blur-lg {
+  background-color: rgba(10, 14, 18, 0.7) !important;
+}
+
+/* ULTRA AGGRESSIVE CART BADGE NUMBER COLOR FIX */
+/* Target every possible selector combination with maximum specificity */
+
+/* Gold Luxury Theme - Cart Badge Number */
+:root[data-theme="gold-luxury"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne.flex.items-center.justify-center.rounded-full,
+:root[data-theme="gold-luxury"] span.absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+:root[data-theme="gold-luxury"] .bg-paydine-champagne.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="gold-luxury"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+html.theme-dark:root[data-theme="gold-luxury"] span.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="gold-luxury"] .bg-paydine-champagne span,
+html .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne[style*="var(--theme-background)"],
+body .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne {
+  color: #0F0B05 !important;
+}
+
+/* Vibrant Colors Theme - Cart Badge Number */
+:root[data-theme="vibrant-colors"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne.flex.items-center.justify-center.rounded-full,
+:root[data-theme="vibrant-colors"] span.absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+:root[data-theme="vibrant-colors"] .bg-paydine-champagne.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="vibrant-colors"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+html.theme-dark:root[data-theme="vibrant-colors"] span.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="vibrant-colors"] .bg-paydine-champagne span,
+html .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne[style*="var(--theme-background)"],
+body .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne {
+  color: #e2ceb1 !important;
+}
+
+/* Minimal Theme - Cart Badge Number */
+:root[data-theme="minimal"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne.flex.items-center.justify-center.rounded-full,
+:root[data-theme="minimal"] span.absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+:root[data-theme="minimal"] .bg-paydine-champagne.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="minimal"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+html.theme-dark:root[data-theme="minimal"] span.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="minimal"] .bg-paydine-champagne span,
+html .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne[style*="var(--theme-background)"],
+body .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne {
+  color: #FEFCF8 !important;
+}
+
+/* Modern Dark Theme - Cart Badge Number */
+:root[data-theme="modern-dark"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne.flex.items-center.justify-center.rounded-full,
+:root[data-theme="modern-dark"] span.absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+:root[data-theme="modern-dark"] .bg-paydine-champagne.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="modern-dark"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+html.theme-dark:root[data-theme="modern-dark"] span.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="modern-dark"] .bg-paydine-champagne span,
+html .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne[style*="var(--theme-background)"],
+body .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne {
+  color: #0A0E12 !important;
+}
+
+/* Clean Light Theme - Cart Badge Number */
+:root[data-theme="clean-light"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne.flex.items-center.justify-center.rounded-full,
+:root[data-theme="clean-light"] span.absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+:root[data-theme="clean-light"] .bg-paydine-champagne.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="clean-light"] .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne,
+html.theme-dark:root[data-theme="clean-light"] span.absolute.-top-1.-right-1,
+html.theme-dark:root[data-theme="clean-light"] .bg-paydine-champagne span,
+html .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne[style*="var(--theme-background)"],
+body .absolute.-top-1.-right-1.w-5.h-5.bg-paydine-champagne {
+  color: #FAFAFA !important;
+}
+
+/* NUCLEAR OPTION - Target the specific class with maximum aggression */
+.cart-badge-number {
+  color: var(--theme-background) !important;
+}
+
+:root[data-theme="gold-luxury"] .cart-badge-number,
+html.theme-dark:root[data-theme="gold-luxury"] .cart-badge-number,
+html .cart-badge-number[data-theme="gold-luxury"],
+body .cart-badge-number[data-theme="gold-luxury"] {
+  color: #0F0B05 !important;
+}
+
+:root[data-theme="vibrant-colors"] .cart-badge-number,
+html.theme-dark:root[data-theme="vibrant-colors"] .cart-badge-number,
+html .cart-badge-number[data-theme="vibrant-colors"],
+body .cart-badge-number[data-theme="vibrant-colors"] {
+  color: #e2ceb1 !important;
+}
+
+:root[data-theme="minimal"] .cart-badge-number,
+html.theme-dark:root[data-theme="minimal"] .cart-badge-number,
+html .cart-badge-number[data-theme="minimal"],
+body .cart-badge-number[data-theme="minimal"] {
+  color: #CFEBF7 !important;
+}
+
+:root[data-theme="modern-dark"] .cart-badge-number,
+html.theme-dark:root[data-theme="modern-dark"] .cart-badge-number,
+html .cart-badge-number[data-theme="modern-dark"],
+body .cart-badge-number[data-theme="modern-dark"] {
+  color: #0A0E12 !important;
+}
+
+:root[data-theme="clean-light"] .cart-badge-number,
+html.theme-dark:root[data-theme="clean-light"] .cart-badge-number,
+html .cart-badge-number[data-theme="clean-light"],
+body .cart-badge-number[data-theme="clean-light"] {
+  color: #FAFAFA !important;
+}

@@ -1,0 +1,209 @@
+/* ============================================
+   PUSH NOTIFICATION TOAST - Brown/Cream Theme
+   ============================================ */
+
+/* Toast container - top-right position */
+.notification-toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+/* Individual toast notification */
+.notification-toast {
+  background: #f1f3f5;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  min-width: 300px;
+  max-width: 340px;
+  pointer-events: all;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  
+  /* Entry animation */
+  animation: slideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top right;
+}
+
+/* Toast entry animation */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(400px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Toast sucking/flying to bell animation */
+.notification-toast.flying-to-bell {
+  animation: flyToBell 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+  z-index: 100000;
+}
+
+@keyframes flyToBell {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateX(-50%) translateY(-20px) scale(0.6) rotate(10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-100%) translateY(-50px) scale(0.2) rotate(45deg);
+  }
+}
+
+/* Toast header */
+.notification-toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0px;
+}
+
+.notification-toast-meta-line {
+  color: #000000;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.notification-toast-close {
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.notification-toast-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000000;
+  transform: scale(1.1);
+}
+
+/* Toast body */
+.notification-toast-body {
+  color: #000000;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0;
+  white-space: pre-line;
+}
+
+/* Toast progress bar (auto-dismiss indicator) */
+.notification-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: #0bb87a;
+  border-radius: 0 0 0 8px;
+  animation: progressBar 5s linear forwards;
+}
+
+/* Progress bar color variants based on status */
+.notification-toast[data-status="canceled"] .notification-toast-progress,
+.notification-toast[data-status="cancelled"] .notification-toast-progress {
+  background: #e74c3c;
+}
+
+.notification-toast[data-status="received"] .notification-toast-progress {
+  background: #08815e;
+}
+
+.notification-toast[data-status="preparation"] .notification-toast-progress {
+  background: #f39c12;
+}
+
+.notification-toast[data-status="ready"] .notification-toast-progress {
+  background: #3498db;
+}
+
+.notification-toast[data-status="delivered"] .notification-toast-progress,
+.notification-toast[data-status="completed"] .notification-toast-progress {
+  background: #27ae60;
+}
+
+@keyframes progressBar {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Toast hover effect */
+.notification-toast:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  background: #e9ecef;
+}
+
+/* Different toast types - colors now handled by progress bar */
+
+/* Stacking effect for multiple toasts */
+.notification-toast:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.notification-toast:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .notification-toast-container {
+    top: 60px;
+    right: 10px;
+    left: 10px;
+  }
+  
+  .notification-toast {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+/* Bell shake animation when notification arrives */
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-15deg); }
+  20%, 40%, 60%, 80% { transform: rotate(15deg); }
+}
+
+.bell-shake {
+  animation: bellShake 0.8s ease-in-out;
+}
+
+/* Bell glow pulse when notification arrives */
+@keyframes bellGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(231, 76, 60, 0);
+  }
+}
+
+.bell-glow {
+  animation: bellGlow 1s ease-out;
+}
+

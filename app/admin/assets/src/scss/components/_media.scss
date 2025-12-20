@@ -1,0 +1,37 @@
+.media {
+    background-color: $card-bg;
+}
+.media-middle {
+    @extend .align-self-center;
+}
+
+// Media Manager specific styles
+.media-container {
+    background-color: #ffffff !important; // White background instead of old gray
+}
+
+.media-toolbar,
+.media-breadcrumb {
+    background-color: #ffffff !important; // White background
+    border-color: $brown-200 !important; // White border
+}
+
+.media-list-container {
+    background-color: #ffffff !important; // White background
+}
+
+.media-sidebar {
+    background-color: $white !important;
+    border-left-color: $brown-200 !important;
+}
+
+.media-item {
+    &:hover {
+        background-color: $brown-50 !important; // White hover
+    }
+}
+
+.media-statusbar {
+    background-color: #ffffff !important; // White background
+    border-top-color: $brown-200 !important;
+}

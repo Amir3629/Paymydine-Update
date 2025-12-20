@@ -1,0 +1,138 @@
+/* ============================================
+   ADMIN SIDEBAR - INWARD CURVE AT TOP-RIGHT
+   Creates an inward curve (concave) at the top-right corner
+   where the sidebar meets the header
+   ============================================ */
+
+/* Increase sidebar width slightly to accommodate the curve */
+.sidebar {
+  width: 240px !important; /* Increased from 230px to 240px */
+  position: fixed !important;
+  top: 64px !important;
+  bottom: 0 !important;
+  z-index: 1030 !important; /* Ensure it's above other elements */
+  overflow: visible !important; /* Allow the curve to be visible */
+  border-top-right-radius: 0 !important; /* Remove any existing radius */
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+}
+
+/* Create inward curve using clip-path - curves inward toward content */
+.sidebar {
+  /* Create inward curve (concave) at top-right: 
+     The polygon creates a notch that curves inward toward the content */
+  clip-path: polygon(
+    0% 0%,
+    calc(100% - 45px) 0%,
+    calc(100% - 35px) 8px,
+    calc(100% - 25px) 15px,
+    calc(100% - 15px) 22px,
+    calc(100% - 8px) 28px,
+    100% 35px,
+    100% 100%,
+    0% 100%
+  ) !important;
+  -webkit-clip-path: polygon(
+    0% 0%,
+    calc(100% - 45px) 0%,
+    calc(100% - 35px) 8px,
+    calc(100% - 25px) 15px,
+    calc(100% - 15px) 22px,
+    calc(100% - 8px) 28px,
+    100% 35px,
+    100% 100%,
+    0% 100%
+  ) !important;
+}
+
+/* Ensure nav-sidebar also respects the curve */
+.nav-sidebar,
+#navSidebar {
+  /* Match the parent curve - inward curve at top-right */
+  clip-path: polygon(
+    0% 0%,
+    calc(100% - 45px) 0%,
+    calc(100% - 35px) 8px,
+    calc(100% - 25px) 15px,
+    calc(100% - 15px) 22px,
+    calc(100% - 8px) 28px,
+    100% 35px,
+    100% 100%,
+    0% 100%
+  ) !important;
+  -webkit-clip-path: polygon(
+    0% 0%,
+    calc(100% - 45px) 0%,
+    calc(100% - 35px) 8px,
+    calc(100% - 25px) 15px,
+    calc(100% - 15px) 22px,
+    calc(100% - 8px) 28px,
+    100% 35px,
+    100% 100%,
+    0% 100%
+  ) !important;
+  overflow: visible !important; /* Allow curve to be visible */
+}
+
+/* Adjust page content to account for increased sidebar width */
+.page-wrapper {
+  margin-left: 240px !important; /* Match new sidebar width */
+}
+
+/* Update any other elements that depend on sidebar width */
+.page-content {
+  margin-left: 240px !important; /* Match new sidebar width */
+}
+
+/* Override any existing rules that use 230px sidebar width */
+body .page-wrapper[style*="margin-left: 230px"],
+body .page-content[style*="margin-left: 230px"] {
+  margin-left: 240px !important;
+}
+
+/* Ensure header alignment is maintained */
+.navbar-top {
+  z-index: 1031 !important; /* Slightly above sidebar to ensure clean connection */
+  margin-left: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 240px !important; /* Start after sidebar */
+  right: 0 !important;
+  width: calc(100% - 240px) !important; /* Full width minus sidebar */
+}
+
+/* Ensure nav-sidebar can scroll but curve is visible */
+.nav-sidebar,
+#navSidebar {
+  overflow-y: scroll !important; /* Allow scrolling */
+  overflow-x: hidden !important;
+}
+
+/* Media query adjustments for responsive design */
+@media (max-width: 991.98px) {
+  .sidebar {
+    width: 230px !important; /* Revert to original width on smaller screens */
+    clip-path: none !important;
+    -webkit-clip-path: none !important;
+  }
+  
+  .nav-sidebar,
+  #navSidebar {
+    clip-path: none !important;
+    -webkit-clip-path: none !important;
+  }
+  
+  .page-wrapper {
+    margin-left: 230px !important;
+  }
+  
+  .page-content {
+    margin-left: 230px !important;
+  }
+  
+  .navbar-top {
+    left: 230px !important;
+    width: calc(100% - 230px) !important;
+  }
+}

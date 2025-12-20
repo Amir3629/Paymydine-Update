@@ -1,0 +1,21 @@
+{
+  "name": "PayMyDine",
+  "short_name": "PayMyDine",
+  "description": "A Luxurious Digital Dining Experience",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#E7CBA9",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,883 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Theme Variables - Will be dynamically set by theme system */
+    --theme-primary: #E7CBA9;
+    --theme-secondary: #EFC7B1;
+    --theme-accent: #3B3B3B;
+    --theme-background: #FAFAFA;
+    --theme-text-primary: #3B3B3B;
+    --theme-text-secondary: #7E7E7E;
+    --theme-text-muted: #9CA3AF;
+    --theme-border: #EDEDED;
+    --theme-input: #FFFFFF;
+    --theme-button: #E7CBA9;
+    --theme-button-hover: #D4B89A;
+    --theme-menu-item-bg: #FFFFFF;
+    --theme-menu-item-border: #F3F4F6;
+    --theme-category-active: #E7CBA9;
+    --theme-category-inactive: #9CA3AF;
+    --theme-price: #EFC7B1;
+    --theme-cart-bg: #FAFAFA;
+    --theme-cart-border: #EDEDED;
+    --theme-payment-button: #E7CBA9;
+    --theme-payment-button-hover: #D4B89A;
+    --theme-success: #10B981;
+    --theme-warning: #F59E0B;
+    --theme-error: #EF4444;
+    --theme-info: #3B82F6;
+    
+    /* Legacy variables for backward compatibility */
+    --paymydine-primary: var(--theme-primary);
+    --paymydine-secondary: var(--theme-secondary);
+    --paymydine-accent: var(--theme-accent);
+    --paymydine-background: var(--theme-background);
+    --paydine-champagne: var(--theme-primary);
+    --paydine-rose-beige: var(--theme-secondary);
+    --paydine-elegant-gray: var(--theme-text-primary);
+    --paydine-soft-white: var(--theme-background);
+    --paydine-muted-gray: var(--theme-text-secondary);
+    --paydine-border: var(--theme-border);
+    
+    /* Default CSS variables */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  /* Single source of truth for page background */
+  html, body {
+    background: var(--theme-background);
+  }
+
+  /* NUCLEAR OPTION: Force exact background colors on html/body for each theme */
+  [data-theme="clean-light"] html,
+  [data-theme="clean-light"] body {
+    background: #FAFAFA !important;
+  }
+  [data-theme="modern-dark"] html,
+  [data-theme="modern-dark"] body {
+    background: #0A0E12 !important;
+  }
+  [data-theme="gold-luxury"] html,
+  [data-theme="gold-luxury"] body {
+    background: #0F0B05 !important;
+  }
+  [data-theme="vibrant-colors"] html,
+  [data-theme="vibrant-colors"] body {
+    background: #e2ceb1 !important;
+  }
+  [data-theme="minimal"] html,
+  [data-theme="minimal"] body {
+    background: #CFEBF7 !important;
+  }
+
+  /* PROTECTION: Ensure individual elements keep their original styling */
+  /* Only protect specific elements, not the main page background */
+  [data-theme] .card:not(.min-h-screen),
+  [data-theme] .surface:not(.min-h-screen),
+  [data-theme] .surface-sub:not(.min-h-screen),
+  [data-theme] button:not(.min-h-screen),
+  [data-theme] .icon:not(.min-h-screen),
+  [data-theme] .logo:not(.min-h-screen),
+  [data-theme] h1:not(.min-h-screen),
+  [data-theme] h2:not(.min-h-screen),
+  [data-theme] h3:not(.min-h-screen),
+  [data-theme] p:not(.min-h-screen),
+  [data-theme] span:not(.min-h-screen),
+  [data-theme] div[class*="card"]:not(.min-h-screen),
+  [data-theme] div[class*="surface"]:not(.min-h-screen),
+  [data-theme] .bg-white,
+  [data-theme] .bg-gray-50,
+  [data-theme] .bg-gray-100,
+  [data-theme] .bg-gray-200,
+  [data-theme] .bg-gray-300,
+  [data-theme] .bg-gray-400,
+  [data-theme] .bg-gray-500,
+  [data-theme] .bg-gray-600,
+  [data-theme] .bg-gray-700,
+  [data-theme] .bg-gray-800,
+  [data-theme] .bg-gray-900,
+  [data-theme] .bg-black,
+  [data-theme] .bg-red-500,
+  [data-theme] .bg-blue-500,
+  [data-theme] .bg-green-500,
+  [data-theme] .bg-yellow-500,
+  [data-theme] .bg-purple-500,
+  [data-theme] .bg-pink-500,
+  [data-theme] .bg-indigo-500,
+  [data-theme] .bg-orange-500,
+  [data-theme] .bg-teal-500,
+  [data-theme] .bg-cyan-500,
+  [data-theme] .bg-lime-500,
+  [data-theme] .bg-emerald-500,
+  [data-theme] .bg-violet-500,
+  [data-theme] .bg-fuchsia-500,
+  [data-theme] .bg-rose-500,
+  [data-theme] .bg-sky-500,
+  [data-theme] .bg-amber-500,
+  [data-theme] .bg-stone-500,
+  [data-theme] .bg-neutral-500,
+  [data-theme] .bg-zinc-500,
+  [data-theme] .bg-slate-500 {
+    background: unset !important;
+    background-color: unset !important;
+  }
+  
+  body {
+    @apply text-foreground;
+  }
+
+  /* HARD-LOCK: Ensure homepage and menu page backgrounds are identical */
+  /* Only target the main page background divs, not individual elements */
+  
+  /* Clean Light Theme */
+  [data-theme="clean-light"] .page--home .min-h-screen,
+  [data-theme="clean-light"] .page--menu .min-h-screen {
+    background: #FAFAFA !important;
+    background-color: #FAFAFA !important;
+  }
+  
+  /* Modern Dark Theme */
+  [data-theme="modern-dark"] .page--home .min-h-screen,
+  [data-theme="modern-dark"] .page--menu .min-h-screen {
+    background: #0A0E12 !important;
+    background-color: #0A0E12 !important;
+  }
+  
+  /* Gold Luxury Theme */
+  [data-theme="gold-luxury"] .page--home .min-h-screen,
+  [data-theme="gold-luxury"] .page--menu .min-h-screen {
+    background: #0F0B05 !important;
+    background-color: #0F0B05 !important;
+  }
+  
+  /* Vibrant Colors Theme */
+  [data-theme="vibrant-colors"] .page--home .min-h-screen,
+  [data-theme="vibrant-colors"] .page--menu .min-h-screen {
+    background: #e2ceb1 !important;
+    background-color: #e2ceb1 !important;
+  }
+  
+  /* Minimal Theme */
+  [data-theme="minimal"] .page--home .min-h-screen,
+  [data-theme="minimal"] .page--menu .min-h-screen {
+    background: #CFEBF7 !important;
+    background-color: #CFEBF7 !important;
+  }
+
+  /* Additional safety: Force bg-theme-background class to use exact colors - only for page backgrounds */
+  [data-theme="clean-light"] .bg-theme-background {
+    background-color: #FAFAFA !important;
+  }
+  [data-theme="modern-dark"] .bg-theme-background {
+    background-color: #0A0E12 !important;
+  }
+  [data-theme="gold-luxury"] .bg-theme-background {
+    background-color: #0F0B05 !important;
+  }
+  [data-theme="vibrant-colors"] .bg-theme-background {
+    background-color: #e2ceb1 !important;
+  }
+  [data-theme="minimal"] .bg-theme-background {
+    background-color: #CFEBF7 !important;
+  }
+}
+
+/* Theme utility classes */
+@layer utilities {
+  .text-theme-primary { color: var(--theme-primary); }
+  .text-theme-secondary { color: var(--theme-secondary); }
+  .text-theme-accent { color: var(--theme-accent); }
+  .text-theme-text-primary { color: var(--theme-text-primary); }
+  .text-theme-text-secondary { color: var(--theme-text-secondary); }
+  .text-theme-text-muted { color: var(--theme-text-muted); }
+  .text-theme-price { color: var(--theme-price); }
+  
+  .bg-theme-primary { background-color: var(--theme-primary); }
+  .bg-theme-secondary { background-color: var(--theme-secondary); }
+  .bg-theme-accent { background-color: var(--theme-accent); }
+  .bg-theme-background { background-color: var(--theme-background); }
+  .bg-theme-menu-item { background-color: var(--theme-menu-item-bg); }
+  .bg-theme-cart { background-color: var(--theme-cart-bg); }
+  
+  .border-theme-primary { border-color: var(--theme-primary); }
+  .border-theme-secondary { border-color: var(--theme-secondary); }
+  .border-theme-border { border-color: var(--theme-border); }
+  .border-theme-menu-item { border-color: var(--theme-menu-item-border); }
+  .border-theme-cart { border-color: var(--theme-cart-border); }
+  
+  .hover\:bg-theme-button-hover:hover { background-color: var(--theme-button-hover); }
+  .hover\:bg-theme-payment-button-hover:hover { background-color: var(--theme-payment-button-hover); }
+  
+  /* Legacy utility classes for backward compatibility */
+  .text-paydine-champagne { color: var(--paydine-champagne); }
+  .text-paydine-rose-beige { color: var(--paydine-rose-beige); }
+  .text-paydine-elegant-gray { color: var(--paydine-elegant-gray); }
+  .text-paydine-soft-white { color: var(--paydine-soft-white); }
+  .text-paydine-muted-gray { color: var(--paydine-muted-gray); }
+  
+  .bg-paydine-champagne { background-color: var(--paydine-champagne); }
+  .bg-paydine-rose-beige { background-color: var(--paydine-rose-beige); }
+  .bg-paydine-soft-white { background-color: var(--paydine-soft-white); }
+  
+  .border-paydine-champagne { border-color: var(--paydine-champagne); }
+  .border-paydine-border { border-color: var(--paydine-border); }
+}
+
+/* Clean theme-specific overrides using tokens only */
+@layer components {
+  /* Active category underline/text uses the theme's active color */
+  .category-tab.is-active { 
+    color: var(--theme-category-active); 
+  }
+  .category-tab.is-active::after { 
+    background-color: var(--theme-category-active); 
+  }
+
+  /* Menu item title color for accenting in dark themes */
+  html.theme-dark h3.font-serif,
+  html.theme-dark .item-title {
+    color: var(--theme-secondary);
+  }
+
+  /* Modal/dish/waiter/note surfaces in dark: use surface tokens */
+  .surface { 
+    background-color: var(--theme-input); 
+    color: var(--theme-text-primary); 
+  }
+  .surface--muted { 
+    background-color: transparent; 
+    border-color: var(--theme-border); 
+    color: var(--theme-text-secondary); 
+  }
+}
+
+/* Existing utilities */
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .mask-gradient-left {
+    mask-image: linear-gradient(to right, transparent 0%, black 20%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%);
+  }
+  
+  .mask-gradient-right {
+    mask-image: linear-gradient(to left, transparent 0%, black 20%);
+    -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20%);
+  }
+  
+  .mask-gradient-both {
+    mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(242, 195, 195, 0.05);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-secondary);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-primary);
+}
+
+/* Remove number input arrows */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"],
+input[type="number"]:focus {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Base surfaces used by drawers & modals */
+.surface {
+  /* Match page background so the bill blends with each theme */
+  background-color: var(--theme-background);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+}
+
+.surface-sub {
+  /* Slightly lifted inner blocks */
+  background-color: var(--theme-cart-bg, var(--theme-input));
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+}
+
+/* Headings and muted */
+.surface h1, .surface h2, .surface h3 { color: var(--theme-text-primary); }
+.surface .muted, .surface .hint { color: var(--theme-text-secondary); }
+
+/* Icon buttons */
+.icon-btn {
+  background: transparent;
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
+  border-radius: 9999px;
+}
+.icon-btn--accent {
+  background: var(--theme-secondary);
+  color: var(--theme-background);
+  border-color: var(--theme-secondary);
+}
+
+/* Tip pills */
+.tip-pill {
+  background: transparent;
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.tip-pill--active {
+  background: var(--theme-secondary);
+  color: var(--theme-background);
+  border-color: var(--theme-secondary);
+}
+
+/* Section dividers */
+.surface .divider {
+  border-color: var(--theme-border);
+}
+
+/* Scrollbar inside drawer */
+.surface ::-webkit-scrollbar-thumb {
+  background: var(--theme-border);
+}
+
+/* Quantity selector buttons - HARDCODED COLORS BY THEME */
+/* Clean Light Theme */
+[data-theme="clean-light"] button.quantity-btn,
+[data-theme="clean-light"] .quantity-btn {
+  background-color: #EFC7B1 !important; /* paydine-rose-beige */
+  color: #FAFAFA !important; /* paydine-soft-white */
+  border: 1px solid #EFC7B1 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] button.quantity-btn,
+[data-theme="modern-dark"] .quantity-btn {
+  background-color: #E8B4A0 !important; /* rose gold */
+  color: #0A0E12 !important; /* dark background */
+  border: 1px solid #E8B4A0 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] button.quantity-btn,
+[data-theme="gold-luxury"] .quantity-btn {
+  background-color: #FFF8DC !important; /* cornsilk */
+  color: #0F0B05 !important; /* dark background */
+  border: 1px solid #FFF8DC !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] button.quantity-btn,
+[data-theme="vibrant-colors"] .quantity-btn {
+  background-color: #FF6B6B !important; /* coral */
+  color: #e2ceb1 !important; /* warm beige */
+  border: 1px solid #FF6B6B !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] button.quantity-btn,
+[data-theme="minimal"] .quantity-btn {
+  background-color: #4A90E2 !important; /* blue */
+  color: #CFEBF7 !important; /* light blue */
+  border: 1px solid #4A90E2 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+}
+
+/* Hover effects */
+button.quantity-btn:hover,
+.quantity-btn:hover {
+  opacity: 0.8 !important;
+  transform: scale(1.05) !important;
+}
+
+button.quantity-btn:focus,
+.quantity-btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--theme-secondary) !important;
+}
+
+/* Cart badge - CORRECT BUTTON COLORS BY THEME - MAXIMUM SPECIFICITY */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .cart-badge,
+html[data-theme="clean-light"] span.cart-badge,
+[data-theme="clean-light"] .cart-badge,
+[data-theme="clean-light"] span.cart-badge {
+  background-color: #E7CBA9 !important; /* paydine-champagne (button color) */
+  color: #FAFAFA !important; /* paydine-soft-white */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .cart-badge,
+html[data-theme="modern-dark"] span.cart-badge,
+[data-theme="modern-dark"] .cart-badge,
+[data-theme="modern-dark"] span.cart-badge {
+  background-color: #E8B4A0 !important; /* secondary color (rose gold) */
+  color: #0A0E12 !important; /* dark background */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .cart-badge,
+html[data-theme="gold-luxury"] span.cart-badge,
+[data-theme="gold-luxury"] .cart-badge,
+[data-theme="gold-luxury"] span.cart-badge {
+  background-color: #FFF8DC !important; /* cornsilk (updated as requested) */
+  color: #0F0B05 !important; /* dark background */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .cart-badge,
+html[data-theme="vibrant-colors"] span.cart-badge,
+[data-theme="vibrant-colors"] .cart-badge,
+[data-theme="vibrant-colors"] span.cart-badge {
+  background-color: #FF6B6B !important; /* electric coral (button color) */
+  color: #e2ceb1 !important; /* warm beige */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .cart-badge,
+html[data-theme="minimal"] span.cart-badge,
+[data-theme="minimal"] .cart-badge,
+[data-theme="minimal"] span.cart-badge {
+  background-color: #4B8FE2 !important; /* nice blue color */
+  color: #CFEBF7 !important; /* light blue */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Ensure the same backdrop in all themes; the card stays readable */
+html[data-theme] .radix-overlay,
+html[data-theme] [data-radix-dialog-overlay],
+html[data-theme] [data-radix-sheet-overlay] {
+  background: rgba(0,0,0,0.42);
+}
+
+/* FOOD ITEM MODAL CARD FIX - PERMANENT CSS SOLUTION */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="clean-light"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="clean-light"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #FAFAFA !important;
+  color: #3B3B3B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="modern-dark"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="modern-dark"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #0A0E12 !important;
+  color: #F8FAFC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="gold-luxury"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="gold-luxury"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #0F0B05 !important;
+  color: #FFF8DC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="vibrant-colors"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="vibrant-colors"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #e2ceb1 !important;
+  color: #1E293B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="minimal"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="minimal"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #CFEBF7 !important;
+  color: #1A202C !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Modal backdrop - keep blurry and dark */
+html[data-theme] div[class*="fixed"][class*="inset-0"][class*="z-50"][class*="flex"][class*="items-center"][class*="justify-center"] {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  opacity: 1 !important;
+}
+
+/* MODAL INFO CARDS FIX - PERMANENT CSS SOLUTION */
+/* Clean Light Theme */
+html[data-theme="clean-light"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="clean-light"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="clean-light"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="clean-light"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #3B3B3B !important;
+  border-color: #EDEDED !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #EDEDED !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="modern-dark"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="modern-dark"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="modern-dark"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  color: #F8FAFC !important;
+  border-color: #334155 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="gold-luxury"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="gold-luxury"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="gold-luxury"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(26, 22, 18, 0.9) !important;
+  color: #FFF8DC !important;
+  border-color: #CD853F !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #CD853F !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="vibrant-colors"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="vibrant-colors"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="vibrant-colors"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #1E293B !important;
+  border-color: #E8E0D5 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E8E0D5 !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="minimal"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="minimal"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="minimal"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #1A202C !important;
+  border-color: #E2E8F0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* WAITER AND NOTE MODALS FIX - PERMANENT CSS SOLUTION */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="clean-light"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #FAFAFA !important;
+  color: #3B3B3B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #EDEDED !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="modern-dark"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #0A0E12 !important;
+  color: #F8FAFC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="gold-luxury"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #0F0B05 !important;
+  color: #FFF8DC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #CD853F !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="vibrant-colors"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #e2ceb1 !important;
+  color: #1E293B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E8E0D5 !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="minimal"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #CFEBF7 !important;
+  color: #1A202C !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* WAITER AND NOTE MODAL ICONS - COLOR ONLY (NO BACKGROUND) */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl i,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #E7CBA9 !important;
+  fill: #E7CBA9 !important;
+  stroke: #E7CBA9 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl i,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #F0C6B1 !important;
+  fill: #F0C6B1 !important;
+  stroke: #F0C6B1 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl i,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #FFD700 !important;
+  fill: #FFD700 !important;
+  stroke: #FFD700 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl i,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #FF6B6B !important;
+  fill: #FF6B6B !important;
+  stroke: #FF6B6B !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl i,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #2D3748 !important;
+  fill: #2D3748 !important;
+  stroke: #2D3748 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* WAITER AND NOTE MODAL ICON CONTAINERS - REMOVE BACKGROUNDS */
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="rounded-full"],
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="w-16"][class*="h-16"],
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="w-20"][class*="h-20"],
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="w-24"][class*="h-24"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="rounded-full"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-16"][class*="h-16"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-20"][class*="h-20"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-24"][class*="h-24"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+}

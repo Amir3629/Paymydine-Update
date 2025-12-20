@@ -1,0 +1,61 @@
+.footer {
+  width: 100%;
+  color: $footer-link-color;
+  background-color: $footer-bg;
+  text-align: center;
+  a {
+    color: $footer-link-color;
+  }
+}
+.footer-p{
+  padding: 90px 30px;
+  background: radial-gradient(#0000 15%, transparent 16%) 0 0, radial-gradient(#0000 15%, transparent 16%) 8px 8px, radial-gradient(rgba(255, 255, 255, 0.1) 15%, transparent 20%) 0 1px, radial-gradient(rgba(255, 255, 255, 0.1) 15%, transparent 20%) 8px 9px;
+    background-size: auto, auto, auto, auto;
+  background-color: #282828;
+  background-size: 5px 5px;
+}
+.footer-title {
+  padding-bottom: 5px;
+  color: #fff;
+  font-size: 20px;
+  text-transform: uppercase;
+}
+.footer-links {
+  ul {
+    margin: 0;
+    padding: 0;
+    display: block;
+  }
+
+  li {
+    list-style: none;
+
+    a {
+      color: $footer-link-color;
+      text-decoration: none;
+    }
+  }
+
+  i {
+    margin-right: 5px;
+    color: #FF4900;
+  }
+}
+.footer-default{
+  width: 100%;
+  left: 0px;
+  background-color: $panel-background-color;
+  transition: background .3s,border .3s,border-radius .3s,box-shadow .3s;
+  padding: 0 30px;
+  position: relative;
+  min-height: 90px;
+  margin: 0 20px 0 0;
+  align-content: center;
+  align-items: center;
+  display: flex;
+  color: #fff;
+}
+.footer-default a {
+  color: $primary;
+  text-decoration: none;
+}

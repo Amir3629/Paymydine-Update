@@ -1,0 +1,12 @@
+{
+  "name": "paymydine",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+} 

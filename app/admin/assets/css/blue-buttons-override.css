@@ -1,0 +1,431 @@
+/* ============================================
+   BLUE BUTTONS OVERRIDE
+   Replace all green buttons (success/primary) with login button style
+   Dark blue gradient with frame effect
+   ============================================ */
+
+/* Primary and Success Buttons - Dark Blue Gradient (Login Button Style) */
+.btn-primary,
+.btn-success,
+button.btn-primary,
+button.btn-success,
+a.btn-primary,
+a.btn-success,
+input.btn-primary,
+input.btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+  padding: 0.55rem 1.75rem !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+/* Hover State */
+.btn-primary:hover,
+.btn-success:hover,
+button.btn-primary:hover,
+button.btn-success:hover,
+a.btn-primary:hover,
+a.btn-success:hover,
+input.btn-primary:hover,
+input.btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+  text-decoration: none !important;
+}
+
+/* Focus State */
+.btn-primary:focus,
+.btn-success:focus,
+button.btn-primary:focus,
+button.btn-success:focus,
+a.btn-primary:focus,
+a.btn-success:focus,
+input.btn-primary:focus,
+input.btn-success:focus {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+  text-decoration: none !important;
+}
+
+/* Active State */
+.btn-primary:active,
+.btn-success:active,
+button.btn-primary:active,
+button.btn-success:active,
+a.btn-primary:active,
+a.btn-success:active,
+input.btn-primary:active,
+input.btn-success:active,
+.btn-primary.active,
+.btn-success.active {
+  background: linear-gradient(135deg, #2a3a4e 0%, #364a63 100%) !important;
+  border-color: #2a3a4e !important;
+  color: #ffffff !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 10px rgba(31, 43, 58, 0.3) !important;
+  text-decoration: none !important;
+}
+
+/* Disabled State */
+.btn-primary:disabled,
+.btn-success:disabled,
+button.btn-primary:disabled,
+button.btn-success:disabled,
+a.btn-primary:disabled,
+a.btn-success:disabled,
+input.btn-primary:disabled,
+input.btn-success:disabled,
+.btn-primary.disabled,
+.btn-success.disabled {
+  background: linear-gradient(135deg, #4a5c6d 0%, #5a6c7d 100%) !important;
+  border-color: #5a6c7d !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Toolbar Actions */
+.toolbar-action .btn-primary,
+.toolbar-action .btn-success,
+.toolbar .btn-primary,
+.toolbar .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+}
+
+.toolbar-action .btn-primary:hover,
+.toolbar-action .btn-success:hover,
+.toolbar .btn-primary:hover,
+.toolbar .btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Button Dim Variants */
+.btn-dim.btn-primary,
+.btn-dim.btn-success {
+  color: #364a63 !important;
+  background: linear-gradient(135deg, #e5ebf7 0%, #f1f4fb 100%) !important;
+  border: 1px solid #c9d2e3 !important;
+  box-shadow: none !important;
+}
+
+.btn-dim.btn-primary:not(:disabled):not(.disabled):hover,
+.btn-dim.btn-success:not(:disabled):not(.disabled):hover {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+}
+
+/* Button Icon Variants */
+.btn-icon.btn-primary,
+.btn-icon.btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+}
+
+.btn-icon.btn-primary:hover,
+.btn-icon.btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+}
+
+/* SweetAlert Buttons */
+.swal2-styled.swal2-confirm.btn-primary,
+.swal2-styled.swal2-confirm.btn-success,
+.swal2-styled.swal2-cancel.btn-primary,
+.swal2-styled.swal2-cancel.btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+}
+
+.swal2-styled.swal2-confirm.btn-primary:hover,
+.swal2-styled.swal2-confirm.btn-success:hover,
+.swal2-styled.swal2-cancel.btn-primary:hover,
+.swal2-styled.swal2-cancel.btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+}
+
+/* Large Buttons */
+.btn-lg.btn-primary,
+.btn-lg.btn-success {
+  padding: 0.75rem 2rem !important;
+  font-size: 16px !important;
+  border-radius: 14px !important;
+}
+
+/* Small Buttons */
+.btn-sm.btn-primary,
+.btn-sm.btn-success {
+  padding: 0.35rem 1.25rem !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
+}
+
+/* Button Block */
+.btn-block.btn-primary,
+.btn-block.btn-success {
+  width: 100% !important;
+  display: block !important;
+}
+
+/* Badges with Primary/Success Colors */
+.badge-primary,
+.badge-success,
+.badge-dot.badge-primary,
+.badge-dot.badge-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  color: #ffffff !important;
+  border-color: #364a63 !important;
+}
+
+/* Background Colors */
+.bg-success,
+.bg-success-light,
+.bg-success-dim,
+.bg-primary {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  color: #ffffff !important;
+}
+
+/* Text Colors */
+.text-success,
+.text-primary {
+  color: #364a63 !important;
+}
+
+/* Border Colors */
+.border-success,
+.border-primary {
+  border-color: #364a63 !important;
+}
+
+/* Links that look like primary/success buttons */
+a.btn-primary,
+a.btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+a.btn-primary:hover,
+a.btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+/* Progress Bars */
+.progress-bar.bg-success,
+.progress-bar.bg-primary,
+.progress .progress-bar.bg-success,
+.progress .progress-bar.bg-primary {
+  background: linear-gradient(90deg, #1f2b3a 0%, #364a63 100%) !important;
+}
+
+/* Cards with Success/Primary Background */
+.nk-wg-card.bg-success,
+.nk-wg-card.bg-primary,
+.nk-wg-card.bg-success-light {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  color: #ffffff !important;
+}
+
+/* Icons in Success/Primary Context */
+.icon[class*=bg-success-dim],
+.icon[class*=bg-primary-dim] {
+  background: linear-gradient(135deg, #e5ebf7 0%, #f1f4fb 100%) !important;
+  color: #364a63 !important;
+}
+
+/* Outline Buttons */
+.btn-outline-primary,
+.btn-outline-success {
+  background-color: transparent !important;
+  border: 2px solid #364a63 !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-success:hover {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+}
+
+/* Modal Footer Buttons */
+.modal-footer .btn-primary,
+.modal-footer .btn-success,
+[id$="-setup-modal"] .modal-footer .btn-primary,
+[id$="-setup-modal"] .modal-footer .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+}
+
+.modal-footer .btn-primary:hover,
+.modal-footer .btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+}
+
+/* List Actions */
+.list-action .btn-primary,
+.list-action .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+}
+
+/* Widget Toolbar */
+.widget-toolbar .btn-primary,
+.widget-toolbar .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+}
+
+/* Dashboard Widgets */
+.dashboard-widget .btn-primary,
+.dashboard-widget .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+}
+
+/* Form Buttons */
+form .btn-primary,
+form .btn-success,
+.form-group .btn-primary,
+.form-group .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+}
+
+form .btn-primary:hover,
+form .btn-success:hover,
+.form-group .btn-primary:hover,
+.form-group .btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Card Footer Buttons */
+.card-footer .btn-primary,
+.card-footer .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+}
+
+/* Button Group */
+.btn-group .btn-primary,
+.btn-group .btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+}
+
+/* Dropdown Toggle */
+.dropdown-toggle.btn-primary,
+.dropdown-toggle.btn-success {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+}
+
+.dropdown-toggle.btn-primary:hover,
+.dropdown-toggle.btn-success:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+}
+
+/* Login Page Specific */
+.pg-auth .btn-primary,
+.nk-auth-container .btn-primary,
+.page-login .btn.btn-primary {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+  border-radius: 12px !important;
+}
+
+.pg-auth .btn-primary:hover,
+.nk-auth-container .btn-primary:hover,
+.page-login .btn.btn-primary:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(31, 43, 58, 0.4) !important;
+}
+
+/* CSS Variables Override */
+:root {
+  --bs-primary: #364a63;
+  --bs-primary-rgb: 54, 74, 99;
+  --bs-success: #364a63;
+  --bs-success-rgb: 54, 74, 99;
+  --primary-green: #364a63;
+  --primary-green-hover: #526484;
+  --pmdb-save-start: #1f2b3a;
+  --pmdb-save-end: #364a63;
+}
+
+/* Ensure all icons inherit button color */
+.btn-primary i,
+.btn-success i,
+.btn-primary em,
+.btn-success em,
+.btn-primary .icon,
+.btn-success .icon,
+.btn-primary .fa,
+.btn-success .fa {
+  color: inherit !important;
+}
+
+/* Loading state */
+.btn-primary[data-attach-loading],
+.btn-success[data-attach-loading] {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+}

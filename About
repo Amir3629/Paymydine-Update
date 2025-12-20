@@ -1,0 +1,781 @@
+PayMyDine
+Deployment & Installation
+Ubuntu 24LTS
+Harrington HPC Microsystems
+Author : Oussama Douba
+2
+Table of Contents
+1. Introduction ...................................................................................................................... 5
+2.System Preparation ............................................................................................................... 5
+2.1 Update System Packages .................................................................................................. 5
+2.2 Set Timezone .................................................................................................................... 5
+2.3 Install Essential Utilities .................................................................................................... 6
+2.4 Create Web Root Directory .............................................................................................. 6
+3. Install and Configure Nginx ................................................................................................ 6
+3.1 Install Nginx ...................................................................................................................... 6
+3.2 Enable and Start Nginx ..................................................................................................... 6
+3.3 Check Nginx Status ........................................................................................................... 6
+3.4 Configure Nginx for Laravel .............................................................................................. 6
+3.5 Enable the Site .................................................................................................................. 7
+3.6 Test and Reload Nginx ...................................................................................................... 8
+4. Install and Configure MySQL .............................................................................................. 8
+4.1 Install MySQL Server ......................................................................................................... 8
+4.2 Secure MySQL Installation ................................................................................................ 8
+4.3 Log in to MySQL ................................................................................................................ 9
+4.4 Create Database and User ................................................................................................ 9
+4.5 Test Database Connection (Optional) ............................................................................... 9
+4.6 Import Existing Database (If Applicable) ........................................................................ 10
+5. Install PHP and Composer ................................................................................................ 10
+5.1 Install PHP and Extensions ............................................................................................. 10
+5.2 Verify PHP Installation .................................................................................................... 10
+5.3 Install Composer ............................................................................................................. 10
+5.4 Configure PHP-FPM ........................................................................................................ 11
+5.5 Optional: Install GD Extension (Image Handling) ........................................................... 11
+6. Configure the Laravel Application ........................................................................................ 11
+6.1 Navigate to the Laravel Application Directory ................................................................ 11
+6.2 Set Correct Permissions .................................................................................................. 11
+6.3 Install Composer Dependencies ..................................................................................... 11
+3
+6.4 Clear and Optimize Laravel Cache .................................................................................. 12
+6.5 Environment Configuration ............................................................................................ 12
+7. Import the Database ............................................................................................................ 12
+7.1 Create a New Database (Optional) ................................................................................. 12
+7.2 Import the Backup SQL File ............................................................................................ 13
+7.3 Verify Database Import .................................................................................................. 13
+8. Configure Nginx for Laravel .................................................................................................. 13
+8.1 Create Nginx Configuration File ...................................................................................... 13
+8.2 Enable the Site ................................................................................................................ 14
+8.3 Disable Default Site ........................................................................................................ 14
+8.4 Test and Reload Nginx .................................................................................................... 14
+9. Update the PHP-FPM Configuration in Nginx ....................................................................... 15
+9.1 Locate PHP-FPM Socket .................................................................................................. 15
+9.2 Update fastcgi_pass Directive ........................................................................................ 15
+9.3 Restart Services .............................................................................................................. 15
+10. Disable the Default Nginx Configuration ............................................................................ 16
+10.1 Unlink Default Site ........................................................................................................ 16
+10.2 Enable Your Laravel Site (If Not Already Done) ............................................................ 16
+10.3 Test Nginx Configuration .............................................................................................. 16
+10.4 Reload Nginx ................................................................................................................. 16
+11. Disable UFW Firewall (Optional) ........................................................................................ 17
+11.1 Check the Status of UFW .............................................................................................. 17
+11.2 Stop UFW (Disable Firewall) ......................................................................................... 17
+11.3 Check UFW Status Again .............................................................................................. 17
+11.4 Optional: Disable UFW on Boot (if necessary) ............................................................. 18
+11.5 Re-enable UFW (Optional) ........................................................................................... 18
+12. Configure Cron Job for Laravel Scheduler .......................................................................... 18
+12.1 Edit the Crontab for the Web Server User ................................................................... 18
+12.2 Add the Cron Job for Laravel's Task Scheduler ............................................................. 19
+12.3 Save and Exit ................................................................................................................. 19
+12.4 Verify the Cron Job is Running...................................................................................... 19
+12.5 Troubleshooting ............................................................................................................ 19
+4
+13. Clear Cache as the Web User ............................................................................................. 20
+13.1 Clear Cache Using Web Server User (www-data) ........................................................ 20
+13.2 Set Proper Ownership and Permissions ....................................................................... 21
+13.3 Verify Cache Clearance ................................................................................................. 21
+14. Troubleshooting Logs ......................................................................................................... 21
+14.1 Location of Laravel Log Files ......................................................................................... 22
+14.2 View Laravel Log Files ................................................................................................... 22
+14.3 Log Levels and Types of Errors ..................................................................................... 22
+14.4 Common Log File Issues and Fixes ............................................................................... 22
+14.5 Rotate Log Files (Optional) ........................................................................................... 24
+15. Final Steps ........................................................................................................................... 24
+15.1 Verify Permissions ........................................................................................................ 24
+15.2 Set Up Environment Configuration .............................................................................. 25
+15.3 Set Up a Cron Job for Laravel Scheduler....................................................................... 25
+15.4 Optimize the Application for Production...................................................................... 26
+15.5 Configure SSL (Optional but Highly Recommended) .................................................... 26
+15.6 Back Up the System ...................................................................................................... 27
+5
+1. Introduction
+This document provides a complete step-by-step deployment guide for the Laravel-based multi-tenant application PayMyDine on an Ubuntu server. It covers:
+•
+Installation of core components such as Nginx, PHP, MySQL, and Composer
+•
+Laravel application setup and configuration
+•
+Web server configuration and DNS mapping
+•
+Database preparation for multi-tenancy, including the Super Admin database
+•
+Optimization and troubleshooting steps
+•
+Cron setup, permissions, and caching procedures
+This guide is intended for DevOps engineers or system administrators deploying PayMyDine in a production or staging environment. The instructions assume a fresh Ubuntu (20.04 or later) server with root or sudo access.
+Note: PayMyDine uses a multi-tenant architecture. The super admin panel is deployed using a separate database and handles tenant management, domain assignment, and resource isolation.
+2.System Preparation
+Before installing your Laravel application, ensure your system is updated and properly configured.
+2.1 Update System Packages
+Update your package lists and upgrade installed packages:
+sudo apt update && sudo apt upgrade -y
+2.2 Set Timezone
+Set your server's timezone (adjust as needed):
+sudo timedatectl set-timezone Country/city
+Verify the timezone:
+timedatectl
+6
+2.3 Install Essential Utilities
+Install useful packages required for later steps:
+sudo apt install curl zip unzip git software-properties-common gnupg2 ca-certificates lsb-release apt-transport-https -y
+2.4 Create Web Root Directory
+If not already created, prepare your web root:
+sudo mkdir -p /var/www/paymydine sudo chown -R $USER:$USER /var/www/paymydine
+You can adjust this path if your Laravel project is in a different location.
+3. Install and Configure Nginx
+Nginx will serve as the web server for your Laravel application.
+3.1 Install Nginx
+Install the Nginx package:
+sudo apt install nginx -y
+3.2 Enable and Start Nginx
+Enable Nginx to start on boot and start the service:
+sudo systemctl enable nginx sudo systemctl start nginx
+3.3 Check Nginx Status
+Verify that Nginx is running:
+sudo systemctl status nginx
+You should see "active (running)".
+3.4 Configure Nginx for Laravel
+Create a new Nginx site configuration file for your Laravel project:
+7
+sudo nano /etc/nginx/sites-available/paymydine
+Add the following configuration: nginx
+server { listen 80; server_name paymydine.com; root /var/www/paymydine/public;
+index index.php index.html;
+location / { try_files $uri $uri/ /index.php?$query_string; }
+location ~ \.php$ { include snippets/fastcgi-php.conf; fastcgi_pass unix:/var/run/php/php8.3-fpm.sock; # Adjust PHP version if needed fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params; }
+location ~ /\.ht { deny all; }
+gzip on; gzip_proxied expired no-cache no-store private auth; gzip_types text/plain text/css application/json application/javascript application/x-javascript image/svg+xml; charset utf-8;
+access_log /var/log/nginx/paymydine.access.log; error_log /var/log/nginx/paymydine.error.log; }
+3.5 Enable the Site
+Link the configuration to Nginx's sites-enabled:
+sudo ln -s /etc/nginx/sites-available/paymydine /etc/nginx/sites-enabled/
+8
+Disable the default configuration to avoid conflicts:
+sudo unlink /etc/nginx/sites-enabled/default
+3.6 Test and Reload Nginx
+Check for syntax errors:
+sudo nginx -t
+Reload Nginx to apply the new configuration:
+sudo systemctl reload nginx
+4. Install and Configure MySQL
+MySQL will be used as the database backend for your Laravel application. This section covers installation, securing the server, and creating the necessary database and user accounts.
+4.1 Install MySQL Server
+Use the following command to install MySQL:
+sudo apt install mysql-server -y
+Enable and start the MySQL service: sudo systemctl enable mysql sudo systemctl start mysql
+4.2 Secure MySQL Installation
+Run the secure installation wizard to set a root password and remove insecure defaults: sudo mysql_secure_installation
+9
+Follow the prompts:
+•
+Set a strong root password
+•
+Remove anonymous users
+•
+Disallow root login remotely
+•
+Remove test database
+•
+Reload privilege tables
+4.3 Log in to MySQL
+Use the MySQL CLI to enter the MySQL shell: sudo mysql -u root -p
+4.4 Create Database and User
+Inside the MySQL shell, execute the following commands to create the paymydine database and a dedicated user:
+CREATE DATABASE paymydine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'payuser'@'localhost' IDENTIFIED BY 'StrongPasswordHere';
+GRANT ALL PRIVILEGES ON paymydine.* TO 'payuser'@'localhost';
+FLUSH PRIVILEGES; EXIT;
+Note: Replace 'StrongPasswordHere' with a secure password and store it securely (e.g., using a secrets manager).
+4.5 Test Database Connection (Optional)
+You can verify that the new user can connect to the database: mysql -u payuser -p paymydine
+10
+4.6 Import Existing Database (If Applicable)
+If you already have a backup database to import: sudo mysql -u payuser -p paymydine < /path/to/your/backup.sql
+5. Install PHP and Composer
+Laravel requires PHP with several extensions to function properly. This section covers installing PHP, required extensions, and Composer, which manages Laravel’s dependencies.
+5.1 Install PHP and Extensions
+Install PHP 8.3 and the necessary modules:
+sudo apt install php8.3 php8.3-cli php8.3-common php8.3-mbstring php8.3-xml php8.3-bcmath php8.3-curl php8.3-zip php8.3-mysql php8.3-tokenizer php8.3-fpm unzip -y
+5.2 Verify PHP Installation
+Check that PHP is installed correctly:
+php -v
+Expected output should show PHP version 8.3.x.
+5.3 Install Composer
+Composer is required to install Laravel dependencies:
+sudo apt install composer -y
+Verify Composer installation: composer –version
+You should see output like:
+Composer version x.x.x 202x-xx-xx
+11
+5.4 Configure PHP-FPM
+Ensure that PHP-FPM is installed and running:
+sudo systemctl restart php8.3-fpm sudo systemctl enable php8.3-fpm sudo systemctl status php8.3-fpm
+5.5 Optional: Install GD Extension (Image Handling)
+Laravel packages may require GD for image processing:
+sudo apt install php8.3-gd -y sudo systemctl restart php8.3-fpm
+6. Configure the Laravel Application
+Once your server stack is ready, it’s time to configure your Laravel application — including setting correct permissions, clearing caches, and installing dependencies.
+6.1 Navigate to the Laravel Application Directory cd /var/www/paymydine
+Ensure that this path points to your actual Laravel project root.
+6.2 Set Correct Permissions
+Laravel requires write permissions for specific directories. Run:
+sudo chmod -R 775 storage bootstrap/cache
+If you encounter permission issues during deployment or runtime, you may need to adjust ownership: sudo chown -R www-data:www-data storage bootstrap/cache
+6.3 Install Composer Dependencies
+Use Composer to install PHP dependencies for Laravel: composer install --no-dev --optimize-autoloader
+12
+6.4 Clear and Optimize Laravel Cache
+To ensure Laravel is loading the latest configurations and views: php artisan cache:clear php artisan config:clear php artisan view:clear php artisan route:clear php artisan optimize
+6.5 Environment Configuration
+Ensure your .env file is correctly configured for production. If not already created:
+cp .env.example .env
+Update database credentials and other production variables in the .env file.
+Then, generate the Laravel application key:
+php artisan key:generate
+7. Import the Database
+To complete the backend setup, import your existing database into MySQL. This step ensures that your application has all the necessary tables and data.
+7.1 Create a New Database (Optional)
+If a new database is needed for PayMyDine:
+sudo mysql -u root -p
+Then inside the MySQL shell:
+CREATE DATABASE paymydine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; EXIT;
+Update your .env file with the new database details:
+DB_DATABASE=paymydine DB_USERNAME=root DB_PASSWORD=yourpassword
+13
+7.2 Import the Backup SQL File
+If you already have a SQL backup file (e.g., paymydine_backup.sql), import it into the database:
+sudo mysql -u root -p paymydine < /path/to/paymydine_backup.sql
+Make sure the path to your SQL file is correct, and adjust the database name if different.
+7.3 Verify Database Import
+To confirm the tables are present:
+sudo mysql -u root -p
+Then:
+USE paymydine; SHOW TABLES; EXIT;
+8. Configure Nginx for Laravel
+To serve the Laravel application using Nginx, you must create a dedicated Nginx server block (virtual host) that points to your project’s public directory.
+8.1 Create Nginx Configuration File
+Create a new site configuration file: sudo nano /etc/nginx/sites-available/paymydine
+Paste the following configuration (adjust domain name and paths as needed): nginx
+server { listen 80; server_name paymydine.com www.paymydine.com;
+root /var/www/paymydine/public; index index.php index.html index.htm;
+charset utf-8;
+14
+location / { try_files $uri $uri/ /index.php?$query_string; }
+location ~ \.php$ { include snippets/fastcgi-php.conf; fastcgi_pass unix:/var/run/php/php8.3-fpm.sock; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params; }
+location ~ /\.(?!well-known).* { deny all; }
+access_log /var/log/nginx/paymydine_access.log; error_log /var/log/nginx/paymydine_error.log; }
+8.2 Enable the Site
+Create a symbolic link to enable the site: sudo ln -s /etc/nginx/sites-available/paymydine /etc/nginx/sites-enabled/
+8.3 Disable Default Site
+Optionally disable the default configuration to avoid conflicts:
+sudo unlink /etc/nginx/sites-enabled/default
+8.4 Test and Reload Nginx
+Check for syntax errors and reload Nginx:
+sudo nginx -t sudo systemctl reload nginx
+Your Laravel app should now be accessible via the domain or IP address you configured. Ensure your DNS settings are properly pointing to the server if using a domain.
+15
+9. Update the PHP-FPM Configuration in Nginx
+To ensure PHP scripts are processed correctly, your Nginx configuration must match the installed PHP-FPM version and socket path.
+9.1 Locate PHP-FPM Socket
+First, verify the socket path used by your installed PHP-FPM version. For PHP 8.3, it's typically: /var/run/php/php8.3-fpm.sock
+To confirm: ls /var/run/php/
+You should see a socket file like: php8.3-fpm.sock.
+9.2 Update fastcgi_pass Directive
+In the Laravel Nginx site configuration (/etc/nginx/sites-available/paymydine), ensure the fastcgi_pass directive under the location ~ \.php$ block matches the PHP-FPM socket.
+Example: nginx
+fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+If you’re using a different PHP version, adjust the socket path accordingly (e.g., php8.2-fpm.sock).
+9.3 Restart Services
+After making changes, restart the necessary services:
+sudo systemctl restart php8.3-fpm sudo systemctl reload nginx
+PHP-FPM will now correctly handle PHP requests from Nginx using the specified socket, ensuring optimal communication between the web server and PHP runtime.
+16
+10. Disable the Default Nginx Configuration
+By default, Nginx enables a default site configuration which can interfere with your custom Laravel app setup. To ensure Nginx only serves your Laravel site (paymydine), you should disable the default site.
+10.1 Unlink Default Site
+Navigate to the enabled sites directory and remove the symbolic link to the default configuration: cd /etc/nginx/sites-enabled/ sudo unlink default
+This disables the default Nginx landing page.
+10.2 Enable Your Laravel Site (If Not Already Done)
+Make sure your Laravel site config (paymydine) is linked from sites-available to sites-enabled: sudo ln -s /etc/nginx/sites-available/paymydine /etc/nginx/sites-enabled/
+Skip this if it’s already linked.
+10.3 Test Nginx Configuration
+Check that your Nginx configuration is valid: sudo nginx -t
+You should see this text
+syntax is ok test is successful
+10.4 Reload Nginx
+Apply the changes by reloading Nginx:
+sudo systemctl reload nginx
+Only your Laravel site is now active, reducing the risk of Nginx serving unintended or default content.
+17
+11. Disable UFW Firewall (Optional)
+The Uncomplicated Firewall (UFW) may block certain ports or restrict traffic to your Laravel application. If you face issues with UFW blocking Nginx or MySQL, you can temporarily disable it to troubleshoot. However, disabling the firewall is not recommended for production environments unless you have other security measures in place.
+11.1 Check the Status of UFW
+First, check if UFW is running:
+systemctl status ufw
+If it's active, you’ll see something like this:
+text
+● ufw.service - Uncomplicated firewall
+Loaded: loaded (/lib/systemd/system/ufw.service; enabled; vendor preset: enabled)
+Active: active (exited) since [date]
+11.2 Stop UFW (Disable Firewall)
+To stop the UFW firewall and temporarily disable it:
+sudo systemctl stop ufw
+This will allow all incoming and outgoing traffic until the firewall is re-enabled.
+11.3 Check UFW Status Again
+You can confirm that UFW is stopped by running:
+systemctl status ufw
+You should see something like this:
+text
+● ufw.service - Uncomplicated firewall
+Loaded: loaded (/lib/systemd/system/ufw.service; disabled; vendor preset: enabled)
+Active: inactive (dead) since [date]
+18
+11.4 Optional: Disable UFW on Boot (if necessary)
+If you want to prevent UFW from starting automatically after a reboot:
+sudo systemctl disable ufw
+This ensures that UFW is disabled by default.
+11.5 Re-enable UFW (Optional)
+Once you’ve resolved any firewall issues, it’s a good idea to re-enable UFW:
+sudo systemctl start ufw sudo systemctl enable ufw
+Then, ensure that necessary ports are open for Nginx (80) and MySQL (3306), for example:
+sudo ufw allow 80/tcp sudo ufw allow 3306/tcp
+Finally, check the UFW status to confirm the rules are applied:
+sudo ufw status
+12. Configure Cron Job for Laravel Scheduler
+Laravel provides a powerful task scheduling system that allows you to easily schedule periodic tasks to be executed at specific intervals, such as sending emails, cleaning up old data, or generating reports. This is managed by Laravel's scheduler, which needs to be configured in your server's cron job system.
+12.1 Edit the Crontab for the Web Server User
+To configure the cron job for the Laravel scheduler, we need to edit the crontab file for the web server user (www-data), which is responsible for running Laravel's scheduled tasks.
+Run the following command to open the crontab for editing:
+sudo crontab -u www-data -e
+This will open the crontab file for the www-data user. If it's the first time you are editing the crontab, you may be prompted to choose an editor (nano is commonly used).
+19
+12.2 Add the Cron Job for Laravel's Task Scheduler
+Once in the crontab file, add the following line to run Laravel's task scheduler every minute:
+* * * * * php /var/www/paymydine/artisan schedule:run >> /dev/null 2>&1
+This line tells the system to run the Laravel scheduler every minute. The artisan schedule:run command will evaluate all the scheduled tasks defined in the app/Console/Kernel.php file and run the due tasks. The output is redirected to /dev/null to avoid unnecessary output being logged.
+12.3 Save and Exit
+After adding the cron job, save the file and exit the editor. For nano, this can be done by pressing CTRL + X, then pressing Y to confirm the changes, and Enter to save.
+12.4 Verify the Cron Job is Running
+To ensure the cron job is set up properly, you can check the cron logs to see if it is executing:
+sudo tail -f /var/log/syslog
+You should see entries like the following if the cron job is running successfully:
+Apr 1 12:00:01 your-server CRON[12345]: (www-data) CMD (php /var/www/paymydine/artisan schedule:run)
+12.5 Troubleshooting
+If the scheduler isn't running as expected:
+•
+Ensure that the cron service is running by checking its status:
+sudo systemctl status cron
+•
+You can manually run the command to check for errors:
+php /var/www/paymydine/artisan schedule:run
+•
+Check for any Laravel-specific issues in the logs (/var/www/paymydine/storage/logs/laravel.log).
+20
+13. Clear Cache as the Web User
+Laravel caches various elements such as configuration, routes, views, and compiled files for improved performance. Sometimes, clearing the cache is necessary, especially after deploying new changes or updates. This section will guide you through clearing Laravel's cache and ensuring that the proper ownership and permissions are set for cached files.
+13.1 Clear Cache Using Web Server User (www-data)
+It's essential to clear the cache as the web server user (www-data) to ensure the cache is cleared under the correct user context. This is particularly important if your web server (Nginx or Apache) runs under the www-data user, as cache files might have restricted permissions.
+Use the following commands to clear the cache as the www-data user:
+1.
+Clear Composer Cache:
+This removes any cached Composer dependencies, which can help resolve issues with outdated or conflicting dependencies.
+sudo -u www-data composer clear-cache
+2.
+Clear Laravel Config Cache:
+Laravel caches the configuration files for performance. To clear the config cache, run:
+sudo -u www-data php /var/www/paymydine/artisan config:cache
+3.
+Clear Laravel Route Cache:
+Laravel routes can also be cached for quicker resolution. To clear the route cache, use:
+sudo -u www-data php /var/www/paymydine/artisan route:cache
+4.
+Clear Laravel View Cache:
+Laravel compiles Blade views and stores them in cache for faster rendering. To clear the compiled view cache, run:
+sudo -u www-data php /var/www/paymydine/artisan view:cache
+5.
+Clear Laravel Application Cache:
+Laravel stores application-level data in cache. You can clear the application cache with:
+sudo -u www-data php /var/www/paymydine/artisan cache:clear
+21
+13.2 Set Proper Ownership and Permissions
+After clearing the cache, ensure that the correct file ownership and permissions are set for Laravel's cache and storage directories. These directories need to be writable by the web server user (www-data).
+1.
+Set Ownership for Storage and Cache Directories:
+Laravel requires the storage and bootstrap/cache directories to be writable. Run the following commands to set the ownership correctly:
+sudo chown -R www-data:www-data /var/www/paymydine/storage sudo chown -R www-data:www-data /var/www/paymydine/bootstrap/cache
+2.
+Set Permissions for Storage and Cache Directories:
+Make sure that these directories are writable by the web server user. Run the following command to set the appropriate permissions:
+sudo chmod -R 775 /var/www/paymydine/storage sudo chmod -R 775 /var/www/paymydine/bootstrap/cache
+This ensures that the web server user can write to these directories while allowing group members to read and write files.
+13.3 Verify Cache Clearance
+To confirm that the cache has been cleared successfully, you can visit your application and ensure that there are no errors related to caching. If the application is functioning as expected and there are no issues with caching, you have successfully cleared the cache.
+If necessary, you can check Laravel's log files for any potential errors or warnings:
+tail -f /var/www/paymydine/storage/logs/laravel.log
+14. Troubleshooting Logs
+During the deployment and operation of your Laravel application, issues may arise that need troubleshooting. Laravel provides detailed logging functionality that can help identify and resolve errors. This section will guide you through accessing and interpreting Laravel's logs for troubleshooting purposes.
+22
+14.1 Location of Laravel Log Files
+Laravel stores log files in the storage/logs directory of your application. The primary log file is called laravel.log. In some cases, additional log files may be created if your application uses custom logging channels or if Laravel's daily log rotation is enabled.
+To access the log files, navigate to the logs directory:
+cd /var/www/paymydine/storage/logs
+14.2 View Laravel Log Files
+You can view the log files using commands such as cat, less, or tail in the terminal. To continuously monitor the logs as new entries are added, use the tail command:
+tail -f /var/www/paymydine/storage/logs/laravel.log
+The tail -f command allows you to see real-time log updates, which is useful for monitoring errors and issues as they happen during development or after deployment.
+14.3 Log Levels and Types of Errors
+Laravel supports several log levels that indicate the severity of logged events. Common log levels include:
+•
+debug: Detailed information, typically useful for developers.
+•
+info: Informational messages that don't indicate an error.
+•
+notice: Normal but significant events, such as a task that completed successfully.
+•
+warning: Indicates something unusual or problematic that is not an error.
+•
+error: Errors that indicate something went wrong with the application.
+•
+critical: Critical issues, often related to system failures.
+•
+alert: Immediate attention required, often for critical security issues.
+•
+emergency: The highest level of severity, indicating a system-wide failure.
+14.4 Common Log File Issues and Fixes
+1. Missing .env File or Incorrect Configuration
+If you encounter errors indicating that the .env file is missing or there are configuration issues, ensure that the .env file exists and contains the correct environment settings. You can check the Laravel logs for any configuration-related errors, such as database connection failures.
+Fix:
+•
+Verify the existence and content of the .env file.
+•
+Run php artisan config:cache to clear any cached configuration.
+23
+2. Database Connection Issues
+If your application is failing to connect to the database, check the logs for database connection errors. Common errors include incorrect credentials, unreachable database hosts, or missing database tables.
+Fix:
+•
+Check the DB_HOST, DB_DATABASE, DB_USERNAME, and DB_PASSWORD values in your .env file.
+•
+Ensure the database server is running and accessible.
+•
+Run migrations if necessary using the command:
+php artisan migrate
+3. File Permission Errors
+If Laravel is unable to write to certain directories (e.g., storage or bootstrap/cache), you may see permission-related errors in the logs.
+Fix:
+•
+Ensure that the storage and bootstrap/cache directories have the correct permissions and ownership. Run:
+sudo chown -R www-data:www-data /var/www/paymydine/storage sudo chown -R www-data:www-data /var/www/paymydine/bootstrap/cache sudo chmod -R 775 /var/www/paymydine/storage sudo chmod -R 775 /var/www/paymydine/bootstrap/cache
+4. PHP or FPM Issues
+If your application encounters issues related to PHP-FPM or PHP itself, such as memory limits or missing extensions, these issues will likely appear in the log files. Look for errors like "Call to undefined function" or "Out of memory."
+Fix:
+•
+Check that the correct PHP version is installed and that all required PHP extensions are enabled.
+•
+Review the PHP error logs (located in /var/log/php8.3-fpm.log or similar) for more details.
+5. Authentication or Authorization Failures
+Errors related to user authentication or permissions (e.g., "Unauthorized" or "Forbidden") will also appear in the logs. These may indicate issues with user roles, permissions, or authentication settings.
+Fix:
+•
+Verify that your authentication and authorization logic is correctly set up.
+•
+Ensure that your database has the correct user and role data, if applicable.
+24
+14.5 Rotate Log Files (Optional)
+If you are running Laravel on a production server, it's a good idea to set up log rotation to prevent log files from growing too large and filling up disk space. Laravel supports daily log file rotation by default if the daily logging channel is configured.
+To enable log rotation, open your config/logging.php file and ensure the daily log channel is set up like this:
+'channels' => [ 'stack' => [ 'driver' => 'stack', 'channels' => ['daily'], ], 'daily' => [ 'driver' => 'daily', 'path' => storage_path('logs/laravel.log'), 'level' => env('LOG_LEVEL', 'debug'), 'days' => 14, ], ],
+This configuration will ensure that logs are rotated daily and old logs are kept for 14 days.
+15. Final Steps
+Once you've completed the setup and configuration of your Laravel application, there are a few final steps to ensure that your application is fully operational, secure, and ready for production use.
+15.1 Verify Permissions
+It is critical to ensure that the proper file and directory permissions are set, particularly for directories that need write access by the web server (such as storage and bootstrap/cache). Incorrect permissions can result in various issues, including failed file uploads, inability to clear cache, and logging problems.
+Run the following commands to set the correct permissions:
+# Set ownership of the directories to the web server user (www-data) sudo chown -R www-data:www-data /var/www/paymydine/storage sudo chown -R www-data:www-data /var/www/paymydine/bootstrap/cache
+25
+# Ensure correct read/write permissions on directories sudo chmod -R 775 /var/www/paymydine/storage sudo chmod -R 775 /var/www/paymydine/bootstrap/cache
+This ensures that Laravel’s file storage, cache, and log directories are accessible by the web server.
+15.2 Set Up Environment Configuration
+Ensure that your .env file is correctly configured for the production environment. Pay attention to the following critical settings:
+•
+Database connection: Ensure the database host, username, password, and name are correct.
+•
+APP_ENV: Set this to production to enable production-specific optimizations and disable debug mode.
+Example of a production .env file:
+env
+APP_NAME=PayMyDine APP_ENV=production APP_KEY=base64:your-app-key-here APP_DEBUG=false APP_URL=http://paymydine.com
+DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=paymydine DB_USERNAME=root DB_PASSWORD=your-database-password
+CACHE_DRIVER=file SESSION_DRIVER=file QUEUE_DRIVER=sync
+Important: Make sure to generate a secure APP_KEY if you haven't already by running:
+php artisan key:generate
+15.3 Set Up a Cron Job for Laravel Scheduler
+Laravel comes with an integrated task scheduler that allows you to automate various tasks such as database backups, clearing expired sessions, and sending notifications.
+To set up Laravel's task scheduler, open your crontab file by running:
+26
+crontab -e
+Add the following line to execute Laravel’s scheduler every minute:
+* * * * * php /var/www/paymydine/artisan schedule:run >> /dev/null 2>&1
+This will ensure that scheduled tasks are run automatically without requiring manual intervention.
+15.4 Optimize the Application for Production
+Laravel provides several optimization commands to enhance the performance of your application in production. Run the following commands to optimize the application:
+# Optimize the application's configuration php artisan config:cache
+# Optimize routes to improve route resolution performance php artisan route:cache
+# Cache the views for faster loading php artisan view:cache
+# Clear any cached data from artisan commands php artisan clear-compiled
+These commands will ensure that configuration, routes, and views are cached and ready for optimal performance in a production environment.
+15.5 Configure SSL (Optional but Highly Recommended)
+It is highly recommended to serve your Laravel application over HTTPS to ensure secure communication between the server and the client. To enable SSL, you can use a free SSL certificate from Let’s Encrypt or purchase one from a trusted provider.
+For Let’s Encrypt, follow the steps below to install and configure the SSL certificate:
+1.
+Install Certbot for Let’s Encrypt: sudo apt install certbot python3-certbot-nginx
+2.
+Obtain and install the SSL certificate: sudo certbot --nginx -d paymydine.com -d www.paymydine.com
+3.
+Set up automatic renewal of the SSL certificate:
+27
+sudo systemctl enable certbot.timer
+This will secure your website and improve trust with users.
+15.6 Back Up the System
+Before putting the application into full use, ensure that you have a reliable backup strategy in place. Backup the following:
+•
+Application Files: Regularly back up the /var/www/paymydine directory.
+•
+Database: Schedule database backups using cron jobs or a backup service.
+For example, you can create a cron job that automatically backs up the database every day:
+0 3 * * * mysqldump -u root -p your-database-password paymydine > /var/backups/paymydine-$(date +\%F).sql
+Make sure that your backups are stored securely and tested regularly.
+15.7 Test the Application
+Once all configurations are complete, it is essential to thoroughly test the application to ensure that everything is functioning as expected. Here are some key areas to test:
+•
+Database Connections: Ensure that Laravel can connect to the database without issues.
+•
+File Uploads: Test file uploads to make sure the storage directories are accessible.
+•
+Routes: Ensure all routes are correctly mapped and functional.
+•
+API Endpoints: If your application exposes an API, verify that all endpoints are working as expected.
+Run the application in your browser by navigating to http://paymydine.com or https://paymydine.com if SSL is configured.
+
+
+
+Confidential Access Information
+Project: PayMyDine Super Admin Panel URL: http://paymydine.com/superadmin/login
+Username: superadmin Password: password
+From this dashboard, you can add a new tenant and assign them a unique subdomain under the same domain name (e.g., *.paymydine.com).
+The web platform does not currently have an SSL certificate installed, but one can be added later.
+For the Tenant you can access to his landing page directly example: http://rosana.paymydine.com
+By default, the restaurant admin can access their admin dashboard from the same URL: /admin.
+http://rosana.paymydine.com/admin
+the default user & pass are: user: admin
+pass: password
+it can be changed on the setting The restaurant admin can also manage users and configure access permissions as needed.
+All the information within the Admin section can be modified through the user admin panel, including the landing page’s color scheme and design.
+The logo, site name, and color theme can also be customized from the admin panel.
+
+PayMyDine
+Technical Documentation
+Harrington HPC Microsystems
+Author: Oussama Douba
+2
+Table des matières
+1. Project Summary .................................................................................................................... 3
+2. System Overview ................................................................................................................... 3
+Core Components: ............................................................................................................ 3
+3. Architecture Diagram ............................................................................................................. 3
+4. Roles and Permissions ............................................................................................................ 4
+Super-admin ..................................................................................................................... 4
+Restaurant Admin ............................................................................................................ 4
+Receptionist ....................................................................................................................... 5
+Chef .................................................................................................................................... 5
+End Customer ................................................................................................................... 5
+5. Technical Stack ....................................................................................................................... 5
+Backend: ............................................................................................................................ 5
+Frontend: ........................................................................................................................... 5
+Payments: .......................................................................................................................... 5
+Notifications: ..................................................................................................................... 5
+6. Multi-Tenancy Logic .............................................................................................................. 6
+7. QR Code Process .................................................................................................................... 6
+8. Subscription System ............................................................................................................... 6
+9. Deployment Model ................................................................................................................. 7
+10. Advanced Features ............................................................................................................... 7
+11. Security & Data Privacy ....................................................................................................... 7
+12. Future Enhancements ........................................................................................................... 7
+13. Conclusion ............................................................................................................................ 8
+3
+1. Project Summary
+Project Name: PayMyDine
+Platform: Laravel-based Cloud System
+Core Functionality: QR Code-driven contactless ordering and payment platform for restaurants Deployment Architecture: Multi-tenant system with automated database and subdomain provisioning per restaurant
+This technical document describes the backend and system design of the PayMyDine platform It is intended for developers, DevOps engineers, and technical stakeholders.
+2. System Overview
+PayMyDine enables restaurants to offer a modern, contactless dining experience. Each restaurant gets a unique subdomain (e.g., restaurant1.paymydine.com) and a dedicated database (e.g., restaurant1) created automatically upon registration.
+Core Components:
+•
+Multi-Tenant Laravel Backend
+•
+Automated Subdomain and DB Provisioning
+•
+Modular Role System (Superadmin, Restaurant Admin, Receptionist, Chef)
+•
+QR Code Generation System
+•
+Payment Integration (Stripe, PayPal, etc.)
+3. Architecture Diagram
+The Architecture Diagram include components:
+•
+Laravel Application Server
+•
+MySQL Server (tenant DBs)
+•
+DNS Management (automated subdomain)
+•
+Web Frontend (Vue/React/PWA)
+•
+Payment Gateways (API-based)
+•
+Notification System (WebSocket/Firebase)
+4
+4. Roles and Permissions
+Super-admin
+•
+Manage subscription plans (by tables, features, and usage limits)
+•
+Create restaurant accounts (auto-DB & DNS provisioning)
+•
+Monitor platform usage and revenue
+•
+Manage platform-wide configurations and analytics
+Restaurant Admin
+•
+Manage tables and QR codes
+•
+Customize digital menu and landing page
+•
+Add restaurant users (receptionists, chefs)
+•
+View reports and statistics
+5
+Receptionist
+•
+Monitor and manage incoming orders
+•
+Handle customer interactions (status updates)
+Chef
+•
+View and update food preparation statuses
+•
+Access real-time kitchen queue
+End Customer
+•
+Scan QR to view menu and place orders
+•
+Make secure payments
+•
+Track order status
+5. Technical Stack
+Backend:
+•
+Laravel (PHP 8+)
+•
+MySQL 8 (Multi-tenant DB support)
+•
+Laravel Horizon for job queue management
+•
+Laravel Sanctum or Passport for API Auth
+Frontend:
+•
+Blade for server-rendered views
+•
+React or Vue.js for SPA/PWA features
+Payments:
+•
+Stripe & PayPal SDKs (via Laravel Cashier)
+Notifications:
+•
+WebSocket (Laravel Echo, Pusher)
+6
+6. Multi-Tenancy Logic
+Tenant Registration Flow:
+1.
+Super-admin registers a new restaurant.
+2.
+System automatically:
+o
+Creates a new MySQL database (e.g., restaurant1)
+o
+Runs migrations and seeders for default structure
+o
+Generates subdomain (e.g., restaurant1.paymydine.com) via DNS API
+o
+Associates subscription plan and limits
+Data Isolation:
+•
+Each tenant has a unique DB and URL
+•
+Middleware ensures tenant context resolution by subdomain
+7. QR Code Process
+•
+Admin generates QR codes per table (via dynamic links)
+•
+Code encodes unique URL with table ID and restaurant subdomain
+•
+When scanned:
+-
+Opens table-specific menu page
+-
+Tracks table/session for ordering and billing
+8. Subscription System
+•
+Plans Configurable by:
+-
+Number of tables
+-
+Monthly order volume
+-
+Access to advanced features (analytics, customization)
+•
+Recurring Payments managed via Stripe or PayPal APIs
+•
+Subscription Status affects access to features and service uptime
+7
+9. Deployment Model
+•
+CI/CD Pipelines: GitLab/GitHub Actions for auto-deployment
+•
+Envoy or Deployer: Laravel-based server deployment tool
+•
+Cloud Hosting: Recommended VPS or cloud hosting (e.g., DigitalOcean, AWS)
+•
+DNS Automation: Via Cloudflare API or similar provider for subdomain creation
+10. Advanced Features
+•
+Analytics Dashboard: Order frequency, top dishes, revenue per day/week/month
+•
+Restaurant Customization: Colors, logos, themes (per tenant DB settings)
+•
+Offline Mode (PWA): Menu caching and background sync
+•
+Audit Logs: Track user and admin activity per tenant
+11. Security & Data Privacy
+•
+HTTPS enforced across all subdomains
+•
+Database per tenant for strict isolation
+•
+Role-based access control (RBAC)
+•
+Encrypted payment transactions
+•
+Daily backups per DB
+12. Future Enhancements
+•
+Dynamic language switching
+•
+Loyalty points and coupon integration
+•
+POS hardware integrations
+•
+Full mobile app (Flutter or React Native)
+8
+13. Conclusion
+PayMyDine delivers a secure, modern, and scalable restaurant platform powered by Laravel. It’s designed with flexibility and growth in mind through full multi-tenancy, automated provisioning, and contactless customer experiences.
+

@@ -1,0 +1,295 @@
+// ========================================================================
+// PAYMYDINE ADMIN PANEL - LANDING PAGE COLOR SCHEME
+// ========================================================================
+// This file contains the brown/cream/gold color palette from the landing page
+// Primary Brand: Green (#08815e)
+// Secondary Brand: White (#ffffff)
+// ========================================================================
+
+// ========================================================================
+// PRIMARY BROWNS (Main Brand Color)
+// ========================================================================
+$brown-50: #ffffff !default;   // White
+$brown-100: #ffffff !default;  // White
+$brown-200: #ffffff !default;  // White
+$brown-300: #0bb87a !default;  // Light green
+$brown-400: #0bb87a !default;  // Medium green
+$brown-500: #08815e !default;  // PRIMARY GREEN (Main logo color)
+$brown-600: #08815e !default;  // Green
+$brown-700: #08815e !default;  // Green
+$brown-800: #065a42 !default;  // Dark green
+$brown-900: #202938 !default;  // Dark blue-gray (HEADINGS)
+
+// ========================================================================
+// PRIMARY CREAMS (Secondary Brand Color)
+// ========================================================================
+$cream-50: #fefefe !default;   // Pure white
+$cream-100: #ffffff !default;  // White
+$cream-200: #ffffff !default;  // White
+$cream-300: #ffffff !default;  // White
+$cream-400: #ffffff !default;  // White
+$cream-500: #ffffff !default;  // PRIMARY WHITE (Logo color)
+$cream-600: #ffffff !default;  // White
+$cream-700: #ffffff !default;  // White
+$cream-800: #ffffff !default;  // White
+$cream-900: #ffffff !default;  // White
+
+// ========================================================================
+// CORE COLORS (White/Black)
+// ========================================================================
+$white: #FFFFFF !default;
+$black: #000329 !default;
+
+// ========================================================================
+// GRAY SCALE (Text and UI Elements)
+// ========================================================================
+$gray-50: #f9fafb !default;    // Very light - backgrounds
+$gray-100: #f3f4f6 !default;   // Light gray
+$gray-200: #e5e7eb !default;   // Border gray
+$gray-300: #d1d5db !default;   // Divider gray
+$gray-400: #9ca3af !default;   // Medium gray
+$gray-500: #6b7280 !default;   // Gray
+$gray-600: #4b5563 !default;   // Body text
+$gray-700: #374151 !default;   // Dark text
+$gray-800: #1f2937 !default;   // Very dark
+$gray-900: #111827 !default;   // Almost black
+
+// ========================================================================
+// THEME COLORS (Mapped to Brown/Cream palette)
+// ========================================================================
+$primary: $brown-500 !default;      // #08815e - Main brand color
+$secondary: $brown-700 !default;    // #08815e - Secondary actions
+$success: #22c55e !default;         // Green - Keep for success states
+$info: $brown-400 !default;         // #0bb87a - Info states
+$warning: #08815e !default;         // Amber - Warning states
+$danger: #ef4444 !default;          // Red - Keep for errors
+$light: $cream-50 !default;         // #fefefe - Light backgrounds
+$dark: $brown-900 !default;         // #202938 - Dark text/backgrounds
+
+// Theme colors map
+$theme-colors: () !default;
+$theme-colors: map-merge((
+  "primary": $primary,
+  "default": $secondary,
+  "secondary": $secondary,
+  "success": $success,
+  "info": $info,
+  "warning": $warning,
+  "danger": $danger,
+  "light": $light,
+  "dark": $dark
+), $theme-colors);
+
+// ========================================================================
+// OPTIONS
+// ========================================================================
+$enable-shadows: true !default;
+$enable-negative-margins: true !default;
+$images-path: '../../../admin/assets/images/';
+$icon-font-path: '../../../admin/assets/fonts/';
+$fa-font-path: $icon-font-path+'FontAwesome';
+
+// ========================================================================
+// BODY COLORS
+// ========================================================================
+$body-bg: $brown-50 !default;           // #ffffff - White background
+$body-color: $gray-700 !default;        // #374151 - Dark text for readability
+$link-color: $brown-600 !default;       // #08815e - Link color
+$link-hover-color: $brown-800 !default; // #065a42 - Link hover
+$link-hover-decoration: none !default;
+
+// ========================================================================
+// TYPOGRAPHY
+// ========================================================================
+$text-muted: $brown-600 !default;  // #08815e - Muted text
+$line-height-base: 1.5 !default;
+$h5-font-size: 15px !default;
+
+$label-padding-y: .5rem !default;
+$label-padding-x: .75rem !default;
+
+// Fonts
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif !default;
+$font-family-monospace: -apple-system, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !default;
+
+$font-weight-semibold: 500 !default;
+$font-weight-bold: 600 !default;
+$font-size-xs: 0.8125rem !default;
+$font-size-base: 0.875rem !default;
+$font-size-lg: $font-size-base * 1.25 !default;
+$font-size-sm: $font-size-base * .875 !default;
+
+// ========================================================================
+// TABLES
+// ========================================================================
+$table-cell-padding: .45rem !default;
+$table-cell-padding-sm: .1rem !default;
+$table-head-bg: $brown-100 !default;        // #ffffff - White header
+$table-accent-bg: $cream-50 !default;       // #fefefe - Striped rows
+$table-border-color: $brown-200 !default;   // #ffffff - Table borders
+$table-hover-bg: $brown-50 !default;        // #ffffff - Row hover
+
+// ========================================================================
+// BUTTONS + FORMS
+// ========================================================================
+$input-btn-padding-y: .5rem !default;
+$input-btn-padding-x: .75rem !default;
+$input-spacer: 6px !default;
+$input-font-size: 0.9375rem !default;
+
+// ========================================================================
+// BUTTONS
+// ========================================================================
+$btn-border-radius: 3px !default;
+$btn-font-weight: 600 !default;
+$btn-action-padding: 4px 8px !default;
+$btn-spacer: 10px !default;
+$btn-border-bottom-width: 2px !default;
+$btn-hover-border-bottom-width: 1px !default;
+$btn-active-box-shadow: none !default;
+
+// ========================================================================
+// FORMS
+// ========================================================================
+$input-bg: $white !default;                          // #FFFFFF - Input background
+$input-disabled-bg: $brown-50 !default;              // #ffffff - Disabled inputs
+$input-color: $gray-900 !default;                    // #111827 - Input text
+$input-border-color: $brown-200 !default;            // #ffffff - Input borders
+$input-border-radius: 3px !default;
+$input-box-shadow: none !default;
+$custom-control-indicator-size: 1.5rem !default;
+$input-height-border: 3px !default;
+$form-check-input-width: 1.25em;
+$form-fields-padding: 1.25rem .725rem !default;
+$form-fields-padding-x: 20px !default;
+$form-nav-link-padding-y: .52rem !default;
+$form-nav-link-padding-x: 1.2rem !default;
+$custom-control-indicator-border-color: $brown-200 !default;
+$custom-control-indicator-disabled-bg: $brown-100 !default;
+
+// ========================================================================
+// NAVS
+// ========================================================================
+$nav-tabs-border-radius: .625rem !default;
+
+// ========================================================================
+// DROPDOWNS
+// ========================================================================
+$dropdown-padding-x: .5rem !default;
+$dropdown-bg: $white !default;                      // #FFFFFF - Dropdown background
+$dropdown-border-color: $brown-200 !default;        // #ffffff - Dropdown border
+$dropdown-divider-bg: $brown-200 !default;          // #ffffff - Dividers
+$dropdown-link-color: $gray-900 !default;           // #111827 - Link color
+$dropdown-link-hover-color: $brown-900 !default;    // #202938 - Hover color
+$dropdown-link-hover-bg: $brown-50 !default;        // #ffffff - Hover background
+$dropdown-link-disabled-color: $gray-600 !default;  // #4b5563 - Disabled
+$dropdown-header-color: $brown-600 !default;        // #08815e - Headers
+
+// ========================================================================
+// CARDS
+// ========================================================================
+$card-border-color: $brown-200 !default;   // #ffffff - Card borders
+$card-cap-bg: $cream-50 !default;          // #fefefe - Card headers
+$card-bg: $white !default;                 // #FFFFFF - Card background
+$card-spacer-y: .625rem !default;
+$card-spacer-x: 0.9375rem !default;
+
+// ========================================================================
+// ACCORDION
+// ========================================================================
+$accordion-button-active-bg: $brown-100 !default;      // #ffffff
+$accordion-button-active-color: $brown-900 !default;   // #202938
+
+// ========================================================================
+// POPOVER
+// ========================================================================
+$popover-bg: $white !default;  // #FFFFFF
+
+// ========================================================================
+// ALERT
+// ========================================================================
+$alert-bg-scale: -20% !default;
+$alert-border-scale: -20% !default;
+$alert-color-scale: 80% !default;
+
+// ========================================================================
+// LIST GROUP
+// ========================================================================
+$list-group-bg: $white !default;              // #FFFFFF
+$list-group-hover-bg: $brown-50 !default;     // #ffffff
+$list-group-action-color: $body-color !default;
+$list-group-border-color: $brown-200 !default; // #ffffff
+
+// ========================================================================
+// MODALS
+// ========================================================================
+$modal-content-bg: $white !default;           // #FFFFFF
+$modal-header-border-color: $brown-200 !default; // #ffffff
+$modal-xl: 1140px !default;
+$modal-lg: 800px !default;
+$modal-md: 600px !default;
+$modal-sm: 400px !default;
+$modal-backdrop-opacity: .7 !default;
+
+// ========================================================================
+// BADGES
+// ========================================================================
+$badge-color: inherit !default;
+
+// ========================================================================
+// PAGE LAYOUT
+// ========================================================================
+$page-padding-x: 20px !default;
+$page-padding-y: 30px !default;
+$page-top: 64px !default;
+$page-top-line-height: 48px !default;
+$page-bottom: 0 !default;
+$page-margin-left: 230px !default;
+$logo-font-size: 3rem !default;
+$logo-line-height: 32px !default;
+
+// ========================================================================
+// MAIN MENU (Top Navigation)
+// ========================================================================
+$mainmenu-font-size: 24px !default;
+$mainmenu-icon-size: 16px !default;
+$mainmenu-dropdown-width: 300px !default;
+$mainmenu-menu-max-height: 70vh !default;
+$mainmenu-padding-x: 0.5rem !default;
+$mainmenu-padding-y: 1rem !default;
+
+// ========================================================================
+// SIDE NAVIGATION (Sidebar)
+// ========================================================================
+$sidenav-bg: $brown-900 !default;              // #202938 - Dark blue-gray sidebar
+$sidenav-font-size: 15px !default;
+$sidenav-submenu-font-size: $font-size-base !default;
+$sidenav-font-weight: 500 !default;
+$sidenav-font-size-bold: 600 !default;
+$sidenav-line-height: 50px !default;
+$sidenav-line-height-sm: 42px !default;
+$sidenav-padding-x: 0 !default;
+$sidenav-padding-y: 1rem !default;
+$dropdown-item-padding-y: 0.5rem !default;
+
+// ========================================================================
+// GRADIENTS (Landing Page Style)
+// ========================================================================
+// Primary button gradient: from-brown-500 to-brown-600
+$gradient-primary-start: $brown-500 !default;  // #08815e
+$gradient-primary-end: $brown-600 !default;    // #08815e
+
+// Cream gradient: from-cream-500 to-cream-600
+$gradient-cream-start: $cream-500 !default;    // #ffffff
+$gradient-cream-end: $cream-600 !default;      // #ffffff
+
+// ========================================================================
+// ADDITIONAL COLOR UTILITIES
+// ========================================================================
+
+// Additional semantic colors for compatibility
+$blue: $brown-500 !default;    // Map old blue to brown
+$green: $success !default;
+$red: $danger !default;
+$yellow: $warning !default;
+
