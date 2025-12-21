@@ -1,7 +1,7 @@
 git add -A
-git commit -m "Kitchen Display"
+git commit -m "New Update"
 git push origin main
 git tag
-git tag v1.0.2
-git push origin v1.0.2
+git tag v1.1.1
+git push origin v1.1.1
 

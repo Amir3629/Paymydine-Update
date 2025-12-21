@@ -7,6 +7,7 @@
   position: relative;
   -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+  overflow: visible;
 }
 .media-finder .grid:focus,
 .media-finder .grid:hover {
@@ -17,6 +18,9 @@
 	transform: translate(50%, 50%);
 	display: block;
 	height: 100%;
+	position: relative;
+	z-index: 1;
+	pointer-events: none;
 }
 .media-finder .grid img {
   transform: translate(-50%, -50%);
@@ -32,6 +36,9 @@
   overflow: hidden;
   padding-top: 100%;
   display: block;
+  pointer-events: auto !important;
+  z-index: 10 !important;
+  cursor: pointer !important;
 }
 .media-finder .grid .blank-cover i {
 	position: absolute;
@@ -42,9 +49,17 @@
 	margin-top: -8px;
 	margin-left: -8px;
 }
-.grid .icon-container,
-.grid .find-remove-button {
+.grid .icon-container {
 	display: none;
+}
+.grid .find-remove-button {
+	display: none !important;
+	pointer-events: none;
+	position: absolute !important;
+	top: 8px !important;
+	right: 8px !important;
+	z-index: 999 !important;
+	cursor: pointer !important;
 }
 .grid .find-button,
 .media-finder .grid .blank-cover,
@@ -52,13 +67,38 @@
 .grid:hover .find-remove-button {
 	cursor: pointer;
 }
-.grid:hover .find-remove-button {
-	float: right;
-	position: absolute;
-	top: 8px;
-	right: 8px;
-	display: block;
-	z-index: 9;
+.grid:hover .find-remove-button,
+.grid .find-remove-button:hover {
+	float: none !important;
+	position: absolute !important;
+	top: 8px !important;
+	right: 8px !important;
+	display: block !important;
+	z-index: 9999 !important;
+	pointer-events: auto !important;
+	cursor: pointer !important;
+	background-color: rgba(255, 255, 255, 0.95) !important;
+	border-radius: 50% !important;
+	width: 24px !important;
+	height: 24px !important;
+	line-height: 24px !important;
+	text-align: center !important;
+	font-size: 16px !important;
+	color: #dc3545 !important;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+.grid a {
+	position: relative;
+	z-index: 1;
+}
+.grid:hover a:not(.find-remove-button):not(.find-button):not(.blank-cover) {
+	pointer-events: none;
+}
+.grid .find-button,
+.grid .blank-cover {
+	pointer-events: auto !important;
+	z-index: 10 !important;
+	cursor: pointer !important;
 }
 .grid:hover .icon-container {
 	display: block;
@@ -76,6 +116,10 @@
 .grid .find-button {
 	display: block;
 	height: 100%;
+	pointer-events: auto !important;
+	z-index: 10 !important;
+	cursor: pointer !important;
+	position: relative;
 }
 .image-list {
 	margin-left: -15px;

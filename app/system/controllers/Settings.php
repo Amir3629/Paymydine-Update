@@ -12,6 +12,7 @@ use Igniter\Flame\Exception\ApplicationException;
 use Igniter\Flame\Support\Facades\File;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Session;
@@ -118,7 +119,31 @@ class Settings extends \Admin\Classes\AdminController
 
         $this->formBeforeSave($model);
 
-        setting()->set($this->formWidget->getSaveData());
+        $saveData = $this->formWidget->getSaveData();
+        
+        // Sync dashboard_logo to logos table if it exists in save data (for navbar display)
+        if (isset($saveData['dashboard_logo'])) {
+            $dashboardLogo = $saveData['dashboard_logo'];
+            // Convert relative path to full URL if needed
+            if (!empty($dashboardLogo)) {
+                if (strpos($dashboardLogo, 'http') !== 0) {
+                    // It's a relative path, convert to full URL
+                    $dashboardLogo = url('assets/media/uploads/' . ltrim($dashboardLogo, '/'));
+                }
+                
+                $exists = DB::table('logos')->exists();
+                if ($exists) {
+                    DB::table('logos')->update(['dashboard_logo' => $dashboardLogo]);
+                } else {
+                    DB::table('logos')->insert(['dashboard_logo' => $dashboardLogo]);
+                }
+            } else {
+                // Empty value - clear from logos table
+                DB::table('logos')->update(['dashboard_logo' => null]);
+            }
+        }
+        
+        setting()->set($saveData);
         setting()->save();
 
         $this->formAfterSave($model);
@@ -187,7 +212,7 @@ class Settings extends \Admin\Classes\AdminController
         $formConfig['model'] = $model;
         $formConfig['data'] = array_undot($model->getFieldValues());
         $formConfig['alias'] = 'form';
-        $formConfig['arrayName'] = str_singular(strip_class_basename($model, '_model'));
+        $formConfig['arrayName'] = strtolower(str_singular(strip_class_basename($model, '_model'))); // Changed to lowercase to match form field names (setting[site_logo])
         $formConfig['context'] = 'edit';
 
         // Form Widget with extensibility
@@ -267,7 +292,7 @@ class Settings extends \Admin\Classes\AdminController
             if (method_exists($request, 'setController'))
                 $request->setController($this);
 
-            $request->setInputKey('Setting');
+            $request->setInputKey('setting'); // Changed to lowercase to match form field names (setting[site_logo])
         });
 
         return app()->make($requestClass);

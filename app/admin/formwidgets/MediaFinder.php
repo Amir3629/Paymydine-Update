@@ -287,9 +287,20 @@ class MediaFinder extends BaseFormWidget
     public function getSaveValue($value)
     {
         if ($this->useAttachment || $this->formField->disabled || $this->formField->hidden) {
+            \Log::info('MediaFinder getSaveValue: Returning NO_SAVE_DATA', [
+                'field' => $this->fieldName,
+                'useAttachment' => $this->useAttachment,
+                'disabled' => $this->formField->disabled,
+                'hidden' => $this->formField->hidden
+            ]);
             return FormField::NO_SAVE_DATA;
         }
 
+        \Log::info('MediaFinder getSaveValue: Returning value', [
+            'field' => $this->fieldName,
+            'value' => $value,
+            'type' => gettype($value)
+        ]);
         return $value;
     }
 
