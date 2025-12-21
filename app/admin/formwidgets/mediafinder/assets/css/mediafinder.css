@@ -36,6 +36,9 @@
   overflow: hidden;
   padding-top: 100%;
   display: block;
+  pointer-events: auto !important;
+  z-index: 10 !important;
+  cursor: pointer !important;
 }
 .media-finder .grid .blank-cover i {
 	position: absolute;
@@ -88,8 +91,14 @@
 	position: relative;
 	z-index: 1;
 }
-.grid:hover a:not(.find-remove-button) {
+.grid:hover a:not(.find-remove-button):not(.find-button):not(.blank-cover) {
 	pointer-events: none;
+}
+.grid .find-button,
+.grid .blank-cover {
+	pointer-events: auto !important;
+	z-index: 10 !important;
+	cursor: pointer !important;
 }
 .grid:hover .icon-container {
 	display: block;
@@ -107,6 +116,10 @@
 .grid .find-button {
 	display: block;
 	height: 100%;
+	pointer-events: auto !important;
+	z-index: 10 !important;
+	cursor: pointer !important;
+	position: relative;
 }
 .image-list {
 	margin-left: -15px;

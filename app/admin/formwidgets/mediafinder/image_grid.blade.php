@@ -76,20 +76,17 @@ if (!function_exists('validateImageExists')) {
         // Check if it's a storage/temp/public path
         if (strpos($path, 'storage/temp/public/') === 0) {
             $relativePath = substr($path, strlen('storage/temp/public/'));
-            // Check direct storage/temp/public path first (most common)
             $possiblePaths[] = base_path('storage/temp/public/' . $relativePath);
             $possiblePaths[] = storage_path('temp/public/' . $relativePath);
             $possiblePaths[] = storage_path('app/public/temp/public/' . $relativePath);
             $possiblePaths[] = base_path('storage/app/public/temp/public/' . $relativePath);
             $possiblePaths[] = public_path('storage/temp/public/' . $relativePath);
         } elseif (strpos($path, 'storage/') === 0) {
-            // Try storage path directly
             $relativePath = substr($path, strlen('storage/'));
             $possiblePaths[] = storage_path('app/public/' . $relativePath);
             $possiblePaths[] = base_path('storage/app/public/' . $relativePath);
             $possiblePaths[] = public_path('storage/' . $relativePath);
         } else {
-            // Try public path
             $possiblePaths[] = public_path($path);
             $possiblePaths[] = base_path($path);
         }
@@ -130,8 +127,8 @@ if (isset($_GET['dash'])) {
         session()->forget('src_dashboard');
         session()->put('src_dashboard', $dashUrl);
 
-        $exists = DB::table('logos')->exists();
-        if ($exists) {
+    $exists = DB::table('logos')->exists();
+    if ($exists) {
             DB::table('logos')->update(['dashboard_logo' => $dashUrl]);
         } else {
             DB::table('logos')->insert(['dashboard_logo' => $dashUrl]);
@@ -243,7 +240,356 @@ if (!empty($settingsDashboardLogo)) {
 }
 ?>
 <script>
+// COMPLETE STANDALONE SOLUTION - No plugin dependencies
 (function() {
+    // CRITICAL: Remove invalid images IMMEDIATELY before anything else
+    function removeInvalidImagesImmediately() {
+        var invalidPatterns = [
+            'vecteezy_fast-food-meal-with_25065315-removebg-preview-removebg-preview.jpg',
+            'fresh-chicken-curry-isolated-on-transparent-background-free-png-removebg-preview.jpg',
+            'thumb_ebb1d302c04621b99b053d0559077379__122x122_contain.jpg',
+            'thumb_4326f3e81f7e4c3b0ab60d3b5fa94f62__122x122_contain.jpg',
+            'ebb1d302c04621b99b053d0559077379',
+            '4326f3e81f7e4c3b0ab60d3b5fa94f62'
+        ];
+        
+        // Check all media-finder elements
+        document.querySelectorAll('.media-finder').forEach(function(mediaFinder) {
+            var findValue = mediaFinder.querySelector('[data-find-value]');
+            var findImage = mediaFinder.querySelector('[data-find-image]');
+            var imgSrc = findImage ? findImage.getAttribute('src') : '';
+            var value = findValue ? findValue.value : '';
+            
+            // Check if value or image src matches invalid patterns
+            var isInvalid = false;
+            var checkString = imgSrc + ' ' + value;
+            
+            invalidPatterns.forEach(function(pattern) {
+                if (checkString.indexOf(pattern) !== -1) {
+                    isInvalid = true;
+                }
+            });
+            
+            if (isInvalid) {
+                // Clear immediately
+                if (findValue) {
+                    findValue.value = '';
+                    findValue.removeAttribute('name');
+                }
+                var findId = mediaFinder.querySelector('[data-find-identifier]');
+                if (findId) {
+                    findId.value = '';
+                }
+                var grid = mediaFinder.querySelector('.grid');
+                if (grid) {
+                    grid.innerHTML = '<a class="find-button blank-cover"><i class="fa fa-plus"></i></a>';
+                }
+                
+                // Clear from database
+                var container = mediaFinder.closest('[id*="dashboard"]');
+                if (container && container.id.indexOf('dashboard') !== -1) {
+                    if (typeof jQuery !== 'undefined') {
+                        jQuery.post(window.location.href, {'clear_dashboard_logo': true});
+                    }
+                } else if (container && container.id.indexOf('favicon') !== -1) {
+                    if (typeof jQuery !== 'undefined') {
+                        jQuery.post(window.location.href, {'clear_favicon_logo': true});
+                    }
+                }
+            }
+        });
+    }
+    
+    // Run IMMEDIATELY - don't wait for DOMContentLoaded
+    removeInvalidImagesImmediately();
+    
+    // Direct click handler for PLUS button - completely standalone
+    function initPlusButtons() {
+        document.querySelectorAll('.find-button, .blank-cover').forEach(function(btn) {
+            // Remove existing handler if any
+            if (btn.dataset.plusHandler) return;
+            btn.dataset.plusHandler = 'true';
+            
+            // Use capture phase to ensure we catch the click
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                console.log('PLUS BUTTON CLICKED!', this);
+                
+                var mediaFinder = this.closest('[data-control="mediafinder"]');
+                if (!mediaFinder) {
+                    mediaFinder = this.closest('.media-finder');
+                }
+                
+                if (!mediaFinder) {
+                    console.error('MediaFinder container not found');
+                    return;
+                }
+                
+                // Get options from data attributes
+                var alias = mediaFinder.getAttribute('data-alias') || 'mediamanager';
+                var useAttachment = mediaFinder.getAttribute('data-use-attachment') === 'true' || mediaFinder.getAttribute('data-use-attachment') === '';
+                var chooseButtonText = mediaFinder.getAttribute('data-choose-button-text') || 'Choose';
+                var findValue = mediaFinder.querySelector('[data-find-value]');
+                var currentValue = findValue ? findValue.value : null;
+                
+                console.log('Opening media manager with alias:', alias);
+                
+                // Open media manager modal manually
+                openMediaManagerModal({
+                    alias: 'mediamanager',
+                    selectMode: 'single',
+                    chooseButton: true,
+                    chooseButtonText: chooseButtonText,
+                    goToItem: !useAttachment ? currentValue : null,
+                    onInsert: function(items) {
+                        console.log('Items selected:', items);
+                        if (!items || !items.length) return;
+                        
+                        var item = items[0];
+                        var itemData = {
+                            identifier: item.identifier || item.id || '',
+                            path: item.path || item.publicUrl || '',
+                            publicUrl: item.publicUrl || item.path || '',
+                            fileType: item.fileType || 'image'
+                        };
+                        
+                        if (useAttachment) {
+                            // Attachment mode
+                            if (typeof jQuery !== 'undefined' && jQuery.ti && jQuery.ti.loadingIndicator) {
+                                jQuery.ti.loadingIndicator.show();
+                                jQuery.request(alias + '::onAddAttachment', {
+                                    data: {items: [itemData]}
+                                }).done(function(response) {
+                                    if (response && response.length) {
+                                        updateMediaFinder(mediaFinder, response[0]);
+                                    } else {
+                                        location.reload();
+                                    }
+                                }).always(function() {
+                                    jQuery.ti.loadingIndicator.hide();
+                                });
+                            }
+                        } else {
+                            // Simple mode
+                            updateMediaFinder(mediaFinder, itemData);
+                        }
+                    }
+                });
+            }, true); // Use capture phase
+        });
+    }
+    
+    // Function to open media manager modal manually
+    function openMediaManagerModal(options) {
+        if (typeof jQuery === 'undefined') {
+            console.error('jQuery not available');
+            return;
+        }
+        
+        // Check if mediaManager.modal exists (preferred method)
+        if (jQuery.ti && jQuery.ti.mediaManager && jQuery.ti.mediaManager.modal) {
+            try {
+                new jQuery.ti.mediaManager.modal(options);
+                return;
+            } catch (e) {
+                console.warn('MediaManager.modal failed, using manual method:', e);
+            }
+        }
+        
+        // Manual fallback - create modal ourselves
+        var handler = (options.alias || 'mediamanager') + '::onLoadPopup';
+        var data = {
+            selectMode: options.selectMode || 'single',
+            goToItem: options.goToItem || null,
+            chooseButton: options.chooseButton ? 1 : 0,
+            chooseButtonText: options.chooseButtonText || 'Choose',
+        };
+        
+        // Show loading
+        if (jQuery.ti && jQuery.ti.loadingIndicator) {
+            jQuery.ti.loadingIndicator.show();
+        }
+        
+        // Make AJAX request to load popup
+        jQuery.request(handler, {data: data})
+            .done(function(json) {
+                // Create modal element
+                var $modal = jQuery('<div/>', {
+                    id: 'media-manager',
+                    class: 'media-modal modal fade',
+                    role: 'dialog',
+                    tabindex: -1
+                });
+                
+                $modal.html(json.result || json);
+                jQuery('body').append($modal);
+                
+                // Initialize Bootstrap modal
+                var modal = new bootstrap.Modal($modal[0]);
+                
+                // CRITICAL: Initialize MediaManager plugin AFTER modal is shown
+                // This ensures upload button (Dropzone) and other controls work
+                $modal.one('shown.bs.modal', function() {
+                    var $mediaManager = $modal.find('[data-control="media-manager"]');
+                    if ($mediaManager.length) {
+                        // Function to initialize MediaManager
+                        function initMediaManager() {
+                            if (typeof jQuery.fn.mediaManager !== 'undefined') {
+                                try {
+                                    // Initialize MediaManager plugin if not already initialized
+                                    if (!$mediaManager.data('ti.mediaManager')) {
+                                        $mediaManager.mediaManager();
+                                        console.log('✅ MediaManager plugin initialized - upload button should work now');
+                                    } else {
+                                        console.log('MediaManager already initialized');
+                                    }
+                                } catch (e) {
+                                    console.error('❌ Failed to initialize MediaManager:', e);
+                                }
+                            } else {
+                                return false; // Plugin not loaded yet
+                            }
+                            return true;
+                        }
+                        
+                        // Try to initialize immediately
+                        if (!initMediaManager()) {
+                            // Wait for plugin to load (up to 5 seconds)
+                            var attempts = 0;
+                            var checkPlugin = setInterval(function() {
+                                attempts++;
+                                if (initMediaManager()) {
+                                    clearInterval(checkPlugin);
+                                } else if (attempts > 50) {
+                                    clearInterval(checkPlugin);
+                                    console.warn('⚠️ MediaManager plugin not found after 5 seconds - upload may not work');
+                                }
+                            }, 100);
+                        }
+                    } else {
+                        console.warn('⚠️ MediaManager element not found in modal');
+                    }
+                });
+                
+                modal.show();
+                
+                // Handle insert button click
+                $modal.on('click', '[data-control="media-choose"]', function() {
+                    var $mediaManager = $modal.find('[data-control="media-manager"]');
+                    var selectedItems = [];
+                    
+                    // Get selected items
+                    $mediaManager.find('[data-media-item].selected, [data-media-item].is-selected').each(function() {
+                        var $item = jQuery(this);
+                        selectedItems.push({
+                            identifier: $item.data('media-identifier') || $item.data('media-id') || '',
+                            path: $item.data('media-path') || '',
+                            publicUrl: $item.data('media-url') || $item.data('media-path') || '',
+                            fileType: $item.data('media-type') || 'image'
+                        });
+                    });
+                    
+                    // If no selected, try to get from mediaManager plugin
+                    if (selectedItems.length === 0 && $mediaManager.data('ti.mediaManager')) {
+                        try {
+                            selectedItems = $mediaManager.mediaManager('getSelectedItems') || [];
+                        } catch (e) {
+                            console.warn('Could not get selected items from plugin:', e);
+                        }
+                    }
+                    
+                    if (selectedItems.length > 0 && options.onInsert) {
+                        options.onInsert(selectedItems);
+                    }
+                    
+                    modal.hide();
+                    setTimeout(function() {
+                        $modal.remove();
+                    }, 300);
+                });
+                
+                // Handle double-click on media items
+                $modal.on('dblclick', '[data-media-item]', function() {
+                    var $item = jQuery(this);
+                    var itemData = {
+                        identifier: $item.data('media-identifier') || $item.data('media-id') || '',
+                        path: $item.data('media-path') || '',
+                        publicUrl: $item.data('media-url') || $item.data('media-path') || '',
+                        fileType: $item.data('media-type') || 'image'
+                    };
+                    
+                    if (options.onInsert) {
+                        options.onInsert([itemData]);
+                    }
+                    
+                    modal.hide();
+                    setTimeout(function() {
+                        $modal.remove();
+                    }, 300);
+                });
+            })
+            .always(function() {
+                if (jQuery.ti && jQuery.ti.loadingIndicator) {
+                    jQuery.ti.loadingIndicator.hide();
+                }
+            });
+    }
+    
+    // Function to update media finder display
+    function updateMediaFinder(mediaFinder, item) {
+        var findValue = mediaFinder.querySelector('[data-find-value]');
+        var findId = mediaFinder.querySelector('[data-find-identifier]');
+        var findImage = mediaFinder.querySelector('[data-find-image]');
+        var findName = mediaFinder.querySelector('[data-find-name]');
+        var grid = mediaFinder.querySelector('.grid');
+        
+        if (findValue) {
+            findValue.value = item.path || item.publicUrl || '';
+            // Ensure name attribute is set for form submission
+            if (!findValue.hasAttribute('name')) {
+                var fieldContainer = mediaFinder.closest('[id*="form-field"]');
+                if (fieldContainer) {
+                    var fieldId = fieldContainer.id;
+                    var fieldName = fieldId.replace('form-field-', '').replace(/-group$/, '');
+                    if (fieldName) {
+                        findValue.setAttribute('name', 'setting[' + fieldName + ']');
+                    }
+                }
+            }
+        }
+        
+        if (findId) {
+            findId.value = item.identifier || '';
+        }
+        
+        if (findImage && item.publicUrl) {
+            findImage.setAttribute('src', item.publicUrl);
+            findImage.style.display = 'block';
+        }
+        
+        if (findName) {
+            findName.textContent = item.path || '';
+            findName.setAttribute('title', item.path || '');
+        }
+        
+        // Hide plus button, show image container
+        if (grid) {
+            var blankCover = grid.querySelector('.blank-cover');
+            if (blankCover) {
+                blankCover.style.display = 'none';
+            }
+            
+            // Show image container if it exists
+            var imgContainer = grid.querySelector('.img-cover');
+            if (imgContainer && imgContainer.parentElement) {
+                imgContainer.parentElement.style.display = 'block';
+            }
+        }
+    }
+    
     // Direct click handler for remove button - works even if MediaFinder doesn't initialize
     function initRemoveButtons() {
         document.querySelectorAll('.find-remove-button').forEach(function(btn) {
@@ -329,38 +675,17 @@ if (!empty($settingsDashboardLogo)) {
         jQuery(document).on('render', initRemoveButtons);
     }
     
-    // Function to clear invalid image from mediafinder
-    function clearInvalidImage(img) {
-        var mediaFinder = img.closest('.media-finder');
-        if (mediaFinder) {
-            var findValue = mediaFinder.querySelector('[data-find-value]');
-            if (findValue) {
-                findValue.value = '';
-                findValue.removeAttribute('name');
-            }
-            var findId = mediaFinder.querySelector('[data-find-identifier]');
-            if (findId) {
-                findId.value = '';
-            }
-            var grid = mediaFinder.querySelector('.grid');
-            if (grid) {
-                grid.innerHTML = '<a class="find-button blank-cover"><i class="fa fa-plus"></i></a>';
-            }
-        }
-    }
-    
-    // List of known invalid image patterns to remove immediately
-    var invalidPatterns = [
-        'vecteezy_fast-food-meal-with_25065315-removebg-preview-removebg-preview.jpg',
-        'fresh-chicken-curry-isolated-on-transparent-background-free-png-removebg-preview.jpg',
-        'thumb_ebb1d302c04621b99b053d0559077379__122x122_contain.jpg',
-        'thumb_4326f3e81f7e4c3b0ab60d3b5fa94f62__122x122_contain.jpg',
-        'ebb1d302c04621b99b053d0559077379',
-        '4326f3e81f7e4c3b0ab60d3b5fa94f62'
-    ];
-    
-    // Function to check and clear invalid images
+    // Dashboard logo handling with image validation
     function checkAndClearInvalidImages() {
+        var invalidPatterns = [
+            'vecteezy_fast-food-meal-with_25065315-removebg-preview-removebg-preview.jpg',
+            'fresh-chicken-curry-isolated-on-transparent-background-free-png-removebg-preview.jpg',
+            'thumb_ebb1d302c04621b99b053d0559077379__122x122_contain.jpg',
+            'thumb_4326f3e81f7e4c3b0ab60d3b5fa94f62__122x122_contain.jpg',
+            'ebb1d302c04621b99b053d0559077379',
+            '4326f3e81f7e4c3b0ab60d3b5fa94f62'
+        ];
+        
         document.querySelectorAll('.media-finder img').forEach(function(img) {
             var imgSrc = img.getAttribute("src") || '';
             
@@ -369,107 +694,82 @@ if (!empty($settingsDashboardLogo)) {
                 return imgSrc.indexOf(pattern) !== -1;
             });
             
-            // Also check for thumbnail patterns that are likely invalid
-            if (imgSrc.indexOf('thumb_') !== -1 && (imgSrc.indexOf('ebb1d302c04621b99b053d0559077379') !== -1 || imgSrc.indexOf('4326f3e81f7e4c3b0ab60d3b5fa94f62') !== -1)) {
-                isInvalid = true;
-            }
-            
             if (isInvalid) {
-                // Immediately clear invalid images
-                clearInvalidImage(img);
-                
-                // Also clear from database via AJAX
-                if (typeof jQuery !== 'undefined') {
-                    var mediaFinder = img.closest('.media-finder');
-                    if (mediaFinder) {
-                        var findValue = mediaFinder.querySelector('[data-find-value]');
-                        var fieldName = '';
-                        if (findValue) {
-                            fieldName = findValue.getAttribute('name') || '';
-                        }
-                        // Try to determine field from parent container
-                        if (!fieldName) {
-                            var container = mediaFinder.closest('[id*="dashboard"]');
-                            if (container && container.id.indexOf('dashboard') !== -1) {
-                                fieldName = 'dashboard_logo';
-                            } else if (container && container.id.indexOf('favicon') !== -1) {
-                                fieldName = 'favicon_logo';
-                            }
-                        }
-                        
-                        if (fieldName.indexOf('dashboard_logo') !== -1) {
-                            jQuery.post(window.location.href, {'clear_dashboard_logo': true});
-                        } else if (fieldName.indexOf('favicon_logo') !== -1) {
-                            jQuery.post(window.location.href, {'clear_favicon_logo': true});
-                        }
+                var mediaFinder = img.closest('.media-finder');
+                if (mediaFinder) {
+                    var findValue = mediaFinder.querySelector('[data-find-value]');
+                    if (findValue) {
+                        findValue.value = '';
+                        findValue.removeAttribute('name');
                     }
-                }
-                return;
-            }
-            
-            // Check if image loads successfully
-            img.onerror = function() {
-                clearInvalidImage(this);
-            };
-            
-            // For dashboard logo specifically
-            if (img.closest('#mediafinder-formdashboardlogo-dashboard-logo')) {
-                img.onload = function() {
-                    let dashboardPath = this.getAttribute("src");
-                    if (dashboardPath && dashboardPath.trim() !== '') {
-                        let currentUrl = new URL(window.location.href);
-                        let currentSrsDashboard = currentUrl.searchParams.get("dash");
-                        if (!currentSrsDashboard || currentSrsDashboard !== dashboardPath) {
-                            currentUrl.searchParams.set("dash", dashboardPath);
-                            window.location.href = currentUrl;
-                        }
+                    var findId = mediaFinder.querySelector('[data-find-identifier]');
+                    if (findId) {
+                        findId.value = '';
                     }
-                };
-                
-                // If image already loaded, trigger onload
-                if (img.complete && img.naturalHeight !== 0) {
-                    img.onload();
+                    var grid = mediaFinder.querySelector('.grid');
+                    if (grid) {
+                        grid.innerHTML = '<a class="find-button blank-cover"><i class="fa fa-plus"></i></a>';
+                    }
                 }
             }
         });
     }
     
-    // Dashboard logo handling with image validation
-    document.addEventListener("DOMContentLoaded", function () {
-        // Run immediately
+    // Run immediately and repeatedly
+    removeInvalidImagesImmediately();
+    checkAndClearInvalidImages();
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            removeInvalidImagesImmediately();
+            checkAndClearInvalidImages();
+        });
+    }
+    
+    setTimeout(function() {
+        removeInvalidImagesImmediately();
         checkAndClearInvalidImages();
-        
-        // Also run after a short delay to catch dynamically loaded images
-        setTimeout(checkAndClearInvalidImages, 500);
-        setTimeout(checkAndClearInvalidImages, 1000);
-    });
+    }, 100);
+    setTimeout(function() {
+        removeInvalidImagesImmediately();
+        checkAndClearInvalidImages();
+    }, 500);
     
     // Also run on AJAX updates
     if (typeof jQuery !== 'undefined') {
-        jQuery(document).on('ajaxUpdateComplete', checkAndClearInvalidImages);
-        jQuery(document).on('render', checkAndClearInvalidImages);
+        jQuery(document).on('ajaxUpdateComplete', function() {
+            removeInvalidImagesImmediately();
+            checkAndClearInvalidImages();
+        });
+        jQuery(document).on('render', function() {
+            removeInvalidImagesImmediately();
+            checkAndClearInvalidImages();
+        });
     }
     
-    // Ensure MediaFinder is initialized (for other functionality)
-    if (typeof jQuery !== 'undefined' && jQuery.fn.mediaFinder) {
-        function initMediaFinder() {
-            jQuery('[data-control="mediafinder"]').each(function() {
-                if (!jQuery(this).data('ti.mediaFinder')) {
-                    jQuery(this).mediaFinder();
-                }
-            });
-        }
-        
-        if (jQuery.fn.render) {
-            jQuery(document).render(initMediaFinder);
-        }
-        jQuery(document).ready(initMediaFinder);
-        if (typeof jQuery !== 'undefined') {
-            jQuery(document).on('ajaxUpdateComplete', initMediaFinder);
-        }
+    // Initialize plus buttons - run immediately and on ready
+    function initAll() {
+        initPlusButtons();
+        initRemoveButtons();
+    }
+    
+    // Run immediately
+    initAll();
+    
+    // Also run on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    }
+    
+    // Run multiple times to catch dynamically added elements
+    setTimeout(initAll, 100);
+    setTimeout(initAll, 500);
+    setTimeout(initAll, 1000);
+    
+    // Re-initialize on AJAX updates
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).on('ajaxUpdateComplete', initAll);
+        jQuery(document).on('render', initAll);
     }
 })();
 </script>
-
-
-
