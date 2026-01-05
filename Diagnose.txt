@@ -1,0 +1,148 @@
+
+echo "=== 404 Error Diagnostic ==="
+echo ""
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+FRONTEND_DIR="${SCRIPT_DIR}/frontend"
+
+if [ ! -d "$FRONTEND_DIR" ]; then
+    FRONTEND_DIR="/var/www/paymydine/frontend"
+fi
+
+if [ ! -d "$FRONTEND_DIR" ]; then
+    echo "❌ Cannot find frontend directory. Please run this from project root or specify FRONTEND_DIR"
+    exit 1
+fi
+
+cd "$FRONTEND_DIR"
+echo "📁 Working directory: $(pwd)"
+echo ""
+
+echo "1. Checking build directory..."
+if [ -d ".next" ]; then
+    echo "   ✅ .next directory exists"
+    
+    if [ -f ".next/BUILD_ID" ]; then
+        BUILD_ID=$(cat .next/BUILD_ID)
+        echo "   ✅ BUILD_ID: $BUILD_ID"
+    else
+        echo "   ❌ BUILD_ID file missing!"
+        exit 1
+    fi
+    
+    if [ -d ".next/static" ]; then
+        STATIC_COUNT=$(find .next/static -type f | wc -l)
+        echo "   ✅ .next/static exists ($STATIC_COUNT files)"
+        
+        # Find a sample CSS file
+        SAMPLE_CSS=$(find .next/static -name "*.css" -type f | head -1)
+        if [ -n "$SAMPLE_CSS" ]; then
+            REL_PATH=${SAMPLE_CSS#.next/static/}
+            echo "   📄 Sample file: $REL_PATH"
+        fi
+    else
+        echo "   ❌ .next/static directory missing!"
+        exit 1
+    fi
+else
+    echo "   ❌ .next directory missing! Run: npm run build"
+    exit 1
+fi
+
+echo ""
+echo "2. Testing Next.js server (localhost:3001)..."
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/)
+if [ "$HTTP_CODE" = "200" ]; then
+    echo "   ✅ Next.js server responding (HTTP $HTTP_CODE)"
+else
+    echo "   ❌ Next.js server not responding (HTTP $HTTP_CODE)"
+    exit 1
+fi
+
+echo ""
+echo "3. Testing static file path structure..."
+CSS_FILES=$(find .next/static -name "*.css" -type f | head -3)
+if [ -n "$CSS_FILES" ]; then
+    echo "   📁 CSS files found:"
+    for CSS in $CSS_FILES; do
+        REL_PATH=${CSS#.next/static/}
+        STATIC_URL="/_next/static/${REL_PATH}"
+        echo "      File: $REL_PATH"
+        echo "      URL:  $STATIC_URL"
+        
+        # Test if accessible via Next.js
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3001${STATIC_URL}")
+        if [ "$HTTP_CODE" = "200" ]; then
+            echo "      ✅ Accessible via Next.js (HTTP $HTTP_CODE)"
+        else
+            echo "      ❌ NOT accessible via Next.js (HTTP $HTTP_CODE)"
+        fi
+        echo ""
+    done
+fi
+
+echo ""
+echo "4. Checking PM2 process..."
+PM2_INFO=$(pm2 describe paymydine-frontend 2>/dev/null)
+if [ $? -eq 0 ]; then
+    echo "   ✅ PM2 process exists"
+    PM2_CWD=$(echo "$PM2_INFO" | grep "cwd" | awk '{print $4}')
+    PM2_SCRIPT=$(echo "$PM2_INFO" | grep "script" | head -1)
+    echo "   📁 PM2 working directory: $PM2_CWD"
+    echo "   🔧 PM2 script: $PM2_SCRIPT"
+    
+    if [ "$PM2_CWD" != "$FRONTEND_DIR" ]; then
+        echo "   ⚠️  WARNING: PM2 cwd ($PM2_CWD) != frontend dir ($FRONTEND_DIR)"
+        echo "   This could cause Next.js to not find .next directory!"
+    fi
+else
+    echo "   ❌ PM2 process not found"
+fi
+
+echo ""
+echo "5. Testing through proxy (public domain)..."
+DOMAIN="mimoza.paymydine.com"
+if [ -n "$SAMPLE_CSS" ]; then
+    REL_PATH=${SAMPLE_CSS#.next/static/}
+    STATIC_URL="/_next/static/${REL_PATH}"
+    
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${DOMAIN}${STATIC_URL}")
+    if [ "$HTTP_CODE" = "200" ]; then
+        echo "   ✅ Static file accessible via proxy (HTTP $HTTP_CODE)"
+    else
+        echo "   ❌ Static file NOT accessible via proxy (HTTP $HTTP_CODE)"
+        echo "   This suggests the PHP proxy is not forwarding /_next/ requests correctly"
+        echo ""
+        echo "   Try: curl -v http://${DOMAIN}${STATIC_URL}"
+    fi
+fi
+
+echo ""
+echo "6. Checking route configuration..."
+ROUTES_FILE="${SCRIPT_DIR}/app/main/routes.php"
+if [ -f "$ROUTES_FILE" ]; then
+    if grep -q "_next" "$ROUTES_FILE"; then
+        echo "   ✅ Routes file mentions _next"
+    else
+        echo "   ⚠️  Routes file doesn't mention _next - proxy might not handle /_next/ paths"
+    fi
+    
+    if grep -q "NEXT_PROXY_ORIGIN" "$ROUTES_FILE"; then
+        PROXY_URL=$(grep "NEXT_PROXY_ORIGIN" "$ROUTES_FILE" | head -1 | grep -o "http://[^']*")
+        echo "   🔗 Proxy URL in routes: $PROXY_URL"
+    fi
+fi
+
+echo ""
+echo "=== Summary ==="
+echo ""
+echo "If static files work via localhost:3001 but NOT via public domain:"
+echo "  → The PHP proxy is not forwarding /_next/ requests"
+echo "  → Check app/main/routes.php proxy configuration"
+echo ""
+echo "If static files don't work via localhost:3001:"
+echo "  → Next.js can't find the files"
+echo "  → Check PM2 working directory matches frontend directory"
+echo "  → Verify .next directory is in the frontend folder"
+echo ""
+
