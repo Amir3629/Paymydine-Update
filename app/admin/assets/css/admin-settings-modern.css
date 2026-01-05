@@ -1,0 +1,3437 @@
+/* ============================================
+   ADMIN SETTINGS PAGE - MODERN BEAUTIFUL STYLING
+   Makes everything look modern and professional
+   ============================================ */
+
+/* ========================================
+   MEDIA FINDER - BEAUTIFUL IMAGE CARDS
+   AGGRESSIVE OVERRIDES FOR SETTINGS PAGE
+   ======================================== */
+
+/* Make image cards larger and more beautiful - HIGH SPECIFICITY */
+body .page-content .media-finder .grid,
+body #edit-form .media-finder .grid,
+body .form-fields .media-finder .grid,
+body .form-group .media-finder .grid,
+.media-finder .grid {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
+  border-radius: 16px !important;
+  border: 2px solid #e5e9f2 !important;
+  width: 160px !important;
+  height: 160px !important;
+  min-width: 160px !important;
+  min-height: 160px !important;
+  max-width: 160px !important;
+  max-height: 160px !important;
+  position: relative !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  overflow: visible !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+}
+
+body .page-content .media-finder .grid:hover,
+body #edit-form .media-finder .grid:hover,
+body .form-fields .media-finder .grid:hover,
+body .form-group .media-finder .grid:hover,
+.media-finder .grid:hover {
+  border-color: #364a63 !important; /* Dark blue instead of green */
+  box-shadow: 0 8px 24px rgba(54, 74, 99, 0.15) !important; /* Dark blue shadow instead of green */
+  transform: translateY(-2px) !important;
+}
+
+.media-finder .grid:focus {
+  border-color: #364a63 !important; /* Dark blue instead of green */
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important; /* Dark blue shadow instead of green */
+  outline: none !important;
+}
+
+/* Image inside card */
+.media-finder .grid .img-cover {
+  transform: translate(50%, 50%);
+  display: block;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.media-finder .grid img {
+  transform: translate(-50%, -50%);
+  border-radius: 14px;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.media-finder .grid .media-icon {
+  text-align: center;
+  transform: translate(-50%, -50%);
+  color: #6b7280;
+}
+
+/* ========================================
+   PLUS BUTTON - LARGE & BEAUTIFUL
+   ======================================== */
+
+.media-finder .grid .blank-cover {
+  position: relative;
+  overflow: hidden;
+  padding-top: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+  z-index: 10 !important;
+  cursor: pointer !important;
+  background: #f1f4fb !important; /* Ice white color */
+  border-radius: 14px;
+  transition: all 0.3s ease !important;
+}
+
+.media-finder .grid .blank-cover:hover {
+  background: #e5ebf7 !important; /* Slightly darker ice white on hover */
+  transform: scale(1.02);
+}
+
+body .page-content .media-finder .grid .blank-cover i,
+body #edit-form .media-finder .grid .blank-cover i,
+body .form-fields .media-finder .grid .blank-cover i,
+body .form-group .media-finder .grid .blank-cover i,
+.media-finder .grid .blank-cover i,
+.media-finder .grid .blank-cover .fa-plus,
+.media-finder .grid .find-button.blank-cover i,
+.media-finder .grid .find-button.blank-cover .fa-plus {
+  position: absolute !important;
+  font-size: 48px !important;
+  color: #202938 !important; /* Dark blue color */
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  transition: all 0.3s ease !important;
+  font-weight: 300 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+}
+
+.media-finder .grid .blank-cover:hover i,
+.media-finder .grid .blank-cover:hover .fa-plus,
+.media-finder .grid .find-button.blank-cover:hover i,
+.media-finder .grid .find-button.blank-cover:hover .fa-plus {
+  color: #364a63 !important; /* Slightly lighter dark blue on hover */
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* NUCLEAR: Override any inline styles for blank-cover background and plus icon color */
+html body .media-finder .grid .blank-cover,
+html body .media-finder .grid .find-button.blank-cover,
+html body .media-finder .grid a.blank-cover {
+  background: #f1f4fb !important; /* Ice white - override everything */
+  background-color: #f1f4fb !important;
+}
+
+html body .media-finder .grid .blank-cover:hover,
+html body .media-finder .grid .find-button.blank-cover:hover,
+html body .media-finder .grid a.blank-cover:hover {
+  background: #e5ebf7 !important; /* Slightly darker ice white on hover */
+  background-color: #e5ebf7 !important;
+}
+
+html body .media-finder .grid .blank-cover i,
+html body .media-finder .grid .blank-cover .fa-plus,
+html body .media-finder .grid .find-button.blank-cover i,
+html body .media-finder .grid .find-button.blank-cover .fa-plus,
+html body .media-finder .grid a.blank-cover i,
+html body .media-finder .grid a.blank-cover .fa-plus {
+  color: #202938 !important; /* Dark blue - override everything including inline styles */
+}
+
+html body .media-finder .grid .blank-cover:hover i,
+html body .media-finder .grid .blank-cover:hover .fa-plus,
+html body .media-finder .grid .find-button.blank-cover:hover i,
+html body .media-finder .grid .find-button.blank-cover:hover .fa-plus,
+html body .media-finder .grid a.blank-cover:hover i,
+html body .media-finder .grid a.blank-cover:hover .fa-plus {
+  color: #364a63 !important; /* Slightly lighter dark blue on hover */
+}
+
+/* ========================================
+   CROSS/REMOVE BUTTON - LARGE & BEAUTIFUL
+   ======================================== */
+
+.grid .find-remove-button {
+  display: none !important;
+  pointer-events: none;
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 9999 !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body .page-content .grid:hover .find-remove-button,
+body #edit-form .grid:hover .find-remove-button,
+body .form-fields .grid:hover .find-remove-button,
+body .form-group .grid:hover .find-remove-button,
+body .page-content .grid .find-remove-button:hover,
+body #edit-form .grid .find-remove-button:hover,
+body .form-fields .grid .find-remove-button:hover,
+body .form-group .grid .find-remove-button:hover,
+.grid:hover .find-remove-button,
+.grid .find-remove-button:hover {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
+  text-align: center !important;
+  font-size: 20px !important;
+  color: #dc3545 !important;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25) !important;
+  border: 2px solid rgba(220, 53, 69, 0.1) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.grid .find-remove-button:hover {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.35) !important;
+  transform: scale(1.1) rotate(90deg) !important;
+  border-color: #dc3545 !important;
+}
+
+/* ========================================
+   FORM FIELDS - MODERN STYLING
+   ======================================== */
+
+/* Settings form container - HIGH SPECIFICITY */
+body .page-content #edit-form,
+body #edit-form,
+#edit-form {
+  padding: 24px !important;
+}
+
+/* Form groups - better spacing */
+.form-group {
+  margin-bottom: 28px !important;
+}
+
+/* Labels - larger and more readable */
+.form-group label,
+.form-label {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  margin-bottom: 10px !important;
+  display: block;
+  letter-spacing: -0.01em;
+}
+
+/* Form controls - modern inputs */
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+textarea,
+select,
+.form-select {
+  border-radius: 12px !important;
+  border: 2px solid #e5e9f2 !important;
+  padding: 12px 16px !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+.form-control:hover,
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.form-control:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #364a63 !important;
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  outline: none !important;
+}
+
+textarea.form-control {
+  min-height: 120px !important;
+  resize: vertical;
+}
+
+/* Form notes/comments */
+.form-note,
+.help-block,
+.comment {
+  font-size: 13px !important;
+  color: #6b7280 !important;
+  margin-top: 6px !important;
+  line-height: 1.5 !important;
+}
+
+/* ========================================
+   BUTTONS - LARGE & MODERN
+   ======================================== */
+
+/* Toolbar buttons */
+.toolbar .btn,
+.btn {
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+  min-height: 48px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #526484 0%, #2a3a4e 100%) !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(54, 74, 99, 0.2) !important;
+}
+
+.btn-outline-secondary {
+  border: 2px solid #e5e9f2 !important;
+  color: #6b7280 !important;
+  background: #ffffff !important;
+}
+
+.btn-outline-secondary:hover {
+  border-color: #cbd5e1 !important;
+  background: #f8f9fa !important;
+  color: #1f2937 !important;
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   TABS - MODERN STYLING
+   ======================================== */
+
+.form-nav.nav-tabs {
+  border-bottom: 2px solid #e5e9f2 !important;
+  margin-bottom: 32px !important;
+}
+
+.form-nav.nav-tabs .nav-item {
+  margin-right: 8px;
+}
+
+.form-nav.nav-tabs .nav-link {
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+  padding: 14px 20px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  background: transparent !important;
+  border-radius: 12px 12px 0 0 !important;
+  transition: all 0.3s ease !important;
+  margin-bottom: -2px;
+}
+
+.form-nav.nav-tabs .nav-link:hover {
+  color: #1f2937 !important;
+  background: #f8f9fa !important;
+  border-bottom-color: #cbd5e1 !important;
+}
+
+.form-nav.nav-tabs .nav-link.active {
+  color: #364a63 !important;
+  background: #ffffff !important;
+  border-bottom-color: #364a63 !important;
+}
+
+/* Tab content */
+.tab-content {
+  padding: 0;
+}
+
+.tab-pane {
+  padding: 0;
+}
+
+/* ========================================
+   SECTIONS - BETTER SPACING
+   ======================================== */
+
+.form-section {
+  margin-bottom: 40px;
+  padding: 24px;
+  background: #f8f9fa;
+  border-radius: 16px;
+  border: 1px solid #e5e9f2;
+}
+
+.form-section-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+  margin-bottom: 20px !important;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e9f2;
+}
+
+/* ========================================
+   MEDIA FINDER INLINE STYLE
+   ======================================== */
+
+.media-finder .input-group {
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+.media-finder .input-group-text {
+  background: #f8f9fa !important;
+  border: 2px solid #e5e9f2 !important;
+  border-right: none !important;
+  border-radius: 12px 0 0 12px !important;
+  padding: 12px 16px !important;
+  width: auto !important;
+  min-width: 60px !important;
+}
+
+.media-finder .input-group-text img {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px;
+}
+
+.media-finder .form-control[data-find-name] {
+  border: 2px solid #e5e9f2 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-radius: 0 !important;
+  padding: 12px 16px !important;
+  background: #ffffff !important;
+}
+
+.media-finder .find-button.btn-outline-primary,
+.media-finder .btn-outline-primary {
+  border: 2px solid #364a63 !important;
+  border-left: none !important;
+  border-radius: 0 12px 12px 0 !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  color: #ffffff !important;
+  padding: 12px 20px !important;
+  min-width: 60px !important;
+  transition: all 0.3s ease !important;
+}
+
+.media-finder .find-button.btn-outline-primary:hover,
+.media-finder .btn-outline-primary:hover {
+  background: linear-gradient(135deg, #526484 0%, #2a3a4e 100%) !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.25) !important;
+}
+
+.media-finder .btn-outline-danger,
+.media-finder .find-remove-button.btn-outline-danger {
+  border: 2px solid #dc3545 !important;
+  background: transparent !important;
+  color: #dc3545 !important;
+  border-radius: 12px !important;
+  padding: 12px 20px !important;
+  transition: all 0.3s ease !important;
+}
+
+.media-finder .btn-outline-danger:hover,
+.media-finder .find-remove-button.btn-outline-danger:hover {
+  background: #dc3545 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25) !important;
+}
+
+/* ========================================
+   ICON CONTAINER - BETTER STYLING
+   ======================================== */
+
+.grid .icon-container {
+  display: none;
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 9;
+  text-align: center;
+}
+
+.grid:hover .icon-container {
+  display: block;
+}
+
+.grid:hover .icon-container span {
+  background: rgba(255, 255, 255, 0.95) !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  color: #1f2937 !important;
+  word-wrap: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+  .media-finder .grid {
+    width: 140px !important;
+    height: 140px !important;
+  }
+  
+  .media-finder .grid .blank-cover i {
+    font-size: 40px !important;
+  }
+  
+  .grid .find-remove-button,
+  .grid:hover .find-remove-button {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 18px !important;
+    top: 10px !important;
+    right: 10px !important;
+  }
+}
+
+/* ========================================
+   ANIMATIONS & TRANSITIONS
+   ======================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-group {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ========================================
+   ADDITIONAL POLISH
+   ======================================== */
+
+/* Remove old office-style borders */
+.form-fields {
+  padding: 0;
+}
+
+/* Better card styling if used */
+.card {
+  border-radius: 16px !important;
+  border: 2px solid #e5e9f2 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
+  border-bottom: 2px solid #e5e9f2 !important;
+  border-radius: 16px 16px 0 0 !important;
+  padding: 20px 24px !important;
+}
+
+.card-body {
+  padding: 24px !important;
+}
+
+/* Radio and checkbox styling */
+.form-check-input {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 6px !important;
+  border: 2px solid #e5e9f2 !important;
+  cursor: pointer;
+  transition: all 0.3s ease !important;
+}
+
+.form-check-input:checked {
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+input[type="radio"] {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  border: 2px solid #e5e9f2 !important;
+}
+
+input[type="radio"]:checked {
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+/* ========================================
+   MEDIA MANAGER - BEAUTIFUL STYLING
+   ======================================== */
+
+/* Media Manager Container */
+.media-manager {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.media-modal .modal-content,
+.media-modal.modal-fullscreen .modal-content,
+.media-modal.modal-fullscreen-sm-down .modal-content,
+.media-modal.modal-fullscreen-md-down .modal-content,
+.media-modal.modal-fullscreen-lg-down .modal-content,
+.media-modal.modal-fullscreen-xl-down .modal-content,
+.media-modal.modal-fullscreen-xxl-down .modal-content {
+  border-radius: 16px !important;
+  border: 2px solid #e5e9f2 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+.media-modal .modal-body {
+  padding: 0 !important;
+  background: #ffffff !important;
+}
+
+/* ========================================
+   MEDIA TOOLBAR - CLEAN LAYOUT
+   ======================================== */
+
+.media-toolbar {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  padding: 20px 24px !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 10 !important;
+}
+
+/* Ensure toolbar height doesn't change when dropdowns open */
+.media-toolbar .btn-toolbar {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.media-toolbar .btn-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important; /* NO gap - using margin instead */
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+}
+
+.media-toolbar .toolbar-action {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important; /* NO gap - using margin instead */
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.media-toolbar .toolbar-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important; /* NO gap - using margin instead */
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ensure all toolbar items align to same baseline */
+.media-toolbar .toolbar-action,
+.media-toolbar .toolbar-item,
+.media-toolbar .btn-toolbar {
+  align-items: center !important;
+  align-content: center !important;
+}
+
+/* Force all buttons to align vertically */
+.media-toolbar .btn,
+.media-toolbar .btn-group,
+.media-toolbar .dropdown,
+.media-toolbar .input-group {
+  vertical-align: middle !important;
+  align-self: center !important;
+}
+
+/* ========================================
+   ALL BUTTONS - EXACTLY LIKE FIRST TWO BUTTONS
+   FORCE EVERYTHING TO MATCH btn-default EXACTLY
+   ======================================== */
+
+/* ALL BUTTONS - Base styles matching first two buttons exactly */
+.media-manager .btn,
+.media-toolbar .btn,
+.media-toolbar .input-group .btn,
+.media-toolbar .btn-primary,
+.media-toolbar .btn-default,
+.media-toolbar .btn-danger,
+.media-toolbar .btn-success,
+.media-toolbar .btn-secondary,
+.media-toolbar .btn-outline-primary,
+.media-toolbar .btn-outline-default,
+.media-toolbar .btn-outline-danger,
+.media-toolbar .btn-outline-success,
+.media-toolbar .btn-outline-secondary,
+.media-toolbar .dropdown-toggle,
+.media-toolbar .dz-clickable,
+.media-toolbar button[data-media-control],
+.media-toolbar a[data-media-control],
+.media-toolbar button.btn,
+.media-toolbar a.btn {
+  /* Square icon buttons - same size */
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  
+  /* Center icon - MUST be inline-flex, not flex */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  /* EXACT styling from first two buttons */
+  border-radius: 10px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 2px solid #e5e9f2 !important;
+  border-width: 2px !important;
+  border-color: #e5e9f2 !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+  
+  /* Background - EXACTLY like first two buttons */
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  
+  /* Shadow - EXACTLY like first two buttons (reference shows "none") */
+  box-shadow: none !important;
+  
+  /* Text color */
+  color: #364a63 !important;
+  
+  /* Hide text, show only icons - MUST be 0px */
+  font-size: 0 !important;
+  font-size: 0px !important;
+  text-indent: -9999px !important;
+  overflow: hidden !important;
+  
+  /* Override any inline styles */
+  transform: none !important;
+}
+
+/* Override inline styles on ALL buttons - MUST override JavaScript inline styles */
+.media-toolbar .btn[style],
+.media-toolbar button[style],
+.media-toolbar a.btn[style],
+.media-toolbar .btn-primary[style],
+.media-toolbar .btn-danger[style],
+.media-toolbar .btn-success[style],
+.media-toolbar .dz-clickable[style],
+.media-toolbar button[data-media-control="upload"][style],
+.media-toolbar .btn-primary.dz-clickable[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  box-shadow: none !important;
+  color: #364a63 !important;
+  transform: none !important;
+}
+
+/* UPLOAD BUTTON - FORCE WHITE - OVERRIDE EVERYTHING */
+.media-toolbar button[data-media-control="upload"],
+.media-toolbar .btn-primary.dz-clickable,
+.media-toolbar button.dz-clickable[data-media-control="upload"],
+.media-toolbar .btn-primary[data-media-control="upload"],
+.media-toolbar button.btn-primary.dz-clickable,
+.media-toolbar .toolbar-action button[data-media-control="upload"],
+.media-toolbar .toolbar-item button[data-media-control="upload"],
+.media-toolbar .btn-group button[data-media-control="upload"],
+.media-toolbar .btn-group .btn-primary.dz-clickable,
+.media-manager button[data-media-control="upload"],
+.media-manager .btn-primary.dz-clickable {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  box-shadow: none !important;
+  color: #364a63 !important;
+  transform: none !important;
+  width: 42px !important;
+  height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* UPLOAD BUTTON WITH INLINE STYLES - OVERRIDE THEM */
+.media-toolbar button[data-media-control="upload"][style],
+.media-toolbar .btn-primary.dz-clickable[style],
+.media-toolbar button.dz-clickable[data-media-control="upload"][style],
+.media-toolbar .btn-primary[data-media-control="upload"][style],
+.media-toolbar button.btn-primary.dz-clickable[style],
+.media-toolbar .toolbar-action button[data-media-control="upload"][style],
+.media-toolbar .toolbar-item button[data-media-control="upload"][style],
+.media-toolbar .btn-group button[data-media-control="upload"][style],
+.media-toolbar .btn-group .btn-primary.dz-clickable[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  box-shadow: none !important;
+  color: #364a63 !important;
+  transform: none !important;
+}
+
+/* Force new folder button to be white - override ANY green gradient from custom-fixes.css */
+.media-toolbar button[data-media-control="new-folder"],
+.media-toolbar button.btn-default[data-media-control="new-folder"],
+.media-toolbar [data-media-control="new-folder"].btn-default,
+.media-toolbar .toolbar-action button[data-media-control="new-folder"],
+.media-toolbar .toolbar-action .btn:first-child[data-media-control="new-folder"],
+.media-toolbar .toolbar-action .btn-group button[data-media-control="new-folder"],
+.media-toolbar .toolbar-action .btn-group .btn[data-media-control="new-folder"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+  color: #364a63 !important;
+  display: inline-flex !important;
+}
+
+/* Override custom-fixes.css green gradient rule for media toolbar buttons */
+.media-toolbar .toolbar-action .btn:first-child:not(.btn-ice),
+.media-toolbar .toolbar-action .btn-group .btn:first-child,
+.media-toolbar .toolbar-action .btn-group button:first-child {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  color: #364a63 !important;
+}
+
+/* Fix filter/sort buttons - hide text, match display exactly */
+.media-toolbar .input-group .btn,
+.media-toolbar .input-group .dropdown-toggle,
+.media-toolbar .input-group a.btn,
+.media-toolbar .input-group a.dropdown-toggle {
+  display: inline-flex !important;
+  font-size: 0 !important;
+  font-size: 0px !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Fix search input border-radius - override Bootstrap input-group completely */
+.media-toolbar .input-group .form-control[data-media-control="search"],
+.media-toolbar .form-control[data-media-control="search"],
+.media-toolbar .input-group > .form-control[data-media-control="search"],
+.media-toolbar .input-group > :not(:first-child):not(.dropdown-menu):not(.dropdown-toggle):not(.btn).form-control[data-media-control="search"] {
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  -moz-border-radius: 10px !important;
+  border-top-left-radius: 10px !important;
+  border-top-right-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-left: 2px solid #e5e9f2 !important;
+  border-right: 2px solid #e5e9f2 !important;
+  border-top: 2px solid #e5e9f2 !important;
+  border-bottom: 2px solid #e5e9f2 !important;
+}
+
+/* Override Bootstrap input-group rules that remove left border-radius */
+.media-toolbar .input-group > :not(:first-child):not(.dropdown-menu):not(.dropdown-toggle):not(.btn).form-control[data-media-control="search"] {
+  border-top-left-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+}
+
+/* Hide media manager modal header */
+.media-modal .modal-header {
+  display: none !important;
+}
+
+/* ========================================
+   CONSISTENT 10PX SPACING - ALL BUTTONS
+   ======================================== */
+
+/* Toolbar action - NO gap, we'll use margin instead */
+.media-toolbar .toolbar-action,
+.toolbar-action {
+  gap: 0 !important;
+}
+
+/* Toolbar item - NO gap, we'll use margin instead to avoid double spacing */
+.media-toolbar .toolbar-item,
+.toolbar-action .toolbar-item {
+  gap: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* ALL btn-groups and input-groups get 10px margin-right - OVERRIDE EVERYTHING */
+/* Target all direct children of toolbar-item except spacer and last child (unless followed by spacer) */
+.media-toolbar .toolbar-item > .btn-group,
+.media-toolbar .toolbar-action .toolbar-item > .btn-group,
+.media-toolbar .btn-toolbar .toolbar-item > .btn-group,
+.toolbar-action .toolbar-item > .btn-group,
+.media-toolbar .toolbar-item > .input-group,
+.media-toolbar .toolbar-action .toolbar-item > .input-group,
+.media-toolbar .btn-toolbar .toolbar-item > .input-group,
+.toolbar-action .toolbar-item > .input-group,
+.media-toolbar .toolbar-item .btn-group,
+.media-toolbar .toolbar-item .input-group,
+/* All direct children except spacer and last child */
+.media-toolbar .toolbar-item > *:not(.toolbar-spacer):not(:last-child),
+.toolbar-action .toolbar-item > *:not(.toolbar-spacer):not(:last-child) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Last child before spacer also needs margin-right for consistent spacing */
+/* Input-group in first toolbar-item (before spacer) needs margin-right */
+.media-toolbar .toolbar-action > .toolbar-item:first-child > .input-group:last-child,
+.media-toolbar .toolbar-action > .toolbar-item:first-child > *:last-child:not(.toolbar-spacer),
+.toolbar-action > .toolbar-item:first-child > .input-group:last-child,
+.toolbar-action > .toolbar-item:first-child > *:last-child:not(.toolbar-spacer) {
+  margin-right: 10px !important;
+}
+
+/* Last child in LAST toolbar-item (close button) has no margin-right */
+.media-toolbar .toolbar-action > .toolbar-item:last-child > *:last-child,
+.toolbar-action > .toolbar-item:last-child > *:last-child {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* OVERRIDE ANY Bootstrap or other CSS that might add spacing - AGGRESSIVE */
+.media-toolbar .toolbar-item > .btn-group,
+.media-toolbar .toolbar-item > .input-group,
+.media-toolbar .toolbar-action .toolbar-item > .btn-group,
+.media-toolbar .toolbar-action .toolbar-item > .input-group {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  position: relative !important;
+  width: auto !important;
+  min-width: auto !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important;
+}
+
+/* Override Bootstrap mr-2 and any margin utilities - AGGRESSIVE */
+.media-toolbar .toolbar-item > .btn-group.mr-2,
+.media-toolbar .toolbar-item > .input-group.mr-2,
+.media-toolbar .toolbar-item > *[class*="mr-"],
+.media-toolbar .input-group .mr-2,
+.media-toolbar .input-group .dropdown.mr-2,
+.media-toolbar .input-group [class*="mr-"],
+.media-toolbar .btn-group .dropdown.mr-2,
+.media-toolbar .btn-group [class*="mr-"],
+.toolbar-action .toolbar-item > .btn-group.mr-2,
+.toolbar-action .toolbar-item > .input-group.mr-2,
+.toolbar-action .toolbar-item > *[class*="mr-"],
+.toolbar-action .input-group .mr-2,
+.toolbar-action .input-group .dropdown.mr-2,
+.toolbar-action .input-group [class*="mr-"],
+.toolbar-action .btn-group .dropdown.mr-2,
+.toolbar-action .btn-group [class*="mr-"] {
+  margin-right: 0 !important; /* Remove Bootstrap margin - parent handles spacing */
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Override ALL mr-* classes inside media toolbar - EXCEPT dropdowns in btn-groups */
+.media-toolbar [class*="mr-"]:not(.btn-group .dropdown):not(.btn-group .dropdown[class*="mr-"]),
+.toolbar-action [class*="mr-"]:not(.btn-group .dropdown):not(.btn-group .dropdown[class*="mr-"]) {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* BUT: Dropdown inside btn-group needs margin-right for spacing to next button */
+.media-toolbar .btn-group .dropdown.mr-2,
+.toolbar-action .btn-group .dropdown.mr-2 {
+  margin-right: 10px !important; /* Override the rule above - dropdown needs spacing */
+}
+
+/* Dropdown inside btn-group - spacing between dropdown and next button */
+.media-toolbar .btn-group .dropdown,
+.media-toolbar .btn-group .dropdown.mr-2,
+.toolbar-action .btn-group .dropdown,
+.toolbar-action .btn-group .dropdown.mr-2 {
+  margin-right: 10px !important; /* Space between dropdown and next button in group */
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  display: inline-block !important;
+  position: relative !important;
+}
+
+/* Last dropdown in btn-group has no margin-right */
+.media-toolbar .btn-group .dropdown:last-child,
+.toolbar-action .btn-group .dropdown:last-child {
+  margin-right: 0 !important;
+}
+
+/* Button after dropdown in btn-group */
+.media-toolbar .btn-group .dropdown + .btn,
+.media-toolbar .btn-group .dropdown + button,
+.toolbar-action .btn-group .dropdown + .btn,
+.toolbar-action .btn-group .dropdown + button {
+  margin-left: 0 !important;
+}
+
+/* Dropdown toggle button itself - no extra margins */
+.media-toolbar .btn-group .dropdown .dropdown-toggle,
+.media-toolbar .btn-group .dropdown button.dropdown-toggle,
+.media-toolbar .btn-group .dropdown .btn.dropdown-toggle,
+.toolbar-action .btn-group .dropdown .dropdown-toggle,
+.toolbar-action .btn-group .dropdown button.dropdown-toggle,
+.toolbar-action .btn-group .dropdown .btn.dropdown-toggle {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Ensure dropdown div with mr-2 class doesn't affect button spacing */
+.media-toolbar .btn-group .dropdown.mr-2 .dropdown-toggle,
+.media-toolbar .btn-group .dropdown.mr-2 button,
+.toolbar-action .btn-group .dropdown.mr-2 .dropdown-toggle,
+.toolbar-action .btn-group .dropdown.mr-2 button {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Ensure NO margin-left on any group - override everything */
+.media-toolbar .toolbar-item .btn-group,
+.media-toolbar .toolbar-item .input-group,
+.media-toolbar .toolbar-item > .btn-group,
+.media-toolbar .toolbar-item > .input-group {
+  margin-left: 0 !important;
+}
+
+.media-toolbar .toolbar-item .btn-group + .btn-group,
+.media-toolbar .toolbar-item .btn-group + .input-group,
+.media-toolbar .toolbar-item .input-group + .btn-group,
+.media-toolbar .toolbar-item .input-group + .input-group {
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Spacer element for consistent 10px spacing - NO margins, just width */
+.media-toolbar .toolbar-action .toolbar-spacer,
+.toolbar-action .toolbar-spacer {
+  width: 10px !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+  min-width: 10px !important;
+  max-width: 10px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 !important;
+}
+
+/* First toolbar-item - no margin-right, spacing handled by groups inside */
+.media-toolbar .toolbar-action > .toolbar-item:first-child,
+.toolbar-action > .toolbar-item:first-child {
+  margin-right: 0 !important;
+}
+
+/* Last toolbar-item - no margin-left, spacing handled by spacer */
+.media-toolbar .toolbar-action > .toolbar-item:last-child,
+.toolbar-action > .toolbar-item:last-child {
+  margin-left: 0 !important;
+}
+
+/* Toolbar items spacing - handled by elements inside, not the items themselves */
+.media-toolbar .toolbar-action > .toolbar-item,
+.toolbar-action > .toolbar-item {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* First toolbar-item: no left margin */
+.media-toolbar .toolbar-action > .toolbar-item:first-child,
+.toolbar-action > .toolbar-item:first-child {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Last toolbar-item: push to right with flex, no margins */
+.media-toolbar .toolbar-action > .toolbar-item:last-child,
+.toolbar-action > .toolbar-item:last-child {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+/* Buttons inside btn-groups have 10px spacing between them - CONSISTENT */
+.media-toolbar .btn-group,
+.toolbar-action .btn-group {
+  gap: 0 !important; /* Use margin instead of gap */
+  margin: 0 !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  position: relative !important;
+  width: auto !important;
+  min-width: auto !important;
+  box-sizing: border-box !important;
+}
+
+.media-toolbar .btn-group .btn:not(:last-child),
+.media-toolbar .btn-group button:not(:last-child),
+.media-toolbar .btn-group a.btn:not(:last-child),
+.media-toolbar .btn-group .dropdown:not(:last-child),
+.toolbar-action .btn-group .btn:not(:last-child),
+.toolbar-action .btn-group button:not(:last-child),
+.toolbar-action .btn-group a.btn:not(:last-child),
+.toolbar-action .btn-group .dropdown:not(:last-child) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.media-toolbar .btn-group .btn:last-child,
+.media-toolbar .btn-group button:last-child,
+.media-toolbar .btn-group a.btn:last-child,
+.media-toolbar .btn-group .dropdown:last-child,
+.toolbar-action .btn-group .btn:last-child,
+.toolbar-action .btn-group button:last-child,
+.toolbar-action .btn-group a.btn:last-child,
+.toolbar-action .btn-group .dropdown:last-child {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* First btn-group should have same spacing as others - NO extra margin */
+.media-toolbar .toolbar-item > .btn-group:first-child,
+.toolbar-action .toolbar-item > .btn-group:first-child {
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  min-width: auto !important;
+  max-width: none !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important;
+}
+
+/* First button inside first btn-group - no extra margins */
+.media-toolbar .toolbar-item > .btn-group:first-child .btn:first-child,
+.media-toolbar .toolbar-item > .btn-group:first-child button:first-child,
+.media-toolbar .toolbar-item > .btn-group:first-child a.btn:first-child,
+.media-toolbar .toolbar-item > .btn-group:first-child .dropdown .btn:first-child,
+.media-toolbar .toolbar-item > .btn-group:first-child .dropdown button:first-child,
+.toolbar-action .toolbar-item > .btn-group:first-child .btn:first-child,
+.toolbar-action .toolbar-item > .btn-group:first-child button:first-child,
+.toolbar-action .toolbar-item > .btn-group:first-child a.btn:first-child,
+.toolbar-action .toolbar-item > .btn-group:first-child .dropdown .btn:first-child,
+.toolbar-action .toolbar-item > .btn-group:first-child .dropdown button:first-child {
+  margin-left: 0 !important;
+}
+
+/* Dropdown toggle button - no extra margins */
+.media-toolbar .toolbar-item > .btn-group:first-child .dropdown .dropdown-toggle,
+.media-toolbar .toolbar-item > .btn-group:first-child .dropdown button.dropdown-toggle,
+.toolbar-action .toolbar-item > .btn-group:first-child .dropdown .dropdown-toggle,
+.toolbar-action .toolbar-item > .btn-group:first-child .dropdown button.dropdown-toggle {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Override any rules that might add extra spacing to first group */
+.media-toolbar .toolbar-item > .btn-group:first-child:not(:last-child),
+.toolbar-action .toolbar-item > .btn-group:first-child:not(:last-child) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+}
+
+/* Ensure second btn-group has EXACTLY same spacing (10px from first) - NO extra */
+.media-toolbar .toolbar-item > .btn-group:nth-child(2),
+.media-toolbar .toolbar-item > .input-group:nth-child(2) {
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure spacing between first and second group is exactly 10px */
+.media-toolbar .toolbar-item > .btn-group:first-child + .btn-group,
+.media-toolbar .toolbar-item > .btn-group:first-child + .input-group {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Input-group has spacing between buttons - each button is independent - CONSISTENT 10px */
+.media-toolbar .input-group {
+   gap: 10px !important; /* SPACING BETWEEN BUTTONS - each is independent */
+   margin: 0 !important;
+   /* CRITICAL: Don't affect children on hover */
+   pointer-events: none !important;
+ }
+
+/* Ensure all elements in input-group have consistent spacing */
+.media-toolbar .input-group > *:not(:last-child) {
+  margin-right: 0 !important; /* Gap handles spacing */
+}
+
+.media-toolbar .input-group > *:last-child {
+  margin-right: 0 !important;
+ }
+
+/* Each button in input-group is completely independent */
+.media-toolbar .input-group > * {
+   pointer-events: auto !important;
+   /* Each button is isolated */
+   isolation: isolate !important;
+   position: relative !important;
+ }
+
+.media-toolbar .input-group .btn,
+.media-toolbar .input-group .dropdown-toggle,
+.media-toolbar .input-group a.btn {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Force inline-flex for all buttons in groups - override flex */
+.media-toolbar .btn-group .btn,
+.media-toolbar .btn-group button,
+.media-toolbar .btn-group a.btn {
+  display: inline-flex !important;
+}
+
+/* Show icons only */
+.media-manager .btn i,
+.media-toolbar .btn i,
+.media-toolbar .input-group .btn i {
+  font-size: 16px !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+  text-indent: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Hide text content - show only icons */
+.media-manager .btn > *:not(i):not(.fa):not(.icon),
+.media-toolbar .btn > *:not(i):not(.fa):not(.icon),
+.media-toolbar .input-group .btn > *:not(i):not(.fa):not(.icon) {
+  display: none !important;
+}
+
+/* Hide text nodes directly in buttons */
+.media-manager .btn,
+.media-toolbar .btn {
+  color: transparent !important;
+}
+
+.media-manager .btn i,
+.media-toolbar .btn i,
+.media-manager .btn .fa,
+.media-toolbar .btn .fa,
+.media-toolbar .btn i.fa,
+.media-toolbar .dropdown-toggle i.fa,
+.media-toolbar .btn [class*="fa-"],
+.media-toolbar .dropdown-toggle [class*="fa-"],
+.media-toolbar .input-group .btn i,
+.media-toolbar .input-group .dropdown-toggle i,
+.media-toolbar .input-group .btn .fa,
+.media-toolbar .input-group .dropdown-toggle .fa {
+  color: #364a63 !important;
+  display: inline-block !important;
+}
+
+/* Force all icons to be dark - override any white colors */
+.media-toolbar .btn i,
+.media-toolbar .btn .fa,
+.media-toolbar .dropdown-toggle i,
+.media-toolbar .dropdown-toggle .fa,
+.media-toolbar .input-group .btn i,
+.media-toolbar .input-group .dropdown-toggle i,
+.media-toolbar .input-group .btn .fa,
+.media-toolbar .input-group .dropdown-toggle .fa {
+  color: #364a63 !important;
+}
+
+/* Ensure all buttons show only icons - hide text */
+.media-manager .btn,
+.media-toolbar .btn {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Hide text nodes - keep only icons visible */
+.media-manager .btn > *:not(i):not(.fa):not([class*="fa-"]),
+.media-toolbar .btn > *:not(i):not(.fa):not([class*="fa-"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure button text color doesn't affect icons */
+.media-manager .btn,
+.media-toolbar .btn {
+  color: transparent !important;
+}
+
+/* But icons should be visible */
+.media-manager .btn i,
+.media-toolbar .btn i,
+.media-manager .btn .fa,
+.media-toolbar .btn .fa,
+.media-manager .btn [class*="fa-"],
+.media-toolbar .btn [class*="fa-"] {
+  color: #364a63 !important;
+}
+
+/* ALL ICONS - EXACTLY like first two buttons */
+.media-manager .btn i,
+.media-toolbar .btn i,
+.media-manager .btn .fa,
+.media-toolbar .btn .fa,
+.media-manager .btn [class*="fa-"],
+.media-toolbar .btn [class*="fa-"],
+.media-toolbar .btn i.fa,
+.media-toolbar .dropdown-toggle i,
+.media-toolbar .input-group .btn i,
+.media-toolbar .input-group .dropdown-toggle i,
+.media-toolbar .input-group .btn .fa,
+.media-toolbar .input-group .dropdown-toggle .fa,
+.media-toolbar .btn-primary i,
+.media-toolbar .btn-default i,
+.media-toolbar .btn-danger i,
+.media-toolbar .btn-success i,
+.media-toolbar .btn-secondary i,
+.media-toolbar .dz-clickable i,
+.media-toolbar button[data-media-control] i,
+.media-toolbar a[data-media-control] i,
+.media-toolbar button.btn i,
+.media-toolbar a.btn i {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  color: #364a63 !important;
+  font-size: 16px !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Hide caret icon in dropdowns - we only want the main icon */
+.media-toolbar .dropdown-toggle .caret,
+.media-toolbar .dropdown-toggle::after,
+.media-toolbar .input-group .dropdown-toggle .caret,
+.media-toolbar .input-group .dropdown-toggle::after {
+  display: none !important;
+}
+
+/* ALL ICONS ON HOVER - EXACTLY like first two buttons */
+.media-manager .btn:hover i,
+.media-toolbar .btn:hover i,
+.media-manager .btn:hover .fa,
+.media-toolbar .btn:hover .fa,
+.media-toolbar .btn:hover [class*="fa-"],
+.media-toolbar .dropdown-toggle:hover i,
+.media-toolbar .input-group .btn:hover i,
+.media-toolbar .input-group .dropdown-toggle:hover i,
+.media-toolbar .input-group .btn:hover .fa,
+.media-toolbar .input-group .dropdown-toggle:hover .fa,
+.media-toolbar .btn-primary:hover i,
+.media-toolbar .btn-default:hover i,
+.media-toolbar .btn-danger:hover i,
+.media-toolbar .btn-success:hover i,
+.media-toolbar .btn-secondary:hover i,
+.media-toolbar .dz-clickable:hover i,
+.media-toolbar button[data-media-control]:hover i,
+.media-toolbar a[data-media-control]:hover i,
+.media-toolbar button.btn:hover i,
+.media-toolbar a.btn:hover i {
+  color: #1f2b3a !important;
+}
+
+/* Upload button - hide text, show only icon */
+.media-manager [data-media-control="upload"],
+.media-toolbar [data-media-control="upload"] {
+  font-size: 0 !important;
+  position: relative !important;
+}
+
+.media-manager [data-media-control="upload"] > *:not(i):not(.fa):not([class*="fa-"]),
+.media-toolbar [data-media-control="upload"] > *:not(i):not(.fa):not([class*="fa-"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  font-size: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.media-manager [data-media-control="upload"] i,
+.media-toolbar [data-media-control="upload"] i,
+.media-manager [data-media-control="upload"] .fa,
+.media-toolbar [data-media-control="upload"] .fa,
+.media-toolbar .btn-primary.dz-clickable i,
+.media-toolbar .btn-primary.dz-clickable .fa,
+.media-toolbar button.dz-clickable[data-media-control="upload"] i,
+.media-toolbar button.dz-clickable[data-media-control="upload"] .fa,
+.media-toolbar .btn-primary[data-media-control="upload"] i,
+.media-toolbar .btn-primary[data-media-control="upload"] .fa {
+  display: block !important;
+  color: #364a63 !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+/* Ensure all button backgrounds are white, no transparent */
+.media-toolbar .btn,
+.media-manager .btn {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Show text only for screen readers */
+.media-manager .btn .sr-only,
+.media-toolbar .btn .sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border-width: 0 !important;
+}
+
+/* All button styles are now unified above - no separate rules needed */
+
+/* All button styles unified above - these are now redundant */
+
+/* ALL BUTTONS HOVER - EXACTLY like first two buttons - INDEPENDENT */
+.media-manager .btn:hover,
+.media-toolbar .btn:hover,
+.media-toolbar .btn-primary:hover,
+.media-toolbar .btn-default:hover,
+.media-toolbar .btn-danger:hover,
+.media-toolbar .btn-success:hover,
+.media-toolbar .btn-secondary:hover,
+.media-toolbar .btn-outline-primary:hover,
+.media-toolbar .btn-outline-default:hover,
+.media-toolbar .btn-outline-danger:hover,
+.media-toolbar .btn-outline-success:hover,
+.media-toolbar .btn-outline-secondary:hover,
+.media-toolbar .dropdown-toggle:hover,
+.media-toolbar .dz-clickable:hover,
+.media-toolbar button[data-media-control]:hover,
+.media-toolbar a[data-media-control]:hover,
+.media-toolbar button.btn:hover,
+.media-toolbar a.btn:hover,
+.media-toolbar a[title="Filter"]:hover,
+.media-toolbar a[title="Sort"]:hover,
+.media-manager [data-media-control="refresh"]:hover,
+.media-manager [data-media-control="new-folder"]:hover,
+.media-manager [data-media-control="rename-folder"]:hover,
+.media-manager [data-media-control="upload"]:hover,
+.media-toolbar [data-media-control="upload"]:hover {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  border-width: 2px !important;
+  color: #1f2b3a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* INPUT-GROUP BUTTONS - COMPLETELY INDEPENDENT - NO GROUP EFFECTS */
+.media-toolbar .input-group .btn:hover,
+.media-toolbar .input-group .dropdown-toggle:hover,
+.media-toolbar .input-group a.dropdown-toggle:hover {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  border-width: 2px !important;
+  color: #1f2b3a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  /* CRITICAL: Don't affect siblings */
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* PREVENT INPUT-GROUP FROM AFFECTING BUTTONS ON HOVER */
+.media-toolbar .input-group:hover .btn:not(:hover),
+.media-toolbar .input-group:hover .dropdown-toggle:not(:hover) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #e5e9f2 !important;
+  transform: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* EACH BUTTON IS COMPLETE AND INDEPENDENT */
+.media-toolbar .input-group .btn,
+.media-toolbar .input-group .dropdown-toggle {
+  border-radius: 10px !important;
+  border: 2px solid #e5e9f2 !important;
+  margin: 0 !important;
+  /* Each button is complete - no shared borders */
+  border-left: 2px solid #e5e9f2 !important;
+  border-right: 2px solid #e5e9f2 !important;
+  border-top: 2px solid #e5e9f2 !important;
+  border-bottom: 2px solid #e5e9f2 !important;
+}
+
+/* Override inline styles on hover */
+.media-toolbar .btn:hover[style],
+.media-toolbar button:hover[style],
+.media-toolbar a.btn:hover[style],
+.media-toolbar .btn-primary:hover[style],
+.media-toolbar .btn-danger:hover[style],
+.media-toolbar .btn-success:hover[style],
+.media-toolbar .dz-clickable:hover[style] {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  border-width: 2px !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  color: #1f2b3a !important;
+  transform: translateY(-1px) !important;
+}
+
+/* INPUT-GROUP BUTTONS - OVERRIDE INLINE STYLES ON HOVER */
+.media-toolbar .input-group .btn:hover[style],
+.media-toolbar .input-group .dropdown-toggle:hover[style],
+.media-toolbar .input-group a.dropdown-toggle:hover[style] {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  border-width: 2px !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  color: #1f2b3a !important;
+  transform: translateY(-1px) !important;
+  /* Don't affect siblings */
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* UPLOAD BUTTON HOVER - FORCE MATCH OTHERS */
+.media-toolbar button[data-media-control="upload"]:hover,
+.media-toolbar .btn-primary.dz-clickable:hover,
+.media-toolbar button.dz-clickable[data-media-control="upload"]:hover,
+.media-toolbar .btn-primary[data-media-control="upload"]:hover,
+.media-toolbar button.btn-primary.dz-clickable:hover,
+.media-toolbar .toolbar-action button[data-media-control="upload"]:hover,
+.media-toolbar .toolbar-item button[data-media-control="upload"]:hover,
+.media-toolbar .btn-group button[data-media-control="upload"]:hover,
+.media-toolbar .btn-group .btn-primary.dz-clickable:hover,
+.media-manager button[data-media-control="upload"]:hover,
+.media-manager .btn-primary.dz-clickable:hover {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  border-width: 2px !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  color: #1f2b3a !important;
+  transform: translateY(-1px) !important;
+}
+
+/* UPLOAD BUTTON HOVER WITH INLINE STYLES */
+.media-toolbar button[data-media-control="upload"]:hover[style],
+.media-toolbar .btn-primary.dz-clickable:hover[style],
+.media-toolbar button.dz-clickable[data-media-control="upload"]:hover[style],
+.media-toolbar .btn-primary[data-media-control="upload"]:hover[style],
+.media-toolbar button.btn-primary.dz-clickable:hover[style] {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  border-width: 2px !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  color: #1f2b3a !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Prevent dark blue on filter/sort buttons - override any dark colors - INDEPENDENT */
+.media-toolbar a[title="Filter"]:hover,
+.media-toolbar a[title="Sort"]:hover,
+.media-toolbar a.btn-default.dropdown-toggle:hover {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  /* Independent - don't affect siblings */
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* INPUT-GROUP BUTTONS - COMPLETELY INDEPENDENT HOVER */
+.media-toolbar .input-group .dropdown-toggle:hover,
+.media-toolbar .input-group a.dropdown-toggle:hover {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 2px solid #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  /* Independent - don't affect siblings */
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* CRITICAL: Prevent input-group hover from affecting individual buttons */
+.media-toolbar .input-group {
+  /* Don't change children on group hover - handled by pointer-events: none above */
+}
+
+.media-toolbar .input-group:hover {
+  /* Don't affect buttons inside - each button handles its own hover */
+  background: transparent !important;
+  border: none !important;
+}
+
+.media-toolbar .input-group:hover .btn:not(:hover),
+.media-toolbar .input-group:hover .dropdown-toggle:not(:hover),
+.media-toolbar .input-group:hover a.dropdown-toggle:not(:hover) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #e5e9f2 !important;
+  transform: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.media-manager .btn-default:active,
+.media-toolbar .btn-default:active,
+.media-manager .btn-outline-default:active,
+.media-toolbar .btn-outline-default:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Force ALL buttons to be ice white - override everything */
+.media-toolbar .btn,
+.media-manager .btn,
+.media-toolbar .btn-group .btn,
+.media-manager .btn-group .btn,
+.media-toolbar [data-media-control="new-folder"],
+.media-toolbar [data-media-control="rename-folder"],
+.media-toolbar [data-media-control="refresh"],
+.media-toolbar [data-media-control="delete-folder"],
+.media-toolbar .input-group .btn,
+.media-toolbar .input-group .dropdown-toggle,
+.media-toolbar .btn-success,
+.media-toolbar .btn-success:not(:hover),
+.media-toolbar .btn-success:not(:focus) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  color: #364a63 !important;
+}
+
+.media-toolbar .btn:hover,
+.media-manager .btn:hover,
+.media-toolbar .btn-group .btn:hover,
+.media-manager .btn-group .btn:hover,
+.media-toolbar .input-group .btn:hover,
+.media-toolbar .input-group .dropdown-toggle:hover,
+.media-toolbar .btn-success:hover {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  color: #1f2b3a !important;
+}
+
+/* Override any success/green colors on new folder button - force ice white always */
+.media-toolbar [data-media-control="new-folder"],
+.media-toolbar [data-media-control="new-folder"]:not(:hover),
+.media-toolbar [data-media-control="new-folder"]:not(:focus),
+.media-toolbar [data-media-control="new-folder"]:not(:active),
+.media-toolbar [data-media-control="new-folder"].btn-success,
+.media-toolbar [data-media-control="new-folder"].btn-success:not(:hover),
+.media-toolbar [data-media-control="new-folder"].btn-success:not(:focus),
+.media-toolbar button[data-media-control="new-folder"],
+.media-toolbar button[data-media-control="new-folder"]:not(:hover),
+.media-toolbar button[data-media-control="new-folder"]:not(:focus),
+.media-toolbar button.btn-default[data-media-control="new-folder"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  color: #364a63 !important;
+}
+
+/* Override any green/success background colors */
+.media-toolbar button[data-media-control="new-folder"].btn-success,
+.media-toolbar button[data-media-control="new-folder"][class*="success"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Ensure new folder button icon is visible */
+.media-toolbar [data-media-control="new-folder"] i,
+.media-toolbar [data-media-control="new-folder"] .fa,
+.media-toolbar button[data-media-control="new-folder"] i,
+.media-toolbar button[data-media-control="new-folder"] .fa {
+  color: #364a63 !important;
+}
+
+/* New folder button hover - light gray, not green */
+.media-toolbar [data-media-control="new-folder"]:hover,
+.media-toolbar [data-media-control="new-folder"].btn-success:hover,
+.media-toolbar button[data-media-control="new-folder"]:hover {
+  background: #f8f9fa !important;
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  color: #1f2b3a !important;
+}
+
+.media-toolbar [data-media-control="new-folder"]:hover i,
+.media-toolbar [data-media-control="new-folder"]:hover .fa,
+.media-toolbar button[data-media-control="new-folder"]:hover i,
+.media-toolbar button[data-media-control="new-folder"]:hover .fa {
+  color: #1f2b3a !important;
+}
+
+/* Force all icons to be visible - dark blue-gray */
+.media-toolbar .btn i,
+.media-manager .btn i,
+.media-toolbar .btn .fa,
+.media-manager .btn .fa,
+.media-toolbar .btn [class*="fa-"],
+.media-manager .btn [class*="fa-"],
+.media-toolbar .btn [class*="icon"],
+.media-manager .btn [class*="icon"] {
+  color: #364a63 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.media-toolbar .btn:hover i,
+.media-manager .btn:hover i,
+.media-toolbar .btn:hover .fa,
+.media-manager .btn:hover .fa,
+.media-toolbar .btn:hover [class*="fa-"],
+.media-manager .btn:hover [class*="fa-"] {
+  color: #1f2b3a !important;
+}
+
+/* ========================================
+   DANGER BUTTONS - ICE WHITE (SAME AS OTHERS)
+   ======================================== */
+
+.media-manager .btn-danger,
+.media-toolbar .btn-danger,
+.media-manager [data-media-control="delete-folder"],
+.media-manager [data-media-control="delete-item"],
+.media-toolbar [data-media-control="delete-folder"],
+.media-toolbar [data-media-control="delete-item"] {
+  background: #ffffff !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  color: #364a63 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.media-manager .btn-danger i,
+.media-toolbar .btn-danger i,
+.media-manager [data-media-control="delete-folder"] i,
+.media-toolbar [data-media-control="delete-folder"] i {
+  color: #364a63 !important;
+}
+
+.media-manager .btn-danger:hover,
+.media-toolbar .btn-danger:hover,
+.media-manager [data-media-control="delete-folder"]:hover,
+.media-manager [data-media-control="delete-item"]:hover,
+.media-toolbar [data-media-control="delete-folder"]:hover,
+.media-toolbar [data-media-control="delete-item"]:hover {
+  background: #f8f9fa !important;
+  border-color: #cbd5e1 !important;
+  color: #1f2b3a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+.media-manager .btn-danger:hover i,
+.media-toolbar .btn-danger:hover i,
+.media-manager [data-media-control="delete-folder"]:hover i,
+.media-toolbar [data-media-control="delete-folder"]:hover i {
+  color: #1f2b3a !important;
+}
+
+.media-manager .btn-danger:active,
+.media-toolbar .btn-danger:active,
+.media-manager [data-media-control="delete-folder"]:active,
+.media-manager [data-media-control="delete-item"]:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ========================================
+   DROPDOWN BUTTONS - WORKING & STYLED (WHITE/ICE)
+   ======================================== */
+
+.media-manager .dropdown-toggle,
+.media-toolbar .dropdown-toggle,
+.media-manager .dropdown .btn,
+.media-toolbar .dropdown .btn,
+.media-toolbar a.dropdown-toggle,
+.media-toolbar button.dropdown-toggle,
+.media-toolbar .btn-group .dropdown-toggle {
+  background: #ffffff !important;
+  border-color: #e5e9f2 !important;
+  color: #364a63 !important;
+  position: relative !important;
+}
+
+.media-manager .dropdown-toggle:hover,
+.media-toolbar .dropdown-toggle:hover,
+.media-manager .dropdown .btn:hover,
+.media-toolbar .dropdown .btn:hover,
+.media-toolbar a.dropdown-toggle:hover,
+.media-toolbar button.dropdown-toggle:hover,
+.media-toolbar .btn-group .dropdown-toggle:hover {
+  background: #f8f9fa !important;
+  border-color: #cbd5e1 !important;
+  color: #1f2b3a !important;
+}
+
+.media-manager .dropdown-toggle.show,
+.media-toolbar .dropdown-toggle.show,
+.media-toolbar a.dropdown-toggle.show,
+.media-toolbar button.dropdown-toggle.show {
+  background: #f8f9fa !important;
+  border-color: #364a63 !important;
+  color: #1f2b3a !important;
+}
+
+/* Dropdown caret */
+.media-manager .dropdown-toggle::after,
+.media-toolbar .dropdown-toggle::after {
+  margin-left: 8px !important;
+  vertical-align: middle !important;
+  border-top-color: currentColor !important;
+}
+
+/* ========================================
+   DROPDOWN MENUS - SMOOTH OPENING BELOW BUTTONS
+   ======================================== */
+
+.media-manager .dropdown-menu,
+.media-toolbar .dropdown-menu {
+  border-radius: 10px !important;
+  border: 2px solid #e5e9f2 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  padding: 6px !important;
+  background: #ffffff !important;
+  min-width: 180px !important;
+  
+  /* Smooth opening - below button, not extending header */
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  right: auto !important;
+  z-index: 1050 !important;
+  
+  /* Smooth animation */
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(-8px) scale(0.98) !important;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.2s !important;
+  pointer-events: none !important;
+  transform-origin: top center !important;
+}
+
+/* Show dropdown when open - smooth reveal */
+.media-manager .dropdown-menu.show,
+.media-toolbar .dropdown-menu.show,
+.media-manager .dropdown.show .dropdown-menu,
+.media-toolbar .dropdown.show .dropdown-menu,
+.media-manager .dropdown[aria-expanded="true"] .dropdown-menu,
+.media-toolbar .dropdown[aria-expanded="true"] .dropdown-menu {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) scale(1) !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure dropdown container doesn't extend header */
+.media-toolbar .dropdown {
+  position: relative !important;
+  overflow: visible !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+/* Ensure dropdowns don't affect toolbar height - overflow visible */
+.media-toolbar {
+  overflow: visible !important;
+}
+
+.media-toolbar .btn-toolbar,
+.media-toolbar .toolbar-action {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.media-manager .dropdown-menu .dropdown-header,
+.media-toolbar .dropdown-menu .dropdown-header {
+  padding: 8px 14px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #6b7280 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.media-manager .dropdown-menu .dropdown-divider,
+.media-toolbar .dropdown-menu .dropdown-divider {
+  margin: 6px 0 !important;
+  border-color: #e5e9f2 !important;
+}
+
+.media-manager .dropdown-menu .dropdown-item,
+.media-toolbar .dropdown-menu .dropdown-item {
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  color: #364a63 !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+  margin: 2px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.media-manager .dropdown-menu .dropdown-item i,
+.media-toolbar .dropdown-menu .dropdown-item i {
+  margin-right: 10px !important;
+  width: 18px !important;
+  text-align: center !important;
+  color: #6b7280 !important;
+}
+
+.media-manager .dropdown-menu .dropdown-item:hover,
+.media-toolbar .dropdown-menu .dropdown-item:hover {
+  background: #f8f9fa !important;
+  color: #1f2b3a !important;
+}
+
+.media-manager .dropdown-menu .dropdown-item:hover i,
+.media-toolbar .dropdown-menu .dropdown-item:hover i {
+  color: #364a63 !important;
+}
+
+.media-manager .dropdown-menu .dropdown-item.active,
+.media-toolbar .dropdown-menu .dropdown-item.active {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  color: #ffffff !important;
+}
+
+.media-manager .dropdown-menu .dropdown-item.active i,
+.media-toolbar .dropdown-menu .dropdown-item.active i {
+  color: #ffffff !important;
+}
+
+/* ========================================
+   BUTTON GROUPS - CLEAN SPACING
+   ======================================== */
+
+.media-manager .btn-group,
+.media-toolbar .btn-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0 !important; /* Buttons inside group touch each other */
+  margin: 0 !important;
+  vertical-align: middle !important;
+}
+
+.media-manager .btn-group .btn,
+.media-toolbar .btn-group .btn {
+  margin: 0 !important;
+  border-radius: 10px !important;
+}
+
+/* REMOVED - This was causing double spacing with the rules above */
+
+/* Close button matches other buttons */
+.media-toolbar .toolbar-item button[data-bs-dismiss="modal"],
+.media-toolbar .toolbar-item .btn[data-bs-dismiss="modal"] {
+  width: 42px !important;
+  height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  border: 2px solid #e5e9f2 !important;
+  background: #ffffff !important;
+  color: #364a63 !important;
+  font-size: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.media-toolbar .toolbar-item button[data-bs-dismiss="modal"] i,
+.media-toolbar .toolbar-item .btn[data-bs-dismiss="modal"] i {
+  color: #364a63 !important;
+  font-size: 16px !important;
+}
+
+/* Layout: All buttons in first row, no wrapping */
+.media-toolbar .toolbar-action {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 0 !important; /* NO gap - using margin instead to avoid double spacing */
+  white-space: nowrap !important;
+  overflow: visible !important;
+  justify-content: flex-start !important;
+}
+
+/* Spacing is handled above - this rule removed to avoid conflicts */
+
+.media-toolbar .toolbar-item:first-child {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 0 !important; /* NO gap - using margin instead to avoid double spacing */
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  min-width: 0 !important;
+}
+
+/* Push last toolbar-item to right */
+.media-toolbar .toolbar-item:last-child {
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ensure input-group doesn't wrap and stays inline */
+.media-toolbar .input-group {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0 !important; /* Use margin instead of gap */
+}
+
+/* Elements inside input-group have 10px spacing between them - BUT EACH IS INDEPENDENT */
+.media-toolbar .input-group > *:not(:last-child),
+.media-toolbar .input-group > .dropdown:not(:last-child),
+.media-toolbar .input-group > .dropdown.mr-2:not(:last-child),
+.media-toolbar .input-group > div:not(:last-child) {
+   margin-right: 0 !important; /* Gap handles spacing */
+   margin-left: 0 !important;
+ }
+
+ .media-toolbar .input-group > *:last-child,
+ .media-toolbar .input-group > .form-control:last-child {
+   margin-right: 0 !important;
+   margin-left: 0 !important;
+ }
+
+/* CRITICAL: Each button in input-group is completely independent */
+.media-toolbar .input-group .btn,
+.media-toolbar .input-group .dropdown,
+.media-toolbar .input-group .dropdown-toggle {
+  /* Each button is a complete, independent element */
+  position: relative !important;
+  isolation: isolate !important; /* Create new stacking context */
+}
+
+/* Override mr-2 on dropdowns inside input-group */
+.media-toolbar .input-group .dropdown.mr-2,
+.media-toolbar .input-group .dropdown[class*="mr-"] {
+  margin-right: 10px !important; /* Override Bootstrap mr-2 with our 10px */
+}
+
+/* ========================================
+   SEARCH INPUT - BUTTON STYLE WITH SEARCH ICON
+   ======================================== */
+
+.media-manager .input-group,
+.media-toolbar .input-group {
+   display: inline-flex !important;
+   align-items: center !important;
+   gap: 10px !important; /* SPACING BETWEEN BUTTONS - each button is independent */
+   margin: 0 !important;
+   vertical-align: middle !important;
+   /* Don't affect children on hover */
+   pointer-events: none !important;
+ }
+
+/* Buttons inside input-group are independent */
+.media-toolbar .input-group .btn,
+.media-toolbar .input-group .dropdown-toggle,
+.media-toolbar .input-group a.dropdown-toggle {
+  pointer-events: auto !important;
+  /* Each button is complete and independent */
+  border-radius: 10px !important;
+  border: 2px solid #e5e9f2 !important;
+  /* Full borders - each button is complete */
+  border-left: 2px solid #e5e9f2 !important;
+  border-right: 2px solid #e5e9f2 !important;
+  border-top: 2px solid #e5e9f2 !important;
+  border-bottom: 2px solid #e5e9f2 !important;
+}
+
+/* Search field - make it look like a button with icon - COLLAPSED by default */
+.media-manager .form-control[data-media-control="search"],
+.media-toolbar .form-control[data-media-control="search"],
+.media-toolbar .input-group .form-control[data-media-control="search"] {
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  border: 2px solid #e5e9f2 !important;
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  -moz-border-radius: 10px !important;
+  border-top-left-radius: 10px !important;
+  border-top-right-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+  position: relative !important;
+  text-indent: -9999px !important;
+  overflow: hidden !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  cursor: pointer !important;
+}
+
+/* Search field - EXPANDED when focused or has value */
+.media-manager .form-control[data-media-control="search"]:focus,
+.media-toolbar .form-control[data-media-control="search"]:focus,
+.media-toolbar .input-group .form-control[data-media-control="search"]:focus,
+.media-manager .form-control[data-media-control="search"].expanded,
+.media-toolbar .form-control[data-media-control="search"].expanded,
+.media-toolbar .input-group .form-control[data-media-control="search"].expanded {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+  padding: 0 16px 0 40px !important;
+  text-indent: 0 !important;
+  font-size: 14px !important;
+  color: #364a63 !important;
+  cursor: text !important;
+}
+
+/* Override input-group styles that might affect border-radius */
+.media-toolbar .input-group .form-control[data-media-control="search"] {
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  -moz-border-radius: 10px !important;
+  border-top-left-radius: 10px !important;
+  border-top-right-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+}
+
+/* Search icon wrapper */
+.media-toolbar .search-input-wrapper {
+  position: relative !important;
+  display: inline-block !important;
+}
+
+/* Search icon element - ALWAYS VISIBLE */
+.media-toolbar .search-input-wrapper .search-icon-element,
+.media-toolbar .search-icon-element,
+.media-toolbar .search-input-wrapper .search-icon-element i,
+.media-toolbar .search-icon-element i,
+.media-toolbar .search-input-wrapper .search-icon-element .fa,
+.media-toolbar .search-icon-element .fa,
+.media-toolbar .search-input-wrapper .search-icon-element .fa-search,
+.media-toolbar .search-icon-element .fa-search {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  color: #364a63 !important;
+  background-color: transparent !important;
+  font-size: 16px !important;
+  pointer-events: none !important;
+  z-index: 1000 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  line-height: 1 !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Add search icon to search field - ALWAYS VISIBLE (fallback using ::before) */
+.media-manager .form-control[data-media-control="search"]::before,
+.media-toolbar .form-control[data-media-control="search"]::before,
+.media-toolbar .input-group .form-control[data-media-control="search"]::before {
+  content: "\f002" !important; /* fa-search icon */
+  font-family: "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome", "Font Awesome 6 Free", "Font Awesome 6 Pro" !important;
+  font-weight: 900 !important;
+  font-size: 16px !important;
+  color: #364a63 !important;
+  background-color: transparent !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: none !important;
+  z-index: 1000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  line-height: 1 !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Ensure search input parent has position relative for icon positioning */
+.media-toolbar .input-group,
+.media-toolbar .form-control[data-media-control="search"],
+.media-toolbar .search-input-wrapper,
+.media-toolbar .search-input-inner-wrapper {
+  position: relative !important;
+}
+
+.media-toolbar .search-input-wrapper,
+.media-toolbar .search-input-inner-wrapper {
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+/* The inner wrapper should match the input size */
+.media-toolbar .search-input-inner-wrapper {
+  width: 42px !important;
+  height: 42px !important;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Remove any background from input-group - it should be transparent */
+.media-toolbar .input-group {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove background from toolbar-item */
+.media-toolbar .toolbar-item {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Ensure btn-group doesn't have background and buttons are independent */
+.media-toolbar .btn-group {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Prevent btn-group hover from affecting other buttons */
+.media-toolbar .btn-group:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Buttons should be completely independent - no group hover effects */
+.media-toolbar .btn-group .btn:hover,
+.media-toolbar .btn-group .btn:focus,
+.media-toolbar .btn-group .btn:active {
+  /* Only affect the specific button being hovered, not the group */
+  z-index: 1 !important;
+  /* Prevent transform from affecting group */
+  transform: translateY(-2px) !important;
+}
+
+/* Prevent btn-group from creating visual connection between buttons */
+.media-toolbar .btn-group > .btn:not(:first-child) {
+  margin-left: 0 !important; /* Margin-right on previous button handles spacing */
+  border-radius: 10px !important;
+}
+
+.media-toolbar .btn-group > .btn:not(:last-child) {
+  margin-right: 10px !important;
+  border-radius: 10px !important;
+}
+
+/* Each button in group should be independent - full borders and CONSISTENT spacing */
+.media-toolbar .btn-group .btn {
+  position: relative !important;
+  isolation: isolate !important;
+  border-radius: 10px !important;
+  /* Full borders on all sides - buttons are independent */
+  border-left: 2px solid #e5e9f2 !important;
+  border-right: 2px solid #e5e9f2 !important;
+  border-top: 2px solid #e5e9f2 !important;
+  border-bottom: 2px solid #e5e9f2 !important;
+}
+
+/* Consistent 10px spacing between buttons in groups */
+.media-toolbar .btn-group > .btn:not(:last-child),
+.media-toolbar .btn-group > button:not(:last-child),
+.media-toolbar .btn-group > a.btn:not(:last-child) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+}
+
+.media-toolbar .btn-group > .btn:last-child,
+.media-toolbar .btn-group > button:last-child,
+.media-toolbar .btn-group > a.btn:last-child {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.media-toolbar .form-control[data-media-control="search"]:focus ~ .search-icon-fa,
+.media-toolbar .form-control[data-media-control="search"].expanded ~ .search-icon-fa,
+.media-toolbar .search-input-inner-wrapper:has(.form-control[data-media-control="search"]:focus),
+.media-toolbar .search-input-inner-wrapper:has(.form-control[data-media-control="search"].expanded) {
+  width: 200px !important;
+}
+
+/* Style for JavaScript-added icon element - INSIDE the button frame */
+.media-toolbar .search-icon-fa,
+.media-toolbar .fa-search.search-icon-fa,
+.media-toolbar .input-group .search-icon-fa,
+.media-toolbar .search-input-wrapper .search-icon-fa,
+.media-toolbar .search-icon-fa i,
+.media-toolbar .search-icon-fa svg,
+.media-toolbar .search-icon-fa .fa,
+.media-toolbar .search-icon-fa .fa-search {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  color: #364a63 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  font-size: 16px !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  line-height: 1 !important;
+  width: 16px !important;
+  height: 16px !important;
+  text-align: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* When input is expanded or focused, icon stays on left */
+.media-toolbar .form-control[data-media-control="search"].expanded ~ .search-icon-fa,
+.media-toolbar .form-control[data-media-control="search"]:focus ~ .search-icon-fa,
+.media-toolbar .search-input-inner-wrapper:has(.form-control[data-media-control="search"].expanded) .search-icon-fa,
+.media-toolbar .search-input-inner-wrapper:has(.form-control[data-media-control="search"]:focus) .search-icon-fa {
+  left: 14px !important;
+  transform: translateY(-50%) !important;
+}
+
+.media-toolbar .search-icon-fa svg {
+  width: 16px !important;
+  height: 16px !important;
+  display: block !important;
+}
+
+.media-toolbar .search-icon-fa svg path {
+  fill: #364a63 !important;
+}
+
+/* Icon on left when input has focus or value */
+.media-toolbar .form-control[data-media-control="search"]:focus ~ .search-icon-fa,
+.media-toolbar .form-control[data-media-control="search"]:focus + .search-icon-fa,
+.media-toolbar .search-input-wrapper .form-control[data-media-control="search"]:focus ~ .search-icon-fa {
+  left: 14px !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Icon stays same color - no hover effect - FORCE VISIBLE */
+.media-toolbar .form-control[data-media-control="search"]::before,
+.media-toolbar .input-group .form-control[data-media-control="search"]::before {
+  color: #364a63 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  -webkit-text-fill-color: #364a63 !important;
+  text-fill-color: #364a63 !important;
+}
+
+/* Alternative: If Font Awesome isn't available, use a simple search symbol */
+.media-manager .form-control[data-media-control="search"]::after,
+.media-toolbar .form-control[data-media-control="search"]::after {
+  content: "🔍" !important;
+  font-size: 16px !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  display: none !important; /* Hidden by default, show if Font Awesome fails */
+}
+
+.media-manager .form-control[data-media-control="search"]:focus,
+.media-toolbar .form-control[data-media-control="search"]:focus,
+.media-toolbar .input-group .form-control[data-media-control="search"]:focus {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 0 0 3px rgba(54, 74, 99, 0.1) !important;
+  outline: none !important;
+  background: #ffffff !important;
+  width: 200px !important;
+  min-width: 200px !important;
+  padding: 0 16px 0 40px !important;
+  text-indent: 0 !important;
+  font-size: 14px !important;
+  color: #364a63 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.media-manager .form-control[data-media-control="search"]:focus::before,
+.media-toolbar .form-control[data-media-control="search"]:focus::before,
+.media-toolbar .input-group .form-control[data-media-control="search"]:focus::before {
+  left: 20px !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Move JavaScript-added icon on focus */
+.media-toolbar .form-control[data-media-control="search"]:focus ~ .search-icon-fa,
+.media-toolbar .form-control[data-media-control="search"]:focus + .search-icon-fa,
+.media-toolbar .input-group .form-control[data-media-control="search"]:focus ~ .search-icon-fa {
+  left: 20px !important;
+  transform: translateY(-50%) !important;
+}
+
+/* NO HOVER EFFECTS - only focus/click effects */
+.media-manager .form-control[data-media-control="search"]:hover,
+.media-toolbar .form-control[data-media-control="search"]:hover,
+.media-toolbar .input-group .form-control[data-media-control="search"]:hover {
+  /* No changes on hover - keep default state */
+  border-color: #e5e9f2 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+  background: #ffffff !important;
+  transform: none !important;
+}
+
+.media-manager .form-control[data-media-control="search"]:hover::before,
+.media-toolbar .form-control[data-media-control="search"]:hover::before,
+.media-toolbar .input-group .form-control[data-media-control="search"]:hover::before {
+  color: #364a63 !important; /* Same color as default - no change */
+}
+
+.media-toolbar .input-group .btn {
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+}
+
+/* Force filter and sort buttons to match standard size - square icon buttons */
+.media-toolbar .toolbar-item .dropdown-toggle,
+.media-toolbar .toolbar-item .btn.dropdown-toggle,
+.media-toolbar .input-group .dropdown-toggle,
+.media-toolbar .input-group .btn {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  border-width: 2px !important;
+  background: #ffffff !important;
+  border-color: #e5e9f2 !important;
+}
+
+/* ========================================
+   MEDIA CONTAINER & OTHER ELEMENTS
+   ======================================== */
+
+.media-container {
+  background: #ffffff !important;
+  border-radius: 0 0 16px 16px !important;
+}
+
+.media-breadcrumb {
+  background: #f8f9fa !important;
+  border-bottom: 2px solid #e5e9f2 !important;
+  padding: 12px 20px !important;
+}
+
+.media-breadcrumb .breadcrumb {
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.media-breadcrumb .breadcrumb-item {
+  color: #364a63 !important;
+  font-weight: 500 !important;
+}
+
+.media-breadcrumb .breadcrumb-item.active {
+  color: #1f2b3a !important;
+  font-weight: 600 !important;
+}
+
+.media-list-container {
+  background: #ffffff !important;
+  padding: 20px !important;
+}
+
+.media-sidebar {
+  background: #f8f9fa !important;
+  border-left: 2px solid #e5e9f2 !important;
+  padding: 20px !important;
+}
+
+/* ========================================
+   MEDIA SIDEBAR - BUTTON TOOLBAR
+   ======================================== */
+
+/* Container fixes */
+.media-sidebar {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.media-sidebar .sidebar-preview-placeholder-container {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar {
+  margin-bottom: 24px !important;
+  padding: 16px 8px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 10 !important;
+  min-height: 60px !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Enhanced Button Styling */
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  width: 100% !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn {
+  border-radius: 12px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  min-width: 42px !important;
+  width: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  border: 2px solid #e5e9f2 !important;
+  background: #ffffff !important;
+  color: #364a63 !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  position: relative !important;
+  z-index: 1 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  transform: translateY(0) !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  border-color: #364a63 !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(54, 74, 99, 0.15) !important;
+  color: #1f2b3a !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn:active:not(:disabled) {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(54, 74, 99, 0.15) !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  background: #f5f5f5 !important;
+  border-color: #e0e0e0 !important;
+  color: #999 !important;
+}
+
+/* Danger Button Styling */
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn.btn-outline-danger {
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.1) !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn.btn-outline-danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  color: #ffffff !important;
+  border-color: #dc3545 !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* Icon Styling */
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn i {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn i.fa-times.text-danger {
+  color: #dc3545 !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn.btn-outline-danger:hover:not(:disabled) i.fa-times.text-danger {
+  color: #ffffff !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .media-sidebar .sidebar-preview-toolbar .btn-group-sm {
+    gap: 8px !important;
+  }
+  
+  .media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn {
+    padding: 8px 12px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    min-width: 38px !important;
+    font-size: 13px !important;
+  }
+  
+  .media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn i {
+    font-size: 14px !important;
+  }
+}
+
+/* Focus States for Accessibility */
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn:focus {
+  outline: 3px solid rgba(54, 74, 99, 0.4) !important;
+  outline-offset: 2px !important;
+  border-color: #364a63 !important;
+  box-shadow: 0 0 0 3px rgba(54, 74, 99, 0.2), 0 4px 12px rgba(54, 74, 99, 0.2) !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn.btn-outline-danger:focus {
+  outline-color: rgba(220, 53, 69, 0.4) !important;
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2), 0 4px 12px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* Ensure buttons are always visible and clickable */
+.media-sidebar .sidebar-preview-toolbar * {
+  box-sizing: border-box !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn,
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn * {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Override any conflicting styles */
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn[data-media-control] {
+  position: relative !important;
+  z-index: 10 !important;
+  margin: 0 !important;
+}
+
+/* Ensure no parent elements are hiding buttons */
+.media-sidebar .sidebar-preview-toolbar,
+.media-sidebar .sidebar-preview-toolbar * {
+  overflow: visible !important;
+}
+
+/* Tooltip support - FIXED: Ensure tooltips don't cause visual artifacts */
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn[data-bs-original-title]::after {
+  content: none !important;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn[data-bs-original-title]::before {
+  content: none !important;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Remove hover tooltips completely to prevent dark box flash */
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn[data-bs-original-title]:hover::after,
+.media-sidebar .sidebar-preview-toolbar .btn-group-sm .btn[data-bs-original-title]:hover::before {
+  content: none !important;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.media-sidebar .sidebar-choose-btn .btn-primary {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  width: 100% !important;
+  box-shadow: 0 3px 12px rgba(31, 43, 58, 0.25) !important;
+  height: auto !important;
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Ensure icon inside choose button is white and visible - ULTRA SPECIFIC */
+.media-sidebar .sidebar-choose-btn .btn-primary i,
+.media-sidebar .sidebar-choose-btn .btn-primary .fa,
+.media-sidebar .sidebar-choose-btn .btn-primary [class*="fa-"],
+.media-sidebar .sidebar-choose-btn button[data-control="media-choose"] i,
+.media-sidebar .sidebar-choose-btn button[data-control="media-choose"] .fa,
+.media-sidebar .sidebar-choose-btn button[data-control="media-choose"] [class*="fa-"],
+.media-sidebar .sidebar-choose-btn .btn-primary[data-control="media-choose"] i,
+.media-sidebar .sidebar-choose-btn .btn-primary[data-control="media-choose"] .fa,
+.media-sidebar .sidebar-choose-btn .btn-primary[data-control="media-choose"] [class*="fa-"] {
+  color: #ffffff !important;
+  font-size: 16px !important;
+  margin-right: 0 !important;
+  opacity: 1 !important;
+  display: inline-block !important;
+}
+
+/* Override even inline styles on icon */
+.media-sidebar .sidebar-choose-btn .btn-primary i[style*="color"],
+.media-sidebar .sidebar-choose-btn .btn-primary .fa[style*="color"],
+.media-sidebar .sidebar-choose-btn button[data-control="media-choose"] i[style*="color"] {
+  color: #ffffff !important;
+}
+
+.media-sidebar .sidebar-choose-btn .btn-primary:hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #526484 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 5px 16px rgba(31, 43, 58, 0.35) !important;
+  color: #ffffff !important;
+}
+
+/* Ensure icon stays white on hover - ULTRA SPECIFIC */
+.media-sidebar .sidebar-choose-btn .btn-primary:hover i,
+.media-sidebar .sidebar-choose-btn .btn-primary:hover .fa,
+.media-sidebar .sidebar-choose-btn .btn-primary:hover [class*="fa-"],
+.media-sidebar .sidebar-choose-btn button[data-control="media-choose"]:hover i,
+.media-sidebar .sidebar-choose-btn button[data-control="media-choose"]:hover .fa,
+.media-sidebar .sidebar-choose-btn button[data-control="media-choose"]:hover [class*="fa-"],
+.media-sidebar .sidebar-choose-btn .btn-primary[data-control="media-choose"]:hover i,
+.media-sidebar .sidebar-choose-btn .btn-primary[data-control="media-choose"]:hover .fa,
+.media-sidebar .sidebar-choose-btn .btn-primary[data-control="media-choose"]:hover [class*="fa-"] {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.media-statusbar {
+  background: #f8f9fa !important;
+  border-top: 2px solid #e5e9f2 !important;
+  padding: 12px 20px !important;
+}
+
+.media-statusbar .statusbar-text {
+  color: #364a63 !important;
+  font-weight: 500 !important;
+}
+
+.media-uploader {
+  background: #f8f9fa !important;
+  border-bottom: 2px solid #e5e9f2 !important;
+  padding: 20px !important;
+}
+
+/* Folder Tree */
+.folder-tree {
+  border-radius: 12px !important;
+  border: 2px solid #e5e9f2 !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+.folder-tree .list-group-item {
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 10px 16px !important;
+  margin: 4px 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.folder-tree .list-group-item:hover {
+  background: #f8f9fa !important;
+}
+
+.folder-tree .list-group-item.node-selected {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  color: #ffffff !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .media-toolbar {
+    padding: 16px !important;
+  }
+  
+  .media-toolbar .btn-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .media-toolbar .btn-group {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  
+  .media-toolbar .btn-group .btn {
+    flex: 1;
+  }
+}
+
+/* ========================================
+   SWEETALERT2 MODAL - BEAUTIFUL STYLING
+   Match website design with round corners
+   ======================================== */
+
+/* Modal popup - nice round corners like the website */
+.swal2-popup {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+  border: 2px solid #e5e9f2 !important;
+  padding: 2rem 2.5rem !important;
+  background: #ffffff !important;
+  max-width: 500px !important;
+}
+
+/* Title styling */
+.swal2-title {
+  color: #1f2b3a !important;
+  font-weight: 600 !important;
+  font-size: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+  padding: 0 !important;
+}
+
+/* Input field - FIX: Make it editable and beautiful */
+.swal2-input {
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  -moz-border-radius: 10px !important;
+  border: 2px solid #e5e9f2 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 1rem !important;
+  color: #1f2b3a !important;
+  background: #ffffff !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  display: block !important; /* CRITICAL: Must be block, not flex */
+  opacity: 1 !important;
+  visibility: visible !important;
+  cursor: text !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: none !important;
+}
+
+/* Input field focus state */
+.swal2-input:focus {
+  outline: none !important;
+  border-color: #364a63 !important;
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+}
+
+/* Input field placeholder */
+.swal2-input::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+/* Buttons container */
+.swal2-actions {
+  margin-top: 1.5rem !important;
+  gap: 10px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+/* All buttons - nice round corners like website - CONSISTENT SIZES */
+.swal2-styled {
+  border-radius: 10px !important;
+  padding: 10px 24px !important; /* Consistent padding for all buttons */
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important; /* Consistent line-height */
+  transition: all 0.2s ease !important;
+  border: 2px solid transparent !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  /* CRITICAL: Consistent sizing */
+  height: 40px !important; /* Fixed height for all buttons */
+  min-height: 40px !important;
+  max-height: 40px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important; /* Use flex for centering */
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+}
+
+/* Confirm button (Apply) - match website primary button style */
+.swal2-confirm {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(31, 43, 58, 0.3) !important;
+  height: 40px !important; /* Override any other height rules */
+  min-height: 40px !important;
+  max-height: 40px !important;
+  min-width: 80px !important; /* Minimum width for consistency */
+}
+
+.swal2-confirm:hover {
+  background: linear-gradient(135deg, #364a63 0%, #4a5f7a 100%) !important;
+  border-color: #4a5f7a !important;
+  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.swal2-confirm:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(31, 43, 58, 0.3) !important;
+}
+
+/* Cancel button - match website default button style */
+.swal2-cancel {
+  background: #ffffff !important;
+  border-color: #e5e9f2 !important;
+  color: #364a63 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+  height: 40px !important; /* Override any other height rules */
+  min-height: 40px !important;
+  max-height: 40px !important;
+  min-width: 80px !important; /* Minimum width for consistency */
+}
+
+/* Deny button - same size as others */
+.swal2-deny {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  min-width: 80px !important;
+}
+
+/* Close button - same height but can be smaller width */
+.swal2-close {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  width: auto !important;
+  padding: 8px 16px !important;
+}
+
+.swal2-cancel:hover {
+  background: #f8f9fa !important;
+  border-color: #cbd5e1 !important;
+  color: #1f2b3a !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.swal2-cancel:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Ensure input is not disabled or hidden */
+.swal2-input[disabled],
+.swal2-input[readonly] {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  background: #ffffff !important;
+  cursor: text !important;
+}
+
+/* Fix for input display issues - AGGRESSIVE OVERRIDES */
+.swal2-input[style*="display: flex"],
+.swal2-input[style*="display:flex"] {
+  display: block !important;
+}
+
+/* Override any styles that might prevent input interaction - AGGRESSIVE */
+.swal2-popup .swal2-input,
+.swal2-container .swal2-input,
+.swal2-input {
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+  display: block !important; /* Force block display */
+  border-radius: 10px !important; /* Force 10px border-radius */
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: none !important;
+}
+
+/* Remove any inline styles that might block input */
+.swal2-input[style] {
+  display: block !important;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Ensure input can receive focus and typing */
+.swal2-input:focus,
+.swal2-input:active {
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+}
+
+/* Make sure the input container doesn't block interaction */
+.swal2-popup {
+  pointer-events: auto !important;
+}
+
+/* Backdrop */
+.swal2-container.swal2-backdrop-show {
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* ========================================
+   FOLDER CREATION DROPDOWN MENU
+   Simple dropdown menu like Bootstrap dropdown
+   ======================================== */
+
+.folder-create-dropdown {
+  position: fixed;
+  z-index: 10000;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: all 0.15s ease;
+  pointer-events: none;
+}
+
+.folder-create-dropdown.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.folder-dropdown-menu {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e9f2;
+  min-width: 240px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folder-input-container {
+  padding: 0;
+  margin: 0;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure input container doesn't block clicks */
+.folder-input-container * {
+  pointer-events: auto !important;
+}
+
+/* Make sure dropdown menu itself doesn't block */
+.folder-dropdown-menu {
+  pointer-events: auto !important;
+}
+
+.folder-dropdown-menu * {
+  pointer-events: auto !important;
+}
+
+/* Override any global rules that might block input */
+.folder-create-dropdown input[type="text"],
+.folder-create-dropdown .folder-create-input {
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+}
+
+.folder-create-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e5e9f2;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1f2b3a;
+  background: #ffffff;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  outline: none;
+  margin: 0;
+  /* CRITICAL: Ensure input is fully editable */
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: none !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  position: relative !important;
+}
+
+.folder-create-input:focus {
+  border-color: #364a63;
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1);
+}
+
+.folder-create-input::placeholder {
+  color: #9ca3af;
+}
+
+/* AGGRESSIVE OVERRIDES: Ensure input is always editable - NUCLEAR OPTION */
+.folder-create-dropdown .folder-create-input,
+.folder-create-dropdown input.folder-create-input,
+.folder-create-dropdown input[type="text"],
+.folder-dropdown-card .folder-create-input,
+.folder-dropdown-card input[type="text"],
+.folder-dropdown-body .folder-create-input,
+.folder-dropdown-body input[type="text"],
+input.folder-create-input {
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: none !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  position: relative !important;
+  background: #ffffff !important;
+  color: #1f2b3a !important;
+  /* Override any parent pointer-events rules */
+  pointer-events: auto !important;
+}
+
+/* Override any toolbar button child rules that might block input */
+.toolbar .folder-create-input,
+.toolbar-action .folder-create-input,
+.btn-group .folder-create-input,
+.folder-create-dropdown input,
+.folder-dropdown-card input {
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+}
+
+/* Override any parent rules that might block input */
+.folder-create-dropdown,
+.folder-dropdown-card,
+.folder-dropdown-body {
+  pointer-events: auto !important;
+}
+
+/* Ensure input specifically is always editable */
+.folder-create-dropdown .folder-create-input,
+.folder-dropdown-card .folder-create-input,
+.folder-dropdown-body .folder-create-input {
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+}
+
+.folder-button-container {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 0;
+  margin: 0;
+}
+
+.folder-create-btn,
+.folder-cancel-btn {
+  padding: 6px 16px;
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  -moz-border-radius: 10px !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  height: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.folder-create-btn {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%);
+  border-color: #364a63;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(31, 43, 58, 0.2);
+}
+
+.folder-create-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #364a63 0%, #4a5f7a 100%);
+  border-color: #4a5f7a;
+  box-shadow: 0 3px 6px rgba(31, 43, 58, 0.3);
+}
+
+.folder-create-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(31, 43, 58, 0.2);
+}
+
+.folder-create-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.folder-cancel-btn {
+  background: #ffffff;
+  border-color: #e5e9f2;
+  color: #364a63;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.folder-cancel-btn:hover {
+  background: #f8f9fa;
+  border-color: #cbd5e1;
+  color: #1f2b3a;
+}
+
+.folder-cancel-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
