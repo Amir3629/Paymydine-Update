@@ -198,6 +198,7 @@
         const toolbarButtons = document.querySelectorAll('.toolbar-action .btn');
 
         toolbarButtons.forEach(btn => {
+            // ALL buttons get width: auto - including Save button (same as other working buttons)
             btn.style.setProperty('padding', BUTTON_PADDING, 'important');
             btn.style.setProperty('border-radius', BUTTON_BORDER_RADIUS, 'important');
             btn.style.setProperty('font-weight', BUTTON_FONT_WEIGHT, 'important');
@@ -233,9 +234,21 @@
         console.log(`Found ${allButtons.length} total buttons to fix`);
         
         allButtons.forEach((btn, index) => {
+            // EXCLUDE Save/Back buttons from display override - they need inline-flex
+            const isSaveOrBackButton = btn.matches('[data-request="onSave"]') ||
+                                     (btn.closest('.progress-indicator-container') && 
+                                      (btn.matches('.btn-primary[data-request="onSave"]') || 
+                                       btn.matches('.btn-outline-secondary')));
+            
             // FORCE buttons to work independently
             btn.style.setProperty('pointer-events', 'auto', 'important');
-            btn.style.setProperty('display', 'inline-block', 'important');
+            
+            // Only set display to inline-block if NOT a Save/Back button
+            // Save/Back buttons should keep inline-flex to prevent text jumping
+            if (!isSaveOrBackButton) {
+                btn.style.setProperty('display', 'inline-block', 'important');
+            }
+            
             btn.style.setProperty('visibility', 'visible', 'important');
             btn.style.setProperty('opacity', '1', 'important');
             btn.style.setProperty('position', 'relative', 'important');

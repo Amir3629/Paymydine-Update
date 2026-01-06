@@ -37,6 +37,14 @@
     }
     
     function forceBlueButton(button) {
+        // SKIP media manager upload button - it should stay white
+        if (button.closest && (button.closest('.media-toolbar') || button.closest('.media-manager'))) {
+            if (button.getAttribute('data-media-control') === 'upload' || 
+                (button.classList.contains('dz-clickable') && button.classList.contains('btn-primary'))) {
+                return false; // Don't style media manager upload button
+            }
+        }
+        
         // Get current inline styles
         const currentBackground = button.style.background || button.style.backgroundColor;
         const currentBorder = button.style.border || button.style.borderColor;
@@ -99,7 +107,21 @@
         return false;
     }
     
+    function removeDarkBlueFromUploadButton() {
+        // Remove dark blue styles from media manager upload button
+        const uploadButton = document.querySelector('.media-toolbar button[data-media-control="upload"], .media-manager button[data-media-control="upload"], .media-toolbar .btn-primary.dz-clickable');
+        if (uploadButton) {
+            const style = uploadButton.getAttribute('style');
+            if (style && (style.includes('54, 74, 99') || style.includes('31, 43, 58') || style.includes('linear-gradient') || style.includes('rgb(54') || style.includes('rgb(31'))) {
+                uploadButton.removeAttribute('style');
+            }
+        }
+    }
+    
     function scanAndForceBlueButtons() {
+        // First, remove dark blue from upload button
+        removeDarkBlueFromUploadButton();
+        
         // Get all buttons and links that might be styled as buttons
         const buttons = document.querySelectorAll('button, .btn, a.btn-primary, a.btn-success, [class*="btn-primary"], [class*="btn-success"]');
         
@@ -129,6 +151,9 @@
     setTimeout(scanAndForceBlueButtons, 1000);
     setTimeout(scanAndForceBlueButtons, 2000);
     
+    // Also remove dark blue from upload button frequently
+    setInterval(removeDarkBlueFromUploadButton, 100);
+    
     // Observe DOM changes to catch new buttons
     const observer = new MutationObserver(function(mutations) {
         let shouldScan = false;
@@ -148,6 +173,15 @@
             // Also check for style attribute changes
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                 const target = mutation.target;
+                // Skip media manager upload button
+                if (target.closest && (target.closest('.media-toolbar') || target.closest('.media-manager'))) {
+                    if (target.getAttribute('data-media-control') === 'upload' || 
+                        (target.classList.contains('dz-clickable') && target.classList.contains('btn-primary'))) {
+                        // Remove dark blue styles from upload button
+                        removeDarkBlueFromUploadButton();
+                        return;
+                    }
+                }
                 if (target.matches && target.matches('button, .btn, a.btn-primary, a.btn-success')) {
                     const currentBackground = target.style.background || target.style.backgroundColor;
                     if (hasGreenColor(currentBackground)) {

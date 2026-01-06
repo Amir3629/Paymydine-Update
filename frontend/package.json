@@ -8,7 +8,8 @@
     "dev": "next dev",
     "dev:3001": "next dev -p 3001",
     "start": "next start",
-    "start:3001": "next start -p 3001"
+    "start:3001": "next start -p 3001",
+    "preview": "next start -p 3001"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

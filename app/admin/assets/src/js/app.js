@@ -12,8 +12,8 @@
         $('.sidebar').removeClass('show')
     })
 
-    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #0f9d58 0%, #0bb87a 100%)';
-    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #0c7d47 0%, #0aa868 100%)';
+    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)'; // Dark blue instead of green
+    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #364a63 0%, #526484 100%)'; // Dark blue instead of green
 
     function applyDeleteIconColor(context) {
         var scope = context || document;
@@ -27,19 +27,31 @@
     function applyGreenButtonBase(element) {
         element.style.setProperty('background', GREEN_BUTTON_BASE_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_BASE_GRADIENT, 'important');
-        element.style.setProperty('border', '1px solid #0c7d47', 'important');
-        element.style.setProperty('border-color', '#0c7d47', 'important');
+        element.style.setProperty('border', '1px solid #364a63', 'important'); // Dark blue border instead of green
+        element.style.setProperty('border-color', '#364a63', 'important'); // Dark blue border instead of green
         element.style.setProperty('color', '#ffffff', 'important');
-        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.25)', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(54, 74, 99, 0.25)', 'important'); // Dark blue shadow instead of green
         element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
         element.style.setProperty('transform', 'translateY(0)', 'important');
         element.style.setProperty('min-width', '90px', 'important');
+        element.style.setProperty('width', 'auto', 'important');
         element.style.setProperty('padding', '0.4rem 0.9rem', 'important');
         element.style.setProperty('display', 'inline-block', 'important');
         element.style.setProperty('text-align', 'center', 'important');
+        // Fix full-width issue: prevent button from growing in btn-group
+        element.style.setProperty('flex', '0 0 auto', 'important');
+        element.style.setProperty('flex-grow', '0', 'important');
+        element.style.setProperty('flex-shrink', '0', 'important');
+        element.style.setProperty('flex-basis', 'auto', 'important');
         element.style.removeProperty('align-items');
         element.style.removeProperty('justify-content');
         element.style.removeProperty('gap');
+        
+        // Also fix the parent btn-group to use inline-flex if it exists
+        var parent = element.parentElement;
+        if (parent && parent.classList.contains('btn-group')) {
+            parent.style.setProperty('display', 'inline-flex', 'important');
+        }
     }
 
     function handleGreenButtonHover(event) {
@@ -47,7 +59,7 @@
         element.style.setProperty('background', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('transform', 'translateY(-1px)', 'important');
-        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.35)', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(54, 74, 99, 0.35)', 'important'); // Dark blue shadow instead of green
     }
 
     function handleGreenButtonLeave(event) {

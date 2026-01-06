@@ -1,18 +1,20 @@
 .media-finder .grid {
-  background-color: var(--bs-gray-100);
-  border-radius: 3px;
-  border: 1px solid var(--bs-gray-300);
-  width: 124px;
-  height: 124px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 16px;
+  border: 2px solid #e5e9f2;
+  width: 160px;
+  height: 160px;
   position: relative;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: visible;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 .media-finder .grid:focus,
 .media-finder .grid:hover {
-  border-color: var(--bs-primary);
-  box-shadow: 0 1px 0px var(--bs-primary);
+  border-color: #364a63; /* Dark blue instead of green */
+  box-shadow: 0 8px 24px rgba(54, 74, 99, 0.15); /* Dark blue shadow instead of green */
+  transform: translateY(-2px);
 }
 .media-finder .grid .img-cover {
 	transform: translate(50%, 50%);
@@ -42,12 +44,13 @@
 }
 .media-finder .grid .blank-cover i {
 	position: absolute;
-	height: 16px;
-	width: 16px;
+	font-size: 48px;
+	color: #202938; /* Dark blue instead of green */
 	top: 50%;
 	left: 50%;
-	margin-top: -8px;
-	margin-left: -8px;
+	transform: translate(-50%, -50%);
+	transition: all 0.3s ease;
+	font-weight: 300;
 }
 .grid .icon-container {
 	display: none;
@@ -71,21 +74,25 @@
 .grid .find-remove-button:hover {
 	float: none !important;
 	position: absolute !important;
-	top: 8px !important;
-	right: 8px !important;
-	display: block !important;
+	top: 12px !important;
+	right: 12px !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
 	z-index: 9999 !important;
 	pointer-events: auto !important;
 	cursor: pointer !important;
-	background-color: rgba(255, 255, 255, 0.95) !important;
+	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
 	border-radius: 50% !important;
-	width: 24px !important;
-	height: 24px !important;
-	line-height: 24px !important;
+	width: 40px !important;
+	height: 40px !important;
+	line-height: 40px !important;
 	text-align: center !important;
-	font-size: 16px !important;
+	font-size: 20px !important;
 	color: #dc3545 !important;
-	box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+	box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25) !important;
+	border: 2px solid rgba(220, 53, 69, 0.1) !important;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 .grid a {
 	position: relative;

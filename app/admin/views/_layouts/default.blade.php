@@ -18,6 +18,8 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-transitions.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/custom-fixes.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/calendar.css') }}?v={{ time() }}">
+    <!-- Modern Admin Settings Styling -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-settings-modern.css') }}?v={{ time() }}">
     <!-- Admin Tour Enhanced Styles -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/introjs.min.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-tour-enhanced.css') }}">
@@ -111,6 +113,9 @@
 <!-- Modal Blur Fix -->
 <script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
 
+<!-- Media Manager Search Icon Fix -->
+<script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
+
 <!-- Debug Redirects (Remove this in production) -->
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
 
@@ -123,6 +128,9 @@
 
 <!-- Force Blue Buttons Override -->
 <script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?v={{ time() }}"></script>
+
+<!-- Folder Creation Dropdown Card -->
+<script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ time() }}"></script>
 
 <!-- Guide Tour Button Handler -->
 <script>

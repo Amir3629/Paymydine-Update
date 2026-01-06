@@ -219,6 +219,30 @@ if (!empty($faviconLogo)) {
     }
 }
 
+// Clean up site_logo from settings table - remove the avocado default image
+$siteLogo = DB::table('settings')->where('item', 'site_logo')->value('value');
+if (!empty($siteLogo)) {
+    // Check for invalid/default patterns (avocado image and other defaults)
+    $invalidSiteLogoPatterns = [
+        'vecteezy_photorealistic-halved-avocado-with-creamy-green-flesh-and_55130515-removebg-preview-removebg-preview.jpg',
+        'vecteezy_photorealistic-halved-avocado',
+        '55130515',
+        'no_photo.png',
+        'thumb_f25079547aa77e59294bd886cec09e8d__122x122_contain.jpg',
+        'f25079547aa77e59294bd886cec09e8d'
+    ];
+    $isInvalidSiteLogo = false;
+    foreach ($invalidSiteLogoPatterns as $pattern) {
+        if (strpos($siteLogo, $pattern) !== false) {
+            $isInvalidSiteLogo = true;
+            break;
+        }
+    }
+    if ($isInvalidSiteLogo || !validateImageExists($siteLogo)) {
+        DB::table('settings')->where('item', 'site_logo')->update(['value' => '']);
+    }
+}
+
 // Clean up dashboard_logo from settings table if it's invalid (in case it's stored there too)
 $settingsDashboardLogo = DB::table('settings')->where('item', 'dashboard_logo')->value('value');
 if (!empty($settingsDashboardLogo)) {

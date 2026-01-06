@@ -60,9 +60,7 @@
                     ><i class="fa fa-trash"></i></button>
                 @endif
             </div>
-        </div>
 
-        <div class="toolbar-item">
             <div class="input-group">
                 <div class="dropdown mr-2">
                     <a class="btn btn-default dropdown-toggle" role="button" data-bs-toggle="dropdown" title="Filter">
@@ -82,15 +80,30 @@
                     {!! $this->makePartial('mediamanager/sorting', ['sortBy', $sortBy]) !!}
                 </div>
 
-                @unless ($isPopup)
-                    <a
-                        class="btn btn-default btn-options mr-2"
-                        href="{{ admin_url('settings/edit/media') }}">
-                        <i class="fa fa-gear"></i>
-                    </a>
-                @endunless
                 {!! $this->makePartial('mediamanager/search') !!}
             </div>
+        </div>
+
+        <!-- Spacer for 10px gap -->
+        <div class="toolbar-spacer" style="width: 10px; flex-shrink: 0;"></div>
+
+        <div class="toolbar-item">
+            @if ($isPopup)
+                <button
+                    type="button"
+                    class="btn btn-default"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                    title="Close">
+                    <i class="fa fa-times"></i>
+                </button>
+            @else
+                <a
+                    class="btn btn-default btn-options"
+                    href="{{ admin_url('settings/edit/media') }}">
+                    <i class="fa fa-gear"></i>
+                </a>
+            @endif
         </div>
     </div>
 </div>

@@ -22,7 +22,7 @@ class GeneralSettings extends FormRequest
         return [
             'site_name' => ['required', 'min:2', 'max:128'],
             'site_email' => ['required', 'email:filter', 'max:96'],
-            'site_logo' => ['required', 'string'], // Restored to required now that form submission works
+            'site_logo' => ['nullable', 'string'], // Optional - allows empty values like dashboard_logo and favicon_logo
             'menus_page' => ['required', 'string'],
             'reservation_page' => ['required', 'string'],
         ];

@@ -1423,6 +1423,7 @@ if (window.jQuery.request !== undefined)
         element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
         element.style.setProperty('transform', 'translateY(0)', 'important');
         element.style.setProperty('min-width', '90px', 'important');
+        element.style.setProperty('width', 'auto', 'important');
         element.style.setProperty('padding', '0.4rem 0.9rem', 'important');
         element.style.setProperty('display', 'inline-block', 'important');
         element.style.setProperty('text-align', 'center', 'important');

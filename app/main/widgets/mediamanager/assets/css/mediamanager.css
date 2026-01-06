@@ -6,10 +6,17 @@
 	margin-top: 0;
 	margin-bottom: 0;
 }
-.media-modal .modal-content {
-	border-radius: unset;
+.media-modal .modal-content,
+.media-modal.modal-fullscreen .modal-content,
+.media-modal.modal-fullscreen-sm-down .modal-content,
+.media-modal.modal-fullscreen-md-down .modal-content,
+.media-modal.modal-fullscreen-lg-down .modal-content,
+.media-modal.modal-fullscreen-xl-down .modal-content,
+.media-modal.modal-fullscreen-xxl-down .modal-content {
+	border-radius: 16px !important;
 	margin-bottom: 0;
 	border: 0 none;
+	overflow: hidden;
 }
 .media-modal .modal-body {
     padding: 0;
