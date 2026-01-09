@@ -116,6 +116,9 @@
 <!-- Media Manager Search Icon Fix -->
 <script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
 
+<!-- Image Preview Persistence Fix -->
+<script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ time() }}"></script>
+
 <!-- Debug Redirects (Remove this in production) -->
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
 
