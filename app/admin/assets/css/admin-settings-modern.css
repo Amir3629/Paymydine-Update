@@ -646,10 +646,11 @@ input[type="radio"]:checked {
    MEDIA TOOLBAR - CLEAN LAYOUT
    ======================================== */
 
-.media-toolbar {
-  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+.media-toolbar,
+#mediamanager-toolbar {
+  background: #ffffff !important;
   padding: 20px 24px !important;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+  border-bottom: 2px solid #e5e9f2 !important;
   position: relative !important;
   overflow: visible !important;
   z-index: 10 !important;
