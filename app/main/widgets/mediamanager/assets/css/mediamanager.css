@@ -34,8 +34,9 @@
 /*
 Toolbar
 */
-.media-toolbar {
-  background-color: var(--bs-gray-300);
+.media-toolbar,
+#mediamanager-toolbar {
+  background-color: #ffffff !important;
   padding: 20px;
 }
 /*

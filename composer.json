@@ -31,7 +31,8 @@
     "tastyigniter/ti-module-admin": "~3.0",
     "tastyigniter/ti-module-main": "~3.0",
     "laravel/framework": "~8.0",
-    "opcodesio/log-viewer": "^3.21"
+    "opcodesio/log-viewer": "^3.21",
+    "tastyigniter/ti-ext-payregister": "^2.7"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.0",
@@ -71,7 +72,8 @@
   "config": {
     "allow-plugins": {
       "composer/installers": true,
-      "wikimedia/composer-merge-plugin": true
+      "wikimedia/composer-merge-plugin": true,
+      "php-http/discovery": true
     }
   }
 }

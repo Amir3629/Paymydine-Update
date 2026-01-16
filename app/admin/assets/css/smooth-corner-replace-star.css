@@ -1,0 +1,80 @@
+/* ============================================
+   SMOOTH CORNER - REPLACE STAR ICON
+   Minimal, safe visual enhancement only
+   No layout changes, no transparency, no DOM manipulation
+   ============================================ */
+
+/* ============================================
+   STEP 1: Remove Star Icon Completely
+   ============================================ */
+#sidebar-star-icon,
+body #sidebar-star-icon,
+html body #sidebar-star-icon,
+div#sidebar-star-icon,
+body div#sidebar-star-icon,
+html body div#sidebar-star-icon,
+[id="sidebar-star-icon"],
+body [id="sidebar-star-icon"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ============================================
+   STEP 2: Round the sharp edges at connection point
+   Remove the 90° stair edge by rounding sidebar and header corners
+   HIGH SPECIFICITY to override all other CSS
+   ============================================ */
+/* Round sidebar's top-right corner (at connection point) */
+/* Increased radius to 40px for smoother transition */
+body .sidebar,
+body .nk-sidebar,
+html body .sidebar,
+html body .nk-sidebar,
+body .sidebar.nk-sidebar,
+body .nk-sidebar.sidebar,
+html body .sidebar.nk-sidebar,
+html body .nk-sidebar.sidebar,
+.nk-sidebar.nk-sidebar-fixed,
+body .nk-sidebar.nk-sidebar-fixed,
+html body .nk-sidebar.nk-sidebar-fixed {
+  border-top-right-radius: 40px !important;
+}
+
+/* Header: Keep original styling */
+/* The sharp edge will be covered by the curve element's mask effect */
+
+/* ============================================
+   STEP 3: Decorative Curve Element
+   Small, safe decorative div at connection point
+   Creates inward curve (like parenthesis opening "(")
+   Div positioned to create curve FROM connection point inward
+   ============================================ */
+.sidebar-curve-fix {
+  position: fixed !important;
+  left: 230px !important; /* KEEP EXACT POSITION - connection point X */
+  top: 64px !important; /* KEEP EXACT POSITION - connection point Y */
+  width: 40px !important;
+  height: 40px !important;
+  background: #516584 !important;
+  /* INWARD CURVE at bottom-right: Use mask to create concave curve */
+  /* This creates the smooth curve effect */
+  mask: radial-gradient(circle at 100% 100%, transparent 30px, #516584 30px);
+  -webkit-mask: radial-gradient(circle at 100% 100%, transparent 30px, #516584 30px);
+  z-index: 1030 !important;
+  pointer-events: none !important;
+}
+
+
+/* ============================================
+   STEP 4: Responsive - Hide on Mobile
+   ============================================ */
+@media (max-width: 991px) {
+  .sidebar-curve-fix {
+    display: none !important;
+  }
+}

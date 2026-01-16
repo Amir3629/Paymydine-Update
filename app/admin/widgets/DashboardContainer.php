@@ -120,8 +120,9 @@ class DashboardContainer extends BaseWidget
         $this->addJs('~/app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.js', 'daterangepicker-js');
         $this->addCss('~/app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.css', 'daterangepicker-css');
 
-        $this->addCss('css/dashboardcontainer.css');
-        $this->addJs('js/dashboardcontainer.js');
+        // Use full path to ensure JavaScript file loads
+        $this->addCss('~/app/admin/widgets/dashboardcontainer/assets/css/dashboardcontainer.css', 'dashboardcontainer-css');
+        $this->addJs('~/app/admin/widgets/dashboardcontainer/assets/js/dashboardcontainer.js', 'dashboardcontainer-js');
     }
 
     //
@@ -130,9 +131,16 @@ class DashboardContainer extends BaseWidget
 
     public function onRenderWidgets()
     {
+        $this->widgetsDefined = false; // Reset to allow re-definition
         $this->defineDashboardWidgets();
 
         $this->vars['widgets'] = $this->dashboardWidgets;
+
+        // Debug logging
+        if (empty($this->dashboardWidgets)) {
+            logger()->warning('Dashboard widgets are empty. Default widgets: ' . json_encode($this->defaultWidgets));
+            logger()->warning('User preferences: ' . json_encode($this->getWidgetsFromUserPreferences()));
+        }
 
         return ['#'.$this->getId('container') => $this->makePartial('dashboardcontainer/widget_container')];
     }
@@ -462,7 +470,14 @@ class DashboardContainer extends BaseWidget
         $start = $this->getStartDate();
         $end = $this->getEndDate();
 
-        $widgets = collect($this->getWidgetsFromUserPreferences())
+        $userPreferences = $this->getWidgetsFromUserPreferences();
+        
+        // If user preferences are empty, use default widgets (but don't save them automatically)
+        if (empty($userPreferences) && !empty($this->defaultWidgets)) {
+            $userPreferences = $this->defaultWidgets;
+        }
+
+        $widgets = collect($userPreferences)
             ->sortBy('priority')
             ->mapWithKeys(function ($widgetInfo, $alias) use ($start, $end) {
                 if ($widget = $this->makeDashboardWidget($alias, $widgetInfo)) {
@@ -666,8 +681,13 @@ class DashboardContainer extends BaseWidget
         $widgets = User_preferences_model::onUser()
             ->get($this->getUserPreferencesKey(), $defaultWidgets);
 
-        if (!is_array($widgets)) {
-            return [];
+        // If widgets is not an array or is empty, use default widgets
+        if (!is_array($widgets) || empty($widgets)) {
+            // If defaultWidgets from params is also empty, use the controller's defaultWidgets
+            if (empty($defaultWidgets) || !is_array($defaultWidgets)) {
+                return $this->defaultWidgets;
+            }
+            return $defaultWidgets;
         }
 
         return $widgets;

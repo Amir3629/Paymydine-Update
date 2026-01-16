@@ -72,49 +72,71 @@ Route::middleware(['cors'])->group(function () {
     Route::get('/media/{path}', function ($path) {
         // Remove any query parameters
         $path = explode('?', $path)[0];
+        $filename = basename($path);
         
-        // First try the direct path (as stored in database)
-        $mediaPath = base_path('assets/media/attachments/public/' . $path);
+        // Base path for media files
+        $basePath = base_path('assets/media/attachments/public');
         
-        if (!file_exists($mediaPath)) {
-            // If not found, search recursively for the filename
-            $filename = basename($path);
-            $searchPath = base_path('assets/media/attachments/public');
-            
-            $foundPath = null;
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-            );
-            
-            foreach ($iterator as $file) {
-                if ($file->getFilename() === $filename) {
-                    $foundPath = $file->getPathname();
-                    break;
-                }
-            }
-            
-            if ($foundPath) {
-                $mediaPath = $foundPath;
-            }
-        }
-        
+        // Strategy 1: Try direct path (as stored in database)
+        $mediaPath = $basePath . '/' . $path;
         if (file_exists($mediaPath)) {
             $mimeType = mime_content_type($mediaPath);
             return response()->file($mediaPath, [
                 'Content-Type' => $mimeType,
                 'Cache-Control' => 'public, max-age=31536000'
             ]);
-        } else {
-            // Fallback to pasta.png if image not found
-            $fallbackPath = public_path('images/pasta.png');
-            if (file_exists($fallbackPath)) {
-                return response()->file($fallbackPath, [
-                    'Content-Type' => 'image/png',
+        }
+        
+        // Strategy 2: Try nested folder pattern (first 3 chars / next 3 chars / next 3 chars / filename)
+        // Example: 693397f3775b7344959764.png -> 693/397/f37/693397f3775b7344959764.png
+        if (strlen($filename) >= 9) {
+            $nestedPath = $basePath . '/' . substr($filename, 0, 3) . '/' . substr($filename, 3, 3) . '/' . substr($filename, 6, 3) . '/' . $filename;
+            if (file_exists($nestedPath)) {
+                $mimeType = mime_content_type($nestedPath);
+                return response()->file($nestedPath, [
+                    'Content-Type' => $mimeType,
                     'Cache-Control' => 'public, max-age=31536000'
                 ]);
-            } else {
-                abort(404);
             }
+        }
+        
+        // Strategy 3: Recursive search for the filename
+        $foundPath = null;
+        if (is_dir($basePath)) {
+            try {
+                $iterator = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::SELF_FIRST
+                );
+                
+                foreach ($iterator as $file) {
+                    if ($file->isFile() && $file->getFilename() === $filename) {
+                        $foundPath = $file->getPathname();
+                        break;
+                    }
+                }
+            } catch (\Exception $e) {
+                // If recursive search fails, continue to fallback
+            }
+        }
+        
+        if ($foundPath && file_exists($foundPath)) {
+            $mimeType = mime_content_type($foundPath);
+            return response()->file($foundPath, [
+                'Content-Type' => $mimeType,
+                'Cache-Control' => 'public, max-age=31536000'
+            ]);
+        }
+        
+        // Fallback to pasta.png if image not found
+        $fallbackPath = public_path('images/pasta.png');
+        if (file_exists($fallbackPath)) {
+            return response()->file($fallbackPath, [
+                'Content-Type' => 'image/png',
+                'Cache-Control' => 'public, max-age=31536000'
+            ]);
+        } else {
+            abort(404);
         }
     })->where('path', '.*');
 

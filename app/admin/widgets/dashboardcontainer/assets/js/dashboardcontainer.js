@@ -150,9 +150,143 @@
     }
 
     DashboardContainer.prototype.fetchWidgets = function () {
-        $.request(this.options.alias + '::onRenderWidgets').always(function () {
-            $('.dashboard-widgets .progress-indicator').attr('style', 'display: none !important;');
-        })
+        var self = this;
+        // The container ID is generated as: alias + '-' + 'container'
+        // e.g., 'dashboardContainer-container'
+        var containerId = self.options.alias + '-container';
+        var containerSelector = '#' + containerId;
+        
+        // Try to find the container within the dashboard-widgets area
+        var $dashboardWidgets = $('.dashboard-widgets', self.$el);
+        var $container = $dashboardWidgets.find('#' + containerId);
+        
+        // If not found, try finding any div with id containing 'container' in dashboard-widgets
+        if ($container.length === 0) {
+            $container = $dashboardWidgets.find('[id*="container"]:not([id*="container-list"]):not([id*="container-toolbar"])');
+            if ($container.length > 0) {
+                containerId = $container.first().attr('id');
+                containerSelector = '#' + containerId;
+            }
+        }
+        
+        console.log('🔍 DashboardContainer: Fetching widgets...', {
+            alias: self.options.alias,
+            containerSelector: containerSelector,
+            containerExists: $(containerSelector).length > 0,
+            dashboardWidgetsExists: $dashboardWidgets.length > 0
+        });
+        
+        $.request(self.options.alias + '::onRenderWidgets', {
+            success: function(data) {
+                console.log('✅ DashboardContainer: Widgets loaded successfully', data);
+                
+                // TastyIgniter's AJAX handler should automatically insert HTML,
+                // but manually ensure it happens if needed
+                setTimeout(function() {
+                    var $container = $(containerSelector);
+                    
+                    // Check if HTML was inserted by TastyIgniter's handler
+                    var hasContent = $container.length > 0 && $container.html().trim().length > 0;
+                    
+                    if (!hasContent && data) {
+                        console.log('⚠️ DashboardContainer: Container empty, manually inserting HTML...');
+                        
+                        // Extract HTML from response
+                        var htmlContent = null;
+                        if (typeof data === 'object') {
+                            // TastyIgniter returns { '#selector': 'html' }
+                            htmlContent = data[containerSelector] || data['#' + containerId] || Object.values(data)[0];
+                        } else if (typeof data === 'string') {
+                            htmlContent = data;
+                        }
+                        
+                        if (htmlContent && $container.length) {
+                            $container.html(htmlContent);
+                            console.log('✅ DashboardContainer: HTML manually inserted', {
+                                contentLength: htmlContent.length,
+                                containerId: containerId
+                            });
+                        } else {
+                            console.warn('⚠️ DashboardContainer: Could not extract HTML from response', {
+                                dataType: typeof data,
+                                dataKeys: typeof data === 'object' ? Object.keys(data) : 'N/A',
+                                containerExists: $container.length > 0
+                            });
+                        }
+                    }
+                    
+                    // Ensure container is visible
+                    if ($container.length) {
+                        $container.css({
+                            'display': 'block',
+                            'visibility': 'visible',
+                            'opacity': '1',
+                            'min-height': '100px'
+                        });
+                        
+                        var finalContentLength = $container.html().trim().length;
+                        var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
+                        
+                        console.log('✅ DashboardContainer: Container status after insertion', {
+                            hasContent: finalContentLength > 0,
+                            contentLength: finalContentLength,
+                            widgetCount: widgetCount,
+                            height: $container.height()
+                        });
+                    }
+                }, 150);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('❌ DashboardContainer: Failed to load widgets', {
+                    status: textStatus,
+                    error: errorThrown,
+                    response: jqXHR.responseText,
+                    statusCode: jqXHR.status
+                });
+            }
+        }).always(function (response) {
+            console.log('🔄 DashboardContainer: Request completed');
+            
+            // Hide progress indicator after a delay to ensure HTML is inserted
+            setTimeout(function() {
+                $('.dashboard-widgets .progress-indicator', self.$el).css({
+                    'display': 'none',
+                    'visibility': 'hidden',
+                    'opacity': '0'
+                });
+                
+                // Final check and visibility fix
+                var $container = $(containerSelector);
+                if ($container.length) {
+                    var hasContent = $container.html().trim().length > 0;
+                    var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
+                    
+                    $container.css({
+                        'display': 'block',
+                        'visibility': 'visible',
+                        'opacity': '1'
+                    });
+                    
+                    // Ensure widget-list is visible
+                    $container.find('.widget-list').css({
+                        'display': 'flex',
+                        'visibility': 'visible',
+                        'opacity': '1'
+                    });
+                    
+                    console.log('✅ DashboardContainer: Final visibility check', {
+                        hasContent: hasContent,
+                        widgetCount: widgetCount,
+                        containerHeight: $container.height(),
+                        progressHidden: !$('.dashboard-widgets .progress-indicator', self.$el).is(':visible')
+                    });
+                    
+                    if (!hasContent) {
+                        console.error('❌ DashboardContainer: Container is STILL empty after all attempts!');
+                    }
+                }
+            }, 400);
+        });
     }
 
     // DASHBOARDCONTAINER PLUGIN DEFINITION
@@ -183,7 +317,30 @@
     // DASHBOARDCONTAINER DATA-API
     // ===============
 
+    // Initialize on document ready
+    $(document).ready(function() {
+        console.log('🚀 DashboardContainer: Document ready, initializing...');
+        $('[data-control="dashboard-container"]').dashboardContainer();
+    });
+    
+    // Also initialize on render event (for AJAX updates)
     $(document).render(function () {
-        $('[data-control="dashboard-container"]').dashboardContainer()
-    })
+        console.log('🚀 DashboardContainer: Render event triggered, initializing...');
+        $('[data-control="dashboard-container"]').each(function() {
+            // Only initialize if not already initialized
+            if (!$(this).data('ti.dashboardContainer')) {
+                $(this).dashboardContainer();
+            }
+        });
+    });
+    
+    // Fallback: Initialize after a short delay to ensure DOM is ready
+    setTimeout(function() {
+        $('[data-control="dashboard-container"]').each(function() {
+            if (!$(this).data('ti.dashboardContainer')) {
+                console.log('🚀 DashboardContainer: Fallback initialization...');
+                $(this).dashboardContainer();
+            }
+        });
+    }, 500);
 }(window.jQuery);

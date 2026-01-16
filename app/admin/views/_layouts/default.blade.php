@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-tour-enhanced.css') }}">
     <!-- Blue Buttons Override - Replace all green buttons with login button style -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
+    <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -116,6 +118,9 @@
 <!-- Media Manager Search Icon Fix -->
 <script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
 
+<!-- Image Preview Persistence Fix -->
+<script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ time() }}"></script>
+
 <!-- Debug Redirects (Remove this in production) -->
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
 
@@ -123,8 +128,8 @@
 <script src="{{ asset('app/admin/assets/js/introjs.min.js') }}"></script>
 <script src="{{ asset('app/admin/assets/js/admin-tour-enhanced.js') }}?v={{ time() }}"></script>
 
-<!-- Sidebar Star Icon -->
-<script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script>
+<!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
+<!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->
 
 <!-- Force Blue Buttons Override -->
 <script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?v={{ time() }}"></script>
@@ -219,6 +224,9 @@
     setTimeout(initGuideTourButton, 1000);
 })();
 </script>
+
+<!-- Decorative curve replacing star icon -->
+<div class="sidebar-curve-fix"></div>
 
 </body>
 </html>

@@ -96,25 +96,256 @@
         display: none !important;
     }
     
+    /* Base state: Light background, dark text, medium border */
+    .orders-history-toggle:not(.active) {
+        background: rgb(241, 244, 251) !important;
+        color: rgb(32, 41, 56) !important;
+        border-color: rgb(201, 210, 227) !important;
+    }
+    
+    /* Hover state: Darker border, keep dark text for contrast */
+    .orders-history-toggle:not(.active):hover {
+        background: rgb(233, 237, 246) !important;
+        color: rgb(32, 41, 56) !important; /* Keep dark text */
+        border-color: rgb(141, 157, 185) !important; /* Darker border - different from text */
+    }
+    
+    /* Force dark text and icon on hover - highest specificity */
+    .orders-history-toggle:not(.active):hover,
+    .orders-history-toggle:not(.active):hover *,
+    .orders-history-toggle:not(.active):hover i,
+    .orders-history-toggle:not(.active):hover span,
+    button.orders-history-toggle:not(.active):hover,
+    button.orders-history-toggle:not(.active):hover *,
+    button.orders-history-toggle:not(.active):hover i,
+    button.orders-history-toggle:not(.active):hover span,
+    .btn.orders-history-toggle:not(.active):hover,
+    .btn.orders-history-toggle:not(.active):hover *,
+    .btn.orders-history-toggle:not(.active):hover i,
+    .btn.orders-history-toggle:not(.active):hover span,
+    .btn.btn-light.orders-history-toggle:not(.active):hover,
+    .btn.btn-light.orders-history-toggle:not(.active):hover *,
+    .btn.btn-light.orders-history-toggle:not(.active):hover i,
+    .btn.btn-light.orders-history-toggle:not(.active):hover span {
+        color: rgb(32, 41, 56) !important; /* Force dark text - NEVER white on hover when not active */
+    }
+    
+    /* Focus state: Similar to hover but with focus ring */
+    .orders-history-toggle:not(.active):focus,
+    .orders-history-toggle:not(.active):focus-visible {
+        background: rgb(233, 237, 246) !important;
+        color: rgb(32, 41, 56) !important; /* Keep dark text */
+        border-color: rgb(141, 157, 185) !important; /* Darker border */
+        box-shadow: 0 0 0 0.2rem rgba(141, 157, 185, 0.25) !important;
+        outline: none !important;
+    }
+    
+    /* Force dark text and icon on focus - highest specificity */
+    .orders-history-toggle:not(.active):focus,
+    .orders-history-toggle:not(.active):focus-visible,
+    .orders-history-toggle:not(.active):focus *,
+    .orders-history-toggle:not(.active):focus-visible *,
+    .orders-history-toggle:not(.active):focus i,
+    .orders-history-toggle:not(.active):focus-visible i,
+    .orders-history-toggle:not(.active):focus span,
+    .orders-history-toggle:not(.active):focus-visible span,
+    button.orders-history-toggle:not(.active):focus,
+    button.orders-history-toggle:not(.active):focus *,
+    button.orders-history-toggle:not(.active):focus i,
+    button.orders-history-toggle:not(.active):focus span,
+    .btn.orders-history-toggle:not(.active):focus,
+    .btn.orders-history-toggle:not(.active):focus *,
+    .btn.orders-history-toggle:not(.active):focus i,
+    .btn.orders-history-toggle:not(.active):focus span,
+    .btn.btn-light.orders-history-toggle:not(.active):focus,
+    .btn.btn-light.orders-history-toggle:not(.active):focus *,
+    .btn.btn-light.orders-history-toggle:not(.active):focus i,
+    .btn.btn-light.orders-history-toggle:not(.active):focus span {
+        color: rgb(32, 41, 56) !important; /* Force dark text - NEVER white on focus when not active */
+    }
+    
+    /* Active (pressed) state: Even darker border, keep dark text */
+    .orders-history-toggle:not(.active):active {
+        background: rgb(225, 230, 241) !important;
+        color: rgb(32, 41, 56) !important; /* Keep dark text */
+        border-color: rgb(100, 120, 155) !important; /* Even darker border */
+    }
+    
+    /* Force dark text and icon on active (pressed) - highest specificity */
+    .orders-history-toggle:not(.active):active,
+    .orders-history-toggle:not(.active):active *,
+    .orders-history-toggle:not(.active):active i,
+    .orders-history-toggle:not(.active):active span,
+    button.orders-history-toggle:not(.active):active,
+    button.orders-history-toggle:not(.active):active *,
+    button.orders-history-toggle:not(.active):active i,
+    button.orders-history-toggle:not(.active):active span,
+    .btn.orders-history-toggle:not(.active):active,
+    .btn.orders-history-toggle:not(.active):active *,
+    .btn.orders-history-toggle:not(.active):active i,
+    .btn.orders-history-toggle:not(.active):active span,
+    .btn.btn-light.orders-history-toggle:not(.active):active,
+    .btn.btn-light.orders-history-toggle:not(.active):active *,
+    .btn.btn-light.orders-history-toggle:not(.active):active i,
+    .btn.btn-light.orders-history-toggle:not(.active):active span {
+        color: rgb(32, 41, 56) !important; /* Force dark text - NEVER white when pressed (not active) */
+    }
+    
+    /* Active state (toggled on): Light background, dark text - same as inactive */
     .orders-history-toggle.active {
-        background: #08815e !important;
-        color: white !important;
-        border-color: #08815e !important;
+        background: rgb(241, 244, 251) !important;
+        color: rgb(32, 41, 56) !important; /* Dark text - NOT white */
+        border-color: rgb(201, 210, 227) !important;
     }
     
-    /* History button icon - dark when NOT active */
-    .orders-history-toggle i {
+    /* Force dark text and icon on active state - highest specificity */
+    .orders-history-toggle.active,
+    .orders-history-toggle.active *,
+    .orders-history-toggle.active i,
+    .orders-history-toggle.active span,
+    button.orders-history-toggle.active,
+    button.orders-history-toggle.active *,
+    button.orders-history-toggle.active i,
+    button.orders-history-toggle.active span,
+    .btn.orders-history-toggle.active,
+    .btn.orders-history-toggle.active *,
+    .btn.orders-history-toggle.active i,
+    .btn.orders-history-toggle.active span,
+    .btn.btn-light.orders-history-toggle.active,
+    .btn.btn-light.orders-history-toggle.active *,
+    .btn.btn-light.orders-history-toggle.active i,
+    .btn.btn-light.orders-history-toggle.active span {
+        color: rgb(32, 41, 56) !important; /* Force dark text - NEVER white when active */
+    }
+    
+    /* Active state hover: Darker border, keep dark text */
+    .orders-history-toggle.active:hover {
+        background: rgb(233, 237, 246) !important;
+        color: rgb(32, 41, 56) !important; /* Dark text - NOT white */
+        border-color: rgb(141, 157, 185) !important; /* Darker border */
+    }
+    
+    /* Force dark text and icon on active hover - highest specificity */
+    .orders-history-toggle.active:hover,
+    .orders-history-toggle.active:hover *,
+    .orders-history-toggle.active:hover i,
+    .orders-history-toggle.active:hover span,
+    button.orders-history-toggle.active:hover,
+    button.orders-history-toggle.active:hover *,
+    button.orders-history-toggle.active:hover i,
+    button.orders-history-toggle.active:hover span,
+    .btn.orders-history-toggle.active:hover,
+    .btn.orders-history-toggle.active:hover *,
+    .btn.orders-history-toggle.active:hover i,
+    .btn.orders-history-toggle.active:hover span,
+    .btn.btn-light.orders-history-toggle.active:hover,
+    .btn.btn-light.orders-history-toggle.active:hover *,
+    .btn.btn-light.orders-history-toggle.active:hover i,
+    .btn.btn-light.orders-history-toggle.active:hover span {
+        color: rgb(32, 41, 56) !important; /* Force dark text - NEVER white on hover when active */
+    }
+    
+    /* Active state focus */
+    .orders-history-toggle.active:focus,
+    .orders-history-toggle.active:focus-visible {
+        background: rgb(233, 237, 246) !important;
+        color: rgb(32, 41, 56) !important; /* Dark text - NOT white */
+        border-color: rgb(141, 157, 185) !important; /* Darker border */
+        box-shadow: 0 0 0 0.2rem rgba(141, 157, 185, 0.25) !important;
+        outline: none !important;
+    }
+    
+    /* Force dark text and icon on active focus - highest specificity */
+    .orders-history-toggle.active:focus,
+    .orders-history-toggle.active:focus-visible,
+    .orders-history-toggle.active:focus *,
+    .orders-history-toggle.active:focus-visible *,
+    .orders-history-toggle.active:focus i,
+    .orders-history-toggle.active:focus-visible i,
+    .orders-history-toggle.active:focus span,
+    .orders-history-toggle.active:focus-visible span,
+    button.orders-history-toggle.active:focus,
+    button.orders-history-toggle.active:focus *,
+    button.orders-history-toggle.active:focus i,
+    button.orders-history-toggle.active:focus span,
+    .btn.orders-history-toggle.active:focus,
+    .btn.orders-history-toggle.active:focus *,
+    .btn.orders-history-toggle.active:focus i,
+    .btn.orders-history-toggle.active:focus span,
+    .btn.btn-light.orders-history-toggle.active:focus,
+    .btn.btn-light.orders-history-toggle.active:focus *,
+    .btn.btn-light.orders-history-toggle.active:focus i,
+    .btn.btn-light.orders-history-toggle.active:focus span {
+        color: rgb(32, 41, 56) !important; /* Force dark text - NEVER white on focus when active */
+    }
+    
+    /* Active state pressed */
+    .orders-history-toggle.active:active {
+        background: rgb(225, 230, 241) !important;
+        color: rgb(32, 41, 56) !important; /* Dark text - NOT white */
+        border-color: rgb(100, 120, 155) !important; /* Even darker border */
+    }
+    
+    /* Force dark text and icon on active pressed - highest specificity */
+    .orders-history-toggle.active:active,
+    .orders-history-toggle.active:active *,
+    .orders-history-toggle.active:active i,
+    .orders-history-toggle.active:active span,
+    button.orders-history-toggle.active:active,
+    button.orders-history-toggle.active:active *,
+    button.orders-history-toggle.active:active i,
+    button.orders-history-toggle.active:active span,
+    .btn.orders-history-toggle.active:active,
+    .btn.orders-history-toggle.active:active *,
+    .btn.orders-history-toggle.active:active i,
+    .btn.orders-history-toggle.active:active span,
+    .btn.btn-light.orders-history-toggle.active:active,
+    .btn.btn-light.orders-history-toggle.active:active *,
+    .btn.btn-light.orders-history-toggle.active:active i,
+    .btn.btn-light.orders-history-toggle.active:active span {
+        color: rgb(32, 41, 56) !important; /* Force dark text - NEVER white when pressed (active) */
+    }
+    
+    /* History button icon - dark when NOT active (all states) */
+    .orders-history-toggle:not(.active) i,
+    .orders-history-toggle:not(.active):hover i,
+    .orders-history-toggle:not(.active):focus i,
+    .orders-history-toggle:not(.active):active i,
+    button.orders-history-toggle:not(.active) i,
+    button.orders-history-toggle:not(.active):hover i,
+    button.orders-history-toggle:not(.active):focus i,
+    button.orders-history-toggle:not(.active):active i,
+    .btn.orders-history-toggle:not(.active) i,
+    .btn.orders-history-toggle:not(.active):hover i,
+    .btn.orders-history-toggle:not(.active):focus i,
+    .btn.orders-history-toggle:not(.active):active i,
+    .btn.btn-light.orders-history-toggle:not(.active) i,
+    .btn.btn-light.orders-history-toggle:not(.active):hover i,
+    .btn.btn-light.orders-history-toggle:not(.active):focus i,
+    .btn.btn-light.orders-history-toggle:not(.active):active i {
+        color: rgb(32, 41, 56) !important; /* Dark icon - NEVER white when not active */
         margin-right: 8px !important;
-        color: #526484 !important;
     }
     
-    .orders-history-toggle:not(.active) i {
-        color: #526484 !important;
-    }
-    
-    /* History button icon - inherit color from button when active */
-    .orders-history-toggle.active i {
-        color: inherit !important;
+    /* History button icon - dark when active (same as inactive) */
+    .orders-history-toggle.active i,
+    .orders-history-toggle.active:hover i,
+    .orders-history-toggle.active:focus i,
+    .orders-history-toggle.active:active i,
+    button.orders-history-toggle.active i,
+    button.orders-history-toggle.active:hover i,
+    button.orders-history-toggle.active:focus i,
+    button.orders-history-toggle.active:active i,
+    .btn.orders-history-toggle.active i,
+    .btn.orders-history-toggle.active:hover i,
+    .btn.orders-history-toggle.active:focus i,
+    .btn.orders-history-toggle.active:active i,
+    .btn.btn-light.orders-history-toggle.active i,
+    .btn.btn-light.orders-history-toggle.active:hover i,
+    .btn.btn-light.orders-history-toggle.active:focus i,
+    .btn.btn-light.orders-history-toggle.active:active i {
+        color: rgb(32, 41, 56) !important; /* Dark icon - NOT white when active */
+        margin-right: 8px !important;
     }
     
     /* History button spacing - text */
@@ -122,13 +353,44 @@
         margin-left: 4px !important;
     }
     
-    /* Ensure History button text is also dark when not active */
-    .orders-history-toggle:not(.active) {
-        color: #526484 !important;
+    /* Ensure History button text maintains dark color when NOT active (all states) */
+    .orders-history-toggle:not(.active) span,
+    .orders-history-toggle:not(.active):hover span,
+    .orders-history-toggle:not(.active):focus span,
+    .orders-history-toggle:not(.active):active span,
+    button.orders-history-toggle:not(.active) span,
+    button.orders-history-toggle:not(.active):hover span,
+    button.orders-history-toggle:not(.active):focus span,
+    button.orders-history-toggle:not(.active):active span,
+    .btn.orders-history-toggle:not(.active) span,
+    .btn.orders-history-toggle:not(.active):hover span,
+    .btn.orders-history-toggle:not(.active):focus span,
+    .btn.orders-history-toggle:not(.active):active span,
+    .btn.btn-light.orders-history-toggle:not(.active) span,
+    .btn.btn-light.orders-history-toggle:not(.active):hover span,
+    .btn.btn-light.orders-history-toggle:not(.active):focus span,
+    .btn.btn-light.orders-history-toggle:not(.active):active span {
+        color: rgb(32, 41, 56) !important; /* Dark text - NEVER white when not active */
     }
     
-    .orders-history-toggle:not(.active) span {
-        color: #526484 !important;
+    /* Dark text and icon when active (same as inactive) */
+    .orders-history-toggle.active span,
+    .orders-history-toggle.active:hover span,
+    .orders-history-toggle.active:focus span,
+    .orders-history-toggle.active:active span,
+    button.orders-history-toggle.active span,
+    button.orders-history-toggle.active:hover span,
+    button.orders-history-toggle.active:focus span,
+    button.orders-history-toggle.active:active span,
+    .btn.orders-history-toggle.active span,
+    .btn.orders-history-toggle.active:hover span,
+    .btn.orders-history-toggle.active:focus span,
+    .btn.orders-history-toggle.active:active span,
+    .btn.btn-light.orders-history-toggle.active span,
+    .btn.btn-light.orders-history-toggle.active:hover span,
+    .btn.btn-light.orders-history-toggle.active:focus span,
+    .btn.btn-light.orders-history-toggle.active:active span {
+        color: rgb(32, 41, 56) !important; /* Dark text - NOT white when active */
     }
     
     /* ============================================

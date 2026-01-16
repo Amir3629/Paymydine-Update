@@ -1,6 +1,80 @@
 .dashboard-widgets {
   margin-top: -15px;
+  position: relative !important;
+  min-height: 200px !important;
 }
+
+/* CRITICAL OVERRIDE: Force visibility for all dashboard widget elements */
+.dashboard-widgets,
+.dashboard-widgets *:not(.progress-indicator):not([style*="display: none"]) {
+  /* Don't override elements that are explicitly hidden */
+}
+
+/* Ensure container div is visible */
+.dashboard-widgets > div[id*="container"]:not(.progress-indicator) {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100px !important;
+  position: relative !important;
+}
+
+/* CRITICAL: Ensure widget container and list are ALWAYS visible */
+.dashboard-widgets > div[id*="container"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100px !important;
+}
+
+.widget-container {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: auto !important;
+}
+
+.widget-list {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  min-height: 100px !important;
+}
+
+.widget-list.row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  margin-left: -15px !important;
+  margin-right: -15px !important;
+}
+
+.widget-list .col,
+.widget-list [class*="col-"],
+.widget-list [class*="col-sm-"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  float: none !important;
+}
+
+/* Ensure progress indicator can be hidden */
+.dashboard-widgets .progress-indicator[style*="display: none"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Ensure progress indicator is shown initially */
+.dashboard-widgets .progress-indicator:not([style*="display: none"]) {
+  display: flex !important;
+}
+
 .dashboard-toolbar {
   padding: 0 0 20px;
 }
