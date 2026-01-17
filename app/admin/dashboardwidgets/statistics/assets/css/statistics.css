@@ -1,0 +1,169 @@
+/* ========================================
+   INSTAGRAM STORY STYLE STAT BOXES
+   ======================================== */
+
+/* Remove white boxes from parent .widget-item */
+.widget-item.card.bg-light,
+.widget-item.card,
+.widget-item {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    position: relative !important; /* Needed for control buttons positioning */
+}
+
+/* Widget control buttons (move, delete, settings, duplicate) */
+.widget-item .widget-item-action {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    z-index: 100 !important;
+    display: none !important; /* Hidden by default */
+    gap: 6px !important;
+    max-width: 100px !important; /* Force wrapping after 2 buttons */
+}
+
+/* Show control buttons only when in edit mode (not on hover) */
+.edit-mode .widget-item .widget-item-action {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important; /* Wrap to next row after 2 buttons */
+    align-items: center !important;
+    justify-content: flex-end !important;
+}
+
+/* Style control buttons */
+.widget-item-action .btn {
+    background: rgba(8, 129, 94, 0.9) !important;
+    border: 1px solid #08815e !important;
+    border-radius: 6px !important;
+    padding: 5px 8px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    min-width: 32px !important; /* Consistent button size */
+    height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.widget-item-action .btn:hover {
+    background: rgba(11, 184, 122, 1) !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Button icons */
+.widget-item-action .btn i {
+    color: #ffffff !important;
+    font-size: 14px !important;
+}
+
+/* Delete button - keep red color */
+.widget-item-action .btn i.text-danger {
+    color: #ef4444 !important;
+}
+
+/* Main stat box container */
+.card-counter,
+.card-counter.sale,
+.card-counter.cash_payment,
+.card-counter.lost_sale {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 30px 20px !important;
+    text-align: center !important;
+    transition: all 0.3s ease !important;
+    min-height: 220px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+}
+
+/* Icon - Instagram story circle with gradient ring */
+.card-counter .stat-icon,
+.card-counter .stat-icon.text-white {
+    position: relative !important;
+    width: 100px !important;
+    height: 100px !important;
+    border-radius: 50% !important;
+    padding: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 0 20px 0 !important;
+    font-size: 2.5em !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.3s ease !important;
+    left: auto !important;
+    opacity: 1 !important;
+    /* Icon color - header blue - override .text-white */
+    color: #202938 !important;
+    z-index: 0 !important;
+}
+
+/* Inner circle (cream background like Instagram) */
+.card-counter .stat-icon::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
+    background: #ffffff;
+    border-radius: 50%;
+    z-index: 0;
+}
+
+/* Icon glyph on top of cream circle */
+.card-counter .stat-icon::before {
+    position: relative;
+    z-index: 1;
+}
+
+/* Hover effect - scale up */
+.card-counter:hover .stat-icon {
+    transform: scale(1.1) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Number styling */
+.card-counter .stat-number {
+    font-size: 2.0em !important; /* Slightly smaller - was 2.5em */
+    font-weight: 800 !important;
+    color: #202938 !important;
+    margin: 10px 0 5px 0 !important;
+    line-height: 1 !important;
+    display: block !important;
+}
+
+/* Text label styling */
+.card-counter .stat-text {
+    font-size: 0.9em !important;
+    color: #2f5496 !important;
+    margin: 5px 0 0 0 !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+    font-style: normal !important;
+    opacity: 1 !important;
+    display: block !important;
+}
+
+/* Gradient rings for each stat type */
+.stat-icon-brown-light {
+    background: linear-gradient(45deg, #202938, #2f5496, #4a75c3, #64b5f6, #203864) !important;
+}
+
+.stat-icon-gold {
+    background: linear-gradient(45deg, #0bb87a, #0dd4a3, #0ff5c7, #0dd4a3, #0bb87a) !important;
+}
+
+.stat-icon-brown-dark {
+    background: linear-gradient(45deg, #202938, #08815e, #065a42, #08815e, #202938) !important;
+}
