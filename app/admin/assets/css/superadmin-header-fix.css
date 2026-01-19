@@ -1,0 +1,335 @@
+/* ============================================
+   SUPERADMIN HEADER FIX
+   Make header EXACTLY like Admin Panel
+   Dark header with white centered title
+   ============================================ */
+
+/* ============================================
+   DARK HEADER - Same as Admin Panel
+   ============================================ */
+
+/* Main Header - Blue Gradient (Same as Login Page) */
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  /* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+  /* EXACT same as admin panel */
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  border-bottom: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important; /* EXACT same as admin panel */
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding: 0 !important;
+  border-bottom-right-radius: 25px !important; /* EXACT same as admin panel */
+}
+
+.nk-header-wrap {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  padding: 0 20px !important;
+}
+
+/* Logo in Header (mobile view) */
+.nk-header-brand {
+  display: flex !important;
+  align-items: center !important;
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+}
+
+.nk-header-brand img {
+  max-height: 40px !important;
+  width: auto !important;
+}
+
+/* ============================================
+   PAGE TITLE IN HEADER - WHITE COLOR
+   Exactly like Admin Panel
+   ============================================ */
+
+/* Hide the default page title below header */
+.nk-content .nk-block-head .nk-block-head-content {
+  display: none !important;
+}
+
+/* Create page title in header using data attribute or JavaScript */
+.nk-header::after {
+  content: attr(data-page-title) !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  letter-spacing: 0.5px !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* Alternative: If using a span for page title */
+.nk-header .page-title,
+.nk-header-wrap .page-title {
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  letter-spacing: 0.5px !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+.nk-header .page-title span {
+  color: #ffffff !important;
+}
+
+/* ============================================
+   USER DROPDOWN IN HEADER - White Icons
+   ============================================ */
+
+/* User toggle in header */
+.nk-header .user-toggle .user-avatar {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.nk-header .user-toggle .user-name,
+.nk-header .user-toggle .user-status {
+  color: #ffffff !important;
+}
+
+.nk-header .dropdown-indicator {
+  color: #ffffff !important;
+}
+
+/* Notification bell - white icon */
+.nk-header .nk-quick-nav-icon,
+.nk-header .nk-quick-nav-icon em,
+.nk-header .icon-status em {
+  color: #ffffff !important;
+}
+
+.nk-header .dropdown-toggle {
+  color: #ffffff !important;
+}
+
+.nk-header .dropdown-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+}
+
+/* Menu trigger (mobile) - white */
+.nk-header .nk-menu-trigger a,
+.nk-header .nk-nav-toggle {
+  color: #ffffff !important;
+}
+
+/* Icon status - white bell with colored dot */
+.nk-header .icon-status em.icon {
+  color: #ffffff !important;
+}
+
+.nk-header .icon-status::after {
+  background-color: #e85347 !important;
+}
+
+/* ============================================
+   SIDEBAR - Match Header Height
+   ============================================ */
+
+.nk-sidebar-brand {
+  /* Logo area gradient - smooth transition from top to #516584 (bottom) */
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  height: 63px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-bottom: none !important;
+}
+
+.nk-sidebar {
+  /* Continues seamlessly from header: starts at #516584 (brighter, matching header left) */
+  /* ADJUSTED: Left side is brighter, middle section is less dark, bottom part is also brighter */
+  background: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-right: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Ensure header and sidebar connect seamlessly - no border between them */
+.nk-header + .nk-sidebar,
+.nk-header ~ .nk-sidebar {
+  border-top: none !important;
+}
+
+/* Remove any border-bottom from header that might create a line */
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  border-bottom: none !important;
+}
+
+/* Remove any border-top from sidebar that might create a line */
+.nk-sidebar,
+.nk-sidebar-brand {
+  border-top: none !important;
+}
+
+/* Star icon in sidebar top right - gradient from #4e6381 (left) to #506584 (right) */
+/* Smooth gradient: left half #4e6381, smoothly transitions to #506584 on right */
+#sidebar-star-icon,
+.nk-sidebar .star-icon,
+.nk-sidebar [class*="star"],
+.nk-sidebar .fa-star,
+.nk-sidebar .icon-star {
+  background: linear-gradient(90deg, #4e6381 0%, #4e6381 45%, #506584 55%, #506584 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important; /* Fallback for browsers that don't support background-clip */
+}
+
+/* Hide star icon on mobile/tablet - only show on desktop */
+@media (max-width: 991.98px) {
+  #sidebar-star-icon,
+  .nk-sidebar .star-icon,
+  .nk-sidebar [class*="star"],
+  .nk-sidebar .fa-star,
+  .nk-sidebar .icon-star {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+}
+
+/* ============================================
+   DROPDOWN MENUS - White Background
+   ============================================ */
+
+.nk-header .dropdown-menu {
+  background-color: #ffffff !important;
+  border: 2px solid #08815e !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.nk-header .dropdown-menu .link-list-opt a,
+.nk-header .dropdown-menu .link-list a {
+  color: #526484 !important;
+}
+
+.nk-header .dropdown-menu .link-list-opt a:hover,
+.nk-header .dropdown-menu .link-list a:hover {
+  background-color: rgba(8, 129, 94, 0.1) !important;
+  color: #08815e !important;
+}
+
+.nk-header .user-card-wrap {
+  background-color: #f5f6fa !important;
+}
+
+/* ============================================
+   CONTENT AREA - Light Background
+   ============================================ */
+
+.nk-content {
+  background-color: #f5f6fa !important;
+  padding-top: 30px !important;
+}
+
+/* ============================================
+   FIX PURPLE TITLES IN CONTENT
+   Make all titles dark gray, not purple
+   ============================================ */
+
+.nk-block-title,
+.page-title,
+.tenants-heading,
+.tenant-title,
+.elegant-title,
+h1, h2, h3, h4, h5, h6,
+.card-title h6,
+.nk-block-head-content h3,
+.nk-block-head-content .title {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+}
+
+/* Subtitle/description - gray, not purple */
+.nk-block-des,
+.nk-block-des p,
+.tenant-subtitle,
+.welcome-text {
+  color: #526484 !important;
+  font-weight: normal !important;
+}
+
+/* ============================================
+   NOTIFICATION DROPDOWN
+   ============================================ */
+
+.nk-header .nk-notification .nk-notification-item {
+  border-bottom: 1px solid #e5e9f2 !important;
+  padding: 12px !important;
+}
+
+.nk-header .nk-notification-text {
+  color: #364a63 !important;
+  font-weight: 500 !important;
+}
+
+.nk-header .nk-notification-time {
+  color: #8094ae !important;
+  font-size: 12px !important;
+}
+
+.nk-header .dropdown-head {
+  background-color: #f5f6fa !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+}
+
+.nk-header .nk-dropdown-title {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .nk-header .page-title {
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .nk-header .page-title {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   ENSURE SMOOTH TRANSITIONS
+   ============================================ */
+
+.nk-header,
+.nk-header *,
+.nk-header .dropdown-toggle,
+.nk-header .user-toggle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+

@@ -1,0 +1,804 @@
+/* ============================================
+   SUPERADMIN UNIFIED DESIGN SYSTEM
+   Matching Admin Panel Design Exactly
+   ============================================ */
+
+/* ============================================
+   PRIMARY COLORS - Same as Admin Panel
+   ============================================ */
+:root {
+  --primary-green: #08815e;
+  --primary-green-hover: #06ab6e;
+  --primary-green-light: rgba(8, 129, 94, 0.1);
+  --white-bg: #ffffff;
+  --light-bg: #f5f6fa;
+  --border-color: #dbdfea;
+  --text-color: #526484;
+  --heading-color: #364a63;
+  --shadow-sm: 0 0.125rem 0.25rem rgba(43, 55, 72, 0.15);
+  --shadow-md: 0 3px 12px 1px rgba(43, 55, 72, 0.15);
+  --shadow-lg: 0 1rem 3rem rgba(43, 55, 72, 0.25);
+}
+
+/* ============================================
+   GLOBAL SMOOTH TRANSITIONS
+   ============================================ */
+* {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   BODY & PAGE WRAPPER - White Background
+   ============================================ */
+body {
+  background-color: var(--light-bg) !important;
+  font-family: 'Roboto', sans-serif !important;
+  color: var(--text-color) !important;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.nk-wrap {
+  background-color: var(--light-bg) !important;
+}
+
+.nk-content {
+  background-color: var(--light-bg) !important;
+  padding-top: 20px;
+}
+
+/* ============================================
+   HEADER - Blue Gradient (Same as Login Page)
+   ============================================ */
+.nk-header {
+  /* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+  /* EXACT same as admin panel */
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  border-bottom: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important; /* EXACT same as admin panel */
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding: 0 !important;
+  border-bottom-right-radius: 25px !important; /* EXACT same as admin panel */
+}
+
+/* All text and icons in header - white for contrast */
+.nk-header .title,
+.nk-header .user-name,
+.nk-header .page-title,
+.nk-header .page-title span,
+.nk-header a,
+.nk-header .icon,
+.nk-header em.icon,
+.nk-header .nk-menu-trigger,
+.nk-header .nk-quick-nav-icon,
+.nk-header .user-toggle,
+.nk-header .user-status,
+.nk-header .dropdown-toggle,
+.nk-header .badge,
+.nk-header .nk-block-head-content h3 {
+  color: #ffffff !important;
+}
+
+.nk-header-wrap {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+}
+
+/* Page Title in Header - Same as Admin Panel */
+.nk-block-head-content h3 {
+  color: var(--heading-color) !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+}
+
+/* ============================================
+   SIDEBAR - Blue Gradient (Unified with Header)
+   ============================================ */
+.nk-sidebar {
+  /* Smoothly continues from logo section: starts at #475c75 (matching logo bottom) */
+  /* Logo section ends at #475c75, so sidebar starts at #475c75 for seamless transition */
+  background: linear-gradient(180deg, #475c75 0%, #475c75 10%, #455a73 30%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #475c75 !important;
+  background-image: linear-gradient(180deg, #475c75 0%, #475c75 10%, #455a73 30%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-right: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.nk-sidebar-brand {
+  /* Logo area gradient - smooth transition from top to #516584 (bottom) */
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  border-bottom: none !important;
+}
+
+/* Ensure header and sidebar connect seamlessly - no border between them */
+.nk-header + .nk-sidebar,
+.nk-header ~ .nk-sidebar {
+  border-top: none !important;
+}
+
+/* Remove any border-bottom from header that might create a line */
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  border-bottom: none !important;
+}
+
+/* Remove any border-top from sidebar that might create a line */
+.nk-sidebar,
+.nk-sidebar-brand {
+  border-top: none !important;
+}
+
+/* Menu links - EXACT same as admin panel */
+.nk-menu-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  padding: 12px 20px !important;
+  border-radius: 4px !important;
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease, color 0.2s ease !important;
+}
+
+.nk-menu-link:hover,
+.nk-menu-link:focus {
+  background-color: rgba(81, 101, 132, 0.65) !important; /* EXACT same as admin panel hover */
+  background: rgba(81, 101, 132, 0.65) !important;
+  color: #ffffff !important;
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  border-radius: 4px !important;
+}
+
+.nk-menu-link.active,
+.nk-menu-item.active > .nk-menu-link {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* EXACT same as admin panel active (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-left: none !important; /* Remove border, use background like admin */
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow like admin */
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+}
+
+/* Star icon in sidebar top right - gradient from #4e6381 (left) to #506584 (right) */
+/* Smooth gradient: left half #4e6381, smoothly transitions to #506584 on right */
+#sidebar-star-icon,
+.nk-sidebar .star-icon,
+.nk-sidebar [class*="star"],
+.nk-sidebar .fa-star,
+.nk-sidebar .icon-star {
+  background: linear-gradient(90deg, #4e6381 0%, #4e6381 45%, #506584 55%, #506584 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important; /* Fallback for browsers that don't support background-clip */
+}
+
+/* Hide star icon on mobile/tablet - only show on desktop */
+@media (max-width: 991.98px) {
+  #sidebar-star-icon,
+  .nk-sidebar .star-icon,
+  .nk-sidebar [class*="star"],
+  .nk-sidebar .fa-star,
+  .nk-sidebar .icon-star {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+}
+
+/* ============================================
+   CARDS - White Background, Subtle Shadows
+   ============================================ */
+.card {
+  background-color: var(--white-bg) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all 0.3s ease !important;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-2px) !important;
+}
+
+.card-header {
+  background-color: var(--white-bg) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  padding: 16px 20px !important;
+}
+
+.card-body {
+  background-color: var(--white-bg) !important;
+  padding: 20px !important;
+}
+
+.card-inner {
+  background-color: var(--white-bg) !important;
+}
+
+/* ============================================
+   FORM CONTROLS - Modern & Clean
+   ============================================ */
+.form-control,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+textarea,
+select {
+  background-color: var(--white-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  padding: 8px 12px !important;
+  font-size: 0.875rem !important;
+  color: var(--text-color) !important;
+  transition: all 0.3s ease !important;
+}
+
+.form-control:hover,
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--primary-green) !important;
+  box-shadow: 0 0 0 3px var(--primary-green-light) !important;
+}
+
+.form-control:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  background-color: var(--white-bg) !important;
+  border-color: var(--primary-green) !important;
+  box-shadow: 0 0 0 3px var(--primary-green-light) !important;
+  outline: none !important;
+}
+
+/* ============================================
+   BUTTONS - Green Primary Color
+   ============================================ */
+.btn {
+  border-radius: 4px !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  transition: all 0.3s ease !important;
+  border: 1px solid transparent !important;
+}
+
+.btn-primary {
+  background-color: var(--primary-green) !important;
+  border-color: var(--primary-green) !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-green-hover) !important;
+  border-color: var(--primary-green-hover) !important;
+  box-shadow: 0 4px 15px rgba(8, 129, 94, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+.btn-secondary {
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+}
+
+.btn-secondary:hover {
+  background-color: #2b3748 !important;
+  border-color: #2b3748 !important;
+  transform: translateY(-2px) !important;
+}
+
+.btn-icon {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--text-color) !important;
+  padding: 8px !important;
+}
+
+.btn-icon:hover {
+  background-color: var(--primary-green-light) !important;
+  color: var(--primary-green) !important;
+}
+
+/* ============================================
+   TABLES - Clean & Modern
+   ============================================ */
+.nk-tb-list {
+  background-color: var(--white-bg) !important;
+}
+
+.nk-tb-item {
+  background-color: var(--white-bg) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  transition: all 0.2s ease !important;
+}
+
+.nk-tb-item:hover {
+  background-color: rgba(8, 129, 94, 0.02) !important;
+}
+
+.nk-tb-head {
+  background-color: var(--light-bg) !important;
+  border-bottom: 2px solid var(--border-color) !important;
+}
+
+.nk-tb-col {
+  padding: 12px 16px !important;
+}
+
+/* ============================================
+   DROPDOWNS - Smooth & Modern
+   ============================================ */
+.dropdown-menu {
+  background-color: var(--white-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  box-shadow: var(--shadow-md) !important;
+  padding: 8px !important;
+}
+
+.dropdown-item {
+  color: var(--text-color) !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.dropdown-item:hover {
+  background-color: var(--primary-green-light) !important;
+  color: var(--primary-green) !important;
+  transform: translateX(4px) !important;
+}
+
+/* Exclude profile dropdown from green hover effect */
+.profile-dropdown-menu .dropdown-item:hover {
+  background-color: transparent !important;
+  color: #202938 !important;
+  transform: scale(1.05) !important;
+}
+
+/* ============================================
+   BADGES - Modern Design
+   ============================================ */
+.badge {
+  padding: 4px 10px !important;
+  border-radius: 20px !important;
+  font-weight: 500 !important;
+  font-size: 0.75rem !important;
+}
+
+.badge-success {
+  background-color: #1ee0ac !important;
+  color: #ffffff !important;
+}
+
+.badge-danger {
+  background-color: #e85347 !important;
+  color: #ffffff !important;
+}
+
+.badge-warning {
+  background-color: #f4bd0e !important;
+  color: #000000 !important;
+}
+
+.badge-primary {
+  background-color: var(--primary-green) !important;
+  color: #ffffff !important;
+}
+
+/* ============================================
+   PAGINATION - Clean Design
+   ============================================ */
+.pagination {
+  gap: 4px !important;
+}
+
+.page-link {
+  background-color: var(--white-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  padding: 6px 12px !important;
+  color: var(--text-color) !important;
+  transition: all 0.2s ease !important;
+}
+
+.page-link:hover {
+  background-color: var(--primary-green-light) !important;
+  border-color: var(--primary-green) !important;
+  color: var(--primary-green) !important;
+}
+
+.page-item.active .page-link {
+  background-color: var(--primary-green) !important;
+  border-color: var(--primary-green) !important;
+  color: #ffffff !important;
+}
+
+/* ============================================
+   MODALS - Beautiful Overlay
+   ============================================ */
+.modal-content {
+  background-color: var(--white-bg) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.modal-header {
+  background-color: var(--white-bg) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  padding: 16px 20px !important;
+}
+
+.modal-body {
+  background-color: var(--white-bg) !important;
+  padding: 20px !important;
+}
+
+.modal-title {
+  color: var(--heading-color) !important;
+  font-weight: 600 !important;
+}
+
+/* ============================================
+   ALERTS - Beautiful Notifications
+   ============================================ */
+.alert {
+  border-radius: 4px !important;
+  border: 1px solid transparent !important;
+  padding: 12px 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.alert-success,
+.custom-alert.success {
+  background-color: rgba(30, 224, 172, 0.1) !important;
+  border-color: #1ee0ac !important;
+  color: #0c5a45 !important;
+}
+
+.alert-danger,
+.custom-alert.error {
+  background-color: rgba(232, 83, 71, 0.1) !important;
+  border-color: #e85347 !important;
+  color: #5d211c !important;
+}
+
+.alert-warning {
+  background-color: rgba(244, 189, 14, 0.1) !important;
+  border-color: #f4bd0e !important;
+  color: #364a63 !important;
+}
+
+/* ============================================
+   USER DROPDOWN - Header Style
+   ============================================ */
+.user-dropdown .dropdown-toggle {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 8px 12px !important;
+}
+
+.user-toggle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.user-avatar {
+  background-color: var(--primary-green) !important;
+  color: #ffffff !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.user-info {
+  text-align: left !important;
+}
+
+.user-name {
+  color: var(--heading-color) !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+}
+
+.user-status {
+  color: var(--text-color) !important;
+  font-size: 0.75rem !important;
+}
+
+/* ============================================
+   NOTIFICATION BELL
+   ============================================ */
+.notification-dropdown .dropdown-toggle {
+  position: relative !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.icon-status {
+  position: relative !important;
+}
+
+.icon-status::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 8px !important;
+  height: 8px !important;
+  background-color: #e85347 !important;
+  border-radius: 50% !important;
+  border: 2px solid var(--white-bg) !important;
+}
+
+/* ============================================
+   LOGO STYLING
+   ============================================ */
+.nk-sidebar-brand img,
+.nk-header-brand img {
+  max-height: 40px !important;
+  width: auto !important;
+  transition: all 0.3s ease !important;
+}
+
+.logo-link:hover img {
+  transform: scale(1.05) !important;
+}
+
+/* ============================================
+   PAGE TITLE HEADING
+   ============================================ */
+.nk-block-title {
+  color: var(--heading-color) !important;
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+}
+
+.nk-block-des {
+  color: var(--text-color) !important;
+  font-size: 0.875rem !important;
+}
+
+/* ============================================
+   INPUT GROUPS - Seamless Design
+   ============================================ */
+.input-group {
+  display: flex !important;
+  align-items: stretch !important;
+  background-color: var(--white-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+}
+
+.input-group:hover {
+  border-color: var(--primary-green) !important;
+  box-shadow: 0 0 0 3px var(--primary-green-light) !important;
+}
+
+.input-group:focus-within {
+  border-color: var(--primary-green) !important;
+  box-shadow: 0 0 0 3px var(--primary-green-light) !important;
+}
+
+.input-group-text {
+  background-color: var(--light-bg) !important;
+  border: none !important;
+  color: var(--text-color) !important;
+  padding: 8px 12px !important;
+}
+
+.input-group .form-control {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================================
+   SMOOTH FADE-IN ANIMATION
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* ============================================
+   LOGIN PAGE SPECIFIC STYLES
+   ============================================ */
+.nk-split-content {
+  background-color: var(--white-bg) !important;
+}
+
+.brand-logo {
+  text-align: center !important;
+  margin-bottom: 32px !important;
+}
+
+.brand-logo img {
+  max-width: 200px !important;
+  height: auto !important;
+}
+
+.nk-block-title {
+  color: var(--heading-color) !important;
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+}
+
+.nk-block-des p {
+  color: var(--text-color) !important;
+  font-size: 0.875rem !important;
+}
+
+/* ============================================
+   CUSTOM ALERT STYLING
+   ============================================ */
+.custom-alert {
+  border-radius: 4px !important;
+  padding: 12px 16px !important;
+  margin: 16px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  animation: slideDown 0.3s ease-out !important;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.close-alert {
+  background: none !important;
+  border: none !important;
+  font-size: 1.25rem !important;
+  cursor: pointer !important;
+  opacity: 0.7 !important;
+  transition: all 0.2s ease !important;
+}
+
+.close-alert:hover {
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Hide logo on mobile - show only when sidebar is open */
+@media (max-width: 1199.98px) {
+  /* Hide logo section by default on mobile */
+  .nk-sidebar-brand {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Show logo only when sidebar is open */
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  @keyframes slideInLogo {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .nk-header-wrap {
+    padding: 0 12px !important;
+  }
+  
+  .nk-block-title {
+    font-size: 1.25rem !important;
+  }
+  
+  .btn {
+    padding: 6px 12px !important;
+    font-size: 0.8125rem !important;
+  }
+}
+
+/* ============================================
+   HOVER EFFECTS - Consistent Across All Elements
+   ============================================ */
+a {
+  color: var(--primary-green) !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+
+a:hover {
+  color: var(--primary-green-hover) !important;
+}
+
+.nk-tb-actions .btn:hover {
+  background-color: var(--primary-green-light) !important;
+  color: var(--primary-green) !important;
+}
+
+/* ============================================
+   SCROLL TO TOP BUTTON (If Needed)
+   ============================================ */
+.scroll-to-top {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 40px !important;
+  height: 40px !important;
+  background-color: var(--primary-green) !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: var(--shadow-md) !important;
+  cursor: pointer !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: all 0.3s ease !important;
+  z-index: 9999 !important;
+}
+
+.scroll-to-top.visible {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.scroll-to-top:hover {
+  background-color: var(--primary-green-hover) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: 0 6px 20px rgba(8, 129, 94, 0.3) !important;
+}
+
