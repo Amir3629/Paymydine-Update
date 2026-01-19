@@ -45,6 +45,10 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-green.css') }}?v={{ time() }}">
     <!-- Fix Profile Dropdown Hover - Remove inline styles blocking hover effect -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-hover.css') }}?v={{ time() }}">
+    <!-- Fix Green Buttons and Text - Change btn-default, btn-outline-default, and text-muted from green to dark blue/gray -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
+    <!-- Modern Media Finder - Elegant image uploader redesign -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -126,6 +130,9 @@
 
 <!-- Page-specific fixes -->
 <script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ time() }}"></script>
+
+<!-- Fix Media Finder Inline Styles -->
+<script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ time() }}"></script>
 
 <!-- Force Button Alignment -->
 <script src="{{ asset('app/admin/assets/js/force-button-alignment.js') }}?v={{ time() }}"></script>
