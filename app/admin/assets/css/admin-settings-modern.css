@@ -3,32 +3,6 @@
    Makes everything look modern and professional
    ============================================ */
 
-/* ========================================
-   MEDIA FINDER - BEAUTIFUL IMAGE CARDS
-   AGGRESSIVE OVERRIDES FOR SETTINGS PAGE
-   ======================================== */
-
-/* Make image cards larger and more beautiful - HIGH SPECIFICITY */
-body .page-content .media-finder .grid,
-body #edit-form .media-finder .grid,
-body .form-fields .media-finder .grid,
-body .form-group .media-finder .grid,
-.media-finder .grid {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
-  border-radius: 16px !important;
-  border: 2px solid #e5e9f2 !important;
-  width: 160px !important;
-  height: 160px !important;
-  min-width: 160px !important;
-  min-height: 160px !important;
-  max-width: 160px !important;
-  max-height: 160px !important;
-  position: relative !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-  overflow: visible !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  cursor: pointer !important;
-}
 
 body .page-content .media-finder .grid:hover,
 body #edit-form .media-finder .grid:hover,
@@ -37,7 +11,7 @@ body .form-group .media-finder .grid:hover,
 .media-finder .grid:hover {
   border-color: #364a63 !important; /* Dark blue instead of green */
   box-shadow: 0 8px 24px rgba(54, 74, 99, 0.15) !important; /* Dark blue shadow instead of green */
-  transform: translateY(-2px) !important;
+  transform: none !important; /* No card hover effect */
 }
 
 .media-finder .grid:focus {
@@ -72,27 +46,8 @@ body .form-group .media-finder .grid:hover,
   color: #6b7280;
 }
 
-/* ========================================
-   PLUS BUTTON - LARGE & BEAUTIFUL
-   ======================================== */
-
-.media-finder .grid .blank-cover {
-  position: relative;
-  overflow: hidden;
-  padding-top: 100%;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  pointer-events: auto !important;
-  z-index: 10 !important;
-  cursor: pointer !important;
-  background: #f1f4fb !important; /* Ice white color */
-  border-radius: 14px;
-  transition: all 0.3s ease !important;
-}
 
 .media-finder .grid .blank-cover:hover {
-  background: #e5ebf7 !important; /* Slightly darker ice white on hover */
   transform: scale(1.02);
 }
 
@@ -136,8 +91,6 @@ html body .media-finder .grid a.blank-cover {
 html body .media-finder .grid .blank-cover:hover,
 html body .media-finder .grid .find-button.blank-cover:hover,
 html body .media-finder .grid a.blank-cover:hover {
-  background: #e5ebf7 !important; /* Slightly darker ice white on hover */
-  background-color: #e5ebf7 !important;
 }
 
 html body .media-finder .grid .blank-cover i,
@@ -158,20 +111,6 @@ html body .media-finder .grid a.blank-cover:hover .fa-plus {
   color: #364a63 !important; /* Slightly lighter dark blue on hover */
 }
 
-/* ========================================
-   CROSS/REMOVE BUTTON - LARGE & BEAUTIFUL
-   ======================================== */
-
-.grid .find-remove-button {
-  display: none !important;
-  pointer-events: none;
-  position: absolute !important;
-  top: 12px !important;
-  right: 12px !important;
-  z-index: 9999 !important;
-  cursor: pointer !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
 
 body .page-content .grid:hover .find-remove-button,
 body #edit-form .grid:hover .find-remove-button,
@@ -217,16 +156,6 @@ body .form-group .grid .find-remove-button:hover,
   border-color: #dc3545 !important;
 }
 
-/* ========================================
-   FORM FIELDS - MODERN STYLING
-   ======================================== */
-
-/* Settings form container - HIGH SPECIFICITY */
-body .page-content #edit-form,
-body #edit-form,
-#edit-form {
-  padding: 24px !important;
-}
 
 /* Form groups - better spacing */
 .form-group {
@@ -270,7 +199,6 @@ select,
 input:hover,
 textarea:hover,
 select:hover {
-  border-color: #cbd5e1 !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
@@ -298,23 +226,6 @@ textarea.form-control {
   line-height: 1.5 !important;
 }
 
-/* ========================================
-   BUTTONS - LARGE & MODERN
-   ======================================== */
-
-/* Toolbar buttons */
-.toolbar .btn,
-.btn {
-  border-radius: 12px !important;
-  padding: 12px 24px !important;
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  line-height: 1.5 !important;
-  min-height: 48px !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
-  letter-spacing: -0.01em;
-}
 
 .btn-primary {
   background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
@@ -340,20 +251,11 @@ textarea.form-control {
 }
 
 .btn-outline-secondary:hover {
-  border-color: #cbd5e1 !important;
   background: #f8f9fa !important;
   color: #1f2937 !important;
   transform: translateY(-1px);
 }
 
-/* ========================================
-   TABS - MODERN STYLING
-   ======================================== */
-
-.form-nav.nav-tabs {
-  border-bottom: 2px solid #e5e9f2 !important;
-  margin-bottom: 32px !important;
-}
 
 .form-nav.nav-tabs .nav-item {
   margin-right: 8px;
@@ -393,17 +295,6 @@ textarea.form-control {
   padding: 0;
 }
 
-/* ========================================
-   SECTIONS - BETTER SPACING
-   ======================================== */
-
-.form-section {
-  margin-bottom: 40px;
-  padding: 24px;
-  background: #f8f9fa;
-  border-radius: 16px;
-  border: 1px solid #e5e9f2;
-}
 
 .form-section-title {
   font-size: 18px !important;
@@ -414,15 +305,6 @@ textarea.form-control {
   border-bottom: 2px solid #e5e9f2;
 }
 
-/* ========================================
-   MEDIA FINDER INLINE STYLE
-   ======================================== */
-
-.media-finder .input-group {
-  border-radius: 12px !important;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
-}
 
 .media-finder .input-group-text {
   background: #f8f9fa !important;
@@ -484,19 +366,6 @@ textarea.form-control {
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25) !important;
 }
 
-/* ========================================
-   ICON CONTAINER - BETTER STYLING
-   ======================================== */
-
-.grid .icon-container {
-  display: none;
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  z-index: 9;
-  text-align: center;
-}
 
 .grid:hover .icon-container {
   display: block;
@@ -517,57 +386,12 @@ textarea.form-control {
   white-space: nowrap;
 }
 
-/* ========================================
-   RESPONSIVE ADJUSTMENTS
-   ======================================== */
 
-@media (max-width: 768px) {
-  .media-finder .grid {
-    width: 140px !important;
-    height: 140px !important;
-  }
-  
-  .media-finder .grid .blank-cover i {
-    font-size: 40px !important;
-  }
-  
-  .grid .find-remove-button,
-  .grid:hover .find-remove-button {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 18px !important;
-    top: 10px !important;
-    right: 10px !important;
-  }
-}
-
-/* ========================================
-   ANIMATIONS & TRANSITIONS
-   ======================================== */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 .form-group {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* ========================================
-   ADDITIONAL POLISH
-   ======================================== */
-
-/* Remove old office-style borders */
-.form-fields {
-  padding: 0;
-}
 
 /* Better card styling if used */
 .card {
@@ -614,16 +438,6 @@ input[type="radio"]:checked {
   border-color: #364a63 !important;
 }
 
-/* ========================================
-   MEDIA MANAGER - BEAUTIFUL STYLING
-   ======================================== */
-
-/* Media Manager Container */
-.media-manager {
-  background: #ffffff !important;
-  border-radius: 16px !important;
-  overflow: hidden;
-}
 
 .media-modal .modal-content,
 .media-modal.modal-fullscreen .modal-content,
@@ -642,19 +456,6 @@ input[type="radio"]:checked {
   background: #ffffff !important;
 }
 
-/* ========================================
-   MEDIA TOOLBAR - CLEAN LAYOUT
-   ======================================== */
-
-.media-toolbar,
-#mediamanager-toolbar {
-  background: #ffffff !important;
-  padding: 20px 24px !important;
-  border-bottom: 2px solid #e5e9f2 !important;
-  position: relative !important;
-  overflow: visible !important;
-  z-index: 10 !important;
-}
 
 /* Ensure toolbar height doesn't change when dropdowns open */
 .media-toolbar .btn-toolbar {
@@ -707,77 +508,6 @@ input[type="radio"]:checked {
   align-self: center !important;
 }
 
-/* ========================================
-   ALL BUTTONS - EXACTLY LIKE FIRST TWO BUTTONS
-   FORCE EVERYTHING TO MATCH btn-default EXACTLY
-   ======================================== */
-
-/* ALL BUTTONS - Base styles matching first two buttons exactly */
-.media-manager .btn,
-.media-toolbar .btn,
-.media-toolbar .input-group .btn,
-.media-toolbar .btn-primary,
-.media-toolbar .btn-default,
-.media-toolbar .btn-danger,
-.media-toolbar .btn-success,
-.media-toolbar .btn-secondary,
-.media-toolbar .btn-outline-primary,
-.media-toolbar .btn-outline-default,
-.media-toolbar .btn-outline-danger,
-.media-toolbar .btn-outline-success,
-.media-toolbar .btn-outline-secondary,
-.media-toolbar .dropdown-toggle,
-.media-toolbar .dz-clickable,
-.media-toolbar button[data-media-control],
-.media-toolbar a[data-media-control],
-.media-toolbar button.btn,
-.media-toolbar a.btn {
-  /* Square icon buttons - same size */
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  min-height: 42px !important;
-  max-width: 42px !important;
-  max-height: 42px !important;
-  
-  /* Center icon - MUST be inline-flex, not flex */
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  
-  /* EXACT styling from first two buttons */
-  border-radius: 10px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 2px solid #e5e9f2 !important;
-  border-width: 2px !important;
-  border-color: #e5e9f2 !important;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  cursor: pointer !important;
-  box-sizing: border-box !important;
-  vertical-align: middle !important;
-  line-height: 1 !important;
-  
-  /* Background - EXACTLY like first two buttons */
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: none !important;
-  
-  /* Shadow - EXACTLY like first two buttons (reference shows "none") */
-  box-shadow: none !important;
-  
-  /* Text color */
-  color: #364a63 !important;
-  
-  /* Hide text, show only icons - MUST be 0px */
-  font-size: 0 !important;
-  font-size: 0px !important;
-  text-indent: -9999px !important;
-  overflow: hidden !important;
-  
-  /* Override any inline styles */
-  transform: none !important;
-}
 
 /* Override inline styles on ALL buttons - MUST override JavaScript inline styles */
 .media-toolbar .btn[style],
@@ -924,15 +654,6 @@ input[type="radio"]:checked {
   display: none !important;
 }
 
-/* ========================================
-   CONSISTENT 10PX SPACING - ALL BUTTONS
-   ======================================== */
-
-/* Toolbar action - NO gap, we'll use margin instead */
-.media-toolbar .toolbar-action,
-.toolbar-action {
-  gap: 0 !important;
-}
 
 /* Toolbar item - NO gap, we'll use margin instead to avoid double spacing */
 .media-toolbar .toolbar-item,
@@ -1556,7 +1277,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   border-width: 2px !important;
   color: #1f2b3a !important;
   transform: translateY(-1px) !important;
@@ -1571,7 +1291,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   border-width: 2px !important;
   color: #1f2b3a !important;
   transform: translateY(-1px) !important;
@@ -1616,7 +1335,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   border-width: 2px !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
   color: #1f2b3a !important;
@@ -1631,7 +1349,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   border-width: 2px !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
   color: #1f2b3a !important;
@@ -1657,7 +1374,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   border-width: 2px !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
   color: #1f2b3a !important;
@@ -1674,7 +1390,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   border-width: 2px !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
   color: #1f2b3a !important;
@@ -1689,7 +1404,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   /* Independent - don't affect siblings */
   position: relative !important;
   z-index: 10 !important;
@@ -1702,7 +1416,6 @@ input[type="radio"]:checked {
   background-color: #f8f9fa !important;
   background-image: none !important;
   border: 2px solid #cbd5e1 !important;
-  border-color: #cbd5e1 !important;
   /* Independent - don't affect siblings */
   position: relative !important;
   z-index: 10 !important;
@@ -1769,7 +1482,6 @@ input[type="radio"]:checked {
   background: #f8f9fa !important;
   background-color: #f8f9fa !important;
   background-image: none !important;
-  border-color: #cbd5e1 !important;
   color: #1f2b3a !important;
 }
 
@@ -1817,7 +1529,6 @@ input[type="radio"]:checked {
   background: #f8f9fa !important;
   background-color: #f8f9fa !important;
   background-image: none !important;
-  border-color: #cbd5e1 !important;
   color: #1f2b3a !important;
 }
 
@@ -1851,22 +1562,6 @@ input[type="radio"]:checked {
   color: #1f2b3a !important;
 }
 
-/* ========================================
-   DANGER BUTTONS - ICE WHITE (SAME AS OTHERS)
-   ======================================== */
-
-.media-manager .btn-danger,
-.media-toolbar .btn-danger,
-.media-manager [data-media-control="delete-folder"],
-.media-manager [data-media-control="delete-item"],
-.media-toolbar [data-media-control="delete-folder"],
-.media-toolbar [data-media-control="delete-item"] {
-  background: #ffffff !important;
-  border-color: #e5e9f2 !important;
-  border-width: 2px !important;
-  color: #364a63 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
-}
 
 .media-manager .btn-danger i,
 .media-toolbar .btn-danger i,
@@ -1882,7 +1577,6 @@ input[type="radio"]:checked {
 .media-toolbar [data-media-control="delete-folder"]:hover,
 .media-toolbar [data-media-control="delete-item"]:hover {
   background: #f8f9fa !important;
-  border-color: #cbd5e1 !important;
   color: #1f2b3a !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
@@ -1903,22 +1597,6 @@ input[type="radio"]:checked {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* ========================================
-   DROPDOWN BUTTONS - WORKING & STYLED (WHITE/ICE)
-   ======================================== */
-
-.media-manager .dropdown-toggle,
-.media-toolbar .dropdown-toggle,
-.media-manager .dropdown .btn,
-.media-toolbar .dropdown .btn,
-.media-toolbar a.dropdown-toggle,
-.media-toolbar button.dropdown-toggle,
-.media-toolbar .btn-group .dropdown-toggle {
-  background: #ffffff !important;
-  border-color: #e5e9f2 !important;
-  color: #364a63 !important;
-  position: relative !important;
-}
 
 .media-manager .dropdown-toggle:hover,
 .media-toolbar .dropdown-toggle:hover,
@@ -1928,7 +1606,6 @@ input[type="radio"]:checked {
 .media-toolbar button.dropdown-toggle:hover,
 .media-toolbar .btn-group .dropdown-toggle:hover {
   background: #f8f9fa !important;
-  border-color: #cbd5e1 !important;
   color: #1f2b3a !important;
 }
 
@@ -1949,36 +1626,6 @@ input[type="radio"]:checked {
   border-top-color: currentColor !important;
 }
 
-/* ========================================
-   DROPDOWN MENUS - SMOOTH OPENING BELOW BUTTONS
-   ======================================== */
-
-.media-manager .dropdown-menu,
-.media-toolbar .dropdown-menu {
-  border-radius: 10px !important;
-  border: 2px solid #e5e9f2 !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-  padding: 6px !important;
-  background: #ffffff !important;
-  min-width: 180px !important;
-  
-  /* Smooth opening - below button, not extending header */
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  left: 0 !important;
-  right: auto !important;
-  z-index: 1050 !important;
-  
-  /* Smooth animation */
-  opacity: 0 !important;
-  visibility: hidden !important;
-  transform: translateY(-8px) scale(0.98) !important;
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0.2s !important;
-  pointer-events: none !important;
-  transform-origin: top center !important;
-}
 
 /* Show dropdown when open - smooth reveal */
 .media-manager .dropdown-menu.show,
@@ -2070,18 +1717,6 @@ input[type="radio"]:checked {
   color: #ffffff !important;
 }
 
-/* ========================================
-   BUTTON GROUPS - CLEAN SPACING
-   ======================================== */
-
-.media-manager .btn-group,
-.media-toolbar .btn-group {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 0 !important; /* Buttons inside group touch each other */
-  margin: 0 !important;
-  vertical-align: middle !important;
-}
 
 .media-manager .btn-group .btn,
 .media-toolbar .btn-group .btn {
@@ -2182,35 +1817,6 @@ input[type="radio"]:checked {
   margin-right: 10px !important; /* Override Bootstrap mr-2 with our 10px */
 }
 
-/* ========================================
-   SEARCH INPUT - BUTTON STYLE WITH SEARCH ICON
-   ======================================== */
-
-.media-manager .input-group,
-.media-toolbar .input-group {
-   display: inline-flex !important;
-   align-items: center !important;
-   gap: 10px !important; /* SPACING BETWEEN BUTTONS - each button is independent */
-   margin: 0 !important;
-   vertical-align: middle !important;
-   /* Don't affect children on hover */
-   pointer-events: none !important;
- }
-
-/* Buttons inside input-group are independent */
-.media-toolbar .input-group .btn,
-.media-toolbar .input-group .dropdown-toggle,
-.media-toolbar .input-group a.dropdown-toggle {
-  pointer-events: auto !important;
-  /* Each button is complete and independent */
-  border-radius: 10px !important;
-  border: 2px solid #e5e9f2 !important;
-  /* Full borders - each button is complete */
-  border-left: 2px solid #e5e9f2 !important;
-  border-right: 2px solid #e5e9f2 !important;
-  border-top: 2px solid #e5e9f2 !important;
-  border-bottom: 2px solid #e5e9f2 !important;
-}
 
 /* Search field - make it look like a button with icon - COLLAPSED by default */
 .media-manager .form-control[data-media-control="search"],
@@ -2393,7 +1999,7 @@ input[type="radio"]:checked {
   /* Only affect the specific button being hovered, not the group */
   z-index: 1 !important;
   /* Prevent transform from affecting group */
-  transform: translateY(-2px) !important;
+  transform: none !important; /* No card hover effect */
 }
 
 /* Prevent btn-group from creating visual connection between buttons */
@@ -2527,7 +2133,6 @@ input[type="radio"]:checked {
 .media-manager .form-control[data-media-control="search"]:focus,
 .media-toolbar .form-control[data-media-control="search"]:focus,
 .media-toolbar .input-group .form-control[data-media-control="search"]:focus {
-  border-color: #cbd5e1 !important;
   box-shadow: 0 0 0 3px rgba(54, 74, 99, 0.1) !important;
   outline: none !important;
   background: #ffffff !important;
@@ -2596,14 +2201,6 @@ input[type="radio"]:checked {
   border-color: #e5e9f2 !important;
 }
 
-/* ========================================
-   MEDIA CONTAINER & OTHER ELEMENTS
-   ======================================== */
-
-.media-container {
-  background: #ffffff !important;
-  border-radius: 0 0 16px 16px !important;
-}
 
 .media-breadcrumb {
   background: #f8f9fa !important;
@@ -2638,15 +2235,6 @@ input[type="radio"]:checked {
   padding: 20px !important;
 }
 
-/* ========================================
-   MEDIA SIDEBAR - BUTTON TOOLBAR
-   ======================================== */
-
-/* Container fixes */
-.media-sidebar {
-  overflow: visible !important;
-  position: relative !important;
-}
 
 .media-sidebar .sidebar-preview-placeholder-container {
   overflow: visible !important;
@@ -2991,20 +2579,6 @@ input[type="radio"]:checked {
   }
 }
 
-/* ========================================
-   SWEETALERT2 MODAL - BEAUTIFUL STYLING
-   Match website design with round corners
-   ======================================== */
-
-/* Modal popup - nice round corners like the website */
-.swal2-popup {
-  border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
-  border: 2px solid #e5e9f2 !important;
-  padding: 2rem 2.5rem !important;
-  background: #ffffff !important;
-  max-width: 500px !important;
-}
 
 /* Title styling */
 .swal2-title {
@@ -3139,7 +2713,6 @@ input[type="radio"]:checked {
 
 .swal2-cancel:hover {
   background: #f8f9fa !important;
-  border-color: #cbd5e1 !important;
   color: #1f2b3a !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
   transform: translateY(-1px) !important;
@@ -3209,19 +2782,6 @@ input[type="radio"]:checked {
   backdrop-filter: blur(4px) !important;
 }
 
-/* ========================================
-   FOLDER CREATION DROPDOWN MENU
-   Simple dropdown menu like Bootstrap dropdown
-   ======================================== */
-
-.folder-create-dropdown {
-  position: fixed;
-  z-index: 10000;
-  opacity: 0;
-  transform: translateY(-5px);
-  transition: all 0.15s ease;
-  pointer-events: none;
-}
 
 .folder-create-dropdown.active {
   opacity: 1;
@@ -3436,3 +2996,499 @@ input.folder-create-input {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+
+
+.settings-card-link .card.bg-light:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  transform: none !important; /* No card hover effect */
+}
+
+.settings-card-link .card.bg-light .card-body {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #364a63 !important;
+}
+
+.settings-card-link .card.bg-light h5 {
+  color: #364a63 !important;
+}
+
+.settings-card-link .card.bg-light .text-muted {
+  color: #6b7280 !important;
+}
+
+.settings-card-link .card.bg-light .about-card__icon {
+  background-color: #f5f6fa !important;
+  background: #f5f6fa !important;
+  border: 1px solid #e5e9f2 !important;
+}
+
+.settings-card-link .card.bg-light .about-card__icon i {
+  color: #526484 !important;
+}
+
+/* Ensure icon circles are properly styled */
+.settings-card-link .card.bg-light .about-card__icon {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ========================================
+   SETTINGS PAGE CARDS - FIX GREEN BACKGROUND & UNIFY ALL CARDS
+   ======================================== */
+
+/* NUCLEAR FIX: Remove green background from ALL settings cards and make them same size */
+.settings-card-link .card.bg-light,
+.settings-card-link .card.settings-card--about,
+.settings-card-link .card.bg-light:hover,
+.settings-card-link .card.settings-card--about:hover,
+.settings-card-link .card.bg-light:focus,
+.settings-card-link .card.settings-card--about:focus,
+html body .settings-card-link .card.bg-light,
+html body .settings-card-link .card.settings-card--about,
+html body .settings-card-link .card.bg-light:hover,
+html body .settings-card-link .card.settings-card--about:hover {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e9f2 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s ease !important;
+  min-height: auto !important;
+  height: 100% !important;
+  width: 100% !important;
+  flex: 1 1 auto !important;
+}
+
+.settings-card-link .card.bg-light:hover,
+.settings-card-link .card.settings-card--about:hover {
+  /* Removed - hover effect is on icon frames only */
+  transform: none !important; /* No card hover effect */
+  /* Removed - hover effect is on icon frames only */
+}
+
+.settings-card-link .card.bg-light .card-body,
+.settings-card-link .card.settings-card--about .card-body {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #364a63 !important;
+  min-height: auto !important;
+  padding: 1.25rem !important;
+}
+
+.settings-card-link .card.bg-light h5,
+.settings-card-link .card.settings-card--about h5 {
+  color: #364a63 !important;
+}
+
+.settings-card-link .card.bg-light .text-muted,
+.settings-card-link .card.settings-card--about .text-muted {
+  color: #6b7280 !important;
+}
+
+/* Regular card icons - light gray background */
+.settings-card-link .card.bg-light .about-card__icon {
+  background-color: #f5f6fa !important;
+  background: #f5f6fa !important;
+  border: 1px solid #e5e9f2 !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.settings-card-link .card.bg-light .about-card__icon i {
+  color: #526484 !important;
+}
+
+/* About card icon - special blue gradient color (ONLY the icon is different) */
+.settings-card-link .card.settings-card--about .about-card__icon {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  background-color: #364a63 !important;
+  border: 1px solid #364a63 !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.settings-card-link .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* ========================================
+   SETTINGS CARDS - FIX WIDTHS & TEXT COLORS
+   ======================================== */
+
+/* Ensure all cards have same width - fix column widths */
+.row.no-gutters .col-lg-4 {
+  display: flex !important;
+  flex: 0 0 33.333333% !important;
+  max-width: 33.333333% !important;
+  width: 33.333333% !important;
+  padding: 0 !important;
+}
+
+.settings-card-link {
+  width: 100% !important;
+  display: block !important;
+  flex: 1 1 auto !important;
+}
+
+/* Ensure cards fill their container */
+.settings-card-link .card.bg-light,
+.settings-card-link .card.settings-card--about {
+  width: 100% !important;
+  flex: 1 1 auto !important;
+}
+
+/* Fix white text in about card - force all text to be dark */
+.settings-card-link .card.settings-card--about,
+.settings-card-link .card.settings-card--about * {
+  color: #364a63 !important;
+}
+
+.settings-card-link .card.settings-card--about .text-muted,
+.settings-card-link .card.settings-card--about p,
+.settings-card-link .card.settings-card--about .no-margin,
+.settings-card-link .card.settings-card--about p.text-muted,
+.settings-card-link .card.settings-card--about .no-margin.text-muted {
+  color: #6b7280 !important;
+}
+
+/* Override any white text classes */
+.settings-card-link .card.settings-card--about .text-white,
+.settings-card-link .card.settings-card--about .text-white-50,
+.settings-card-link .card.settings-card--about h5.text-white,
+.settings-card-link .card.settings-card--about p.text-white-50 {
+  color: #364a63 !important;
+}
+
+.settings-card-link .card.settings-card--about p.text-white-50 {
+  color: #6b7280 !important;
+}
+
+/* ========================================
+   SETTINGS CARDS - ICON FRAME HOVER EFFECTS
+   ======================================== */
+
+/* Remove card hover effects - hover effect is on icon frames only */
+.settings-card-link .card.bg-light:hover,
+.settings-card-link .card.settings-card--about:hover {
+  /* No transform or shadow change on card hover */
+  transform: none !important;
+}
+
+/* Add transition to all icon frames */
+.settings-card-link .card.bg-light .about-card__icon,
+.settings-card-link .card.settings-card--about .about-card__icon {
+  transition: all 0.3s ease !important;
+}
+
+/* Hover effect on icon frames - scale up for ALL cards */
+.settings-card-link:hover .about-card__icon,
+.settings-card-link:focus .about-card__icon {
+  transform: scale(1.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Regular card icon hover - slightly darker background */
+.settings-card-link:hover .card.bg-light .about-card__icon,
+.settings-card-link:focus .card.bg-light .about-card__icon {
+  /* Removed - hover effect is on icon frames only */
+}
+
+/* ALL card icons hover - same darker background for ALL cards including about */
+.settings-card-link:hover .card.bg-light .about-card__icon,
+.settings-card-link:focus .card.bg-light .about-card__icon,
+.settings-card-link:hover .card.settings-card--about .about-card__icon,
+.settings-card-link:focus .card.settings-card--about .about-card__icon {
+}
+
+}
+
+/* ========================================
+   FIX: NO CARD SCALE & NO ICON COLOR CHANGE
+   ======================================== */
+
+/* Ensure card itself doesn't scale or transform on hover */
+.settings-card-link:hover .card,
+.settings-card-link:focus .card,
+.settings-card-link:hover,
+.settings-card-link:focus {
+  transform: none !important;
+  scale: 1 !important;
+}
+
+.settings-card-link .card.bg-light,
+.settings-card-link .card.settings-card--about {
+  transform: none !important;
+  transition: none !important;
+}
+
+.settings-card-link .card.bg-light:hover,
+.settings-card-link .card.settings-card--about:hover {
+  transform: none !important;
+  scale: 1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Icon colors must NOT change on hover - keep original colors */
+.settings-card-link:hover .card.bg-light .about-card__icon i,
+.settings-card-link:focus .card.bg-light .about-card__icon i,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  /* Keep original icon color - no change on hover */
+}
+
+/* About card icon must stay white on hover - never change color */
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* About card icon must ALWAYS stay white - override any wildcard rules */
+.settings-card--about .about-card__icon i,
+.settings-card--about .about-card__icon i:hover,
+.settings-card--about .about-card__icon i:focus,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+/* ========================================
+   ICON HOVER - ONLY SIZE EFFECT, NO COLORS
+   ======================================== */
+
+/* Remove ALL background color changes on hover */
+.settings-card-link:hover .card.bg-light .about-card__icon,
+.settings-card-link:focus .card.bg-light .about-card__icon,
+.settings-card-link:hover .card.settings-card--about .about-card__icon,
+.settings-card-link:focus .card.settings-card--about .about-card__icon {
+  /* NO background color change - keep original */
+  background-color: inherit !important;
+  background: inherit !important;
+  border-color: inherit !important;
+}
+
+/* Remove ALL icon color changes on hover */
+.settings-card-link:hover .card.bg-light .about-card__icon i,
+.settings-card-link:focus .card.bg-light .about-card__icon i,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  /* NO color change - keep original color */
+  color: inherit !important;
+}
+
+/* About card icon - force white always */
+.settings-card--about .about-card__icon i,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* ========================================
+   NUCLEAR: ONLY SCALE EFFECT - NO COLOR CHANGES
+   ======================================== */
+
+/* Remove ALL background color changes on icon hover */
+.settings-card-link:hover .card.bg-light .about-card__icon,
+.settings-card-link:focus .card.bg-light .about-card__icon,
+.settings-card-link:hover .card.settings-card--about .about-card__icon,
+.settings-card-link:focus .card.settings-card--about .about-card__icon {
+  background-color: inherit !important;
+  background: inherit !important;
+  border-color: inherit !important;
+}
+
+/* Remove ALL icon color changes on hover - keep original colors */
+.settings-card-link:hover .card.bg-light .about-card__icon i,
+.settings-card-link:focus .card.bg-light .about-card__icon i,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  color: inherit !important;
+}
+
+/* About card icon - ALWAYS white, never changes */
+.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* ========================================
+   NUCLEAR FIX: FORCE ICON COLORS TO STAY SAME
+   ======================================== */
+
+/* About card icon - FORCE white always, no matter what */
+.settings-card--about .about-card__icon i.fa-info-circle,
+.settings-card--about .about-card__icon i,
+.settings-card-link .card.settings-card--about .about-card__icon i,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i,
+.settings-card-link:active .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* Regular card icons - FORCE gray always, no matter what */
+.settings-card-link .card.bg-light .about-card__icon i.text-muted,
+.settings-card-link .card.bg-light .about-card__icon i,
+.settings-card-link:hover .card.bg-light .about-card__icon i.text-muted,
+.settings-card-link:hover .card.bg-light .about-card__icon i,
+.settings-card-link:focus .card.bg-light .about-card__icon i,
+.settings-card-link:active .card.bg-light .about-card__icon i {
+  color: #6b7280 !important;
+}
+
+/* Remove ALL background changes - keep original */
+.settings-card-link:hover .about-card__icon,
+.settings-card-link:focus .about-card__icon {
+  background-color: inherit !important;
+  background: inherit !important;
+  border-color: inherit !important;
+}
+
+/* ========================================
+   FINAL FIX: FORCE COLORS - NO CHANGES ON HOVER
+   ======================================== */
+
+/* About card icon - MUST stay white, override text-muted class */
+.settings-card--about .about-card__icon i.text-muted,
+.settings-card--about .about-card__icon i,
+.settings-card-link .card.settings-card--about .about-card__icon i.text-muted,
+.settings-card-link .card.settings-card--about .about-card__icon i,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i.text-muted,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i.text-muted,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* Regular cards - MUST stay gray, keep text-muted color */
+.settings-card-link .card.bg-light .about-card__icon i.text-muted,
+.settings-card-link .card.bg-light .about-card__icon i,
+.settings-card-link:hover .card.bg-light .about-card__icon i.text-muted,
+.settings-card-link:hover .card.bg-light .about-card__icon i,
+.settings-card-link:focus .card.bg-light .about-card__icon i.text-muted,
+.settings-card-link:focus .card.bg-light .about-card__icon i {
+  color: #6b7280 !important;
+}
+
+/* ========================================
+   MAXIMUM SPECIFICITY - FORCE ICON COLORS
+   ======================================== */
+
+/* About card icon - MAXIMUM SPECIFICITY to force white */
+html body .settings-card-link.settings-card-link--about .card.settings-card.settings-card--about .card-body .pr-3 .mb-0 .about-card__icon i.text-muted,
+html body .settings-card-link.settings-card-link--about .card.settings-card.settings-card--about .card-body .pr-3 .mb-0 .about-card__icon i,
+html body .settings-card-link.settings-card-link--about:hover .card.settings-card.settings-card--about .card-body .pr-3 .mb-0 .about-card__icon i.text-muted,
+html body .settings-card-link.settings-card-link--about:hover .card.settings-card.settings-card--about .card-body .pr-3 .mb-0 .about-card__icon i,
+html body .settings-card-link.settings-card-link--about:focus .card.settings-card.settings-card--about .card-body .pr-3 .mb-0 .about-card__icon i.text-muted,
+html body .settings-card-link.settings-card-link--about:focus .card.settings-card.settings-card--about .card-body .pr-3 .mb-0 .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* Shorter but still very specific */
+html body .settings-card-link--about .settings-card--about .about-card__icon i,
+html body .settings-card-link--about:hover .settings-card--about .about-card__icon i,
+html body .settings-card-link--about:focus .settings-card--about .about-card__icon i,
+html body .settings-card-link--about:active .settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* Regular cards - keep gray */
+html body .settings-card-link .card.bg-light .about-card__icon i.text-muted,
+html body .settings-card-link:hover .card.bg-light .about-card__icon i.text-muted,
+html body .settings-card-link:focus .card.bg-light .about-card__icon i.text-muted {
+  color: #6b7280 !important;
+}
+
+/* ========================================
+   FINAL FIX: NO BACKGROUND COLOR CHANGES ON HOVER
+   ======================================== */
+
+/* Force icon frame background to stay EXACTLY the same on hover */
+.settings-card-link:hover .card.bg-light .about-card__icon,
+.settings-card-link:focus .card.bg-light .about-card__icon,
+.settings-card-link:hover .card.settings-card--about .about-card__icon,
+.settings-card-link:focus .card.settings-card--about .about-card__icon {
+  background-color: rgb(245, 246, 250) !important;
+  background: rgb(245, 246, 250) !important;
+  border-color: rgb(229, 233, 242) !important;
+}
+
+/* About card icon frame - keep blue gradient, no changes */
+.settings-card-link:hover .card.settings-card--about .about-card__icon,
+.settings-card-link:focus .card.settings-card--about .about-card__icon {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  background-color: rgb(54, 74, 99) !important;
+  border-color: rgb(54, 74, 99) !important;
+}
+
+/* Regular card icon frame - keep light gray, no changes */
+.settings-card-link:hover .card.bg-light .about-card__icon,
+.settings-card-link:focus .card.bg-light .about-card__icon {
+  background-color: rgb(245, 246, 250) !important;
+  background: rgb(245, 246, 250) !important;
+  border-color: rgb(229, 233, 242) !important;
+}
+
+/* ========================================
+   FIX CARD HEIGHTS - ALL CARDS SAME SIZE
+   ======================================== */
+
+/* Force all settings cards to have the same fixed height */
+.settings-card-link .card.bg-light,
+.settings-card-link .card.settings-card--about {
+  height: 140px !important;
+  min-height: 140px !important;
+  max-height: 140px !important;
+}
+
+/* Card body - fixed height with overflow handling */
+.settings-card-link .card.bg-light .card-body,
+.settings-card-link .card.settings-card--about .card-body {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  padding: 1.25rem !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+/* Text container - handle overflow */
+.settings-card-link .card .card-body > div:last-child {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Title - no margin bottom to save space */
+.settings-card-link .card .card-body h5.mb-1 {
+  margin-bottom: 0.25rem !important;
+  font-size: 1rem !important;
+  line-height: 1.3 !important;
+}
+
+/* Description text - truncate if too long */
+.settings-card-link .card .card-body p.text-muted {
+  margin-bottom: 0 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-height: 2.8em !important;
+}

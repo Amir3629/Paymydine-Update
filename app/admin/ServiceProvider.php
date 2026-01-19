@@ -569,7 +569,8 @@ class ServiceProvider extends AppServiceProvider
     {
         AdminMenu::registerCallback(function (Navigation $manager) {
             // Change nav menu if single location mode is activated
-            if (AdminLocation::check()) {
+            // FIXED: Use isSingleMode() instead of check() - only redirect in true single location mode
+            if (AdminLocation::isSingleMode()) {
                 $manager->mergeNavItem('locations', [
                     'href' => admin_url('locations/settings'),
                     'title' => lang('admin::lang.locations.text_form_name'),
