@@ -900,6 +900,17 @@
         const editButtons = document.querySelectorAll('.list-table .btn-edit');
         
         editButtons.forEach(button => {
+            // Check if styles are already correct to avoid unnecessary re-applications
+            const currentWidth = window.getComputedStyle(button).width;
+            const currentHeight = window.getComputedStyle(button).height;
+            const inlineStyle = button.getAttribute('style') || '';
+            
+            // Skip if already correctly styled (avoid triggering reflows)
+            if (currentWidth === '48px' && currentHeight === '48px' && 
+                inlineStyle.includes('width: 48px') && inlineStyle.includes('height: 48px')) {
+                return; // Already correctly styled, skip to prevent reflow
+            }
+            
             button.style.setProperty('min-height', '48px', 'important');
             button.style.setProperty('min-width', '48px', 'important');
             button.style.setProperty('height', '48px', 'important');
@@ -946,8 +957,8 @@
         subtree: true
     });
     
-    // Re-apply periodically
-    setInterval(enforceLargeEditButtons, 2000);
+    // REMOVED: setInterval - was causing reflows every 2 seconds that affected other buttons
+    // MutationObserver handles new buttons, so periodic check is unnecessary
     
     console.log('✅ Large edit button enforcer active - edit buttons will be 2x bigger!');
 })();

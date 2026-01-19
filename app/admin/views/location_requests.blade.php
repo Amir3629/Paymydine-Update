@@ -24,6 +24,27 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?ver={{ time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?ver={{ time() }}">
+    <!-- CRITICAL: Inject curve fix element IMMEDIATELY - runs before DOMContentLoaded -->
+    <script src="{{ asset('app/admin/assets/js/curve-fix-immediate.js') }}?ver={{ time() }}"></script>
+    <!-- CRITICAL: Ensure curve fix element is visible immediately - no delays -->
+    <style>
+        .sidebar-curve-fix {
+            position: fixed !important;
+            left: 190px !important;
+            top: 24px !important;
+            width: 80px !important;
+            height: 80px !important;
+            background: #516584 !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            z-index: 1031 !important;
+            pointer-events: none !important;
+            transition: none !important;
+            animation: none !important;
+            transform: none !important;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
@@ -665,6 +686,10 @@
             }, 5000);
         });
     </script>
+
+<!-- Decorative curve replacing star icon -->
+<div class="sidebar-curve-fix" style="position: fixed !important; left: 190px !important; top: 24px !important; width: 80px !important; height: 80px !important; background: #516584 !important; display: block !important; opacity: 1 !important; visibility: visible !important; z-index: 1031 !important; pointer-events: none !important; transition: none !important; animation: none !important;"></div>
+
 </body>
 
 </html>

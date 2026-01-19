@@ -38,7 +38,7 @@ $config['list']['toolbar'] = [
         ],
         'combi' => [
             'label' => 'Combo',
-            'class' => 'btn btn-combi-ice-white',
+            'class' => 'btn btn-default',
             'href' => 'combos',
         ],
         'allergens' => [

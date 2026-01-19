@@ -96,3 +96,18 @@
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+
+/* Fix icon centering for filter and setup buttons in list headers */
+.list-setup .btn,
+[data-toggle="list-filter"],
+button[data-bs-toggle="modal"][data-bs-target*="setup-modal"],
+.btn-outline-default.btn-sm.border-none {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  i {
+    margin: 0 !important;
+    display: inline-block;
+  }
+}

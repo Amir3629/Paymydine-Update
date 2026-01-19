@@ -16047,6 +16047,12 @@ textarea.form-control-lg, textarea.input-lg {
   background-color: #08815e;
   border-color: #08815e;
 }
+
+/* Toggle switches - override green with neutral color */
+.form-switch .form-check-input:checked {
+  background-color: #4a5568 !important; /* Neutral gray-blue for switches */
+  border-color: #4a5568 !important;
+}
 .form-check-input:checked[type=checkbox] {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23FFFFFF' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
 }
@@ -27750,7 +27756,7 @@ body.dragging .dragged, body.dragging .dragged {
 }
 .navbar-top .dropdown-menu .menu-grid .menu-link:hover {
   background-color: #ffffff;
-  border-color: #08815e;
+  border-color: transparent;
 }
 .navbar-top .dropdown-menu .menu-grid .menu-link span {
   display: block;

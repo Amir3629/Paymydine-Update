@@ -135,10 +135,10 @@ select:focus {
   color: #526484 !important;
 }
 
-/* Checkboxes - smooth corners */
+/* Checkboxes - smooth corners (but NOT switches - they need full round) */
 .custom-control-input,
-.form-check-input,
-input[type="checkbox"] {
+.form-check-input:not(.form-switch .form-check-input):not([role="switch"]),
+input[type="checkbox"]:not(.form-switch input):not([role="switch"]) {
   border-radius: 4px !important;
   border: 1px solid #dbdfea !important;
 }

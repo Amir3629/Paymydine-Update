@@ -233,7 +233,7 @@
     background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
     border: none !important;
     border-radius: 10px !important;
-    box-shadow: 0 8px 30px rgba(8, 129, 94, 0.20) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
     padding: 8px !important;
     overflow: hidden !important;
   
@@ -333,16 +333,22 @@
     }
   }
   
-  /* Dropdown item hover - NO movement for profile dropdown */
-  .profile-dropdown-menu .dropdown-item:hover {
+  /* Dropdown item hover - NO movement for profile dropdown - NO GREEN */
+  .profile-dropdown-menu .dropdown-item:hover,
+  .profile-dropdown-menu .dropdown-item:focus,
+  .profile-dropdown-menu .dropdown-item:active {
     background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
     color: #202938 !important;
     transform: scale(1.05) !important;
+    box-shadow: none !important;
+    border: none !important;
   }
   
-  /* Other dropdown items can keep their effects */
+  /* Other dropdown items can keep their effects - BUT EXCLUDE menu-grid links */
   .dropdown-menu:not(.profile-dropdown-menu) .dropdown-item:not([data-request="onUpdateStatus"]):hover,
-  .dropdown-menu:not(.profile-dropdown-menu) .menu-link:hover {
+  .dropdown-menu:not(.profile-dropdown-menu) .menu-link:not(.menu-grid .menu-link):hover {
     background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
     color: #202938 !important;
     transform: translateX(3px) !important;
@@ -399,11 +405,12 @@
     min-height: 75px !important;
     border-radius: 10px !important;
     text-decoration: none !important;
-    transition: all 0.2s ease !important;
+    transition: none !important;
     width: 100% !important;
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
+    text-align: center !important;
   }
   
   /* Remove green/3D border effects on click/focus */
@@ -422,10 +429,13 @@
   
   .dropdown-menu .menu-grid .menu-link i {
     font-size: 24px !important;
-    margin-bottom: 6px !important;
+    margin: 0 auto 6px auto !important;
     margin-right: 0 !important;
+    margin-left: auto !important;
     color: #4b5563 !important;
-    transition: color 0.15s ease !important;
+    transition: transform 0.2s ease !important;
+    display: block !important;
+    text-align: center !important;
   }
   
   .dropdown-menu .menu-grid .menu-link span {
@@ -439,10 +449,12 @@
     white-space: normal !important;
     max-width: 100% !important;
     display: block !important;
+    margin: 0 auto !important;
+    width: 100% !important;
   }
   
   .dropdown-menu .menu-grid .menu-link:hover {
-    background: #ffffff !important;
+    background: transparent !important;
     transform: none !important;
     box-shadow: none !important;
     border: none !important;
@@ -450,11 +462,12 @@
   
   .dropdown-menu .menu-grid .menu-link:hover i {
     color: #000000 !important;
-    transform: none !important;
+    transform: scale(1.2) !important;
   }
   
   .dropdown-menu .menu-grid .menu-link:hover span {
     color: #202938 !important;
+    transform: none !important;
   }
   
   .profile-dropdown-menu {
@@ -664,7 +677,7 @@
     display: none !important;
   }
 
-  /* Make the three-dots button a small green box with white dots */
+  /* Make the three-dots button a small gray box */
   .navbar-top .dropdown-menu .dropdown-footer {
     padding: 8px 12px !important;
     text-align: center !important;
@@ -675,18 +688,29 @@
     justify-content: center !important;
     width: 36px !important;
     height: 32px !important;
-    background: #08815e !important;
-    color: #ffffff !important;
+    background: #f3f4f6 !important;
+    color: #202938 !important;
     border-radius: 8px !important;
-    border: 1px solid #08815e !important;
+    border: 1px solid #e5e7eb !important;
     text-decoration: none !important;
   }
   .navbar-top .dropdown-menu .dropdown-footer a i {
-    color: #ffffff !important;
+    color: #202938 !important;
   }
-  .navbar-top .dropdown-menu .dropdown-footer a:hover {
-    background: #0bb87a !important;
-    border-color: #0bb87a !important;
+  .navbar-top .dropdown-menu .dropdown-footer a:hover,
+  .navbar-top .dropdown-menu .dropdown-footer a:focus,
+  .navbar-top .dropdown-menu .dropdown-footer a:active {
+    background: #e5e7eb !important;
+    background-color: #e5e7eb !important;
+    background-image: none !important;
+    border-color: #d1d5db !important;
+    color: #202938 !important;
+  }
+  
+  .navbar-top .dropdown-menu .dropdown-footer a:hover i,
+  .navbar-top .dropdown-menu .dropdown-footer a:focus i,
+  .navbar-top .dropdown-menu .dropdown-footer a:active i {
+    color: #202938 !important;
   }
   
   /* Remove any green frame/border on settings tiles in all states */

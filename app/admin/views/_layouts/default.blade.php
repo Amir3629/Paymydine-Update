@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/notifications.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/push-notifications.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/header-dropdowns.css') }}?v={{ time() }}">
+    <!-- Remove Green Edges from Dropdowns -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/remove-green-edges.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-transitions.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/custom-fixes.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/calendar.css') }}?v={{ time() }}">
@@ -27,6 +29,22 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?v={{ time() }}">
+    <!-- Dashboard Container Widget CSS - FIX: Must load for widgets to display correctly -->
+    <link rel="stylesheet" href="{{ asset('app/admin/widgets/dashboardcontainer/assets/css/dashboardcontainer.css') }}?v={{ time() }}">
+    <!-- Fix Menu-Grid Hover - Only icon scale, no green flashing -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-menu-grid-hover.css') }}?v={{ time() }}">
+    <!-- Fix Footer Button - Remove green hover -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-footer-button-no-green.css') }}?v={{ time() }}">
+    <!-- Fix Toggle Switches - Restore iOS-style appearance -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-toggle-switches.css') }}?v={{ time() }}">
+    <!-- Fix Notification Header Border - Make it straight and full width -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-border.css') }}?v={{ time() }}">
+    <!-- Fix Notification Header Buttons - Fix z-index, spacing, padding, borders -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-buttons.css') }}?v={{ time() }}">
+    <!-- Fix Profile Dropdown - Remove green hover effects and green text-muted color -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-green.css') }}?v={{ time() }}">
+    <!-- Fix Profile Dropdown Hover - Remove inline styles blocking hover effect -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-hover.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -111,6 +129,14 @@
 
 <!-- Force Button Alignment -->
 <script src="{{ asset('app/admin/assets/js/force-button-alignment.js') }}?v={{ time() }}"></script>
+<!-- Fix History Button Text Centering - Removes inline styles that prevent flexbox centering -->
+<script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ time() }}"></script>
+<!-- Fix Notification Buttons Bottom Border - Ensures bottom border is visible -->
+<script src="{{ asset('app/admin/assets/js/fix-notification-buttons-border.js') }}?v={{ time() }}"></script>
+<!-- Fix Profile Dropdown Green Hover - Removes green hover effect via JavaScript -->
+<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ time() }}"></script>
+<!-- Fix Menu-Grid Hover - Ensures Tax and Advanced buttons hover works properly -->
+<script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ time() }}"></script>
 
 <!-- Modal Blur Fix -->
 <script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
@@ -136,6 +162,9 @@
 
 <!-- Folder Creation Dropdown Card -->
 <script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ time() }}"></script>
+
+<!-- Global Button Width Fix - Enforces 48x48px buttons on all pages -->
+<script src="{{ asset('app/admin/assets/js/fix-button-widths-global.js') }}?v={{ time() }}"></script>
 
 <!-- Guide Tour Button Handler -->
 <script>

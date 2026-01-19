@@ -234,18 +234,28 @@
         console.log(`Found ${allButtons.length} total buttons to fix`);
         
         allButtons.forEach((btn, index) => {
-            // EXCLUDE Save/Back buttons from display override - they need inline-flex
+            // EXCLUDE Save/Back buttons AND filter/setup buttons from display override - they need inline-flex
             const isSaveOrBackButton = btn.matches('[data-request="onSave"]') ||
                                      (btn.closest('.progress-indicator-container') && 
                                       (btn.matches('.btn-primary[data-request="onSave"]') || 
                                        btn.matches('.btn-outline-secondary')));
             
+            // EXCLUDE filter/setup buttons - they need inline-flex for icon centering
+            const isFilterOrSetupButton = btn.matches('[data-toggle="list-filter"]') ||
+                                        btn.matches('button[data-bs-toggle="modal"][data-bs-target*="setup-modal"]') ||
+                                        (btn.closest('.list-setup') && btn.matches('.btn')) ||
+                                        btn.matches('.btn-outline-default.btn-sm.border-none');
+            
+            // EXCLUDE History button in notification panel - needs inline-flex for text centering
+            const isHistoryButton = btn.id === 'notif-history-link' || 
+                                   (btn.matches('#notif-history-link') && btn.closest('#notification-panel'));
+            
             // FORCE buttons to work independently
             btn.style.setProperty('pointer-events', 'auto', 'important');
             
-            // Only set display to inline-block if NOT a Save/Back button
-            // Save/Back buttons should keep inline-flex to prevent text jumping
-            if (!isSaveOrBackButton) {
+            // Only set display to inline-block if NOT a Save/Back button AND NOT a filter/setup button AND NOT History button
+            // Save/Back buttons, filter/setup buttons, and History button should keep inline-flex for proper text/icon centering
+            if (!isSaveOrBackButton && !isFilterOrSetupButton && !isHistoryButton) {
                 btn.style.setProperty('display', 'inline-block', 'important');
             }
             
@@ -300,8 +310,65 @@
         applyToolbarButtonPalette();
     }
     
+    // Function to group Combo and Allergens buttons together on the right side
+    function groupComboAndAllergensButtons(progressContainer) {
+        // Check if grouping container already exists
+        let comboGroupContainer = document.getElementById('combo-allergens-group');
+        if (comboGroupContainer) {
+            return; // Already grouped
+        }
+        
+        // Find Combo button (href contains 'combos' - now uses btn-default like Allergens)
+        const comboButton = progressContainer.querySelector('a[href*="combos"].btn-default, a[href*="combos"]');
+        
+        // Find Allergens button (btn-default with href contains 'allergens' or button after Combo)
+        const allergensButton = progressContainer.querySelector('a[href*="allergens"].btn-default, a[href*="allergens"]');
+        
+        if (!comboButton || !allergensButton) {
+            return; // Buttons not found, skip grouping
+        }
+        
+        // Check if buttons are already grouped (don't re-group if they're already in a container together)
+        const comboParent = comboButton.parentElement;
+        const allergensParent = allergensButton.parentElement;
+        if (comboParent === allergensParent && comboParent.id === 'combo-allergens-group') {
+            return; // Already grouped
+        }
+        
+        // Create container for Combo and Allergens buttons
+        comboGroupContainer = document.createElement('div');
+        comboGroupContainer.id = 'combo-allergens-group';
+        comboGroupContainer.style.display = 'flex';
+        comboGroupContainer.style.alignItems = 'center';
+        comboGroupContainer.style.gap = '10px';
+        comboGroupContainer.style.marginLeft = 'auto';
+        
+        // Get reference to where the Allergens button currently is (for insertion)
+        const allergensNextSibling = allergensButton.nextSibling;
+        
+        // Move Combo button into the container (only if not already in the group)
+        if (comboButton.parentElement !== comboGroupContainer) {
+            comboGroupContainer.appendChild(comboButton);
+        }
+        
+        // Move Allergens button into the container (only if not already in the group)
+        if (allergensButton.parentElement !== comboGroupContainer) {
+            comboGroupContainer.appendChild(allergensButton);
+        }
+        
+        // Insert the container before the bulk container (or at the end if bulk container doesn't exist)
+        const bulkContainer = document.getElementById('toolbar-bulk-container');
+        if (bulkContainer && bulkContainer.parentElement === progressContainer) {
+            progressContainer.insertBefore(comboGroupContainer, bulkContainer);
+        } else {
+            progressContainer.appendChild(comboGroupContainer);
+        }
+        
+        console.log('✅ Grouped Combo and Allergens buttons together on the right side');
+    }
+    
     // Function to move bulk action buttons to toolbar
-    function moveBulkButtons() {
+function moveBulkButtons() {
         // Find the toolbar - try multiple selectors for different page types
         let toolbar = document.querySelector('#toolbar');
         if (!toolbar) {
@@ -381,6 +448,9 @@
             
             console.log('✅ Created toolbar bulk container');
         }
+        
+        // Group Combo and Allergens buttons together on the right side
+        groupComboAndAllergensButtons(progressContainer);
         
         // Update visibility based on bulk actions row
         toolbarBulkContainer.style.display = isVisible ? 'flex' : 'none';
@@ -494,6 +564,18 @@
     function init() {
         // First break the connection between buttons and select boxes
         breakConnection();
+        
+        // Group Combo and Allergens buttons together (run independently)
+        const toolbar = document.querySelector('.toolbar, #toolbar, .list-toolbar');
+        if (toolbar) {
+            const toolbarAction = toolbar.querySelector('.toolbar-action');
+            if (toolbarAction) {
+                const progressContainer = toolbarAction.querySelector('.progress-indicator-container');
+                if (progressContainer) {
+                    groupComboAndAllergensButtons(progressContainer);
+                }
+            }
+        }
         
         moveBulkButtons();
         

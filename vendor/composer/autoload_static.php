@@ -48,10 +48,6 @@ class ComposerStaticInit9f93f44d5b852b7e9e4076bb4e5bd888
         array (
             'apimatic\\jsonmapper\\' => 20,
         ),
-        'W' =>
-        array (
-            'Webmozart\\Assert\\' => 17,
-        ),
         'U' =>
         array (
             'Unirest\\' => 8,
@@ -120,6 +116,10 @@ class ComposerStaticInit9f93f44d5b852b7e9e4076bb4e5bd888
             'Omnipay\\Mollie\\' => 15,
             'Omnipay\\Common\\' => 15,
             'Omnipay\\AuthorizeNet\\' => 21,
+        ),
+        'N' =>
+        array (
+            'Nette\\' => 6,
         ),
         'M' =>
         array (
@@ -220,10 +220,6 @@ class ComposerStaticInit9f93f44d5b852b7e9e4076bb4e5bd888
         'apimatic\\jsonmapper\\' =>
         array (
             0 => __DIR__ . '/..' . '/apimatic/jsonmapper/src',
-        ),
-        'Webmozart\\Assert\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/webmozart/assert/src',
         ),
         'Unirest\\' =>
         array (
@@ -430,6 +426,11 @@ class ComposerStaticInit9f93f44d5b852b7e9e4076bb4e5bd888
         array (
             0 => __DIR__ . '/..' . '/omnipay/authorizenet/src',
         ),
+        'Nette\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/nette/schema/src',
+            1 => __DIR__ . '/..' . '/nette/utils/src',
+        ),
         'Monolog\\' =>
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
@@ -566,7 +567,7 @@ class ComposerStaticInit9f93f44d5b852b7e9e4076bb4e5bd888
         ),
         'Doctrine\\Inflector\\' =>
         array (
-            0 => __DIR__ . '/..' . '/doctrine/inflector/lib/Doctrine/Inflector',
+            0 => __DIR__ . '/..' . '/doctrine/inflector/src',
         ),
         'Doctrine\\Deprecations\\' =>
         array (

@@ -767,6 +767,10 @@ document.addEventListener('DOMContentLoaded', function() {
         style.id = styleId;
         style.textContent = `
             /* LOCK Save and Back buttons - SAME as other buttons in progress-indicator-container */
+            /* Prevent Save buttons from stretching in btn-group (like system_logs page buttons) */
+            .btn-group [data-request="onSave"],
+            .btn-group .btn-primary[data-request="onSave"],
+            .btn-group .btn[data-request="onSave"],
             .progress-indicator-container [data-request="onSave"],
             .progress-indicator-container .btn-primary[data-request="onSave"],
             [data-request="onSave"].btn-primary,
@@ -776,6 +780,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 justify-content: center !important;
                 text-align: center !important;
                 width: auto !important;
+                flex: 0 0 auto !important;
+                flex-grow: 0 !important;
+                flex-shrink: 0 !important;
+                flex-basis: auto !important;
                 height: 40px !important;
                 min-height: 40px !important;
                 padding: 0.55rem 1.75rem !important;
@@ -783,6 +791,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 vertical-align: middle !important;
                 white-space: nowrap !important;
                 box-sizing: border-box !important;
+            }
+            
+            /* Fix btn-group to be inline inside progress-indicator-container - prevents new line */
+            div.progress-indicator-container > div.btn-group,
+            div.progress-indicator-container div.btn-group,
+            .progress-indicator-container > .btn-group,
+            .progress-indicator-container .btn-group {
+                display: inline-flex !important;
+                vertical-align: middle !important;
+                margin: 0 !important;
+                margin-left: 0 !important;
+                margin-right: 10px !important;
+                width: auto !important;
+                flex: 0 0 auto !important;
+                flex-shrink: 0 !important;
+                float: none !important;
+                clear: none !important;
             }
         `;
         document.head.appendChild(style);

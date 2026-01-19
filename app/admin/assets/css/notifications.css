@@ -27,11 +27,11 @@
 #notification-panel #notif-history-link:hover,
 #notification-panel #notif-history-link:focus,
 #notification-panel .btn-light:hover {
-  background: #e5ebf7 !important;
-  border-color: #b8c6dd !important;
+  background: #f3f4f6 !important; /* Subtle gray instead of light blue */
+  border-color: #d1d5db !important; /* Darker gray border */
   color: #202938 !important;
-  transform: scale(1.05) !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+  transform: scale(1.02) !important; /* Subtle scale */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
 }
 
 #notification-panel #notif-history-link.active,
@@ -48,11 +48,11 @@ body.history.index #notification-panel #notif-history-link:hover,
 body.history.index #notification-panel #notif-history-link:focus,
 body.history.index #notif-history-link:hover,
 body.history.index #notif-history-link:focus {
-  background: #e5ebf7 !important;
-  border-color: #b8c6dd !important;
+  background: #f3f4f6 !important; /* Subtle gray instead of light blue */
+  border-color: #d1d5db !important; /* Darker gray border */
   color: #202938 !important;
-  transform: scale(1.05) !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+  transform: scale(1.02) !important; /* Subtle scale */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
 }
 
 /* Each item stacks vertically and wraps text */

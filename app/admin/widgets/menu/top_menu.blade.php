@@ -519,22 +519,20 @@
                 vertical-align: middle !important;
             }
             
-            /* Adjust History button text position - minimal adjustments */
+            /* History button - consistent padding with Note button */
             #notification-panel #notif-history-link {
-                text-indent: 1px !important; /* Minimal right adjustment */
-                padding-top: 8.5px !important; /* Minimal down adjustment */
-                padding-bottom: 7.5px !important;
+                padding: 8px 20px !important; /* Consistent padding with Note button */
             }
 
             #notification-panel #notif-note-btn:hover,
             #notification-panel #notif-note-btn:focus,
             #notification-panel #notif-history-link:hover,
             #notification-panel #notif-history-link:focus {
-                background: #e5ebf7 !important;
-                border-color: #b8c6dd !important;
+                background: #f3f4f6 !important; /* Subtle gray instead of light blue */
+                border-color: #d1d5db !important; /* Darker gray border */
                 color: #202938 !important;
-                transform: scale(1.05) !important;
-                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+                transform: scale(1.02) !important; /* Subtle scale */
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
                 text-decoration: none !important;
             }
 
@@ -556,9 +554,9 @@
                 align-items: center !important;
             }
             
-            /* Target the actual buttons container (last direct child div) - move very close to statuses */
+            /* Target the actual buttons container (last direct child div) - proper spacing */
             #notification-panel .border-bottom > div:last-child.d-flex {
-                margin-left: -10px !important; /* Negative margin to bring buttons closer */
+                margin-left: 0 !important; /* Remove negative margin to prevent overlap */
                 margin-right: 0 !important;
                 display: flex !important;
                 align-items: center !important;
