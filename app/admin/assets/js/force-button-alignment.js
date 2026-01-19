@@ -246,12 +246,16 @@
                                         (btn.closest('.list-setup') && btn.matches('.btn')) ||
                                         btn.matches('.btn-outline-default.btn-sm.border-none');
             
+            // EXCLUDE History button in notification panel - needs inline-flex for text centering
+            const isHistoryButton = btn.id === 'notif-history-link' || 
+                                   (btn.matches('#notif-history-link') && btn.closest('#notification-panel'));
+            
             // FORCE buttons to work independently
             btn.style.setProperty('pointer-events', 'auto', 'important');
             
-            // Only set display to inline-block if NOT a Save/Back button AND NOT a filter/setup button
-            // Save/Back buttons and filter/setup buttons should keep inline-flex (Save/Back for text alignment, filter/setup for icon centering)
-            if (!isSaveOrBackButton && !isFilterOrSetupButton) {
+            // Only set display to inline-block if NOT a Save/Back button AND NOT a filter/setup button AND NOT History button
+            // Save/Back buttons, filter/setup buttons, and History button should keep inline-flex for proper text/icon centering
+            if (!isSaveOrBackButton && !isFilterOrSetupButton && !isHistoryButton) {
                 btn.style.setProperty('display', 'inline-block', 'important');
             }
             

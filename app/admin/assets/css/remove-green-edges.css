@@ -1,0 +1,180 @@
+/* ============================================
+   REMOVE ALL GREEN EDGES/BORDERS FROM DROPDOWNS
+   Fix for profile dropdown, notification panel, and all dropdown menus
+   ============================================ */
+
+/* Remove green borders/outlines from ALL dropdown menus */
+.navbar-top .dropdown-menu,
+.navbar-top .nav-item .dropdown-menu,
+.profile-dropdown-menu,
+#notification-panel.dropdown-menu,
+.dropdown-menu {
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Remove green borders from dropdown menu items */
+.navbar-top .dropdown-menu .dropdown-item,
+.profile-dropdown-menu .dropdown-item,
+#notification-panel .dropdown-item,
+.dropdown-menu .dropdown-item {
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+}
+
+/* Remove green borders on hover/focus/active states */
+.navbar-top .dropdown-menu .dropdown-item:hover,
+.navbar-top .dropdown-menu .dropdown-item:focus,
+.navbar-top .dropdown-menu .dropdown-item:active,
+.profile-dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu .dropdown-item:focus,
+.profile-dropdown-menu .dropdown-item:active,
+#notification-panel .dropdown-item:hover,
+#notification-panel .dropdown-item:focus,
+#notification-panel .dropdown-item:active,
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus,
+.dropdown-menu .dropdown-item:active {
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove green borders from menu-grid links (settings dropdown) */
+.navbar-top .dropdown-menu .menu-grid .menu-link,
+.navbar-top .dropdown-menu .menu-grid .menu-link:hover,
+.navbar-top .dropdown-menu .menu-grid .menu-link:focus,
+.navbar-top .dropdown-menu .menu-grid .menu-link:active,
+.dropdown-menu .menu-grid .menu-link,
+.dropdown-menu .menu-grid .menu-link:hover,
+.dropdown-menu .menu-grid .menu-link:focus,
+.dropdown-menu .menu-grid .menu-link:active {
+  border: 1px solid transparent !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove green borders from menu items */
+.navbar-top .dropdown-menu .menu-item,
+.dropdown-menu .menu-item {
+  border: none !important;
+  border-color: transparent !important;
+}
+
+/* Remove green borders on menu-item hover */
+.navbar-top .dropdown-menu .menu-item:hover,
+.dropdown-menu .menu-item:hover {
+  border: none !important;
+  border-color: transparent !important;
+}
+
+/* Profile dropdown specific - remove any green edges */
+.profile-dropdown-menu {
+  border: none !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.profile-dropdown-menu .dropdown-divider {
+  border-top-color: rgba(32, 41, 56, 0.15) !important;
+}
+
+.profile-dropdown-menu .dropdown-item {
+  border: none !important;
+  border-top: 1px solid rgba(32, 41, 56, 0.1) !important;
+}
+
+.profile-dropdown-menu .dropdown-item:first-child {
+  border-top: none !important;
+}
+
+.profile-dropdown-menu .dropdown-header ~ .dropdown-item {
+  border-left: 3px solid transparent !important;
+}
+
+/* Notification panel specific - remove any green edges */
+#notification-panel,
+#notification-panel.dropdown-menu {
+  border: none !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+#notification-panel .border-bottom {
+  border-bottom: none !important;
+  border: none !important;
+}
+
+/* Remove any green focus/outline rings */
+.navbar-top .dropdown-menu:focus,
+.profile-dropdown-menu:focus,
+#notification-panel:focus,
+.dropdown-menu:focus {
+  outline: none !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Remove green from dropdown header borders */
+.dropdown-menu .dropdown-header {
+  border-bottom-color: #e5e7eb !important;
+}
+
+/* Override any active location green borders - keep background but change border to gray */
+.navbar-top .dropdown-menu .dropdown-item.active {
+  border-left-color: #e5e7eb !important;
+}
+
+/* The dropdown footer button (three dots) - NO GREEN, use gray */
+.navbar-top .dropdown-menu .dropdown-footer a,
+.dropdown-menu .dropdown-footer a {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  border-color: #e5e7eb !important;
+  color: #202938 !important;
+}
+
+.navbar-top .dropdown-menu .dropdown-footer a:hover,
+.dropdown-menu .dropdown-footer a:hover,
+.navbar-top .dropdown-menu .dropdown-footer a:focus,
+.dropdown-menu .dropdown-footer a:focus,
+.navbar-top .dropdown-menu .dropdown-footer a:active,
+.dropdown-menu .dropdown-footer a:active {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  background-image: none !important;
+  border-color: #d1d5db !important;
+  color: #202938 !important;
+}
+
+.navbar-top .dropdown-menu .dropdown-footer a i,
+.dropdown-menu .dropdown-footer a i {
+  color: #202938 !important;
+}
+
+.navbar-top .dropdown-menu .dropdown-footer a:hover i,
+.dropdown-menu .dropdown-footer a:hover i {
+  color: #202938 !important;
+}
+
+/* Ensure no green colors appear in dropdown items and links (but not dividers) */
+.navbar-top .dropdown-menu .dropdown-item,
+.navbar-top .dropdown-menu .menu-link,
+.profile-dropdown-menu .dropdown-item,
+#notification-panel .dropdown-item,
+.dropdown-menu .dropdown-item,
+.dropdown-menu .menu-link {
+  border-color: transparent !important;
+}
+
+/* Only allow gray borders for dividers */
+.navbar-top .dropdown-menu .dropdown-divider,
+.profile-dropdown-menu .dropdown-divider,
+#notification-panel .dropdown-divider,
+.dropdown-menu .dropdown-divider {
+  border-top-color: rgba(32, 41, 56, 0.15) !important;
+  border-color: rgba(32, 41, 56, 0.15) !important;
+}
