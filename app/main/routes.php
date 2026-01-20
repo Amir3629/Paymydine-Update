@@ -71,19 +71,8 @@ App::before(function () {
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 
-        // API Routes - Register these before the catch-all route
-        Route::group(['prefix' => 'api'], function () {
-            // Health check endpoint
-            Route::get('/health', function () {
-                return response()->json([
-                    'status' => 'ok',
-                    'timestamp' => now(),
-                    'version' => '1.0.0'
-                ]);
-            });
-
-            // Direct media serving route for TastyIgniter attachments
-            Route::get('/media/{path}', function ($path) {
+        // Direct media serving route - Register BEFORE /api group to ensure it's matched first
+        Route::get('/api/media/{path}', function ($path) {
                 // Remove any query parameters
                 $path = explode('?', $path)[0];
                 $filename = basename($path);
@@ -153,6 +142,17 @@ App::before(function () {
                     abort(404);
                 }
             })->where('path', '.*');
+
+        // API Routes - Register these before the catch-all route
+        Route::group(['prefix' => 'api'], function () {
+            // Health check endpoint
+            Route::get('/health', function () {
+                return response()->json([
+                    'status' => 'ok',
+                    'timestamp' => now(),
+                    'version' => '1.0.0'
+                ]);
+            });
 
             /*
              * RE-ENABLED: /api/v1 routes (NOW SECURED)
