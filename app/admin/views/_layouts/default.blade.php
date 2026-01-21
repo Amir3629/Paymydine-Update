@@ -49,6 +49,8 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
     <!-- Modern Media Finder - Elegant image uploader redesign -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ time() }}">
+    <!-- Media Finder Widget CSS - Required for image uploader fields -->
+    <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations

@@ -52,3 +52,70 @@ div.progress-indicator-container div.btn-group,
   float: none !important;
   clear: none !important;
 }
+
+/* Mail Templates Page - Position Layouts and Partials buttons on the right side */
+/* Make toolbar-action use flexbox with space-between to separate left and right buttons */
+.toolbar-action .progress-indicator-container {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+/* Left side buttons group (New button) - stays on left */
+.toolbar-action .progress-indicator-container > a[href*="mail_templates/create"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+/* Right side buttons group (Layouts and Partials) - moved to right */
+.toolbar-action .progress-indicator-container > a[href*="mail_layouts"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+.toolbar-action .progress-indicator-container > a[href*="mail_partials"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* System Logs Page - Refresh button stays on left, Empty Logs and Request Logs go to right */
+/* Refresh button stays on left */
+.toolbar-action .progress-indicator-container > a[href*="system_logs"]:first-child,
+.toolbar-action .progress-indicator-container > a[href="system_logs"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+/* Empty Logs button - move to right */
+.toolbar-action .progress-indicator-container > button[data-request="onEmptyLog"],
+.toolbar-action .progress-indicator-container > a[data-request="onEmptyLog"],
+.toolbar-action .progress-indicator-container > button[data-request*="onEmptyLog"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+/* Request Logs button - move to right next to Empty Logs */
+.toolbar-action .progress-indicator-container > a[href*="request_logs"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Staffs Page - Position Groups and Roles buttons on the right side */
+/* Create button stays on left, Groups and Roles go to right */
+.toolbar-action .progress-indicator-container > a[href*="staffs/create"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+.toolbar-action .progress-indicator-container > a[href*="staff_groups"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+.toolbar-action .progress-indicator-container > a[href*="staff_roles"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
