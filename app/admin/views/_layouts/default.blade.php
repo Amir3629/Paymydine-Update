@@ -9,9 +9,8 @@
     @else
         <title>{{ $pageTitle }}@lang('admin::lang.site_title_separator'){{setting('site_name')}}</title>
     @endempty
-    {{-- Direct asset loading to bypass combiner (fixes 404 errors in production) --}}
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin.css') }}">
-    {{-- {!! get_style_tags() !!} --}}
+    {{-- Use asset combiner to ensure all widget CSS files are included --}}
+    {!! get_style_tags() !!}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/notifications.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/push-notifications.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/header-dropdowns.css') }}?v={{ time() }}">
@@ -29,8 +28,7 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?v={{ time() }}">
-    <!-- Dashboard Container Widget CSS - FIX: Must load for widgets to display correctly -->
-    <link rel="stylesheet" href="{{ asset('app/admin/widgets/dashboardcontainer/assets/css/dashboardcontainer.css') }}?v={{ time() }}">
+    {{-- Dashboard Container Widget CSS is included via get_style_tags() combiner --}}
     <!-- Fix Menu-Grid Hover - Only icon scale, no green flashing -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-menu-grid-hover.css') }}?v={{ time() }}">
     <!-- Fix Footer Button - Remove green hover -->
@@ -45,6 +43,8 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-green.css') }}?v={{ time() }}">
     <!-- Fix Profile Dropdown Hover - Remove inline styles blocking hover effect -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-hover.css') }}?v={{ time() }}">
+    <!-- Fix Profile Dropdown Closed - Disable items when dropdown is closed -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-closed.css') }}?v={{ time() }}">
     <!-- Fix Green Buttons and Text - Change btn-default, btn-outline-default, and text-muted from green to dark blue/gray -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
     <!-- Modern Media Finder - Elegant image uploader redesign -->
@@ -119,9 +119,8 @@
     {!! $this->makePartial('set_status_form') !!}
 @endif
 {!! Assets::getJsVars() !!}
-{{-- Direct asset loading to bypass combiner (fixes 404 errors in production) --}}
-<script src="{{ asset('app/admin/assets/js/admin.js') }}"></script>
-{{-- {!! get_script_tags() !!} --}}
+{{-- Use asset combiner to ensure all widget JS files are included --}}
+{!! get_script_tags() !!}
 
 <!-- Notification System - ENABLED FOR CPU TESTING -->
 <script src="{{ asset('app/admin/assets/js/notifications.js') }}?v={{ time() }}"></script>
@@ -144,6 +143,8 @@
 <script src="{{ asset('app/admin/assets/js/fix-notification-buttons-border.js') }}?v={{ time() }}"></script>
 <!-- Fix Profile Dropdown Green Hover - Removes green hover effect via JavaScript -->
 <script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ time() }}"></script>
+<!-- Fix Profile Dropdown Closed - Disables items when dropdown is closed -->
+<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ time() }}"></script>
 <!-- Fix Menu-Grid Hover - Ensures Tax and Advanced buttons hover works properly -->
 <script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ time() }}"></script>
 

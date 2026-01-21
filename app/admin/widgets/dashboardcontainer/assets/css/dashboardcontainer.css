@@ -1,8 +1,68 @@
 .dashboard-widgets {
-  margin-top: -15px;
+  margin-top: 0;
+  position: relative;
+  min-height: 0;
+}
+.dashboard-widgets .progress-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  padding: 0;
+}
+.dashboard-widgets .progress-indicator[style*="display: none"],
+.dashboard-widgets .progress-indicator.hidden {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
 }
 .dashboard-toolbar {
   padding: 0 0 20px;
+}
+
+/* Fix daterangepicker z-index to prevent interference with profile dropdown */
+.daterangepicker {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+/* When calendar is open, completely disable profile dropdown - MAXIMUM SPECIFICITY */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu,
+.daterangepicker:visible ~ .profile-dropdown-menu,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu,
+body:has(.daterangepicker:visible) .profile-dropdown-menu {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+}
+
+/* Disable all interactive elements inside profile dropdown when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu *,
+.daterangepicker:visible ~ .profile-dropdown-menu *,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu *,
+body:has(.daterangepicker:visible) .profile-dropdown-menu * {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+/* Override inline styles on profile dropdown items when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+.daterangepicker:visible ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*="pointer-events"] {
+  pointer-events: none !important;
+  z-index: -1 !important;
 }
 #newWidgetModal .modal-dialog,
 .dashboard-widget-modal-dialog {

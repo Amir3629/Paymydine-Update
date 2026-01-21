@@ -683,6 +683,16 @@ App::before(function () {
                             ]);
                         }
                         
+                        // Store payment method
+                        $paymentMethod = $input['payment_method'] ?? 'cash';
+                        DB::table('order_totals')->insert([
+                            'order_id' => $orderId,
+                            'code' => 'payment_method',
+                            'title' => 'Payment Method',
+                            'value' => $paymentMethod,
+                            'priority' => 0
+                        ]);
+                        
                         // Save coupon discount to order_totals
                         if ($couponDiscount > 0) {
                             DB::table('order_totals')->insert([
@@ -739,6 +749,20 @@ App::before(function () {
                         syncOrderToPOS($orderId);
 
                         \Log::info('API: Order sync to POS initiated', ['order_id' => $orderId]);
+                        
+                        // Open cash drawer if payment is cash
+                        if (\App\Helpers\CashDrawerHelper::shouldOpenDrawer($paymentMethod)) {
+                            try {
+                                $locationId = $input['location_id'] ?? 1;
+                                \App\Helpers\CashDrawerHelper::openDrawerForOrder($orderId, $locationId, $paymentMethod);
+                            } catch (\Exception $e) {
+                                // Log error but don't fail the order
+                                \Log::error('Cash Drawer: Failed to open drawer after order creation', [
+                                    'order_id' => $orderId,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
                         
                         return response()->json([
                             'success' => true,

@@ -198,6 +198,10 @@
         const toolbarButtons = document.querySelectorAll('.toolbar-action .btn');
 
         toolbarButtons.forEach(btn => {
+            // SKIP media manager buttons - they have their own styling
+            if (btn.closest('.media-toolbar') || btn.closest('#mediamanager-toolbar') || btn.closest('.media-manager')) {
+                return;
+            }
             // ALL buttons get width: auto - including Save button (same as other working buttons)
             btn.style.setProperty('padding', BUTTON_PADDING, 'important');
             btn.style.setProperty('border-radius', BUTTON_BORDER_RADIUS, 'important');
@@ -234,6 +238,14 @@
         console.log(`Found ${allButtons.length} total buttons to fix`);
         
         allButtons.forEach((btn, index) => {
+            // EXCLUDE ALL media manager buttons - they have their own styling
+            const isMediaManagerButton = btn.closest('.media-toolbar') || 
+                                        btn.closest('#mediamanager-toolbar') || 
+                                        btn.closest('.media-manager');
+            if (isMediaManagerButton) {
+                return; // Skip media manager buttons completely
+            }
+            
             // EXCLUDE Save/Back buttons AND filter/setup buttons from display override - they need inline-flex
             const isSaveOrBackButton = btn.matches('[data-request="onSave"]') ||
                                      (btn.closest('.progress-indicator-container') && 

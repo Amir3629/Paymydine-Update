@@ -119,3 +119,201 @@ div.progress-indicator-container div.btn-group,
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
+
+/* =====================================================
+   MEDIA MANAGER - COMPREHENSIVE FIX
+   Fix all button sizes, spacing, and hover effects
+   ===================================================== */
+
+/* Reset all media manager buttons to consistent size - ICE WHITE */
+.media-toolbar .btn,
+.media-toolbar button,
+.media-toolbar a.btn,
+.media-toolbar .btn-group .btn,
+.media-toolbar .input-group .btn,
+.media-toolbar .dropdown-toggle {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  background: rgb(241, 244, 251) !important;
+  background-color: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  transform: none !important;
+}
+
+/* Proper spacing between buttons - 10px gap */
+.media-toolbar .btn-group > .btn:not(:last-child),
+.media-toolbar .btn-group > button:not(:last-child),
+.media-toolbar .btn-group > a.btn:not(:last-child) {
+  margin-right: 10px !important;
+}
+
+.media-toolbar .btn-group {
+  margin-right: 10px !important;
+}
+
+.media-toolbar .dropdown {
+  margin-right: 10px !important;
+}
+
+.media-toolbar .input-group {
+  margin-right: 10px !important;
+}
+
+/* Hover effects - smooth and consistent - ICE WHITE */
+.media-toolbar .btn:hover,
+.media-toolbar button:hover,
+.media-toolbar a.btn:hover,
+.media-toolbar .btn-group .btn:hover,
+.media-toolbar .input-group .btn:hover,
+.media-toolbar .dropdown-toggle:hover {
+  background: rgb(233, 236, 243) !important;
+  background-color: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Active state */
+.media-toolbar .btn:active,
+.media-toolbar button:active,
+.media-toolbar a.btn:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Override any inline styles from JavaScript - ICE WHITE */
+.media-toolbar .btn[style],
+.media-toolbar button[style],
+.media-toolbar a.btn[style] {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: rgb(241, 244, 251) !important;
+  background-color: rgb(241, 244, 251) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Override hover inline styles - ICE WHITE */
+.media-toolbar .btn:hover[style],
+.media-toolbar button:hover[style],
+.media-toolbar a.btn:hover[style] {
+  background: rgb(233, 236, 243) !important;
+  background-color: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Ensure icons are visible and properly sized - ICE WHITE theme */
+.media-toolbar .btn i,
+.media-toolbar button i,
+.media-toolbar a.btn i {
+  font-size: 16px !important;
+  color: rgb(32, 41, 56) !important;
+  display: inline-block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix toolbar item spacing */
+.media-toolbar .toolbar-item {
+  margin-right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+/* Ensure btn-group doesn't break layout */
+.media-toolbar .btn-group {
+  display: inline-flex !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix input-group buttons */
+.media-toolbar .input-group {
+  display: inline-flex !important;
+  vertical-align: middle !important;
+}
+
+.media-toolbar .input-group .btn {
+  border-radius: 10px !important;
+  margin: 0 !important;
+}
+
+.media-toolbar .input-group > .btn:not(:last-child) {
+  margin-right: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.media-toolbar .input-group > .btn:not(:first-child) {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  margin-left: -2px !important;
+}
+
+/* Cash Drawers Toolbar - Back and Save on left, others on right */
+/* Left side: Back button */
+.toolbar-grouped .progress-indicator-container > a[href*="cash_drawers"]:not([data-request]) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+}
+
+/* Left side: Save button group */
+.toolbar-grouped .progress-indicator-container > .btn-group {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+/* Right side: Test Connection button */
+.toolbar-grouped .progress-indicator-container > a[data-request="onTestConnection"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+/* Right side: Open Drawer button - Same as Test Connection (ice white) */
+.toolbar-grouped .progress-indicator-container > a[data-request="onOpenDrawer"],
+.toolbar-grouped .progress-indicator-container > a.btn-success[data-request="onOpenDrawer"] {
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+  background: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  box-shadow: none !important;
+}
+
+.toolbar-grouped .progress-indicator-container > a[data-request="onOpenDrawer"]:hover,
+.toolbar-grouped .progress-indicator-container > a.btn-success[data-request="onOpenDrawer"]:hover {
+  background: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Right side: Delete button */
+.toolbar-grouped .progress-indicator-container > a[data-request="onDelete"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
