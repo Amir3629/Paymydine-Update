@@ -158,8 +158,8 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 
 .dashboard-widget-modal .btn-add-widget,
 #newWidgetModal .btn-add-widget {
-  background: linear-gradient(135deg, #0f9d58 0%, #0bb87a 100%) !important;
-  border-color: #0c7d47 !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #364a63 !important;
   color: #ffffff !important;
   min-width: 90px !important;
   padding: 0.4rem 0.9rem !important;
@@ -172,7 +172,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 .dashboard-widget-modal .btn-add-widget:focus,
 #newWidgetModal .btn-add-widget:hover,
 #newWidgetModal .btn-add-widget:focus {
-  background: linear-gradient(135deg, #0c7d47 0%, #0aa868 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #0aa868 100%) !important;
   border-color: #0a6437 !important;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(15, 157, 88, 0.25) !important;
@@ -302,7 +302,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 }
 
 .widget-news .list-group-item .text-muted {
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 /* Cache Usage widget - Dynamic circular donut chart */
@@ -688,7 +688,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 .dropdown-menu .menu-link:not(.menu-grid .menu-link):hover,
 .dropdown-menu .menu-item:not(.menu-grid .menu-item):hover,
 .dropdown-menu a:not(.btn):not(.menu-grid .menu-link):not(.dropdown-footer a):hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: #202938 !important;
   transform: translateX(3px) !important;
 }
@@ -720,7 +720,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 .dropdown-menu .dropdown-item.active,
 .dropdown-menu .dropdown-item:active,
 .dropdown-menu .menu-item.active .menu-link {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: white !important;
   font-weight: 600 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
@@ -894,7 +894,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 /* Icons in dropdown items */
 .dropdown-menu .dropdown-item .fa,
 .dropdown-menu .menu-link .fa {
-  color: #08815e !important;
+  color: #364a63 !important;
   margin-right: 10px !important;
   width: 16px !important;
   text-align: center !important;
@@ -912,7 +912,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 
 /* Notification badges in dropdown */
 .dropdown-menu .badge {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: white !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
@@ -922,7 +922,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 
 /* Location selector specific */
 .dropdown-menu .menu-item-meta {
-  color: #08815e !important;
+  color: #364a63 !important;
   font-size: 12px !important;
   margin-top: 2px !important;
 }
@@ -945,12 +945,12 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   border-radius: 10px !important;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
 }
 
 /* ============================================
@@ -1102,7 +1102,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 /* Notification timestamp */
 #notification-list .list-group-item .text-muted,
 .notification-item .timestamp {
-  color: #08815e !important;
+  color: #364a63 !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   margin-top: 6px !important;
@@ -1144,7 +1144,7 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 
 #bell-icon:hover,
 .fa-bell:hover {
-  color: #0bb87a !important;
+  color: #526484 !important;
   transform: scale(1.1) rotate(15deg) !important;
 }
 
@@ -1174,11 +1174,11 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 
 #notification-list::-webkit-scrollbar-thumb,
 #notification-panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   border-radius: 10px !important;
 }
 
 #notification-list::-webkit-scrollbar-thumb:hover,
 #notification-panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
 }

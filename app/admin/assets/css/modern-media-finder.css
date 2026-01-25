@@ -546,8 +546,8 @@
 /* Remove any old green colors that might appear */
 .mediafinder.inline-mode .media-finder .find-button[style*="green"],
 .mediafinder[data-mode="inline"] .media-finder .find-button[style*="green"],
-.mediafinder.inline-mode .media-finder .find-button[style*="#08815e"],
-.mediafinder[data-mode="inline"] .media-finder .find-button[style*="#08815e"] {
+.mediafinder.inline-mode .media-finder .find-button[style*="#364a63"],
+.mediafinder[data-mode="inline"] .media-finder .find-button[style*="#364a63"] {
   /* Override with our new styles */
 }
 

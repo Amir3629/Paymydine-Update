@@ -47,6 +47,26 @@
             return false; // Don't style Open Drawer button
         }
         
+        // SKIP Test Sound button - it should stay ice white
+        if (button.classList && (button.classList.contains('test-sound-btn') || button.id === 'test-kds-sound-btn')) {
+            return false; // Don't style Test Sound button
+        }
+        
+        // SKIP Register Webhook button - it should stay ice white
+        if (button.id === 'btn-register-webhook' || button.getAttribute('data-request') === 'onRegisterWebhook') {
+            return false; // Don't style Register Webhook button
+        }
+        
+        // SKIP Test Integration button - it should stay ice white
+        if (button.id === 'btn-test-integration' || button.getAttribute('data-request') === 'onTestIntegration') {
+            return false; // Don't style Test Integration button
+        }
+        
+        // SKIP Sync Menu button - it should stay ice white
+        if (button.getAttribute('data-request') === 'onSyncMenu') {
+            return false; // Don't style Sync Menu button
+        }
+        
         // Get current inline styles
         const currentBackground = button.style.background || button.style.backgroundColor;
         const currentBorder = button.style.border || button.style.borderColor;
@@ -148,15 +168,66 @@
         }
     }
     
+    function forceIceWhiteForPosConfigButtons() {
+        // Force ice white style for POS Configs right-side buttons
+        const buttons = [
+            document.getElementById('btn-register-webhook'),
+            document.getElementById('btn-test-integration'),
+            document.querySelector('button[data-request="onSyncMenu"]')
+        ].filter(Boolean);
+        
+        buttons.forEach(button => {
+            button.style.setProperty('background', 'rgb(241, 244, 251)', 'important');
+            button.style.setProperty('background-color', 'rgb(241, 244, 251)', 'important');
+            button.style.setProperty('background-image', 'none', 'important');
+            button.style.setProperty('color', 'rgb(32, 41, 56)', 'important');
+            button.style.setProperty('border', '1px solid rgb(201, 210, 227)', 'important');
+            button.style.setProperty('border-color', 'rgb(201, 210, 227)', 'important');
+            button.style.setProperty('box-shadow', 'none', 'important');
+            button.style.setProperty('transform', 'translateY(0)', 'important');
+            
+            // Set icon color
+            const icon = button.querySelector('i.fa');
+            if (icon) {
+                icon.style.setProperty('color', 'rgb(32, 41, 56)', 'important');
+            }
+            
+            // Add hover effects
+            button.addEventListener('mouseenter', function() {
+                this.style.setProperty('background', 'rgb(233, 236, 243)', 'important');
+                this.style.setProperty('background-color', 'rgb(233, 236, 243)', 'important');
+                this.style.setProperty('background-image', 'none', 'important');
+                this.style.setProperty('border-color', 'rgb(201, 210, 227)', 'important');
+                this.style.setProperty('color', 'rgb(32, 41, 56)', 'important');
+                this.style.setProperty('transform', 'translateY(-1px)', 'important');
+            }, { once: false });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.setProperty('background', 'rgb(241, 244, 251)', 'important');
+                this.style.setProperty('background-color', 'rgb(241, 244, 251)', 'important');
+                this.style.setProperty('background-image', 'none', 'important');
+                this.style.setProperty('border-color', 'rgb(201, 210, 227)', 'important');
+                this.style.setProperty('color', 'rgb(32, 41, 56)', 'important');
+                this.style.setProperty('transform', 'translateY(0)', 'important');
+            }, { once: false });
+        });
+    }
+    
     function forceMediaManagerButtonsWhite() {
         // Force all media manager buttons to stay ICE WHITE (ALWAYS override any other styles)
         const mediaToolbar = document.querySelector('.media-toolbar, #mediamanager-toolbar, .media-manager');
         if (mediaToolbar) {
             const mediaButtons = mediaToolbar.querySelectorAll('button, .btn, a.btn, button.btn, a[class*="btn"]');
             mediaButtons.forEach(button => {
+                // SKIP Choose button - it should be normal size
+                if (button.getAttribute('data-control') === 'media-choose' || 
+                    button.classList.contains('btn-primary') && button.getAttribute('data-control') === 'media-choose') {
+                    return; // Skip Choose button
+                }
+                
                 // ALWAYS apply ice white - override everything, even if already processed
                 
-                // Force consistent size - 42x42 for all buttons
+                // Force consistent size - 42x42 for all buttons (except Choose)
                 button.style.setProperty('width', '42px', 'important');
                 button.style.setProperty('height', '42px', 'important');
                 button.style.setProperty('min-width', '42px', 'important');
@@ -244,6 +315,9 @@
         // Force ice white for Open Drawer button after processing other buttons
         forceIceWhiteForOpenDrawer();
         
+        // Force ice white for POS Configs buttons after processing other buttons
+        forceIceWhiteForPosConfigButtons();
+        
         // Force all media manager buttons to stay white
         forceMediaManagerButtonsWhite();
         
@@ -266,6 +340,12 @@
     setTimeout(scanAndForceBlueButtons, 1000);
     setTimeout(scanAndForceBlueButtons, 2000);
     
+    // Force ice white for POS Configs buttons AFTER all blue button processing
+    setTimeout(forceIceWhiteForPosConfigButtons, 150);
+    setTimeout(forceIceWhiteForPosConfigButtons, 550);
+    setTimeout(forceIceWhiteForPosConfigButtons, 1050);
+    setTimeout(forceIceWhiteForPosConfigButtons, 2050);
+    
     // Force media manager buttons white AFTER all blue button processing
     setTimeout(forceMediaManagerButtonsWhite, 150);
     setTimeout(forceMediaManagerButtonsWhite, 550);
@@ -277,11 +357,53 @@
     
     // Observe DOM changes to catch new buttons
     const observer = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze (except for modal toolbar buttons)
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            // Only process if it's a modal toolbar button
+            let shouldProcess = false;
+            for (const mutation of mutations) {
+                if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                    continue;
+                }
+                const target = mutation.target;
+                if (target.closest && (target.closest('.media-toolbar') || target.closest('#mediamanager-toolbar'))) {
+                    shouldProcess = true;
+                    break;
+                }
+                // Check added nodes
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE && node.closest && 
+                        (node.closest('.media-toolbar') || node.closest('#mediamanager-toolbar'))) {
+                        shouldProcess = true;
+                        break;
+                    }
+                }
+            }
+            if (!shouldProcess) {
+                return;
+            }
+        }
+        
         let shouldScan = false;
         mutations.forEach(function(mutation) {
+            // Skip if mutation is inside a modal (except toolbar)
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                const isToolbar = mutation.target.closest('.media-toolbar, #mediamanager-toolbar');
+                if (!isToolbar) {
+                    return;
+                }
+            }
+            
             if (mutation.addedNodes.length > 0) {
                 mutation.addedNodes.forEach(function(node) {
                     if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Skip if node is inside a modal (except toolbar)
+                        if (node.closest && node.closest('.modal')) {
+                            const isToolbar = node.closest('.media-toolbar, #mediamanager-toolbar');
+                            if (!isToolbar) {
+                                return;
+                            }
+                        }
                         // Check if the added node is a button or contains buttons
                         if (node.matches && (node.matches('button, .btn, a.btn-primary, a.btn-success') || 
                             node.querySelector('button, .btn, a.btn-primary, a.btn-success'))) {
@@ -300,6 +422,13 @@
                     setTimeout(() => forceMediaManagerButtonsWhite(), 10);
                     return;
                 }
+                // Skip if inside modal (except toolbar)
+                if (target.closest && target.closest('.modal')) {
+                    const isToolbar = target.closest('.media-toolbar, #mediamanager-toolbar');
+                    if (!isToolbar) {
+                        return;
+                    }
+                }
                 if (target.matches && target.matches('button, .btn, a.btn-primary, a.btn-success')) {
                     const currentBackground = target.style.background || target.style.backgroundColor;
                     if (hasGreenColor(currentBackground)) {
@@ -311,6 +440,7 @@
         
         if (shouldScan) {
             setTimeout(scanAndForceBlueButtons, 50);
+            setTimeout(forceIceWhiteForPosConfigButtons, 100);
         }
     });
     
@@ -325,7 +455,8 @@
     document.addEventListener('pageContentLoaded', function() {
         console.log('🎨 Force Blue Buttons: Rescanning after page transition');
         setTimeout(scanAndForceBlueButtons, 100);
-        setTimeout(forceMediaManagerButtonsWhite, 150);
+        setTimeout(forceIceWhiteForPosConfigButtons, 150);
+        setTimeout(forceMediaManagerButtonsWhite, 200);
     });
     
     // Continuously monitor and fix media manager buttons

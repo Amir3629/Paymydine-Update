@@ -149,6 +149,53 @@ html body .media-finder .grid a.blank-cover .fa-plus {
   color: #202938 !important; /* Dark blue - override everything including inline styles */
 }
 
+/* ========================================
+   REMOVE BUTTON - ALWAYS VISIBLE & BEAUTIFUL
+   ======================================== */
+
+body .page-content .media-finder .grid .find-remove-button,
+body #edit-form .media-finder .grid .find-remove-button,
+body .form-fields .media-finder .grid .find-remove-button,
+body .form-group .media-finder .grid .find-remove-button,
+.media-finder .grid .find-remove-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(248, 249, 250) 100%) !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  text-align: center !important;
+  font-size: 18px !important;
+  color: rgb(220, 53, 69) !important;
+  box-shadow: rgba(220, 53, 69, 0.25) 0px 4px 12px !important;
+  border: 2px solid rgba(220, 53, 69, 0.15) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  opacity: 0.9 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body .page-content .media-finder .grid .find-remove-button:hover,
+body #edit-form .media-finder .grid .find-remove-button:hover,
+body .form-fields .media-finder .grid .find-remove-button:hover,
+body .form-group .media-finder .grid .find-remove-button:hover,
+.media-finder .grid .find-remove-button:hover {
+  opacity: 1 !important;
+  background: linear-gradient(135deg, rgb(220, 53, 69) 0%, rgb(200, 35, 51) 100%) !important;
+  color: rgb(255, 255, 255) !important;
+  box-shadow: rgba(220, 53, 69, 0.4) 0px 6px 16px !important;
+  border-color: rgb(220, 53, 69) !important;
+  transform: scale(1.1) !important;
+}
+
 html body .media-finder .grid .blank-cover:hover i,
 html body .media-finder .grid .blank-cover:hover .fa-plus,
 html body .media-finder .grid .find-button.blank-cover:hover i,
@@ -162,58 +209,51 @@ html body .media-finder .grid a.blank-cover:hover .fa-plus {
    CROSS/REMOVE BUTTON - LARGE & BEAUTIFUL
    ======================================== */
 
+/* Remove button - ALWAYS VISIBLE when image is selected */
+body .page-content .grid .find-remove-button,
+body #edit-form .grid .find-remove-button,
+body .form-fields .grid .find-remove-button,
+body .form-group .grid .find-remove-button,
 .grid .find-remove-button {
-  display: none !important;
-  pointer-events: none;
-  position: absolute !important;
-  top: 12px !important;
-  right: 12px !important;
-  z-index: 9999 !important;
-  cursor: pointer !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-body .page-content .grid:hover .find-remove-button,
-body #edit-form .grid:hover .find-remove-button,
-body .form-fields .grid:hover .find-remove-button,
-body .form-group .grid:hover .find-remove-button,
-body .page-content .grid .find-remove-button:hover,
-body #edit-form .grid .find-remove-button:hover,
-body .form-fields .grid .find-remove-button:hover,
-body .form-group .grid .find-remove-button:hover,
-.grid:hover .find-remove-button,
-.grid .find-remove-button:hover {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   position: absolute !important;
-  top: 12px !important;
-  right: 12px !important;
+  top: 8px !important;
+  right: 8px !important;
   z-index: 9999 !important;
   pointer-events: auto !important;
   cursor: pointer !important;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
   border-radius: 50% !important;
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  min-height: 40px !important;
-  max-width: 40px !important;
-  max-height: 40px !important;
-  line-height: 40px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
+  line-height: 36px !important;
   text-align: center !important;
-  font-size: 20px !important;
+  font-size: 18px !important;
   color: #dc3545 !important;
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25) !important;
-  border: 2px solid rgba(220, 53, 69, 0.1) !important;
+  border: 2px solid rgba(220, 53, 69, 0.15) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  opacity: 0.9 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
+body .page-content .grid .find-remove-button:hover,
+body #edit-form .grid .find-remove-button:hover,
+body .form-fields .grid .find-remove-button:hover,
+body .form-group .grid .find-remove-button:hover,
 .grid .find-remove-button:hover {
+  opacity: 1 !important;
   background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.35) !important;
-  transform: scale(1.1) rotate(90deg) !important;
+  box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4) !important;
+  transform: scale(1.1) !important;
   border-color: #dc3545 !important;
 }
 
@@ -244,6 +284,68 @@ body #edit-form,
   letter-spacing: -0.01em;
 }
 
+/* Section titles - BOLD and thick */
+.field-section .section-title,
+.field-section h5.section-title,
+.form-group.section-field .section-title,
+.form-group.section-field h5.section-title {
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  color: #364a63 !important;
+}
+
+/* Field labels - NOT bold (normal weight) - including repeater field labels */
+.form-label:not(.section-title),
+label.form-label:not(.section-title),
+.form-group label:not(.section-title),
+.form-group.widget-field label,
+.form-group.widget-field .form-label,
+.form-group[data-field-name*="suggestion"] label,
+.form-group[data-field-name*="suggestion"] .form-label {
+  font-weight: 600 !important; /* Keep at 600, not 700 */
+}
+
+/* Hide "Suggestion Sentences" label completely */
+.form-group[data-field-name="note_suggestion_sentences"] label,
+.form-group[data-field-name="note_suggestion_sentences"] .form-label,
+#form-field-setting-note-suggestion-sentences-group label,
+#form-field-setting-note-suggestion-sentences-group .form-label {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  text-decoration: none !important;
+}
+
+/* Remove shadow from "Add new suggestion" button */
+html body .btn[data-control="add-item"],
+html body button[data-control="add-item"],
+html body .btn-primary[data-control="add-item"],
+html body .repeater-items button[data-control="add-item"],
+html body .repeater-items .btn[data-control="add-item"],
+html body .control-repeater button[data-control="add-item"],
+html body .control-repeater .btn[data-control="add-item"],
+html body .add-item-btn {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+}
+
+html body .btn[data-control="add-item"]:hover,
+html body button[data-control="add-item"]:hover,
+html body .btn-primary[data-control="add-item"]:hover,
+html body .repeater-items button[data-control="add-item"]:hover,
+html body .repeater-items .btn[data-control="add-item"]:hover,
+html body .control-repeater button[data-control="add-item"]:hover,
+html body .control-repeater .btn[data-control="add-item"]:hover,
+html body .add-item-btn:hover {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+}
+
 /* Form controls - modern inputs */
 .form-control,
 input[type="text"],
@@ -260,10 +362,22 @@ select,
   line-height: 1.5 !important;
   color: #1f2937 !important;
   background-color: #ffffff !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
   height: auto !important;
   min-height: 48px !important;
+}
+
+/* Test Sound button - match select field height and rounded shape */
+.test-sound-btn,
+#test-kds-sound-btn {
+  border-radius: 12px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 12px 20px !important;
+  line-height: 1.5 !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .form-control:hover,
@@ -277,10 +391,45 @@ select:hover {
 .form-control:focus,
 input:focus,
 textarea:focus,
-select:focus {
+select:focus,
+.form-select:focus,
+.form-control:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
   border-color: #364a63 !important;
   box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   outline: none !important;
+  outline-color: #364a63 !important;
+  outline-offset: 0 !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+/* Remove focus styles when not focused */
+.form-control:not(:focus):not(:focus-visible),
+input:not(:focus):not(:focus-visible),
+textarea:not(:focus):not(:focus-visible),
+select:not(:focus):not(:focus-visible),
+.form-select:not(:focus):not(:focus-visible) {
+  border-color: #e5e9f2 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Override any green focus colors - MAXIMUM SPECIFICITY */
+html body .form-control:focus,
+html body input:focus,
+html body textarea:focus,
+html body select:focus,
+html body .form-select:focus,
+html body .form-control:focus-visible,
+html body input:focus-visible,
+html body textarea:focus-visible,
+html body select:focus-visible {
+  border-color: #364a63 !important;
+  border-color: rgb(54, 74, 99) !important;
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+  outline: none !important;
+  outline-color: #364a63 !important;
 }
 
 textarea.form-control {
@@ -375,13 +524,22 @@ textarea.form-control {
 .form-nav.nav-tabs .nav-link:hover {
   color: #1f2937 !important;
   background: #f8f9fa !important;
-  border-bottom-color: #cbd5e1 !important;
+  border-bottom: 3px solid transparent !important;
+  border-bottom-color: transparent !important;
 }
 
 .form-nav.nav-tabs .nav-link.active {
   color: #364a63 !important;
   background: #ffffff !important;
+  border-bottom: 3px solid #364a63 !important;
   border-bottom-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+/* Ensure non-active tabs have NO visible border */
+.form-nav.nav-tabs .nav-link:not(.active) {
+  border-bottom: 3px solid transparent !important;
+  border-bottom-color: transparent !important;
 }
 
 /* Tab content */
@@ -3492,4 +3650,98 @@ html body .settings-card-link .card.bg-light:hover {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+
+/* ========================================
+   ABOUT CARD - Make white like other cards, only icon dark blue
+   ======================================== */
+
+/* Override About card dark blue background - make it white */
+.settings-card-link--about .settings-card--about,
+.settings-card-link--about .card.settings-card--about,
+html body .settings-card-link--about .settings-card--about,
+html body .settings-card-link--about .card.settings-card--about {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e5e9f2 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  color: #364a63 !important;
+  height: 140px !important;
+  min-height: 140px !important;
+  max-height: 140px !important;
+}
+
+.settings-card-link--about .settings-card--about:hover,
+.settings-card-link--about .card.settings-card--about:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px) !important;
+  border-color: #cbd5e1 !important;
+}
+
+.settings-card-link--about .settings-card--about .card-body,
+.settings-card-link--about .card.settings-card--about .card-body {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #364a63 !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.settings-card-link--about .settings-card--about h5,
+.settings-card-link--about .card.settings-card--about h5 {
+  color: #364a63 !important;
+}
+
+.settings-card-link--about .settings-card--about .text-muted,
+.settings-card-link--about .card.settings-card--about .text-muted,
+.settings-card-link--about .settings-card--about p.text-muted,
+.settings-card-link--about .card.settings-card--about p.text-muted {
+  color: #6b7280 !important;
+}
+
+/* About card icon - dark blue background, white icon */
+.settings-card-link--about .settings-card--about .about-card__icon,
+.settings-card-link--about .card.settings-card--about .about-card__icon {
+  background-color: #364a63 !important;
+  background: #364a63 !important;
+  border: 1px solid #364a63 !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.settings-card-link--about .settings-card--about .about-card__icon i,
+.settings-card-link--about .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* ========================================
+   FIX CARD HEIGHTS - Ensure all cards same size
+   ======================================== */
+
+/* Force all settings cards to same height */
+.settings-card-link .card,
+.settings-card-link .card.bg-light,
+.settings-card-link--about .settings-card--about,
+.settings-card-link--about .card.settings-card--about {
+  height: 140px !important;
+  min-height: 140px !important;
+  max-height: 140px !important;
+}
+
+/* Ensure card body fills the card properly */
+.settings-card-link .card .card-body,
+.settings-card-link--about .settings-card--about .card-body,
+.settings-card-link--about .card.settings-card--about .card-body {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
 }

@@ -56,7 +56,7 @@
 
 /* Welcome Header */
 .pymd-welcome-header {
-    background: linear-gradient(135deg, #202938 0%, #08815e 100%);
+    background: linear-gradient(135deg, #202938 0%, #364a63 100%);
     color: #ffffff;
     padding: 32px 32px 24px;
     text-align: center;
@@ -133,7 +133,7 @@
 }
 
 .pymd-feature-item i {
-    color: #08815e;
+    color: #364a63;
     font-size: 18px;
     flex-shrink: 0;
 }
@@ -146,7 +146,7 @@
 
 .pymd-welcome-note {
     background: #f8f9fa;
-    border-left: 3px solid #08815e;
+    border-left: 3px solid #364a63;
     border-radius: 6px;
     padding: 16px;
     display: flex;
@@ -155,7 +155,7 @@
 }
 
 .pymd-welcome-note i {
-    color: #08815e;
+    color: #364a63;
     font-size: 20px;
     margin-top: 2px;
     flex-shrink: 0;
@@ -174,7 +174,7 @@
 }
 
 .pymd-welcome-note p .fa-info-circle {
-    color: #08815e;
+    color: #364a63;
     margin: 0 4px;
     font-size: 16px;
 }
@@ -222,8 +222,8 @@
 }
 
 .pymd-welcome-start:hover {
-    background: #08815e;
-    border-color: #08815e;
+    background: #364a63;
+    border-color: #364a63;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(32, 41, 56, 0.2);
 }

@@ -126,6 +126,9 @@
 <script src="{{ asset('app/admin/assets/js/notifications.js') }}?v={{ time() }}"></script>
 <script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ time() }}"></script>
 
+<!-- Modal Performance Fix - MUST LOAD FIRST to prevent freeze -->
+<script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ time() }}"></script>
+
 <!-- Smooth Page Transitions -->
 <script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?v={{ time() }}"></script>
 
@@ -143,6 +146,12 @@
 <script src="{{ asset('app/admin/assets/js/fix-notification-buttons-border.js') }}?v={{ time() }}"></script>
 <!-- Fix Profile Dropdown Green Hover - Removes green hover effect via JavaScript -->
 <script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ time() }}"></script>
+<!-- Fix Tab Link Colors - Force dark blue instead of green -->
+<script src="{{ asset('app/admin/assets/js/fix-tab-link-colors.js') }}?v={{ time() }}"></script>
+<!-- Fix Suggestion Sentences Label - Remove underline and button shadow -->
+<script src="{{ asset('app/admin/assets/js/fix-suggestion-sentences-label.js') }}?v={{ time() }}"></script>
+<!-- Fix Form Field Focus Colors - Remove green, use dark blue -->
+<script src="{{ asset('app/admin/assets/js/fix-form-field-focus-colors.js') }}?v={{ time() }}"></script>
 <!-- Fix Profile Dropdown Closed - Disables items when dropdown is closed -->
 <script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ time() }}"></script>
 <!-- Fix Menu-Grid Hover - Ensures Tax and Advanced buttons hover works properly -->

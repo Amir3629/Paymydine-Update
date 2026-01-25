@@ -467,7 +467,7 @@
             }
 
             #addGeneralStaffNoteModal .modal-title i {
-                color: #08815e;
+                color: #364a63;
                 margin-right: 8px;
             }
 
@@ -479,13 +479,13 @@
             }
 
             #addGeneralStaffNoteModal textarea:focus {
-                border-color: #08815e;
+                border-color: #364a63;
                 box-shadow: 0 0 0 0.2rem rgba(8, 129, 94, 0.1);
             }
 
             #addGeneralStaffNoteModal .btn-primary {
-                background: #08815e;
-                border-color: #08815e;
+                background: #364a63;
+                border-color: #364a63;
                 color: #ffffff;
             }
 

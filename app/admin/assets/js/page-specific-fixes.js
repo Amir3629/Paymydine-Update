@@ -94,6 +94,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Use a MutationObserver to catch any elements added dynamically
         const observer = new MutationObserver(function(mutations) {
+            // Skip processing when modal is open to prevent freeze
+            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+                return;
+            }
+            // Skip if any mutation is inside a modal
+            for (const mutation of mutations) {
+                if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                    return;
+                }
+                if (mutation.target.closest && mutation.target.closest('.modal')) {
+                    return;
+                }
+                // Also check added nodes
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1 && node.closest && node.closest('.modal')) {
+                        return;
+                    }
+                }
+            }
+            
             mutations.forEach(function(mutation) {
                 if (mutation.addedNodes.length) {
                     mutation.addedNodes.forEach(function(node) {
@@ -292,6 +312,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Watch for changes (e.g., when radio buttons are checked/unchecked)
     const observer = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
         let shouldFix = false;
         mutations.forEach(function(mutation) {
             if (mutation.type === 'attributes' && 
@@ -416,6 +450,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Watch for new image upload fields
     const imageFieldObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
         let shouldFix = false;
         mutations.forEach(function(mutation) {
             if (mutation.addedNodes.length) {
@@ -586,6 +634,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Watch for style changes AND new elements being added
     const greenColorObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
         let shouldFix = false;
         mutations.forEach(function(mutation) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
@@ -651,6 +713,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Watch for new progress indicators being added
     const progressObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
         let shouldHide = false;
         mutations.forEach(function(mutation) {
             if (mutation.addedNodes.length) {
@@ -676,6 +752,75 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Also run periodically to catch any missed cases
     setInterval(hideProgressIndicatorText, 500);
+    
+    // ============================================
+    // FIX: Instant color change for toggle button groups
+    // Remove all transitions when buttons are checked
+    // ============================================
+    function forceInstantToggleButtonColors() {
+        // Find all toggle button groups
+        const toggleGroups = document.querySelectorAll('.btn-group-toggle');
+        
+        toggleGroups.forEach(group => {
+            const radioInputs = group.querySelectorAll('input[type="radio"]');
+            
+            radioInputs.forEach(radio => {
+                const label = group.querySelector(`label[for="${radio.id}"]`);
+                if (!label) return;
+                
+                // Remove all transitions from label
+                label.style.setProperty('transition', 'none', 'important');
+                label.style.setProperty('transition-property', 'none', 'important');
+                label.style.setProperty('transition-duration', '0s', 'important');
+                label.style.setProperty('transition-delay', '0s', 'important');
+                label.style.setProperty('-webkit-transition', 'none', 'important');
+                label.style.setProperty('-moz-transition', 'none', 'important');
+                label.style.setProperty('-o-transition', 'none', 'important');
+                
+                // Force instant color change on click
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Instantly change color - no delay
+                        label.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                        label.style.setProperty('transition', 'none', 'important');
+                        
+                        // Also change all child elements instantly
+                        const children = label.querySelectorAll('*');
+                        children.forEach(child => {
+                            child.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                            child.style.setProperty('transition', 'none', 'important');
+                        });
+                    }
+                }, { passive: true });
+                
+                // Also handle on click for immediate feedback
+                label.addEventListener('click', function() {
+                    if (radio.checked) {
+                        // Force instant color change
+                        this.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                        this.style.setProperty('transition', 'none', 'important');
+                        
+                        const children = this.querySelectorAll('*');
+                        children.forEach(child => {
+                            child.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                            child.style.setProperty('transition', 'none', 'important');
+                        });
+                    }
+                }, { passive: true });
+            });
+        });
+    }
+    
+    // Run immediately and on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', forceInstantToggleButtonColors);
+    } else {
+        forceInstantToggleButtonColors();
+    }
+    
+    // Also run after a delay to catch dynamically loaded content
+    setTimeout(forceInstantToggleButtonColors, 100);
+    setTimeout(forceInstantToggleButtonColors, 500);
     
     // ============================================
     // FIX: Lock Save Button Width - Prevent Size Changes
@@ -824,6 +969,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Watch for style changes on save buttons and IMMEDIATELY fix them
     const widthObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze (except for modal buttons)
+        const isModalMutation = mutations.some(mutation => {
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return true;
+            }
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType === 1 && node.closest && node.closest('.modal')) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        
+        // Only skip if it's NOT a modal button we care about
+        if (document.body.classList.contains('modal-open') && !isModalMutation) {
+            // Check if mutation is for a button we care about
+            let isImportantButton = false;
+            for (const mutation of mutations) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const btn = mutation.target;
+                    const isSaveButton = btn.matches && (
+                        btn.matches('[data-request="onSave"]') ||
+                        btn.matches('.btn-primary[data-request="onSave"]')
+                    );
+                    if (isSaveButton) {
+                        isImportantButton = true;
+                        break;
+                    }
+                }
+            }
+            if (!isImportantButton) {
+                return;
+            }
+        }
+        
         let shouldLock = false;
         mutations.forEach(function(mutation) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {

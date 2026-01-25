@@ -56,6 +56,10 @@
         
         // Helper function to check if button should be excluded (regular action buttons)
         function shouldExcludeButton(button) {
+            // EXCLUDE Choose button in media manager - it should be normal size
+            if (button.getAttribute('data-control') === 'media-choose') {
+                return true;
+            }
             // EXCLUDE regular action buttons that should have width: auto
             // These buttons should NOT be forced to 48x48px
             if (button.classList.contains('btn-primary') && !button.classList.contains('btn-edit')) {
