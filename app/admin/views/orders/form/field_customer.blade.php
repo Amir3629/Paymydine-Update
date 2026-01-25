@@ -18,7 +18,7 @@
         </div>
         <div class="editable-edit" style="display: none;">
             <input type="email" class="form-control form-control-sm editable-input" value="{{ $formModel->email }}" data-field="email" data-order-id="{{ $formModel->order_id }}" style="font-size: 12px; padding: 2px 5px; height: 24px;">
-            <button type="button" class="btn-save-inline" onclick="return handleSaveField(this);" style="background: #08815e; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 4px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Save">
+            <button type="button" class="btn-save-inline" onclick="return handleSaveField(this);" style="background: #364a63; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 4px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Save">
                 <i class="fa fa-check" style="font-size: 8px;"></i>
             </button>
             <button type="button" class="btn-cancel-inline" onclick="return handleCancelEdit(this);" style="background: #dc3545; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 2px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Cancel">
@@ -38,7 +38,7 @@
             </div>
             <div class="editable-edit" style="display: none;">
                 <input type="text" class="form-control form-control-sm editable-input" value="{{ $formModel->telephone }}" data-field="telephone" data-order-id="{{ $formModel->order_id }}" style="font-size: 12px; padding: 2px 5px; height: 24px;">
-                <button type="button" class="btn-save-inline" onclick="return handleSaveField(this);" style="background: #08815e; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 4px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Save">
+                <button type="button" class="btn-save-inline" onclick="return handleSaveField(this);" style="background: #364a63; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 4px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Save">
                     <i class="fa fa-check" style="font-size: 8px;"></i>
                 </button>
                 <button type="button" class="btn-cancel-inline" onclick="return handleCancelEdit(this);" style="background: #dc3545; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 2px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Cancel">
@@ -132,7 +132,7 @@
 }
 
 .editable-input:focus {
-    border-color: #08815e !important;
+    border-color: #364a63 !important;
     box-shadow: 0 0 0 2px rgba(8, 129, 94, 0.1) !important;
 }
 
@@ -144,7 +144,7 @@
 }
 
 .btn-save-inline:hover {
-    background: #0bb87a !important;
+    background: #526484 !important;
     box-shadow: 0 2px 4px rgba(8, 129, 94, 0.25);
     transform: translateY(-1px) scale(1.05);
 }

@@ -25,7 +25,7 @@
                 type="button"
                 class="btn btn-primary"
                 id="edit-layout-toggle"
-                style="background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%); border-color: #202938; margin-right: 10px;"
+                style="background: linear-gradient(135deg, #364a63 0%, #526484 100%); border-color: #202938; margin-right: 10px;"
                 onclick="toggleEditMode()"
             >
                 <i class="fa fa-edit"></i>&nbsp;&nbsp;<span id="edit-layout-text">Edit Layout</span>
@@ -99,7 +99,7 @@ function toggleEditMode() {
         dashboardContainer.classList.add('edit-mode');
         document.body.classList.add('edit-mode-active');
         editText.textContent = 'Save Edit';
-        editButton.style.background = 'linear-gradient(135deg, #08815e 0%, #0bb87a 100%)';
+        editButton.style.background = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
         
         // Show Add Widget and Set As Default buttons
         editModeButtons.forEach(btn => {
@@ -115,7 +115,7 @@ function toggleEditMode() {
         dashboardContainer.classList.remove('edit-mode');
         document.body.classList.remove('edit-mode-active');
         editText.textContent = 'Edit Layout';
-        editButton.style.background = 'linear-gradient(135deg, #08815e 0%, #0bb87a 100%)';
+        editButton.style.background = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
         
         // Hide Add Widget and Set As Default buttons
         editModeButtons.forEach(btn => {

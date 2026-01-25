@@ -72,8 +72,6 @@ class KdsStations extends AdminController
         // Ensure the table exists
         $this->ensureTableExists();
         
-        $this->vars['title'] = 'Manage KDS Stations';
-        
         $this->asExtension('ListController')->index();
         
         return $this->makeView('kds_stations/index');

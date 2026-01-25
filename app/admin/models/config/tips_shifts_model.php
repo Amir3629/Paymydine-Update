@@ -53,6 +53,30 @@ $config['list']['columns'] = [
         'searchable' => true,
         'locationAware' => true,
     ],
+    'total_tips' => [
+        'label' => 'Total Tips',
+        'type' => 'currency',
+        'searchable' => false,
+        'sortable' => false,
+    ],
+    'cash_tips' => [
+        'label' => 'Cash Tips',
+        'type' => 'currency',
+        'searchable' => false,
+        'sortable' => false,
+    ],
+    'card_tips' => [
+        'label' => 'Card Tips',
+        'type' => 'currency',
+        'searchable' => false,
+        'sortable' => false,
+    ],
+    'tip_count' => [
+        'label' => 'Transactions',
+        'type' => 'number',
+        'searchable' => false,
+        'sortable' => false,
+    ],
     'notes' => [
         'label' => 'Notes',
         'type' => 'text',

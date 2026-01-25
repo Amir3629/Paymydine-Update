@@ -237,6 +237,33 @@
             var $this = $(this)
             var data = $this.data('ti.chartControl')
             var options = $.extend({}, ChartControl.DEFAULTS, $this.data(), typeof option === 'object' && option)
+            
+            // Ensure data attribute is parsed correctly
+            if ($this.attr('data-data')) {
+                try {
+                    var jsonData = $this.attr('data-data');
+                    // jQuery's .data() should parse JSON, but ensure it's an object
+                    if (typeof options.data === 'string') {
+                        options.data = JSON.parse(jsonData);
+                    } else if (!options.data) {
+                        options.data = JSON.parse(jsonData);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse chart data:', e);
+                }
+            }
+            
+            // Only initialize if Chart.js is available
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js not loaded yet, retrying chart initialization...');
+                setTimeout(function() {
+                    if (typeof Chart !== 'undefined') {
+                        $this.chartControl(option);
+                    }
+                }, 200);
+                return;
+            }
+            
             if (!data) $this.data('ti.chartControl', (data = new ChartControl(this, options)))
             if (typeof option === 'string') result = data[option].apply(data, args)
             if (typeof result !== 'undefined') return false
@@ -258,7 +285,65 @@
     // FIELD CHART CONTROL DATA-API
     // ===============
 
+    // Initialize charts on render event (AJAX updates)
     $(document).render(function () {
-        $('[data-control="chart"]').chartControl()
-    })
+        $('[data-control="chart"]').each(function() {
+            var $this = $(this);
+            // Only initialize if not already initialized
+            if (!$this.data('ti.chartControl')) {
+                $this.chartControl();
+            }
+        });
+    });
+    
+    // Initialize charts on document ready (initial page load)
+    $(document).ready(function() {
+        function initChartsOnReady() {
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                setTimeout(initChartsOnReady, 100);
+                return;
+            }
+            
+            // Initialize charts immediately - widgets may already be loaded
+            function tryInitCharts() {
+                $('[data-control="chart"]').each(function() {
+                    var $this = $(this);
+                    // Only initialize if not already initialized
+                    if (!$this.data('ti.chartControl')) {
+                        try {
+                            $this.chartControl();
+                            console.log('✅ Charts: Initialized on document ready', $this.attr('data-alias'));
+                        } catch (e) {
+                            console.error('❌ Charts: Failed to initialize', $this.attr('data-alias'), e);
+                        }
+                    }
+                });
+            }
+            
+            // Try immediately, then retry after widgets load
+            tryInitCharts();
+            setTimeout(tryInitCharts, 200); // Quick retry for AJAX-loaded widgets
+        }
+        initChartsOnReady();
+        
+        // Also try after widgets are loaded (listen for widget container updates)
+        $(document).on('ajaxUpdateComplete', function() {
+            setTimeout(function() {
+                if (typeof Chart === 'undefined') return;
+                
+                $('[data-control="chart"]').each(function() {
+                    var $this = $(this);
+                    if (!$this.data('ti.chartControl')) {
+                        try {
+                            $this.chartControl();
+                            console.log('✅ Charts: Initialized on ajaxUpdateComplete', $this.attr('data-alias'));
+                        } catch (e) {
+                            console.error('❌ Charts: Failed to initialize on ajaxUpdateComplete', $this.attr('data-alias'), e);
+                        }
+                    }
+                });
+            }, 200);
+        });
+    });
 }(window.jQuery)

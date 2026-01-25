@@ -1798,12 +1798,67 @@ if (window.jQuery.request !== undefined)
     }
 
     $(document).on('show.daterangepicker', function (event, picker) {
+        // AGGRESSIVE FIX: Completely disable profile dropdown when calendar opens
+        var $profileDropdown = $('.profile-dropdown-menu');
+        if ($profileDropdown.length) {
+            // Remove show class
+            $profileDropdown.removeClass('show');
+            // Completely disable pointer events and hide it
+            $profileDropdown.css({
+                'display': 'none !important',
+                'visibility': 'hidden !important',
+                'opacity': '0 !important',
+                'pointer-events': 'none !important',
+                'z-index': '-1 !important'
+            });
+            // Disable all links inside
+            $profileDropdown.find('a, button, .dropdown-item').css({
+                'pointer-events': 'none !important'
+            });
+        }
+        
+        // Close all other Bootstrap dropdowns
+        $('.dropdown-menu.show').removeClass('show').css({
+            'display': 'none',
+            'visibility': 'hidden',
+            'opacity': '0',
+            'pointer-events': 'none'
+        });
+        $('[data-bs-toggle="dropdown"][aria-expanded="true"]').attr('aria-expanded', 'false');
+        $('.dropdown-backdrop').remove();
+        
+        // Ensure calendar has highest z-index
+        setTimeout(function() {
+            $('.daterangepicker').css({
+                'z-index': '99999',
+                'pointer-events': 'auto'
+            });
+        }, 10);
+        
         enforceSingleCalendarLayout(picker);
         ensureRangePickerArrows(picker);
         setTimeout(function () {
             enforceSingleCalendarLayout(picker);
             ensureRangePickerArrows(picker);
         }, 50);
+    });
+    
+    // When calendar closes, restore profile dropdown functionality
+    $(document).on('hide.daterangepicker', function (event, picker) {
+        var $profileDropdown = $('.profile-dropdown-menu');
+        if ($profileDropdown.length) {
+            // Remove the forced styles so it can work normally again
+            $profileDropdown.css({
+                'display': '',
+                'visibility': '',
+                'opacity': '',
+                'pointer-events': '',
+                'z-index': ''
+            });
+            $profileDropdown.find('a, button, .dropdown-item').css({
+                'pointer-events': ''
+            });
+        }
     });
 
     $(document).on('click focus', '[data-control="datepicker"] [data-datepicker-trigger]', function () {

@@ -133,8 +133,8 @@
     min-height: 40px !important;
     height: 40px !important;
     border-radius: 12px !important;
-    background: linear-gradient(135deg, #08815e 0%, #08815e 100%) !important;
-    border: 1px solid #08815e !important;
+    background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
+    border: 1px solid #364a63 !important;
     color: #ffffff !important;
     font-weight: 600 !important;
     text-decoration: none !important;
@@ -154,10 +154,10 @@
 }
 
 #back-to-tables.btn-primary:hover {
-    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
-    border-color: #08815e !important;
+    border-color: #364a63 !important;
     color: #ffffff !important;
 }
 
@@ -1361,7 +1361,7 @@ $unavailableTables = DB::table('orders')
     position: absolute;
     top: 5px;
     right: 5px;
-    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%);
+    background: linear-gradient(135deg, #364a63 0%, #526484 100%);
     color: white;
     padding: 4px 8px;
     border-radius: 6px;
@@ -2611,8 +2611,8 @@ body, html {
 }
 
 #back-to-tables {
-    background: linear-gradient(135deg, #08815e 0%, #08815e 100%) !important;
-    border: 1px solid #08815e !important;
+    background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
+    border: 1px solid #364a63 !important;
     color: white !important;
     padding: 0.55rem 1.75rem !important;
     border-radius: 12px !important;
@@ -2629,10 +2629,10 @@ body, html {
 }
 
 #back-to-tables:hover {
-    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+    background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
-    border-color: #08815e !important;
+    border-color: #364a63 !important;
 }
 
 #back-to-tables i {

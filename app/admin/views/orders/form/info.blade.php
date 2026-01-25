@@ -539,7 +539,7 @@ a.note-icon-btn i[style*="margin-top"],
 }
 
 .order-info-value.order-id-value {
-    color: #08815e;
+    color: #364a63;
     font-size: 22px;
     margin-top: 5px;
 }
@@ -1044,7 +1044,7 @@ div.toolbar-action a.btn-send-invoice {
         <div class="order-info-value">
             {{ $formModel->order_date_time->isoFormat(lang('system::lang.moment.date_time_format_short')) }}
             @if ($formModel->order_time_is_asap)
-                <span style="font-size: 12px; color: #08815e; font-weight: 600;">(ASAP)</span>
+                <span style="font-size: 12px; color: #364a63; font-weight: 600;">(ASAP)</span>
             @endif
         </div>
     </div>
@@ -1696,7 +1696,7 @@ function onOrderNoteAdded() {
 }
 
 #addOrderNoteModal .modal-title i {
-    color: #08815e;
+    color: #364a63;
     margin-right: 8px;
 }
 
@@ -1708,13 +1708,13 @@ function onOrderNoteAdded() {
 }
 
 #addOrderNoteModal textarea:focus {
-    border-color: #08815e;
+    border-color: #364a63;
     box-shadow: 0 0 0 0.2rem rgba(8, 129, 94, 0.1);
 }
 
 #addOrderNoteModal .btn-primary {
-    background: #08815e;
-    border-color: #08815e;
+    background: #364a63;
+    border-color: #364a63;
 }
 
 #addOrderNoteModal .btn-primary:hover {

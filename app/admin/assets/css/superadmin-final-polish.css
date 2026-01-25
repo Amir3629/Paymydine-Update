@@ -44,7 +44,7 @@
 .user-avatar.bg-primary {
   background-color: rgba(8, 129, 94, 0.05) !important;
   border-color: rgba(8, 129, 94, 0.3) !important;
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 /* User avatar in header - white border for dark header */
@@ -112,7 +112,7 @@ select:hover {
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: #08815e !important;
+  border-color: #364a63 !important;
   box-shadow: 0 0 0 3px rgba(8, 129, 94, 0.1) !important;
   outline: none !important;
 }
@@ -239,7 +239,7 @@ input[type="radio"] {
 
 .dropdown-item:hover {
   background-color: rgba(8, 129, 94, 0.08) !important;
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 /* ============================================
@@ -294,8 +294,8 @@ input[type="radio"] {
 }
 
 .page-item.active .page-link {
-  background-color: #08815e !important;
-  border-color: #08815e !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
 }
 
 /* ============================================
@@ -381,7 +381,7 @@ input[type="radio"] {
 /* Active/hover icons - subtle green */
 .nk-menu-link:hover .icon,
 .nk-menu-link.active .icon {
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 /* ============================================
@@ -426,8 +426,8 @@ input[type="radio"] {
 }
 
 .custom-control-input:checked ~ .custom-control-label::before {
-  background-color: #08815e !important;
-  border-color: #08815e !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
 }
 
 /* ============================================

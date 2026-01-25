@@ -59,17 +59,6 @@ class Tips extends AdminController
     public function index()
     {
         $this->asExtension('ListController')->index();
-        
-        // Get filter date or default to today
-        $filterDate = request()->get('date', date('Y-m-d'));
-        $locationId = AdminLocation::getId();
-        
-        // Get tips statistics for the selected date
-        $stats = $this->getTipsStatistics($filterDate, $locationId);
-        
-        $this->vars['filterDate'] = $filterDate;
-        $this->vars['stats'] = $stats;
-        $this->vars['locationId'] = $locationId;
     }
 
     public function getTipsStatistics($date, $locationId = null)

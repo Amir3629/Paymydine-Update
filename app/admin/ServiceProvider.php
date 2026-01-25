@@ -559,6 +559,13 @@ class ServiceProvider extends AppServiceProvider
                             'title' => lang('admin::lang.side_menu.pos'),
                             'permission' => 'Admin.Pos',
                         ],
+                        'cash_drawers' => [
+                            'priority' => 60,
+                            'class' => 'cash_drawers',
+                            'href' => admin_url('cash_drawers'),
+                            'title' => 'Cash Drawers',
+                            'permission' => 'Admin.CashDrawers',
+                        ],
                     ],
                 ],
             ]);
@@ -826,6 +833,9 @@ class ServiceProvider extends AppServiceProvider
                 ],
                 'Admin.BiometricDevices' => [
                     'label' => 'Biometric Devices', 'group' => 'admin::lang.permissions.name',
+                ],
+                'Admin.CashDrawers' => [
+                    'label' => 'Cash Drawers', 'group' => 'admin::lang.permissions.name',
                 ],
                 'Admin.Tips' => [
                     'label' => 'Tips Management', 'group' => 'admin::lang.permissions.name',

@@ -762,14 +762,14 @@
   /* Active location item - light green background */
   .navbar-top .dropdown-menu .dropdown-item.active {
     background: rgba(11, 184, 122, 0.15) !important;
-    color: #08815e !important;
-    border-left: 3px solid #0bb87a !important;
+    color: #364a63 !important;
+    border-left: 3px solid #526484 !important;
     font-weight: 600 !important;
   }
   
   .navbar-top .dropdown-menu .dropdown-item.active:hover {
     background: rgba(11, 184, 122, 0.2) !important;
-    color: #08815e !important;
+    color: #364a63 !important;
   }
   
   /* ============================================

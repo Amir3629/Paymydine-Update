@@ -323,7 +323,7 @@
 
 .order-bill-tip .total-label,
 .order-bill-tip .total-value {
-    color: #08815e;
+    color: #364a63;
 }
 
 .order-bill-discount .total-label,
@@ -492,7 +492,7 @@
     font-size: 16px;
     font-weight: 600;
     border-radius: 8px;
-    background: #08815e !important;
+    background: #364a63 !important;
     border: none;
     color: #fff !important;
     transition: all 0.2s ease;

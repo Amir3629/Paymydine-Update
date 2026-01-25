@@ -1,8 +1,68 @@
 .dashboard-widgets {
-  margin-top: -15px;
+  margin-top: 0;
+  position: relative;
+  min-height: 0;
+}
+.dashboard-widgets .progress-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  padding: 0;
+}
+.dashboard-widgets .progress-indicator[style*="display: none"],
+.dashboard-widgets .progress-indicator.hidden {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
 }
 .dashboard-toolbar {
   padding: 0 0 20px;
+}
+
+/* Fix daterangepicker z-index to prevent interference with profile dropdown */
+.daterangepicker {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+/* When calendar is open, completely disable profile dropdown - MAXIMUM SPECIFICITY */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu,
+.daterangepicker:visible ~ .profile-dropdown-menu,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu,
+body:has(.daterangepicker:visible) .profile-dropdown-menu {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+}
+
+/* Disable all interactive elements inside profile dropdown when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu *,
+.daterangepicker:visible ~ .profile-dropdown-menu *,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu *,
+body:has(.daterangepicker:visible) .profile-dropdown-menu * {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+/* Override inline styles on profile dropdown items when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+.daterangepicker:visible ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*="pointer-events"] {
+  pointer-events: none !important;
+  z-index: -1 !important;
 }
 #newWidgetModal .modal-dialog,
 .dashboard-widget-modal-dialog {
@@ -98,8 +158,8 @@
 
 .dashboard-widget-modal .btn-add-widget,
 #newWidgetModal .btn-add-widget {
-  background: linear-gradient(135deg, #0f9d58 0%, #0bb87a 100%) !important;
-  border-color: #0c7d47 !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #364a63 !important;
   color: #ffffff !important;
   min-width: 90px !important;
   padding: 0.4rem 0.9rem !important;
@@ -112,7 +172,7 @@
 .dashboard-widget-modal .btn-add-widget:focus,
 #newWidgetModal .btn-add-widget:hover,
 #newWidgetModal .btn-add-widget:focus {
-  background: linear-gradient(135deg, #0c7d47 0%, #0aa868 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #0aa868 100%) !important;
   border-color: #0a6437 !important;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(15, 157, 88, 0.25) !important;
@@ -242,7 +302,7 @@
 }
 
 .widget-news .list-group-item .text-muted {
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 /* Cache Usage widget - Dynamic circular donut chart */
@@ -628,7 +688,7 @@
 .dropdown-menu .menu-link:not(.menu-grid .menu-link):hover,
 .dropdown-menu .menu-item:not(.menu-grid .menu-item):hover,
 .dropdown-menu a:not(.btn):not(.menu-grid .menu-link):not(.dropdown-footer a):hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: #202938 !important;
   transform: translateX(3px) !important;
 }
@@ -660,7 +720,7 @@
 .dropdown-menu .dropdown-item.active,
 .dropdown-menu .dropdown-item:active,
 .dropdown-menu .menu-item.active .menu-link {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: white !important;
   font-weight: 600 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
@@ -834,7 +894,7 @@
 /* Icons in dropdown items */
 .dropdown-menu .dropdown-item .fa,
 .dropdown-menu .menu-link .fa {
-  color: #08815e !important;
+  color: #364a63 !important;
   margin-right: 10px !important;
   width: 16px !important;
   text-align: center !important;
@@ -852,7 +912,7 @@
 
 /* Notification badges in dropdown */
 .dropdown-menu .badge {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: white !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
@@ -862,7 +922,7 @@
 
 /* Location selector specific */
 .dropdown-menu .menu-item-meta {
-  color: #08815e !important;
+  color: #364a63 !important;
   font-size: 12px !important;
   margin-top: 2px !important;
 }
@@ -885,12 +945,12 @@
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   border-radius: 10px !important;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
 }
 
 /* ============================================
@@ -1042,7 +1102,7 @@
 /* Notification timestamp */
 #notification-list .list-group-item .text-muted,
 .notification-item .timestamp {
-  color: #08815e !important;
+  color: #364a63 !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   margin-top: 6px !important;
@@ -1084,7 +1144,7 @@
 
 #bell-icon:hover,
 .fa-bell:hover {
-  color: #0bb87a !important;
+  color: #526484 !important;
   transform: scale(1.1) rotate(15deg) !important;
 }
 
@@ -1114,11 +1174,11 @@
 
 #notification-list::-webkit-scrollbar-thumb,
 #notification-panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   border-radius: 10px !important;
 }
 
 #notification-list::-webkit-scrollbar-thumb:hover,
 #notification-panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
 }

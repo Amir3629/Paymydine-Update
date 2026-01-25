@@ -5,6 +5,7 @@ use Admin\Controllers\SuperAdminController;
 use Admin\Controllers\StaffAuthController;
 use Admin\Controllers\Biometricdevices;
 use Admin\Controllers\BiometricDevicesAPI;
+use Admin\Controllers\Api\CashDrawerController;
 use App\Admin\Controllers\NotificationsApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -326,6 +327,15 @@ App::before(function () {
             // Dashboard & Status
             Route::get('dashboard', [BiometricDevicesAPI::class, 'getDashboard']);
             Route::get('status/realtime', [BiometricDevicesAPI::class, 'getRealTimeStatus']);
+        });
+
+        // Cash Drawer API Routes
+        Route::group(['prefix' => 'api/cash-drawers'], function () {
+            Route::post('{id}/open', [CashDrawerController::class, 'open']);
+            Route::post('{id}/test', [CashDrawerController::class, 'test']);
+            Route::get('{id}/status', [CashDrawerController::class, 'status']);
+            Route::get('{id}/logs', [CashDrawerController::class, 'logs']);
+            Route::post('location/{locationId}/open', [CashDrawerController::class, 'openForLocation']);
         });
 
         // Other pages
@@ -978,6 +988,20 @@ Route::group([
             ]);
 
             DB::commit();
+
+            // Open cash drawer if payment is cash
+            if (\App\Helpers\CashDrawerHelper::shouldOpenDrawer($request->payment_method)) {
+                try {
+                    $locationId = $request->location_id ?? 1;
+                    \App\Helpers\CashDrawerHelper::openDrawerForOrder($orderId, $locationId, $request->payment_method);
+                } catch (\Exception $e) {
+                    // Log error but don't fail the order
+                    \Log::error('Cash Drawer: Failed to open drawer after order creation', [
+                        'order_id' => $orderId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             // Create notification for new order (with received status)
             try {

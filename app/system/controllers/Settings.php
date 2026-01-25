@@ -121,6 +121,15 @@ class Settings extends \Admin\Classes\AdminController
 
         $saveData = $this->formWidget->getSaveData();
         
+        // CRITICAL: Ensure site_name and site_email are never empty or null
+        // If they're empty in form data, prevent saving empty values that could cause defaults to be applied
+        if (isset($saveData['site_name']) && empty(trim($saveData['site_name']))) {
+            unset($saveData['site_name']); // Don't save empty value
+        }
+        if (isset($saveData['site_email']) && empty(trim($saveData['site_email']))) {
+            unset($saveData['site_email']); // Don't save empty value
+        }
+        
         // Sync dashboard_logo to logos table if it exists in save data (for navbar display)
         if (isset($saveData['dashboard_logo'])) {
             $dashboardLogo = $saveData['dashboard_logo'];
@@ -143,8 +152,32 @@ class Settings extends \Admin\Classes\AdminController
             }
         }
         
-        setting()->set($saveData);
-        setting()->save();
+        // Save settings - only save if we have data to save
+        if (!empty($saveData)) {
+            setting()->set($saveData);
+            setting()->save();
+            
+            // CRITICAL: After saving, verify site_name and site_email were saved correctly
+            // If they're missing from database, this could cause defaults to be used later
+            if (isset($saveData['site_name'])) {
+                $verifySiteName = DB::table('settings')->where('item', 'site_name')->first();
+                if (!$verifySiteName || $verifySiteName->value !== $saveData['site_name']) {
+                    \Log::warning('Settings save verification failed for site_name', [
+                        'saved_value' => $saveData['site_name'] ?? null,
+                        'db_value' => $verifySiteName->value ?? null
+                    ]);
+                }
+            }
+            if (isset($saveData['site_email'])) {
+                $verifySiteEmail = DB::table('settings')->where('item', 'site_email')->first();
+                if (!$verifySiteEmail || $verifySiteEmail->value !== $saveData['site_email']) {
+                    \Log::warning('Settings save verification failed for site_email', [
+                        'saved_value' => $saveData['site_email'] ?? null,
+                        'db_value' => $verifySiteEmail->value ?? null
+                    ]);
+                }
+            }
+        }
 
         $this->formAfterSave($model);
 

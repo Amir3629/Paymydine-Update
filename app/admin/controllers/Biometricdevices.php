@@ -133,7 +133,8 @@ class Biometricdevices extends \Admin\Classes\AdminController
                 \Admin\Facades\Template::setTitle('Biometric Devices');
                 \Admin\Facades\Template::setHeading('Biometric Devices');
                 $this->asExtension('ListController')->index();
-                return; // ListController handles its own view
+                // Don't return - let the view render normally
+                break;
                 
             case 'attendance':
                 \Admin\Facades\Template::setTitle('Staff Attendance');

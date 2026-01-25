@@ -94,17 +94,37 @@ body.history.index #notif-history-link:focus {
   overflow: auto;
 }
 
-/* Seen button styling */
-#notification-panel .js-mark-seen {
+/* Seen button styling - Match history button style */
+#notification-panel .js-mark-seen,
+#notification-panel button.js-mark-seen,
+#notification-panel .btn.js-mark-seen {
   background: #f1f4fb !important;
   border: 1px solid #c9d2e3 !important;
   color: #202938 !important;
   font-weight: 600 !important;
-  transition: all 0.2s ease;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  min-width: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 28px !important;
 }
+
 #notification-panel .js-mark-seen:hover,
-#notification-panel .js-mark-seen:focus {
-  background: #e5ebf7 !important;
-  border-color: #b8c6dd !important;
+#notification-panel .js-mark-seen:focus,
+#notification-panel button.js-mark-seen:hover,
+#notification-panel button.js-mark-seen:focus {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
   color: #202938 !important;
+  transform: scale(1.02) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }

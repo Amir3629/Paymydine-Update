@@ -1350,22 +1350,22 @@ a.delete-button em.icon.ni-trash,
 /* Hover effects */
 .dropdown-menu .link-list-opt a:hover {
   background-color: #f5f6fa !important;
-  color: #08815e !important; /* Green on hover */
+  color: #364a63 !important; /* Green on hover */
 }
 
 .dropdown-menu .link-list-opt a:hover em.icon {
-  color: #08815e !important; /* Green icon on hover */
+  color: #364a63 !important; /* Green icon on hover */
 }
 
 /* Toggle Status hover - GREEN (same as others) */
 .dropdown-menu .link-list-opt a.toggle-status:hover,
 .dropdown-menu .link-list-opt a.toggle-status:hover span {
   background-color: #f5f6fa !important;
-  color: #08815e !important; /* GREEN on hover */
+  color: #364a63 !important; /* GREEN on hover */
 }
 
 .dropdown-menu .link-list-opt a.toggle-status:hover em.icon {
-  color: #08815e !important; /* GREEN icon on hover */
+  color: #364a63 !important; /* GREEN icon on hover */
 }
 
 /* Delete item hover - stay RED */
@@ -1693,8 +1693,8 @@ html body .form-settings button.btn-lg,
 html body .nk-content button.btn-lg.btn-primary,
 html body button.btn-lg.btn-primary,
 html body .btn-lg.btn-primary {
-  background: linear-gradient(135deg, #08815e 0%, #06ab6e 100%) !important; /* SAME gradient */
-  border-color: #08815e !important;
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* SAME gradient */
+  border-color: #364a63 !important;
   color: #ffffff !important;
   padding: 8px 20px !important; /* SAME as View All - SMALL! */
   font-size: 14px !important; /* SAME as View All - SMALL! */
@@ -1708,7 +1708,7 @@ html body .btn-lg.btn-primary {
   text-decoration: none !important;
   transition: all 0.2s ease !important;
   display: inline-block !important;
-  border: 1px solid #08815e !important;
+  border: 1px solid #364a63 !important;
   letter-spacing: normal !important;
   text-transform: none !important;
 }
@@ -1719,8 +1719,8 @@ html body .nk-content .form-settings button.btn-lg:hover,
 html body .nk-content .form-settings button[type="submit"]:hover,
 html body .form-settings .btn-lg:hover,
 html body .btn-lg.btn-primary:hover {
-  background: linear-gradient(135deg, #06ab6e 0%, #08815e 100%) !important;
-  border-color: #06ab6e !important;
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
   transform: translateY(-2px) !important;
@@ -1807,10 +1807,10 @@ canvas.analytics-line-small {
 .btn-icon.btn-trigger,
 .btn-trigger.btn-icon,
 a.btn-icon.btn-trigger {
-  background: linear-gradient(135deg, #08815e 0%, #06ab6e 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
   border-radius: 6px !important;
   padding: 8px !important;
-  border: 1px solid #08815e !important;
+  border: 1px solid #364a63 !important;
   transition: all 0.2s ease !important;
 }
 
@@ -1839,7 +1839,7 @@ a.btn-icon.btn-trigger .icon.ni-setting,
 /* Settings button hover */
 .btn-icon.btn-trigger:hover,
 .btn-trigger.btn-icon:hover {
-  background: linear-gradient(135deg, #06ab6e 0%, #08815e 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
   box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
   transform: translateY(-2px) !important;
 }
@@ -2072,8 +2072,8 @@ h6.tenant-title,
 /* Style "View All" button - EXACTLY like active pagination button */
 .card-tools a.link,
 a.link.link {
-  background: linear-gradient(135deg, #08815e 0%, #06ab6e 100%) !important; /* SAME as pagination */
-  border-color: #08815e !important;
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* SAME as pagination */
+  border-color: #364a63 !important;
   color: #ffffff !important; /* WHITE TEXT */
   padding: 8px 20px !important;
   border-radius: 6px !important;
@@ -2082,7 +2082,7 @@ a.link.link {
   text-decoration: none !important;
   transition: all 0.2s ease !important;
   display: inline-block !important;
-  border: 1px solid #08815e !important;
+  border: 1px solid #364a63 !important;
 }
 
 /* FORCE white text color - remove any green text */
@@ -2103,8 +2103,8 @@ html body .card-tools a.link:hover,
 html body a.link.link:hover,
 .card-tools a.link:hover *,
 a.link.link:hover * {
-  background: linear-gradient(135deg, #06ab6e 0%, #08815e 100%) !important; /* Reverse gradient on hover */
-  border-color: #06ab6e !important;
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* Reverse gradient on hover */
+  border-color: #364a63 !important;
   color: #ffffff !important; /* FORCE WHITE TEXT on hover - NO GREEN! */
   box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
   transform: translateY(-2px) !important;
@@ -2195,7 +2195,7 @@ a.link.link:hover * {
   height: 40px !important;
   border-radius: 50% !important;
   background-color: #059669 !important; /* GREEN background - NOT blue */
-  background: linear-gradient(135deg, #08815e 0%, #06ab6e 100%) !important; /* Green gradient */
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* Green gradient */
   color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
@@ -2295,7 +2295,7 @@ a.link.link:hover * {
 /* ONLY apply transform to dropdown menu items, NOT header title */
 .dropdown-menu .link-list a:hover:not(.page-title):not(.page-title *) {
   background-color: rgba(8, 129, 94, 0.1) !important; /* Light green background - NOT blue */
-  color: #08815e !important; /* Green text - NOT blue */
+  color: #364a63 !important; /* Green text - NOT blue */
   transform: translateX(4px) !important; /* Slide right slightly */
 }
 
@@ -2419,7 +2419,7 @@ html body .nk-header-wrap,
 /* GREEN hover color - NOT blue */
 .dropdown-menu .link-list a:hover,
 .dropdown-menu .link-list a:hover span {
-  color: #08815e !important; /* GREEN on hover - NOT blue */
+  color: #364a63 !important; /* GREEN on hover - NOT blue */
 }
 
 
@@ -2877,8 +2877,8 @@ html body .nk-tb-item:hover .user-avatar.tenant-id-avatar,
 .tenant-id-avatar:focus,
 .tenant-id-avatar:active,
 .user-avatar.bg-primary.tenant-id-avatar {
-  background-color: #08815e !important; /* GREEN background - ALWAYS */
-  background: #08815e !important;
+  background-color: #364a63 !important; /* GREEN background - ALWAYS */
+  background: #364a63 !important;
   border-radius: 50% !important; /* Perfectly round */
   width: 40px !important;
   height: 40px !important;

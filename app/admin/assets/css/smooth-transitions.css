@@ -53,7 +53,7 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, #08815e, #ffffff);
+  background: linear-gradient(90deg, #364a63, #ffffff);
   animation: slideIn 0.4s ease forwards;
   transform-origin: left center;
 }

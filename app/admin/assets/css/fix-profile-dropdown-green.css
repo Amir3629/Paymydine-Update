@@ -175,8 +175,8 @@
 
 /* Override any green borders or backgrounds that might be applied to active items */
 .profile-dropdown-menu .dropdown-item.active[style*="green"],
-.profile-dropdown-menu .dropdown-item.active[style*="rgb(8, 129, 94)"],
-.profile-dropdown-menu .dropdown-item.active[style*="#08815e"] {
+.profile-dropdown-menu .dropdown-item.active[style*="rgb(54, 74, 99)"],
+.profile-dropdown-menu .dropdown-item.active[style*="#364a63"] {
   background: #f3f4f6 !important;
   background-color: #f3f4f6 !important;
   border-left-color: #4a5568 !important;

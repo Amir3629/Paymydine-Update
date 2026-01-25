@@ -15,13 +15,6 @@ $config['list']['filter'] = [
 
 $config['list']['toolbar'] = [
     'buttons' => [
-        'setup_guide' => [
-            'label' => 'Setup Guide',
-            'type' => 'button',
-            'class' => 'btn btn-ice-white',
-            'icon' => 'fa-book',
-            'onclick' => 'openSetupGuideModal(); return false;',
-        ],
         'create' => [
             'label' => 'lang:admin::lang.button_new',
             'class' => 'btn btn-primary',

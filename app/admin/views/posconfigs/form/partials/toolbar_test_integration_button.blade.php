@@ -1,5 +1,5 @@
 <button id="btn-test-integration" type="button" class="btn btn-info">
-    Test Integration POS
+    <i class="fa fa-plug"></i> Test Integration POS
 </button>
 
 <!-- Modal -->

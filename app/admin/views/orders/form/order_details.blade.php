@@ -98,13 +98,13 @@
 .order-details-table td.text-right a[href*="/orders/invoice/"][target="_blank"],
 .order-details-table td.text-right a.font-weight-bold[href*="/orders/invoice/"],
 .order-details-table td.text-right a[href*="/orders/invoice/"] {
-    color: #08815e !important;
+    color: #364a63 !important;
 }
 
 .order-details-table td.text-right a[href*="/orders/invoice/"][target="_blank"]:hover,
 .order-details-table td.text-right a.font-weight-bold[href*="/orders/invoice/"]:hover,
 .order-details-table td.text-right a[href*="/orders/invoice/"]:hover {
-    color: #06ab6e !important;
+    color: #364a63 !important;
 }
 
 .order-details-table tr:last-child td {

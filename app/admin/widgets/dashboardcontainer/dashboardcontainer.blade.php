@@ -14,22 +14,13 @@
     </div>
 
     <div class="dashboard-widgets page-x-spacer">
-        <div class="progress-indicator vh-100 d-flex flex-column">
+        <div class="progress-indicator d-flex flex-column">
             <div class="align-self-center text-center m-auto">
             @php
-// Always use the base64 image from loaderimage file
-use Illuminate\Support\Str;
-$loaderImagePath = app_path('admin/assets/images/loaderimage');
-$loader_logo = '';
-if (file_exists($loaderImagePath)) {
-    $loader_logo = file_get_contents($loaderImagePath);
-    // Ensure it's a valid base64 data URI
-    if (!Str::startsWith($loader_logo, 'data:')) {
-        $loader_logo = 'data:image/png;base64,' . $loader_logo;
-    }
-}
+use Illuminate\Support\Facades\DB;
+$loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
 @endphp
-            <img src="{{ $loader_logo }}" alt="Loader Logo" style="max-width: 256px; max-height: 256px;">
+            <img src="<?php echo $loader_logo ? $loader_logo . '?t=' . time() : ''; ?>" alt="Loader Logo">
                 <i class="d-block" style="width: 256px;height: 256px;">
                 </i>
                 <br>
@@ -40,264 +31,164 @@ if (file_exists($loaderImagePath)) {
     </div>
 </div>
 
-<style>
-/* Permanent Dashboard Visibility Fix - Ensures widgets are always visible */
-#{{ $this->getId('container') }},
-#dashboardcontainer-container,
-#dashboardContainer-container,
-.dashboard-widgets > div[id*="container"]:not(.progress-indicator) {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    min-height: 200px !important;
-}
-
-.dashboard-widgets .widget-container {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-.dashboard-widgets .widget-list,
-.dashboard-widgets .row {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-.dashboard-widgets .widget-item,
-.dashboard-widgets .col[class*="col-sm"] {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-.dashboard-widgets .progress-indicator {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    height: 0 !important;
-    overflow: hidden !important;
-}
-</style>
-
 <script>
-// ============================================
-// INLINE FALLBACK: Load widgets automatically
-// This ensures widgets load even if the JavaScript plugin fails
-// ============================================
+// Minimal fallback: Ensure widgets load if plugin fails
 (function() {
     var alias = {!! json_encode($this->alias) !!};
     var containerId = {!! json_encode($this->getId("container")) !!};
     var containerSelector = '#' + containerId;
-    var hasLoaded = false; // Prevent multiple loads
+    var hasLoaded = false;
     
     function loadWidgets() {
-        // Prevent multiple simultaneous loads
-        if (hasLoaded) {
+        if (hasLoaded || typeof jQuery === 'undefined') {
+            if (typeof jQuery === 'undefined') {
+                setTimeout(loadWidgets, 100);
+            }
             return;
         }
         
-        // Check jQuery is available
-        if (typeof jQuery === 'undefined') {
-            console.warn('⚠️ DashboardContainer: jQuery not available, retrying...');
-            setTimeout(loadWidgets, 500);
-            return;
-        }
-        
-        // Try to find container - check both exact ID and case-insensitive
         var $container = jQuery(containerSelector);
         if ($container.length === 0) {
-            // Try case-insensitive search
-            jQuery('[id]').each(function() {
-                if (jQuery(this).attr('id').toLowerCase() === containerId.toLowerCase()) {
-                    $container = jQuery(this);
-                    containerSelector = '#' + jQuery(this).attr('id');
-                    return false; // break
-                }
-            });
+            setTimeout(loadWidgets, 100);
+            return;
         }
         
-        // If still not found, try finding any container in dashboard-widgets
-        if ($container.length === 0) {
-            $container = jQuery('.dashboard-widgets [id*="container"]:not([id*="container-list"]):not([id*="container-toolbar"])').first();
-            if ($container.length > 0) {
-                containerSelector = '#' + $container.attr('id');
-                containerId = $container.attr('id');
-            } else {
-                // Container doesn't exist yet - create it
-                const $dashboardWidgets = jQuery('.dashboard-widgets');
-                if ($dashboardWidgets.length > 0) {
-                    const actualId = containerId.toLowerCase();
-                    $dashboardWidgets.append('<div id="' + actualId + '"></div>');
-                    $container = jQuery('#' + actualId);
-                    containerSelector = '#' + actualId;
-                    containerId = actualId;
-                    console.log('✅ Created missing container:', actualId);
-                }
-            }
+        // Check if already has content
+        if ($container.html().trim().length > 0) {
+            hasLoaded = true;
+            jQuery('.dashboard-widgets .progress-indicator').hide();
+            return;
         }
         
-        var $progressIndicator = jQuery('.dashboard-widgets .progress-indicator');
+        console.log('🚀 DashboardContainer: Loading widgets via fallback...', { alias: alias, containerId: containerId });
         
-        console.log('🚀 DashboardContainer: Auto-loading widgets...', {
-            alias: alias,
-            containerId: containerId,
-            containerExists: $container.length > 0,
-            containerSelector: containerSelector
-        });
-        
-        // Hide progress indicator with !important
-        $progressIndicator.css({
-            'display': 'none !important',
-            'visibility': 'hidden !important',
-            'opacity': '0 !important',
-            'height': '0 !important',
-            'overflow': 'hidden !important'
-        });
-        
-        // Ensure container is visible with !important
-        if ($container.length > 0) {
-            $container.css({
-                'display': 'block !important',
-                'visibility': 'visible !important',
-                'opacity': '1 !important',
-                'min-height': '200px !important'
-            });
-        }
-        
-        // Make AJAX request
         jQuery.request(alias + '::onRenderWidgets', {
             success: function(data) {
-                console.log('✅ DashboardContainer: Widgets loaded', data);
-                
-                // Extract HTML from response
+                hasLoaded = true;
                 var htmlContent = null;
+                
                 if (typeof data === 'object' && data !== null) {
-                    // Try different selector formats
-                    htmlContent = data[containerSelector] || 
-                                 data['#' + containerId] ||
-                                 data[containerId] ||
-                                 Object.values(data)[0];
+                    htmlContent = data[containerSelector] || data['#' + containerId] || Object.values(data)[0];
                 } else if (typeof data === 'string') {
                     htmlContent = data;
                 }
                 
-                // Insert HTML
                 if (htmlContent && $container.length) {
-                    hasLoaded = true; // Mark as loaded to prevent duplicate loads
                     $container.html(htmlContent);
-                    
-                    // Force visibility with !important
-                    $container.css({
-                        'display': 'block !important',
-                        'visibility': 'visible !important',
-                        'opacity': '1 !important',
-                        'min-height': '200px !important'
+                    // Hide progress indicator immediately - remove from layout flow
+                    jQuery('.dashboard-widgets .progress-indicator').css({
+                        'display': 'none',
+                        'visibility': 'hidden',
+                        'opacity': '0',
+                        'height': '0',
+                        'overflow': 'hidden',
+                        'position': 'absolute'
                     });
+                    console.log('✅ DashboardContainer: Widgets loaded via fallback');
                     
-                    // Make all widget elements visible with !important
-                    $container.find('.widget-container').css({
-                        'display': 'block !important',
-                        'visibility': 'visible !important',
-                        'opacity': '1 !important'
-                    });
-                    
-                    $container.find('.widget-list, .row').css({
-                        'display': 'flex !important',
-                        'visibility': 'visible !important',
-                        'opacity': '1 !important'
-                    });
-                    
-                    $container.find('.widget-item, .col').css({
-                        'display': 'block !important',
-                        'visibility': 'visible !important',
-                        'opacity': '1 !important'
-                    });
-                    
-                    // Hide progress indicator again after content is loaded
-                    $progressIndicator.css({
-                        'display': 'none !important',
-                        'visibility': 'hidden !important',
-                        'opacity': '0 !important',
-                        'height': '0 !important',
-                        'overflow': 'hidden !important'
-                    });
-                    
-                    const widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
-                    const visibleCount = $container.find('.widget-item:visible, .col[class*="col-sm"]:visible').length;
-                    
-                    console.log('✅ DashboardContainer: Widgets inserted!', {
-                        widgetCount: widgetCount,
-                        visibleCount: visibleCount,
-                        containerId: containerId
-                    });
-                    
-                    // If widgets exist but none are visible, force them visible
-                    if (widgetCount > 0 && visibleCount === 0) {
-                        console.warn('⚠️ Widgets exist but are hidden! Forcing visibility...');
-                        $container.find('.widget-item, .col').show().css({
-                            'display': 'block !important',
-                            'visibility': 'visible !important',
-                            'opacity': '1 !important'
+                    // Initialize charts immediately after widgets are loaded
+                    function initChartsFallback() {
+                        if (typeof Chart === 'undefined' || typeof jQuery.fn.chartControl !== 'function') {
+                            setTimeout(initChartsFallback, 50); // Faster retry
+                            return;
+                        }
+                        
+                        $container.find('[data-control="chart"]').each(function() {
+                            var $chart = jQuery(this);
+                            if (!$chart.data('ti.chartControl')) {
+                                try {
+                                    $chart.chartControl();
+                                    console.log('✅ DashboardContainer: Chart initialized via fallback', $chart.attr('data-alias'));
+                                } catch (e) {
+                                    console.error('❌ DashboardContainer: Failed to initialize chart via fallback', $chart.attr('data-alias'), e);
+                                }
+                            }
                         });
                     }
-                    
-                    // Trigger events
-                    jQuery(window).trigger('resize');
-                    jQuery(window).trigger('ajaxUpdateComplete');
-                } else {
-                    console.warn('⚠️ DashboardContainer: No content to insert', {
-                        hasContent: !!htmlContent,
-                        containerExists: $container.length > 0,
-                        containerSelector: containerSelector,
-                        searchedId: containerId
-                    });
+                    // Start chart initialization immediately, with minimal delay
+                    setTimeout(initChartsFallback, 50);
                 }
             },
-            error: function(jqXHR, textStatus, errorThrown) {
-                console.error('❌ DashboardContainer: Failed to load widgets', {
-                    status: textStatus,
-                    error: errorThrown,
-                    statusCode: jqXHR.status,
-                    response: jqXHR.responseText?.substring(0, 200)
-                });
+            error: function(jqXHR) {
+                console.error('❌ DashboardContainer: Failed to load widgets', jqXHR.status);
             }
-        }).always(function() {
-            // Always hide progress indicator
-            $progressIndicator.css({
-                'display': 'none',
-                'visibility': 'hidden',
-                'opacity': '0'
-            });
         });
     }
     
-    // Wait for jQuery to be available
-    function initWhenReady() {
-        if (typeof jQuery !== 'undefined') {
-            jQuery(document).ready(function() {
-                // Only load once on document ready
-                if (!hasLoaded) {
-                    setTimeout(loadWidgets, 300);
-                }
-            });
+    // Wait for jQuery and DOM - start immediately, no delay
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).ready(function() {
+            loadWidgets(); // Start immediately
+        });
+    } else {
+        var checkJQuery = setInterval(function() {
+            if (typeof jQuery !== 'undefined') {
+                clearInterval(checkJQuery);
+                jQuery(document).ready(function() {
+                    loadWidgets(); // Start immediately
+                });
+            }
+        }, 50); // Check faster
+    }
+})();
+
+// AGGRESSIVE FIX: Continuously monitor and disable profile dropdown when calendar is open
+(function() {
+    var calendarCheckInterval = setInterval(function() {
+        var $calendar = jQuery('.daterangepicker.show-calendar, .daterangepicker:visible');
+        var $profileDropdown = jQuery('.profile-dropdown-menu');
+        
+        if ($calendar.length > 0) {
+            // Calendar is open - aggressively disable profile dropdown
+            if ($profileDropdown.length) {
+                $profileDropdown.removeClass('show');
+                $profileDropdown.css({
+                    'display': 'none',
+                    'visibility': 'hidden',
+                    'opacity': '0',
+                    'pointer-events': 'none',
+                    'z-index': '-1'
+                });
+                
+                // Disable all interactive elements inside
+                $profileDropdown.find('a, button, .dropdown-item, [href]').css({
+                    'pointer-events': 'none',
+                    'cursor': 'default'
+                }).off('click.profile-disable');
+            }
             
-            // Also try on render event (but only if not already loaded)
-            jQuery(document).on('render', function() {
-                if (!hasLoaded) {
-                    setTimeout(loadWidgets, 300);
-                }
+            // Ensure calendar is on top
+            $calendar.css({
+                'z-index': '99999',
+                'pointer-events': 'auto'
             });
         } else {
-            // Retry after a short delay
-            setTimeout(initWhenReady, 100);
+            // Calendar is closed - restore profile dropdown (remove forced styles)
+            if ($profileDropdown.length && !$profileDropdown.hasClass('show')) {
+                // Only remove our forced styles if dropdown is not supposed to be open
+                var wasForced = $profileDropdown.data('calendar-forced-close');
+                if (wasForced) {
+                    $profileDropdown.css({
+                        'display': '',
+                        'visibility': '',
+                        'opacity': '',
+                        'pointer-events': '',
+                        'z-index': ''
+                    });
+                    $profileDropdown.find('a, button, .dropdown-item, [href]').css({
+                        'pointer-events': '',
+                        'cursor': ''
+                    });
+                    $profileDropdown.removeData('calendar-forced-close');
+                }
+            }
         }
-    }
+    }, 100);
     
-    // Start initialization
-    initWhenReady();
+    // Clean up on page unload
+    jQuery(window).on('beforeunload', function() {
+        clearInterval(calendarCheckInterval);
+    });
 })();
 </script>
-
 

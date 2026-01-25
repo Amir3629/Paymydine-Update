@@ -1,3 +1,77 @@
+/* Fix tab link text color - force dark blue instead of green - MAXIMUM SPECIFICITY */
+/* Override ALL possible green colors on tab links */
+html body .form-nav.nav-tabs .nav-link,
+html body .form-nav.nav-tabs .nav-link.active,
+html body .form-nav.nav-tabs .nav-item .nav-link,
+html body .form-nav.nav-tabs .nav-item .nav-link.active,
+html body .nav-tabs .nav-link,
+html body .nav-tabs .nav-link.active,
+html body .form-nav .nav-link,
+html body .form-nav .nav-link.active,
+html body a.nav-link[data-bs-toggle="tab"],
+html body a.nav-link.active[data-bs-toggle="tab"],
+html body ul.form-nav.nav-tabs .nav-link,
+html body ul.form-nav.nav-tabs .nav-link.active,
+html body ul.form-nav.nav-tabs li.nav-item .nav-link,
+html body ul.form-nav.nav-tabs li.nav-item .nav-link.active,
+html body ul.form-nav.nav-tabs li.nav-item[role="presentation"] .nav-link,
+html body ul.form-nav.nav-tabs li.nav-item[role="presentation"] .nav-link.active {
+  color: #364a63 !important;
+  color: rgb(54, 74, 99) !important;
+}
+
+/* Fix tab link border-bottom color - force dark blue instead of green - ONLY for active tabs */
+html body .form-nav.nav-tabs .nav-link.active,
+html body .form-nav.nav-tabs .nav-item .nav-link.active,
+html body .nav-tabs .nav-link.active,
+html body a.nav-link.active[data-bs-toggle="tab"],
+html body ul.form-nav.nav-tabs .nav-link.active,
+html body ul.form-nav.nav-tabs li.nav-item .nav-link.active,
+html body ul.form-nav.nav-tabs li.nav-item[role="presentation"] .nav-link.active {
+  border-bottom: 3px solid #364a63 !important;
+  border-bottom: 3px solid rgb(54, 74, 99) !important;
+  border-bottom-color: #364a63 !important;
+  border-bottom-color: rgb(54, 74, 99) !important;
+  border-color: #364a63 !important;
+  border-color: rgb(54, 74, 99) !important;
+}
+
+/* Ensure non-active tabs have NO visible border */
+html body .form-nav.nav-tabs .nav-link:not(.active),
+html body .form-nav.nav-tabs .nav-item .nav-link:not(.active),
+html body .nav-tabs .nav-link:not(.active),
+html body a.nav-link:not(.active)[data-bs-toggle="tab"],
+html body ul.form-nav.nav-tabs .nav-link:not(.active),
+html body ul.form-nav.nav-tabs li.nav-item .nav-link:not(.active),
+html body ul.form-nav.nav-tabs li.nav-item[role="presentation"] .nav-link:not(.active) {
+  border-bottom: 3px solid transparent !important;
+  border-bottom-color: transparent !important;
+  border-color: transparent !important;
+}
+
+/* Also target by role attribute */
+html body a.nav-link[role="tab"],
+html body a.nav-link.active[role="tab"] {
+  color: #364a63 !important;
+  color: rgb(54, 74, 99) !important;
+}
+
+html body a.nav-link.active[role="tab"] {
+  border-bottom-color: #364a63 !important;
+  border-bottom-color: rgb(54, 74, 99) !important;
+  border-color: #364a63 !important;
+  border-color: rgb(54, 74, 99) !important;
+}
+
+/* Override .text-primary class if applied to tab links */
+html body .form-nav.nav-tabs .nav-link.text-primary,
+html body .form-nav.nav-tabs .nav-link.active.text-primary,
+html body a.nav-link.text-primary[data-bs-toggle="tab"],
+html body a.nav-link.active.text-primary[data-bs-toggle="tab"] {
+  color: #364a63 !important;
+  color: rgb(54, 74, 99) !important;
+}
+
 /* Fix icon centering for filter and setup buttons in list headers */
 /* These buttons should use flexbox to properly center their icons */
 .list-setup .btn,
@@ -51,4 +125,1039 @@ div.progress-indicator-container div.btn-group,
   flex-shrink: 0 !important;
   float: none !important;
   clear: none !important;
+}
+
+/* Mail Templates Page - Position Layouts and Partials buttons on the right side */
+/* Make toolbar-action use flexbox with space-between to separate left and right buttons */
+.toolbar-action .progress-indicator-container {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+/* Left side buttons group (New button) - stays on left */
+.toolbar-action .progress-indicator-container > a[href*="mail_templates/create"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+/* Right side buttons group (Layouts and Partials) - moved to right */
+.toolbar-action .progress-indicator-container > a[href*="mail_layouts"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+.toolbar-action .progress-indicator-container > a[href*="mail_partials"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* System Logs Page - Refresh button stays on left, Empty Logs and Request Logs go to right */
+/* Refresh button stays on left */
+.toolbar-action .progress-indicator-container > a[href*="system_logs"]:first-child,
+.toolbar-action .progress-indicator-container > a[href="system_logs"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+/* Empty Logs button - move to right */
+.toolbar-action .progress-indicator-container > button[data-request="onEmptyLog"],
+.toolbar-action .progress-indicator-container > a[data-request="onEmptyLog"],
+.toolbar-action .progress-indicator-container > button[data-request*="onEmptyLog"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+/* Request Logs button - move to right next to Empty Logs */
+.toolbar-action .progress-indicator-container > a[href*="request_logs"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Staffs Page - Position Groups and Roles buttons on the right side */
+/* Create button stays on left, Groups and Roles go to right */
+.toolbar-action .progress-indicator-container > a[href*="staffs/create"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+.toolbar-action .progress-indicator-container > a[href*="staff_groups"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+.toolbar-action .progress-indicator-container > a[href*="staff_roles"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* =====================================================
+   MEDIA MANAGER - COMPREHENSIVE FIX
+   Fix all button sizes, spacing, and hover effects
+   ===================================================== */
+
+/* Reset all media manager buttons to consistent size - ICE WHITE */
+/* EXCLUDE Choose button - it should be normal size */
+.media-toolbar .btn:not([data-control="media-choose"]):not(.btn-primary[data-control="media-choose"]),
+.media-toolbar button:not([data-control="media-choose"]):not(.btn-primary[data-control="media-choose"]),
+.media-toolbar a.btn:not([data-control="media-choose"]),
+.media-toolbar .btn-group .btn:not([data-control="media-choose"]),
+.media-toolbar .input-group .btn:not([data-control="media-choose"]),
+.media-toolbar .dropdown-toggle {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  background: rgb(241, 244, 251) !important;
+  background-color: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  transform: none !important;
+}
+
+/* Choose button should be normal size - override any 42x42px rules */
+.media-toolbar button[data-control="media-choose"],
+.media-toolbar .btn-primary[data-control="media-choose"],
+.media-sidebar button[data-control="media-choose"],
+.media-sidebar .btn-primary[data-control="media-choose"],
+button[data-control="media-choose"],
+.btn-primary[data-control="media-choose"],
+.btn[data-control="media-choose"],
+.btn-block[data-control="media-choose"] {
+  width: auto !important;
+  min-width: 120px !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 44px !important;
+  max-height: none !important;
+  padding: 12px 24px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%) !important;
+  background-color: rgb(31, 43, 58) !important;
+  background-image: linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%) !important;
+  border: 2px solid rgb(54, 74, 99) !important;
+  border-color: rgb(54, 74, 99) !important;
+  color: rgb(255, 255, 255) !important;
+  box-shadow: rgba(31, 43, 58, 0.3) 0px 4px 15px !important;
+  font-weight: 600 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  z-index: 10 !important;
+  position: relative !important;
+}
+
+/* Choose button hover state */
+button[data-control="media-choose"]:hover,
+.btn-primary[data-control="media-choose"]:hover,
+.btn[data-control="media-choose"]:hover {
+  background: linear-gradient(135deg, rgb(54, 74, 99) 0%, rgb(82, 100, 132) 100%) !important;
+  background-color: rgb(54, 74, 99) !important;
+  border-color: rgb(82, 100, 132) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: rgba(31, 43, 58, 0.4) 0px 6px 20px !important;
+}
+
+/* Choose button icon should be white */
+button[data-control="media-choose"] i,
+button[data-control="media-choose"] .fa,
+.btn-primary[data-control="media-choose"] i,
+.btn-primary[data-control="media-choose"] .fa,
+.btn[data-control="media-choose"] i,
+.btn[data-control="media-choose"] .fa {
+  color: rgb(255, 255, 255) !important;
+  margin-right: 8px !important;
+}
+
+/* Proper spacing between buttons - 10px gap */
+.media-toolbar .btn-group > .btn:not(:last-child),
+.media-toolbar .btn-group > button:not(:last-child),
+.media-toolbar .btn-group > a.btn:not(:last-child) {
+  margin-right: 10px !important;
+}
+
+.media-toolbar .btn-group {
+  margin-right: 10px !important;
+}
+
+.media-toolbar .dropdown {
+  margin-right: 10px !important;
+}
+
+.media-toolbar .input-group {
+  margin-right: 10px !important;
+}
+
+/* Hover effects - smooth and consistent - ICE WHITE */
+.media-toolbar .btn:hover,
+.media-toolbar button:hover,
+.media-toolbar a.btn:hover,
+.media-toolbar .btn-group .btn:hover,
+.media-toolbar .input-group .btn:hover,
+.media-toolbar .dropdown-toggle:hover {
+  background: rgb(233, 236, 243) !important;
+  background-color: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Active state */
+.media-toolbar .btn:active,
+.media-toolbar button:active,
+.media-toolbar a.btn:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Override any inline styles from JavaScript - ICE WHITE */
+.media-toolbar .btn[style],
+.media-toolbar button[style],
+.media-toolbar a.btn[style] {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: rgb(241, 244, 251) !important;
+  background-color: rgb(241, 244, 251) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Override hover inline styles - ICE WHITE */
+.media-toolbar .btn:hover[style],
+.media-toolbar button:hover[style],
+.media-toolbar a.btn:hover[style] {
+  background: rgb(233, 236, 243) !important;
+  background-color: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Ensure icons are visible and properly sized - ICE WHITE theme */
+.media-toolbar .btn i,
+.media-toolbar button i,
+.media-toolbar a.btn i {
+  font-size: 16px !important;
+  color: rgb(32, 41, 56) !important;
+  display: inline-block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix toolbar item spacing */
+.media-toolbar .toolbar-item {
+  margin-right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+/* Ensure btn-group doesn't break layout */
+.media-toolbar .btn-group {
+  display: inline-flex !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix input-group buttons */
+.media-toolbar .input-group {
+  display: inline-flex !important;
+  vertical-align: middle !important;
+}
+
+.media-toolbar .input-group .btn {
+  border-radius: 10px !important;
+  margin: 0 !important;
+}
+
+.media-toolbar .input-group > .btn:not(:last-child) {
+  margin-right: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.media-toolbar .input-group > .btn:not(:first-child) {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  margin-left: -2px !important;
+}
+
+/* Cash Drawers Toolbar - Back and Save on left, others on right */
+/* Left side: Back button */
+.toolbar-grouped .progress-indicator-container > a[href*="cash_drawers"]:not([data-request]) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+}
+
+/* Left side: Save button group */
+.toolbar-grouped .progress-indicator-container > .btn-group {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+/* Right side: Test Connection button */
+.toolbar-grouped .progress-indicator-container > a[data-request="onTestConnection"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+/* Right side: Open Drawer button - Same as Test Connection (ice white) */
+.toolbar-grouped .progress-indicator-container > a[data-request="onOpenDrawer"],
+.toolbar-grouped .progress-indicator-container > a.btn-success[data-request="onOpenDrawer"] {
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+  background: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  box-shadow: none !important;
+}
+
+.toolbar-grouped .progress-indicator-container > a[data-request="onOpenDrawer"]:hover,
+.toolbar-grouped .progress-indicator-container > a.btn-success[data-request="onOpenDrawer"]:hover {
+  background: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Right side: Delete button */
+.toolbar-grouped .progress-indicator-container > a[data-request="onDelete"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* POS Configs Toolbar - Back and Save on left, others on right */
+/* Left side: Back button */
+.toolbar-grouped .progress-indicator-container > a[href*="pos_configs"]:not([data-request]) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+}
+
+/* Right side: Delete button for POS configs - first right-side button after save button group */
+.toolbar-grouped .progress-indicator-container > .btn-group ~ a[data-request="onDelete"] {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+  background: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  box-shadow: none !important;
+}
+
+.toolbar-grouped .progress-indicator-container > .btn-group ~ a[data-request="onDelete"]:hover {
+  background: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Right side: Test Integration button */
+.toolbar-grouped .progress-indicator-container > .btn-group ~ button[id*="test-integration"],
+.toolbar-grouped .progress-indicator-container > .btn-group ~ button[data-request="onTestIntegration"] {
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+  background: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  box-shadow: none !important;
+}
+
+.toolbar-grouped .progress-indicator-container > button[id*="test-integration"]:hover,
+.toolbar-grouped .progress-indicator-container > button[data-request="onTestIntegration"]:hover {
+  background: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Right side: Sync Menu button */
+.toolbar-grouped .progress-indicator-container > .btn-group ~ button[data-request="onSyncMenu"] {
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+  background: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  box-shadow: none !important;
+}
+
+.toolbar-grouped .progress-indicator-container > button[data-request="onSyncMenu"]:hover {
+  background: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Right side: Register Webhook button */
+.toolbar-grouped .progress-indicator-container > .btn-group ~ button[id*="register-webhook"],
+.toolbar-grouped .progress-indicator-container > .btn-group ~ button[data-request="onRegisterWebhook"],
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"] {
+  margin-left: 0 !important;
+  margin-right: 10px !important;
+  background: rgb(241, 244, 251) !important;
+  background-color: rgb(241, 244, 251) !important;
+  color: rgb(32, 41, 56) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  box-shadow: none !important;
+}
+
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"]:hover,
+.toolbar-grouped .progress-indicator-container > button[data-request="onRegisterWebhook"]:hover {
+  background: rgb(233, 236, 243) !important;
+  background-color: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Override inline styles for Register Webhook button - must override all inline styles */
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"],
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"][style],
+.toolbar-grouped .progress-indicator-container > button#btn-register-webhook,
+.toolbar-grouped .progress-indicator-container > button#btn-register-webhook[style] {
+  background: rgb(241, 244, 251) !important;
+  background-color: rgb(241, 244, 251) !important;
+  background-image: none !important;
+  color: rgb(32, 41, 56) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  border-color: rgb(201, 210, 227) !important;
+  box-shadow: none !important;
+  transform: translateY(0) !important;
+}
+
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"]:hover,
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"][style]:hover,
+.toolbar-grouped .progress-indicator-container > button#btn-register-webhook:hover,
+.toolbar-grouped .progress-indicator-container > button#btn-register-webhook[style]:hover {
+  background: rgb(233, 236, 243) !important;
+  background-color: rgb(233, 236, 243) !important;
+  background-image: none !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Override icon color in Register Webhook button */
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"] i.fa,
+.toolbar-grouped .progress-indicator-container > button[id*="register-webhook"] i.fa[style],
+.toolbar-grouped .progress-indicator-container > button#btn-register-webhook i.fa,
+.toolbar-grouped .progress-indicator-container > button#btn-register-webhook i.fa[style] {
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Add spacing between icons and text in POS configs toolbar buttons */
+.toolbar-grouped .progress-indicator-container button i.fa,
+.toolbar-grouped .progress-indicator-container a[data-request="onDelete"] i.fa {
+  margin-right: 8px !important;
+}
+
+/* Exception: Back button icon should not have margin (icon only) */
+.toolbar-grouped .progress-indicator-container > a[href*="pos_configs"]:not([data-request]) i.fa {
+  margin-right: 0 !important;
+}
+
+/* =====================================================
+   SETTINGS PAGE - Fix btn-group-toggle radio buttons
+   Ensure checked/active state is visible
+   ===================================================== */
+
+/* Active/Checked state for toggle button groups - INSTANT color change (no delay) */
+/* Override ALL possible transitions - maximum specificity */
+html body .btn-group-toggle .btn-check:checked + .btn-light,
+html body .btn-group-toggle .btn-check:checked + .btn,
+html body .btn-group-toggle input[type="radio"]:checked + .btn-light,
+html body .btn-group-toggle input[type="radio"]:checked + .btn,
+.btn-group-toggle .btn-check:checked + .btn-light,
+.btn-group-toggle .btn-check:checked + .btn,
+.btn-group-toggle input[type="radio"]:checked + .btn-light,
+.btn-group-toggle input[type="radio"]:checked + .btn {
+  background: linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%) !important;
+  background-color: rgb(31, 43, 58) !important;
+  border-color: rgb(54, 74, 99) !important;
+  color: rgb(255, 255, 255) !important;
+  box-shadow: rgba(31, 43, 58, 0.3) 0px 4px 15px !important;
+  z-index: 2 !important;
+  /* COMPLETELY REMOVE ALL TRANSITIONS - instant change */
+  transition: none !important;
+  transition-property: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  transition-timing-function: none !important;
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+}
+
+/* Ensure all child elements (text, icons) also change color instantly - NO TRANSITIONS */
+html body .btn-group-toggle .btn-check:checked + .btn-light *,
+html body .btn-group-toggle .btn-check:checked + .btn *,
+html body .btn-group-toggle input[type="radio"]:checked + .btn-light *,
+html body .btn-group-toggle input[type="radio"]:checked + .btn *,
+.btn-group-toggle .btn-check:checked + .btn-light *,
+.btn-group-toggle .btn-check:checked + .btn *,
+.btn-group-toggle input[type="radio"]:checked + .btn-light *,
+.btn-group-toggle input[type="radio"]:checked + .btn * {
+  color: rgb(255, 255, 255) !important;
+  transition: none !important;
+  transition-property: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  transition-timing-function: none !important;
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+}
+
+/* Hover state for unchecked buttons in toggle groups */
+.btn-group-toggle .btn-check:not(:checked) + .btn-light:hover,
+.btn-group-toggle .btn-check:not(:checked) + .btn:hover,
+.btn-group-toggle input[type="radio"]:not(:checked) + .btn-light:hover,
+.btn-group-toggle input[type="radio"]:not(:checked) + .btn:hover {
+  background: rgb(233, 236, 243) !important;
+  background-color: rgb(233, 236, 243) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+}
+
+/* Default state for unchecked buttons in toggle groups */
+.btn-group-toggle .btn-light,
+.btn-group-toggle .btn-check:not(:checked) + .btn-light,
+.btn-group-toggle input[type="radio"]:not(:checked) + .btn-light {
+  background: rgb(241, 244, 251) !important;
+  background-color: rgb(241, 244, 251) !important;
+  border-color: rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  box-shadow: none !important;
+  /* Keep transitions for unchecked buttons (hover effects) */
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* =====================================================
+   MEDIA MANAGER MODAL - Fix blurry display
+   Ensure modal content is not blurred at ALL screen sizes
+   ===================================================== */
+
+/* Remove all blur filters from media manager modal - works at all screen sizes */
+.media-modal,
+.media-modal .modal-content,
+.media-modal .modal-body,
+.media-modal .modal-header,
+.media-modal .modal-footer,
+.media-modal .modal-dialog,
+#media-manager,
+#media-manager .modal-content,
+#media-manager .modal-body,
+#media-manager .modal-header,
+#media-manager .modal-footer,
+#media-manager .modal-dialog {
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 1055 !important;
+}
+
+/* Ensure modal backdrop doesn't blur the modal content */
+.modal-backdrop,
+.modal-backdrop.show {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure media modal content is interactive - not frozen */
+.media-modal .modal-content,
+.media-modal .modal-body,
+.media-modal .media-list,
+.media-modal .media-item,
+.media-modal .media-thumb,
+.media-modal img,
+#media-manager .modal-content,
+#media-manager .modal-body,
+#media-manager .media-list,
+#media-manager .media-item,
+#media-manager .media-thumb,
+#media-manager img {
+  pointer-events: auto !important;
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+}
+
+/* Ensure modal is visible and not blurred when shown - ALL screen sizes */
+.modal.show,
+.modal.show .modal-content,
+.modal.show .modal-dialog,
+.media-modal.show,
+.media-modal.show .modal-content,
+.media-modal.show .modal-dialog,
+#media-manager.show,
+#media-manager.show .modal-content,
+#media-manager.show .modal-dialog {
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Force modal to be on top and visible - override any z-index issues */
+.media-modal.modal,
+#media-manager.modal {
+  z-index: 1055 !important;
+}
+
+.media-modal.modal.show,
+#media-manager.modal.show {
+  z-index: 1055 !important;
+  display: block !important;
+}
+
+/* Prevent media modal from being fullscreen - set reasonable size */
+.media-modal .modal-dialog,
+#media-manager .modal-dialog,
+.media-modal.modal-fullscreen .modal-dialog,
+.media-modal.modal-fullscreen-sm-down .modal-dialog,
+.media-modal.modal-fullscreen-md-down .modal-dialog,
+.media-modal.modal-fullscreen-lg-down .modal-dialog,
+.media-modal.modal-fullscreen-xl-down .modal-dialog,
+.media-modal.modal-fullscreen-xxl-down .modal-dialog {
+  max-width: 90% !important;
+  width: 1200px !important;
+  max-height: 90vh !important;
+  margin: 1.75rem auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  transform: none !important;
+}
+
+/* Prevent modal content from being fullscreen height */
+.media-modal .modal-content,
+#media-manager .modal-content,
+.media-modal.modal-fullscreen .modal-content,
+.media-modal.modal-fullscreen-sm-down .modal-content,
+.media-modal.modal-fullscreen-md-down .modal-content,
+.media-modal.modal-fullscreen-lg-down .modal-content,
+.media-modal.modal-fullscreen-xl-down .modal-content,
+.media-modal.modal-fullscreen-xxl-down .modal-content {
+  max-height: 90vh !important;
+  height: auto !important;
+  border-radius: 16px !important;
+  border: 2px solid #e5e9f2 !important;
+}
+
+/* Responsive sizing for smaller screens */
+@media (max-width: 1200px) {
+  .media-modal .modal-dialog,
+  #media-manager .modal-dialog {
+    width: 95% !important;
+    max-width: 95% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .media-modal .modal-dialog,
+  #media-manager .modal-dialog {
+    width: 98% !important;
+    max-width: 98% !important;
+    margin: 0.5rem auto !important;
+  }
+}
+
+/* Media queries to ensure fixes work at all breakpoints */
+@media (max-width: 576px) {
+  .media-modal,
+  .media-modal .modal-content,
+  #media-manager,
+  #media-manager .modal-content {
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+@media (min-width: 577px) and (max-width: 768px) {
+  .media-modal,
+  .media-modal .modal-content,
+  #media-manager,
+  #media-manager .modal-content {
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 992px) {
+  .media-modal,
+  .media-modal .modal-content,
+  #media-manager,
+  #media-manager .modal-content {
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+@media (min-width: 993px) {
+  .media-modal,
+  .media-modal .modal-content,
+  #media-manager,
+  #media-manager .modal-content {
+    filter: none !important;
+    -webkit-filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+/* Override Bootstrap's global .btn transition for checked toggle buttons */
+/* Bootstrap has: transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; */
+/* We need to completely remove this for instant color changes */
+html body .btn-group-toggle .btn-check:checked + .btn.btn-light,
+html body .btn-group-toggle .btn-check:checked + .btn,
+html body .btn-group-toggle input[type="radio"]:checked + .btn.btn-light,
+html body .btn-group-toggle input[type="radio"]:checked + .btn,
+html body .btn-group-toggle .btn-check:checked + label.btn-light,
+html body .btn-group-toggle .btn-check:checked + label.btn,
+html body .btn-group-toggle input[type="radio"]:checked + label.btn-light,
+html body .btn-group-toggle input[type="radio"]:checked + label.btn {
+  /* Override Bootstrap's transition completely - instant change */
+  transition: none !important;
+  transition-property: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  transition-timing-function: none !important;
+  -webkit-transition: none !important;
+  -webkit-transition-property: none !important;
+  -webkit-transition-duration: 0s !important;
+  -webkit-transition-delay: 0s !important;
+  -moz-transition: none !important;
+  -moz-transition-property: none !important;
+  -moz-transition-duration: 0s !important;
+  -moz-transition-delay: 0s !important;
+  -o-transition: none !important;
+  -o-transition-property: none !important;
+  -o-transition-duration: 0s !important;
+  -o-transition-delay: 0s !important;
+}
+
+
+/* =====================================================
+   SETTINGS PAGE - Fix Save button position
+   Ensure Save button appears next to Back button on left
+   ===================================================== */
+
+/* Settings page: Ensure progress-indicator-container uses flexbox */
+.progress-indicator-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+/* Settings page: Back button on left */
+.progress-indicator-container > a[href*="settings"]:not([data-request]) {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Settings page: Save button immediately after Back button (no margin-left auto to push it right) */
+.progress-indicator-container > a[href*="settings"]:not([data-request]) + a[data-request="onSave"],
+.progress-indicator-container > a[data-request="onSave"]:not([href*="settings"]) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+
+/* =====================================================
+   SETTINGS PAGE - Fix broken card layout
+   ===================================================== */
+
+/* Force settings card links to stay block display - override ALL inline styles */
+.settings-card-link,
+a.settings-card-link,
+a[class*="settings-card-link"],
+a.settings-card-link[style],
+a[role="button"].settings-card-link,
+a[role="button"][href*="/admin/settings/edit/"],
+a[role="button"][href*="/admin/settings"][class*="text-reset"] {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Ensure cards maintain proper layout */
+.settings-card-link .card,
+a.settings-card-link .card {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Fix card body layout */
+.settings-card-link .card-body,
+a.settings-card-link .card-body {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Ensure row layout works correctly */
+.container-fluid .row .col-lg-4 .settings-card-link {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* =====================================================
+   SETTINGS PAGE - Fix About card and card heights
+   ===================================================== */
+
+/* Fix About card - make it white like other cards, only icon dark blue */
+.settings-card-link--about .settings-card--about,
+.settings-card-link--about .card.settings-card--about {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #e5e9f2 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  color: #364a63 !important;
+}
+
+.settings-card-link--about .settings-card--about .card-body,
+.settings-card-link--about .card.settings-card--about .card-body {
+  background-color: transparent !important;
+  color: #364a63 !important;
+  min-height: 140px !important;
+  height: 140px !important;
+}
+
+.settings-card-link--about .settings-card--about h5,
+.settings-card-link--about .card.settings-card--about h5 {
+  color: #364a63 !important;
+}
+
+.settings-card-link--about .settings-card--about .text-muted,
+.settings-card-link--about .card.settings-card--about .text-muted,
+.settings-card-link--about .settings-card--about p.text-muted,
+.settings-card-link--about .card.settings-card--about p.text-muted {
+  color: #6b7280 !important;
+}
+
+/* About card icon - dark blue background, white icon */
+.settings-card-link--about .settings-card--about .about-card__icon,
+.settings-card-link--about .card.settings-card--about .about-card__icon {
+  background-color: #364a63 !important;
+  background: #364a63 !important;
+  border: 1px solid #364a63 !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 12px !important;
+}
+
+.settings-card-link--about .settings-card--about .about-card__icon i,
+.settings-card-link--about .card.settings-card--about .about-card__icon i {
+  color: #ffffff !important;
+}
+
+/* Ensure ALL cards have same height - fix last row issue */
+.settings-card-link .card,
+.settings-card-link .card.bg-light,
+.settings-card-link--about .settings-card--about,
+.settings-card-link--about .card.settings-card--about {
+  height: 140px !important;
+  min-height: 140px !important;
+  max-height: 140px !important;
+}
+
+/* Ensure card body fills the card */
+.settings-card-link .card .card-body,
+.settings-card-link--about .settings-card--about .card-body {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Repeater remove buttons - ONLY size effect on hover, no color/background changes */
+html body .repeater-item-remove .btn-outline-danger,
+html body .repeater-item-remove a.btn-outline-danger,
+html body .repeater-item-remove .btn[data-control="remove-item"],
+html body a.btn-outline-danger[data-control="remove-item"],
+html body .btn-outline-danger.border-none[data-control="remove-item"],
+html body .repeater-item .btn-outline-danger[data-control="remove-item"],
+html body .repeater-item a.btn-outline-danger[data-control="remove-item"] {
+  transition: transform 0.2s ease !important;
+  /* Override Bootstrap CSS variables to prevent hover color changes */
+  --bs-btn-hover-color: var(--bs-btn-color) !important;
+  --bs-btn-hover-bg: transparent !important;
+  --bs-btn-hover-border-color: var(--bs-btn-border-color) !important;
+}
+
+html body .repeater-item-remove .btn-outline-danger:hover,
+html body .repeater-item-remove a.btn-outline-danger:hover,
+html body .repeater-item-remove .btn[data-control="remove-item"]:hover,
+html body a.btn-outline-danger[data-control="remove-item"]:hover,
+html body .btn-outline-danger.border-none[data-control="remove-item"]:hover,
+html body .repeater-item .btn-outline-danger[data-control="remove-item"]:hover,
+html body .repeater-item a.btn-outline-danger[data-control="remove-item"]:hover {
+  transform: scale(1.1) !important;
+  /* NO color/background changes - ONLY size effect */
+  /* Force preserve original colors by not setting them (let them stay as-is) */
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html body .repeater-item-remove .btn-outline-danger:hover i,
+html body .repeater-item-remove a.btn-outline-danger:hover i,
+html body .repeater-item-remove .btn[data-control="remove-item"]:hover i,
+html body a.btn-outline-danger[data-control="remove-item"]:hover i,
+html body .btn-outline-danger.border-none[data-control="remove-item"]:hover i,
+html body .repeater-item .btn-outline-danger[data-control="remove-item"]:hover i,
+html body .repeater-item a.btn-outline-danger[data-control="remove-item"]:hover i {
+  /* Icon should not transform separately - button handles the scale */
+  transform: none !important;
+}
+
+/* Remove ALL green focus colors from form fields - MAXIMUM SPECIFICITY - NO TRANSITION DELAY */
+html body .form-control:focus,
+html body input:focus,
+html body textarea:focus,
+html body select:focus,
+html body .form-select:focus,
+html body .form-control:focus-visible,
+html body input:focus-visible,
+html body textarea:focus-visible,
+html body select:focus-visible,
+html body .form-control:active,
+html body input:active,
+html body textarea:active,
+html body select:active,
+html body .input-group:focus-within,
+html body .input-group:focus-within .form-control {
+  border-color: #364a63 !important;
+  border-color: rgb(54, 74, 99) !important;
+  outline: none !important;
+  outline-color: #364a63 !important;
+  /* Remove any green colors from box-shadow - use dark blue */
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+  -webkit-box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+  -moz-box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+  /* Remove transition delay - instant change */
+  transition: none !important;
+}
+
+/* Remove focus styles when NOT focused - prevent dark blue from staying */
+html body .form-control:not(:focus):not(:focus-visible),
+html body input:not(:focus):not(:focus-visible),
+html body textarea:not(:focus):not(:focus-visible),
+html body select:not(:focus):not(:focus-visible),
+html body .form-select:not(:focus):not(:focus-visible) {
+  border-color: #e5e9f2 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Override Bootstrap focus ring if it uses green */
+html body .form-control:focus:not(:focus-visible),
+html body input:focus:not(:focus-visible),
+html body select:focus:not(:focus-visible) {
+  border-color: #364a63 !important;
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+  transition: none !important;
+}
+
+/* Override input-group focus-within green shadow */
+html body .input-group:focus-within {
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+  transition: none !important;
+}
+
+html body .input-group:not(:focus-within) {
+  box-shadow: none !important;
+}
+
+/* Repeater handle buttons (drag handles) - ONLY size effect on hover, no color/background changes */
+html body .repeater-item-handle .btn,
+html body .repeater-item-handle .btn[class*="handle"],
+html body .btn[class*="repeater"][class*="handle"],
+html body .btn.repeater-formnotesuggestionsentences-items-note-suggestion-sentences-handle,
+html body .repeater-item-handle button,
+html body .repeater-item-handle div.btn {
+  transition: transform 0.2s ease !important;
+}
+
+html body .repeater-item-handle .btn:hover,
+html body .repeater-item-handle .btn[class*="handle"]:hover,
+html body .btn[class*="repeater"][class*="handle"]:hover,
+html body .btn.repeater-formnotesuggestionsentences-items-note-suggestion-sentences-handle:hover,
+html body .repeater-item-handle button:hover,
+html body .repeater-item-handle div.btn:hover {
+  transform: scale(1.1) !important;
+  /* NO color/background changes - ONLY size effect */
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  border-color: inherit !important;
+}
+
+html body .repeater-item-handle .btn:hover i,
+html body .repeater-item-handle .btn[class*="handle"]:hover i,
+html body .btn[class*="repeater"][class*="handle"]:hover i,
+html body .btn.repeater-formnotesuggestionsentences-items-note-suggestion-sentences-handle:hover i,
+html body .repeater-item-handle button:hover i,
+html body .repeater-item-handle div.btn:hover i {
+  /* Icon should not transform separately - button handles the scale */
+  transform: none !important;
+  color: inherit !important;
 }

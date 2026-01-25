@@ -46,31 +46,41 @@
     }
     
     .test-sound-btn {
-        padding: 10px 20px;
-        background: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 6px;
+        padding: 12px 20px;
+        background: rgb(241, 244, 251) !important;
+        color: rgb(32, 41, 56) !important;
+        border: 1px solid rgb(201, 210, 227) !important;
+        border-radius: 12px !important;
         cursor: pointer;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         display: flex;
         align-items: center;
         gap: 8px;
-        transition: background 0.2s;
+        transition: all 0.2s ease;
         white-space: nowrap;
+        box-shadow: none !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        line-height: 1.5 !important;
     }
     
     .test-sound-btn:hover {
-        background: #45a049;
+        background: rgb(233, 236, 243) !important;
+        border-color: rgb(201, 210, 227) !important;
+        color: rgb(32, 41, 56) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
     }
     
     .test-sound-btn:active {
-        background: #3d8b40;
+        background: rgb(225, 230, 240) !important;
+        transform: translateY(0);
     }
     
     .test-sound-btn i {
         font-size: 16px;
+        color: rgb(32, 41, 56) !important;
     }
     
     .sound-description {

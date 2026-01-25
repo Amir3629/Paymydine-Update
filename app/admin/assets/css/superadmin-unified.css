@@ -7,8 +7,8 @@
    PRIMARY COLORS - Same as Admin Panel
    ============================================ */
 :root {
-  --primary-green: #08815e;
-  --primary-green-hover: #06ab6e;
+  --primary-green: #364a63;
+  --primary-green-hover: #364a63;
   --primary-green-light: rgba(8, 129, 94, 0.1);
   --white-bg: #ffffff;
   --light-bg: #f5f6fa;

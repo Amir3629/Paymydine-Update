@@ -134,7 +134,20 @@
         }
         setTimeout(fixHistoryDeleteButton, 100);
         setTimeout(fixHistoryDeleteButton, 500);
-        const observer = new MutationObserver(() => {
+        const observer = new MutationObserver((mutations) => {
+            // Skip processing if modal is open (prevents freeze)
+            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+                return;
+            }
+            // Skip if mutation is inside a modal
+            for (const mutation of mutations) {
+                if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                    return;
+                }
+                if (mutation.target.closest && mutation.target.closest('.modal')) {
+                    return;
+                }
+            }
             setTimeout(fixHistoryDeleteButton, 50);
         });
         observer.observe(document.body, { childList: true, subtree: true, attributes: true });
@@ -198,6 +211,10 @@
         const toolbarButtons = document.querySelectorAll('.toolbar-action .btn');
 
         toolbarButtons.forEach(btn => {
+            // SKIP media manager buttons - they have their own styling
+            if (btn.closest('.media-toolbar') || btn.closest('#mediamanager-toolbar') || btn.closest('.media-manager')) {
+                return;
+            }
             // ALL buttons get width: auto - including Save button (same as other working buttons)
             btn.style.setProperty('padding', BUTTON_PADDING, 'important');
             btn.style.setProperty('border-radius', BUTTON_BORDER_RADIUS, 'important');
@@ -234,6 +251,26 @@
         console.log(`Found ${allButtons.length} total buttons to fix`);
         
         allButtons.forEach((btn, index) => {
+            // EXCLUDE ALL media manager buttons - they have their own styling
+            const isMediaManagerButton = btn.closest('.media-toolbar') || 
+                                        btn.closest('#mediamanager-toolbar') || 
+                                        btn.closest('.media-manager');
+            if (isMediaManagerButton) {
+                return; // Skip media manager buttons completely
+            }
+            
+            // EXCLUDE settings card links - they need block display for proper card layout
+            const isSettingsCardLink = btn.matches('.settings-card-link') || 
+                                      btn.closest('.settings-card-link') ||
+                                      btn.classList.contains('settings-card-link') ||
+                                      (btn.tagName === 'A' && btn.href && (btn.href.includes('/admin/settings/edit/') || btn.href.includes('/admin/settings'))) ||
+                                      (btn.tagName === 'A' && btn.classList.contains('text-reset') && btn.querySelector('.card'));
+            if (isSettingsCardLink) {
+                // Ensure it stays block display
+                btn.style.setProperty('display', 'block', 'important');
+                return; // Skip settings card links - they need block display
+            }
+            
             // EXCLUDE Save/Back buttons AND filter/setup buttons from display override - they need inline-flex
             const isSaveOrBackButton = btn.matches('[data-request="onSave"]') ||
                                      (btn.closest('.progress-indicator-container') && 
@@ -601,6 +638,19 @@ function moveBulkButtons() {
         
         // Also observe the body for new bulk actions rows
         const bodyObserver = new MutationObserver(function(mutations) {
+            // Skip processing if modal is open (prevents freeze)
+            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+                return;
+            }
+            // Skip if mutation is inside a modal
+            for (const mutation of mutations) {
+                if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                    return;
+                }
+                if (mutation.target.closest && mutation.target.closest('.modal')) {
+                    return;
+                }
+            }
             const bulkActionsRow = document.querySelector('tr.bulk-actions');
             if (bulkActionsRow) {
                 moveBulkButtons();
@@ -615,6 +665,24 @@ function moveBulkButtons() {
         console.log('✅ Observing body for new bulk actions rows');
 
         applyToolbarButtonPalette();
+        
+        // Fix settings card links - ensure they stay block display
+        fixSettingsCardLinks();
+    }
+    
+    // Function to fix settings card links - remove inline display styles
+    function fixSettingsCardLinks() {
+        const settingsCardLinks = document.querySelectorAll('.settings-card-link, a[href*="/admin/settings/edit/"], a[href*="/admin/settings"][class*="text-reset"]');
+        settingsCardLinks.forEach(link => {
+            // Remove inline display style and force block
+            link.style.removeProperty('display');
+            link.style.setProperty('display', 'block', 'important');
+            // Remove other problematic inline styles
+            link.style.removeProperty('width');
+            link.style.removeProperty('height');
+            link.style.setProperty('width', '100%', 'important');
+            link.style.setProperty('height', '100%', 'important');
+        });
     }
     
     // Initialize when DOM is ready
@@ -631,8 +699,14 @@ function moveBulkButtons() {
         setTimeout(function() {
             init();
             applyToolbarButtonPalette();
+            fixSettingsCardLinks(); // Fix settings cards after reinit
         }, 100);
     });
+    
+    // Continuously monitor and fix settings card links
+    setInterval(function() {
+        fixSettingsCardLinks();
+    }, 500);
     
     // Run once after a short delay to catch dynamically loaded content
     setTimeout(function() {

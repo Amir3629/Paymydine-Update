@@ -176,65 +176,95 @@
             dashboardWidgetsExists: $dashboardWidgets.length > 0
         });
         
+        // Start request immediately - no delay
         $.request(self.options.alias + '::onRenderWidgets', {
             success: function(data) {
                 console.log('✅ DashboardContainer: Widgets loaded successfully', data);
                 
                 // TastyIgniter's AJAX handler should automatically insert HTML,
-                // but manually ensure it happens if needed
-                setTimeout(function() {
-                    var $container = $(containerSelector);
+                // but manually ensure it happens if needed - check immediately
+                var $container = $(containerSelector);
+                
+                // Check if HTML was inserted by TastyIgniter's handler
+                var hasContent = $container.length > 0 && $container.html().trim().length > 0;
+                
+                if (!hasContent && data) {
+                    console.log('⚠️ DashboardContainer: Container empty, manually inserting HTML...');
                     
-                    // Check if HTML was inserted by TastyIgniter's handler
-                    var hasContent = $container.length > 0 && $container.html().trim().length > 0;
-                    
-                    if (!hasContent && data) {
-                        console.log('⚠️ DashboardContainer: Container empty, manually inserting HTML...');
-                        
-                        // Extract HTML from response
-                        var htmlContent = null;
-                        if (typeof data === 'object') {
-                            // TastyIgniter returns { '#selector': 'html' }
-                            htmlContent = data[containerSelector] || data['#' + containerId] || Object.values(data)[0];
-                        } else if (typeof data === 'string') {
-                            htmlContent = data;
-                        }
-                        
-                        if (htmlContent && $container.length) {
-                            $container.html(htmlContent);
-                            console.log('✅ DashboardContainer: HTML manually inserted', {
-                                contentLength: htmlContent.length,
-                                containerId: containerId
-                            });
-                        } else {
-                            console.warn('⚠️ DashboardContainer: Could not extract HTML from response', {
-                                dataType: typeof data,
-                                dataKeys: typeof data === 'object' ? Object.keys(data) : 'N/A',
-                                containerExists: $container.length > 0
-                            });
-                        }
+                    // Extract HTML from response
+                    var htmlContent = null;
+                    if (typeof data === 'object') {
+                        // TastyIgniter returns { '#selector': 'html' }
+                        htmlContent = data[containerSelector] || data['#' + containerId] || Object.values(data)[0];
+                    } else if (typeof data === 'string') {
+                        htmlContent = data;
                     }
                     
-                    // Ensure container is visible
-                    if ($container.length) {
-                        $container.css({
-                            'display': 'block',
-                            'visibility': 'visible',
-                            'opacity': '1',
-                            'min-height': '100px'
+                    if (htmlContent && $container.length) {
+                        $container.html(htmlContent);
+                        console.log('✅ DashboardContainer: HTML manually inserted', {
+                            contentLength: htmlContent.length,
+                            containerId: containerId
                         });
-                        
-                        var finalContentLength = $container.html().trim().length;
-                        var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
-                        
-                        console.log('✅ DashboardContainer: Container status after insertion', {
-                            hasContent: finalContentLength > 0,
-                            contentLength: finalContentLength,
-                            widgetCount: widgetCount,
-                            height: $container.height()
+                    } else {
+                        console.warn('⚠️ DashboardContainer: Could not extract HTML from response', {
+                            dataType: typeof data,
+                            dataKeys: typeof data === 'object' ? Object.keys(data) : 'N/A',
+                            containerExists: $container.length > 0
                         });
                     }
-                }, 150);
+                }
+                
+                // Ensure container is visible immediately
+                if ($container.length) {
+                    $container.css({
+                        'display': 'block',
+                        'visibility': 'visible',
+                        'opacity': '1',
+                        'min-height': '100px'
+                    });
+                    
+                    // Hide progress indicator immediately
+                    $('.dashboard-widgets .progress-indicator', self.$el).css({
+                        'display': 'none',
+                        'visibility': 'hidden',
+                        'opacity': '0',
+                        'height': '0',
+                        'overflow': 'hidden'
+                    });
+                    
+                    var finalContentLength = $container.html().trim().length;
+                    var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
+                    
+                    console.log('✅ DashboardContainer: Container status after insertion', {
+                        hasContent: finalContentLength > 0,
+                        contentLength: finalContentLength,
+                        widgetCount: widgetCount,
+                        height: $container.height()
+                    });
+                    
+                    // Initialize charts immediately after widgets are loaded
+                    function initCharts() {
+                        if (typeof Chart === 'undefined' || typeof $.fn.chartControl !== 'function') {
+                            setTimeout(initCharts, 50); // Faster retry
+                            return;
+                        }
+                        
+                        $container.find('[data-control="chart"]').each(function() {
+                            var $chart = $(this);
+                            if (!$chart.data('ti.chartControl')) {
+                                try {
+                                    $chart.chartControl();
+                                    console.log('✅ DashboardContainer: Chart initialized', $chart.attr('data-alias'));
+                                } catch (e) {
+                                    console.error('❌ DashboardContainer: Failed to initialize chart', $chart.attr('data-alias'), e);
+                                }
+                            }
+                        });
+                    }
+                    // Start chart initialization immediately
+                    setTimeout(initCharts, 50);
+                }
             },
             error: function(jqXHR, textStatus, errorThrown) {
                 console.error('❌ DashboardContainer: Failed to load widgets', {
@@ -317,7 +347,7 @@
     // DASHBOARDCONTAINER DATA-API
     // ===============
 
-    // Initialize on document ready
+    // Initialize on document ready - immediately
     $(document).ready(function() {
         console.log('🚀 DashboardContainer: Document ready, initializing...');
         $('[data-control="dashboard-container"]').dashboardContainer();
@@ -334,13 +364,15 @@
         });
     });
     
-    // Fallback: Initialize after a short delay to ensure DOM is ready
-    setTimeout(function() {
-        $('[data-control="dashboard-container"]').each(function() {
-            if (!$(this).data('ti.dashboardContainer')) {
-                console.log('🚀 DashboardContainer: Fallback initialization...');
-                $(this).dashboardContainer();
-            }
-        });
-    }, 500);
+    // Fallback: Initialize immediately if DOM is already ready
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(function() {
+            $('[data-control="dashboard-container"]').each(function() {
+                if (!$(this).data('ti.dashboardContainer')) {
+                    console.log('🚀 DashboardContainer: Fallback initialization...');
+                    $(this).dashboardContainer();
+                }
+            });
+        }, 50); // Minimal delay
+    }
 }(window.jQuery);

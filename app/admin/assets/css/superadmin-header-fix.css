@@ -220,7 +220,7 @@
 
 .nk-header .dropdown-menu {
   background-color: #ffffff !important;
-  border: 2px solid #08815e !important;
+  border: 2px solid #364a63 !important;
   border-radius: 8px !important;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
 }
@@ -233,7 +233,7 @@
 .nk-header .dropdown-menu .link-list-opt a:hover,
 .nk-header .dropdown-menu .link-list a:hover {
   background-color: rgba(8, 129, 94, 0.1) !important;
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 .nk-header .user-card-wrap {
