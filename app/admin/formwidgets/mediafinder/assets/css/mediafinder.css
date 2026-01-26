@@ -26,19 +26,26 @@
 	left: 0;
 	width: 100%;
 	height: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+	display: block;
 	z-index: 1;
 	pointer-events: none;
 	overflow: hidden;
 	border-radius: 14px;
 }
-.media-finder .grid img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.media-finder .grid .img-cover img,
+.media-finder .grid img[data-find-image],
+.media-finder .grid .img-responsive {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
   border-radius: 14px;
+  display: block;
 }
 
 .media-finder .grid .media-icon {
@@ -118,9 +125,14 @@
 .grid .find-config-button {
 	cursor: pointer;
 }
-.grid a {
-	position: relative;
+.grid a:not(.find-button):not(.blank-cover):not(.find-config-button) {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
 	z-index: 1;
+	display: block;
 }
 .grid:hover a:not(.find-remove-button):not(.find-button):not(.blank-cover) {
 	pointer-events: none;

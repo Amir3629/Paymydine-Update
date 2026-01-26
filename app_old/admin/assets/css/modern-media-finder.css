@@ -1,0 +1,558 @@
+/* ============================================
+   MODERN MEDIA FINDER - ELEGANT IMAGE UPLOADER
+   Redesigns the inline mode media finder to be
+   clean, elegant, and consistent with platform
+   ============================================ */
+
+/* ============================================
+   1. INPUT GROUP CONTAINER - Modern Card Style
+   ============================================ */
+
+.mediafinder.inline-mode .media-finder,
+.mediafinder[data-mode="inline"] .media-finder {
+  margin: 0 !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group,
+.mediafinder[data-mode="inline"] .media-finder .input-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  align-content: center !important;
+  justify-content: flex-start !important;
+  border-radius: 12px !important;
+  border: 2px solid #e5e9f2 !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Ensure all children are in one line */
+.mediafinder.inline-mode .media-finder .input-group > *,
+.mediafinder[data-mode="inline"] .media-finder .input-group > * {
+  flex-shrink: 0 !important;
+  vertical-align: middle !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group:hover,
+.mediafinder[data-mode="inline"] .media-finder .input-group:hover,
+.mediafinder.inline-mode .media-finder .input-group:focus-within,
+.mediafinder[data-mode="inline"] .media-finder .input-group:focus-within {
+  border-color: #364a63 !important;
+  box-shadow: 0 4px 16px rgba(54, 74, 99, 0.12) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ============================================
+   2. IMAGE/ICON PREVIEW AREA - Elegant Preview
+   ============================================ */
+
+.mediafinder.inline-mode .media-finder .input-group-text,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text {
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  padding: 0 !important;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
+  border: none !important;
+  border-right: 2px solid #e5e9f2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0 !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  line-height: 0 !important;
+}
+
+/* Show placeholder icon when empty - Using CSS pseudo-element as fallback */
+.mediafinder.inline-mode .media-finder .input-group-text:empty::before,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text:empty::before {
+  content: "\f03e" !important; /* FontAwesome image icon */
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;
+  font-size: 24px !important;
+  color: #9ca3af !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  line-height: 1 !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  transition: all 0.3s ease !important;
+  z-index: 1 !important;
+  box-sizing: content-box !important;
+}
+
+/* Better placeholder icon when empty using CSS */
+.mediafinder.inline-mode .media-finder .input-group-text:empty::after,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text:empty::after {
+  content: "" !important;
+  display: none !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group:hover .input-group-text,
+.mediafinder[data-mode="inline"] .media-finder .input-group:hover .input-group-text {
+  border-right-color: #364a63 !important;
+  background: linear-gradient(135deg, #f1f4fb 0%, #f8f9fa 100%) !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group:hover .input-group-text:empty::before,
+.mediafinder[data-mode="inline"] .media-finder .input-group:hover .input-group-text:empty::before {
+  color: #526484 !important;
+  transform: translate(-50%, -50%) scale(1.1) !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group:hover .input-group-text .placeholder-icon,
+.mediafinder[data-mode="inline"] .media-finder .input-group:hover .input-group-text .placeholder-icon {
+  color: #526484 !important;
+  transform: scale(1.1) !important;
+}
+
+/* Hide CSS placeholder when JavaScript placeholder is present */
+.mediafinder.inline-mode .media-finder .input-group-text:has(.placeholder-icon)::before,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text:has(.placeholder-icon)::before {
+  display: none !important;
+}
+
+/* Image preview in input-group-text */
+.mediafinder.inline-mode .media-finder .input-group-text img,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text img {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  border: 2px solid #ffffff !important;
+  display: block !important;
+  margin: 0 auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* Icon in input-group-text (for non-image files) */
+.mediafinder.inline-mode .media-finder .input-group-text .media-icon,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text .media-icon {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group-text .media-icon i,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text .media-icon i {
+  font-size: 24px !important;
+  color: #526484 !important;
+  transition: all 0.3s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 1em !important;
+  width: 1em !important;
+  box-sizing: content-box !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group:hover .input-group-text .media-icon i,
+.mediafinder[data-mode="inline"] .media-finder .input-group:hover .input-group-text .media-icon i {
+  color: #364a63 !important;
+  transform: scale(1.1) !important;
+}
+
+/* Ensure any icon directly in input-group-text is centered */
+.mediafinder.inline-mode .media-finder .input-group-text > i,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text > i,
+.mediafinder.inline-mode .media-finder .input-group-text .placeholder-icon,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text .placeholder-icon {
+  font-size: 24px !important;
+  color: #9ca3af !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  position: relative !important;
+  box-sizing: content-box !important;
+  flex-shrink: 0 !important;
+}
+
+.mediafinder.inline-mode .media-finder .input-group:hover .input-group-text > i,
+.mediafinder[data-mode="inline"] .media-finder .input-group:hover .input-group-text > i,
+.mediafinder.inline-mode .media-finder .input-group:hover .input-group-text .placeholder-icon,
+.mediafinder[data-mode="inline"] .media-finder .input-group:hover .input-group-text .placeholder-icon {
+  color: #526484 !important;
+}
+
+/* When there's an image or icon, hide placeholder */
+.mediafinder.inline-mode .media-finder .input-group-text:has(img) .placeholder-icon,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text:has(img) .placeholder-icon,
+.mediafinder.inline-mode .media-finder .input-group-text:has(.media-icon) .placeholder-icon,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text:has(.media-icon) .placeholder-icon {
+  display: none !important;
+}
+
+/* ============================================
+   3. FILENAME DISPLAY - Clean Text Field
+   ============================================ */
+
+.mediafinder.inline-mode .media-finder .form-control[data-find-name],
+.mediafinder[data-mode="inline"] .media-finder .form-control[data-find-name],
+.mediafinder.inline-mode .media-finder span.form-control[data-find-name],
+.mediafinder[data-mode="inline"] .media-finder span.form-control[data-find-name] {
+  flex: 1 !important;
+  min-width: 0 !important;
+  padding: 14px 16px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  cursor: default !important;
+  transition: all 0.3s ease !important;
+  line-height: 1.5 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  min-height: 48px !important;
+  height: auto !important;
+  vertical-align: middle !important;
+}
+
+.mediafinder.inline-mode .media-finder .form-control[data-find-name]:empty::before,
+.mediafinder[data-mode="inline"] .media-finder .form-control[data-find-name]:empty::before,
+.mediafinder.inline-mode .media-finder span.form-control[data-find-name]:empty::before,
+.mediafinder[data-mode="inline"] .media-finder span.form-control[data-find-name]:empty::before {
+  content: "No file selected" !important;
+  color: #9ca3af !important;
+  font-style: italic !important;
+}
+
+/* Clickable filename (when file is selected) */
+.mediafinder.inline-mode .media-finder .form-control.find-config-button,
+.mediafinder[data-mode="inline"] .media-finder .form-control.find-config-button,
+.mediafinder.inline-mode .media-finder span.form-control.find-config-button,
+.mediafinder[data-mode="inline"] .media-finder span.form-control.find-config-button {
+  cursor: pointer !important;
+  color: #364a63 !important;
+}
+
+.mediafinder.inline-mode .media-finder .form-control.find-config-button:hover,
+.mediafinder[data-mode="inline"] .media-finder .form-control.find-config-button:hover,
+.mediafinder.inline-mode .media-finder span.form-control.find-config-button:hover,
+.mediafinder[data-mode="inline"] .media-finder span.form-control.find-config-button:hover {
+  color: #2a3447 !important;
+  background: #f8f9fa !important;
+}
+
+/* ============================================
+   4. ATTACH BUTTON - Modern Primary Button
+   ============================================ */
+
+.mediafinder.inline-mode .media-finder .find-button,
+.mediafinder[data-mode="inline"] .media-finder .find-button,
+.mediafinder.inline-mode .media-finder .btn-outline-primary.find-button,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-primary.find-button {
+  padding: 12px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border: none !important;
+  border-left: 2px solid #e5e9f2 !important;
+  border-radius: 0 10px 10px 0 !important;
+  box-shadow: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 60px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+
+.mediafinder.inline-mode .media-finder .find-button:hover,
+.mediafinder[data-mode="inline"] .media-finder .find-button:hover,
+.mediafinder.inline-mode .media-finder .btn-outline-primary.find-button:hover,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-primary.find-button:hover {
+  background: linear-gradient(135deg, #455a73 0%, #364a63 100%) !important;
+  border-left-color: #364a63 !important;
+  transform: translateX(-2px) !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.2) !important;
+}
+
+.mediafinder.inline-mode .media-finder .find-button:active,
+.mediafinder[data-mode="inline"] .media-finder .find-button:active,
+.mediafinder.inline-mode .media-finder .btn-outline-primary.find-button:active,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-primary.find-button:active {
+  transform: translateX(0) !important;
+  box-shadow: 0 2px 6px rgba(54, 74, 99, 0.15) !important;
+}
+
+/* Attach button icon */
+.mediafinder.inline-mode .media-finder .find-button i,
+.mediafinder[data-mode="inline"] .media-finder .find-button i,
+.mediafinder.inline-mode .media-finder .btn-outline-primary.find-button i,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-primary.find-button i {
+  font-size: 16px !important;
+  color: #ffffff !important;
+  margin: 0 !important;
+  transition: transform 0.3s ease !important;
+}
+
+.mediafinder.inline-mode .media-finder .find-button:hover i,
+.mediafinder[data-mode="inline"] .media-finder .find-button:hover i {
+  transform: scale(1.1) !important;
+}
+
+/* ============================================
+   5. REMOVE BUTTON - Elegant Delete Button
+   ============================================ */
+
+.mediafinder.inline-mode .media-finder .find-remove-button,
+.mediafinder[data-mode="inline"] .media-finder .find-remove-button,
+.mediafinder.inline-mode .media-finder .btn-outline-danger.find-remove-button,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-danger.find-remove-button {
+  padding: 12px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #dc3545 !important;
+  background: #ffffff !important;
+  border: none !important;
+  border-left: 2px solid #e5e9f2 !important;
+  border-radius: 0 10px 10px 0 !important;
+  box-shadow: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 60px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+
+.mediafinder.inline-mode .media-finder .find-remove-button:hover,
+.mediafinder[data-mode="inline"] .media-finder .find-remove-button:hover,
+.mediafinder.inline-mode .media-finder .btn-outline-danger.find-remove-button:hover,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-danger.find-remove-button:hover {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  border-left-color: #dc3545 !important;
+  transform: translateX(-2px) !important;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2) !important;
+}
+
+.mediafinder.inline-mode .media-finder .find-remove-button:active,
+.mediafinder[data-mode="inline"] .media-finder .find-remove-button:active,
+.mediafinder.inline-mode .media-finder .btn-outline-danger.find-remove-button:active,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-danger.find-remove-button:active {
+  transform: translateX(0) !important;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.15) !important;
+}
+
+/* Remove button icon */
+.mediafinder.inline-mode .media-finder .find-remove-button i,
+.mediafinder[data-mode="inline"] .media-finder .find-remove-button i,
+.mediafinder.inline-mode .media-finder .btn-outline-danger.find-remove-button i,
+.mediafinder[data-mode="inline"] .media-finder .btn-outline-danger.find-remove-button i {
+  font-size: 16px !important;
+  color: inherit !important;
+  margin: 0 !important;
+  transition: transform 0.3s ease !important;
+}
+
+.mediafinder.inline-mode .media-finder .find-remove-button:hover i,
+.mediafinder[data-mode="inline"] .media-finder .find-remove-button:hover i {
+  transform: scale(1.1) rotate(90deg) !important;
+}
+
+/* ============================================
+   6. HIDE/SHOW BUTTONS BASED ON STATE
+   ============================================ */
+
+/* When no file is selected - show attach button, hide remove */
+.mediafinder.inline-mode:not(.is-populated) .find-remove-button,
+.mediafinder[data-mode="inline"]:not(.is-populated) .find-remove-button {
+  display: none !important;
+}
+
+.mediafinder.inline-mode:not(.is-populated) .find-button,
+.mediafinder[data-mode="inline"]:not(.is-populated) .find-button {
+  display: flex !important;
+}
+
+/* When file is selected - hide attach button, show remove */
+.mediafinder.inline-mode.is-populated .find-button.hide,
+.mediafinder[data-mode="inline"].is-populated .find-button.hide {
+  display: none !important;
+}
+
+.mediafinder.inline-mode.is-populated .find-remove-button:not(.hide),
+.mediafinder[data-mode="inline"].is-populated .find-remove-button:not(.hide) {
+  display: flex !important;
+}
+
+/* ============================================
+   7. RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  .mediafinder.inline-mode .media-finder .input-group-text,
+  .mediafinder[data-mode="inline"] .media-finder .input-group-text {
+    width: 50px !important;
+    min-width: 50px !important;
+    padding: 10px !important;
+  }
+
+  .mediafinder.inline-mode .media-finder .form-control[data-find-name],
+  .mediafinder[data-mode="inline"] .media-finder .form-control[data-find-name] {
+    padding: 12px !important;
+    font-size: 13px !important;
+  }
+
+  .mediafinder.inline-mode .media-finder .find-button,
+  .mediafinder[data-mode="inline"] .media-finder .find-button,
+  .mediafinder.inline-mode .media-finder .find-remove-button,
+  .mediafinder[data-mode="inline"] .media-finder .find-remove-button {
+    padding: 10px 16px !important;
+    min-width: 50px !important;
+  }
+}
+
+/* ============================================
+   8. FOCUS STATES - Accessibility
+   ============================================ */
+
+.mediafinder.inline-mode .media-finder .input-group:focus-within,
+.mediafinder[data-mode="inline"] .media-finder .input-group:focus-within {
+  outline: none !important;
+  border-color: #364a63 !important;
+  box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
+}
+
+.mediafinder.inline-mode .media-finder .find-button:focus,
+.mediafinder[data-mode="inline"] .media-finder .find-button:focus,
+.mediafinder.inline-mode .media-finder .find-remove-button:focus,
+.mediafinder[data-mode="inline"] .media-finder .find-remove-button:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(54, 74, 99, 0.2) !important;
+}
+
+/* ============================================
+   9. OVERRIDE INLINE STYLES (if possible)
+   ============================================ */
+
+/* Remove inline width styles from input-group-text */
+.mediafinder.inline-mode .media-finder .input-group-text[style*="width"],
+.mediafinder[data-mode="inline"] .media-finder .input-group-text[style*="width"] {
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+}
+
+/* Ensure input-group-text never appears empty/white */
+.mediafinder.inline-mode .media-finder .input-group-text:not(:has(img)):not(:has(.media-icon)):not(:has(i)):not(:has(.placeholder-icon)):empty,
+.mediafinder[data-mode="inline"] .media-finder .input-group-text:not(:has(img)):not(:has(.media-icon)):not(:has(i)):not(:has(.placeholder-icon)):empty {
+  /* CSS placeholder will show via ::before pseudo-element */
+  min-height: 48px !important;
+  position: relative !important;
+}
+
+/* Ensure buttons are visible and properly styled */
+.mediafinder.inline-mode .media-finder .find-button[style],
+.mediafinder[data-mode="inline"] .media-finder .find-button[style],
+.mediafinder.inline-mode .media-finder .find-remove-button[style],
+.mediafinder[data-mode="inline"] .media-finder .find-remove-button[style] {
+  /* Keep pointer-events, display, visibility, opacity, position, z-index from inline styles */
+  /* But override colors and styling */
+}
+
+/* ============================================
+   10. HELP TEXT STYLING
+   ============================================ */
+
+.mediafinder.inline-mode + .help-block,
+.mediafinder[data-mode="inline"] + .help-block,
+.form-group:has(.mediafinder.inline-mode) .help-block,
+.form-group:has(.mediafinder[data-mode="inline"]) .help-block {
+  margin-top: 8px !important;
+  font-size: 13px !important;
+  color: #6b7280 !important;
+  font-style: italic !important;
+}
+
+/* ============================================
+   11. DISABLED STATE
+   ============================================ */
+
+.mediafinder.inline-mode[data-disabled="true"] .media-finder .input-group,
+.mediafinder[data-mode="inline"][data-disabled="true"] .media-finder .input-group,
+.mediafinder.inline-mode .media-finder .input-group:has(input[disabled]),
+.mediafinder[data-mode="inline"] .media-finder .input-group:has(input[disabled]) {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* ============================================
+   12. SMOOTH TRANSITIONS
+   ============================================ */
+
+.mediafinder.inline-mode .media-finder *,
+.mediafinder[data-mode="inline"] .media-finder * {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ============================================
+   13. CLEAN UP OLD STYLES
+   ============================================ */
+
+/* Remove any old green colors that might appear */
+.mediafinder.inline-mode .media-finder .find-button[style*="green"],
+.mediafinder[data-mode="inline"] .media-finder .find-button[style*="green"],
+.mediafinder.inline-mode .media-finder .find-button[style*="#364a63"],
+.mediafinder[data-mode="inline"] .media-finder .find-button[style*="#364a63"] {
+  /* Override with our new styles */
+}
+
+/* Ensure no green borders or backgrounds */
+.mediafinder.inline-mode .media-finder .input-group[style*="green"],
+.mediafinder[data-mode="inline"] .media-finder .input-group[style*="green"] {
+  border-color: #e5e9f2 !important;
+}

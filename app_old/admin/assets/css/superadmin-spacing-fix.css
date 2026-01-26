@@ -1,0 +1,2935 @@
+/**
+ * SUPERADMIN SPACING & COLOR FIX - ULTRA AGGRESSIVE
+ * Fixes the massive spacing issues and removes all purple colors
+ * Based on console analysis results
+ * MAXIMUM SPECIFICITY TO OVERRIDE EVERYTHING
+ * 
+ * NOTE: These styles should NOT apply to login page!
+ * Only apply to pages with sidebar (.nk-sidebar)
+ */
+
+/* ============================================
+   0. EXCLUDE LOGIN PAGE - Only apply when sidebar exists
+   ============================================ */
+
+/* Check if sidebar exists - if not, don't apply these styles */
+body:not(:has(.nk-sidebar)) .nk-wrap,
+body:not(:has(.nk-sidebar)) .nk-content {
+  position: static !important;
+  margin: auto !important;
+  padding: normal !important;
+  background: inherit !important;
+}
+
+/* ============================================
+   1. FIX CONTENT POSITIONING - NO GAPS! (ONLY WITH SIDEBAR)
+   ============================================ */
+
+/* Main content wrapper - FIXED POSITION (ONLY when sidebar exists) */
+/* CRITICAL: Must NEVER cover header area (top 0-64px) */
+.nk-sidebar ~ .nk-main .nk-wrap,
+body:has(.nk-sidebar) .nk-wrap {
+  position: fixed !important; /* Force fixed positioning */
+  top: 64px !important; /* Exactly at header bottom (64px) - NEVER overlap header */
+  left: 230px !important; /* Exactly at sidebar right */
+  right: 0 !important; /* Stretch to right edge */
+  bottom: 0 !important; /* Stretch to bottom */
+  margin: 0 !important; /* NO margins when using fixed */
+  padding: 0 !important;
+  padding-top: 0 !important; /* CRITICAL: No padding that could extend above */
+  margin-top: 0 !important; /* CRITICAL: No margin that could extend above */
+  overflow-y: auto !important; /* Allow scrolling */
+  overflow-x: hidden !important;
+  z-index: 1 !important; /* Below header (1030) - NEVER above */
+  background-color: #ffffff !important;
+  /* CRITICAL: Background should NOT extend above top: 64px */
+  background-clip: padding-box !important;
+  background-origin: padding-box !important;
+}
+
+/* CRITICAL: Prevent .nk-main from covering header - it starts at top:0 with white background */
+.nk-main,
+body:has(.nk-sidebar) .nk-main,
+html body:has(.nk-sidebar) .nk-main {
+  position: relative !important; /* NOT fixed at top */
+  top: auto !important; /* Don't force top: 0 */
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  /* White background is OK, but it should NOT visually cover header */
+  background-clip: padding-box !important;
+  background-origin: padding-box !important;
+}
+
+/* CRITICAL: Prevent .nk-app-root from covering header */
+.nk-app-root,
+body:has(.nk-sidebar) .nk-app-root,
+html body:has(.nk-sidebar) .nk-app-root {
+  position: static !important; /* NOT positioned to cover header */
+  top: auto !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  /* White background is OK, but it should NOT visually cover header */
+  background-clip: padding-box !important;
+  background-origin: padding-box !important;
+}
+
+/* Content area - ABSOLUTE NO SPACING (ONLY with sidebar) */
+body:has(.nk-sidebar) .nk-content,
+.nk-sidebar ~ .nk-main .nk-content {
+  margin: 0 !important; /* Remove all margins */
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 !important; /* NO padding at all */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  background-color: #ffffff !important;
+  position: relative !important;
+}
+
+/* Remove excessive padding from nested containers - ULTRA SPECIFIC */
+.nk-content .nk-content-inner,
+.nk-content-inner,
+body .nk-content-inner,
+.nk-content .nk-content-body,
+.nk-content-body,
+body .nk-content-body {
+  padding: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Container fluid - NO TOP PADDING - MOVE HIGHER */
+.nk-content .container-fluid,
+body .nk-content .container-fluid,
+.nk-wrap .nk-content .container-fluid {
+  padding: 0px 20px 15px 20px !important; /* NO top, only sides and bottom */
+  padding-top: 0px !important; /* ZERO top padding */
+  padding-bottom: 15px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+  max-width: 100% !important;
+}
+
+/* FORCE first visible element to have NO top margin/padding */
+.nk-content .container-fluid > *:first-child,
+.nk-content-inner > *:first-child,
+.nk-content-body > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Block head - MINIMAL spacing */
+.nk-block-head {
+  padding: 0 0 10px 0 !important;
+  margin: 0 0 10px 0 !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+}
+
+.nk-block-head-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Block container - minimal spacing */
+.nk-block {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Titles and descriptions - ZERO top spacing */
+.nk-block-title,
+.elegant-title,
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 5px 0 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+}
+
+.nk-block-des,
+.welcome-text {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* First child elements - ZERO top spacing */
+.nk-block-head > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* ============================================
+   2. REMOVE ALL PURPLE COLORS & SHADOWS
+   ============================================ */
+
+/* Remove purple box-shadow from title - CRITICAL */
+.elegant-title,
+.nk-block-title,
+.page-title,
+h1, h2, h3, h4, h5, h6 {
+  color: #364a63 !important; /* Dark gray-blue */
+  box-shadow: none !important; /* NO purple shadow! */
+  text-shadow: none !important;
+  background: none !important;
+}
+
+/* Hover states - NO purple shadows */
+.elegant-title:hover,
+.nk-block-title:hover,
+.page-title:hover,
+h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
+/* Tenant titles */
+.tenant-title {
+  color: #364a63 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Tenant subtitles */
+.tenant-subtitle,
+.welcome-text,
+.nk-block-des,
+.nk-block-des p {
+  color: #8094ae !important; /* Soft gray, NOT purple */
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Card titles */
+.card-title,
+.card-title h6,
+.card-title-group .card-title {
+  color: #364a63 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Remove purple from ALL elements globally */
+* {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Re-enable box-shadow only for cards and dropdowns (NOT purple) */
+.card,
+.card-bordered {
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08) !important;
+}
+
+.dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   3. FIX TABLE & TEXT COLORS
+   ============================================ */
+
+/* Table text - proper gray, NOT purple */
+.nk-tb-list,
+.nk-tb-item,
+.nk-tb-head,
+thead, tbody, tr {
+  color: #526484 !important; /* Proper gray */
+}
+
+/* Sub text colors */
+.sub-text,
+.tb-sub,
+.tb-lead {
+  color: #526484 !important;
+}
+
+/* User info colors */
+.user-info,
+.user-status,
+.lead-text {
+  color: #526484 !important;
+}
+
+/* Icon colors - proper gray */
+.icon,
+em.icon {
+  color: #526484 !important;
+}
+
+/* Arrow icons - GREEN for up, RED for down */
+.change.up .icon.ni-arrow-long-up,
+.icon.ni-arrow-long-up {
+  color: #10b981 !important; /* Green for UP arrows */
+}
+
+.change.down .icon.ni-arrow-long-down,
+.icon.ni-arrow-long-down {
+  color: #ef4444 !important; /* Red for DOWN arrows */
+}
+
+/* Make the change text also colored */
+.change.up {
+  color: #10b981 !important; /* Green for positive change */
+}
+
+.change.down {
+  color: #ef4444 !important; /* Red for negative change */
+}
+
+/* ============================================
+   4. REDUCE CARD SPACING - MOVE HIGHER
+   ============================================ */
+
+/* Cards - less margin between them */
+.col-md-7,
+.col-md-5,
+.col-xxl-4 {
+  padding: 0 8px !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* First column - absolutely NO top spacing */
+.row > .col-md-7:first-child,
+.row > .col-md-5:first-child,
+.row > .col-xxl-4:first-child,
+.row > [class*="col-"]:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.card {
+  margin-bottom: 15px !important;
+  margin-top: 0 !important;
+}
+
+/* First card - NO top margin */
+.card:first-child {
+  margin-top: 0 !important;
+}
+
+.card-inner {
+  padding: 15px !important;
+}
+
+/* Card title group - minimal spacing */
+.card-title-group {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.card-title {
+  margin: 0 0 5px 0 !important;
+  padding: 0 !important;
+}
+
+/* ============================================
+   5. FIX ROW SPACING - MOVE EVERYTHING HIGHER
+   ============================================ */
+
+.row.g-gs {
+  margin: 0 -8px !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Remove extra row spacing */
+.row {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* First row element - absolutely NO top spacing */
+.nk-content .row:first-child,
+.nk-block .row:first-child,
+.container-fluid > .row:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* ============================================
+   6. ENSURE CONTENT STARTS RIGHT AFTER HEADER
+   ============================================ */
+
+/* Force content to be exactly at header bottom */
+body .nk-content {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Force wrap positioning - FIXED */
+/* CRITICAL: Must be at 64px (header height), NOT 65px - to prevent covering header */
+body .nk-wrap {
+  position: fixed !important;
+  top: 64px !important; /* FIXED: Was 65px, must be 64px to match header height */
+  left: 230px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important; /* CRITICAL: No padding that could extend above */
+  margin-top: 0 !important; /* CRITICAL: No margin that could extend above */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 1 !important; /* BELOW header (1030) - NEVER above */
+  background-color: #ffffff !important;
+  /* CRITICAL: Background should NOT extend above top: 64px */
+  background-clip: padding-box !important;
+  background-origin: padding-box !important;
+}
+
+/* Remove default spacing from nested wrappers */
+.nk-content-wrap,
+.container {
+  padding-top: 0px !important; /* ZERO top padding */
+  padding-bottom: 15px !important;
+}
+
+/* Force first element to have no top margin */
+.nk-content-body > *:first-child {
+  margin-top: 0 !important;
+}
+
+.nk-block-head:first-child {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* ============================================
+   7. FIX DROPDOWN COLORS (NOT PURPLE)
+   ============================================ */
+
+.dropdown-menu,
+.dropdown-inner,
+.dropdown-menu a {
+  color: #526484 !important;
+}
+
+.dropdown-menu a:hover {
+  background-color: #f5f6fa !important;
+  color: #364a63 !important;
+}
+
+/* ============================================
+   8. NUCLEAR OVERRIDE - FORCE SPACING - MOVE HIGHER!
+   ============================================ */
+
+/* ULTRA AGGRESSIVE - FIXED POSITIONING */
+/* CRITICAL: Must NEVER cover header area (top 0-64px) */
+html body .nk-app-root .nk-main .nk-wrap {
+  position: fixed !important;
+  top: 64px !important; /* Exactly at header bottom (64px) - NEVER overlap */
+  left: 230px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important; /* CRITICAL: No padding above */
+  margin-top: 0 !important; /* CRITICAL: No margin above */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 1 !important; /* Below header (1030) - NEVER above */
+  background-color: #ffffff !important;
+  /* CRITICAL: Background should NOT extend above top: 64px */
+  background-clip: padding-box !important;
+  background-origin: padding-box !important;
+}
+
+/* CRITICAL: Prevent .nk-main from starting at top:0 and covering header */
+html body .nk-app-root .nk-main {
+  position: relative !important; /* NOT fixed at top */
+  top: auto !important; /* Don't force top: 0 */
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  /* White background is OK, but visually it should NOT cover header */
+  background-clip: padding-box !important;
+  background-origin: padding-box !important;
+}
+
+/* CRITICAL: Prevent .nk-app-root from starting at top:0 and covering header */
+html body .nk-app-root {
+  position: static !important; /* NOT positioned to cover header */
+  top: auto !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  /* White background is OK, but visually it should NOT cover header */
+  background-clip: padding-box !important;
+  background-origin: padding-box !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: #ffffff !important;
+}
+
+/* NUCLEAR: Force EVERYTHING to start at the very top - NO GAPS! */
+html body .nk-content > *:first-child,
+html body .nk-content-inner > *:first-child,
+html body .nk-content-body > *:first-child,
+html body .container-fluid > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* NUCLEAR: Remove ALL top spacing from blocks */
+html body .nk-block,
+html body .nk-block:first-child,
+html body .nk-block-head,
+html body .nk-block-head:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Ensure body is also white (ONLY with sidebar) */
+body:has(.nk-sidebar),
+body:has(.nk-sidebar) html,
+body:has(.nk-sidebar) .nk-app-root,
+body:has(.nk-sidebar) .nk-main {
+  background-color: #ffffff !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content .container-fluid {
+  padding: 0px 20px 15px 20px !important; /* ZERO top padding */
+  padding-top: 0px !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content .nk-content-inner {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+html body .nk-app-root .nk-main .nk-wrap .nk-content .nk-content-body {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Remove ALL purple box-shadows - NUCLEAR */
+html body * {
+  box-shadow: none !important;
+}
+
+html body .card,
+html body .card-bordered {
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08) !important;
+}
+
+html body .dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   9. HIDE DUPLICATE PAGE TITLE SECTIONS (NOT HEADER TITLES)
+   ============================================ */
+
+/* KEEP header titles visible - DO NOT hide .page-title in header */
+.nk-header .page-title {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Hide ONLY the content area title sections (not header) */
+.nk-content .nk-block-head,
+.nk-content .nk-block-head-sm {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Hide content area page titles and descriptions (not header) */
+.nk-content .nk-block-title,
+.nk-content .elegant-title,
+.nk-content .nk-block-des,
+.nk-content .welcome-text,
+.nk-content .nk-block-head-content {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide "General settings" / "General setting" text in cards */
+.card-inner > h5:first-child,
+.card-inner > .card-title:first-child {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide "General settings" text in tab navigation (keep icon) */
+.nav-link[href="#site"] span,
+a[href="#site"] span {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Keep the icon visible */
+.nav-link[href="#site"] em.icon,
+a[href="#site"] em.icon {
+  display: inline-block !important;
+  visibility: visible !important;
+}
+
+/* ============================================
+   10. REMOVE ALL CARD BORDERS & FRAMES (ONLY with sidebar)
+   ============================================ */
+
+/* Remove borders from ALL cards (ONLY on logged-in pages) */
+body:has(.nk-sidebar) .card,
+body:has(.nk-sidebar) .card-bordered,
+body:has(.nk-sidebar) .card-stretch {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+/* Make card inner transparent (ONLY with sidebar) */
+body:has(.nk-sidebar) .card-inner {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* Remove green backgrounds */
+.bg-success,
+.badge-success,
+.badge.bg-success {
+  background-color: transparent !important;
+  color: #364a63 !important;
+}
+
+/* Make ONLY content area PURE WHITE background - NOT header/sidebar (ONLY with sidebar) */
+body:has(.nk-sidebar) .nk-content,
+body:has(.nk-sidebar) .nk-content .container-fluid,
+body:has(.nk-sidebar) .nk-content .nk-block {
+  background-color: #ffffff !important;
+}
+
+/* FORCE header to stay dark */
+.nk-header,
+.nk-header-fixed {
+  background-color: #202938 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* FORCE sidebar to stay dark */
+.nk-sidebar,
+.nk-sidebar-fixed {
+  background-color: #202938 !important;
+}
+
+/* Keep header text and icons white */
+.nk-header .page-title,
+.nk-header .page-title span {
+  color: #fff !important;
+}
+
+.nk-header .icon,
+.nk-header em.icon {
+  color: #fff !important;
+}
+
+.nk-header .user-name,
+.nk-header .user-status {
+  color: #fff !important;
+}
+
+/* NUCLEAR FIX: Force user status to be WHITE (not green) */
+.nk-header .user-status,
+.nk-header .user-info .user-status,
+.nk-header .user-toggle .user-status,
+.nk-header .dropdown-toggle .user-status,
+.nk-header a .user-status,
+.nk-header a .user-info .user-status,
+.nk-header .dropdown .user-status,
+html body .nk-header .user-status,
+html body .nk-header .user-info .user-status,
+html body .nk-header .user-toggle .user-status {
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+/* Force ALL text inside user-toggle to be white */
+.nk-header .user-toggle,
+.nk-header .user-toggle * {
+  color: #ffffff !important;
+}
+
+/* Force dropdown-toggle to have white text */
+.nk-header .dropdown-toggle,
+.nk-header .dropdown-toggle *,
+.nk-header a.dropdown-toggle,
+.nk-header a.dropdown-toggle * {
+  color: #ffffff !important;
+}
+
+/* ============================================
+   ULTIMATE NUCLEAR FIX: KILL ALL GREEN BACKGROUNDS IN HEADER
+   ============================================ */
+
+/* Force EVERY element in header to have transparent background */
+.nk-header *,
+.nk-header-tools,
+.nk-header .nk-header-tools,
+.nk-header-tools *,
+.nk-header .nk-header-tools *,
+.nk-header .nk-quick-nav,
+.nk-header .nk-quick-nav *,
+.nk-header .user-dropdown,
+.nk-header .dropdown,
+.nk-header li,
+.nk-header ul,
+.nk-header .dropdown.user-dropdown,
+.nk-header li.user-dropdown,
+.nk-header .user-dropdown a,
+.nk-header .user-toggle,
+.nk-header .user-info,
+.nk-header .dropdown-toggle,
+.nk-header a,
+.nk-header div,
+html body .nk-header *,
+html body .nk-header-tools,
+html body .nk-header .nk-header-tools,
+html body .nk-header .user-dropdown,
+html body .nk-header .dropdown,
+html body .nk-header a,
+html body .nk-header div {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Force header itself to stay dark - NO green! */
+.nk-header,
+.nk-header-fixed,
+.nk-header.nk-header-fixed,
+html body .nk-header,
+html body .nk-header-fixed {
+  background-color: #202938 !important;
+  background: #202938 !important;
+  background-image: none !important;
+}
+
+/* Remove hover backgrounds from header elements */
+.nk-header *:hover,
+.nk-header a:hover,
+.nk-header .dropdown-toggle:hover,
+.nk-header .user-toggle:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* ============================================
+   KILL THE GREEN DROPDOWN-TOGGLE BACKGROUND!!!
+   This is the main culprit: rgb(4, 155, 104)
+   ============================================ */
+.nk-header .dropdown-toggle,
+.nk-header a.dropdown-toggle,
+.nk-header .user-dropdown .dropdown-toggle,
+.nk-header .user-dropdown a.dropdown-toggle,
+.nk-header li.dropdown .dropdown-toggle,
+html body .nk-header .dropdown-toggle,
+html body .nk-header a.dropdown-toggle,
+html body .nk-header .user-dropdown .dropdown-toggle,
+html body .nk-header .user-dropdown a.dropdown-toggle {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Also remove on hover and active states */
+.nk-header .dropdown-toggle:hover,
+.nk-header .dropdown-toggle:focus,
+.nk-header .dropdown-toggle:active,
+.nk-header .dropdown-toggle.show,
+html body .nk-header .dropdown-toggle:hover,
+html body .nk-header .dropdown-toggle:focus,
+html body .nk-header .dropdown-toggle:active,
+html body .nk-header .dropdown-toggle.show {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Remove tab borders */
+.nav-tabs,
+.nav-tabs-card {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.nav-tabs .nav-link {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.nav-tabs .nav-link.active {
+  border: none !important;
+  background-color: transparent !important;
+  border-bottom: 2px solid #6576ff !important;
+}
+
+/* Tab content - no border */
+.tab-content {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+/* Form elements - keep minimal styling */
+.form-control {
+  background-color: #fff !important;
+  border: 1px solid #dbdfea !important;
+}
+
+/* Tables - Clean styling without borders */
+.nk-tb-list,
+.traffic-channel-table,
+.nk-tb-ulist {
+  background-color: #fff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+/* Table header */
+.nk-tb-item.nk-tb-head {
+  background-color: #f9fafb !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+  font-weight: 600 !important;
+  padding: 15px !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.nk-tb-item.nk-tb-head span {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Table rows - NO borders */
+.nk-tb-item {
+  background-color: #fff !important;
+  border: none !important;
+  border-bottom: none !important;
+  padding: 12px 15px !important;
+  transition: all 0.2s ease !important;
+}
+
+.nk-tb-item:last-child {
+  border-bottom: none !important;
+}
+
+.nk-tb-item:hover {
+  background-color: #f9fafb !important;
+  transform: none !important;
+}
+
+/* ============================================
+   DISABLED RESTAURANT ROW - RED COLOR EFFECT
+   ============================================ */
+
+/* Disabled restaurant row - subtle red background */
+.nk-tb-item.restaurant-disabled {
+  background-color: rgba(220, 53, 69, 0.05) !important;
+  border-left: 3px solid #dc3545 !important;
+  position: relative !important;
+}
+
+/* Disabled restaurant row hover - darker red */
+.nk-tb-item.restaurant-disabled:hover {
+  background-color: rgba(220, 53, 69, 0.08) !important;
+}
+
+/* Disabled restaurant text - slightly muted */
+.nk-tb-item.restaurant-disabled .tb-lead,
+.nk-tb-item.restaurant-disabled .user-info span,
+.nk-tb-item.restaurant-disabled .tb-amount {
+  color: #6c757d !important;
+  opacity: 0.85 !important;
+}
+
+/* Table cells */
+.nk-tb-col {
+  padding: 10px 8px !important;
+}
+
+/* Align Restaurant header column to the left - NUCLEAR */
+html body .nk-tb-head .nk-tb-col:first-child,
+html body .nk-tb-list .nk-tb-head .nk-tb-col:first-child,
+.nk-tb-head .nk-tb-col:first-child {
+  padding-left: 12px !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+html body .nk-tb-head .nk-tb-col:first-child .sub-text,
+html body .nk-tb-head .nk-tb-col:first-child span,
+.nk-tb-head .nk-tb-col:first-child .sub-text,
+.nk-tb-head .nk-tb-col:first-child span {
+  text-align: left !important;
+  display: block !important;
+  justify-content: flex-start !important;
+}
+
+/* Align Restaurant content column to match header - NUCLEAR */
+html body .nk-tb-item .nk-tb-col:first-child,
+html body .nk-tb-list .nk-tb-item .nk-tb-col:first-child,
+.nk-tb-item .nk-tb-col:first-child {
+  padding-left: 12px !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+/* Force user-card in first column to align left - MAXIMUM NUCLEAR */
+html body .nk-app-root .nk-tb-item .nk-tb-col:first-child .user-card,
+html body .nk-app-root .nk-tb-list .nk-tb-item .nk-tb-col:first-child .user-card,
+html body .nk-tb-item .nk-tb-col:first-child .user-card,
+html body .nk-tb-list .nk-tb-item .nk-tb-col:first-child .user-card,
+.nk-tb-item .nk-tb-col:first-child .user-card,
+.nk-tb-col .user-card {
+  justify-content: flex-start !important;
+  align-items: center !important;
+  display: flex !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Force user-info and user-avatar alignment */
+html body .nk-tb-col:first-child .user-card .user-avatar,
+html body .nk-tb-col:first-child .user-card .user-info,
+.nk-tb-col:first-child .user-card .user-avatar,
+.nk-tb-col:first-child .user-card .user-info {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body .nk-tb-col:first-child .user-card .user-info {
+  padding-left: 10px !important;
+  text-align: left !important;
+}
+
+/* Override media query padding for first column */
+@media (min-width: 576px) {
+  html body .nk-tb-item .nk-tb-col:first-child,
+  html body .nk-tb-head .nk-tb-col:first-child,
+  .nk-tb-item .nk-tb-col:first-child,
+  .nk-tb-head .nk-tb-col:first-child {
+    padding-left: 12px !important;
+  }
+}
+
+/* Table text */
+.tb-lead {
+  color: #364a63 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+.tb-sub,
+.tb-amount {
+  color: #526484 !important;
+  font-size: 13px !important;
+}
+
+/* Card titles for tables */
+.card-title-group {
+  padding: 15px 0 !important;
+  margin-bottom: 15px !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+}
+
+.tenant-title {
+  color: #364a63 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  margin-bottom: 4px !important;
+}
+
+.tenant-subtitle {
+  color: #8094ae !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+}
+
+/* Make table container have white background - NO borders */
+.card-inner {
+  background-color: #fff !important;
+  padding: 20px !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+/* Remove separator lines */
+.btn-toolbar-sep {
+  display: none !important;
+}
+
+/* Remove user avatar circles/backgrounds */
+.user-avatar {
+  background-color: transparent !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+}
+
+.user-avatar.bg-primary {
+  background-color: transparent !important;
+  color: #364a63 !important;
+}
+
+/* Remove green dots */
+.dot.dot-success {
+  display: none !important;
+}
+
+/* Remove pagination borders */
+.pagination .page-link {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: transparent !important;
+  border: none !important;
+  color: #526484 !important;
+  font-weight: 600 !important;
+}
+
+.pagination .page-item.disabled .page-link {
+  border: none !important;
+  background-color: transparent !important;
+  color: #8094ae !important;
+}
+
+/* Remove all card borders - AGGRESSIVE */
+.card.card-bordered,
+.card-bordered,
+.card,
+.card-stretch {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove card-inner borders */
+.card-inner,
+.card-inner-group {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove all table container borders */
+.nk-tb-list,
+.nk-tb-ulist {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove all possible borders from table wrapper */
+.card-inner.p-0,
+.card-inner-group > .card-inner {
+  border: none !important;
+}
+
+/* Remove checkbox borders and styling */
+.custom-checkbox .custom-control-label::before {
+  border: 1px solid #dbdfea !important;
+  background-color: #fff !important;
+}
+
+/* Remove all card shadows globally */
+* {
+  box-shadow: none !important;
+}
+
+/* ===== NUCLEAR BORDER REMOVAL - FROM DIAGNOSTIC SCRIPT ===== */
+
+/* Remove .nk-block border and shadow (MAIN CULPRIT) */
+.nk-block {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove all sidebar borders */
+.nk-sidebar-element,
+.nk-sidebar-head,
+.nk-sidebar-brand {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove user avatar border */
+.user-avatar,
+.user-avatar.sm {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove all table column borders */
+.nk-tb-col,
+.nk-tb-channel,
+.nk-tb-sessions,
+.nk-tb-prev-sessions,
+.nk-tb-change,
+.nk-tb-trend,
+.nk-tb-col-tools,
+.tb-col-sm,
+.tb-col-lg,
+.tb-col-md,
+.tb-col-mb {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* Remove all table item borders */
+.nk-tb-item,
+.nk-tb-head {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* Remove card title group borders */
+.card-title-group,
+.card-title,
+.card-title-sm {
+  border: none !important;
+}
+
+/* Force remove ALL borders on ALL elements in content area */
+.nk-content * {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* But keep ONLY the thin line under table header */
+.nk-tb-item.nk-tb-head {
+  border-bottom: 1px solid #e5e9f2 !important;
+}
+
+/* Only keep shadow on dropdowns */
+.dropdown-menu {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   11. REMOVE HOVER EFFECTS FROM CARDS/TABLES
+   ============================================ */
+
+/* NO hover effects on cards - keep them static */
+body:has(.nk-sidebar) .card:hover,
+body:has(.nk-sidebar) .card-bordered:hover,
+body:has(.nk-sidebar) .nk-block:hover,
+html body .card:hover,
+html body .card-bordered:hover,
+html body .nk-block:hover {
+  box-shadow: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Keep cards completely static - no effects */
+body:has(.nk-sidebar) .card,
+body:has(.nk-sidebar) .card-bordered,
+body:has(.nk-sidebar) .nk-block {
+  transition: none !important;
+  transform: none !important;
+}
+
+/* ============================================
+   12. MOVE PAGINATION TO TOP (NEXT TO SETTINGS)
+   ============================================ */
+
+/* Target the specific card with table */
+.card-bordered.card-stretch {
+  position: relative !important;
+}
+
+/* Find the card-tools section and make room for pagination */
+.card-title-group {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 15px 20px !important;
+  margin: 0 !important;
+}
+
+.card-tools {
+  display: flex !important;
+  gap: 15px !important;
+  align-items: center !important;
+}
+
+/* Make both button sections visible and aligned */
+.card-title-group .card-tools:first-child {
+  margin-right: auto !important; /* Push to left */
+}
+
+.card-title-group .card-tools:last-child {
+  margin-left: auto !important; /* Push to right */
+}
+
+/* Make the settings and plus buttons SMALLER - NUCLEAR */
+.card-title-group .btn-icon,
+.card-title-group .btn-trigger,
+.card-title-group .btn.btn-icon,
+.card-title-group .btn.btn-primary,
+.card-title-group .btn.btn-trigger.btn-icon,
+.card-title-group a.btn.btn-icon,
+.card-title-group a.btn.btn-trigger,
+.card-title-group .dropdown .btn,
+html body .card-title-group .btn-icon,
+html body .card-title-group .btn-trigger,
+html body .card-title-group .btn.btn-icon,
+html body .card-title-group .btn.btn-primary {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  padding: 6px !important;
+  border-radius: 6px !important;
+  line-height: 1 !important;
+}
+
+/* Remove green selection/highlight frames */
+html body *::selection,
+*::selection {
+  background-color: rgba(8, 129, 94, 0.2) !important; /* Light green, not bright */
+  color: inherit !important;
+}
+
+html body *::-moz-selection,
+*::-moz-selection {
+  background-color: rgba(8, 129, 94, 0.2) !important;
+  color: inherit !important;
+}
+
+/* Remove green outline/border when clicking */
+html body *:focus,
+html body *:active,
+*:focus,
+*:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Prevent green highlight frames on drag/select */
+html body *,
+* {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Remove borders from logo */
+html body .nk-sidebar-brand,
+html body .nk-sidebar-logo,
+html body .logo-link,
+html body .navbar-brand,
+.nk-sidebar-brand,
+.nk-sidebar-logo,
+.logo-link,
+.navbar-brand {
+  border: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+html body .logo-img,
+html body .logo-light,
+html body .logo-dark,
+.logo-img,
+.logo-light,
+.logo-dark {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Add space between settings and plus icon */
+html body .card-title-group .btn-toolbar,
+html body .card-title-group ul.btn-toolbar,
+.card-title-group .btn-toolbar,
+.card-title-group ul.btn-toolbar {
+  gap: 4px !important;
+}
+
+html body .card-title-group .btn-toolbar-sep,
+.card-title-group .btn-toolbar-sep {
+  width: 1px !important;
+  height: 20px !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  margin: 0 2px !important;
+  display: block !important;
+}
+
+.card-title-group .btn-icon .icon,
+.card-title-group .btn-icon em,
+.card-title-group .btn-trigger .icon,
+.card-title-group .btn-trigger em,
+.card-title-group .btn.btn-icon .icon,
+.card-title-group .btn.btn-icon em,
+html body .card-title-group .btn-icon .icon,
+html body .card-title-group .btn-icon em {
+  font-size: 14px !important;
+}
+
+/* ============================================
+   DROPDOWN MENU ITEMS - BLACK TEXT & ICONS
+   ============================================ */
+
+/* Dropdown menu items - BLACK text */
+.dropdown-menu .link-list-opt a,
+.dropdown-menu .link-list-opt a span,
+.dropdown-menu.dropdown-menu-end .link-list-opt a,
+.dropdown-menu.dropdown-menu-end .link-list-opt a span {
+  color: #364a63 !important; /* BLACK text */
+  font-weight: 500 !important;
+}
+
+/* Dropdown menu icons - BLACK by default */
+.dropdown-menu .link-list-opt a em.icon,
+.dropdown-menu .link-list-opt em.icon,
+.dropdown-menu.dropdown-menu-end .link-list-opt a em.icon {
+  color: #364a63 !important; /* BLACK icons */
+}
+
+/* Toggle Status (Activate/Disable) - BLACK text, NO background */
+.dropdown-menu .link-list-opt a.toggle-status,
+.dropdown-menu .link-list-opt a.toggle-status span,
+.dropdown-menu.dropdown-menu-end a.toggle-status,
+.dropdown-menu.dropdown-menu-end a.toggle-status span {
+  color: #364a63 !important; /* BLACK text */
+  background-color: transparent !important; /* NO background */
+}
+
+.dropdown-menu .link-list-opt a.toggle-status em.icon,
+.dropdown-menu.dropdown-menu-end a.toggle-status em.icon {
+  color: #364a63 !important; /* BLACK icon */
+}
+
+/* Delete icon - RED color */
+.dropdown-menu .link-list-opt a.delete-button em.icon,
+.dropdown-menu .link-list-opt .delete-button em.icon,
+a.delete-button em.icon.ni-trash,
+.link-list-opt a em.icon.ni-trash {
+  color: #dc3545 !important; /* RED delete icon */
+}
+
+/* Delete text - RED color */
+.dropdown-menu .link-list-opt a.delete-button,
+.dropdown-menu .link-list-opt a.delete-button span,
+.link-list-opt a.delete-button span {
+  color: #dc3545 !important; /* RED delete text */
+}
+
+/* Hover effects */
+.dropdown-menu .link-list-opt a:hover {
+  background-color: #f5f6fa !important;
+  color: #364a63 !important; /* Green on hover */
+}
+
+.dropdown-menu .link-list-opt a:hover em.icon {
+  color: #364a63 !important; /* Green icon on hover */
+}
+
+/* Toggle Status hover - GREEN (same as others) */
+.dropdown-menu .link-list-opt a.toggle-status:hover,
+.dropdown-menu .link-list-opt a.toggle-status:hover span {
+  background-color: #f5f6fa !important;
+  color: #364a63 !important; /* GREEN on hover */
+}
+
+.dropdown-menu .link-list-opt a.toggle-status:hover em.icon {
+  color: #364a63 !important; /* GREEN icon on hover */
+}
+
+/* Delete item hover - stay RED */
+.dropdown-menu .link-list-opt a.delete-button:hover,
+.dropdown-menu .link-list-opt a.delete-button:hover span {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+  color: #dc3545 !important; /* Keep RED on hover */
+}
+
+.dropdown-menu .link-list-opt a.delete-button:hover em.icon {
+  color: #dc3545 !important; /* Keep RED icon on hover */
+}
+
+/* Make the three dots and action buttons in table rows SMALLER - NUCLEAR */
+.nk-tb-actions .btn-icon,
+.nk-tb-actions .btn-trigger,
+.nk-tb-col-tools .btn-icon,
+.nk-tb-col-tools .btn-trigger,
+.nk-tb-item .btn-icon,
+.nk-tb-item .btn-trigger,
+.nk-tb-actions .btn.btn-trigger.btn-icon,
+.nk-tb-col-tools .btn.btn-trigger.btn-icon,
+.nk-tb-actions a.btn.btn-trigger.btn-icon,
+.nk-tb-col-tools a.btn.btn-trigger.btn-icon,
+html body .nk-tb-actions .btn-icon,
+html body .nk-tb-actions .btn-trigger,
+html body .nk-tb-col-tools .btn-icon,
+html body .nk-tb-col-tools .btn-trigger {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  padding: 4px !important;
+  border-radius: 5px !important;
+  line-height: 1 !important;
+}
+
+.nk-tb-actions .btn-icon .icon,
+.nk-tb-actions .btn-icon em,
+.nk-tb-actions .btn-trigger .icon,
+.nk-tb-actions .btn-trigger em,
+.nk-tb-col-tools .btn-icon .icon,
+.nk-tb-col-tools .btn-icon em,
+.nk-tb-col-tools .btn-trigger .icon,
+.nk-tb-col-tools .btn-trigger em,
+.nk-tb-item .btn-icon .icon,
+.nk-tb-item .btn-icon em,
+.nk-tb-item .btn-trigger .icon,
+.nk-tb-item .btn-trigger em,
+html body .nk-tb-actions .btn-icon .icon,
+html body .nk-tb-actions .btn-icon em,
+html body .nk-tb-col-tools .btn-icon .icon,
+html body .nk-tb-col-tools .btn-icon em {
+  font-size: 12px !important;
+}
+
+/* Keep pagination at the bottom of the table - natural position */
+.card-inner:last-child {
+  position: static !important;
+}
+
+.nk-block-between-md {
+  position: static !important;
+  margin: 0 !important;
+  padding: 15px 20px !important;
+}
+
+/* Style the pagination - SMALLER SIZE */
+.nk-block-between-md .pagination {
+  margin: 0 !important;
+  display: inline-flex !important;
+  background: transparent !important;
+}
+
+.pagination .page-item {
+  margin: 0 2px !important;
+}
+
+.pagination .page-link {
+  padding: 4px 10px !important;
+  border: 1px solid #dbdfea !important;
+  background-color: #fff !important;
+  color: #526484 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  border-radius: 5px !important;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #6576ff !important;
+  border-color: #6576ff !important;
+  color: #fff !important;
+}
+
+/* ============================================
+   13. USER AVATAR CIRCLES - WHITE BY DEFAULT, NO GREEN!
+   ============================================ */
+
+/* NUCLEAR: Remove ALL green backgrounds from avatars */
+.user-avatar:not(.tenant-id-avatar),
+.user-avatar.bg-primary:not(.tenant-id-avatar),
+.user-avatar.bg-success:not(.tenant-id-avatar),
+.user-avatar.bg-info:not(.tenant-id-avatar),
+td .user-avatar:not(.tenant-id-avatar),
+.nk-tb-item .user-avatar:not(.tenant-id-avatar),
+div.user-avatar:not(.tenant-id-avatar),
+span.user-avatar:not(.tenant-id-avatar),
+[class*="user-avatar"]:not(.tenant-id-avatar) {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Remove green from ANY element with bg-primary inside table - EXCEPT tenant-id-avatar */
+td .bg-primary:not(.tenant-id-avatar),
+.nk-tb-col .bg-primary:not(.tenant-id-avatar),
+.nk-tb-item .bg-primary:not(.tenant-id-avatar) {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+}
+
+/* Avatar text color - black by default - EXCEPT tenant-id-avatar */
+.user-avatar:not(.tenant-id-avatar) span,
+.user-avatar.bg-primary:not(.tenant-id-avatar) span,
+.user-avatar.bg-success:not(.tenant-id-avatar) span,
+.user-avatar.bg-info:not(.tenant-id-avatar) span,
+.bg-primary:not(.tenant-id-avatar) span,
+td .user-avatar:not(.tenant-id-avatar) span,
+td .bg-primary:not(.tenant-id-avatar) span {
+  color: #000000 !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+}
+
+/* Remove green from ALL possible avatar elements */
+div[class*="bg-primary"],
+span[class*="bg-primary"],
+div[class*="bg-success"],
+span[class*="bg-success"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+/* Hover effect - turn DARK GREEN only on hover - EXCEPT tenant-id-avatar */
+.user-avatar:not(.tenant-id-avatar):hover,
+.user-avatar.bg-primary:not(.tenant-id-avatar):hover,
+.user-avatar.bg-success:not(.tenant-id-avatar):hover,
+td .user-avatar:not(.tenant-id-avatar):hover,
+td .bg-primary:not(.tenant-id-avatar):hover,
+.nk-tb-item:hover .user-avatar:not(.tenant-id-avatar),
+.nk-tb-item:hover .bg-primary:not(.tenant-id-avatar),
+tr:hover .user-avatar:not(.tenant-id-avatar),
+tr:hover .bg-primary:not(.tenant-id-avatar) {
+  background-color: #059669 !important;
+  background: #059669 !important;
+  border-color: #059669 !important;
+  color: #ffffff !important;
+}
+
+.user-avatar:not(.tenant-id-avatar):hover span,
+.user-avatar.bg-primary:not(.tenant-id-avatar):hover span,
+.user-avatar.bg-success:not(.tenant-id-avatar):hover span,
+td .user-avatar:not(.tenant-id-avatar):hover span,
+td .bg-primary:not(.tenant-id-avatar):hover span,
+.nk-tb-item:hover .user-avatar:not(.tenant-id-avatar) span,
+.nk-tb-item:hover .bg-primary:not(.tenant-id-avatar) span,
+tr:hover .user-avatar:not(.tenant-id-avatar) span,
+tr:hover .bg-primary:not(.tenant-id-avatar) span {
+  color: #ffffff !important;
+}
+
+/* ============================================
+   ❌ FIX SETTINGS PAGE - REMOVE GREEN/GRAY BACKGROUND
+   ============================================ */
+
+/* NUCLEAR: Force body to be PURE WHITE - NO green, NO gray! */
+body.bg-lighter,
+body.nk-body.bg-lighter,
+html body.bg-lighter {
+  background-color: #ffffff !important; /* PURE WHITE */
+  background: #ffffff !important; /* PURE WHITE */
+}
+
+/* Force ALL possible body backgrounds to WHITE */
+body,
+body.nk-body,
+html body,
+body.has-sidebar {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+/* NUCLEAR: Remove bg-lighter class effects EVERYWHERE */
+.bg-lighter,
+body.bg-lighter,
+.nk-body.bg-lighter,
+html .bg-lighter {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+
+/* ============================================
+   ❌ REMOVE CARD FRAMES ON SETTINGS PAGE
+   ============================================ */
+
+/* NUCLEAR: Remove ALL card borders and frames - SETTINGS PAGE */
+.card-bordered.card-stretch,
+.card.card-bordered.card-stretch,
+html body .card-bordered.card-stretch,
+html body .card.card-bordered.card-stretch {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-color: transparent !important;
+}
+
+/* NUCLEAR: Remove ALL borders from cards in nk-block-lg (Settings page) */
+.nk-block-lg .card,
+.nk-block-lg .card-bordered,
+.nk-block-lg .card-stretch,
+html body .nk-block-lg .card,
+html body .nk-block-lg .card-bordered,
+html body .nk-block-lg .card-stretch {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* Remove borders from nav tabs card */
+.nav-tabs-card,
+.nav-tabs.nav-tabs-card,
+html body .nav-tabs-card {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+/* HIDE THE ENTIRE TAB NAVIGATION - Only 1 tab, so useless! */
+.nav-tabs.nav-tabs-mb-icon,
+.nav-tabs.nav-tabs-card,
+ul.nav.nav-tabs,
+html body .nav-tabs,
+html body ul.nav-tabs {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure tab content has no borders */
+.tab-content,
+.tab-pane,
+html body .tab-content,
+html body .tab-pane {
+  border: none !important;
+  background-color: transparent !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Ensure card inner on settings has no borders */
+.nk-block-lg .card-inner,
+html body .nk-block-lg .card-inner {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+/* FORCE: Make the entire settings form area transparent */
+.form-settings,
+.card-inner.pt-0,
+html body .form-settings,
+html body .card-inner.pt-0 {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* Hide the useless "General setting" title and description text */
+.card-inner.pt-0 > h4.title.nk-block-title,
+.card-inner.pt-0 > h4:first-child,
+.card-inner.pt-0 > p:first-of-type,
+html body .card-inner.pt-0 > h4,
+html body .card-inner.pt-0 > p {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Move settings form down a little bit - breathing room */
+.card-inner.pt-0,
+html body .card-inner.pt-0,
+.nk-block-lg .card-inner,
+html body .nk-block-lg .card-inner {
+  padding-top: 30px !important; /* Add spacing at top */
+}
+
+/* Settings form gets a bit of top space */
+.form-settings,
+html body .form-settings {
+  margin-top: 10px !important;
+}
+
+/* ============================================
+   ✅ FIX UPDATE BUTTON - Make it SAME size as "View All" button
+   ============================================ */
+
+/* NUCLEAR: Settings page Update button - EXACT same size as View All button */
+html body .nk-content .form-settings .btn-lg,
+html body .nk-content .form-settings button.btn-lg,
+html body .nk-content .form-settings .btn.btn-lg,
+html body .nk-content .form-settings button[type="submit"],
+html body .form-settings .btn-lg,
+html body .form-settings button.btn-lg,
+html body .nk-content button.btn-lg.btn-primary,
+html body button.btn-lg.btn-primary,
+html body .btn-lg.btn-primary {
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* SAME gradient */
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  padding: 8px 20px !important; /* SAME as View All - SMALL! */
+  font-size: 14px !important; /* SAME as View All - SMALL! */
+  font-weight: 500 !important; /* SAME as View All */
+  border-radius: 6px !important; /* SAME as View All */
+  min-width: auto !important;
+  max-width: none !important;
+  width: auto !important;
+  height: auto !important; /* NOT 48px or any large value */
+  line-height: 1.5 !important; /* Normal line height */
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+  display: inline-block !important;
+  border: 1px solid #364a63 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+/* Update button hover - SAME as View All button hover */
+html body .nk-content .form-settings .btn-lg:hover,
+html body .nk-content .form-settings button.btn-lg:hover,
+html body .nk-content .form-settings button[type="submit"]:hover,
+html body .form-settings .btn-lg:hover,
+html body .btn-lg.btn-primary:hover {
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ============================================
+   14. FIX STATISTICS GRAPHS - BLACK COLOR, NO BACKGROUND
+   ============================================ */
+
+/* Make ALL statistics canvas graphs BLACK */
+.traffic-channel-ck canvas,
+.analytics-line-small,
+canvas.analytics-line-small {
+  filter: grayscale(100%) brightness(0.3) !important; /* BLACK graphs */
+  opacity: 1 !important;
+}
+
+/* Style the graph container - NO BACKGROUND */
+.traffic-channel-ck {
+  opacity: 1 !important;
+  background: transparent !important; /* NO background */
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Make the trend column content centered */
+.nk-tb-trend {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ============================================
+   15. CENTER-ALIGN ALL TABLE COLUMNS TEXT
+   ============================================ */
+
+/* Center-align ALL text in table columns - BOTH tables */
+.nk-tb-col,
+.nk-tb-col span,
+.nk-tb-col .tb-lead,
+.nk-tb-col .tb-sub,
+.nk-tb-col .tb-amount,
+.nk-tb-item .nk-tb-col,
+.traffic-channel-table .nk-tb-col,
+.nk-tb-ulist .nk-tb-col,
+.nk-tb-list .nk-tb-col,
+.nk-tb-list td,
+.nk-tb-list th {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+/* Center-align table headers too */
+.nk-tb-head .nk-tb-col,
+.nk-tb-head .nk-tb-col span,
+.nk-tb-head .sub-text,
+.nk-tb-head span {
+  text-align: center !important;
+}
+
+/* Center align all cell content */
+.nk-tb-item td,
+.nk-tb-item th,
+.nk-tb-col-check,
+.nk-tb-channel,
+.nk-tb-sessions,
+.nk-tb-prev-sessions,
+.nk-tb-change,
+.nk-tb-trend {
+  text-align: center !important;
+}
+
+/* Exception: Keep user card info left-aligned */
+.user-card,
+.user-info {
+  text-align: left !important;
+}
+
+/* ============================================
+   16. SETTINGS ICON - GREEN BUTTON WITH WHITE ICON
+   ============================================ */
+
+/* Settings icon button - GREEN background, WHITE icon */
+.btn-icon.btn-trigger,
+.btn-trigger.btn-icon,
+a.btn-icon.btn-trigger {
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
+  border-radius: 6px !important;
+  padding: 8px !important;
+  border: 1px solid #364a63 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Settings icon - WHITE color inside green button - NUCLEAR - ALWAYS WHITE */
+.btn-icon .icon.ni-setting,
+em.icon.ni-setting,
+.icon.ni-setting,
+em.ni-setting,
+.dropdown-toggle .icon.ni-setting,
+.btn-trigger .icon.ni-setting,
+.btn-icon em.icon.ni-setting,
+.btn-trigger em.icon.ni-setting,
+a .icon.ni-setting,
+button .icon.ni-setting,
+html body .icon.ni-setting,
+html body em.icon.ni-setting,
+.btn-icon.btn-trigger .icon.ni-setting,
+.btn-trigger.btn-icon .icon.ni-setting,
+a.btn-icon.btn-trigger .icon.ni-setting,
+.btn.btn-trigger .icon.ni-setting,
+.btn.btn-icon .icon.ni-setting {
+  color: #ffffff !important; /* WHITE icon - ALWAYS */
+  background: transparent !important;
+}
+
+/* Settings button hover */
+.btn-icon.btn-trigger:hover,
+.btn-trigger.btn-icon:hover {
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important;
+  box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Settings icon hover - stays WHITE - NUCLEAR - ALL STATES */
+.btn-icon:hover .icon.ni-setting,
+.dropdown-toggle:hover .icon.ni-setting,
+.btn-trigger:hover .icon.ni-setting,
+.btn-icon:hover em.icon.ni-setting,
+.btn-trigger:hover em.icon.ni-setting,
+a:hover .icon.ni-setting,
+button:hover .icon.ni-setting,
+.btn-icon:focus .icon.ni-setting,
+.btn-trigger:focus .icon.ni-setting,
+.btn-icon:active .icon.ni-setting,
+.btn-trigger:active .icon.ni-setting,
+html body .btn-icon:hover .icon.ni-setting,
+html body .btn-trigger:hover .icon.ni-setting,
+html body a:hover .icon.ni-setting,
+html body button:hover .icon.ni-setting,
+.btn-icon:not(:hover) .icon.ni-setting,
+.btn-trigger:not(:hover) .icon.ni-setting,
+.btn-icon:not(:hover) em.icon.ni-setting,
+.btn-trigger:not(:hover) em.icon.ni-setting {
+  color: #ffffff !important; /* Keep WHITE in ALL states - default, hover, focus, active */
+  background: transparent !important;
+}
+
+/* CRITICAL: Settings button MUST stay GREEN on hover! */
+.btn-icon:has(.icon.ni-setting),
+.btn-trigger:has(.icon.ni-setting),
+a:has(.icon.ni-setting),
+button:has(.icon.ni-setting) {
+  background-color: #059669 !important;
+  background: #059669 !important;
+}
+
+/* Settings button hover - STAY GREEN! */
+.btn-icon:has(.icon.ni-setting):hover,
+.btn-trigger:has(.icon.ni-setting):hover,
+a:has(.icon.ni-setting):hover,
+button:has(.icon.ni-setting):hover,
+.btn-icon:has(.icon.ni-setting):focus,
+.btn-trigger:has(.icon.ni-setting):focus,
+a:has(.icon.ni-setting):focus,
+button:has(.icon.ni-setting):focus,
+.btn-icon:has(.icon.ni-setting):active,
+.btn-trigger:has(.icon.ni-setting):active,
+a:has(.icon.ni-setting):active,
+button:has(.icon.ni-setting):active {
+  background-color: #059669 !important;
+  background: #059669 !important;
+  transform: none !important;
+}
+
+/* ============================================
+   PLUS ICON BUTTON (Add Restaurant) - Same as Settings
+   ============================================ */
+
+/* Plus icon - WHITE color inside green button - NUCLEAR - ALWAYS WHITE */
+.btn-icon .icon.ni-plus,
+em.icon.ni-plus,
+.icon.ni-plus,
+em.ni-plus,
+.btn-trigger .icon.ni-plus,
+.btn-icon em.icon.ni-plus,
+.btn-trigger em.icon.ni-plus,
+a .icon.ni-plus,
+button .icon.ni-plus,
+html body .icon.ni-plus,
+html body em.icon.ni-plus,
+.btn-primary .icon.ni-plus,
+.btn-primary em.icon.ni-plus,
+.btn.btn-primary .icon.ni-plus,
+.btn.btn-icon.btn-primary .icon.ni-plus {
+  color: #ffffff !important; /* WHITE icon - ALWAYS */
+  background: transparent !important;
+}
+
+/* Plus button - GREEN background */
+.btn-icon:has(.icon.ni-plus),
+.btn-trigger:has(.icon.ni-plus),
+a:has(.icon.ni-plus),
+button:has(.icon.ni-plus) {
+  background-color: #059669 !important;
+  background: #059669 !important;
+}
+
+/* Plus button hover - STAY GREEN! */
+.btn-icon:has(.icon.ni-plus):hover,
+.btn-trigger:has(.icon.ni-plus):hover,
+a:has(.icon.ni-plus):hover,
+button:has(.icon.ni-plus):hover,
+.btn-icon:has(.icon.ni-plus):focus,
+.btn-trigger:has(.icon.ni-plus):focus,
+a:has(.icon.ni-plus):focus,
+button:has(.icon.ni-plus):focus,
+.btn-icon:has(.icon.ni-plus):active,
+.btn-trigger:has(.icon.ni-plus):active,
+a:has(.icon.ni-plus):active,
+button:has(.icon.ni-plus):active {
+  background-color: #059669 !important;
+  background: #059669 !important;
+  transform: none !important;
+}
+
+/* Plus icon hover - stays WHITE - NUCLEAR - ALL STATES */
+.btn-icon:hover .icon.ni-plus,
+.btn-trigger:hover .icon.ni-plus,
+.btn-icon:hover em.icon.ni-plus,
+.btn-trigger:hover em.icon.ni-plus,
+a:hover .icon.ni-plus,
+button:hover .icon.ni-plus,
+.btn-icon:focus .icon.ni-plus,
+.btn-trigger:focus .icon.ni-plus,
+.btn-icon:active .icon.ni-plus,
+.btn-trigger:active .icon.ni-plus,
+html body .btn-icon:hover .icon.ni-plus,
+html body .btn-trigger:hover .icon.ni-plus,
+html body a:hover .icon.ni-plus,
+html body button:hover .icon.ni-plus,
+.btn-icon:not(:hover) .icon.ni-plus,
+.btn-trigger:not(:hover) .icon.ni-plus,
+.btn-icon:not(:hover) em.icon.ni-plus,
+.btn-trigger:not(:hover) em.icon.ni-plus,
+.btn-primary:not(:hover) .icon.ni-plus,
+.btn-primary:not(:hover) em.icon.ni-plus {
+  color: #ffffff !important; /* Keep WHITE in ALL states - default, hover, focus, active */
+  background: transparent !important;
+}
+
+/* ============================================
+   17. MOVE TITLES CLOSER TO TABLES
+   ============================================ */
+
+/* Reduce spacing between title and table content */
+.card-inner.mb-n2 {
+  padding-bottom: 5px !important; /* Was 15px, now 5px - CLOSER! */
+  margin-bottom: 5px !important;
+}
+
+.card-inner-group > .card-inner:first-child {
+  padding-bottom: 5px !important; /* Was 15px, now 5px - CLOSER! */
+  margin-bottom: 5px !important;
+}
+
+/* Reduce spacing in title group */
+.card-title-group {
+  margin-bottom: 8px !important; /* Was 15px, now 8px - CLOSER! */
+}
+
+/* Reduce spacing below subtitle */
+.tenant-subtitle {
+  margin-bottom: 0 !important;
+}
+
+/* ============================================
+   18. DASHBOARD TABLES - FULL WIDTH STACKED VERTICALLY
+   ============================================ */
+
+/* Make the row stack vertically - NOT horizontally */
+.nk-block .row.g-gs {
+  display: flex !important;
+  flex-direction: column !important; /* Stack vertically! */
+  flex-wrap: wrap !important;
+  width: 100% !important;
+}
+
+/* Make both columns FULL WIDTH - stack vertically one under the other */
+.nk-block .row.g-gs .col-md-7,
+.nk-block .row.g-gs .col-md-5,
+.nk-block .row.g-gs .col-xxl-4 {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  padding: 0 20px !important;
+  margin-bottom: 20px !important;
+}
+
+/* Ensure cards inside are also full width */
+.nk-block .row.g-gs .card {
+  width: 100% !important;
+}
+
+/* ============================================
+   19. DASHBOARD TABLE TITLES & BUTTONS STYLING
+   ============================================ */
+
+/* Make ALL table titles BIGGER and more prominent */
+.tenant-title,
+h6.tenant-title,
+.card-title h6,
+.card-title-group .card-title h6 {
+  font-size: 20px !important; /* Bigger font */
+  font-weight: 700 !important; /* Bolder */
+  color: #364a63 !important;
+  margin-bottom: 4px !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Subtitle stays smaller */
+.tenant-subtitle {
+  font-size: 14px !important;
+  color: #8094ae !important;
+  font-weight: 400 !important;
+  margin: 0 !important;
+}
+
+/* Make card title group flex to align title and button */
+.card-title-group {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 8px !important; /* CLOSER to table! */
+}
+
+/* Override earlier spacing rules - titles CLOSER to tables! */
+.card-inner.mb-n2,
+.card-inner-group > .card-inner:first-child {
+  padding-bottom: 5px !important; /* MUCH CLOSER! */
+  margin-bottom: 5px !important;
+}
+
+/* Make second table spacing match first table exactly */
+.card-full .card-inner:first-child {
+  padding-bottom: 5px !important; /* MUCH CLOSER! */
+  margin-bottom: 0 !important;
+}
+
+/* Style "View All" button - EXACTLY like active pagination button */
+.card-tools a.link,
+a.link.link {
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* SAME as pagination */
+  border-color: #364a63 !important;
+  color: #ffffff !important; /* WHITE TEXT */
+  padding: 8px 20px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+  display: inline-block !important;
+  border: 1px solid #364a63 !important;
+}
+
+/* FORCE white text color - remove any green text */
+.card-tools a.link,
+.card-tools a.link:visited,
+.card-tools a.link:focus,
+.card-tools a.link:active,
+a.link.link,
+html body .card-tools a.link,
+html body a.link.link {
+  color: #ffffff !important; /* FORCE WHITE ALWAYS */
+}
+
+/* NUCLEAR: Keep text WHITE on hover - NO GREEN! */
+.card-tools a.link:hover,
+a.link.link:hover,
+html body .card-tools a.link:hover,
+html body a.link.link:hover,
+.card-tools a.link:hover *,
+a.link.link:hover * {
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* Reverse gradient on hover */
+  border-color: #364a63 !important;
+  color: #ffffff !important; /* FORCE WHITE TEXT on hover - NO GREEN! */
+  box-shadow: 0 4px 12px rgba(8, 129, 94, 0.3) !important;
+  transform: translateY(-2px) !important;
+  text-decoration: none !important;
+}
+
+/* ============================================
+   20. USER PROFILE DROPDOWN - SMOOTH & COMPACT ✨
+   ============================================ */
+
+/* Dropdown menu - COMPACT width and SMOOTH animation */
+.nk-header .user-dropdown .dropdown-menu,
+.user-dropdown .dropdown-menu,
+.dropdown-menu.dropdown-menu-md.dropdown-menu-end {
+  min-width: 240px !important; /* Smaller, not too wide */
+  max-width: 240px !important;
+  width: 240px !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e9f2 !important; /* Normal gray border - NOT blue/green */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  padding: 0 !important;
+  margin-top: 8px !important;
+  background-color: #ffffff !important; /* Pure white */
+  
+  /* SUPER SMOOTH BOUNCY ANIMATION - Same as notification dropdown! */
+  opacity: 0 !important;
+  transform: translateY(-20px) scale(0.95) !important;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  pointer-events: none !important;
+}
+
+/* When dropdown is NOT showing (closed) */
+.nk-header .user-dropdown .dropdown-menu:not(.show),
+.user-dropdown .dropdown-menu:not(.show),
+.dropdown-menu.dropdown-menu-md.dropdown-menu-end:not(.show) {
+  opacity: 0 !important;
+  transform: translateY(-20px) scale(0.95) !important;
+  pointer-events: none !important;
+}
+
+/* When dropdown is OPEN - Smooth bouncy entrance */
+.nk-header .user-dropdown .dropdown-menu.show,
+.user-dropdown .dropdown-menu.show,
+.dropdown-menu.dropdown-menu-md.dropdown-menu-end.show {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  display: block !important;
+  pointer-events: all !important;
+}
+
+/* User card wrapper - Clean styling with animation */
+.dropdown-menu .user-card-wrap,
+.dropdown-inner.user-card-wrap {
+  background-color: #ffffff !important; /* Pure white, NOT gray */
+  padding: 16px !important;
+  border-radius: 12px 12px 0 0 !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+  
+  /* Fade in animation */
+  opacity: 0;
+  animation: fadeInCard 0.4s ease forwards;
+}
+
+/* User card - Clean layout */
+.user-card-wrap .user-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 0 !important;
+}
+
+/* Fade in animation for user card */
+@keyframes fadeInCard {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* User avatar in dropdown - GREEN circle */
+.user-card-wrap .user-avatar,
+.dropdown-inner.user-card-wrap .user-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background-color: #059669 !important; /* GREEN background - NOT blue */
+  background: linear-gradient(135deg, #364a63 0%, #364a63 100%) !important; /* Green gradient */
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(8, 129, 94, 0.3) !important; /* Green shadow */
+}
+
+/* User info in dropdown */
+.user-card .user-info {
+  flex: 1 !important;
+}
+
+.user-card .lead-text {
+  color: #364a63 !important; /* Dark gray, NOT purple */
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-transform: capitalize !important;
+}
+
+/* Dropdown links section */
+.dropdown-menu .dropdown-inner:not(.user-card-wrap) {
+  padding: 8px !important;
+}
+
+/* Link list */
+.dropdown-menu .link-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.dropdown-menu .link-list li {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important; /* Ensure li fills full width */
+  display: block !important; /* Block display for full width */
+}
+
+/* Links - Beautiful hover effect with staggered animation */
+.dropdown-menu .link-list a {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  color: #526484 !important; /* Gray, NOT purple */
+  text-decoration: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  width: 100% !important; /* Make all links fill full width */
+  box-sizing: border-box !important; /* Include padding in width calculation */
+  
+  /* Staggered fade-in animation - smooth entrance */
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideInItem 0.3s ease forwards;
+}
+
+/* Stagger animation for each menu item */
+.dropdown-menu.show .link-list li:nth-child(1) a {
+  animation-delay: 0.05s;
+}
+
+.dropdown-menu.show .link-list li:nth-child(2) a {
+  animation-delay: 0.1s;
+}
+
+.dropdown-menu.show .link-list li:nth-child(3) a {
+  animation-delay: 0.15s;
+}
+
+.dropdown-menu.show .link-list li:nth-child(4) a {
+  animation-delay: 0.2s;
+}
+
+.dropdown-menu.show .link-list li:nth-child(5) a {
+  animation-delay: 0.25s;
+}
+
+/* Slide in animation keyframes */
+@keyframes slideInItem {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Link hover - GREEN effect */
+/* ONLY apply transform to dropdown menu items, NOT header title */
+.dropdown-menu .link-list a:hover:not(.page-title):not(.page-title *) {
+  background-color: rgba(8, 129, 94, 0.1) !important; /* Light green background - NOT blue */
+  color: #364a63 !important; /* Green text - NOT blue */
+  transform: translateX(4px) !important; /* Slide right slightly */
+}
+
+/* Preserve page title centering transform - don't let hover change it */
+html body .nk-header .page-title,
+html body .page-title,
+.nk-header .page-title,
+.page-title {
+  transform: translateX(-50%) !important; /* Keep centered */
+  transition: none !important; /* No transitions - stay solid */
+  will-change: auto !important; /* Prevent GPU acceleration glitches */
+}
+
+html body .nk-header .page-title span,
+html body .page-title span,
+.nk-header .page-title span,
+.page-title span {
+  transform: none !important; /* Don't transform the text itself */
+  transition: none !important; /* No transitions */
+  will-change: auto !important;
+}
+
+/* Prevent header from being affected by sidebar menu hover effects */
+html body .nk-header,
+html body .nk-header-wrap,
+.nk-header,
+.nk-header-wrap {
+  transform: none !important; /* Keep header stable */
+  transition: none !important;
+}
+
+/* Link icons */
+.dropdown-menu .link-list a em.icon {
+  font-size: 16px !important;
+  color: inherit !important;
+  width: 20px !important;
+  text-align: center !important;
+}
+
+/* HIDE Account Settings link - Only show Sign Out */
+.dropdown-menu .link-list a[href*="settings"],
+.dropdown-menu .link-list li:has(a[href*="settings"]) {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Remove empty gap from hidden settings section */
+.dropdown-menu .dropdown-inner:has(a[href*="settings"]) {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Sign out link - Special styling */
+.dropdown-menu .link-list a[href*="signout"] {
+  color: #dc3545 !important; /* Red color for sign out */
+}
+
+.dropdown-menu .link-list a[href*="signout"]:hover {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+  color: #dc3545 !important;
+}
+
+/* Remove purple from dropdown completely */
+.dropdown-menu .dropdown-inner,
+.dropdown-menu .link-list,
+.dropdown-menu .link-list a span {
+  color: #526484 !important; /* Override any purple */
+}
+
+/* Dropdown arrow/indicator - Remove or style */
+.dropdown-menu::before,
+.dropdown-menu::after {
+  display: none !important; /* Remove weird arrows */
+}
+
+/* User toggle button - Clean hover */
+.nk-header .user-toggle {
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.nk-header .user-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* User dropdown indicator arrow */
+.user-name.dropdown-indicator {
+  position: relative !important;
+}
+
+.user-name.dropdown-indicator::after {
+  content: '' !important;
+  display: inline-block !important;
+  margin-left: 8px !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 4px solid transparent !important;
+  border-right: 4px solid transparent !important;
+  border-top: 4px solid currentColor !important;
+  transition: transform 0.2s ease !important;
+}
+
+/* Rotate arrow when dropdown is open */
+.user-dropdown.show .user-name.dropdown-indicator::after {
+  transform: rotate(180deg) !important;
+}
+
+/* NUCLEAR: Force dropdown to NEVER be purple */
+.dropdown-menu,
+.dropdown-menu *,
+.dropdown-menu .user-card,
+.dropdown-menu .lead-text,
+.dropdown-menu .link-list a {
+  color: #526484 !important; /* Gray, NOT purple */
+}
+
+/* GREEN hover color - NOT blue */
+.dropdown-menu .link-list a:hover,
+.dropdown-menu .link-list a:hover span {
+  color: #364a63 !important; /* GREEN on hover - NOT blue */
+}
+
+
+
+
+/* ============================================
+   BUTTON SYSTEM - CLEAN & SIMPLE
+   ============================================ */
+
+/* All icon buttons - transparent by default */
+.btn-icon,
+.btn-trigger,
+.dropdown-toggle.btn-icon,
+.nk-tb-actions .btn-icon,
+.nk-tb-actions .btn-trigger {
+  background: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 8px !important;
+  border-radius: 8px !important;
+}
+
+/* Icons - gray by default */
+.btn-icon .icon,
+.btn-icon em,
+.btn-trigger .icon,
+.btn-trigger em,
+.dropdown-toggle .icon,
+.dropdown-toggle em,
+.nk-tb-actions .icon,
+.nk-tb-actions em {
+  color: #8094ae !important;
+}
+
+/* Hover - gray background with white icon */
+.btn-icon:hover,
+.btn-trigger:hover,
+.dropdown-toggle:hover {
+  background: #8094ae !important;
+  background-color: #8094ae !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-icon:hover .icon,
+.btn-icon:hover em,
+.btn-trigger:hover .icon,
+.btn-trigger:hover em,
+.dropdown-toggle:hover .icon,
+.dropdown-toggle:hover em {
+  color: #ffffff !important;
+}
+
+/* Primary button (Add) - green with white icon */
+.btn-primary,
+.btn-primary.btn-icon {
+  background: #6576ff !important;
+  background-color: #6576ff !important;
+}
+
+.btn-primary .icon,
+.btn-primary em {
+  color: #ffffff !important;
+}
+
+.btn-primary:hover {
+  background: #5465e0 !important;
+  background-color: #5465e0 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(101, 118, 255, 0.4) !important;
+}
+
+
+/* ============================================
+   KILL GRAY CIRCLES - NUCLEAR APPROACH
+   ============================================ */
+
+/* Remove ALL pseudo-elements that create circles */
+.btn-icon::before,
+.btn-icon::after,
+.btn-trigger::before,
+.btn-trigger::after,
+.dropdown-toggle::before,
+.dropdown-toggle::after,
+.btn::before,
+.btn::after {
+  display: none !important;
+  content: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Kill active/focus/visited states - force transparent */
+.btn-icon:active,
+.btn-icon:focus,
+.btn-icon:visited,
+.btn-icon.active,
+.btn-trigger:active,
+.btn-trigger:focus,
+.btn-trigger:visited,
+.btn-trigger.active,
+.dropdown-toggle:active,
+.dropdown-toggle:focus,
+.dropdown-toggle:visited,
+.dropdown-toggle.active {
+  background: transparent !important;
+  background-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Force icons back to gray on active/focus */
+.btn-icon:active .icon,
+.btn-icon:focus .icon,
+.btn-icon:active em,
+.btn-icon:focus em,
+.btn-trigger:active .icon,
+.btn-trigger:focus .icon,
+.btn-trigger:active em,
+.btn-trigger:focus em {
+  color: #8094ae !important;
+}
+
+/* Remove ripple/wave effects */
+.btn-icon .waves-ripple,
+.btn-trigger .waves-ripple,
+.btn-icon .ripple,
+.btn-trigger .ripple {
+  display: none !important;
+}
+
+/* Force remove any framework-added backgrounds */
+.btn-icon[class*="active"],
+.btn-trigger[class*="active"],
+.btn-icon[class*="focus"],
+.btn-trigger[class*="focus"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Remove show/open state backgrounds */
+.show > .btn-icon,
+.show > .btn-trigger,
+.dropdown.show .dropdown-toggle {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Ensure dropdown toggle returns to transparent when closed */
+.dropdown:not(.show) .dropdown-toggle {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.dropdown:not(.show) .dropdown-toggle .icon,
+.dropdown:not(.show) .dropdown-toggle em {
+  color: #8094ae !important;
+}
+
+
+/* ============================================
+   FIX: WHITE ICONS FROM THE START
+   ============================================ */
+
+/* Buttons have gray background by default (not transparent) */
+.btn-icon,
+.btn-trigger,
+.dropdown-toggle.btn-icon,
+.nk-tb-actions .btn-icon,
+.nk-tb-actions .btn-trigger {
+  background: #8094ae !important;
+  background-color: #8094ae !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 8px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Icons are WHITE by default */
+.btn-icon .icon,
+.btn-icon em,
+.btn-trigger .icon,
+.btn-trigger em,
+.dropdown-toggle .icon,
+.dropdown-toggle em,
+.nk-tb-actions .icon,
+.nk-tb-actions em {
+  color: #ffffff !important;
+}
+
+/* Hover - darker gray, icons stay white */
+.btn-icon:hover,
+.btn-trigger:hover,
+.dropdown-toggle:hover {
+  background: #6c7a8f !important;
+  background-color: #6c7a8f !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-icon:hover .icon,
+.btn-icon:hover em,
+.btn-trigger:hover .icon,
+.btn-trigger:hover em,
+.dropdown-toggle:hover .icon,
+.dropdown-toggle:hover em {
+  color: #ffffff !important;
+}
+
+/* After hover - back to normal gray, icons stay white */
+/* REMOVED .dropdown-toggle from this rule */
+.btn-icon:not(:hover):not(:active):not(:focus),
+.btn-trigger:not(:hover):not(:active):not(:focus) {
+  background: #8094ae !important;
+  background-color: #8094ae !important;
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+.btn-icon:not(:hover) .icon,
+.btn-icon:not(:hover) em,
+.btn-trigger:not(:hover) .icon,
+.btn-trigger:not(:hover) em {
+  color: #ffffff !important;
+}
+
+
+/* ============================================
+   ALL BUTTONS GREEN - LIKE ADD BUTTON
+   ============================================ */
+
+/* ALL buttons are GREEN by default (same as add button) */
+.btn-icon,
+.btn-trigger,
+.dropdown-toggle.btn-icon,
+.nk-tb-actions .btn-icon,
+.nk-tb-actions .btn-trigger,
+.btn.btn-icon,
+.btn.btn-trigger {
+  background: #6576ff !important;
+  background-color: #6576ff !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 8px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Icons are WHITE */
+.btn-icon .icon,
+.btn-icon em,
+.btn-trigger .icon,
+.btn-trigger em,
+.dropdown-toggle .icon,
+.dropdown-toggle em,
+.nk-tb-actions .icon,
+.nk-tb-actions em {
+  color: #ffffff !important;
+}
+
+/* Hover - darker green, icons stay white */
+.btn-icon:hover,
+.btn-trigger:hover,
+.dropdown-toggle:hover,
+.nk-tb-actions .btn-icon:hover,
+.nk-tb-actions .btn-trigger:hover {
+  background: #5465e0 !important;
+  background-color: #5465e0 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(101, 118, 255, 0.4) !important;
+}
+
+.btn-icon:hover .icon,
+.btn-icon:hover em,
+.btn-trigger:hover .icon,
+.btn-trigger:hover em,
+.dropdown-toggle:hover .icon,
+.dropdown-toggle:hover em {
+  color: #ffffff !important;
+}
+
+/* After hover - back to green */
+/* REMOVED .dropdown-toggle from this rule */
+.btn-icon:not(:hover):not(:active):not(:focus),
+.btn-trigger:not(:hover):not(:active):not(:focus) {
+  background: #6576ff !important;
+  background-color: #6576ff !important;
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+
+/* ============================================
+   CHANGE ALL BUTTONS TO PROPER GREEN
+   ============================================ */
+
+/* ALL buttons - PROPER GREEN (not blue #6576ff) */
+.btn-icon,
+.btn-trigger,
+.dropdown-toggle.btn-icon,
+.nk-tb-actions .btn-icon,
+.nk-tb-actions .btn-trigger,
+.btn.btn-icon,
+.btn.btn-trigger,
+.btn-primary,
+.btn-primary.btn-icon,
+.btn.btn-primary {
+  background: #10b981 !important;
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+}
+
+/* Hover - DARKER GREEN */
+.btn-icon:hover,
+.btn-trigger:hover,
+.dropdown-toggle:hover,
+.nk-tb-actions .btn-icon:hover,
+.nk-tb-actions .btn-trigger:hover,
+.btn-primary:hover,
+.btn-primary.btn-icon:hover {
+  background: #059669 !important;
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* After hover - back to GREEN */
+/* REMOVED .dropdown-toggle from this rule */
+.btn-icon:not(:hover):not(:active):not(:focus),
+.btn-trigger:not(:hover):not(:active):not(:focus),
+.btn-primary:not(:hover):not(:active):not(:focus) {
+  background: #10b981 !important;
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+}
+
+
+/* ============================================
+   CORRECT GREEN COLOR - #049b68
+   ============================================ */
+
+/* ALL buttons - CORRECT GREEN #049b68 */
+.btn-icon,
+.btn-trigger,
+.dropdown-toggle.btn-icon,
+.nk-tb-actions .btn-icon,
+.nk-tb-actions .btn-trigger,
+.btn.btn-icon,
+.btn.btn-trigger,
+.btn-primary,
+.btn-primary.btn-icon,
+.btn.btn-primary {
+  background: #049b68 !important;
+  background-color: #049b68 !important;
+  border-color: #049b68 !important;
+}
+
+/* Hover - DARKER GREEN */
+.btn-icon:hover,
+.btn-trigger:hover,
+.dropdown-toggle:hover,
+.nk-tb-actions .btn-icon:hover,
+.nk-tb-actions .btn-trigger:hover,
+.btn-primary:hover,
+.btn-primary.btn-icon:hover {
+  background: #037a52 !important;
+  background-color: #037a52 !important;
+  border-color: #037a52 !important;
+  box-shadow: 0 4px 12px rgba(4, 155, 104, 0.4) !important;
+}
+
+/* After hover - back to #049b68 */
+/* REMOVED .dropdown-toggle from this rule - it was causing green header! */
+.btn-icon:not(:hover):not(:active):not(:focus),
+.btn-trigger:not(:hover):not(:active):not(:focus),
+.btn-primary:not(:hover):not(:active):not(:focus) {
+  background: #049b68 !important;
+  background-color: #049b68 !important;
+  border-color: #049b68 !important;
+}
+
+/* =========================
+   NOTIFICATION DROPDOWN FIX
+   ========================= */
+
+/* Fix notification dropdown transparent background */
+html body .notification-dropdown .dropdown-menu,
+html body .dropdown-menu.dropdown-menu-xl,
+html body .dropdown-menu.dropdown-menu-s1,
+.notification-dropdown .dropdown-menu,
+.dropdown-menu.dropdown-menu-xl.dropdown-menu-end.dropdown-menu-s1 {
+  background-color: #ffffff !important; /* WHITE background */
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Fix notification dropdown header */
+html body .notification-dropdown .dropdown-head,
+.dropdown-menu.dropdown-menu-xl .dropdown-head,
+.dropdown-head {
+  background-color: #ffffff !important; /* WHITE background */
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 12px 20px !important;
+}
+
+/* Fix notification dropdown body */
+html body .notification-dropdown .dropdown-body,
+.dropdown-menu.dropdown-menu-xl .dropdown-body,
+.dropdown-body {
+  background-color: #ffffff !important; /* WHITE background */
+  padding: 0 !important;
+}
+
+/* Fix notification items */
+html body .nk-notification-item,
+.dropdown-body .nk-notification-item {
+  background-color: transparent !important;
+  padding: 12px 20px !important;
+  border-bottom: 1px solid #f5f6fa !important;
+  transition: background-color 0.2s ease !important;
+}
+
+html body .nk-notification-item:hover,
+.dropdown-body .nk-notification-item:hover {
+  background-color: #f5f6fa !important;
+}
+
+html body .nk-notification-item:last-child {
+  border-bottom: none !important;
+}
+
+/* =========================
+   TENANT ID AVATAR STYLING
+   ========================= */
+
+/* Make tenant ID avatars round, green with white numbers - MAXIMUM SPECIFICITY */
+html body .nk-tb-item .user-avatar.tenant-id-avatar,
+html body .nk-tb-col .user-avatar.tenant-id-avatar,
+html body .user-card .user-avatar.tenant-id-avatar,
+html body .tenant-id-avatar,
+html body .user-avatar.tenant-id-avatar,
+html body .tenant-id-avatar:hover,
+html body .user-avatar.tenant-id-avatar:hover,
+html body .nk-tb-item:hover .tenant-id-avatar,
+html body .nk-tb-item:hover .user-avatar.tenant-id-avatar,
+.nk-tb-item .tenant-id-avatar,
+.nk-tb-col .tenant-id-avatar,
+.user-card .tenant-id-avatar,
+.tenant-id-avatar,
+.tenant-id-avatar:hover,
+.tenant-id-avatar:focus,
+.tenant-id-avatar:active,
+.user-avatar.bg-primary.tenant-id-avatar {
+  background-color: #364a63 !important; /* GREEN background - ALWAYS */
+  background: #364a63 !important;
+  border-radius: 50% !important; /* Perfectly round */
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important; /* NO border */
+  box-shadow: none !important; /* NO shadow */
+  outline: none !important; /* NO outline */
+}
+
+html body .nk-tb-item .tenant-id-avatar span,
+html body .nk-tb-col .tenant-id-avatar span,
+html body .user-card .tenant-id-avatar span,
+html body .tenant-id-avatar span,
+html body .tenant-id-avatar:hover span,
+html body .tenant-id-avatar:focus span,
+html body .tenant-id-avatar:active span,
+html body .nk-tb-item:hover .tenant-id-avatar span,
+html body .user-avatar.tenant-id-avatar span,
+.nk-tb-item .tenant-id-avatar span,
+.nk-tb-col .tenant-id-avatar span,
+.user-card .tenant-id-avatar span,
+.tenant-id-avatar span,
+.tenant-id-avatar:hover span,
+.user-avatar.bg-primary.tenant-id-avatar span {
+  color: #ffffff !important; /* WHITE number - ALWAYS */
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+}
+
+/* =========================
+   PROFILE ICON HOVER FIX
+   ========================= */
+
+/* Make profile icon/avatar white on hover */
+html body .user-dropdown .dropdown-toggle:hover .user-avatar,
+html body .user-dropdown .dropdown-toggle:hover .user-avatar span,
+html body .user-dropdown .dropdown-toggle:hover .user-avatar img,
+.user-dropdown .dropdown-toggle:hover .user-avatar,
+.user-dropdown .dropdown-toggle:hover .user-avatar span,
+.dropdown-toggle:hover .user-avatar {
+  color: #ffffff !important; /* WHITE text */
+  background-color: rgba(255, 255, 255, 0.2) !important; /* Slightly lighter background */
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Keep user avatar initials white on hover */
+html body .user-dropdown .dropdown-toggle:hover .user-avatar span,
+.user-dropdown .dropdown-toggle:hover .user-avatar span {
+  color: #ffffff !important;
+}
+

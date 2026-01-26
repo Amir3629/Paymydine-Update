@@ -1,0 +1,130 @@
+/* Notifications Dropdown Styling */
+
+/* Panel width stays fixed, but responsive */
+#notification-panel {
+  width: 520px;           /* or whatever it is now */
+  max-width: 92vw;
+  box-sizing: border-box;
+}
+
+/* History shortcut button - ice white palette - CONSISTENT ACROSS ALL PAGES */
+#notif-history-link,
+#notification-panel #notif-history-link,
+#notification-panel .btn-light {
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  transition: all 0.2s ease !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+}
+
+#notif-history-link:hover,
+#notif-history-link:focus,
+#notification-panel #notif-history-link:hover,
+#notification-panel #notif-history-link:focus,
+#notification-panel .btn-light:hover {
+  background: #f3f4f6 !important; /* Subtle gray instead of light blue */
+  border-color: #d1d5db !important; /* Darker gray border */
+  color: #202938 !important;
+  transform: scale(1.02) !important; /* Subtle scale */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
+}
+
+#notification-panel #notif-history-link.active,
+body.history.index #notification-panel #notif-history-link,
+body.history.index #notif-history-link {
+  background: #f1f4fb !important;
+  border-color: #c9d2e3 !important;
+  color: #202938 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.history.index #notification-panel #notif-history-link:hover,
+body.history.index #notification-panel #notif-history-link:focus,
+body.history.index #notif-history-link:hover,
+body.history.index #notif-history-link:focus {
+  background: #f3f4f6 !important; /* Subtle gray instead of light blue */
+  border-color: #d1d5db !important; /* Darker gray border */
+  color: #202938 !important;
+  transform: scale(1.02) !important; /* Subtle scale */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
+}
+
+/* Each item stacks vertically and wraps text */
+#notification-panel .notif-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom notification item styling - light gray background, no border */
+.notif-item-custom,
+#notification-panel .notif-item-custom {
+  background-color: #f8f9fa !important;
+  border: none !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px !important;
+  padding: 12px 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.notif-item-custom:hover,
+#notification-panel .notif-item-custom:hover {
+  background-color: #e9ecef !important;
+  transform: translateX(2px) !important;
+}
+
+/* Wrap long notes/messages, including very long unbroken strings */
+#notification-panel .notif-text {
+  white-space: pre-line;     /* respect \n, allow wrap, collapse spaces */
+  overflow-wrap: anywhere;   /* modern soft wrap */
+  word-break: break-word;    /* legacy fallback */
+  hyphens: auto;             /* optional: hyphenation */
+  line-height: 1.4;
+}
+
+/* Optional: keep absurdly long notes scrollable instead of
+   making the dropdown super tall. Remove if you want unlimited height */
+#notification-panel .notif-text--limit {
+  max-height: 14rem;
+  overflow: auto;
+}
+
+/* Seen button styling - Match history button style */
+#notification-panel .js-mark-seen,
+#notification-panel button.js-mark-seen,
+#notification-panel .btn.js-mark-seen {
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  min-width: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 28px !important;
+}
+
+#notification-panel .js-mark-seen:hover,
+#notification-panel .js-mark-seen:focus,
+#notification-panel button.js-mark-seen:hover,
+#notification-panel button.js-mark-seen:focus {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+  color: #202938 !important;
+  transform: scale(1.02) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+}

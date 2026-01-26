@@ -1,0 +1,59 @@
+/* ============================================
+   FIX TOGGLE SWITCHES - Restore iOS-style appearance
+   Override rules that break switch styling
+   ============================================ */
+
+/* Restore switch border-radius - switches must be fully rounded */
+.form-switch .form-check-input,
+.form-switch input.form-check-input,
+.form-switch input[type="checkbox"],
+.form-check.form-switch .form-check-input,
+.form-check.form-switch input[type="checkbox"],
+input.form-check-input[role="switch"],
+.form-check-input[role="switch"] {
+  border-radius: 2em !important; /* Fully rounded for iOS-style switches */
+  width: 2em !important;
+  height: 1.25em !important;
+  background-position: left center !important;
+  transition: background-position 0.15s ease-in-out !important;
+}
+
+/* Ensure switch background image shows (circle indicator) */
+.form-switch .form-check-input,
+.form-check.form-switch .form-check-input,
+input.form-check-input[role="switch"],
+.form-check-input[role="switch"] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 3, 41, 0.25%29'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+}
+
+/* Switch checked state - move circle to right - Use neutral blue/gray, NOT green */
+.form-switch .form-check-input:checked,
+.form-check.form-switch .form-check-input:checked,
+input.form-check-input[role="switch"]:checked,
+.form-check-input[role="switch"]:checked {
+  background-position: right center !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23FFFFFF'/%3e%3c/svg%3e") !important;
+  background-color: #4a5568 !important; /* Neutral gray-blue, NOT green */
+  border-color: #4a5568 !important;
+}
+
+/* Switch focus state */
+.form-switch .form-check-input:focus,
+.form-check.form-switch .form-check-input:focus,
+input.form-check-input[role="switch"]:focus,
+.form-check-input[role="switch"]:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ecdbc3'/%3e%3c/svg%3e") !important;
+}
+
+/* Ensure parent container has proper padding for switches */
+.form-switch,
+.form-check.form-switch {
+  padding-left: 2.5em !important;
+}
+
+.form-switch .form-check-input,
+.form-check.form-switch .form-check-input {
+  margin-left: -2.5em !important;
+}

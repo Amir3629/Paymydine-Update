@@ -1,0 +1,1184 @@
+.dashboard-widgets {
+  margin-top: 0;
+  position: relative;
+  min-height: 0;
+}
+.dashboard-widgets .progress-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  padding: 0;
+}
+.dashboard-widgets .progress-indicator[style*="display: none"],
+.dashboard-widgets .progress-indicator.hidden {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+}
+.dashboard-toolbar {
+  padding: 0 0 20px;
+}
+
+/* Fix daterangepicker z-index to prevent interference with profile dropdown */
+.daterangepicker {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+/* When calendar is open, completely disable profile dropdown - MAXIMUM SPECIFICITY */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu,
+.daterangepicker:visible ~ .profile-dropdown-menu,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu,
+body:has(.daterangepicker:visible) .profile-dropdown-menu {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+}
+
+/* Disable all interactive elements inside profile dropdown when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu *,
+.daterangepicker:visible ~ .profile-dropdown-menu *,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu *,
+body:has(.daterangepicker:visible) .profile-dropdown-menu * {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+/* Override inline styles on profile dropdown items when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+.daterangepicker:visible ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*="pointer-events"] {
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+#newWidgetModal .modal-dialog,
+.dashboard-widget-modal-dialog {
+  max-width: 520px;
+}
+
+#newWidgetModal .modal-content,
+.dashboard-widget-modal {
+  border: 2px solid #edeff5 !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 24px 48px rgba(32, 41, 56, 0.14) !important;
+}
+
+#newWidgetModal .modal-body,
+.dashboard-widget-modal .modal-body {
+  padding: 1.5rem 1.75rem !important;
+  border-bottom: 1px solid rgba(201, 210, 227, 0.5);
+}
+
+#newWidgetModal .form-group,
+.dashboard-widget-modal .form-group {
+  margin-bottom: 1.25rem;
+}
+
+#newWidgetModal .form-label,
+.dashboard-widget-modal .form-label {
+  color: #202938;
+  font-weight: 600;
+  margin-bottom: 0.55rem;
+}
+
+#newWidgetModal .form-select,
+.dashboard-widget-modal .form-select,
+.dashboard-widget-modal .form-control {
+  border: 1px solid #c9d2e3 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  padding: 0.65rem 0.75rem !important;
+  color: #202938 !important;
+}
+
+#newWidgetModal .form-select:focus,
+.dashboard-widget-modal .form-select:focus,
+.dashboard-widget-modal .form-control:focus {
+  border-color: #8a93a8 !important;
+  box-shadow: 0 0 0 3px rgba(201, 210, 227, 0.35) !important;
+}
+
+#newWidgetModal .help-block,
+.dashboard-widget-modal .help-block {
+  color: #202938 !important;
+  font-weight: 400 !important;
+  opacity: 0.9 !important;
+}
+
+.dashboard-widget-modal .ss-main,
+#newWidgetModal .ss-main {
+  border: 1px solid #c9d2e3 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  padding: 0.55rem 0.75rem !important;
+  min-height: 48px !important;
+  box-shadow: none !important;
+}
+
+.dashboard-widget-modal .ss-main .ss-single,
+#newWidgetModal .ss-main .ss-single {
+  color: #202938 !important;
+  font-weight: 500;
+}
+
+.dashboard-widget-modal .ss-main .ss-arrow path,
+.dashboard-widget-modal .ss-main .ss-deselect path,
+#newWidgetModal .ss-main .ss-arrow path,
+#newWidgetModal .ss-main .ss-deselect path {
+  stroke: #8a93a8 !important;
+}
+
+#newWidgetModal .modal-header,
+.dashboard-widget-modal .modal-header {
+  border: none !important;
+  padding: 1.5rem 1.75rem !important;
+}
+
+#newWidgetModal .modal-footer,
+.dashboard-widget-modal .modal-footer {
+  border: none !important;
+  padding: 1rem 1.75rem 1.25rem !important;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dashboard-widget-modal .btn-add-widget,
+#newWidgetModal .btn-add-widget {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  min-width: 90px !important;
+  padding: 0.4rem 0.9rem !important;
+  font-weight: 600 !important;
+  display: inline-block !important;
+  text-align: center !important;
+}
+
+.dashboard-widget-modal .btn-add-widget:hover,
+.dashboard-widget-modal .btn-add-widget:focus,
+#newWidgetModal .btn-add-widget:hover,
+#newWidgetModal .btn-add-widget:focus {
+  background: linear-gradient(135deg, #364a63 0%, #0aa868 100%) !important;
+  border-color: #0a6437 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 157, 88, 0.25) !important;
+}
+
+.dashboard-widget-modal .btn-close-modal,
+#newWidgetModal .btn-close-modal {
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  min-width: 90px !important;
+  padding: 0.4rem 0.9rem !important;
+  font-weight: 600 !important;
+  display: inline-block !important;
+  text-align: center !important;
+  border-radius: 12px !important;
+}
+
+.dashboard-widget-modal .btn-close-modal:hover,
+.dashboard-widget-modal .btn-close-modal:focus,
+#newWidgetModal .btn-close-modal:hover,
+#newWidgetModal .btn-close-modal:focus {
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+}
+
+#newWidgetModal .no-widgets-note {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f7f8fc;
+  border: 1px solid #dde3f0;
+  border-radius: 14px;
+  padding: 1.1rem 1.3rem;
+  color: #202938;
+  font-weight: 600;
+  text-align: left;
+}
+
+#newWidgetModal .no-widgets-note i {
+  color: #8a93a8;
+}
+
+.widget-item-action {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: none;
+}
+/* Show control buttons only when in edit mode (not on hover) */
+.edit-mode .widget-item .widget-item-action {
+  display: block;
+}
+
+/* FIX: Ensure widget-item uses flexbox to prevent wrapper div collapsing */
+.widget-item {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: auto !important;
+}
+
+/* FIX: Remove padding from widget-items with wrapper divs - Must override .p-3 !important */
+.widget-item.card.no-padding,
+.widget-item.no-padding {
+  padding: 0 !important;
+}
+
+/* FIX: Override .p-3 specifically when .no-padding is also present */
+.widget-item.no-padding.p-3 {
+  padding: 0 !important;
+}
+
+/* FIX: Ensure wrapper divs (widget content containers) expand to fit content */
+.widget-item > div[id^="stat_"],
+.widget-item > div[id^="chart_"] {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  flex: 1 1 auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure card-counter expands to fill wrapper div */
+.widget-item .card-counter,
+.widget-item [class*="card-counter"] {
+  height: 100% !important;
+  min-height: 244px !important;
+  display: block !important;
+  width: 100% !important;
+}
+.widget-title {
+  padding-bottom: 10px;
+}
+
+/* Remove white boxes from News widget - make it transparent like statistics */
+.widget-news .widget-item.card,
+.widget-news.widget-item.card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* News widget styling - brown/cream theme */
+.widget-news .widget-title {
+  color: #202938 !important;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.widget-news .list-group-item {
+  background: #ffffff !important;
+  border: 1px solid #ffffff !important;
+  border-radius: 8px !important;
+  margin-bottom: 0.5rem !important;
+  transition: all 0.2s ease;
+}
+
+.widget-news .list-group-item:hover {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  transform: translateX(2px);
+}
+
+.widget-news .list-group-item b {
+  color: #202938 !important;
+}
+
+.widget-news .list-group-item .text-muted {
+  color: #364a63 !important;
+}
+
+/* Cache Usage widget - Dynamic circular donut chart */
+.widget-cache .widget-item.card,
+.widget-cache.widget-item.card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.widget-cache {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.widget-cache .widget-title {
+  color: #202938 !important;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Total cache size - center of donut */
+.widget-cache .cache-donut {
+  position: relative;
+  width: min(260px, 100%);
+  aspect-ratio: 1 / 1;
+  margin: 2rem auto 1.5rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: inline-size;
+}
+
+.widget-cache .cache-total-text {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.widget-cache .cache-total-text .cache-label {
+  font-size: clamp(0.62rem, 1.2vw + 0.8cqw, 0.85rem);
+  font-weight: 600;
+  color: #202938;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.widget-cache .cache-total-text b {
+  font-size: clamp(0.85rem, 1.2vw + 2.6cqw, 1.25rem);
+}
+
+.widget-cache .cache-donut > span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  background: #ffffff;
+  padding: clamp(0.5rem, 2.4cqw + 1vw, 1rem) clamp(0.75rem, 3.6cqw + 1vw, 1.5rem);
+  border-radius: 50%;
+  color: #202938 !important;
+  font-weight: 600;
+  border: clamp(1.5px, 0.6vw + 0.6cqw, 3px) solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: clamp(68px, 38cqw, 120px);
+  height: clamp(68px, 38cqw, 120px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.62rem, 1.6vw + 1cqw, 0.92rem);
+  white-space: nowrap;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.widget-cache .cache-donut > span b {
+  color: #202938 !important;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.1vw + 1.8cqw, 1.25rem);
+  display: block;
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+/* Donut chart container */
+.widget-cache .progress {
+  position: relative;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 4 separate donut slices - each physically separated */
+.widget-cache .progress-bar {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  transition: all 0.6s ease !important;
+  /* Gradient: bright color fills clockwise, light gray on remaining part */
+  background: conic-gradient(
+    from var(--start-angle, 0deg),
+    var(--slice-color, #ccc) 0deg,
+    var(--slice-color, #ccc) var(--fill-angle, 0deg),
+    rgba(220, 224, 228, 0.6) var(--fill-angle, 0deg),
+    rgba(220, 224, 228, 0.6) var(--slice-size, 85deg)
+  );
+  /* Clip to show only the slice portion - donut shape with angular cut */
+  /* Center circle is 120px diameter, chart is 260px. Inner at 38%, outer at 95% for wider ring extending towards center */
+  -webkit-mask-image: 
+    radial-gradient(circle, transparent 0%, transparent 38%, black 38%, black 95%, transparent 95%),
+    conic-gradient(
+      from var(--start-angle, 0deg),
+      transparent 0deg,
+      black 0deg,
+      black var(--slice-size, 85deg),
+      transparent var(--slice-size, 85deg)
+    );
+  -webkit-mask-composite: source-in;
+  mask-image: 
+    radial-gradient(circle, transparent 0%, transparent 38%, black 38%, black 95%, transparent 95%),
+    conic-gradient(
+      from var(--start-angle, 0deg),
+      transparent 0deg,
+      black 0deg,
+      black var(--slice-size, 85deg),
+      transparent var(--slice-size, 85deg)
+    );
+  mask-composite: intersect;
+  z-index: 5;
+  /* Move each slice outward from center */
+  transform: translate(var(--translate-x, 0px), var(--translate-y, 0px));
+}
+
+@media (max-width: 1199.98px) {
+  .widget-cache .cache-donut {
+    width: min(220px, 100%);
+  }
+}
+
+@media (max-width: 991.98px) {
+  .widget-cache .cache-donut {
+    width: min(200px, 100%);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .widget-cache .cache-donut {
+    width: min(180px, 85%);
+    margin: 1.5rem auto 1.25rem !important;
+  }
+}
+
+.widget-cache .progress-bar b {
+  display: none;
+}
+
+@media (min-width: 576px) {
+  .col-sm-1 .widget-cache .cache-donut {
+    max-width: 88px;
+    margin: 1.1rem auto 0.9rem !important;
+  }
+
+  .col-sm-1 .widget-cache .cache-donut > span {
+    width: 56px;
+    height: 56px;
+    padding: 0.38rem 0.6rem;
+    font-size: 0.56rem;
+  }
+
+  .col-sm-1 .widget-cache .cache-donut > span b {
+    font-size: 0.72rem;
+  }
+
+  .col-sm-2 .widget-cache .cache-donut {
+    max-width: 108px;
+    margin: 1.35rem auto 0.95rem !important;
+  }
+
+  .col-sm-2 .widget-cache .cache-donut > span {
+    width: 68px;
+    height: 68px;
+    padding: 0.48rem 0.72rem;
+    font-size: 0.62rem;
+  }
+
+  .col-sm-2 .widget-cache .cache-donut > span b {
+    font-size: 0.85rem;
+  }
+
+  .col-sm-1 .widget-cache .cache-curved-label,
+  .col-sm-2 .widget-cache .cache-curved-label {
+    font-size: 8px !important;
+    letter-spacing: 1px;
+  }
+
+  .col-sm-1 .widget-cache .cache-labels-svg,
+  .col-sm-2 .widget-cache .cache-labels-svg {
+    transform: scale(0.8);
+    transform-origin: center;
+  }
+}
+
+/* SVG curved text labels following the donut arc */
+.widget-cache .cache-labels-svg {
+  overflow: visible !important;
+}
+
+.widget-cache .cache-curved-label {
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  paint-order: stroke fill;
+  stroke: rgba(0, 0, 0, 0.6);
+  stroke-width: 2px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Bottom text uses SVG rotate attribute on individual characters */
+
+/* Legend below the chart */
+.widget-cache::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
+/* Clear cache button - ice white styling */
+.widget-cache .btn-default {
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  border-radius: 12px !important;
+  padding: 0.45rem 1.4rem !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+  box-shadow: none !important;
+  font-size: 0.92rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.45rem;
+  min-width: 140px;
+  margin: 0 auto !important;
+  position: relative;
+  z-index: 15;
+}
+
+.widget-cache .btn-default:hover,
+.widget-cache .btn-default:focus {
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #202938 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(32, 41, 56, 0.12) !important;
+}
+
+.widget-cache .btn-default i {
+  color: #202938 !important;
+}
+
+/* ============================================
+   HEADER DROPDOWN MENUS - Brown/Cream Theme
+   ============================================ */
+
+/* All dropdown menus in header (account, location, notifications, etc.) */
+.navbar-top .dropdown-menu,
+.navbar-top .nav-item .dropdown-menu,
+.dropdown-menu {
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+  padding: 8px !important;
+  overflow: hidden !important;
+
+  /* Smooth open/close animations */
+  opacity: 0 !important;
+  transform: translateY(-20px) scale(0.95) !important;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  pointer-events: none !important;
+}
+
+/* Force ALL navbar dropdowns to align right edge to parent right edge */
+/* Override admin.css which sets right: 25px */
+.navbar-top .nav-item.dropdown .dropdown-menu,
+.navbar-top .dropdown-menu {
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* Show state - smooth entrance */
+.dropdown-menu.show,
+.navbar-top .dropdown-menu.show {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  pointer-events: all !important;
+}
+
+/* Dropdown header */
+.dropdown-menu .dropdown-header {
+  color: #202938 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  padding: 12px 16px 8px !important;
+  border-bottom: 2px solid #e5e7eb !important;
+  background: transparent !important;
+}
+
+/* Dropdown items */
+.dropdown-menu .dropdown-item,
+.dropdown-menu .menu-link,
+.dropdown-menu a:not(.btn) {
+  color: #5a4a3a !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease, background 0.2s ease, transform 0.2s ease !important;
+  font-weight: 500 !important;
+  margin: 2px 0 !important;
+  background: transparent !important;
+  
+  /* Staggered fade-in animation */
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideInItem 0.3s ease forwards;
+}
+
+/* EXCEPTION: Status dropdown items in orders table should be immediately visible */
+.list-table .dropdown-menu .status-dropdown-item,
+.list-table .dropdown-menu .dropdown-item {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  animation: none !important;
+}
+
+/* Staggered animation delays for each item */
+.dropdown-menu.show .dropdown-item:nth-child(1),
+.dropdown-menu.show .menu-item:nth-child(1) { animation-delay: 0.05s; }
+.dropdown-menu.show .dropdown-item:nth-child(2),
+.dropdown-menu.show .menu-item:nth-child(2) { animation-delay: 0.1s; }
+.dropdown-menu.show .dropdown-item:nth-child(3),
+.dropdown-menu.show .menu-item:nth-child(3) { animation-delay: 0.15s; }
+.dropdown-menu.show .dropdown-item:nth-child(4),
+.dropdown-menu.show .menu-item:nth-child(4) { animation-delay: 0.2s; }
+.dropdown-menu.show .dropdown-item:nth-child(5),
+.dropdown-menu.show .menu-item:nth-child(5) { animation-delay: 0.25s; }
+.dropdown-menu.show .dropdown-item:nth-child(n+6),
+.dropdown-menu.show .menu-item:nth-child(n+6) { animation-delay: 0.3s; }
+
+/* Slide-in animation keyframes */
+@keyframes slideInItem {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Dropdown item hover - EXCLUDE menu-grid items AND dropdown-footer */
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .menu-link:not(.menu-grid .menu-link):hover,
+.dropdown-menu .menu-item:not(.menu-grid .menu-item):hover,
+.dropdown-menu a:not(.btn):not(.menu-grid .menu-link):not(.dropdown-footer a):hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  color: #202938 !important;
+  transform: translateX(3px) !important;
+}
+
+/* Exclude profile dropdown from green hover effect - MAXIMUM SPECIFICITY */
+.profile-dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu .menu-link:hover,
+.profile-dropdown-menu a:not(.btn):hover,
+.profile-dropdown-menu .dropdown-item:focus,
+.profile-dropdown-menu .dropdown-item:active,
+.profile-dropdown-menu .dropdown-item:focus-visible {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  color: #202938 !important;
+  transform: scale(1.05) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Remove any green gradients or colors from profile dropdown items */
+.profile-dropdown-menu .dropdown-item:hover *,
+.profile-dropdown-menu .dropdown-item:focus *,
+.profile-dropdown-menu .dropdown-item:active * {
+  color: #202938 !important;
+}
+
+/* Active/selected dropdown item */
+.dropdown-menu .dropdown-item.active,
+.dropdown-menu .dropdown-item:active,
+.dropdown-menu .menu-item.active .menu-link {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Dropdown divider */
+.dropdown-menu .dropdown-divider {
+  border-top: 2px solid rgba(32, 41, 56, 0.15) !important;
+  margin: 8px 0 !important;
+  opacity: 1 !important;
+}
+
+/* Dropdown footer */
+.dropdown-menu .dropdown-footer,
+.dropdown-menu .dropdown-footer a {
+  border-top: 2px solid rgba(32, 41, 56, 0.15) !important;
+  padding: 12px 16px !important;
+  color: #202938 !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  background: transparent !important;
+}
+
+.dropdown-menu .dropdown-footer a:hover,
+.dropdown-menu .dropdown-footer a:focus,
+.dropdown-menu .dropdown-footer a:active {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  background-image: none !important;
+  border-color: #d1d5db !important;
+  color: #202938 !important;
+}
+
+.dropdown-menu .dropdown-footer a:hover i,
+.dropdown-menu .dropdown-footer a:focus i,
+.dropdown-menu .dropdown-footer a:active i {
+  color: #202938 !important;
+}
+
+/* Menu list items */
+.dropdown-menu .menu {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.dropdown-menu .menu-item {
+  border-bottom: 1px solid rgba(32, 41, 56, 0.1) !important;
+  margin: 4px 0 !important;
+  border-radius: 8px !important;
+  overflow: visible !important; /* Changed from hidden to visible */
+}
+
+.dropdown-menu .menu-item:last-child {
+  border-bottom: none !important;
+}
+
+/* Settings menu grid layout - COMPACT VERSION - 3 COLUMNS */
+.dropdown-menu .menu-grid {
+  padding: 8px 6px !important;
+  min-width: 420px !important; /* Wide enough for 3 columns */
+  max-width: 450px !important;
+}
+
+.dropdown-menu .menu-grid .menu-item {
+  border-bottom: none !important;
+  margin: 3px !important;
+  text-align: center !important;
+  padding: 0 !important;
+  flex: 0 0 calc(33.333% - 6px) !important; /* Force 3 columns */
+  max-width: calc(33.333% - 6px) !important;
+  position: relative !important;
+  pointer-events: auto !important; /* Ensure entire item is hoverable */
+  z-index: 20 !important; /* HIGHER than dropdown-item (z-index: 10) to prevent blocking */
+}
+
+.dropdown-menu .menu-grid .menu-link {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px 8px !important;
+  min-height: 75px !important;
+  border-radius: 10px !important;
+  text-decoration: none !important;
+  transition: none !important;
+  width: 100% !important;
+  height: 100% !important; /* Fill entire menu-item */
+  text-align: center !important;
+  position: relative !important;
+  pointer-events: auto !important; /* Ensure entire link is hoverable */
+  z-index: 20 !important; /* HIGHER than dropdown-item (z-index: 10) to prevent blocking */
+}
+
+.dropdown-menu .menu-grid .menu-link i {
+  font-size: 24px !important;
+  margin: 0 auto 6px auto !important;
+  margin-right: 0 !important;
+  margin-left: auto !important;
+  color: #4b5563 !important;
+  transition: transform 0.3s ease-out !important; /* Smoother transition */
+  display: block !important;
+  text-align: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  line-height: 24px !important;
+  pointer-events: none !important; /* Don't block hover on parent */
+}
+
+/* FIX: Hover on menu-item triggers icon scale - works for entire button area */
+.dropdown-menu .menu-grid .menu-item:hover .menu-link i {
+  transform: scale(1.05) !important; /* Scale when hovering anywhere on item */
+  color: #000000 !important;
+  transition: transform 0.3s ease-out !important;
+}
+}
+
+.dropdown-menu .menu-grid .menu-link span {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #5a4a3a !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  max-width: 100% !important;
+  display: block !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+
+/* Menu-grid links - ONLY icon scale on hover, nothing else */
+.dropdown-menu .menu-grid .menu-link {
+  background: transparent !important;
+  transition: none !important;
+}
+
+.dropdown-menu .menu-grid .menu-link:hover {
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.dropdown-menu .menu-grid .menu-link i {
+  transition: transform 0.2s ease !important;
+}
+
+.dropdown-menu .menu-grid .menu-link:hover i {
+  color: #000000 !important;
+  transform: scale(1.05) !important; /* Smaller scale, smoother */
+  transition: transform 0.3s ease-out !important;
+}
+
+.dropdown-menu .menu-grid .menu-link:hover span {
+  color: #202938 !important;
+  transform: none !important;
+}
+
+/* Disable ALL hover effects on menu-grid menu-item parent */
+.dropdown-menu .menu-grid .menu-item:hover {
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-color: transparent !important;
+}
+
+/* Icons in dropdown items */
+.dropdown-menu .dropdown-item .fa,
+.dropdown-menu .menu-link .fa {
+  color: #364a63 !important;
+  margin-right: 10px !important;
+  width: 16px !important;
+  text-align: center !important;
+}
+
+.dropdown-menu .dropdown-item:hover .fa,
+.dropdown-menu .menu-link:hover .fa {
+  color: #202938 !important;
+}
+
+.dropdown-menu .dropdown-item.active .fa,
+.dropdown-menu .menu-item.active .menu-link .fa {
+  color: white !important;
+}
+
+/* Notification badges in dropdown */
+.dropdown-menu .badge {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  padding: 3px 8px !important;
+  font-size: 10px !important;
+}
+
+/* Location selector specific */
+.dropdown-menu .menu-item-meta {
+  color: #364a63 !important;
+  font-size: 12px !important;
+  margin-top: 2px !important;
+}
+
+/* Account dropdown user info */
+.dropdown-menu .user-info,
+.dropdown-menu .user-name {
+  color: #202938 !important;
+  font-weight: 600 !important;
+}
+
+/* Scrollbar for long dropdowns */
+.dropdown-menu::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background: #ffffff !important;
+  border-radius: 10px !important;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-radius: 10px !important;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
+}
+
+/* ============================================
+   NOTIFICATION PANEL - Brown/Cream Theme
+   ============================================ */
+
+/* Notification dropdown panel - MATCHES OTHER DROPDOWNS */
+#notification-panel,
+#notification-panel.dropdown-menu {
+  min-width: 420px !important;
+  max-height: 70vh !important;
+  /* Force same padding as other dropdowns (override p-0 class) */
+  padding: 8px !important;
+  /* All other styles inherited from .dropdown-menu */
+}
+
+/* Show state - smooth entrance - MATCH OTHER DROPDOWNS */
+#notification-panel.show {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  pointer-events: all !important;
+}
+
+/* Fix notification parent positioning to match other dropdowns */
+#notif-root.nav-item.dropdown {
+  position: relative !important;
+}
+
+#notif-root .dropdown-menu {
+  position: absolute !important;
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* Notification header - MATCH DROPDOWN HEADERS */
+#notification-panel .d-flex.align-items-center,
+#notification-panel > div:first-child {
+  background: transparent !important; /* Remove gold background */
+  color: #202938 !important;
+  padding: 12px 16px !important;
+  border-bottom: 2px solid #e5e7eb !important; /* Match other dropdowns */
+  border-radius: 0 !important;
+}
+
+#notification-panel .d-flex.align-items-center strong,
+#notification-panel strong {
+  color: #202938 !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* History button */
+#notif-history-link,
+#notification-panel .btn-light {
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  transition: all 0.2s ease !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+}
+
+#notif-history-link:hover,
+#notification-panel .btn-light:hover {
+  background: #f3f4f6 !important; /* Subtle gray instead of light blue */
+  border-color: #d1d5db !important; /* Darker gray border */
+  transform: scale(1.02) !important; /* Subtle scale */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
+}
+
+/* Notification list container */
+#notification-list,
+#notification-panel .list-group {
+  background: transparent !important;
+  padding: 8px !important;
+  max-height: calc(70vh - 80px) !important;
+  overflow-y: auto !important;
+}
+
+/* Individual notification items */
+#notification-list .list-group-item,
+.notification-item {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 8px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+  
+  /* Staggered animation */
+  opacity: 0;
+  transform: translateY(10px);
+  animation: slideUpNotif 0.4s ease forwards;
+}
+
+/* Staggered delays for notification items */
+#notification-panel.show #notification-list .list-group-item:nth-child(1) { animation-delay: 0.1s; }
+#notification-panel.show #notification-list .list-group-item:nth-child(2) { animation-delay: 0.15s; }
+#notification-panel.show #notification-list .list-group-item:nth-child(3) { animation-delay: 0.2s; }
+#notification-panel.show #notification-list .list-group-item:nth-child(4) { animation-delay: 0.25s; }
+#notification-panel.show #notification-list .list-group-item:nth-child(5) { animation-delay: 0.3s; }
+#notification-panel.show #notification-list .list-group-item:nth-child(n+6) { animation-delay: 0.35s; }
+
+@keyframes slideUpNotif {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#notification-list .list-group-item:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  border-color: #d1d5db !important;
+  background: linear-gradient(135deg, #ffffff 0%, white 100%) !important;
+}
+
+/* Notification title/text */
+#notification-list .list-group-item strong,
+.notification-item .title {
+  color: #202938 !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  display: block !important;
+  margin-bottom: 4px !important;
+}
+
+/* Timestamp and status line (02:33 PM • Order Status) */
+#notification-list .list-group-item p,
+#notification-list .list-group-item small,
+.notification-item .text {
+  color: #5a4a3a !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+  font-weight: 500 !important;
+}
+
+/* Notification timestamp */
+#notification-list .list-group-item .text-muted,
+.notification-item .timestamp {
+  color: #364a63 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  margin-top: 6px !important;
+  display: block !important;
+}
+
+/* Empty/loading/error states */
+#notification-loading,
+#notification-empty {
+  color: #6b7280 !important; /* Neutral gray instead of green */
+  text-align: center !important;
+  padding: 40px 20px !important;
+  font-weight: 500 !important;
+}
+
+#notification-error {
+  color: #c0392b !important;
+}
+
+/* Notification badge count */
+#notification-count,
+.notification-count {
+  background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%) !important;
+  color: white !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  padding: 2px 6px !important;
+  font-size: 10px !important;
+  box-shadow: 0 2px 6px rgba(192, 57, 43, 0.4) !important;
+}
+
+/* Bell icon styling */
+#bell-icon,
+.fa-bell {
+  color: #ffffff !important;
+  font-size: 18px !important;
+  transition: all 0.3s ease !important;
+}
+
+#bell-icon:hover,
+.fa-bell:hover {
+  color: #526484 !important;
+  transform: scale(1.1) rotate(15deg) !important;
+}
+
+/* Bell icon when notifications exist */
+#notifDropdown.has-notifications #bell-icon,
+#notifDropdown.has-notifications .fa-bell {
+  color: #e74c3c !important;
+  animation: bellRing 0.5s ease infinite alternate;
+}
+
+@keyframes bellRing {
+  0% { transform: rotate(-10deg); }
+  100% { transform: rotate(10deg); }
+}
+
+/* Notification panel scrollbar */
+#notification-list::-webkit-scrollbar,
+#notification-panel::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+#notification-list::-webkit-scrollbar-track,
+#notification-panel::-webkit-scrollbar-track {
+  background: #ffffff !important;
+  border-radius: 10px !important;
+}
+
+#notification-list::-webkit-scrollbar-thumb,
+#notification-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-radius: 10px !important;
+}
+
+#notification-list::-webkit-scrollbar-thumb:hover,
+#notification-panel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
+}

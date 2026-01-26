@@ -1,0 +1,189 @@
+.toolbar {
+  .toolbar-action {
+    background-color: #ffffff; // White background matching body
+    clear: both;
+    width: 100%;
+    padding: $page-padding-x;
+  }
+
+  @include media-breakpoint-down(sm) {
+    .toolbar-action {
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 100%;
+    }
+  }
+}
+.toolbar-action {
+  .btn-group {
+    &:not(:last-child) {
+      margin-right: 8px;
+    }
+  }
+
+  > .btn {
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+
+  .btn {
+    outline: 0 none;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.55rem 1.75rem !important;
+    border-radius: 12px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    font-weight: 600 !important;
+    transition: none !important;
+
+    &:first-child {
+      margin-left: 0;
+    }
+
+    &:last-child {
+      margin-right: 0;
+    }
+
+    &.active,
+    &:active {
+      box-shadow: none;
+    }
+  }
+
+  .btn + .btn {
+    margin-left: $btn-spacer;
+  }
+
+  .btn + .btn-group {
+    margin-left: $btn-spacer;
+  }
+
+  .btn-group {
+    .btn:not(:first-child) {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .btn:not(:last-child):not(.dropdown-toggle) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .btn + .btn {
+      margin-left: 0;
+    }
+  }
+
+  .btn-left {
+    float: left;
+  }
+
+  .btn-right {
+    float: right;
+  }
+
+  .btn-primary {
+    color: #FFFFFF !important;
+    background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+    border: 1px solid #526484 !important;
+    box-shadow: 0 4px 10px rgba(8, 129, 94, 0.24) !important;
+
+    &:hover {
+      color: #FFFFFF !important;
+      background: linear-gradient(135deg, #0a9169 0%, #0ecc88 100%) !important;
+      border-color: #0ecc88 !important;
+      box-shadow: 0 6px 14px rgba(8, 129, 94, 0.28) !important;
+    }
+  }
+
+  .btn:not(.btn-primary) {
+    background: #f1f4fb !important;
+    border: 1px solid #c9d2e3 !important;
+    color: #202938 !important;
+    box-shadow: none !important;
+
+    &:hover,
+    &:focus {
+      background: #e5ebf7 !important;
+      border-color: #b8c6dd !important;
+      color: #202938 !important;
+      box-shadow: none !important;
+    }
+  }
+
+  .btn-default,
+  .btn-secondary,
+  .btn-outline-primary {
+    background: #f1f4fb !important;
+    border: 1px solid #c9d2e3 !important;
+    color: #202938 !important;
+    box-shadow: none !important;
+
+    &:hover,
+    &:focus {
+      background: #e5ebf7 !important;
+      border-color: #b8c6dd !important;
+      color: #202938 !important;
+      box-shadow: none !important;
+    }
+  }
+
+  .btn-outline-primary {
+    color: $brown-900; // Changed from $primary to dark blue-gray for better contrast
+    border-color: $brown-500;
+    background-color: transparent;
+
+    &:hover {
+      color: #FFFFFF;
+      background-color: $brown-500;
+      border-color: $brown-600;
+    }
+
+    &:focus,
+    &:active {
+      color: #FFFFFF;
+      background-color: $brown-600;
+      border-color: $brown-700;
+    }
+  }
+
+  @each $color, $value in $theme-colors {
+    @if not ($color == "primary") {
+      .btn-#{$color} {
+        @include button-variant($secondary, $secondary, $white, darken($value, 10%), darken($value, 10%), color-contrast(darken($value, 12.5%)));
+      }
+    }
+  }
+  @each $color, $value in $theme-colors {
+    @if not ($color == "primary") {
+      .btn-outline-#{$color} {
+        @include button-outline-variant($brown-900, #FFFFFF, $brown-500, $brown-600);
+        // Changed to use dark blue-gray text (#202938) for better contrast on white background
+        color: $brown-900;
+        border-color: $brown-500;
+        
+        &:hover {
+          color: #FFFFFF;
+          background-color: $brown-500;
+          border-color: $brown-600;
+        }
+      }
+    }
+  }
+
+  .btn-square {
+    width: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+
+    i {
+      margin: 0 !important;
+    }
+  }
+}
+.toolbar-search {
+  background-color: #ffffff; // Cream background matching body
+}

@@ -1,0 +1,372 @@
+/* ============================================
+   FIX GREEN BUTTONS AND TEXT COLORS
+   Fixes for:
+   1. btn-default and btn-outline-default buttons (green → dark blue)
+   2. text-muted class (green → gray)
+   3. Schedule day labels (Mon, Tue, Wed, etc.)
+   ============================================ */
+
+/* ============================================
+   1. FIX btn-default BUTTONS - Change from green to dark blue
+   ============================================ */
+
+.btn-default,
+button.btn-default,
+a.btn-default,
+input.btn-default {
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-bg: #364a63 !important;
+  --bs-btn-border-color: #364a63 !important;
+  --bs-btn-hover-color: #ffffff !important;
+  --bs-btn-hover-bg: #455a73 !important;
+  --bs-btn-hover-border-color: #455a73 !important;
+  --bs-btn-focus-shadow-rgb: 54, 74, 99 !important;
+  --bs-btn-active-color: #ffffff !important;
+  --bs-btn-active-bg: #2a3447 !important;
+  --bs-btn-active-border-color: #2a3447 !important;
+  --bs-btn-disabled-color: #ffffff !important;
+  --bs-btn-disabled-bg: #526484 !important;
+  --bs-btn-disabled-border-color: #526484 !important;
+  
+  /* Direct color overrides */
+  color: #ffffff !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+.btn-default:hover,
+button.btn-default:hover,
+a.btn-default:hover,
+input.btn-default:hover {
+  color: #ffffff !important;
+  background-color: #455a73 !important;
+  border-color: #455a73 !important;
+}
+
+.btn-default:focus,
+button.btn-default:focus,
+a.btn-default:focus,
+input.btn-default:focus {
+  color: #ffffff !important;
+  background-color: #455a73 !important;
+  border-color: #455a73 !important;
+  box-shadow: 0 0 0 0.25rem rgba(54, 74, 99, 0.25) !important;
+}
+
+.btn-default:active,
+button.btn-default:active,
+a.btn-default:active,
+input.btn-default:active,
+.btn-default.active {
+  color: #ffffff !important;
+  background-color: #2a3447 !important;
+  border-color: #2a3447 !important;
+}
+
+.btn-default:disabled,
+button.btn-default:disabled,
+a.btn-default:disabled,
+input.btn-default:disabled,
+.btn-default.disabled {
+  color: #ffffff !important;
+  background-color: #526484 !important;
+  border-color: #526484 !important;
+  opacity: 0.65 !important;
+}
+
+/* ============================================
+   2. FIX btn-outline-default BUTTONS - Change from green to dark blue
+   ============================================ */
+
+.btn-outline-default,
+button.btn-outline-default,
+a.btn-outline-default,
+input.btn-outline-default {
+  --bs-btn-color: #364a63 !important;
+  --bs-btn-border-color: #364a63 !important;
+  --bs-btn-hover-color: #ffffff !important;
+  --bs-btn-hover-bg: #364a63 !important;
+  --bs-btn-hover-border-color: #364a63 !important;
+  --bs-btn-focus-shadow-rgb: 54, 74, 99 !important;
+  --bs-btn-active-color: #ffffff !important;
+  --bs-btn-active-bg: #364a63 !important;
+  --bs-btn-active-border-color: #364a63 !important;
+  --bs-btn-disabled-color: #364a63 !important;
+  --bs-btn-disabled-bg: transparent !important;
+  --bs-btn-disabled-border-color: #364a63 !important;
+  
+  /* Direct color overrides */
+  color: #364a63 !important;
+  background-color: transparent !important;
+  border-color: #364a63 !important;
+}
+
+.btn-outline-default:hover,
+button.btn-outline-default:hover,
+a.btn-outline-default:hover,
+input.btn-outline-default:hover {
+  color: #ffffff !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+.btn-outline-default:focus,
+button.btn-outline-default:focus,
+a.btn-outline-default:focus,
+input.btn-outline-default:focus {
+  color: #ffffff !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+  box-shadow: 0 0 0 0.25rem rgba(54, 74, 99, 0.25) !important;
+}
+
+.btn-outline-default:active,
+button.btn-outline-default:active,
+a.btn-outline-default:active,
+input.btn-outline-default:active,
+.btn-outline-default.active {
+  color: #ffffff !important;
+  background-color: #2a3447 !important;
+  border-color: #2a3447 !important;
+}
+
+.btn-outline-default:disabled,
+button.btn-outline-default:disabled,
+a.btn-outline-default:disabled,
+input.btn-outline-default:disabled,
+.btn-outline-default.disabled {
+  color: #364a63 !important;
+  background-color: transparent !important;
+  border-color: #364a63 !important;
+  opacity: 0.65 !important;
+}
+
+/* ============================================
+   3. FIX text-muted CLASS - Change from green to gray
+   ============================================ */
+
+.text-muted {
+  color: #6b7280 !important; /* Neutral gray instead of green */
+  --bs-text-opacity: 1 !important;
+}
+
+/* Ensure text-muted in various contexts stays gray */
+.field-flexible-hours .text-muted,
+.field-timesheet .text-muted,
+.timesheet-editor .text-muted,
+.table .text-muted,
+.card .text-muted,
+.form-group .text-muted,
+.help-block .text-muted {
+  color: #6b7280 !important;
+}
+
+/* ============================================
+   4. FIX SCHEDULE DAY LABELS (Mon, Tue, Wed, etc.)
+   ============================================ */
+
+/* Schedule day labels in flexible hours table */
+.field-flexible-hours table td span,
+.field-flexible-hours table td:first-child span {
+  color: #374151 !important; /* Dark gray for day labels */
+}
+
+/* Schedule day labels in timesheet editor */
+.field-timesheet .TimeSheet-rowHead,
+.field-timesheet .TimeSheet-colHead,
+.timesheet-editor .TimeSheet-rowHead,
+.timesheet-editor .TimeSheet-colHead {
+  color: #374151 !important; /* Dark gray for day labels */
+}
+
+/* Schedule day labels in schedule editor cards */
+.field-schedule-editor .card-title,
+.schedule-editor .card-title {
+  color: #374151 !important;
+}
+
+/* Day labels in schedule cards (Mon, Tue, Wed, etc.) */
+.field-schedule-editor .text-muted,
+.schedule-editor .text-muted,
+.field-schedule-editor .d-flex .text-muted {
+  color: #6b7280 !important; /* Gray, not green */
+}
+
+/* ============================================
+   5. FIX TOOLBAR BUTTONS (btn-default in toolbar context)
+   ============================================ */
+
+.toolbar-action .btn-default,
+.toolbar .btn-default {
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-bg: #364a63 !important;
+  --bs-btn-border-color: #364a63 !important;
+  --bs-btn-hover-color: #ffffff !important;
+  --bs-btn-hover-bg: #455a73 !important;
+  --bs-btn-hover-border-color: #455a73 !important;
+  --bs-btn-active-color: #ffffff !important;
+  --bs-btn-active-bg: #2a3447 !important;
+  --bs-btn-active-border-color: #2a3447 !important;
+  
+  color: #ffffff !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+.toolbar-action .btn-default:hover,
+.toolbar .btn-default:hover {
+  color: #ffffff !important;
+  background-color: #455a73 !important;
+  border-color: #455a73 !important;
+}
+
+/* ============================================
+   6. FIX DELIVERY AREA BUTTONS
+   ============================================ */
+
+/* "Add new area" button and similar buttons */
+[data-control="load-area"].btn-default,
+[data-control="load-area"].btn-outline-default,
+.field-delivery-areas .btn-default,
+.field-delivery-areas .btn-outline-default {
+  color: #364a63 !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+[data-control="load-area"].btn-default:hover,
+[data-control="load-area"].btn-outline-default:hover,
+.field-delivery-areas .btn-default:hover,
+.field-delivery-areas .btn-outline-default:hover {
+  color: #ffffff !important;
+  background-color: #455a73 !important;
+  border-color: #455a73 !important;
+}
+
+/* ============================================
+   7. FIX MENU EDIT PAGE BUTTONS
+   ============================================ */
+
+/* Stock management buttons */
+[data-handler*="Stock"].btn-outline-default,
+[data-handler*="stock"].btn-outline-default,
+#form-field-menu-stock-qty-container .btn-outline-default {
+  color: #364a63 !important;
+  border-color: #364a63 !important;
+  background-color: transparent !important;
+}
+
+[data-handler*="Stock"].btn-outline-default:hover,
+[data-handler*="stock"].btn-outline-default:hover,
+#form-field-menu-stock-qty-container .btn-outline-default:hover {
+  color: #ffffff !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+/* Option management buttons */
+[data-control="choose-record"].btn-default,
+[data-control="edit-record"].btn-outline-default,
+[data-control="create-record"].btn-outline-default,
+[data-control="delete-record"].btn-outline-danger {
+  /* Delete button should stay red, but others need fixing */
+}
+
+[data-control="choose-record"].btn-default {
+  color: #ffffff !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+[data-control="choose-record"].btn-default:hover {
+  color: #ffffff !important;
+  background-color: #455a73 !important;
+  border-color: #455a73 !important;
+}
+
+[data-control="edit-record"].btn-outline-default,
+[data-control="create-record"].btn-outline-default {
+  color: #364a63 !important;
+  border-color: #364a63 !important;
+  background-color: transparent !important;
+}
+
+[data-control="edit-record"].btn-outline-default:hover,
+[data-control="create-record"].btn-outline-default:hover {
+  color: #ffffff !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+/* ============================================
+   8. FIX BUTTON ICONS - Ensure icons inherit button color
+   ============================================ */
+
+.btn-default i,
+.btn-default .fa,
+.btn-default em.icon,
+.btn-outline-default i,
+.btn-outline-default .fa,
+.btn-outline-default em.icon {
+  color: inherit !important;
+}
+
+/* ============================================
+   9. OVERRIDE ANY INLINE STYLES (if possible)
+   ============================================ */
+
+/* Note: Inline styles with !important cannot be overridden by CSS,
+   but we can try to override non-important inline styles */
+
+.btn-default[style*="color"],
+.btn-outline-default[style*="color"] {
+  /* This won't work for !important inline styles, but helps with regular ones */
+}
+
+/* ============================================
+   10. FIX SPECIFIC BUTTON CONTEXTS
+   ============================================ */
+
+/* Input group buttons */
+.input-group .btn-default,
+.input-group .btn-outline-default {
+  color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+.input-group .btn-default {
+  background-color: #364a63 !important;
+  color: #ffffff !important;
+}
+
+.input-group .btn-default:hover {
+  background-color: #455a73 !important;
+  border-color: #455a73 !important;
+}
+
+.input-group .btn-outline-default:hover {
+  background-color: #364a63 !important;
+  color: #ffffff !important;
+}
+
+/* Record editor buttons */
+.control-recordeditor .btn-default,
+.control-recordeditor .btn-outline-default {
+  color: #364a63 !important;
+  border-color: #364a63 !important;
+}
+
+.control-recordeditor .btn-default {
+  background-color: #364a63 !important;
+  color: #ffffff !important;
+}
+
+.control-recordeditor .btn-default:hover {
+  background-color: #455a73 !important;
+  border-color: #455a73 !important;
+}
+
+.control-recordeditor .btn-outline-default:hover {
+  background-color: #364a63 !important;
+  color: #ffffff !important;
+}

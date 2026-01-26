@@ -1,0 +1,231 @@
+/* ============================================
+   FIX PROFILE DROPDOWN - Remove all green colors
+   1. Remove green hover effects
+   2. Change text-muted (Owner/role) from green to gray
+   ============================================ */
+
+/* ============================================
+   PROFILE DROPDOWN HOVER - ONLY TEXT SIZE EFFECT
+   No background, no color changes, ONLY letter/text size scaling
+   ============================================ */
+
+/* Remove ALL hover effects from dropdown items - NO background, NO color, NO transform */
+.dropdown-menu.profile-dropdown-menu .dropdown-item:hover,
+.dropdown-menu.profile-dropdown-menu .dropdown-item:focus,
+.dropdown-menu.profile-dropdown-menu .dropdown-item:active,
+.dropdown-menu.profile-dropdown-menu .dropdown-item:focus-visible,
+.profile-dropdown-menu.dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu.dropdown-menu .dropdown-item:focus,
+.profile-dropdown-menu.dropdown-menu .dropdown-item:active,
+.profile-dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu .dropdown-item:focus,
+.profile-dropdown-menu .dropdown-item:active,
+.profile-dropdown-menu .dropdown-item:focus-visible,
+.profile-dropdown-menu a:hover,
+.profile-dropdown-menu a:focus,
+.profile-dropdown-menu a:active,
+.profile-dropdown-menu .menu-link:hover,
+.profile-dropdown-menu .menu-item:hover,
+.profile-dropdown-menu a:not(.btn):hover,
+.navbar-top .profile-dropdown-menu .dropdown-item:hover,
+.navbar-top .navbar-nav .profile-dropdown-menu .dropdown-item:hover,
+.navbar-top .dropdown-menu.profile-dropdown-menu .dropdown-item:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background: rgba(0, 0, 0, 0) !important; /* Force transparent - override gradients */
+  color: inherit !important; /* Keep original color */
+  box-shadow: none !important;
+  border: none !important;
+  transform: none !important; /* NO transform on the item itself */
+  transition: none !important; /* No transitions */
+}
+
+/* Override any gradient backgrounds specifically - even higher specificity */
+.dropdown-menu.profile-dropdown-menu .dropdown-item:hover,
+.dropdown-menu.profile-dropdown-menu .dropdown-item:focus,
+.dropdown-menu.profile-dropdown-menu .dropdown-item:active,
+.profile-dropdown-menu.dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu.dropdown-menu .dropdown-item:focus,
+.profile-dropdown-menu.dropdown-menu .dropdown-item:active {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  background: rgba(0, 0, 0, 0) !important;
+  background-image: none !important;
+  transform: none !important; /* NO transform */
+}
+
+/* ONLY TEXT SIZE EFFECT - Scale the text/span, not the item - SMALLER and SMOOTHER */
+.profile-dropdown-menu .dropdown-item span,
+.profile-dropdown-menu .dropdown-item i {
+  transition: transform 0.3s ease-out !important; /* Smoother, longer transition */
+  display: inline-block !important; /* Needed for transform to work */
+}
+
+.profile-dropdown-menu .dropdown-item:hover span,
+.profile-dropdown-menu .dropdown-item:hover i,
+.profile-dropdown-menu .dropdown-item:focus span,
+.profile-dropdown-menu .dropdown-item:focus i,
+.profile-dropdown-menu .dropdown-item:active span,
+.profile-dropdown-menu .dropdown-item:active i {
+  color: inherit !important; /* Keep original color */
+  transform: scale(1.05) !important; /* Smaller scale effect (was 1.1) */
+  display: inline-block !important; /* Needed for transform to work */
+  transition: transform 0.3s ease-out !important; /* Smoother, longer transition */
+}
+
+/* Ensure icons also scale with same smaller effect */
+.profile-dropdown-menu .dropdown-item:hover i {
+  transform: scale(1.05) !important; /* Smaller scale */
+  display: inline-block !important;
+  transition: transform 0.3s ease-out !important; /* Smoother */
+}
+
+/* Remove border/line under "Locations" header - MAXIMUM SPECIFICITY */
+.profile-dropdown-menu .dropdown-header,
+.profile-dropdown-menu .dropdown-header[role="separator"],
+.profile-dropdown-menu div.dropdown-header,
+.dropdown-menu.profile-dropdown-menu .dropdown-header,
+.profile-dropdown-menu.dropdown-menu .dropdown-header {
+  border-bottom: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove any pseudo-element borders */
+.profile-dropdown-menu .dropdown-header::before,
+.profile-dropdown-menu .dropdown-header::after {
+  display: none !important;
+  border: none !important;
+  content: none !important;
+}
+
+/* Also check if there's a border on the element after the header */
+.profile-dropdown-menu .dropdown-header + .dropdown-item,
+.profile-dropdown-menu .dropdown-header ~ .dropdown-item {
+  border-top: none !important; /* Remove border-top from first item after header */
+}
+
+/* Fix text-muted color in profile dropdown - change from green to gray */
+.profile-dropdown-menu .text-muted,
+.profile-dropdown-menu .text-center .text-muted,
+.profile-dropdown-menu div.text-muted {
+  color: #6b7280 !important; /* Neutral gray instead of green */
+}
+
+/* Ensure role text (Owner, etc.) is gray, not green */
+.profile-dropdown-menu .pb-3 .text-muted,
+.profile-dropdown-menu .text-center .text-muted {
+  color: #6b7280 !important;
+}
+
+/* Override any green colors that might be applied */
+.profile-dropdown-menu * {
+  color: inherit !important;
+}
+
+.profile-dropdown-menu .text-muted {
+  color: #6b7280 !important; /* Force gray for muted text */
+}
+
+/* ============================================
+   ACTIVE/SELECTED LOCATION - Different visual effect (NOT green)
+   ============================================ */
+
+/* Active/selected location styling - use subtle gray-blue background and left border */
+.profile-dropdown-menu .dropdown-item.active,
+.profile-dropdown-menu .dropdown-item.active:hover,
+.profile-dropdown-menu .dropdown-item.active:focus,
+.profile-dropdown-menu .dropdown-item.active:active,
+.dropdown-menu.profile-dropdown-menu .dropdown-item.active,
+.dropdown-menu.profile-dropdown-menu .dropdown-item.active:hover {
+  background: #f3f4f6 !important; /* Light gray background */
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  color: #1f2937 !important; /* Dark gray text for better contrast */
+  border-left: 3px solid #4a5568 !important; /* Gray-blue left border indicator */
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  transform: none !important; /* NO transform on active items */
+  box-shadow: none !important;
+  font-weight: 600 !important; /* Slightly bolder text to indicate selection */
+}
+
+/* Active location text and icon styling */
+.profile-dropdown-menu .dropdown-item.active span,
+.profile-dropdown-menu .dropdown-item.active i,
+.profile-dropdown-menu .dropdown-item.active:hover span,
+.profile-dropdown-menu .dropdown-item.active:hover i {
+  color: #1f2937 !important; /* Dark gray, not green */
+  transform: none !important; /* NO scale effect on active items */
+  font-weight: 600 !important; /* Slightly bolder */
+}
+
+/* Ensure active location doesn't get green colors from any source */
+.profile-dropdown-menu .dropdown-item.active * {
+  color: #1f2937 !important; /* Force dark gray for all child elements */
+}
+
+/* Override any green borders or backgrounds that might be applied to active items */
+.profile-dropdown-menu .dropdown-item.active[style*="green"],
+.profile-dropdown-menu .dropdown-item.active[style*="rgb(54, 74, 99)"],
+.profile-dropdown-menu .dropdown-item.active[style*="#364a63"] {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  border-left-color: #4a5568 !important;
+  color: #1f2937 !important;
+}
+
+/* ============================================
+   PROFILE DROPDOWN SCROLLING - Enable scroll when many locations
+   ============================================ */
+
+/* Enable scrolling for profile dropdown when content overflows - MAXIMUM SPECIFICITY */
+.profile-dropdown-menu,
+.dropdown-menu.profile-dropdown-menu,
+.navbar-top .profile-dropdown-menu,
+.navbar-top .dropdown-menu.profile-dropdown-menu {
+  max-height: 70vh !important; /* Maximum height before scrolling */
+  overflow-y: auto !important; /* Enable vertical scrolling */
+  overflow-x: hidden !important; /* Hide horizontal scroll */
+  height: auto !important; /* Allow height to adjust */
+  display: block !important; /* Ensure it's a block element for scrolling */
+}
+
+/* Override any rules that might prevent scrolling */
+.profile-dropdown-menu.show,
+.dropdown-menu.profile-dropdown-menu.show {
+  max-height: 70vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Smooth scrolling */
+.profile-dropdown-menu {
+  scroll-behavior: smooth !important;
+}
+
+/* Custom scrollbar styling for profile dropdown */
+.profile-dropdown-menu::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.profile-dropdown-menu::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.profile-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #d1d5db !important; /* Gray scrollbar */
+  border-radius: 3px !important;
+}
+
+.profile-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af !important; /* Darker gray on hover */
+}

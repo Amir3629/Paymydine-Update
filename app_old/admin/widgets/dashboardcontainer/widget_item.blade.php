@@ -1,0 +1,64 @@
+<div
+    class="col col-sm-{{ $widget->getWidth() }} my-3"
+>
+    <div class="widget-item card {{ $widget->getCssClass() }} @if(strpos($widgetAlias, 'stat_') === 0 || strpos($widgetAlias, 'chart_') === 0) no-padding @else p-3 @endif shadow-sm">
+        <div class="widget-item-action">
+            <a class="btn handle pull-left"><i class="fa fa-arrows-alt"></i></a>
+            @if ($this->canManage)
+                {{-- Duplicate button - only for statistic circles --}}
+                @php
+                    $widgetCode = $widget->property('widget', '');
+                    $isStatCircle = in_array($widgetCode, ['stat_circle_1', 'stat_circle_2', 'stat_circle_3']);
+                @endphp
+                @if ($isStatCircle)
+                    <a
+                        class="btn pull-right"
+                        data-control="duplicate-widget"
+                        title="Duplicate this circle"
+                        style="cursor: pointer;"
+                    ><i class="fa fa-plus-circle" style="color: #364a63;"></i></a>
+                @endif
+                
+                <a
+                    class="btn pull-right"
+                    data-control="remove-widget"
+                    aria-hidden="true"
+                ><i class="fa fa-trash-alt text-danger"></i></a>
+            @endif
+            <a
+                class="btn pull-right"
+                data-control="edit-widget"
+                data-bs-toggle="modal"
+                data-bs-target="#{{ $widgetAlias }}-modal"
+                data-handler="{{ $this->getEventHandler('onLoadUpdatePopup') }}"
+            ><i class="fa fa-cog"></i></a>
+        </div>
+
+        <div id="{{ $widgetAlias }}">{!! $widget->render() !!}</div>
+
+        <input type="hidden" data-widget-alias name="widgetAliases[]" value="{{ $widgetAlias }}"/>
+        <input type="hidden" data-widget-priority name="widgetPriorities[]" value="{{ $widget->getPriority() }}"/>
+    </div>
+
+    <div
+        class="modal slideInDown fade"
+        id="{{ $widgetAlias }}-modal"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="{{ $widgetAlias }}-title"
+        aria-hidden="true"
+    >
+        <div class="modal-dialog dashboard-widget-modal-dialog" role="document">
+            <div
+                id="{{ $widgetAlias }}-modal-content"
+                class="modal-content dashboard-widget-modal"
+            >
+                {!! $this->makePartial('dashboardcontainer/widget_form', [
+                    'widgetAlias' => $widgetAlias,
+                    'widget' => $widget,
+                    'widgetForm' => $this->getFormWidget($widgetAlias, $widget),
+                ]) !!}
+            </div>
+        </div>
+    </div>
+</div>

@@ -936,7 +936,7 @@ return [
         'text_tab_desc_user' => 'Configure registration email confirmation ...',
         'text_tab_desc_setup' => 'Configure order, reservation and invoicing settings',
         'text_tab_desc_tax' => 'Configure tax settings',
-        'text_tab_desc_panel' => 'Choose what happens after saving records in the admin.',
+        'text_tab_desc_panel' => 'Configure panel behavior, maintenance mode, system logs, and activity tracking.',
 
         'label_after_save_action' => 'After saving action',
         'help_after_save_action' => 'Set the default behaviour when you press save on admin forms.',

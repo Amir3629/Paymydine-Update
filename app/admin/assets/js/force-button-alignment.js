@@ -347,61 +347,61 @@
         applyToolbarButtonPalette();
     }
     
-    // Function to group Combo and Allergens buttons together on the right side
+    // Function to group New and Combo buttons together on the left side (menus page)
     function groupComboAndAllergensButtons(progressContainer) {
+        // Check if we're on the menus page
+        const isMenusPage = window.location.pathname.includes('/admin/menus') && !window.location.pathname.includes('/admin/menus/create') && !window.location.pathname.includes('/admin/menus/edit');
+        
+        if (!isMenusPage) {
+            return; // Only run on menus index page
+        }
+        
         // Check if grouping container already exists
-        let comboGroupContainer = document.getElementById('combo-allergens-group');
-        if (comboGroupContainer) {
+        let newComboGroupContainer = document.getElementById('new-combo-group');
+        if (newComboGroupContainer) {
             return; // Already grouped
         }
         
-        // Find Combo button (href contains 'combos' - now uses btn-default like Allergens)
+        // Find New button (btn-primary with href contains 'menus/create' or 'create')
+        const newButton = progressContainer.querySelector('a[href*="menus/create"].btn-primary, a[href*="/create"].btn-primary, .btn-primary[href*="create"]');
+        
+        // Find Combo button (href contains 'combos')
         const comboButton = progressContainer.querySelector('a[href*="combos"].btn-default, a[href*="combos"]');
         
-        // Find Allergens button (btn-default with href contains 'allergens' or button after Combo)
-        const allergensButton = progressContainer.querySelector('a[href*="allergens"].btn-default, a[href*="allergens"]');
-        
-        if (!comboButton || !allergensButton) {
+        if (!newButton || !comboButton) {
             return; // Buttons not found, skip grouping
         }
         
-        // Check if buttons are already grouped (don't re-group if they're already in a container together)
+        // Check if buttons are already grouped
+        const newParent = newButton.parentElement;
         const comboParent = comboButton.parentElement;
-        const allergensParent = allergensButton.parentElement;
-        if (comboParent === allergensParent && comboParent.id === 'combo-allergens-group') {
+        if (newParent === comboParent && newParent.id === 'new-combo-group') {
             return; // Already grouped
         }
         
-        // Create container for Combo and Allergens buttons
-        comboGroupContainer = document.createElement('div');
-        comboGroupContainer.id = 'combo-allergens-group';
-        comboGroupContainer.style.display = 'flex';
-        comboGroupContainer.style.alignItems = 'center';
-        comboGroupContainer.style.gap = '10px';
-        comboGroupContainer.style.marginLeft = 'auto';
+        // Create container for New and Combo buttons (left side)
+        newComboGroupContainer = document.createElement('div');
+        newComboGroupContainer.id = 'new-combo-group';
+        newComboGroupContainer.style.display = 'flex';
+        newComboGroupContainer.style.alignItems = 'center';
+        newComboGroupContainer.style.gap = '10px';
+        newComboGroupContainer.style.marginLeft = '0';
+        newComboGroupContainer.style.marginRight = 'auto';
         
-        // Get reference to where the Allergens button currently is (for insertion)
-        const allergensNextSibling = allergensButton.nextSibling;
+        // Move New button into the container (only if not already in the group)
+        if (newButton.parentElement !== newComboGroupContainer) {
+            newComboGroupContainer.appendChild(newButton);
+        }
         
         // Move Combo button into the container (only if not already in the group)
-        if (comboButton.parentElement !== comboGroupContainer) {
-            comboGroupContainer.appendChild(comboButton);
+        if (comboButton.parentElement !== newComboGroupContainer) {
+            newComboGroupContainer.appendChild(comboButton);
         }
         
-        // Move Allergens button into the container (only if not already in the group)
-        if (allergensButton.parentElement !== comboGroupContainer) {
-            comboGroupContainer.appendChild(allergensButton);
-        }
+        // Insert the container at the beginning of progress container (left side)
+        progressContainer.insertBefore(newComboGroupContainer, progressContainer.firstChild);
         
-        // Insert the container before the bulk container (or at the end if bulk container doesn't exist)
-        const bulkContainer = document.getElementById('toolbar-bulk-container');
-        if (bulkContainer && bulkContainer.parentElement === progressContainer) {
-            progressContainer.insertBefore(comboGroupContainer, bulkContainer);
-        } else {
-            progressContainer.appendChild(comboGroupContainer);
-        }
-        
-        console.log('✅ Grouped Combo and Allergens buttons together on the right side');
+        console.log('✅ Grouped New and Combo buttons together on the left side');
     }
     
     // Function to move bulk action buttons to toolbar
