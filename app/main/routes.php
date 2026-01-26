@@ -87,28 +87,48 @@ App::before(function () {
                 // Remove any query parameters
                 $path = explode('?', $path)[0];
                 
-                // First try the direct path (as stored in database)
+                // First try the direct path (as stored in database - could be disk-based path like "68f/701/a0e/68f701a0e.jpg")
                 $mediaPath = base_path('assets/media/attachments/public/' . $path);
                 
                 if (!file_exists($mediaPath)) {
-                    // If not found, search recursively for the filename
+                    // If path looks like a disk hash (9+ chars), try constructing the proper path
                     $filename = basename($path);
-                    $searchPath = base_path('assets/media/attachments/public');
+                    $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
                     
-                    $foundPath = null;
-                    $iterator = new RecursiveIteratorIterator(
-                        new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                    );
-                    
-                    foreach ($iterator as $file) {
-                        if ($file->getFilename() === $filename) {
-                            $foundPath = $file->getPathname();
-                            break;
+                    // If filename looks like a disk hash (9+ alphanumeric chars), try disk-based structure
+                    if (strlen($pathWithoutExt) >= 9 && ctype_alnum($pathWithoutExt)) {
+                        $disk = $pathWithoutExt;
+                        $p1 = substr($disk, 0, 3);
+                        $p2 = substr($disk, 3, 3);
+                        $p3 = substr($disk, 6, 3);
+                        $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                        foreach ($extensions as $ext) {
+                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                            if (file_exists($candidate)) {
+                                $mediaPath = $candidate;
+                                break;
+                            }
                         }
                     }
                     
-                    if ($foundPath) {
-                        $mediaPath = $foundPath;
+                    // If still not found, search recursively for the filename
+                    if (!file_exists($mediaPath)) {
+                        $searchPath = base_path('assets/media/attachments/public');
+                        $foundPath = null;
+                        $iterator = new RecursiveIteratorIterator(
+                            new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                        );
+                        
+                        foreach ($iterator as $file) {
+                            if ($file->getFilename() === $filename) {
+                                $foundPath = $file->getPathname();
+                                break;
+                            }
+                        }
+                        
+                        if ($foundPath) {
+                            $mediaPath = $foundPath;
+                        }
                     }
                 }
                 
@@ -162,7 +182,8 @@ App::before(function () {
                                 m.menu_description as description,
                                 CAST(m.menu_price AS DECIMAL(10,2)) as price,
                                 COALESCE(c.name, 'Main') as category_name,
-                                ma.name as image
+                                ma.name as image,
+                                ma.disk as image_disk
                             FROM {$p}menus m
                             LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                             LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
@@ -178,8 +199,30 @@ App::before(function () {
                         // Convert prices to float, fix image paths, and add options
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
-                            if ($item->image) {
-                                // If image exists, construct the relative URL for Next.js proxy
+                            if ($item->image_disk && strlen($item->image_disk) >= 9) {
+                                // Use disk-based path (proper TastyIgniter storage format)
+                                $disk = $item->image_disk;
+                                $p1 = substr($disk, 0, 3);
+                                $p2 = substr($disk, 3, 3);
+                                $p3 = substr($disk, 6, 3);
+                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                $resolved = null;
+                                foreach ($extensions as $ext) {
+                                    $candidate = $basePath . $disk . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext;
+                                        break;
+                                    }
+                                }
+                                if ($resolved) {
+                                    $item->image = "/api/media/" . $resolved;
+                                } else {
+                                    // Fallback to name-based search
+                                    $item->image = $item->image ? "/api/media/" . $item->image : '/images/pasta.png';
+                                }
+                            } elseif ($item->image) {
+                                // If image exists but no disk, construct the relative URL for Next.js proxy
                                 $item->image = "/api/media/" . $item->image;
                             } else {
                                 // Use default image if none exists
@@ -202,7 +245,8 @@ App::before(function () {
                                 mc.combo_description as description,
                                 CAST(mc.combo_price AS DECIMAL(10,2)) as price,
                                 'Combos' as category_name,
-                                ma.name as image
+                                ma.name as image,
+                                ma.disk as image_disk
                             FROM {$p}menu_combos mc
                             LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos' 
                                 AND ma.attachment_id = mc.combo_id 
@@ -216,8 +260,30 @@ App::before(function () {
                         // Format combos same as menu items
                         foreach ($combos as &$combo) {
                             $combo->price = (float)$combo->price;
-                            if ($combo->image) {
-                                // If image exists, construct the relative URL for Next.js proxy
+                            if ($combo->image_disk && strlen($combo->image_disk) >= 9) {
+                                // Use disk-based path (proper TastyIgniter storage format)
+                                $disk = $combo->image_disk;
+                                $p1 = substr($disk, 0, 3);
+                                $p2 = substr($disk, 3, 3);
+                                $p3 = substr($disk, 6, 3);
+                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                $resolved = null;
+                                foreach ($extensions as $ext) {
+                                    $candidate = $basePath . $disk . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext;
+                                        break;
+                                    }
+                                }
+                                if ($resolved) {
+                                    $combo->image = "/api/media/" . $resolved;
+                                } else {
+                                    // Fallback to name-based search
+                                    $combo->image = $combo->image ? "/api/media/" . $combo->image : '/images/pasta.png';
+                                }
+                            } elseif ($combo->image) {
+                                // If image exists but no disk, construct the relative URL for Next.js proxy
                                 $combo->image = "/api/media/" . $combo->image;
                             } else {
                                 // Use default image if none exists
@@ -798,7 +864,8 @@ App::before(function () {
                                 m.menu_description as description,
                                 CAST(m.menu_price AS DECIMAL(10,2)) as price,
                                 COALESCE(c.name, 'Main') as category_name,
-                                ma.name as image
+                                ma.name as image,
+                                ma.disk as image_disk
                             FROM {$p}menus m
                             LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                             LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
@@ -814,8 +881,30 @@ App::before(function () {
                         // Convert prices to float, fix image paths, and add options
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
-                            if ($item->image) {
-                                // If image exists, construct the relative URL for Next.js proxy
+                            if ($item->image_disk && strlen($item->image_disk) >= 9) {
+                                // Use disk-based path (proper TastyIgniter storage format)
+                                $disk = $item->image_disk;
+                                $p1 = substr($disk, 0, 3);
+                                $p2 = substr($disk, 3, 3);
+                                $p3 = substr($disk, 6, 3);
+                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                $resolved = null;
+                                foreach ($extensions as $ext) {
+                                    $candidate = $basePath . $disk . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext;
+                                        break;
+                                    }
+                                }
+                                if ($resolved) {
+                                    $item->image = "/api/media/" . $resolved;
+                                } else {
+                                    // Fallback to name-based search
+                                    $item->image = $item->image ? "/api/media/" . $item->image : '/images/pasta.png';
+                                }
+                            } elseif ($item->image) {
+                                // If image exists but no disk, construct the relative URL for Next.js proxy
                                 $item->image = "/api/media/" . $item->image;
                             } else {
                                 // Use default image if none exists

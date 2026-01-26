@@ -16,7 +16,7 @@
                         data-control="duplicate-widget"
                         title="Duplicate this circle"
                         style="cursor: pointer;"
-                    ><i class="fa fa-plus-circle" style="color: #364a63;"></i></a>
+                    ><i class="fa fa-plus-circle"></i></a>
                 @endif
                 
                 <a

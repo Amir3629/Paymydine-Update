@@ -910,6 +910,71 @@ html body .btn-group-toggle input[type="radio"]:checked + label.btn {
   flex-shrink: 0 !important;
 }
 
+/* =====================================================
+   ALL EDIT PAGES - Group Save button with Back button on left
+   Delete button on right side
+   ===================================================== */
+
+/* Use space-between to separate left and right groups */
+.progress-indicator-container {
+  justify-content: space-between !important; /* Left group and right group */
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+/* Back button on left */
+.progress-indicator-container > .btn-outline-secondary,
+.progress-indicator-container > a.btn-outline-secondary {
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+  order: 1 !important; /* Ensure Back button is first */
+}
+
+/* btn-group containing Save button - right after Back button */
+.progress-indicator-container > .btn-group {
+  order: 2 !important; /* Right after Back button */
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  display: inline-flex !important;
+}
+
+/* Save button inside btn-group (left side) */
+.progress-indicator-container > .btn-group [data-request="onSave"],
+.progress-indicator-container > .btn-group button[data-request="onSave"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Save button directly in container (if not in btn-group) */
+.progress-indicator-container > [data-request="onSave"]:not(.btn-group),
+.progress-indicator-container > button[data-request="onSave"]:not(.btn-group) {
+  order: 2 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Delete button on RIGHT side */
+.progress-indicator-container > .btn-danger,
+.progress-indicator-container > a.btn-danger,
+.progress-indicator-container > button.btn-danger,
+.progress-indicator-container > .btn-danger[data-request="onDelete"] {
+  order: 10 !important; /* High order to push to right */
+  margin-left: auto !important; /* Push to right side */
+  margin-right: 0 !important;
+}
+
+/* All other elements go to right side after Delete */
+.progress-indicator-container > *:not(.btn-outline-secondary):not(.btn-group):not([data-request="onSave"]):not(.btn-danger):not(button.btn-danger):not(input) {
+  order: 11 !important;
+  margin-left: 10px !important; /* Space between right-side buttons */
+}
+
+/* Hidden inputs should not affect layout */
+.progress-indicator-container > input[type="hidden"] {
+  display: none !important;
+  order: 999 !important;
+}
+
 
 /* =====================================================
    SETTINGS PAGE - Fix broken card layout
@@ -1113,6 +1178,157 @@ html body select:focus:not(:focus-visible) {
   border-color: #364a63 !important;
   box-shadow: 0 0 0 4px rgba(54, 74, 99, 0.1) !important;
   transition: none !important;
+}
+
+/* =====================================================
+   FORM INPUT FIELDS - Ensure all borders are visible
+   Fix missing bottom and left edges
+   ===================================================== */
+
+/* Ensure all form controls have visible borders on ALL sides with rounded corners */
+html body .form-control,
+html body input[type="text"],
+html body input[type="email"],
+html body input[type="number"],
+html body input[type="password"],
+html body input[type="search"],
+html body input[type="url"],
+html body input[type="tel"],
+html body input[type="time"],
+html body input[type="datetime-local"],
+html body textarea,
+html body select,
+html body .form-select {
+  border: 1px solid #e5e9f2 !important;
+  border-top: 1px solid #e5e9f2 !important;
+  border-right: 1px solid #e5e9f2 !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+  border-left: 1px solid #e5e9f2 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 12px !important;
+  -webkit-border-radius: 12px !important;
+  -moz-border-radius: 12px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important; /* Ensure borders are not clipped */
+}
+
+/* Ensure borders are visible on focus with rounded corners */
+html body .form-control:focus,
+html body input:focus,
+html body textarea:focus,
+html body select:focus,
+html body .form-select:focus {
+  border: 1px solid #364a63 !important;
+  border-top: 1px solid #364a63 !important;
+  border-right: 1px solid #364a63 !important;
+  border-bottom: 1px solid #364a63 !important;
+  border-left: 1px solid #364a63 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 12px !important;
+  -webkit-border-radius: 12px !important;
+  -moz-border-radius: 12px !important;
+}
+
+/* Ensure parent containers don't clip borders */
+html body .form-group,
+html body .input-group,
+html body .field-group,
+html body .control-group {
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix inputs inside input-group - ensure ALL borders are visible including left border with rounded corners */
+html body .input-group .form-control,
+html body .input-group input,
+html body .input-group textarea,
+html body .input-group select {
+  border: 1px solid #e5e9f2 !important;
+  border-top: 1px solid #e5e9f2 !important;
+  border-right: 1px solid #e5e9f2 !important;
+  border-bottom: 1px solid #e5e9f2 !important;
+  border-left: 1px solid #e5e9f2 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 12px !important;
+  -webkit-border-radius: 12px !important;
+  -moz-border-radius: 12px !important;
+}
+
+/* Fix inputs inside input-group on focus - ensure ALL borders are visible with rounded corners */
+html body .input-group .form-control:focus,
+html body .input-group input:focus,
+html body .input-group textarea:focus,
+html body .input-group select:focus {
+  border: 1px solid #364a63 !important;
+  border-top: 1px solid #364a63 !important;
+  border-right: 1px solid #364a63 !important;
+  border-bottom: 1px solid #364a63 !important;
+  border-left: 1px solid #364a63 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 12px !important;
+  -webkit-border-radius: 12px !important;
+  -moz-border-radius: 12px !important;
+}
+
+/* Fix height overflow - ensure inputs match parent container height */
+html body .input-group {
+  height: auto !important;
+  min-height: 40px !important;
+  align-items: stretch !important;
+}
+
+html body .input-group .form-control,
+html body .input-group input[type="text"],
+html body .input-group input[type="time"],
+html body .input-group input[type="datetime-local"] {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 1.5 !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+html body .input-group .input-group-text {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #e5e9f2 !important;
+  border-left: none !important; /* Remove left border when connected to input */
+  border-radius: 0 12px 12px 0 !important; /* Rounded on right side only */
+  -webkit-border-radius: 0 12px 12px 0 !important;
+  -moz-border-radius: 0 12px 12px 0 !important;
+}
+
+/* When input-group-text is on the left, round left side */
+html body .input-group > .input-group-text:first-child {
+  border-left: 1px solid #e5e9f2 !important;
+  border-right: none !important;
+  border-radius: 12px 0 0 12px !important; /* Rounded on left side only */
+  -webkit-border-radius: 12px 0 0 12px !important;
+  -moz-border-radius: 12px 0 0 12px !important;
+}
+
+/* When input is after input-group-text, remove left border-radius */
+html body .input-group > .input-group-text + .form-control,
+html body .input-group > .input-group-text + input {
+  border-left: none !important;
+  border-radius: 0 12px 12px 0 !important; /* Rounded on right side only */
+  -webkit-border-radius: 0 12px 12px 0 !important;
+  -moz-border-radius: 0 12px 12px 0 !important;
+}
+
+/* When input is before input-group-text, remove right border-radius */
+html body .input-group > .form-control + .input-group-text,
+html body .input-group > input + .input-group-text {
+  border-left: none !important;
 }
 
 /* Override input-group focus-within green shadow */

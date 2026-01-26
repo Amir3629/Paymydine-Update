@@ -559,13 +559,6 @@ class ServiceProvider extends AppServiceProvider
                             'title' => lang('admin::lang.side_menu.pos'),
                             'permission' => 'Admin.Pos',
                         ],
-                        'cash_drawers' => [
-                            'priority' => 60,
-                            'class' => 'cash_drawers',
-                            'href' => admin_url('cash_drawers'),
-                            'title' => 'Cash Drawers',
-                            'permission' => 'Admin.CashDrawers',
-                        ],
                     ],
                 ],
             ]);
@@ -900,7 +893,7 @@ class ServiceProvider extends AppServiceProvider
                 'panel' => [
                     'label' => 'lang:admin::lang.settings.text_tab_panel',
                     'description' => 'lang:admin::lang.settings.text_tab_desc_panel',
-                    'icon' => 'fa fa-sliders-h',
+                    'icon' => 'fa fa-cog',
                     'priority' => 5,
                     'permission' => ['Site.Settings'],
                     'url' => admin_url('settings/edit/panel'),
@@ -925,6 +918,15 @@ class ServiceProvider extends AppServiceProvider
                     'permission' => ['Admin.BiometricDevices'],
                     'url' => admin_url('biometric_devices'),
                     'form' => '~/app/admin/models/config/biometric_devices_settings',
+                ],
+                'cash_drawers' => [
+                    'label' => 'Cash Drawers',
+                    'description' => 'Configure and manage cash drawer devices for POS systems',
+                    'icon' => 'fa fa-money',
+                    'priority' => 12,
+                    'permission' => ['Admin.CashDrawers'],
+                    'url' => admin_url('cash_drawers'),
+                    'form' => '~/app/admin/models/config/cash_drawers_settings',
                 ],
             ]);
         });
