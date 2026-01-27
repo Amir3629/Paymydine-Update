@@ -116,16 +116,39 @@ App::before(function () {
                         $searchPath = base_path('assets/media/attachments/public');
                         $foundPath = null;
                         $disk = $pathWithoutExt;
-                        $iterator = new RecursiveIteratorIterator(
-                            new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                        );
                         
-                        foreach ($iterator as $file) {
-                            $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
-                            // Check if filename starts with the disk name (handles cases like "6978c2491b364221182244.png")
-                            if ($fileBasename === $disk || strpos($file->getFilename(), $disk) === 0) {
-                                $foundPath = $file->getPathname();
-                                break;
+                        // First, try the constructed path with all extensions (faster than full recursive search)
+                        $p1 = substr($disk, 0, 3);
+                        $p2 = substr($disk, 3, 3);
+                        $p3 = substr($disk, 6, 3);
+                        $constructedDir = $searchPath . $p1 . '/' . $p2 . '/' . $p3 . '/';
+                        
+                        if (is_dir($constructedDir)) {
+                            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                            foreach ($extensions as $ext) {
+                                $candidate = $constructedDir . $disk . '.' . $ext;
+                                if (file_exists($candidate)) {
+                                    $foundPath = $candidate;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // If still not found, do full recursive search
+                        if (!$foundPath) {
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                            );
+                            
+                            foreach ($iterator as $file) {
+                                if ($file->isFile()) {
+                                    $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+                                    // Check if filename matches the disk name exactly
+                                    if ($fileBasename === $disk) {
+                                        $foundPath = $file->getPathname();
+                                        break;
+                                    }
+                                }
                             }
                         }
                         
@@ -241,9 +264,9 @@ App::before(function () {
                                 if ($resolved) {
                                     $item->image = "/api/media/" . $resolved;
                                 } else {
-                                    // File not found with disk-based path, try using disk name directly in route
-                                    // The route handler will search for it
-                                    $item->image = "/api/media/" . $disk;
+                                    // File not found with disk-based path, try using disk name with common extensions
+                                    // The route handler will search for it - try png first as it's most common
+                                    $item->image = "/api/media/" . $disk . ".png";
                                 }
                             } elseif ($item->image) {
                                 // If image exists but no disk, construct the relative URL for Next.js proxy
@@ -925,9 +948,9 @@ App::before(function () {
                                 if ($resolved) {
                                     $item->image = "/api/media/" . $resolved;
                                 } else {
-                                    // File not found with disk-based path, try using disk name directly in route
-                                    // The route handler will search for it
-                                    $item->image = "/api/media/" . $disk;
+                                    // File not found with disk-based path, try using disk name with common extensions
+                                    // The route handler will search for it - try png first as it's most common
+                                    $item->image = "/api/media/" . $disk . ".png";
                                 }
                             } elseif ($item->image) {
                                 // If image exists but no disk, construct the relative URL for Next.js proxy
