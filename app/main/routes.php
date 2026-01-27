@@ -136,19 +136,24 @@ App::before(function () {
                         
                         // If still not found, do full recursive search
                         if (!$foundPath) {
-                            $iterator = new RecursiveIteratorIterator(
-                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                            );
-                            
-                            foreach ($iterator as $file) {
-                                if ($file->isFile()) {
-                                    $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
-                                    // Check if filename matches the disk name exactly
-                                    if ($fileBasename === $disk) {
-                                        $foundPath = $file->getPathname();
-                                        break;
+                            try {
+                                $iterator = new RecursiveIteratorIterator(
+                                    new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                                );
+                                
+                                foreach ($iterator as $file) {
+                                    if ($file->isFile()) {
+                                        $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+                                        // Check if filename matches the disk name exactly
+                                        if ($fileBasename === $disk) {
+                                            $foundPath = $file->getPathname();
+                                            break;
+                                        }
                                     }
                                 }
+                            } catch (\Exception $e) {
+                                // Log error but continue
+                                \Log::error('Media route search error: ' . $e->getMessage());
                             }
                         }
                         
@@ -159,21 +164,25 @@ App::before(function () {
                     
                     // Last resort: search by exact filename match
                     if (!file_exists($mediaPath)) {
-                        $searchPath = base_path('assets/media/attachments/public');
-                        $foundPath = null;
-                        $iterator = new RecursiveIteratorIterator(
-                            new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                        );
-                        
-                        foreach ($iterator as $file) {
-                            if ($file->getFilename() === $filename) {
-                                $foundPath = $file->getPathname();
-                                break;
+                        try {
+                            $searchPath = base_path('assets/media/attachments/public');
+                            $foundPath = null;
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                            );
+                            
+                            foreach ($iterator as $file) {
+                                if ($file->isFile() && $file->getFilename() === $filename) {
+                                    $foundPath = $file->getPathname();
+                                    break;
+                                }
                             }
-                        }
-                        
-                        if ($foundPath) {
-                            $mediaPath = $foundPath;
+                            
+                            if ($foundPath) {
+                                $mediaPath = $foundPath;
+                            }
+                        } catch (\Exception $e) {
+                            \Log::error('Media route filename search error: ' . $e->getMessage());
                         }
                     }
                 }
@@ -193,7 +202,11 @@ App::before(function () {
                             'Cache-Control' => 'public, max-age=31536000'
                         ]);
                     } else {
-                        abort(404);
+                        \Log::warning('Media file not found', [
+                            'requested_path' => $path,
+                            'searched_path' => $mediaPath
+                        ]);
+                        abort(404, 'Image not found');
                     }
                 }
             })->where('path', '.*');
