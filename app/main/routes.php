@@ -109,12 +109,25 @@ App::before(function () {
                         $p1 = substr($disk, 0, 3);
                         $p2 = substr($disk, 3, 3);
                         $p3 = substr($disk, 6, 3);
-                        $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                        foreach ($extensions as $ext) {
-                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                        
+                        // First try with original extension from filename
+                        $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                        if ($originalExt) {
+                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $originalExt);
                             if (file_exists($candidate)) {
                                 $mediaPath = $candidate;
-                                break;
+                            }
+                        }
+                        
+                        // If not found, try other extensions
+                        if (!file_exists($mediaPath)) {
+                            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                            foreach ($extensions as $ext) {
+                                $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                                if (file_exists($candidate)) {
+                                    $mediaPath = $candidate;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -132,12 +145,24 @@ App::before(function () {
                         $constructedDir = $searchPath . $p1 . '/' . $p2 . '/' . $p3 . '/';
                         
                         if (is_dir($constructedDir)) {
-                            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                            foreach ($extensions as $ext) {
-                                $candidate = $constructedDir . $disk . '.' . $ext;
+                            // First try original extension
+                            $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                            if ($originalExt) {
+                                $candidate = $constructedDir . $disk . '.' . $originalExt;
                                 if (file_exists($candidate)) {
                                     $foundPath = $candidate;
-                                    break;
+                                }
+                            }
+                            
+                            // If not found, try other extensions
+                            if (!$foundPath) {
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                foreach ($extensions as $ext) {
+                                    $candidate = $constructedDir . $disk . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $foundPath = $candidate;
+                                        break;
+                                    }
                                 }
                             }
                         }
