@@ -83,9 +83,17 @@ App::before(function () {
             });
 
             // Direct media serving route for TastyIgniter attachments
+            // IMPORTANT: This must be registered before any catch-all routes
             Route::get('/media/{path}', function ($path) {
                 // Remove any query parameters
                 $path = explode('?', $path)[0];
+                
+                // Log for debugging
+                \Log::info('Media route called', [
+                    'path' => $path,
+                    'request_uri' => request()->getRequestUri(),
+                    'full_url' => request()->fullUrl()
+                ]);
                 
                 // First try the direct path (as stored in database - could be disk-based path like "68f/701/a0e/68f701a0e.jpg")
                 $mediaPath = base_path('assets/media/attachments/public/' . $path);
@@ -136,24 +144,19 @@ App::before(function () {
                         
                         // If still not found, do full recursive search
                         if (!$foundPath) {
-                            try {
-                                $iterator = new RecursiveIteratorIterator(
-                                    new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                                );
-                                
-                                foreach ($iterator as $file) {
-                                    if ($file->isFile()) {
-                                        $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
-                                        // Check if filename matches the disk name exactly
-                                        if ($fileBasename === $disk) {
-                                            $foundPath = $file->getPathname();
-                                            break;
-                                        }
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                            );
+                            
+                            foreach ($iterator as $file) {
+                                if ($file->isFile()) {
+                                    $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+                                    // Check if filename matches the disk name exactly
+                                    if ($fileBasename === $disk) {
+                                        $foundPath = $file->getPathname();
+                                        break;
                                     }
                                 }
-                            } catch (\Exception $e) {
-                                // Log error but continue
-                                \Log::error('Media route search error: ' . $e->getMessage());
                             }
                         }
                         
@@ -164,36 +167,40 @@ App::before(function () {
                     
                     // Last resort: search by exact filename match
                     if (!file_exists($mediaPath)) {
-                        try {
-                            $searchPath = base_path('assets/media/attachments/public');
-                            $foundPath = null;
-                            $iterator = new RecursiveIteratorIterator(
-                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                            );
-                            
-                            foreach ($iterator as $file) {
-                                if ($file->isFile() && $file->getFilename() === $filename) {
-                                    $foundPath = $file->getPathname();
-                                    break;
-                                }
+                        $searchPath = base_path('assets/media/attachments/public');
+                        $foundPath = null;
+                        $iterator = new RecursiveIteratorIterator(
+                            new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                        );
+                        
+                        foreach ($iterator as $file) {
+                            if ($file->getFilename() === $filename) {
+                                $foundPath = $file->getPathname();
+                                break;
                             }
-                            
-                            if ($foundPath) {
-                                $mediaPath = $foundPath;
-                            }
-                        } catch (\Exception $e) {
-                            \Log::error('Media route filename search error: ' . $e->getMessage());
+                        }
+                        
+                        if ($foundPath) {
+                            $mediaPath = $foundPath;
                         }
                     }
                 }
                 
                 if (file_exists($mediaPath)) {
                     $mimeType = mime_content_type($mediaPath);
+                    \Log::debug('Media file found', ['path' => $mediaPath, 'mime' => $mimeType]);
                     return response()->file($mediaPath, [
                         'Content-Type' => $mimeType,
                         'Cache-Control' => 'public, max-age=31536000'
                     ]);
                 } else {
+                    // Log what we tried
+                    \Log::warning('Media file not found', [
+                        'requested_path' => $path,
+                        'searched_path' => $mediaPath,
+                        'base_path' => base_path('assets/media/attachments/public')
+                    ]);
+                    
                     // Fallback to pasta.png if image not found
                     $fallbackPath = public_path('images/pasta.png');
                     if (file_exists($fallbackPath)) {
@@ -202,11 +209,7 @@ App::before(function () {
                             'Cache-Control' => 'public, max-age=31536000'
                         ]);
                     } else {
-                        \Log::warning('Media file not found', [
-                            'requested_path' => $path,
-                            'searched_path' => $mediaPath
-                        ]);
-                        abort(404, 'Image not found');
+                        abort(404, "Image not found: {$path}");
                     }
                 }
             })->where('path', '.*');
