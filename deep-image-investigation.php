@@ -218,35 +218,45 @@ $apiIssues = [];
 foreach ($apiItems as &$apiItem) {
     echo "  Menu: {$apiItem->name} (ID: {$apiItem->id})\n";
     
-    if ($apiItem->image_disk && strlen($apiItem->image_disk) >= 9) {
-        $disk = $apiItem->image_disk;
-        $p1 = substr($disk, 0, 3);
-        $p2 = substr($disk, 3, 3);
-        $p3 = substr($disk, 6, 3);
+    // CRITICAL FIX: Extract hash from name column if disk is invalid (matches new code)
+    $hash = null;
+    if ($apiItem->image_disk && strlen($apiItem->image_disk) >= 9 && $apiItem->image_disk !== 'media') {
+        $hash = $apiItem->image_disk;
+    } elseif ($apiItem->image) {
+        $nameWithoutExt = pathinfo($apiItem->image, PATHINFO_FILENAME);
+        if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
+            $hash = $nameWithoutExt;
+        }
+    }
+    
+    if ($hash && strlen($hash) >= 9) {
+        $p1 = substr($hash, 0, 3);
+        $p2 = substr($hash, 3, 3);
+        $p3 = substr($hash, 6, 3);
         $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
         $extensions = ['webp', 'jpg', 'jpeg', 'png'];
         $resolved = null;
         
         foreach ($extensions as $ext) {
-            $candidate = $basePath . $disk . '.' . $ext;
+            $candidate = $basePath . $hash . '.' . $ext;
             if (file_exists($candidate)) {
-                $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext;
+                $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
                 break;
             }
         }
         
         if ($resolved) {
             $apiItem->image = "/api/media/" . $resolved;
-            echo "    ✅ API will return: {$apiItem->image}\n";
+            echo "    ✅ API will return (hash-based): {$apiItem->image}\n";
         } else {
-            $apiItem->image = "/api/media/" . $disk . ".png";
-            echo "    ⚠️  API will return (fallback): {$apiItem->image}\n";
-            $apiIssues[] = "Menu {$apiItem->id}: File not found, using fallback";
+            $apiItem->image = "/api/media/" . $apiItem->image;
+            echo "    ⚠️  API will return (name fallback): {$apiItem->image}\n";
+            $apiIssues[] = "Menu {$apiItem->id}: File not found at expected path, using name";
         }
     } elseif ($apiItem->image) {
         $apiItem->image = "/api/media/" . $apiItem->image;
         echo "    ⚠️  API will return (name-based): {$apiItem->image}\n";
-        $apiIssues[] = "Menu {$apiItem->id}: Using name instead of disk";
+        $apiIssues[] = "Menu {$apiItem->id}: No valid hash, using name directly";
     } else {
         $apiItem->image = '/images/pasta.png';
         echo "    ⚠️  API will return (default): {$apiItem->image}\n";
@@ -275,7 +285,7 @@ foreach ($apiItems as $apiItem) {
     echo "  Testing path: {$apiPath}\n";
     echo "  (From API response: {$apiItem->image})\n";
     
-    // Simulate route handler
+    // Simulate route handler (matches actual route handler logic)
     $path = explode('?', $apiPath)[0];
     $mediaPath = base_path('assets/media/attachments/public/' . $path);
     
@@ -287,27 +297,42 @@ foreach ($apiItems as $apiItem) {
         
         $filename = basename($path);
         $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+        $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
         
         if (strlen($pathWithoutExt) >= 9 && ctype_alnum($pathWithoutExt)) {
             $disk = $pathWithoutExt;
             $p1 = substr($disk, 0, 3);
             $p2 = substr($disk, 3, 3);
             $p3 = substr($disk, 6, 3);
-            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
             $found = false;
             
-            foreach ($extensions as $ext) {
-                $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+            // First try original extension
+            if ($originalExt) {
+                $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $originalExt);
                 if (file_exists($candidate)) {
-                    echo "    ✅ Route handler would find file via disk-based search\n";
+                    echo "    ✅ Route handler would find file via disk-based search (original ext)\n";
                     echo "    Found at: {$candidate}\n";
                     $found = true;
-                    break;
+                }
+            }
+            
+            // If not found, try other extensions
+            if (!$found) {
+                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                foreach ($extensions as $ext) {
+                    $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                    if (file_exists($candidate)) {
+                        echo "    ✅ Route handler would find file via disk-based search\n";
+                        echo "    Found at: {$candidate}\n";
+                        $found = true;
+                        break;
+                    }
                 }
             }
             
             if (!$found) {
                 echo "    ❌ Route handler would NOT find file\n";
+                echo "    Searched in: {$p1}/{$p2}/{$p3}/{$disk}.{ext}\n";
                 $routeIssues[] = "Menu {$apiItem->id}: Route handler cannot find file for path {$apiPath}";
             }
         } else {
