@@ -96,18 +96,45 @@
     }
 
     DashboardContainer.prototype.initSortable = function () {
-        var self = this,
-            $sortableContainer
+        var self = this
+
+        // Destroy existing Sortable instance before creating a new one (avoids duplicate handlers)
+        self._sortableInstance = null
+
+        self.ensureSortable = function () {
+            var $sortableContainer = $(self.options.sortableContainer, self.$el)
+            if (!$sortableContainer.length) return
+            // Only enable when in edit mode (widget action handles visible)
+            if (!self.$el.hasClass('edit-mode') && !document.body.classList.contains('edit-mode-active')) return
+            if (self._sortableInstance) {
+                self._sortableInstance.destroy()
+                self._sortableInstance = null
+            }
+            self._sortableInstance = Sortable.create($sortableContainer.get(0), {
+                handle: '.handle',
+                onSort: $.proxy(self.onSortWidgets, self)
+            })
+        }
 
         $(window).on('ajaxUpdateComplete', function () {
-            $sortableContainer = $(self.options.sortableContainer, self.$el)
-            if ($sortableContainer.length) {
-                Sortable.create($sortableContainer.get(0), {
-                    handle: '.handle',
-                    onSort: $.proxy(self.onSortWidgets, self)
-                })
+            self.ensureSortable()
+        })
+
+        // Create sortable as soon as user enters edit mode (fixes "move button works only after clicking something else")
+        self.$el.on('dashboard-edit-mode-entered', function () {
+            setTimeout(function () { self.ensureSortable() }, 0)
+        })
+
+        // Destroy sortable when leaving edit mode
+        self.$el.on('dashboard-edit-mode-exited', function () {
+            if (self._sortableInstance) {
+                self._sortableInstance.destroy()
+                self._sortableInstance = null
             }
         })
+
+        // Also try once after widgets load (in case ajaxUpdateComplete didn't fire)
+        setTimeout(function () { self.ensureSortable() }, 150)
     }
 
     DashboardContainer.prototype.initDateRange = function () {

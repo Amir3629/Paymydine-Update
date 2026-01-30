@@ -164,9 +164,7 @@
                             <h5 class="modal-title" id="addGeneralStaffNoteModalLabel">
                                 <i class="fa fa-sticky-note"></i> Add General Staff Note
                             </h5>
-                            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close" onclick="$('#addGeneralStaffNoteModal').modal('hide');">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" aria-hidden="true"></button>
                         </div>
                         <form id="addGeneralStaffNoteForm" onsubmit="return false;">
                             <div class="modal-body">
@@ -222,9 +220,26 @@
                     // Initialize modal properly
                     $('#addGeneralStaffNoteModal').on('shown.bs.modal', function() {
                         $('#generalStaffNoteText').focus();
-                        
-                        // Load and display suggestion sentences
                         loadNoteSuggestions();
+                        var $cancel = $('#addGeneralStaffNoteModal .modal-footer .btn-secondary');
+                        var $save = $('#addGeneralStaffNoteModal .modal-footer .btn-primary');
+                        [$cancel[0], $save[0]].filter(Boolean).forEach(function(btn) {
+                            btn.style.setProperty('min-width', '110px', 'important');
+                            btn.style.setProperty('height', '40px', 'important');
+                            btn.style.setProperty('min-height', '40px', 'important');
+                            btn.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+                            btn.style.setProperty('line-height', '1.3', 'important');
+                        });
+                        if ($cancel.length) {
+                            $cancel[0].style.removeProperty('color');
+                            $cancel[0].style.removeProperty('background');
+                            $cancel[0].style.removeProperty('background-color');
+                            $cancel[0].style.removeProperty('border');
+                            $cancel[0].style.setProperty('background', '#f1f4fb', 'important');
+                            $cancel[0].style.setProperty('background-color', '#f1f4fb', 'important');
+                            $cancel[0].style.setProperty('border', '1px solid #c9d2e3', 'important');
+                            $cancel[0].style.setProperty('color', '#202938', 'important');
+                        }
                     });
                     
                     // Clear form when modal is hidden
@@ -284,7 +299,7 @@
                                         'color': '#495057',
                                         'font-size': '12px',
                                         'padding': '6px 12px',
-                                        'border-radius': '6px',
+                                        'border-radius': '12px',
                                         'white-space': 'nowrap',
                                         'transition': 'all 0.2s ease',
                                         'cursor': 'pointer'
@@ -451,14 +466,27 @@
             </script>
 
             <style>
-            /* General Staff Note Modal styling - matches order note modal */
+            /* General Staff Note Modal – rounded card like Add Widget / platform modals */
             #addGeneralStaffNoteModal .modal-dialog {
                 max-width: 600px;
+            }
+
+            #addGeneralStaffNoteModal .modal-content {
+                border-radius: 18px !important;
+                overflow: hidden;
+                border: 2px solid #edeff5 !important;
+                box-shadow: 0 24px 48px rgba(32, 41, 56, 0.14) !important;
             }
 
             #addGeneralStaffNoteModal .modal-header {
                 background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
                 border-bottom: 2px solid #e5e9f2;
+                border-top-left-radius: 16px;
+                border-top-right-radius: 16px;
+            }
+
+            #addGeneralStaffNoteModal .modal-body {
+                padding: 1.25rem 1.5rem;
             }
 
             #addGeneralStaffNoteModal .modal-title {
@@ -473,7 +501,7 @@
 
             #addGeneralStaffNoteModal textarea {
                 border: 2px solid #e5e9f2;
-                border-radius: 8px;
+                border-radius: 12px;
                 font-size: 14px;
                 transition: border-color 0.3s ease;
             }
@@ -483,15 +511,63 @@
                 box-shadow: 0 0 0 0.2rem rgba(8, 129, 94, 0.1);
             }
 
-            #addGeneralStaffNoteModal .btn-primary {
-                background: #364a63;
-                border-color: #364a63;
-                color: #ffffff;
+            #addGeneralStaffNoteModal .modal-footer {
+                display: flex;
+                gap: 0.75rem;
+                align-items: center;
+                padding: 1rem 1.5rem 1.25rem;
+                border-bottom-left-radius: 16px;
+                border-bottom-right-radius: 16px;
             }
 
-            #addGeneralStaffNoteModal .btn-primary:hover {
-                background: #066d4f;
-                border-color: #066d4f;
+            #addGeneralStaffNoteModal .modal-footer .btn {
+                min-width: 110px !important;
+                height: 40px !important;
+                min-height: 40px !important;
+                padding: 0.55rem 1.75rem !important;
+                font-weight: 600 !important;
+                font-size: 14px !important;
+                line-height: 1.3 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 12px !important;
+                transition: all 0.2s ease !important;
+                box-sizing: border-box !important;
+            }
+
+            #addGeneralStaffNoteModal .modal-footer .btn-secondary {
+                background: #f1f4fb !important;
+                background-color: #f1f4fb !important;
+                border: 1px solid #c9d2e3 !important;
+                color: #202938 !important;
+            }
+
+            #addGeneralStaffNoteModal .modal-footer .btn-secondary:hover,
+            #addGeneralStaffNoteModal .modal-footer .btn-secondary:focus {
+                background: #e5ebf7 !important;
+                background-color: #e5ebf7 !important;
+                border-color: #b8c6dd !important;
+                color: #202938 !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 12px rgba(32, 41, 56, 0.12) !important;
+            }
+
+            #addGeneralStaffNoteModal .modal-footer .btn-primary {
+                background: #364a63 !important;
+                background-color: #364a63 !important;
+                border: 2px solid #364a63 !important;
+                color: #ffffff !important;
+            }
+
+            #addGeneralStaffNoteModal .modal-footer .btn-primary:hover,
+            #addGeneralStaffNoteModal .modal-footer .btn-primary:focus {
+                background: #526484 !important;
+                background-color: #526484 !important;
+                border-color: #526484 !important;
+                color: #ffffff !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 12px rgba(31, 43, 58, 0.25) !important;
             }
 
             /* Note and History buttons styling - EXACTLY the same, match Note button */
@@ -624,14 +700,14 @@
                 scrollbar-color: #c9d2e3 transparent !important;
             }
             
-            /* Note Suggestion Buttons Styling */
+            /* Note Suggestion Buttons Styling – rounded like platform buttons */
             #addGeneralStaffNoteModal .suggestion-btn {
-                background-color: #f0f4f8 !important; /* Ice/white color */
+                background-color: #f0f4f8 !important;
                 border: 1px solid #d1d9e6 !important;
                 color: #2d3748 !important;
                 font-size: 12px !important;
                 padding: 6px 14px !important;
-                border-radius: 8px !important;
+                border-radius: 12px !important;
                 white-space: nowrap !important;
                 transition: all 0.2s ease !important;
                 cursor: pointer !important;

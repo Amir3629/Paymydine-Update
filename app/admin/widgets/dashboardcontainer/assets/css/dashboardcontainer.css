@@ -156,26 +156,33 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
   gap: 0.75rem;
 }
 
+/* Match Add General Staff Note modal: same size, round corners, gradient and shadow */
 .dashboard-widget-modal .btn-add-widget,
 #newWidgetModal .btn-add-widget {
-  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
-  border-color: #364a63 !important;
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
   color: #ffffff !important;
-  min-width: 90px !important;
-  padding: 0.4rem 0.9rem !important;
+  min-width: 110px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0.55rem 1.75rem !important;
+  line-height: 1.3 !important;
   font-weight: 600 !important;
   display: inline-block !important;
   text-align: center !important;
+  box-shadow: rgba(31, 43, 58, 0.3) 0 4px 15px !important;
+  border-radius: 12px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .dashboard-widget-modal .btn-add-widget:hover,
 .dashboard-widget-modal .btn-add-widget:focus,
 #newWidgetModal .btn-add-widget:hover,
 #newWidgetModal .btn-add-widget:focus {
-  background: linear-gradient(135deg, #364a63 0%, #0aa868 100%) !important;
-  border-color: #0a6437 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(15, 157, 88, 0.25) !important;
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: rgba(31, 43, 58, 0.4) 0 6px 18px !important;
 }
 
 .dashboard-widget-modal .btn-close-modal,
@@ -183,8 +190,11 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
   background: #f1f4fb !important;
   border: 1px solid #c9d2e3 !important;
   color: #202938 !important;
-  min-width: 90px !important;
-  padding: 0.4rem 0.9rem !important;
+  min-width: 110px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0.55rem 1.75rem !important;
+  line-height: 1.3 !important;
   font-weight: 600 !important;
   display: inline-block !important;
   text-align: center !important;
@@ -835,7 +845,6 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
   transform: scale(1.05) !important; /* Scale when hovering anywhere on item */
   color: #000000 !important;
   transition: transform 0.3s ease-out !important;
-}
 }
 
 .dropdown-menu .menu-grid .menu-link span {

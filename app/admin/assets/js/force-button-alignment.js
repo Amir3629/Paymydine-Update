@@ -12,148 +12,6 @@
         console.log('🔧 Force Button Alignment skipped on theme edit page');
         return;
     }
-    if (isHistoryPage) {
-        console.log('🔧 Force Button Alignment: Fixing delete button position on history page');
-        // Fix delete button position - CSS should handle it, but ensure it's at top: 63px
-        function fixHistoryDeleteButton() {
-            const deleteBtn = document.querySelector('.history-page-content button[data-control="bulk-action"].text-danger');
-            if (deleteBtn) {
-                const currentTop = deleteBtn.getBoundingClientRect().top;
-                // Match position on other pages - moved down a bit from 63px
-                const targetTop = 75;
-                
-                // Check if button is not at correct position (allow 2px tolerance)
-                if (Math.abs(currentTop - targetTop) > 2) {
-                    // Parent has transform/filter creating positioning context - need to break out
-                    // Remove transforms from all parent containers that could affect fixed positioning
-                    let parent = deleteBtn.parentElement;
-                    let foundTransformContext = false;
-                    
-                    while (parent && parent !== document.body) {
-                        const style = window.getComputedStyle(parent);
-                        
-                        // Check for properties that create new positioning context for fixed elements
-                        if (style.transform !== 'none' || 
-                            style.filter !== 'none' || 
-                            style.perspective !== 'none' || 
-                            style.willChange !== 'auto' ||
-                            style.isolation === 'isolate') {
-                            foundTransformContext = true;
-                            // Remove transform to break the positioning context
-                            if (style.transform !== 'none') {
-                                parent.style.setProperty('transform', 'none', 'important');
-                            }
-                            if (style.filter !== 'none') {
-                                parent.style.setProperty('filter', 'none', 'important');
-                            }
-                            if (style.perspective !== 'none') {
-                                parent.style.setProperty('perspective', 'none', 'important');
-                            }
-                        }
-                        parent = parent.parentElement;
-                    }
-                    
-                    // Force button position with inline styles
-                    deleteBtn.style.setProperty('position', 'fixed', 'important');
-                    deleteBtn.style.setProperty('top', targetTop + 'px', 'important');
-                    deleteBtn.style.setProperty('right', '20px', 'important');
-                    deleteBtn.style.setProperty('left', 'auto', 'important');
-                    deleteBtn.style.setProperty('bottom', 'auto', 'important');
-                    deleteBtn.style.setProperty('z-index', '1051', 'important');
-                    deleteBtn.style.setProperty('transform', 'none', 'important');
-                    
-                    // Verify after a frame - if still not correct, parent positioning context is the issue
-                    requestAnimationFrame(() => {
-                        const newTop = deleteBtn.getBoundingClientRect().top;
-                        if (Math.abs(newTop - targetTop) > 2) {
-                            console.log('🔧 Button still not at correct position after transform removal. Current:', newTop, 'Target:', targetTop);
-                            // Parent TD is creating positioning context - calculate viewport-relative position
-                            // Button is currently at 177px (parent TD at 114px + 63px offset)
-                            // We want button at viewport 63px, so we need to account for parent's viewport position
-                            const parentTD = deleteBtn.closest('td.w-100');
-                            if (parentTD) {
-                                const tdRect = parentTD.getBoundingClientRect();
-                                const tdViewportTop = tdRect.top; // TD's position in viewport (114px)
-                                // Calculate: button should be at viewport 63px
-                                // If TD is at viewport 114px, button needs to be: 63px - 114px = -51px relative to TD
-                                // But since button is fixed, we want it at viewport 63px
-                                // The issue is that fixed is relative to transformed parent, so we need to break it
-                                
-                                // Move button to body to break positioning context
-                                // If button is not already in body, move it there
-                                if (deleteBtn.parentElement !== document.body) {
-                                    const btnParent = deleteBtn.parentElement;
-                                    const btnNextSibling = deleteBtn.nextSibling;
-                                    
-                                    // Store original parent for reference (but don't move back)
-                                    deleteBtn.dataset.originalParent = 'moved';
-                                    
-                                    // Move to body - this breaks the positioning context
-                                    document.body.appendChild(deleteBtn);
-                                    console.log('🔧 Moved button to body to break positioning context');
-                                }
-                                
-                                // Now apply fixed positioning relative to viewport
-                                deleteBtn.style.setProperty('position', 'fixed', 'important');
-                                deleteBtn.style.setProperty('top', targetTop + 'px', 'important');
-                                deleteBtn.style.setProperty('right', '20px', 'important');
-                                deleteBtn.style.setProperty('left', 'auto', 'important');
-                                deleteBtn.style.setProperty('bottom', 'auto', 'important');
-                                deleteBtn.style.setProperty('z-index', '1051', 'important');
-                                deleteBtn.style.setProperty('transform', 'none', 'important');
-                                
-                                // Verify it's now correct
-                                requestAnimationFrame(() => {
-                                    const finalTop = deleteBtn.getBoundingClientRect().top;
-                                    if (Math.abs(finalTop - targetTop) <= 2) {
-                                        console.log('✅ Successfully positioned button at viewport', finalTop, 'px');
-                                    } else {
-                                        // If still not correct, calculate offset from parent TD position
-                                        // Button should be at viewport 63px, parent TD is at viewport 114px
-                                        // Offset = 63 - 114 = -51px from parent
-                                        const offsetTop = targetTop - tdViewportTop;
-                                        deleteBtn.style.setProperty('top', offsetTop + 'px', 'important');
-                                        console.log('⚠️ Using offset calculation. Parent TD at viewport', tdViewportTop, 'px, offset:', offsetTop, 'px');
-                                    }
-                                });
-                            }
-                        } else {
-                            console.log('✅ Successfully fixed delete button position to', newTop, 'px');
-                        }
-                    });
-                    
-                    console.log('🔧 Fixed delete button position from', currentTop, 'to', targetTop, 'px (transform context:', foundTransformContext, ')');
-                }
-            }
-        }
-        // Fix immediately and on mutations
-        fixHistoryDeleteButton();
-        // Also fix after DOM is fully loaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fixHistoryDeleteButton);
-        }
-        setTimeout(fixHistoryDeleteButton, 100);
-        setTimeout(fixHistoryDeleteButton, 500);
-        const observer = new MutationObserver((mutations) => {
-            // Skip processing if modal is open (prevents freeze)
-            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
-                return;
-            }
-            // Skip if mutation is inside a modal
-            for (const mutation of mutations) {
-                if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
-                    return;
-                }
-                if (mutation.target.closest && mutation.target.closest('.modal')) {
-                    return;
-                }
-            }
-            setTimeout(fixHistoryDeleteButton, 50);
-        });
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-        return;
-    }
-    
     console.log('🔧 Force Button Alignment initialized');
     
     const BUTTON_PADDING = '0.55rem 1.75rem';
@@ -406,58 +264,54 @@
     
     // Function to move bulk action buttons to toolbar
 function moveBulkButtons() {
-        // Find the toolbar - try multiple selectors for different page types
-        let toolbar = document.querySelector('#toolbar');
-        if (!toolbar) {
-            // Try alternative selectors for pages without #toolbar
-            toolbar = document.querySelector('.toolbar');
-            if (!toolbar) {
-                toolbar = document.querySelector('.list-toolbar');
-                if (!toolbar) {
-                    toolbar = document.querySelector('.content-wrapper .container-fluid');
-                    if (!toolbar) {
-                        console.warn('No toolbar found with any selector');
-                        return;
-                    }
-                }
-            }
-        }
-        
-        // Find the bulk actions row
+        // Find the bulk actions row first (needed for both normal and history synthetic toolbar)
         const bulkActionsRow = document.querySelector('tr.bulk-actions');
         if (!bulkActionsRow) {
-            // No bulk actions row yet, wait for it to be created
             return;
         }
         
-        // Check if bulk actions row is visible
         const isVisible = !bulkActionsRow.classList.contains('hide');
-        
-        // Find the cell with buttons
         const bulkActionsCell = bulkActionsRow.querySelector('td.w-100');
         if (!bulkActionsCell) {
-            console.warn('Bulk actions cell not found');
             return;
         }
-        
-        // Find the button container
         const buttonContainer = bulkActionsCell.querySelector('div');
         if (!buttonContainer) {
-            console.warn('Button container not found');
             return;
         }
         
-        // Find the toolbar-action div inside the toolbar
-        const toolbarAction = toolbar.querySelector('.toolbar-action');
-        if (!toolbarAction) {
-            console.warn('Toolbar action container not found');
-            return;
+        // Find the toolbar -> toolbar-action -> progress-indicator-container (like locations, etc.)
+        let toolbar = document.querySelector('#toolbar') || document.querySelector('.toolbar') || document.querySelector('.list-toolbar') || document.querySelector('.content-wrapper .container-fluid');
+        let toolbarAction = toolbar ? toolbar.querySelector('.toolbar-action') : null;
+        let progressContainer = toolbarAction ? toolbarAction.querySelector('.progress-indicator-container') : null;
+        
+        // History page has no toolbar config: create synthetic one (same structure as platform list pages)
+        if (!progressContainer && isHistoryPage) {
+            const historyContent = document.querySelector('.history-page-content');
+            if (!historyContent) {
+                return;
+            }
+            let syn = document.getElementById('history-toolbar-synthetic');
+            if (!syn) {
+                syn = document.createElement('div');
+                syn.id = 'history-toolbar-synthetic';
+                syn.className = 'toolbar list-toolbar btn-toolbar';
+                syn.style.cssText = 'padding-top: 0.75rem; padding-bottom: 0.5rem;';
+                const ta = document.createElement('div');
+                ta.className = 'toolbar-action';
+                const pic = document.createElement('div');
+                pic.className = 'progress-indicator-container';
+                pic.style.cssText = 'display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%;';
+                ta.appendChild(pic);
+                syn.appendChild(ta);
+                historyContent.insertBefore(syn, historyContent.firstChild);
+            }
+            toolbar = syn;
+            toolbarAction = syn.querySelector('.toolbar-action');
+            progressContainer = syn.querySelector('.progress-indicator-container');
         }
         
-        // Find the progress-indicator-container inside toolbar-action
-        const progressContainer = toolbarAction.querySelector('.progress-indicator-container');
-        if (!progressContainer) {
-            console.warn('Progress indicator container not found');
+        if (!toolbar || !toolbarAction || !progressContainer) {
             return;
         }
         
@@ -489,11 +343,13 @@ function moveBulkButtons() {
         // Group Combo and Allergens buttons together on the right side
         groupComboAndAllergensButtons(progressContainer);
         
-        // Update visibility based on bulk actions row
-        toolbarBulkContainer.style.display = isVisible ? 'flex' : 'none';
+        // History: always show Delete in toolbar. Other pages: only when bulk row visible (items selected).
+        const alwaysShowBulk = isHistoryPage;
+        const showBulk = alwaysShowBulk || isVisible;
+        toolbarBulkContainer.style.display = showBulk ? 'flex' : 'none';
         
-        // If visible, move the buttons
-        if (isVisible) {
+        // If visible (or history), move the buttons
+        if (showBulk) {
             // Move all buttons to our toolbar container, but only show specific ones
             while (buttonContainer.firstChild) {
                 const button = buttonContainer.firstChild;

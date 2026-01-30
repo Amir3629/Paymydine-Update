@@ -8,7 +8,9 @@
     'use strict';
     
     function fixMenuGridHover() {
-        // Find all menu-grid items
+        if (document.querySelector('.introjs-overlay') || document.querySelector('.introjs-tooltipReferenceLayer')) {
+            return;
+        }
         const menuGrids = document.querySelectorAll('.menu-grid, .dropdown-menu .menu-grid');
         
         menuGrids.forEach(function(menuGrid) {
@@ -17,9 +19,12 @@
             menuItems.forEach(function(menuItem) {
                 const menuLink = menuItem.querySelector('.menu-link');
                 if (!menuLink) return;
+                if (menuItem.hasAttribute('data-menu-grid-fixed')) return;
                 
                 const icon = menuLink.querySelector('i');
                 if (!icon) return;
+                
+                menuItem.setAttribute('data-menu-grid-fixed', '1');
                 
                 // CRITICAL: Ensure menu-link covers entire menu-item
                 // Make menu-item a flex container so menu-link can fill it
@@ -142,7 +147,11 @@
         setTimeout(fixMenuGridHover, 100);
     }
     
-    // Watch for dynamically added menu-grids
+    var fixDebounceTimer;
+    function scheduleFix() {
+        clearTimeout(fixDebounceTimer);
+        fixDebounceTimer = setTimeout(fixMenuGridHover, 150);
+    }
     const observer = new MutationObserver(function(mutations) {
         let shouldFix = false;
         mutations.forEach(function(mutation) {
@@ -156,9 +165,7 @@
                 });
             }
         });
-        if (shouldFix) {
-            setTimeout(fixMenuGridHover, 100);
-        }
+        if (shouldFix) scheduleFix();
     });
     
     observer.observe(document.body, {

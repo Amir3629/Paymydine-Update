@@ -110,6 +110,11 @@ function toggleEditMode() {
             dateRangeButton.dataset.originalDisplay = dateRangeButton.style.display;
             dateRangeButton.style.setProperty('display', 'none', 'important');
         }
+
+        // Ensure dashboard sortable (drag handles) is initialized immediately so move works on first click
+        if (typeof jQuery !== 'undefined' && dashboardContainer) {
+            jQuery(dashboardContainer).trigger('dashboard-edit-mode-entered');
+        }
     } else {
         // Exit edit mode (save)
         dashboardContainer.classList.remove('edit-mode');
@@ -126,6 +131,11 @@ function toggleEditMode() {
             const previousDisplay = dateRangeButton.dataset.originalDisplay || '';
             dateRangeButton.style.setProperty('display', previousDisplay || '', 'important');
             delete dateRangeButton.dataset.originalDisplay;
+        }
+
+        // Destroy sortable when leaving edit mode (clean state)
+        if (typeof jQuery !== 'undefined' && dashboardContainer) {
+            jQuery(dashboardContainer).trigger('dashboard-edit-mode-exited');
         }
         
         // Trigger save - this will save the current widget positions

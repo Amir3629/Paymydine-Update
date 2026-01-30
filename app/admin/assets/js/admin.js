@@ -1413,7 +1413,30 @@ if (window.jQuery.request !== undefined)
             });
     }
 
+    var REFERENCE_MODAL_GRADIENT = 'linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%)';
+
     function applyGreenButtonBase(element) {
+        var isWidgetModalSave = $(element).hasClass('btn-add-widget');
+        if (isWidgetModalSave) {
+            element.style.setProperty('background', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('background-image', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('border', '2px solid rgb(54, 74, 99)', 'important');
+            element.style.setProperty('color', '#ffffff', 'important');
+            element.style.setProperty('box-shadow', 'rgba(31, 43, 58, 0.3) 0px 4px 15px', 'important');
+            element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
+            element.style.setProperty('transform', 'translateY(0)', 'important');
+            element.style.setProperty('min-width', '110px', 'important');
+            element.style.setProperty('height', '40px', 'important');
+            element.style.setProperty('min-height', '40px', 'important');
+            element.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+            element.style.setProperty('line-height', '1.3', 'important');
+            element.style.setProperty('display', 'inline-block', 'important');
+            element.style.setProperty('text-align', 'center', 'important');
+            element.style.removeProperty('align-items');
+            element.style.removeProperty('justify-content');
+            element.style.removeProperty('gap');
+            return;
+        }
         element.style.setProperty('background', GREEN_BUTTON_BASE_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_BASE_GRADIENT, 'important');
         element.style.setProperty('border', '1px solid #0c7d47', 'important');
@@ -1434,6 +1457,13 @@ if (window.jQuery.request !== undefined)
 
     function handleGreenButtonHover(event) {
         var element = event.currentTarget;
+        if ($(element).hasClass('btn-add-widget')) {
+            element.style.setProperty('background', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('background-image', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('transform', 'translateY(-1px)', 'important');
+            element.style.setProperty('box-shadow', 'rgba(31, 43, 58, 0.4) 0px 6px 18px', 'important');
+            return;
+        }
         element.style.setProperty('background', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('transform', 'translateY(-1px)', 'important');
@@ -1473,9 +1503,11 @@ if (window.jQuery.request !== undefined)
             this.style.setProperty('background', '#f1f4fb', 'important');
             this.style.setProperty('border', '1px solid #c9d2e3', 'important');
             this.style.setProperty('color', '#202938', 'important');
-            this.style.setProperty('width', '90px', 'important');
-            this.style.setProperty('min-width', '90px', 'important');
-            this.style.setProperty('padding', '0.4rem 0.9rem', 'important');
+            this.style.setProperty('min-width', '110px', 'important');
+            this.style.setProperty('height', '40px', 'important');
+            this.style.setProperty('min-height', '40px', 'important');
+            this.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+            this.style.setProperty('line-height', '1.3', 'important');
             this.style.setProperty('border-radius', '12px', 'important');
             this.style.setProperty('display', 'inline-block', 'important');
             this.style.setProperty('text-align', 'center', 'important');
