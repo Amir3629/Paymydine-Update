@@ -83,9 +83,17 @@ App::before(function () {
             });
 
             // Direct media serving route for TastyIgniter attachments
+            // IMPORTANT: This must be registered before any catch-all routes
             Route::get('/media/{path}', function ($path) {
                 // Remove any query parameters
                 $path = explode('?', $path)[0];
+                
+                // Log for debugging
+                \Log::info('Media route called', [
+                    'path' => $path,
+                    'request_uri' => request()->getRequestUri(),
+                    'full_url' => request()->fullUrl()
+                ]);
                 
                 // First try the direct path (as stored in database - could be disk-based path like "68f/701/a0e/68f701a0e.jpg")
                 $mediaPath = base_path('assets/media/attachments/public/' . $path);
@@ -101,17 +109,88 @@ App::before(function () {
                         $p1 = substr($disk, 0, 3);
                         $p2 = substr($disk, 3, 3);
                         $p3 = substr($disk, 6, 3);
-                        $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                        foreach ($extensions as $ext) {
-                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                        
+                        // First try with original extension from filename
+                        $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                        if ($originalExt) {
+                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $originalExt);
                             if (file_exists($candidate)) {
                                 $mediaPath = $candidate;
-                                break;
+                            }
+                        }
+                        
+                        // If not found, try other extensions
+                        if (!file_exists($mediaPath)) {
+                            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                            foreach ($extensions as $ext) {
+                                $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                                if (file_exists($candidate)) {
+                                    $mediaPath = $candidate;
+                                    break;
+                                }
                             }
                         }
                     }
                     
-                    // If still not found, search recursively for the filename
+                    // If still not found, search recursively for files containing the disk name
+                    if (!file_exists($mediaPath) && strlen($pathWithoutExt) >= 9) {
+                        $searchPath = base_path('assets/media/attachments/public');
+                        $foundPath = null;
+                        $disk = $pathWithoutExt;
+                        
+                        // First, try the constructed path with all extensions (faster than full recursive search)
+                        $p1 = substr($disk, 0, 3);
+                        $p2 = substr($disk, 3, 3);
+                        $p3 = substr($disk, 6, 3);
+                        $constructedDir = $searchPath . $p1 . '/' . $p2 . '/' . $p3 . '/';
+                        
+                        if (is_dir($constructedDir)) {
+                            // First try original extension
+                            $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                            if ($originalExt) {
+                                $candidate = $constructedDir . $disk . '.' . $originalExt;
+                                if (file_exists($candidate)) {
+                                    $foundPath = $candidate;
+                                }
+                            }
+                            
+                            // If not found, try other extensions
+                            if (!$foundPath) {
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                foreach ($extensions as $ext) {
+                                    $candidate = $constructedDir . $disk . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $foundPath = $candidate;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // If still not found, do full recursive search
+                        if (!$foundPath) {
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                            );
+                            
+                            foreach ($iterator as $file) {
+                                if ($file->isFile()) {
+                                    $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+                                    // Check if filename matches the disk name exactly
+                                    if ($fileBasename === $disk) {
+                                        $foundPath = $file->getPathname();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if ($foundPath) {
+                            $mediaPath = $foundPath;
+                        }
+                    }
+                    
+                    // Last resort: search by exact filename match
                     if (!file_exists($mediaPath)) {
                         $searchPath = base_path('assets/media/attachments/public');
                         $foundPath = null;
@@ -134,11 +213,19 @@ App::before(function () {
                 
                 if (file_exists($mediaPath)) {
                     $mimeType = mime_content_type($mediaPath);
+                    \Log::debug('Media file found', ['path' => $mediaPath, 'mime' => $mimeType]);
                     return response()->file($mediaPath, [
                         'Content-Type' => $mimeType,
                         'Cache-Control' => 'public, max-age=31536000'
                     ]);
                 } else {
+                    // Log what we tried
+                    \Log::warning('Media file not found', [
+                        'requested_path' => $path,
+                        'searched_path' => $mediaPath,
+                        'base_path' => base_path('assets/media/attachments/public')
+                    ]);
+                    
                     // Fallback to pasta.png if image not found
                     $fallbackPath = public_path('images/pasta.png');
                     if (file_exists($fallbackPath)) {
@@ -147,7 +234,7 @@ App::before(function () {
                             'Cache-Control' => 'public, max-age=31536000'
                         ]);
                     } else {
-                        abort(404);
+                        abort(404, "Image not found: {$path}");
                     }
                 }
             })->where('path', '.*');
@@ -199,30 +286,45 @@ App::before(function () {
                         // Convert prices to float, fix image paths, and add options
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
-                            if ($item->image_disk && strlen($item->image_disk) >= 9) {
-                                // Use disk-based path (proper TastyIgniter storage format)
-                                $disk = $item->image_disk;
-                                $p1 = substr($disk, 0, 3);
-                                $p2 = substr($disk, 3, 3);
-                                $p3 = substr($disk, 6, 3);
+                            
+                            // CRITICAL FIX: The 'disk' column contains "media" (wrong value),
+                            // but the actual hash is in the 'name' column (e.g., "6776d4adbca7d884450237.webp")
+                            // Extract hash from name column if disk is invalid
+                            $hash = null;
+                            if ($item->image_disk && strlen($item->image_disk) >= 9 && $item->image_disk !== 'media') {
+                                // Valid disk hash
+                                $hash = $item->image_disk;
+                            } elseif ($item->image) {
+                                // Extract hash from name (format: "6776d4adbca7d884450237.webp")
+                                $nameWithoutExt = pathinfo($item->image, PATHINFO_FILENAME);
+                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
+                                    $hash = $nameWithoutExt;
+                                }
+                            }
+                            
+                            if ($hash && strlen($hash) >= 9) {
+                                // Use hash-based path (proper TastyIgniter storage format)
+                                $p1 = substr($hash, 0, 3);
+                                $p2 = substr($hash, 3, 3);
+                                $p3 = substr($hash, 6, 3);
                                 $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
                                 $extensions = ['webp', 'jpg', 'jpeg', 'png'];
                                 $resolved = null;
                                 foreach ($extensions as $ext) {
-                                    $candidate = $basePath . $disk . '.' . $ext;
+                                    $candidate = $basePath . $hash . '.' . $ext;
                                     if (file_exists($candidate)) {
-                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext;
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
                                         break;
                                     }
                                 }
                                 if ($resolved) {
                                     $item->image = "/api/media/" . $resolved;
                                 } else {
-                                    // Fallback to name-based search
-                                    $item->image = $item->image ? "/api/media/" . $item->image : '/images/pasta.png';
+                                    // File not found, use name directly (route handler will search)
+                                    $item->image = "/api/media/" . $item->image;
                                 }
                             } elseif ($item->image) {
-                                // If image exists but no disk, construct the relative URL for Next.js proxy
+                                // If image exists but no valid hash, use name directly
                                 $item->image = "/api/media/" . $item->image;
                             } else {
                                 // Use default image if none exists
@@ -260,33 +362,40 @@ App::before(function () {
                         // Format combos same as menu items
                         foreach ($combos as &$combo) {
                             $combo->price = (float)$combo->price;
-                            if ($combo->image_disk && strlen($combo->image_disk) >= 9) {
-                                // Use disk-based path (proper TastyIgniter storage format)
-                                $disk = $combo->image_disk;
-                                $p1 = substr($disk, 0, 3);
-                                $p2 = substr($disk, 3, 3);
-                                $p3 = substr($disk, 6, 3);
+                            
+                            // CRITICAL FIX: Extract hash from name column if disk is invalid
+                            $hash = null;
+                            if ($combo->image_disk && strlen($combo->image_disk) >= 9 && $combo->image_disk !== 'media') {
+                                $hash = $combo->image_disk;
+                            } elseif ($combo->image) {
+                                $nameWithoutExt = pathinfo($combo->image, PATHINFO_FILENAME);
+                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
+                                    $hash = $nameWithoutExt;
+                                }
+                            }
+                            
+                            if ($hash && strlen($hash) >= 9) {
+                                $p1 = substr($hash, 0, 3);
+                                $p2 = substr($hash, 3, 3);
+                                $p3 = substr($hash, 6, 3);
                                 $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
                                 $extensions = ['webp', 'jpg', 'jpeg', 'png'];
                                 $resolved = null;
                                 foreach ($extensions as $ext) {
-                                    $candidate = $basePath . $disk . '.' . $ext;
+                                    $candidate = $basePath . $hash . '.' . $ext;
                                     if (file_exists($candidate)) {
-                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext;
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
                                         break;
                                     }
                                 }
                                 if ($resolved) {
                                     $combo->image = "/api/media/" . $resolved;
                                 } else {
-                                    // Fallback to name-based search
-                                    $combo->image = $combo->image ? "/api/media/" . $combo->image : '/images/pasta.png';
+                                    $combo->image = "/api/media/" . $combo->image;
                                 }
                             } elseif ($combo->image) {
-                                // If image exists but no disk, construct the relative URL for Next.js proxy
                                 $combo->image = "/api/media/" . $combo->image;
                             } else {
-                                // Use default image if none exists
                                 $combo->image = '/images/pasta.png';
                             }
                             
@@ -881,33 +990,40 @@ App::before(function () {
                         // Convert prices to float, fix image paths, and add options
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
-                            if ($item->image_disk && strlen($item->image_disk) >= 9) {
-                                // Use disk-based path (proper TastyIgniter storage format)
-                                $disk = $item->image_disk;
-                                $p1 = substr($disk, 0, 3);
-                                $p2 = substr($disk, 3, 3);
-                                $p3 = substr($disk, 6, 3);
+                            
+                            // CRITICAL FIX: Extract hash from name column if disk is invalid
+                            $hash = null;
+                            if ($item->image_disk && strlen($item->image_disk) >= 9 && $item->image_disk !== 'media') {
+                                $hash = $item->image_disk;
+                            } elseif ($item->image) {
+                                $nameWithoutExt = pathinfo($item->image, PATHINFO_FILENAME);
+                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
+                                    $hash = $nameWithoutExt;
+                                }
+                            }
+                            
+                            if ($hash && strlen($hash) >= 9) {
+                                $p1 = substr($hash, 0, 3);
+                                $p2 = substr($hash, 3, 3);
+                                $p3 = substr($hash, 6, 3);
                                 $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
                                 $extensions = ['webp', 'jpg', 'jpeg', 'png'];
                                 $resolved = null;
                                 foreach ($extensions as $ext) {
-                                    $candidate = $basePath . $disk . '.' . $ext;
+                                    $candidate = $basePath . $hash . '.' . $ext;
                                     if (file_exists($candidate)) {
-                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext;
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
                                         break;
                                     }
                                 }
                                 if ($resolved) {
                                     $item->image = "/api/media/" . $resolved;
                                 } else {
-                                    // Fallback to name-based search
-                                    $item->image = $item->image ? "/api/media/" . $item->image : '/images/pasta.png';
+                                    $item->image = "/api/media/" . $item->image;
                                 }
                             } elseif ($item->image) {
-                                // If image exists but no disk, construct the relative URL for Next.js proxy
                                 $item->image = "/api/media/" . $item->image;
                             } else {
-                                // Use default image if none exists
                                 $item->image = '/images/pasta.png';
                             }
                             

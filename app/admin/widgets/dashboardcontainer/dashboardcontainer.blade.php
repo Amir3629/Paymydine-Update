@@ -134,7 +134,8 @@ $loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
 
 // AGGRESSIVE FIX: Continuously monitor and disable profile dropdown when calendar is open
 (function() {
-    var calendarCheckInterval = setInterval(function() {
+    function runCalendarFix() {
+        if (typeof jQuery === 'undefined') return;
         var $calendar = jQuery('.daterangepicker.show-calendar, .daterangepicker:visible');
         var $profileDropdown = jQuery('.profile-dropdown-menu');
         
@@ -183,12 +184,26 @@ $loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
                 }
             }
         }
-    }, 100);
+    }
     
-    // Clean up on page unload
-    jQuery(window).on('beforeunload', function() {
-        clearInterval(calendarCheckInterval);
-    });
+    var calendarCheckInterval;
+    function startCalendarFix() {
+        if (typeof jQuery === 'undefined') return;
+        calendarCheckInterval = setInterval(runCalendarFix, 100);
+        jQuery(window).on('beforeunload.calendarFix', function() {
+            clearInterval(calendarCheckInterval);
+        });
+    }
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).ready(startCalendarFix);
+    } else {
+        var check = setInterval(function() {
+            if (typeof jQuery !== 'undefined') {
+                clearInterval(check);
+                jQuery(document).ready(startCalendarFix);
+            }
+        }, 50);
+    }
 })();
 </script>
 

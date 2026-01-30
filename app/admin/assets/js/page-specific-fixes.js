@@ -521,6 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // FIRST: Specifically target .btn-secondary buttons and force dark blue
         const secondaryButtons = document.querySelectorAll('.btn-secondary, button.btn-secondary, a.btn-secondary');
         secondaryButtons.forEach((btn) => {
+            if (btn.closest && btn.closest('#addGeneralStaffNoteModal')) return;
             const computedStyle = window.getComputedStyle(btn);
             const bgColor = computedStyle.backgroundColor;
             const borderColor = computedStyle.borderColor;
@@ -528,7 +529,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let needsFix = false;
             
-            // Check if background has green
             if (bgColor && greenColors.some(g => bgColor.includes(g))) {
                 btn.style.setProperty('background-color', '#364a63', 'important');
                 needsFix = true;
@@ -537,14 +537,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.style.setProperty('background', '#364a63', 'important');
                 needsFix = true;
             }
-            
-            // Check if border has green
             if (borderColor && greenColors.some(g => borderColor.includes(g))) {
                 btn.style.setProperty('border-color', '#364a63', 'important');
                 needsFix = true;
             }
-            
-            // Force white text
             btn.style.setProperty('color', '#ffffff', 'important');
             
             if (needsFix) {
@@ -556,6 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const allElements = document.querySelectorAll('*');
         
         allElements.forEach((el) => {
+            if (el.closest && el.closest('#addGeneralStaffNoteModal')) return;
             const style = el.getAttribute('style');
             if (!style) return;
             

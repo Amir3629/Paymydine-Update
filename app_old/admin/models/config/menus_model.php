@@ -41,12 +41,6 @@ $config['list']['toolbar'] = [
             'class' => 'btn btn-default',
             'href' => 'combos',
         ],
-        'allergens' => [
-            'label' => 'lang:admin::lang.allergens.text_allergens',
-            'class' => 'btn btn-default',
-            'href' => 'allergens',
-            'permission' => 'Admin.Allergens',
-        ],
     ],
 ];
 

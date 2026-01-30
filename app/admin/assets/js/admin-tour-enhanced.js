@@ -74,6 +74,55 @@
             localStorage.removeItem('pymd_tour_skipped');
         },
 
+        clearTourSideEffects: function(instant) {
+            var props = ['transition', 'transform', 'box-shadow', 'position', 'z-index', 'top', 'left', 'bottom', 'right', 'width', 'height'];
+            document.querySelectorAll('.introjs-showElement, .introjs-relativePosition').forEach(function(el) {
+                el.classList.remove('introjs-showElement', 'introjs-relativePosition');
+                props.forEach(function(p) { el.style.removeProperty(p); });
+            });
+            document.body.classList.remove('introjs-fixParent');
+            ['overflow', 'position', 'overflow-x', 'overflow-y'].forEach(function(p) {
+                document.body.style.removeProperty(p);
+            });
+            if (document.activeElement && document.activeElement !== document.body) {
+                try { document.activeElement.blur(); } catch (e) {}
+            }
+            var sel = '.introjs-overlay, .introjs-disableInteraction, .introjs-helperLayer, .introjs-tooltipReferenceLayer, .introjs-tooltip';
+            var nodes = document.querySelectorAll(sel);
+            nodes.forEach(function(el) {
+                el.style.setProperty('pointer-events', 'none', 'important');
+                if (instant) {
+                    el.style.setProperty('visibility', 'hidden', 'important');
+                    el.style.setProperty('opacity', '0', 'important');
+                    el.style.setProperty('display', 'none', 'important');
+                } else {
+                    el.style.setProperty('transition', 'opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1)', 'important');
+                    el.style.setProperty('opacity', '0', 'important');
+                }
+            });
+            if (!instant) {
+                setTimeout(function() {
+                    nodes.forEach(function(el) {
+                        el.style.setProperty('visibility', 'hidden', 'important');
+                        el.style.setProperty('display', 'none', 'important');
+                    });
+                }, 220);
+            }
+            setTimeout(function() {
+                document.querySelectorAll('.introjs-showElement, .introjs-relativePosition').forEach(function(el) {
+                    el.classList.remove('introjs-showElement', 'introjs-relativePosition');
+                    props.forEach(function(p) { el.style.removeProperty(p); });
+                });
+                document.body.classList.remove('introjs-fixParent');
+                document.body.style.removeProperty('overflow');
+            }, 250);
+        },
+
+        stopFixParentStripper: function() {
+            document.body.classList.remove('introjs-fixParent');
+            document.body.style.removeProperty('overflow');
+        },
+
         showWelcomeScreen: function() {
             // Prevent showing welcome screen if it's already shown
             if (document.getElementById('pymd-welcome-screen')) {
@@ -1236,8 +1285,11 @@
                 return;
             }
 
-            // Wait for IntroJS to be fully initialized
-            setTimeout(() => {
+            // Run immediately – no delay
+            (() => {
+                const tour = this;
+                let lastOverlayClick = null;
+
                 // Filter steps to only include those with existing elements
                 // For string selectors, try multiple selectors (comma-separated)
                 let validSteps = steps.filter(step => {
@@ -1284,7 +1336,7 @@
                     showBullets: true,
                     showProgress: true,
                     showStepNumbers: false,
-                    exitOnOverlayClick: true,
+                    exitOnOverlayClick: false,
                     exitOnEsc: true,
                     keyboardNavigation: true,
                     disableInteraction: false,
@@ -1306,142 +1358,53 @@
                     tooltipPosition: 'left',
                     // Callbacks
                     oncomplete: () => {
-                        // Remove effects from all elements when completing
-                        document.querySelectorAll('.introjs-showElement').forEach(el => {
-                            el.classList.remove('introjs-showElement');
-                            el.style.transition = 'transform 0.4s ease';
-                            el.style.transform = 'scale(1)';
-                            el.style.boxShadow = 'none';
-                        });
+                        this.clearTourSideEffects();
+                        this.stopFixParentStripper();
                         this.markTourCompleted();
                     },
                     onexit: () => {
-                        // Remove effects from all elements when exiting
-                        document.querySelectorAll('.introjs-showElement').forEach(el => {
-                            el.classList.remove('introjs-showElement');
-                            el.style.transition = 'transform 0.4s ease';
-                            el.style.transform = 'scale(1)';
-                            el.style.boxShadow = 'none';
-                        });
+                        this.clearTourSideEffects();
+                        this.stopFixParentStripper();
                         this.markTourSeen();
                     },
-                    onbeforechange: (targetElement) => {
-                        // Smoothly hide old tooltip by sliding out
-                        const oldTooltips = document.querySelectorAll('.introjs-tooltip');
-                        oldTooltips.forEach(tooltip => {
-                            if (tooltip) {
-                                tooltip.classList.add('introjs-hide');
-                                tooltip.style.transform = 'translateX(-30px)';
-                                tooltip.style.opacity = '0';
-                            }
-                        });
+                    onbeforechange: () => {
+                        /* No hide – keep tooltip visible; IntroJS updates content in place. Avoids flash. */
                     },
                     onchange: (targetElement) => {
-                        // Store reference to tour object
                         const tour = this;
                         
-                        // Hide helper layer - no gray borders
-                        const helperLayers = document.querySelectorAll('.introjs-helperLayer');
-                        helperLayers.forEach(layer => {
-                            layer.style.setProperty('display', 'none', 'important');
-                            layer.style.setProperty('visibility', 'hidden', 'important');
-                            layer.style.setProperty('opacity', '0', 'important');
-                            layer.style.setProperty('pointer-events', 'none', 'important');
-                        });
-                        
-                        // Add smooth scale effect to highlighted element
                         if (targetElement) {
-                            // Remove effect from previous element
-                            document.querySelectorAll('.introjs-showElement').forEach(el => {
-                                if (el !== targetElement) {
-                                    el.classList.remove('introjs-showElement');
-                                    el.style.transition = 'transform 0.4s ease';
-                                    el.style.transform = 'scale(1)';
-                                    el.style.boxShadow = 'none';
-                                }
-                            });
-                            
-                            // Check if element is inside a tab and switch to that tab first
                             const tabElement = tour.findTabForElement(targetElement);
-                            if (tabElement) {
-                                tour.switchToTab(tabElement, () => {
-                                    // After tab switch, add effect to element
-                            setTimeout(() => {
-                                        targetElement.classList.add('introjs-showElement');
-                                        targetElement.style.transition = 'transform 0.5s ease';
-                                        targetElement.style.transform = 'scale(1.02)';
-                                    }, 200);
-                                });
-                            } else {
-                                // Add effect to current element immediately
-                                setTimeout(() => {
-                                    targetElement.classList.add('introjs-showElement');
-                                    targetElement.style.transition = 'transform 0.5s ease';
-                                    targetElement.style.transform = 'scale(1.02)';
-                            }, 100);
+                            if (tabElement) tour.switchToTab(tabElement, () => {});
                         }
-                    }
-                        
-                        // Ensure tooltip reference layer has highest z-index
-                        setTimeout(() => {
-                            const tooltipRefLayer = document.querySelector('.introjs-tooltipReferenceLayer');
-                            if (tooltipRefLayer) {
-                                tooltipRefLayer.style.setProperty('z-index', '2147483647', 'important');
-                                tooltipRefLayer.style.setProperty('position', 'fixed', 'important');
-                            }
-                            
-                            // Wait for IntroJS to finish positioning, then apply smooth animation
-                            const newTooltips = document.querySelectorAll('.introjs-tooltip');
-                            newTooltips.forEach(tooltip => {
-                                if (tooltip && tooltip.classList.contains('introjs-hide')) {
-                                    tooltip.classList.remove('introjs-hide');
-                                }
-                                
-                                if (tooltip && !tooltip.classList.contains('introjs-hide')) {
-                                    // Store current position before animation
-                                    const rect = tooltip.getBoundingClientRect();
-                                    const currentLeft = rect.left;
-                                    
-                                    // Lock position to prevent jumps - use fixed positioning temporarily
-                                    tooltip.style.setProperty('z-index', '2147483647', 'important');
-                                    tooltip.style.setProperty('will-change', 'opacity, transform', 'important');
-                                    
-                                    // Start from side (opacity 0, slightly off)
-                                    tooltip.style.setProperty('opacity', '0', 'important');
-                                    tooltip.style.setProperty('transform', 'translateX(-20px)', 'important');
-                                    tooltip.style.setProperty('transition', 'opacity 0.25s ease-out, transform 0.25s ease-out', 'important');
-                                    
-                                    // Force a reflow to ensure styles are applied
-                                    void tooltip.offsetWidth;
-                                    
-                                    // Animate in smoothly without position recalculation
-                                    requestAnimationFrame(() => {
-                                        requestAnimationFrame(() => {
-                                            tooltip.style.setProperty('opacity', '1', 'important');
-                                            tooltip.style.setProperty('transform', 'translateX(0)', 'important');
-                            // ABSOLUTELY FORCE FIXED 230px width (sidebar width) - NEVER EVER changes
+
+                        // Ensure tooltip ref layer on top; keep tooltip visible (no hide/show – smooth, no flash)
+                        const tooltipRefLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                        if (tooltipRefLayer) {
+                            tooltipRefLayer.style.setProperty('z-index', '2147483647', 'important');
+                            tooltipRefLayer.style.setProperty('position', 'fixed', 'important');
+                        }
+                        document.querySelectorAll('.introjs-tooltip').forEach(tooltip => {
+                            if (!tooltip) return;
+                            tooltip.classList.remove('introjs-hide');
+                            tooltip.style.setProperty('opacity', '1', 'important');
+                            tooltip.style.setProperty('transform', 'none', 'important');
+                            tooltip.style.setProperty('transition', 'opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1)', 'important');
+                            tooltip.style.setProperty('z-index', '2147483647', 'important');
                             tooltip.style.setProperty('max-width', '230px', 'important');
                             tooltip.style.setProperty('min-width', '230px', 'important');
                             tooltip.style.setProperty('width', '230px', 'important');
-                            tooltip.style.setProperty('flex-basis', '230px', 'important');
-                            tooltip.style.setProperty('flex-grow', '0', 'important');
-                            tooltip.style.setProperty('flex-shrink', '0', 'important');
-                            // Allow height to grow
                             tooltip.style.setProperty('height', 'auto', 'important');
                             tooltip.style.setProperty('max-height', 'calc(100vh - 80px)', 'important');
                             tooltip.style.setProperty('overflow-y', 'auto', 'important');
                             tooltip.style.setProperty('overflow-x', 'hidden', 'important');
-                                        });
-                                    });
-                                    
-                                    // Remove will-change after animation completes
-                                    setTimeout(() => {
-                                        tooltip.style.removeProperty('will-change');
-                                        tooltip.style.setProperty('transition', 'opacity 0.15s ease', 'important');
-                                    }, 300);
-                                }
-                            });
-                        }, 100); // Give IntroJS time to position first
+                            const titleEl = tooltip.querySelector('.introjs-tooltip-title');
+                            if (titleEl && !(titleEl.textContent || '').trim()) {
+                                titleEl.style.setProperty('display', 'none', 'important');
+                            } else if (titleEl) {
+                                titleEl.style.removeProperty('display');
+                            }
+                        });
                         
                         // Ensure tooltip is visible in viewport and doesn't overlap highlighted element
                         setTimeout(() => {
@@ -1569,7 +1532,20 @@
                 });
 
                 intro.start();
-                
+
+                const fixEmptyTooltipTitle = () => {
+                    document.querySelectorAll('.introjs-tooltip').forEach(tooltip => {
+                        const titleEl = tooltip.querySelector('.introjs-tooltip-title');
+                        if (titleEl && !(titleEl.textContent || '').trim()) {
+                            titleEl.style.setProperty('display', 'none', 'important');
+                        } else if (titleEl) {
+                            titleEl.style.removeProperty('display');
+                        }
+                    });
+                };
+                setTimeout(fixEmptyTooltipTitle, 0);
+                setTimeout(fixEmptyTooltipTitle, 80);
+
                 // Add viewport checker on window resize and continuous monitoring
                 const checkViewport = () => {
                     setTimeout(() => {
@@ -1648,45 +1624,25 @@
                 intro.oncomplete(cleanup);
                 intro.onexit(cleanup);
                 
-                // Hide helper layer immediately - no gray borders
-                const hideHelperLayer = () => {
-                    const helperLayers = document.querySelectorAll('.introjs-helperLayer');
-                    helperLayers.forEach(layer => {
-                        layer.style.setProperty('display', 'none', 'important');
-                        layer.style.setProperty('visibility', 'hidden', 'important');
-                        layer.style.setProperty('opacity', '0', 'important');
-                        layer.style.setProperty('pointer-events', 'none', 'important');
-                        layer.style.setProperty('box-shadow', 'none', 'important');
-                        layer.style.setProperty('border', 'none', 'important');
-                    });
-                };
-                
-                // Hide helper layer immediately and on every change
-                hideHelperLayer();
-                setInterval(hideHelperLayer, 100);
-                
-                // Ensure tooltip appears smoothly on start with ultra high z-index and correct width
-                setTimeout(() => {
-                    const tooltip = document.querySelector('.introjs-tooltip');
-                    const tooltipRefLayer = document.querySelector('.introjs-tooltipReferenceLayer');
-                    if (tooltipRefLayer) {
-                        tooltipRefLayer.style.setProperty('z-index', '2147483647', 'important');
-                        tooltipRefLayer.style.setProperty('position', 'fixed', 'important');
+                // Apply z-index and width immediately after start – no delay
+                const tooltipRefLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                const tooltip = document.querySelector('.introjs-tooltip');
+                if (tooltipRefLayer) {
+                    tooltipRefLayer.style.setProperty('z-index', '2147483647', 'important');
+                    tooltipRefLayer.style.setProperty('position', 'fixed', 'important');
+                }
+                if (tooltip) {
+                    const currentStyle = tooltip.getAttribute('style') || '';
+                    if (currentStyle.includes('width:') && !currentStyle.includes('max-width: 230px')) {
+                        let newStyle = currentStyle.replace(/width:\s*[^;]+;?/gi, '');
+                        newStyle = newStyle.replace(/max-width:\s*[^;]+;?/gi, '');
+                        newStyle = newStyle.replace(/min-width:\s*[^;]+;?/gi, '');
+                        tooltip.setAttribute('style', newStyle);
                     }
-                    if (tooltip) {
-                        // Force width to never exceed 230px (sidebar width) - remove any inline width overrides
-                        const currentStyle = tooltip.getAttribute('style') || '';
-                        if (currentStyle.includes('width:') && !currentStyle.includes('max-width: 230px')) {
-                            let newStyle = currentStyle.replace(/width:\s*[^;]+;?/gi, '');
-                            newStyle = newStyle.replace(/max-width:\s*[^;]+;?/gi, '');
-                            newStyle = newStyle.replace(/min-width:\s*[^;]+;?/gi, '');
-                            tooltip.setAttribute('style', newStyle);
-                        }
-                        tooltip.style.setProperty('max-width', '230px', 'important');
-                        tooltip.style.setProperty('min-width', '230px', 'important');
-                        tooltip.style.setProperty('width', '230px', 'important');
-                    }
-                }, 350);
+                    tooltip.style.setProperty('max-width', '230px', 'important');
+                    tooltip.style.setProperty('min-width', '230px', 'important');
+                    tooltip.style.setProperty('width', '230px', 'important');
+                }
                 
                 // Function to enforce width on a tooltip
                 const enforceTooltipWidth = (tooltip) => {
@@ -1769,45 +1725,19 @@
                 intro.oncomplete(cleanupWidthEnforcer);
                 intro.onexit(cleanupWidthEnforcer);
                 
-                // Initial width enforcement after tour starts
-                setTimeout(() => {
-                    // Wait for IntroJS to finish positioning before animating
-                    const tooltips = document.querySelectorAll('.introjs-tooltip');
-                    tooltips.forEach(tooltip => {
-                        if (tooltip) {
-                            tooltip.style.setProperty('z-index', '2147483647', 'important');
-                            tooltip.style.setProperty('will-change', 'opacity, transform', 'important');
-                            
-                            // Let IntroJS position it first, then animate
-                            setTimeout(() => {
-                                const rect = tooltip.getBoundingClientRect();
-                                
-                                // Start animation from side
-                                tooltip.style.setProperty('opacity', '0', 'important');
-                                tooltip.style.setProperty('transform', 'translateX(-20px)', 'important');
-                                tooltip.style.setProperty('transition', 'opacity 0.25s ease-out, transform 0.25s ease-out', 'important');
-                                
-                                // Force reflow
-                                void tooltip.offsetWidth;
-                                
-                                // Animate in smoothly
-                                requestAnimationFrame(() => {
-                                    requestAnimationFrame(() => {
-                                        tooltip.style.setProperty('opacity', '1', 'important');
-                                        tooltip.style.setProperty('transform', 'translateX(0)', 'important');
-                        });
-                    });
+                // Click outside card → close immediately and replay click (no double-click). We handle this ourselves.
+                const handleClickOutside = (e) => {
+                    if (!document.querySelector('.introjs-overlay')) return;
+                    const target = e.target;
+                    if (!target) return;
+                    if (target.closest('.introjs-tooltip')) return;
+                    e.stopPropagation();
+                    e.preventDefault();
+                    lastOverlayClick = { x: e.clientX, y: e.clientY };
+                    intro.exit();
+                };
+                document.addEventListener('click', handleClickOutside, true);
 
-                                // Clean up after animation
-                                setTimeout(() => {
-                                    tooltip.style.removeProperty('will-change');
-                                    tooltip.style.setProperty('transition', 'opacity 0.15s ease', 'important');
-                                }, 300);
-                            }, 50);
-                        }
-                    });
-                }, 250);
-                
                 // Fix single-click issue - intercept clicks on document level
                 const handleTourButtonClick = (e) => {
                     const target = e.target;
@@ -1828,23 +1758,35 @@
                         });
                     }
                 };
-                
-                // Attach click handler to document with capture phase
                 document.addEventListener('click', handleTourButtonClick, true);
                 
-                // Clean up on tour exit
                 const originalOnexit = intro._options.onexit;
                 intro._options.onexit = () => {
+                    document.removeEventListener('click', handleClickOutside, true);
                     document.removeEventListener('click', handleTourButtonClick, true);
+                    if (lastOverlayClick) {
+                        tour.clearTourSideEffects(true);
+                        const { x, y } = lastOverlayClick;
+                        lastOverlayClick = null;
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                const el = document.elementFromPoint(x, y);
+                                if (el && !el.closest('.introjs-overlay') && !el.closest('.introjs-tooltipReferenceLayer')) {
+                                    el.click();
+                                }
+                            });
+                        });
+                    }
                     if (originalOnexit) originalOnexit();
                 };
                 
                 const originalOncomplete = intro._options.oncomplete;
                 intro._options.oncomplete = () => {
+                    document.removeEventListener('click', handleClickOutside, true);
                     document.removeEventListener('click', handleTourButtonClick, true);
                     if (originalOncomplete) originalOncomplete();
                 };
-            }, 500);
+            })();
         },
 
 

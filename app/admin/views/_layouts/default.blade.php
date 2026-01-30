@@ -201,20 +201,16 @@
             // Close all open dropdowns and modals before starting the tour
             closeAllOpenDropdowns();
             
-            // Wait a bit to ensure tour system is loaded
-            setTimeout(function() {
-                if (window.PayMyDineTour && typeof window.PayMyDineTour.startTour === 'function') {
-                    // Start tour for current page - force start (bypass skip/completion checks)
-                    window.PayMyDineTour.startTour(true);
-                } else {
-                    console.warn('PayMyDineTour not available yet, retrying...');
-                    setTimeout(function() {
-                        if (window.PayMyDineTour && typeof window.PayMyDineTour.startTour === 'function') {
-                            window.PayMyDineTour.startTour(true);
-                        }
-                    }, 500);
-                }
-            }, 100);
+            if (window.PayMyDineTour && typeof window.PayMyDineTour.startTour === 'function') {
+                window.PayMyDineTour.startTour(true);
+            } else {
+                console.warn('PayMyDineTour not available yet, retrying...');
+                setTimeout(function() {
+                    if (window.PayMyDineTour && typeof window.PayMyDineTour.startTour === 'function') {
+                        window.PayMyDineTour.startTour(true);
+                    }
+                }, 300);
+            }
         });
     }
     

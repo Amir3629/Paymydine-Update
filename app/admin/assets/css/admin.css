@@ -4677,8 +4677,60 @@ readers do not read off random characters that represent icons */
   stroke: #8a93a8 !important;
 }
 
+/* Match Add General Staff Note modal: same size, round corners, gradient and shadow */
 .dashboard-widget-modal .btn-add-widget,
-#newWidgetModal .btn-add-widget,
+#newWidgetModal .btn-add-widget {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  color: #ffffff !important;
+  min-width: 110px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0.55rem 1.75rem !important;
+  line-height: 1.3 !important;
+  border-radius: 12px !important;
+  box-shadow: rgba(31, 43, 58, 0.3) 0 4px 15px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  display: inline-block !important;
+  text-align: center !important;
+}
+
+.dashboard-widget-modal .btn-add-widget:hover,
+.dashboard-widget-modal .btn-add-widget:focus,
+#newWidgetModal .btn-add-widget:hover,
+#newWidgetModal .btn-add-widget:focus {
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: rgba(31, 43, 58, 0.4) 0 6px 18px !important;
+}
+
+.dashboard-widget-modal .btn-close-modal,
+#newWidgetModal .btn-close-modal {
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #202938 !important;
+  min-width: 110px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0.55rem 1.75rem !important;
+  line-height: 1.3 !important;
+  border-radius: 12px !important;
+  display: inline-block !important;
+  text-align: center !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.dashboard-widget-modal .btn-close-modal:hover,
+.dashboard-widget-modal .btn-close-modal:focus,
+#newWidgetModal .btn-close-modal:hover,
+#newWidgetModal .btn-close-modal:focus {
+  background: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(32, 41, 56, 0.18) !important;
+}
+
 .btn-add-widget {
   background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   border: 1px solid #364a63 !important;
@@ -4692,10 +4744,6 @@ readers do not read off random characters that represent icons */
   text-align: center !important;
 }
 
-.dashboard-widget-modal .btn-add-widget:hover,
-.dashboard-widget-modal .btn-add-widget:focus,
-#newWidgetModal .btn-add-widget:hover,
-#newWidgetModal .btn-add-widget:focus,
 .btn-add-widget:hover,
 .btn-add-widget:focus {
   background: linear-gradient(135deg, #364a63 0%, #0aa868 100%) !important;
@@ -4704,8 +4752,6 @@ readers do not read off random characters that represent icons */
   box-shadow: 0 6px 16px rgba(15, 157, 88, 0.35) !important;
 }
 
-.dashboard-widget-modal .btn-close-modal,
-#newWidgetModal .btn-close-modal,
 .btn-close-modal {
   background: #f1f4fb !important;
   border: 1px solid #c9d2e3 !important;
@@ -4718,10 +4764,6 @@ readers do not read off random characters that represent icons */
   transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-.dashboard-widget-modal .btn-close-modal:hover,
-.dashboard-widget-modal .btn-close-modal:focus,
-#newWidgetModal .btn-close-modal:hover,
-#newWidgetModal .btn-close-modal:focus,
 .btn-close-modal:hover,
 .btn-close-modal:focus {
   background: #e5ebf7 !important;
