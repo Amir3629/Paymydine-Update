@@ -2,18 +2,13 @@
 
 namespace App\Http;
 
-use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Igniter\Flame\Foundation\Http\Kernel as FlameKernel;
 
-class Kernel extends HttpKernel
+class Kernel extends FlameKernel
 {
     /**
      * The application's route middleware groups.
-     * 
-     * CRITICAL FIX: Override to enable CSRF protection.
-     * TastyIgniter's Flame Kernel has CSRF commented out (vendor/tastyigniter/flame/src/Foundation/Http/Kernel.php:56)
-     * This causes "random logout" issues when CSRF tokens expire/mismatch.
-     *
-     * @var array
+     * Same as Flame but use App tenant middleware so localhost uses default tenant.
      */
     protected $middlewareGroups = [
         'web' => [
@@ -21,9 +16,9 @@ class Kernel extends HttpKernel
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,  // FIX: Enable CSRF middleware
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \Igniter\Flame\Translation\Middleware\Localization::class,
+            \App\Http\Middleware\TenantDatabaseMiddleware::class, // localhost → first tenant
         ],
 
         'api' => [
@@ -50,8 +45,9 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-	'detect.tenant' => \App\Http\Middleware\DetectTenant::class,
-	'tenant.database' => \App\Http\Middleware\TenantDatabaseMiddleware::class,
+        'detect.tenant' => \App\Http\Middleware\DetectTenant::class,
+        'tenant.database' => \App\Http\Middleware\TenantDatabaseMiddleware::class,
         'cors' => \App\Http\Middleware\CorsMiddleware::class,
+        'superadmin.auth' => \Igniter\Flame\Foundation\Http\Middleware\SuperAdminAuthMiddleware::class,
     ];
 } 

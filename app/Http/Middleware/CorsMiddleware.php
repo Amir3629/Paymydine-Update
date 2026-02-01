@@ -18,19 +18,15 @@ class CorsMiddleware
     {
         $response = $next($request);
 
-        // Allow all origins for development
-        $response->headers->set('Access-Control-Allow-Origin', '*');
-        
-        // Allow common HTTP methods
+        // Reflect request origin so frontend (e.g. http://localhost:3001) can read the response (CORS)
+        $origin = $request->header('Origin');
+        $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        
-        // Allow common headers
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-        
-        // Allow credentials
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        
-        // Handle preflight OPTIONS request
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Tenant-Subdomain');
+        // Only set credentials when using a specific origin (* and credentials=true is invalid)
+        if ($origin) {
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        }
         if ($request->isMethod('OPTIONS')) {
             $response->setStatusCode(200);
             $response->setContent('');
