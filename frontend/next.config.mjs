@@ -60,33 +60,30 @@ const nextConfig = {
   // Multi-tenant configuration
   async rewrites() {
     const isDevelopment = process.env.NODE_ENV === 'development';
+    // Get backend URL from environment or use defaults
+    // In production, if Laravel is on same domain but different port, use that port
+    // Otherwise, assume Laravel is on same domain (handled by nginx reverse proxy)
+    const backendPort = process.env.NEXT_PUBLIC_BACKEND_PORT || '8000';
+    const backendHost = isDevelopment 
+      ? '127.0.0.1' 
+      : (process.env.NEXT_PUBLIC_BACKEND_HOST || '127.0.0.1');
+    const backendUrl = `http://${backendHost}:${backendPort}`;
     
-    // In development, proxy to Laravel backend on localhost:8000
-    // In production, Laravel is on the same domain via nginx reverse proxy
-    // Nginx should route /api/* requests directly to Laravel, not through Next.js
-    const rewrites = [];
-    
-    if (isDevelopment) {
-      const backendPort = process.env.NEXT_PUBLIC_BACKEND_PORT || '8000';
-      const backendHost = '127.0.0.1';
-      const backendUrl = `http://${backendHost}:${backendPort}`;
-      
-      // In development, proxy API requests to Laravel
-      rewrites.push(
-        {
-          source: '/api/v1/:path*',
-          destination: `${backendUrl}/api/v1/:path*`,
-        },
-        {
-          source: '/api/media/:path*',
-          destination: `${backendUrl}/api/media/:path*`,
-        }
-      );
-    }
-    // In production, don't add rewrites for /api/* - let nginx route them directly to Laravel
-    
-    // Handle tenant subdomains and other routes
-    rewrites.push(
+    return [
+      // API proxy - works for both development and production
+      {
+        source: '/api/v1/:path*',
+        destination: isDevelopment 
+          ? `${backendUrl}/api/v1/:path*`
+          : `${backendUrl}/api/v1/:path*`, // In production, proxy to Laravel backend
+      },
+      // Media proxy - CRITICAL: This serves images from Laravel backend
+      // MUST proxy to Laravel backend in both dev and production
+      {
+        source: '/api/media/:path*',
+        destination: `${backendUrl}/api/media/:path*`, // Always proxy to Laravel backend
+      },
+      // Handle tenant subdomains
       {
         source: '/:path*',
         destination: '/:path*',
@@ -97,6 +94,7 @@ const nextConfig = {
           },
         ],
       },
+      // Handle localhost development (both ports)
       {
         source: '/:path*',
         destination: '/:path*',
@@ -116,10 +114,8 @@ const nextConfig = {
             value: 'localhost:3001',
           },
         ],
-      }
-    );
-    
-    return rewrites;
+      },
+    ];
   },
   
   // Environment-specific configuration

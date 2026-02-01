@@ -1,0 +1,348 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.theme-vars, :root {
+  /* Theme semantic variables */
+  --theme-primary: var(--theme-primary, #E7CBA9);
+  --theme-secondary: var(--theme-secondary, #EFC7B1);
+  --theme-accent: var(--theme-accent, #3B3B3B);
+  --theme-background: var(--theme-background, #FAFAFA);
+
+  /* Legacy PayDine tokens derived from theme vars */
+  --paydine-champagne: var(--theme-primary);
+  --paydine-rose-beige: var(--theme-secondary);
+  --paydine-elegant-gray: var(--theme-accent);
+  --paydine-soft-white: var(--theme-background);
+}
+
+/* Semantic utilities used by components/pages */
+.bg-theme {
+  background-color: var(--theme-background, #FAFAFA) !important;
+}
+.text-theme {
+  color: var(--theme-accent, #3B3B3B) !important;
+}
+.btn-theme {
+  background-color: var(--theme-primary, #E7CBA9) !important;
+  color: var(--theme-accent, #3B3B3B) !important;
+}
+.btn-theme:hover {
+  background-color: var(--theme-secondary, #EFC7B1) !important;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  html.theme-dark {
+    background-color: var(--theme-background);
+  }
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+ 
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    /* Use dynamic theme background/text first, fall back to tailwind base */
+    background-color: var(--theme-background, hsl(var(--background)));
+    color: var(--theme-text-primary, hsl(var(--foreground)));
+  }
+
+  /* Dark theme refinements when theme-dark is present on <html> */
+  .theme-dark body {
+    /* Matte dark base with strong black vignette and subtle warm glow */
+    background:
+      radial-gradient(1200px 600px at 20% 0%, rgba(231,203,169,0.05), transparent 60%),
+      radial-gradient(900px 500px at 80% 10%, rgba(239,199,177,0.04), transparent 60%),
+      radial-gradient(1200px 800px at 50% 120%, rgba(0,0,0,0.65), transparent 70%),
+      radial-gradient(1200px 800px at -20% -20%, rgba(0,0,0,0.55), transparent 70%),
+      radial-gradient(1200px 800px at 120% -20%, rgba(0,0,0,0.55), transparent 70%),
+      var(--theme-background);
+    color: var(--theme-text-primary);
+  }
+
+  /* Modern Dark specific overrides for start page cards and valet/payment surfaces */
+  .theme-dark {
+    /* start cards on home/table home */
+    --theme-start-card: #222529;
+  }
+
+  /* Strong overlay to guarantee the vignette is visible on every page */
+  .theme-dark body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(1200px 600px at 20% 0%, rgba(231,203,169,0.07), transparent 60%),
+      radial-gradient(900px 500px at 80% 10%, rgba(239,199,177,0.06), transparent 60%),
+      radial-gradient(1200px 800px at 50% 120%, rgba(0,0,0,0.70), transparent 70%),
+      radial-gradient(1200px 800px at -20% -20%, rgba(0,0,0,0.60), transparent 70%),
+      radial-gradient(1200px 800px at 120% -20%, rgba(0,0,0,0.60), transparent 70%);
+    z-index: -1;
+  }
+
+  /* Let the body's matte gradient show through page wrappers in dark mode */
+  .theme-dark .bg-theme:not(body) {
+    background: transparent !important;
+  }
+
+  .theme-dark .card, .theme-dark .menu-card, .theme-dark .dialog, .theme-dark .sheet {
+    background-color: var(--theme-menu-item-bg);
+    border-color: var(--theme-menu-item-border);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* Utility class to quickly darken any light surface without touching component logic */
+  .theme-dark .dark-surface {
+    background-color: var(--theme-menu-item-bg) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-menu-item-border) !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.35) !important;
+  }
+
+  /* Aggressive utility overrides so we don't have to touch components */
+  .theme-dark [class*="bg-white"],
+  .theme-dark [class*="bg-gray-50"],
+  .theme-dark [class*="bg-slate-50"],
+  .theme-dark [class*="bg-neutral-50"] {
+    background-color: var(--theme-menu-item-bg) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Force modal/dialog content areas to dark surface */
+  .theme-dark .bg-white,
+  .theme-dark .bg-gray-50,
+  .theme-dark .bg-slate-50,
+  .theme-dark .bg-neutral-50 {
+    background-color: var(--theme-menu-item-bg) !important;
+  }
+
+  .theme-dark [class*="border-gray"],
+  .theme-dark [class*="border-slate"],
+  .theme-dark [class*="border-neutral"] {
+    border-color: var(--theme-menu-item-border) !important;
+  }
+
+  .theme-dark [class*="text-gray-400"],
+  .theme-dark [class*="text-gray-500"],
+  .theme-dark [class*="text-gray-600"],
+  .theme-dark [class*="text-gray-700"],
+  .theme-dark [class*="text-slate-500"],
+  .theme-dark [class*="text-neutral-600"] {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .theme-dark [class*="text-black"],
+  .theme-dark [class*="text-gray-900"],
+  .theme-dark [class*="text-slate-900"] {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Map shadcn/tailwind semantic tokens to dark theme colors */
+  .theme-dark [class*="bg-background"],
+  .theme-dark [class*="bg-card"],
+  .theme-dark [class*="bg-popover"],
+  .theme-dark [class~="bg-white"],
+  .theme-dark [class~="bg-gray-100"] {
+    background-color: var(--theme-menu-item-bg) !important;
+  }
+  .theme-dark [class*="text-foreground"],
+  .theme-dark [class*="text-card-foreground"],
+  .theme-dark [class*="text-popover-foreground"] {
+    color: var(--theme-text-primary) !important;
+  }
+  .theme-dark [class*="border-border"],
+  .theme-dark [class*="border-input"],
+  .theme-dark [class*="ring-"],
+  .theme-dark [class*="ring-border"] {
+    border-color: var(--theme-border) !important;
+  }
+
+  /* Primary action colors (buttons, pills) */
+  .theme-dark [class*="bg-primary"],
+  .theme-dark .btn-primary,
+  .theme-dark button[class*="bg-"],
+  .theme-dark a.button,
+  .theme-dark .pill-active {
+    background-color: var(--theme-button) !important;
+    color: #1b1f27 !important;
+  }
+  .theme-dark [class*="hover:bg-primary"]:hover,
+  .theme-dark .btn-primary:hover {
+    background-color: var(--theme-button-hover) !important;
+  }
+
+  /* Price/highlight accents */
+  .theme-dark .price,
+  .theme-dark [class*="text-paydine-rose-beige"],
+  .theme-dark [class*="text-primary"],
+  .theme-dark [class*="text-accent"] {
+    color: var(--theme-price) !important;
+  }
+
+  .theme-dark input,
+  .theme-dark textarea,
+  .theme-dark select {
+    background-color: var(--theme-input) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .theme-dark [class*="bg-paydine-rose-beige"] {
+    background-color: rgba(239, 199, 177, 0.10) !important;
+  }
+  .theme-dark [class*="bg-paydine-champagne"] {
+    background-color: var(--theme-primary) !important;
+    color: #1b1f27 !important;
+  }
+  .theme-dark [class*="hover:bg-paydine-champagne"]:hover {
+    background-color: var(--theme-secondary) !important;
+  }
+
+  .theme-dark [class*="shadow"], .theme-dark .shadow {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.30) !important;
+  }
+
+  .theme-dark .pill-active, .theme-dark .btn-primary {
+    background-color: var(--theme-primary);
+    color: #1b1f27;
+    box-shadow: 0 6px 16px rgba(231,203,169,0.35);
+  }
+  .theme-dark .pill-inactive {
+    color: var(--theme-text-secondary);
+  }
+
+  .theme-dark .price, .theme-dark .highlight {
+    color: var(--theme-price);
+  }
+}
+
+/* Matte dark background with soft vignette used across pages */
+.matte-bg {
+  background-color: var(--theme-background) !important;
+  background-image:
+    radial-gradient(1200px 600px at 20% 0%, rgba(231,203,169,0.045), transparent 60%),
+    radial-gradient(900px 500px at 80% 10%, rgba(239,199,177,0.035), transparent 60%);
+}
+
+.matte-vignette::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 140px rgba(0,0,0,0.55), inset 0 0 380px rgba(0,0,0,0.35);
+}
+
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(242, 195, 195, 0.05);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(242, 195, 195);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(235, 175, 175);
+}
+
+/* Scrollbar for Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(242, 195, 195) rgba(242, 195, 195, 0.05);
+}
