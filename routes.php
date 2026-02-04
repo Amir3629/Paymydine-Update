@@ -372,6 +372,128 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
         })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
         });
 
+/*
+ * Menu/food images: ensure /api/media/{path} is always registered (production may not load app/main/routes.php).
+ * Same logic as app/main/routes.php so GET /api/media/693/397/25b/69339725b3dde927159940.png returns the file.
+ */
+Route::group(['prefix' => 'api', 'middleware' => [\App\Http\Middleware\CorsMiddleware::class]], function () {
+    Route::get('/media/{path}', function ($path) {
+        $path = explode('?', $path)[0];
+        $filename = basename($path);
+        $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+        $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+        $extensions = array_unique(array_filter(array_merge(
+            $originalExt ? [$originalExt] : [],
+            ['webp', 'jpg', 'jpeg', 'png']
+        )));
+
+        $basePaths = [
+            base_path('assets/media/attachments/public'),
+            storage_path('app/public/assets/media/attachments/public'),
+        ];
+
+        $tryDirect = function ($base) use ($path) {
+            $full = rtrim($base, '/') . '/' . ltrim($path, '/');
+            return file_exists($full) ? $full : null;
+        };
+
+        $tryHashDir = function ($base, $disk, $extList) {
+            $p1 = substr($disk, 0, 3);
+            $p2 = substr($disk, 3, 3);
+            $p3 = substr($disk, 6, 3);
+            $dir = rtrim($base, '/') . '/' . $p1 . '/' . $p2 . '/' . $p3 . '/';
+            if (!is_dir($dir)) {
+                return null;
+            }
+            foreach ($extList as $ext) {
+                $full = $dir . $disk . '.' . $ext;
+                if (file_exists($full)) {
+                    return $full;
+                }
+            }
+            return null;
+        };
+
+        $searchRecursive = function ($base, $filename, $disk = null) {
+            if (!is_dir($base)) {
+                return null;
+            }
+            try {
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($base, \RecursiveDirectoryIterator::SKIP_DOTS)
+                );
+                foreach ($iterator as $file) {
+                    if (!$file->isFile()) {
+                        continue;
+                    }
+                    if ($file->getFilename() === $filename) {
+                        return $file->getPathname();
+                    }
+                    if ($disk !== null && pathinfo($file->getFilename(), PATHINFO_FILENAME) === $disk) {
+                        return $file->getPathname();
+                    }
+                }
+            } catch (\Exception $e) {
+                //
+            }
+            return null;
+        };
+
+        $mediaPath = null;
+        foreach ($basePaths as $base) {
+            $mediaPath = $tryDirect($base);
+            if ($mediaPath) {
+                break;
+            }
+        }
+
+        if (!$mediaPath && strlen($pathWithoutExt) >= 9 && ctype_alnum($pathWithoutExt)) {
+            foreach ($basePaths as $base) {
+                $mediaPath = $tryHashDir($base, $pathWithoutExt, $extensions);
+                if ($mediaPath) {
+                    break;
+                }
+            }
+        }
+
+        if (!$mediaPath) {
+            foreach ($basePaths as $base) {
+                $mediaPath = $searchRecursive($base, $filename, strlen($pathWithoutExt) >= 9 ? $pathWithoutExt : null);
+                if ($mediaPath) {
+                    break;
+                }
+            }
+        }
+
+        if ($mediaPath) {
+            $mimeType = mime_content_type($mediaPath);
+            return response()->file($mediaPath, [
+                'Content-Type' => $mimeType,
+                'Cache-Control' => 'public, max-age=31536000'
+            ]);
+        }
+
+        $fallbackPaths = [
+            base_path('images/loader.png'),
+            base_path('images/logo.png'),
+            public_path('images/pasta.png'),
+        ];
+        foreach ($fallbackPaths as $fallbackPath) {
+            if ($fallbackPath && file_exists($fallbackPath)) {
+                return response()->file($fallbackPath, [
+                    'Content-Type' => 'image/png',
+                    'Cache-Control' => 'public, max-age=3600'
+                ]);
+            }
+        }
+        $onePixelPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+        return response($onePixelPng, 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
+    })->where('path', '.*');
+});
+
 // Frontend API Routes - These are loaded by TastyIgniter's routing system
 Route::group([
     'prefix' => 'api/v1',
