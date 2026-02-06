@@ -71,8 +71,8 @@ App::before(function () {
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 
-        // API Routes - Register these before the catch-all route (CORS so frontend can load images)
-        Route::group(['prefix' => 'api', 'middleware' => [\App\Http\Middleware\CorsMiddleware::class]], function () {
+        // API Routes - Register these before the catch-all route
+        Route::group(['prefix' => 'api'], function () {
             // Health check endpoint
             Route::get('/health', function () {
                 return response()->json([
@@ -84,123 +84,159 @@ App::before(function () {
 
             // Direct media serving route for TastyIgniter attachments
             // IMPORTANT: This must be registered before any catch-all routes
-            // Searches both base_path(assets) and storage_path(app/public) (Laravel/Flame may use either)
             Route::get('/media/{path}', function ($path) {
+                // Remove any query parameters
                 $path = explode('?', $path)[0];
-                $filename = basename($path);
-                $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
-                $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
-                $extensions = array_unique(array_filter(array_merge(
-                    $originalExt ? [$originalExt] : [],
-                    ['webp', 'jpg', 'jpeg', 'png']
-                )));
-
-                $basePaths = [
-                    base_path('assets/media/attachments/public'),
-                    storage_path('app/public/assets/media/attachments/public'),
-                ];
-
-                $tryDirect = function ($base) use ($path) {
-                    $full = rtrim($base, '/') . '/' . ltrim($path, '/');
-                    return file_exists($full) ? $full : null;
-                };
-
-                $tryHashDir = function ($base, $disk, $extList) {
-                    $p1 = substr($disk, 0, 3);
-                    $p2 = substr($disk, 3, 3);
-                    $p3 = substr($disk, 6, 3);
-                    $dir = rtrim($base, '/') . '/' . $p1 . '/' . $p2 . '/' . $p3 . '/';
-                    if (!is_dir($dir)) {
-                        return null;
-                    }
-                    foreach ($extList as $ext) {
-                        $full = $dir . $disk . '.' . $ext;
-                        if (file_exists($full)) {
-                            return $full;
+                
+                // Log for debugging
+                \Log::info('Media route called', [
+                    'path' => $path,
+                    'request_uri' => request()->getRequestUri(),
+                    'full_url' => request()->fullUrl()
+                ]);
+                
+                // First try the direct path (as stored in database - could be disk-based path like "68f/701/a0e/68f701a0e.jpg")
+                $mediaPath = base_path('assets/media/attachments/public/' . $path);
+                
+                if (!file_exists($mediaPath)) {
+                    // If path looks like a disk hash (9+ chars), try constructing the proper path
+                    $filename = basename($path);
+                    $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+                    
+                    // If filename looks like a disk hash (9+ alphanumeric chars), try disk-based structure
+                    if (strlen($pathWithoutExt) >= 9 && ctype_alnum($pathWithoutExt)) {
+                        $disk = $pathWithoutExt;
+                        $p1 = substr($disk, 0, 3);
+                        $p2 = substr($disk, 3, 3);
+                        $p3 = substr($disk, 6, 3);
+                        
+                        // First try with original extension from filename
+                        $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                        if ($originalExt) {
+                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $originalExt);
+                            if (file_exists($candidate)) {
+                                $mediaPath = $candidate;
+                            }
+                        }
+                        
+                        // If not found, try other extensions
+                        if (!file_exists($mediaPath)) {
+                            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                            foreach ($extensions as $ext) {
+                                $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                                if (file_exists($candidate)) {
+                                    $mediaPath = $candidate;
+                                    break;
+                                }
+                            }
                         }
                     }
-                    return null;
-                };
-
-                $searchRecursive = function ($base, $filename, $disk = null) {
-                    if (!is_dir($base)) {
-                        return null;
+                    
+                    // If still not found, search recursively for files containing the disk name
+                    if (!file_exists($mediaPath) && strlen($pathWithoutExt) >= 9) {
+                        $searchPath = base_path('assets/media/attachments/public');
+                        $foundPath = null;
+                        $disk = $pathWithoutExt;
+                        
+                        // First, try the constructed path with all extensions (faster than full recursive search)
+                        $p1 = substr($disk, 0, 3);
+                        $p2 = substr($disk, 3, 3);
+                        $p3 = substr($disk, 6, 3);
+                        $constructedDir = $searchPath . $p1 . '/' . $p2 . '/' . $p3 . '/';
+                        
+                        if (is_dir($constructedDir)) {
+                            // First try original extension
+                            $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                            if ($originalExt) {
+                                $candidate = $constructedDir . $disk . '.' . $originalExt;
+                                if (file_exists($candidate)) {
+                                    $foundPath = $candidate;
+                                }
+                            }
+                            
+                            // If not found, try other extensions
+                            if (!$foundPath) {
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                foreach ($extensions as $ext) {
+                                    $candidate = $constructedDir . $disk . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $foundPath = $candidate;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // If still not found, do full recursive search
+                        if (!$foundPath) {
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                            );
+                            
+                            foreach ($iterator as $file) {
+                                if ($file->isFile()) {
+                                    $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+                                    // Check if filename matches the disk name exactly
+                                    if ($fileBasename === $disk) {
+                                        $foundPath = $file->getPathname();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if ($foundPath) {
+                            $mediaPath = $foundPath;
+                        }
                     }
-                    try {
+                    
+                    // Last resort: search by exact filename match
+                    if (!file_exists($mediaPath)) {
+                        $searchPath = base_path('assets/media/attachments/public');
+                        $foundPath = null;
                         $iterator = new RecursiveIteratorIterator(
-                            new RecursiveDirectoryIterator($base, RecursiveDirectoryIterator::SKIP_DOTS)
+                            new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
                         );
+                        
                         foreach ($iterator as $file) {
-                            if (!$file->isFile()) {
-                                continue;
-                            }
                             if ($file->getFilename() === $filename) {
-                                return $file->getPathname();
-                            }
-                            if ($disk !== null && pathinfo($file->getFilename(), PATHINFO_FILENAME) === $disk) {
-                                return $file->getPathname();
+                                $foundPath = $file->getPathname();
+                                break;
                             }
                         }
-                    } catch (\Exception $e) {
-                        // directory not readable
-                    }
-                    return null;
-                };
-
-                $mediaPath = null;
-                foreach ($basePaths as $base) {
-                    $mediaPath = $tryDirect($base);
-                    if ($mediaPath) {
-                        break;
-                    }
-                }
-
-                if (!$mediaPath && strlen($pathWithoutExt) >= 9 && ctype_alnum($pathWithoutExt)) {
-                    foreach ($basePaths as $base) {
-                        $mediaPath = $tryHashDir($base, $pathWithoutExt, $extensions);
-                        if ($mediaPath) {
-                            break;
+                        
+                        if ($foundPath) {
+                            $mediaPath = $foundPath;
                         }
                     }
                 }
-
-                if (!$mediaPath) {
-                    foreach ($basePaths as $base) {
-                        $mediaPath = $searchRecursive($base, $filename, strlen($pathWithoutExt) >= 9 ? $pathWithoutExt : null);
-                        if ($mediaPath) {
-                            break;
-                        }
-                    }
-                }
-
-                if ($mediaPath) {
+                
+                if (file_exists($mediaPath)) {
                     $mimeType = mime_content_type($mediaPath);
+                    \Log::debug('Media file found', ['path' => $mediaPath, 'mime' => $mimeType]);
                     return response()->file($mediaPath, [
                         'Content-Type' => $mimeType,
                         'Cache-Control' => 'public, max-age=31536000'
                     ]);
-                }
-
-                // Fallback: project has no public/ folder; use base_path images or 1x1 PNG
-                $fallbackPaths = [
-                    base_path('images/loader.png'),
-                    base_path('images/logo.png'),
-                    public_path('images/pasta.png'),
-                ];
-                foreach ($fallbackPaths as $fallbackPath) {
-                    if ($fallbackPath && file_exists($fallbackPath)) {
+                } else {
+                    // Log what we tried
+                    \Log::warning('Media file not found', [
+                        'requested_path' => $path,
+                        'searched_path' => $mediaPath,
+                        'base_path' => base_path('assets/media/attachments/public')
+                    ]);
+                    
+                    // Fallback to pasta.png if image not found
+                    $fallbackPath = public_path('images/pasta.png');
+                    if (file_exists($fallbackPath)) {
                         return response()->file($fallbackPath, [
                             'Content-Type' => 'image/png',
-                            'Cache-Control' => 'public, max-age=3600'
+                            'Cache-Control' => 'public, max-age=31536000'
                         ]);
+                    } else {
+                        abort(404, "Image not found: {$path}");
                     }
                 }
-                // Last resort: 1x1 transparent PNG so browser never gets 404
-                $onePixelPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
-                return response($onePixelPng, 200, [
-                    'Content-Type' => 'image/png',
-                    'Cache-Control' => 'public, max-age=3600',
-                ]);
             })->where('path', '.*');
 
             /*
@@ -220,11 +256,11 @@ App::before(function () {
             
             // API v1 routes  
             // Note: Must use full class name in App::before() context (middleware aliases not yet registered)
-            // CORS first so response gets Access-Control-Allow-Origin (frontend at localhost:3001 can read 200 body)
-            Route::prefix('v1')->middleware([\App\Http\Middleware\CorsMiddleware::class, 'web', \App\Http\Middleware\DetectTenant::class])->group(function () {
-                // Menu endpoints (same data source as admin orders/create: menus + media + categories)
+            Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class])->group(function () {
+                // Menu endpoints
                 Route::get('/menu', function () {
                     try {
+                        // Get menu items with categories (matching old API structure)
                         $p = DB::connection()->getTablePrefix();
                         $query = "
                             SELECT 
@@ -232,7 +268,6 @@ App::before(function () {
                                 m.menu_name as name,
                                 m.menu_description as description,
                                 CAST(m.menu_price AS DECIMAL(10,2)) as price,
-                                COALESCE(c.category_id, 0) as category_id,
                                 COALESCE(c.name, 'Main') as category_name,
                                 ma.name as image,
                                 ma.disk as image_disk
@@ -246,18 +281,9 @@ App::before(function () {
                             ORDER BY c.priority ASC, m.menu_name ASC
                         ";
                         
-                        $rows = DB::select($query);
-                        // One row per menu (like admin Menus_model::with(['media','categories'])->get())
-                        $seen = [];
-                        $items = [];
-                        foreach ($rows as $row) {
-                            if (isset($seen[$row->id])) {
-                                continue;
-                            }
-                            $seen[$row->id] = true;
-                            $items[] = $row;
-                        }
+                        $items = DB::select($query);
                         
+                        // Convert prices to float, fix image paths, and add options
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
                             

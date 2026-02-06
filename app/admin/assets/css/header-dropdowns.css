@@ -283,10 +283,10 @@
     background: transparent !important;
   }
   
-  /* Dropdown items */
+  /* Dropdown items - EXCLUDE status items from transparent (they need opaque bg to prevent see-through) */
   .dropdown-menu .dropdown-item:not([data-request="onUpdateStatus"]),
   .dropdown-menu .menu-link,
-  .dropdown-menu a:not(.btn) {
+  .dropdown-menu a:not(.btn):not([data-request="onUpdateStatus"]) {
     color: #364a63 !important;
     padding: 10px 16px !important;
     border-radius: 8px !important;
@@ -655,21 +655,23 @@
      CRITICAL FIX: Status Dropdown in Orders Table
      ============================================ */
   
-  /* Prevent the general dropdown hover rule from overriding inline background colors */
-  .list-table .dropdown-menu .dropdown-item:hover,
-  .list-table .dropdown-menu .status-dropdown-item:hover,
-  .list-table .dropdown-menu a[data-request="onUpdateStatus"]:hover {
-    background: none !important;
-    background-color: revert !important;
-    /* This allows the inline onmouseover handler to work */
-  }
-  
-  /* Ensure status items are always visible (no animation delay) */
+  /* Status dropdown items: all white, opaque (no colored backgrounds) */
   .list-table .dropdown-menu .status-dropdown-item,
   .list-table .dropdown-menu a[data-request="onUpdateStatus"] {
     opacity: 1 !important;
     transform: translateX(0) !important;
     animation: none !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #364a63 !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    border-left: none !important;
+  }
+  .list-table .dropdown-menu .status-dropdown-item:hover,
+  .list-table .dropdown-menu a[data-request="onUpdateStatus"]:hover {
+    background: #f8f9fa !important;
+    background-color: #f8f9fa !important;
   }
   
   /* Hide the 'updates available' row inside the header settings dropdown */

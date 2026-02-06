@@ -3790,3 +3790,21 @@ html body .settings-card-link--about .card.settings-card--about {
   display: flex !important;
   align-items: center !important;
 }
+
+/* Tooltip wrapper - ensure layout unchanged in navbar */
+.navbar-top .media-toolbar-tooltip-wrap,
+.navbar .media-toolbar-tooltip-wrap {
+  display: inline-flex !important;
+}
+
+/* Profile avatar - constrain size in navbar */
+.navbar-top .navbar-profile-avatar,
+.navbar .nav-item.dropdown .navbar-profile-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  object-fit: cover !important;
+}

@@ -8,10 +8,11 @@
         : $defaultAvatar;
 @endphp
 <li class="nav-item dropdown">
-    <a href="#" class="nav-link" data-bs-toggle="dropdown">
+    <a href="#" class="nav-link" data-bs-toggle="dropdown" aria-label="{{ __('Account') }}" title="{{ $userPanel->getUserName() }} - {{ __('Account') }}">
         <img
-            class="rounded-circle"
+            class="rounded-circle navbar-profile-avatar"
             src="{{ $profileImage }}"
+            alt=""
         >
     </a>
     <div class="dropdown-menu profile-dropdown-menu">

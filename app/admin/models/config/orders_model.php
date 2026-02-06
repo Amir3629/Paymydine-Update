@@ -131,7 +131,7 @@ $config['list']['columns'] = [
         'relation' => 'status',
         'select' => 'status_name',
         'type' => 'partial',
-        'path' => 'statuses/form/status_column',
+        'path' => 'orders/status_column',
     ],
     'payment' => [
         'label' => 'lang:admin::lang.orders.column_payment',

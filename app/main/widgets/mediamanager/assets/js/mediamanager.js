@@ -206,10 +206,37 @@
     MediaManager.prototype.afterNavigate = function () {
         this.initScroll()
         this.initUploader()
+        this._bindUploadInputIfNeeded()
         this.initSelectonic()
         this.initFolderTree()
         this.selectFirstItem()
         this.scrollToTop()
+    }
+
+    MediaManager.prototype._bindUploadInputIfNeeded = function () {
+        if (!this.dropzone) return
+        var input = this.$el.find('input[data-media-upload-input="true"]').get(0)
+        if (!input || input === this._uploadInput) return
+        if (this._uploadInput && this._onUploadInputChange) {
+            this._uploadInput.removeEventListener('change', this._onUploadInputChange)
+        }
+        var self = this
+        if (Array.isArray(this.options.allowedExtensions) && this.options.allowedExtensions.length) {
+            input.setAttribute('accept', this.options.allowedExtensions.map(function (ext) {
+                var e = String(ext)
+                return '.' + (e.charAt(0) === '.' ? e.slice(1) : e)
+            }).join(','))
+        }
+        this._onUploadInputChange = function () {
+            var files = input.files
+            if (!files || !files.length) return
+            for (var i = 0; i < files.length; i++) {
+                self.dropzone.addFile(files[i])
+            }
+            input.value = ''
+        }
+        input.addEventListener('change', this._onUploadInputChange)
+        this._uploadInput = input
     }
 
     MediaManager.prototype.refresh = function () {
@@ -298,6 +325,20 @@
             template = container.querySelector('[data-media-multi-selection-template]').innerHTML
             previewContainer.innerHTML = template
         }
+
+        // Init tooltips on dynamically added sidebar content (title spans)
+        var spans = previewContainer.querySelectorAll('.media-toolbar-tooltip-wrap[title]')
+        spans.forEach(function (el) {
+            try {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                    var existing = bootstrap.Tooltip.getInstance(el)
+                    if (existing) existing.dispose()
+                    new bootstrap.Tooltip(el, { placement: 'top' })
+                } else if (typeof $ !== 'undefined' && $.fn.tooltip && !$(el).data('bs.tooltip')) {
+                    $(el).tooltip({ placement: 'top' })
+                }
+            } catch (e) {}
+        })
     }
 
     MediaManager.prototype.updateStatusBar = function () {
@@ -316,13 +357,18 @@
         if (!$uploader.length || this.dropzone)
             return
 
+        var $uploadBtn = this.$el.find('[data-media-control="upload"]')
+
+        // Use clickable: false and our own file input so we control the full flow. This
+        // avoids issues where Dropzone's internal input (e.g. in body or recreated on
+        // change) fails to fire or handle the change event after the user selects a file.
         var dropzoneOptions = {
             url: this.options.url,
             headers: {},
             paramName: 'file_data',
             addRemoveLinks: true,
             maxFilesize: this.options.maxUploadSize, // MB
-            clickable: this.$el.find('[data-media-control="upload"]').get(0),
+            clickable: false,
             dictInvalidFileType: this.options.extensionNotAllowed,
             dictFileTooBig: 'The uploaded file exceeds the max size allowed.',
             accept: $.proxy(this.checkUploadAllowedType, this),
@@ -339,6 +385,51 @@
         this.dropzone.on('error', $.proxy(this.uploadError, this))
         this.dropzone.on('sending', $.proxy(this.uploadSending, this))
         this.dropzone.on('queuecomplete', $.proxy(this.uploadQueueComplete, this))
+
+        // Use file input from DOM (rendered in toolbar.blade.php inside the Upload button) so it's
+        // always present and user click hits it directly. If missing, create one as fallback.
+        var self = this
+        var input = this.$el.find('input[data-media-upload-input="true"]').get(0)
+        if (!input) {
+            input = document.createElement('input')
+            input.setAttribute('type', 'file')
+            input.setAttribute('multiple', 'multiple')
+            input.setAttribute('tabindex', '-1')
+            input.setAttribute('data-media-upload-input', 'true')
+            input.className = 'dz-hidden-input media-upload-input'
+            input.setAttribute('aria-label', 'Upload files')
+            input.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;'
+            if (Array.isArray(this.options.allowedExtensions) && this.options.allowedExtensions.length) {
+                input.setAttribute('accept', this.options.allowedExtensions.map(function (ext) {
+                    var e = String(ext)
+                    return '.' + (e.charAt(0) === '.' ? e.slice(1) : e)
+                }).join(','))
+            }
+            var btnEl = $uploadBtn.get(0)
+            if (!btnEl) return
+            if (window.getComputedStyle(btnEl).position === 'static') btnEl.style.position = 'relative'
+            btnEl.style.overflow = 'visible'
+            btnEl.appendChild(input)
+        } else {
+            if (Array.isArray(this.options.allowedExtensions) && this.options.allowedExtensions.length) {
+                input.setAttribute('accept', this.options.allowedExtensions.map(function (ext) {
+                    var e = String(ext)
+                    return '.' + (e.charAt(0) === '.' ? e.slice(1) : e)
+                }).join(','))
+            }
+        }
+        this._uploadInput = input
+
+        this._onUploadInputChange = function () {
+            var files = input.files
+            if (!files || !files.length) return
+            for (var i = 0; i < files.length; i++) {
+                self.dropzone.addFile(files[i])
+            }
+            input.value = ''
+        }
+        input.removeEventListener('change', this._onUploadInputChange)
+        input.addEventListener('change', this._onUploadInputChange)
     }
 
     MediaManager.prototype.showUploadZone = function () {
@@ -356,6 +447,16 @@
     }
 
     MediaManager.prototype.destroyUploader = function () {
+        if (this._uploadInput) {
+            if (this._onUploadInputChange) {
+                this._uploadInput.removeEventListener('change', this._onUploadInputChange)
+            }
+            if (this._uploadInput.getAttribute('data-media-upload-input') !== 'true' && this._uploadInput.parentNode) {
+                this._uploadInput.parentNode.removeChild(this._uploadInput)
+            }
+            this._uploadInput = null
+            this._onUploadInputChange = null
+        }
         if (!this.dropzone)
             return
 
@@ -566,6 +667,12 @@
         var control = $(event.currentTarget).data('media-control')
 
         switch (control) {
+            case 'upload':
+                // Fallback: if user clicks the button (not the file input overlay), trigger the input
+                if (this._uploadInput && this._uploadInput.parentNode) {
+                    this._uploadInput.click()
+                }
+                return
             case 'refresh':
                 this.refresh()
                 break;

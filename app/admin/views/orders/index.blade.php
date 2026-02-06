@@ -78,7 +78,44 @@
     }
     
     
-    /* Status dropdown items with colors */
+    /* Teleported status dropdown (in body) - white items */
+    .dropdown-menu.orders-status-teleported .status-dropdown-item,
+    .dropdown-menu.orders-status-teleported a[data-request="onUpdateStatus"] {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #364a63 !important;
+        padding: 10px 16px !important;
+        border-radius: 8px !important;
+        border-left: none !important;
+    }
+    .dropdown-menu.orders-status-teleported .status-dropdown-item:hover,
+    .dropdown-menu.orders-status-teleported a[data-request="onUpdateStatus"]:hover {
+        background: #f8f9fa !important;
+        background-color: #f8f9fa !important;
+    }
+    
+    /* Status dropdown - white items, no bleed-through from table */
+    .list-table .dropdown-menu.show {
+        isolation: isolate !important;
+        contain: layout paint !important;
+        background: #ffffff !important;
+    }
+    .list-table .dropdown-menu .status-dropdown-item,
+    .list-table .dropdown-menu a[data-request="onUpdateStatus"] {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #364a63 !important;
+        padding: 10px 16px !important;
+        border-radius: 8px !important;
+        border-left: none !important;
+        isolation: isolate !important;
+    }
+    .list-table .dropdown-menu .status-dropdown-item:hover,
+    .list-table .dropdown-menu a[data-request="onUpdateStatus"]:hover {
+        background: #f8f9fa !important;
+        background-color: #f8f9fa !important;
+    }
+    
     .status-dropdown-item {
         border-radius: 4px !important;
         cursor: pointer !important;
@@ -495,6 +532,92 @@
     {!! $this->renderList() !!}
 </div>
 
+{{-- Status change card - small, opens under the row (in body to avoid bleed-through) --}}
+<div id="ordersStatusCard" class="orders-status-card" style="display:none;">
+    <div class="orders-status-card-body"></div>
+</div>
+
+<style>
+.orders-status-card {
+    position: fixed;
+    z-index: 99999;
+    min-width: 140px;
+    padding: 4px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: 1px solid #e5e7eb;
+}
+.orders-status-card-body button {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    text-align: left;
+    border: none;
+    background: #fff;
+    color: #364a63;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.orders-status-card-body button:hover {
+    background: #f8f9fa;
+}
+</style>
+
+<script>
+window.ordersStatuses = @json(['options' => $statusesOptions ?? [], 'colors' => $statusesColors ?? []]);
+</script>
+<script>
+(function() {
+    const card = document.getElementById('ordersStatusCard');
+    const body = card?.querySelector('.orders-status-card-body');
+    function hide() { if (card) card.style.display = 'none'; }
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.orders-status-btn');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const orderId = btn.dataset.orderId;
+            const currentId = btn.dataset.currentStatusId;
+            if (!card || !body || !orderId) return;
+            const opts = window.ordersStatuses?.options || {};
+            let html = '';
+            for (const [id, name] of Object.entries(opts)) {
+                if (String(id) === String(currentId)) continue;
+                html += '<button type="button" data-status-id="' + id + '" data-order-id="' + orderId + '">' + (name || id) + '</button>';
+            }
+            body.innerHTML = html || '<span class="text-muted p-2" style="font-size:13px">No other statuses</span>';
+            const rect = btn.getBoundingClientRect();
+            card.style.left = rect.left + 'px';
+            card.style.top = (rect.bottom + 4) + 'px';
+            card.style.display = 'block';
+            return;
+        }
+        if (!e.target.closest('.orders-status-card')) hide();
+    });
+    body?.addEventListener('click', function(e) {
+        const b = e.target.closest('button[data-status-id]');
+        if (!b) return;
+        const orderId = b.dataset.orderId;
+        const statusId = b.dataset.statusId;
+        if (!orderId || !statusId) return;
+        hide();
+        const form = document.getElementById('list-form');
+        if (typeof $ !== 'undefined' && form) {
+            $(form).request('onUpdateStatus', { data: { recordId: orderId, statusId: statusId } });
+        } else {
+            const fd = new FormData();
+            fd.append('recordId', orderId);
+            fd.append('statusId', statusId);
+            fd.append('_handler', 'onUpdateStatus');
+            fd.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+            fetch(form?.action || location.href, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function() { location.reload(); });
+        }
+    });
+})();
+</script>
+
 <script>
 (function() {
     'use strict';
@@ -799,64 +922,62 @@
         }
     });
     
-    // Smart positioning when dropdown is fully shown
+    // TELEPORT: Move status dropdown to body so it's outside overflow containers (fixes bleed-through)
     document.addEventListener('shown.bs.dropdown', function(e) {
         const dropdown = e.target.querySelector('.dropdown-menu');
-        const button = e.target.querySelector('button') || e.target;
+        const isStatusDropdown = e.target.closest('.list-table') && dropdown && dropdown.querySelector('[data-request="onUpdateStatus"]');
         
-        if (dropdown && button) {
-            setTimeout(function() {
-                const buttonRect = button.getBoundingClientRect();
-                const dropdownRect = dropdown.getBoundingClientRect();
-                const viewportHeight = window.innerHeight;
-                const viewportWidth = window.innerWidth;
-                const dropdownHeight = dropdownRect.height;
-                const dropdownWidth = dropdownRect.width;
-                
-                // Check space below and above
-                const spaceBelow = viewportHeight - buttonRect.bottom;
-                const spaceAbove = buttonRect.top;
-                
-                // If not enough space below and more space above, open upward
-                if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
-                    dropdown.classList.add('dropdown-menu-top');
-                    dropdown.style.setProperty('top', 'auto', 'important');
-                    dropdown.style.setProperty('bottom', '100%', 'important');
-                    dropdown.style.setProperty('margin-bottom', '4px', 'important');
-                    dropdown.style.setProperty('margin-top', '0', 'important');
-                    dropdown.style.setProperty('transform-origin', 'bottom center', 'important');
-                } else {
-                    // Normal opening downward
-                    dropdown.classList.remove('dropdown-menu-top');
-                    dropdown.style.setProperty('top', '100%', 'important');
-                    dropdown.style.setProperty('bottom', 'auto', 'important');
-                    dropdown.style.setProperty('margin-top', '4px', 'important');
-                    dropdown.style.setProperty('margin-bottom', '0', 'important');
-                    dropdown.style.setProperty('transform-origin', 'top center', 'important');
-                }
-                
-                // Check if dropdown goes off right edge of viewport
-                if (dropdownRect.right > viewportWidth) {
-                    const overflow = dropdownRect.right - viewportWidth;
-                    const currentLeft = parseInt(dropdown.style.left) || 0;
-                    dropdown.style.setProperty('left', (currentLeft - overflow - 10) + 'px', 'important');
-                }
-                
-                // Check if dropdown goes off left edge
-                if (dropdownRect.left < 0) {
-                    dropdown.style.setProperty('left', '0px', 'important');
-                }
-            }, 10);
+        if (dropdown && isStatusDropdown) {
+            const rect = dropdown.getBoundingClientRect();
+            e.target._ordersTeleportedMenu = dropdown;
+            document.body.appendChild(dropdown);
+            dropdown.style.cssText = 'position:fixed!important;left:' + rect.left + 'px!important;top:' + rect.top + 'px!important;min-width:' + rect.width + 'px!important;z-index:99999!important;background:#fff!important;box-shadow:0 8px 24px rgba(0,0,0,0.2)!important;';
+            dropdown.classList.add('orders-status-teleported');
+        } else if (dropdown) {
+            const button = e.target.querySelector('button') || e.target;
+            if (button) {
+                setTimeout(function() {
+                    const buttonRect = button.getBoundingClientRect();
+                    const dropdownRect = dropdown.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    const viewportWidth = window.innerWidth;
+                    const dropdownHeight = dropdownRect.height;
+                    const spaceBelow = viewportHeight - buttonRect.bottom;
+                    const spaceAbove = buttonRect.top;
+                    if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+                        dropdown.classList.add('dropdown-menu-top');
+                        dropdown.style.setProperty('top', 'auto', 'important');
+                        dropdown.style.setProperty('bottom', '100%', 'important');
+                        dropdown.style.setProperty('margin-bottom', '4px', 'important');
+                        dropdown.style.setProperty('margin-top', '0', 'important');
+                    } else {
+                        dropdown.classList.remove('dropdown-menu-top');
+                        dropdown.style.setProperty('top', '100%', 'important');
+                        dropdown.style.setProperty('bottom', 'auto', 'important');
+                        dropdown.style.setProperty('margin-top', '4px', 'important');
+                        dropdown.style.setProperty('margin-bottom', '0', 'important');
+                    }
+                    if (dropdownRect.right > viewportWidth) {
+                        const overflow = dropdownRect.right - viewportWidth;
+                        dropdown.style.setProperty('left', (parseInt(dropdown.style.left) || 0) - overflow - 10 + 'px', 'important');
+                    }
+                    if (dropdownRect.left < 0) dropdown.style.setProperty('left', '0px', 'important');
+                }, 10);
+            }
         }
     });
     
     document.addEventListener('hide.bs.dropdown', function(e) {
-        // Check if any dropdowns are still open
+        const dropdown = e.target._ordersTeleportedMenu || e.target.querySelector('.dropdown-menu');
+        if (dropdown && dropdown.classList.contains('orders-status-teleported')) {
+            e.target.appendChild(dropdown);
+            e.target._ordersTeleportedMenu = null;
+            dropdown.classList.remove('orders-status-teleported');
+            dropdown.style.cssText = '';
+        }
         setTimeout(function() {
             const openDropdowns = document.querySelectorAll('.list-table .dropdown-menu.show');
-            if (openDropdowns.length === 0) {
-                document.body.classList.remove('dropdown-open');
-            }
+            if (openDropdowns.length === 0) document.body.classList.remove('dropdown-open');
         }, 100);
     });
     

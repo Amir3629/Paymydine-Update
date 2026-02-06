@@ -73,6 +73,10 @@ return [
         'text_move_destination_folder' => 'Select the destination folder to move to',
 
         'button_upload' => 'Upload',
+        'button_refresh' => 'Refresh',
+        'text_folders' => 'Folders',
+        'text_media_settings' => 'Media Settings',
+        'button_search' => 'Search',
         'button_preview' => 'Preview',
         'button_rename' => 'Rename',
         'button_move' => 'Move',

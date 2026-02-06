@@ -32,12 +32,180 @@
 	border: 0 none;
 }
 /*
-Toolbar
+Toolbar - consistent button design
 */
 .media-toolbar,
 #mediamanager-toolbar {
   background-color: #ffffff !important;
   padding: 20px;
+}
+
+/* Unified button styles */
+.media-toolbar .btn,
+.media-toolbar .btn-group .btn,
+.media-toolbar .dropdown .btn,
+#mediamanager-toolbar .btn,
+#mediamanager-toolbar .btn-group .btn,
+#mediamanager-toolbar .dropdown .btn,
+.media-manager .media-toolbar .btn,
+.media-manager .media-toolbar .btn-group .btn,
+.media-manager .media-toolbar .dropdown .btn {
+  min-width: 42px !important;
+  min-height: 42px !important;
+  width: 42px !important;
+  height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  background: #f1f4fb !important;
+  background-color: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  border-color: #c9d2e3 !important;
+  color: #202938 !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.media-toolbar .btn i,
+.media-toolbar .btn .fa,
+#mediamanager-toolbar .btn i,
+#mediamanager-toolbar .btn .fa,
+.media-manager .media-toolbar .btn i,
+.media-manager .media-toolbar .btn .fa {
+  color: inherit !important;
+  margin: 0 !important;
+}
+
+/* Upload button - icon only, ensure file input is clickable */
+.media-toolbar button[data-media-control="upload"],
+#mediamanager-toolbar button[data-media-control="upload"],
+.media-manager .media-toolbar button[data-media-control="upload"] {
+  position: relative !important;
+  overflow: visible !important;
+}
+.media-toolbar button[data-media-control="upload"] input[data-media-upload-input],
+#mediamanager-toolbar button[data-media-control="upload"] input[data-media-upload-input],
+.media-manager .media-toolbar button[data-media-control="upload"] input[data-media-upload-input] {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+  z-index: 2 !important;
+  pointer-events: auto !important;
+}
+
+/* Delete button - danger color, same size */
+.media-toolbar .btn-danger,
+#mediamanager-toolbar .btn-danger,
+.media-manager .media-toolbar .btn-danger {
+  background: #f1f4fb !important;
+  background-color: #f1f4fb !important;
+  color: #dc3545 !important;
+  border-color: #c9d2e3 !important;
+}
+
+.media-toolbar .btn-danger:hover,
+#mediamanager-toolbar .btn-danger:hover,
+.media-manager .media-toolbar .btn-danger:hover {
+  background: #fee2e2 !important;
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}
+
+/* Hover - all toolbar buttons */
+.media-toolbar .btn:hover,
+.media-toolbar .btn-group .btn:hover,
+.media-toolbar .dropdown .btn:hover,
+#mediamanager-toolbar .btn:hover,
+#mediamanager-toolbar .btn-group .btn:hover,
+#mediamanager-toolbar .dropdown .btn:hover,
+.media-manager .media-toolbar .btn:hover,
+.media-manager .media-toolbar .btn-group .btn:hover,
+.media-manager .media-toolbar .dropdown .btn:hover {
+  background: #e9ecf3 !important;
+  background-color: #e9ecf3 !important;
+  border-color: #c9d2e3 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+.media-toolbar .btn-danger:hover,
+#mediamanager-toolbar .btn-danger:hover,
+.media-manager .media-toolbar .btn-danger:hover {
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* Spacing between groups - consistent 10px gap */
+.media-toolbar .toolbar-item,
+#mediamanager-toolbar .toolbar-item {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.media-toolbar .btn-group,
+.media-toolbar .input-group .dropdown,
+#mediamanager-toolbar .btn-group,
+#mediamanager-toolbar .input-group .dropdown,
+.media-manager .media-toolbar .btn-group,
+.media-manager .media-toolbar .input-group .dropdown {
+  margin-right: 0 !important;
+}
+.media-toolbar .btn-group,
+#mediamanager-toolbar .btn-group,
+.media-manager .media-toolbar .btn-group {
+  gap: 10px !important;
+}
+/* Tooltip wrapper - inline so layout unchanged */
+.media-toolbar .media-toolbar-tooltip-wrap,
+#mediamanager-toolbar .media-toolbar-tooltip-wrap,
+.media-sidebar .media-toolbar-tooltip-wrap {
+  display: inline-flex !important;
+}
+
+/* Ellipsis dropdown - align left spacing with other gaps */
+.media-toolbar .btn-group .dropdown[data-control="folder-tree-dropdown"],
+#mediamanager-toolbar .btn-group .dropdown[data-control="folder-tree-dropdown"],
+.media-manager .media-toolbar .btn-group .dropdown[data-control="folder-tree-dropdown"] {
+  margin-left: 10px !important;
+}
+.media-toolbar .input-group,
+#mediamanager-toolbar .input-group,
+.media-manager .media-toolbar .input-group {
+  gap: 10px !important;
+  margin-right: 0 !important;
+}
+
+/* Search input - match button height */
+.media-toolbar .search-input-inner-wrapper,
+.media-toolbar input[data-media-control="search"],
+#mediamanager-toolbar .search-input-inner-wrapper,
+#mediamanager-toolbar input[data-media-control="search"],
+.media-manager .media-toolbar .search-input-inner-wrapper,
+.media-manager .media-toolbar input[data-media-control="search"] {
+  min-width: 42px !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  border-radius: 10px !important;
+  border: 1px solid #c9d2e3 !important;
+  background: #ffffff !important;
+}
+
+/* Input group - align height with buttons */
+.media-toolbar .input-group,
+#mediamanager-toolbar .input-group,
+.media-manager .media-toolbar .input-group {
+  align-items: center !important;
 }
 /*
 Media list

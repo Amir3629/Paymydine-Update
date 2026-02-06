@@ -7,6 +7,11 @@
 (function() {
     'use strict';
     
+    if (window.location.pathname.includes('/admin/media_manager')) {
+        console.log('🎨 Force Blue Buttons: Skipped on media manager page (prevents upload button from breaking)');
+        return;
+    }
+    
     console.log('🎨 Force Blue Buttons: Initializing...');
     
     // Blue color constants (matching login button)

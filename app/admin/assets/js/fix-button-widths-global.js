@@ -56,6 +56,10 @@
         
         // Helper function to check if button should be excluded (regular action buttons)
         function shouldExcludeButton(button) {
+            // EXCLUDE all media manager toolbar buttons - they have their own consistent styling
+            if (button.closest('.media-toolbar') || button.closest('#mediamanager-toolbar') || button.closest('.media-manager')) {
+                return true;
+            }
             // EXCLUDE Choose button in media manager - it should be normal size
             if (button.getAttribute('data-control') === 'media-choose') {
                 return true;

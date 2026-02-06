@@ -8,8 +8,13 @@
     
     const isThemeEditPage = window.location.pathname.includes('/admin/themes/edit');
     const isHistoryPage = window.location.pathname.includes('/admin/history');
+    const isMediaManagerPage = window.location.pathname.includes('/admin/media_manager');
     if (isThemeEditPage) {
         console.log('🔧 Force Button Alignment skipped on theme edit page');
+        return;
+    }
+    if (isMediaManagerPage) {
+        console.log('🔧 Force Button Alignment skipped on media manager page (prevents upload button from breaking)');
         return;
     }
     console.log('🔧 Force Button Alignment initialized');
