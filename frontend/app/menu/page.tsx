@@ -408,8 +408,8 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
       // Prepare order data for API
       const isCashier = tableInfo?.is_codier || false
       const orderData = {
-        table_id: isCashier ? null : (tableInfo?.table_id || "7"),
-        table_name: isCashier ? null : (tableInfo?.table_name || "Table 7"),
+        table_id: isCashier ? null : (tableInfo?.table_id ?? null),
+        table_name: isCashier ? null : (tableInfo?.table_name ?? null),
         location_id: tableInfo?.location_id || 1,
         is_codier: isCashier,
         items: itemsToPay.map(item => ({

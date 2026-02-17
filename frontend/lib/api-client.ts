@@ -55,7 +55,7 @@ export interface MenuResponse {
 }
 
 export interface OrderRequest {
-  table_id: string;
+  table_id: string | null;
   items: {
     menu_id: number;
     name: string;

@@ -191,8 +191,8 @@ export default function CheckoutPage() {
       // After payment succeeds, submit order to backend
       const api = new ApiClient()
       const orderData = {
-        table_id: isCashier ? "cashier" : (tableInfo?.table_id || "7"),
-        table_name: isCashier ? "Cashier" : (tableInfo?.table_name || "Table 7"),
+        table_id: isCashier ? "cashier" : (tableInfo?.table_id ?? null),
+        table_name: isCashier ? "Cashier" : (tableInfo?.table_name ?? null),
         location_id: tableInfo?.location_id || 1,
         is_codier: isCashier,
         items: itemsToPay.map(item => ({

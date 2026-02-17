@@ -46,6 +46,11 @@ class OrderController extends Controller
             // Generate order number
             $orderNumber = $this->generateOrderNumber();
 
+            // Delivery when table_id is null; otherwise use table_id as order_type
+            $orderType = $request->table_id
+                ? $request->table_id
+                : 'delivery';
+
             // Create main order record
             $orderId = DB::table('orders')->insertGetId([
                 'order_id' => $orderNumber,
@@ -54,7 +59,7 @@ class OrderController extends Controller
                 'telephone' => $request->customer_phone,
                 'location_id' => $request->location_id ?? 1, // Use provided location or default
                 'table_id' => $request->table_id,
-                'order_type' => $request->table_id, // Store actual table_id instead of 'dine_in'
+                'order_type' => $orderType,
                 'order_total' => $request->total_amount,
                 'order_date' => now(),
                 'order_time' => now()->format('H:i:s'),
