@@ -60,7 +60,8 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
   }, [])
   
   // Check if we're on main homepage or table home page
-  const isMainHomePage = pathname === "/"
+  const isRoot = pathname === "/"
+  const isMainHomePage = isRoot
   const isTableHomePage = pathname.match(/^\/table\/\d+$/) // Matches /table/28, /table/31, etc.
   const isHomePage = isMainHomePage || isTableHomePage
   
@@ -69,20 +70,17 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
   const urlTableId = searchParams.get('table')
   const isCashier = tableInfo?.is_cashier || false
   
-  // FIXED: Determine display table number with proper fallback chain
-  const displayTableNumber = (
-    // 1. If cashier mode, show "Cashier"
-    isCashier ? 'Cashier' :
-    // 2. If we have table info from API, use that
-    (tableInfo?.table_name) ||
-    // 3. If we have table ID from URL path, use that
-    (pathTableId ? `Table ${pathTableId}` : null) ||
-    // 4. If we have table ID from URL params, use that
-    (urlTableId ? `Table ${urlTableId}` : null) ||
-    // 5. Fallback to CMS settings
-    `Table ${cmsSettings.tableNumber}` || 
-    "Table 7"
-  )
+  // Root route = delivery mode: show "Delivery". Else use existing fallback chain.
+  const displayTableNumber = isRoot
+    ? 'Delivery'
+    : (
+        isCashier ? 'Cashier' :
+        (tableInfo?.table_name) ||
+        (pathTableId ? `Table ${pathTableId}` : null) ||
+        (urlTableId ? `Table ${urlTableId}` : null) ||
+        `Table ${cmsSettings.tableNumber}` ||
+        "Table 7"
+      )
   
   // Use theme settings from admin panel, fallback to CMS settings
   const restaurantName = (themeSettings as any).restaurant_name || cmsSettings.appName || 'PayMyDine'

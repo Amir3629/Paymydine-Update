@@ -28,6 +28,7 @@ type CartState = {
   toggleCart: () => void
   setCartOpen: (isOpen: boolean) => void
   setTableInfo: (tableInfo: TableInfo) => void
+  clearTableContext: () => void
 }
 
 export const useCartStore = create<CartState>()(
@@ -84,6 +85,7 @@ export const useCartStore = create<CartState>()(
       toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
       setCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
       setTableInfo: (tableInfo) => set({ tableInfo }),
+      clearTableContext: () => set((state) => ({ tableInfo: null })),
     }),
     {
       name: "paymydine-cart-storage",
