@@ -15,11 +15,17 @@ export function getHomeHrefFallback(opts?: {
   const saved = getSavedHome();
   if (saved) return saved;
 
+  // Only use table_no/table_id when defined and not null (avoid String(undefined) → "undefined")
+  const tableNo = opts?.tableInfo?.table_no;
+  const tableId = opts?.tableInfo?.table_id;
+  const validTableNo = tableNo !== undefined && tableNo !== null ? String(tableNo) : null;
+  const validTableId = tableId !== undefined && tableId !== null ? String(tableId) : null;
+
   const p =
     opts?.pathParam ??
     opts?.tableInfo?.path_table ??
-    (opts?.tableInfo?.table_no != null ? String(opts.tableInfo.table_no) : null) ??
-    (opts?.tableInfo?.table_id != null ? String(opts.tableInfo.table_id) : null);
+    validTableNo ??
+    validTableId;
 
   return (p ? `/table/${p}` : "/") + stickySearch();
 }
