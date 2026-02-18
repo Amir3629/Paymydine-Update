@@ -679,7 +679,7 @@ App::before(function () {
                             'table_id' => 'required',
                             'customer_name' => 'required',
                             'items' => 'required|array|min:1',
-                            'items.*.menu_id' => 'required|integer',
+                            'items.*.menu_item_id' => 'required|integer',
                             'items.*.quantity' => 'required|integer|min:1',
                             'items.*.price' => 'required|numeric|min:0',
                         ]);
@@ -722,7 +722,7 @@ App::before(function () {
                             // Insert order menu item
                             $orderMenuId = DB::table('order_menus')->insertGetId([
                                 'order_id' => $orderId,
-                                'menu_id' => $item['menu_id'],
+                                'menu_id' => $item['menu_item_id'],
                                 'name' => $item['name'],
                                 'quantity' => $item['quantity'],
                                 'price' => $item['price'],
@@ -742,7 +742,7 @@ App::before(function () {
                                     if ($optionValue) {
                                         // Get the menu option ID for this option type
                                         $menuOption = DB::table('menu_item_options')
-                                            ->where('menu_id', $item['menu_id'])
+                                            ->where('menu_id', $item['menu_item_id'])
                                             ->where('option_id', function($query) use ($optionType) {
                                                 $query->select('option_id')
                                                       ->from('menu_options')
@@ -754,7 +754,7 @@ App::before(function () {
                                             // Insert into order_menu_options table
                                             DB::table('order_menu_options')->insert([
                                                 'order_id' => $orderId,
-                                                'menu_id' => $item['menu_id'],
+                                                'menu_id' => $item['menu_item_id'],
                                                 'order_option_name' => $optionValue->value,
                                                 'order_option_price' => $optionValue->price,
                                                 'order_menu_id' => $orderMenuId,
