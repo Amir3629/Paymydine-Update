@@ -482,11 +482,11 @@ App::before(function () {
                     try {
                         $input = request()->all();
                         
-                        // Validate required fields
-                        if (empty($input['table_id']) || empty($input['items']) || empty($input['customer_name'])) {
+                        // Validate required fields (table_id optional for delivery orders)
+                        if (empty($input['items']) || empty($input['customer_name'])) {
                             return response()->json([
                                 'success' => false,
-                                'error' => 'Missing required fields: table_id, items, customer_name'
+                                'error' => 'Missing required fields: items, customer_name'
                             ], 400);
                         }
                         
