@@ -274,6 +274,10 @@ class Orders_model extends Model
     public function getOrderTypeNameAttribute()
 {
     $orderType = $this->order_type;
+
+    if ($this->order_type === 'delivery') {
+        return 'Delivery';
+    }
     
     // Check if this is a cashier order
     if ($orderType === 'cashier') {

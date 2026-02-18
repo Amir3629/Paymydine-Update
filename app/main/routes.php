@@ -65,9 +65,6 @@ App::before(function () {
     Route::group([
         'middleware' => ['web'],
     ], function () {
-        // Load Gift Card routes
-        require __DIR__ . '/routes_gift_cards.php';
-        
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 
@@ -83,149 +80,42 @@ App::before(function () {
             });
 
             // Direct media serving route for TastyIgniter attachments
-            // IMPORTANT: This must be registered before any catch-all routes
             Route::get('/media/{path}', function ($path) {
                 // Remove any query parameters
                 $path = explode('?', $path)[0];
                 
-                // Log for debugging
-                \Log::info('Media route called', [
-                    'path' => $path,
-                    'request_uri' => request()->getRequestUri(),
-                    'full_url' => request()->fullUrl()
-                ]);
-                
-                // First try the direct path (as stored in database - could be disk-based path like "68f/701/a0e/68f701a0e.jpg")
+                // First try the direct path (as stored in database)
                 $mediaPath = base_path('assets/media/attachments/public/' . $path);
                 
                 if (!file_exists($mediaPath)) {
-                    // If path looks like a disk hash (9+ chars), try constructing the proper path
+                    // If not found, search recursively for the filename
                     $filename = basename($path);
-                    $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
+                    $searchPath = base_path('assets/media/attachments/public');
                     
-                    // If filename looks like a disk hash (9+ alphanumeric chars), try disk-based structure
-                    if (strlen($pathWithoutExt) >= 9 && ctype_alnum($pathWithoutExt)) {
-                        $disk = $pathWithoutExt;
-                        $p1 = substr($disk, 0, 3);
-                        $p2 = substr($disk, 3, 3);
-                        $p3 = substr($disk, 6, 3);
-                        
-                        // First try with original extension from filename
-                        $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
-                        if ($originalExt) {
-                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $originalExt);
-                            if (file_exists($candidate)) {
-                                $mediaPath = $candidate;
-                            }
-                        }
-                        
-                        // If not found, try other extensions
-                        if (!file_exists($mediaPath)) {
-                            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                            foreach ($extensions as $ext) {
-                                $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
-                                if (file_exists($candidate)) {
-                                    $mediaPath = $candidate;
-                                    break;
-                                }
-                            }
+                    $foundPath = null;
+                    $iterator = new RecursiveIteratorIterator(
+                        new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                    );
+                    
+                    foreach ($iterator as $file) {
+                        if ($file->getFilename() === $filename) {
+                            $foundPath = $file->getPathname();
+                            break;
                         }
                     }
                     
-                    // If still not found, search recursively for files containing the disk name
-                    if (!file_exists($mediaPath) && strlen($pathWithoutExt) >= 9) {
-                        $searchPath = base_path('assets/media/attachments/public');
-                        $foundPath = null;
-                        $disk = $pathWithoutExt;
-                        
-                        // First, try the constructed path with all extensions (faster than full recursive search)
-                        $p1 = substr($disk, 0, 3);
-                        $p2 = substr($disk, 3, 3);
-                        $p3 = substr($disk, 6, 3);
-                        $constructedDir = $searchPath . $p1 . '/' . $p2 . '/' . $p3 . '/';
-                        
-                        if (is_dir($constructedDir)) {
-                            // First try original extension
-                            $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
-                            if ($originalExt) {
-                                $candidate = $constructedDir . $disk . '.' . $originalExt;
-                                if (file_exists($candidate)) {
-                                    $foundPath = $candidate;
-                                }
-                            }
-                            
-                            // If not found, try other extensions
-                            if (!$foundPath) {
-                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                                foreach ($extensions as $ext) {
-                                    $candidate = $constructedDir . $disk . '.' . $ext;
-                                    if (file_exists($candidate)) {
-                                        $foundPath = $candidate;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // If still not found, do full recursive search
-                        if (!$foundPath) {
-                            $iterator = new RecursiveIteratorIterator(
-                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                            );
-                            
-                            foreach ($iterator as $file) {
-                                if ($file->isFile()) {
-                                    $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
-                                    // Check if filename matches the disk name exactly
-                                    if ($fileBasename === $disk) {
-                                        $foundPath = $file->getPathname();
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        if ($foundPath) {
-                            $mediaPath = $foundPath;
-                        }
-                    }
-                    
-                    // Last resort: search by exact filename match
-                    if (!file_exists($mediaPath)) {
-                        $searchPath = base_path('assets/media/attachments/public');
-                        $foundPath = null;
-                        $iterator = new RecursiveIteratorIterator(
-                            new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                        );
-                        
-                        foreach ($iterator as $file) {
-                            if ($file->getFilename() === $filename) {
-                                $foundPath = $file->getPathname();
-                                break;
-                            }
-                        }
-                        
-                        if ($foundPath) {
-                            $mediaPath = $foundPath;
-                        }
+                    if ($foundPath) {
+                        $mediaPath = $foundPath;
                     }
                 }
                 
                 if (file_exists($mediaPath)) {
                     $mimeType = mime_content_type($mediaPath);
-                    \Log::debug('Media file found', ['path' => $mediaPath, 'mime' => $mimeType]);
                     return response()->file($mediaPath, [
                         'Content-Type' => $mimeType,
                         'Cache-Control' => 'public, max-age=31536000'
                     ]);
                 } else {
-                    // Log what we tried
-                    \Log::warning('Media file not found', [
-                        'requested_path' => $path,
-                        'searched_path' => $mediaPath,
-                        'base_path' => base_path('assets/media/attachments/public')
-                    ]);
-                    
                     // Fallback to pasta.png if image not found
                     $fallbackPath = public_path('images/pasta.png');
                     if (file_exists($fallbackPath)) {
@@ -234,7 +124,7 @@ App::before(function () {
                             'Cache-Control' => 'public, max-age=31536000'
                         ]);
                     } else {
-                        abort(404, "Image not found: {$path}");
+                        abort(404);
                     }
                 }
             })->where('path', '.*');
@@ -260,8 +150,9 @@ App::before(function () {
                 // Menu endpoints
                 Route::get('/menu', function () {
                     try {
-                        // Get menu items with categories (matching old API structure)
-                        $p = DB::connection()->getTablePrefix();
+                        // DetectTenant has set default connection to tenant; use it explicitly for menu + combos
+                        $conn = DB::connection('tenant');
+                        $p = $conn->getTablePrefix();
                         $query = "
                             SELECT 
                                 m.menu_id as id,
@@ -269,8 +160,7 @@ App::before(function () {
                                 m.menu_description as description,
                                 CAST(m.menu_price AS DECIMAL(10,2)) as price,
                                 COALESCE(c.name, 'Main') as category_name,
-                                ma.name as image,
-                                ma.disk as image_disk
+                                ma.name as image
                             FROM {$p}menus m
                             LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                             LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
@@ -281,65 +171,25 @@ App::before(function () {
                             ORDER BY c.priority ASC, m.menu_name ASC
                         ";
                         
-                        $items = DB::select($query);
+                        $items = $conn->select($query);
                         
-                        // Convert prices to float, fix image paths, and add options
+                        // Convert prices to float, fix image paths, add options, mark as non-combo
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
-                            
-                            // CRITICAL FIX: The 'disk' column contains "media" (wrong value),
-                            // but the actual hash is in the 'name' column (e.g., "6776d4adbca7d884450237.webp")
-                            // Extract hash from name column if disk is invalid
-                            $hash = null;
-                            if ($item->image_disk && strlen($item->image_disk) >= 9 && $item->image_disk !== 'media') {
-                                // Valid disk hash
-                                $hash = $item->image_disk;
-                            } elseif ($item->image) {
-                                // Extract hash from name (format: "6776d4adbca7d884450237.webp")
-                                $nameWithoutExt = pathinfo($item->image, PATHINFO_FILENAME);
-                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
-                                    $hash = $nameWithoutExt;
-                                }
-                            }
-                            
-                            if ($hash && strlen($hash) >= 9) {
-                                // Use hash-based path (proper TastyIgniter storage format)
-                                $p1 = substr($hash, 0, 3);
-                                $p2 = substr($hash, 3, 3);
-                                $p3 = substr($hash, 6, 3);
-                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
-                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                                $resolved = null;
-                                foreach ($extensions as $ext) {
-                                    $candidate = $basePath . $hash . '.' . $ext;
-                                    if (file_exists($candidate)) {
-                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
-                                        break;
-                                    }
-                                }
-                                if ($resolved) {
-                                    $item->image = "/api/media/" . $resolved;
-                                } else {
-                                    // File not found, use name directly (route handler will search)
-                                    $item->image = "/api/media/" . $item->image;
-                                }
-                            } elseif ($item->image) {
-                                // If image exists but no valid hash, use name directly
+                            if ($item->image) {
+                                // If image exists, construct the relative URL for Next.js proxy
                                 $item->image = "/api/media/" . $item->image;
                             } else {
                                 // Use default image if none exists
                                 $item->image = '/images/pasta.png';
                             }
-                            
-                            // Mark as regular menu item (not a combo)
                             $item->isCombo = false;
                             $item->comboId = null;
-                            
-                            // Fetch menu options for this item
+                            // Fetch menu options for this item (uses default connection = tenant)
                             $item->options = getMenuItemOptions($item->id);
                         }
                         
-                        // Get combos from menu_combos table
+                        // Get combos from menu_combos on tenant DB (same connection as menu items)
                         $combosQuery = "
                             SELECT 
                                 mc.combo_id as id,
@@ -347,8 +197,7 @@ App::before(function () {
                                 mc.combo_description as description,
                                 CAST(mc.combo_price AS DECIMAL(10,2)) as price,
                                 'Combos' as category_name,
-                                ma.name as image,
-                                ma.disk as image_disk
+                                ma.name as image
                             FROM {$p}menu_combos mc
                             LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos' 
                                 AND ma.attachment_id = mc.combo_id 
@@ -356,70 +205,32 @@ App::before(function () {
                             WHERE mc.combo_status = 1
                             ORDER BY mc.combo_priority ASC, mc.combo_name ASC
                         ";
-                        
-                        $combos = DB::select($combosQuery);
-                        
-                        // Format combos same as menu items
+                        $combos = $conn->select($combosQuery);
                         foreach ($combos as &$combo) {
                             $combo->price = (float)$combo->price;
-                            
-                            // CRITICAL FIX: Extract hash from name column if disk is invalid
-                            $hash = null;
-                            if ($combo->image_disk && strlen($combo->image_disk) >= 9 && $combo->image_disk !== 'media') {
-                                $hash = $combo->image_disk;
-                            } elseif ($combo->image) {
-                                $nameWithoutExt = pathinfo($combo->image, PATHINFO_FILENAME);
-                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
-                                    $hash = $nameWithoutExt;
-                                }
-                            }
-                            
-                            if ($hash && strlen($hash) >= 9) {
-                                $p1 = substr($hash, 0, 3);
-                                $p2 = substr($hash, 3, 3);
-                                $p3 = substr($hash, 6, 3);
-                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
-                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                                $resolved = null;
-                                foreach ($extensions as $ext) {
-                                    $candidate = $basePath . $hash . '.' . $ext;
-                                    if (file_exists($candidate)) {
-                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
-                                        break;
-                                    }
-                                }
-                                if ($resolved) {
-                                    $combo->image = "/api/media/" . $resolved;
-                                } else {
-                                    $combo->image = "/api/media/" . $combo->image;
-                                }
-                            } elseif ($combo->image) {
+                            if ($combo->image) {
                                 $combo->image = "/api/media/" . $combo->image;
                             } else {
                                 $combo->image = '/images/pasta.png';
                             }
-                            
-                            // Mark as combo
                             $combo->isCombo = true;
                             $combo->comboId = $combo->id;
-                            
-                            // Combos don't have options (they're pre-configured)
                             $combo->options = [];
+                            $combo->is_stock_out = false;
+                            $combo->available = true;
                         }
-                        
-                        // Merge combos with regular menu items
                         $allItems = array_merge($items, $combos);
                         
-                        // Get all enabled categories
+                        // Get all enabled categories (tenant DB)
                         $categoriesQuery = "
                             SELECT category_id as id, name, priority 
                             FROM {$p}categories 
                             WHERE status = 1 
                             ORDER BY priority ASC, name ASC
                         ";
-                        $categories = DB::select($categoriesQuery);
+                        $categories = $conn->select($categoriesQuery);
                         
-                        // Add "Combos" category if it doesn't exist and we have combos
+                        // Add "Combos" category if we have combos and it doesn't exist
                         if (count($combos) > 0) {
                             $hasCombosCategory = false;
                             foreach ($categories as $cat) {
@@ -514,7 +325,7 @@ App::before(function () {
                     }
                 });
 
-               function syncOrderToPOS($orderId)
+                function syncOrderToPOS($orderId)
                 {
                     try {
                         $order = DB::table('orders')->where('order_id', $orderId)->first();
@@ -534,9 +345,8 @@ App::before(function () {
 
                         // Recriar payloads
                         $squarePayload     = formatOrderForSquareAPI($order, $items);
-                        \Log::info('Square Payload', ['payload' => $squarePayload]);
-                        // $cloverPayload     = formatOrderForCloverAPI($order, $items);
-                        // $lightspeedPayload = formatOrderForLightspeedAPI($order, $items);
+                        $cloverPayload     = formatOrderForCloverAPI($order, $items);
+                        $lightspeedPayload = formatOrderForLightspeedAPI($order, $items);
 
                         $baseUrl = 'https://pay-my-dine-api-pos.onrender.com';
 
@@ -558,7 +368,7 @@ App::before(function () {
                                     break;
 
                                 case 'clover':
-                                    $url = "$baseUrl/api/pos/clover/order";
+                                    $url = "$baseUrl/api/pos/clover/order/create";
                                     if (!empty($config->id_application)) {
                                         $url .= '?merchantId=' . urlencode($config->id_application);
                                     }
@@ -566,7 +376,7 @@ App::before(function () {
                                     break;
 
                                 case 'lightspeed':
-                                    $url = "$baseUrl/api/pos/lightspeed/order";
+                                    $url = "$baseUrl/api/pos/lightspeed/order/create";
                                     if (!empty($config->id_application)) {
                                         $url .= '?domainPrefix=' . urlencode($config->id_application);
                                     }
@@ -601,7 +411,7 @@ App::before(function () {
                 {
                     return [
                         'order_id' => $order->order_id,
-                        'location_id' => $order->location_id,
+                        'location_id' => null,
                         'customer' => [
                             'name'  => $order->first_name,
                             'email' => $order->email,
@@ -635,12 +445,9 @@ App::before(function () {
                         ],
                         'line_items' => collect($items)->map(function ($item) {
                             return [
-                                'name'  => $item->name,
-                                'price' => intval($item->price * 100),
-                                'unitQty' => [
-                                    'unit'     => 'UNIT',
-                                    'quantity' => (int)$item->quantity,
-                                ],
+                                'name'     => $item->name,
+                                'price'    => intval($item->price * 100),
+                                'quantity' => (int) $item->quantity,
                             ];
                         })->toArray(),
                         'created_at' => now()->toIso8601String(),
@@ -658,8 +465,9 @@ App::before(function () {
                             ],
                             'register_sale_products' => collect($items)->map(function ($item) {
                                 return [
-                                    'quantity' => (int)$item->quantity,
-                                    'price'    => (float)$item->price,
+                                    'name'        => $item->name,
+                                    'quantity'    => (int)$item->quantity,
+                                    'price'       => (float)$item->price,
                                     'price_total' => $item->quantity * $item->price,
                                 ];
                             })->toArray(),
@@ -674,21 +482,12 @@ App::before(function () {
                     try {
                         $input = request()->all();
                         
-                        // Laravel validation before any item processing
-                        $validator = \Illuminate\Support\Facades\Validator::make($input, [
-                            'table_id' => 'required',
-                            'customer_name' => 'required',
-                            'items' => 'required|array|min:1',
-                            'items.*.menu_item_id' => 'required|integer',
-                            'items.*.quantity' => 'required|integer|min:1',
-                            'items.*.price' => 'required|numeric|min:0',
-                        ]);
-                        if ($validator->fails()) {
+                        // Validate required fields
+                        if (empty($input['table_id']) || empty($input['items']) || empty($input['customer_name'])) {
                             return response()->json([
                                 'success' => false,
-                                'message' => 'Validation failed',
-                                'errors' => $validator->errors(),
-                            ], 422);
+                                'error' => 'Missing required fields: table_id, items, customer_name'
+                            ], 400);
                         }
                         
                         // Insert order
@@ -703,7 +502,7 @@ App::before(function () {
                             'total_items' => count($input['items']),
                             'comment' => $input['special_instructions'] ?? '',
                             'payment' => $input['payment_method'] ?? 'cash',
-                            'order_type' => $input['table_id'], // Store actual table_id instead of 'dine_in'
+                            'order_type' => !empty($input['table_id']) ? $input['table_id'] : 'delivery',
                             'order_time' => now()->format('H:i:s'),
                             'order_date' => now()->format('Y-m-d'),
                             'order_total' => $input['total_amount'],
@@ -722,7 +521,7 @@ App::before(function () {
                             // Insert order menu item
                             $orderMenuId = DB::table('order_menus')->insertGetId([
                                 'order_id' => $orderId,
-                                'menu_id' => $item['menu_item_id'],
+                                'menu_id' => $item['menu_id'],
                                 'name' => $item['name'],
                                 'quantity' => $item['quantity'],
                                 'price' => $item['price'],
@@ -742,7 +541,7 @@ App::before(function () {
                                     if ($optionValue) {
                                         // Get the menu option ID for this option type
                                         $menuOption = DB::table('menu_item_options')
-                                            ->where('menu_id', $item['menu_item_id'])
+                                            ->where('menu_id', $item['menu_id'])
                                             ->where('option_id', function($query) use ($optionType) {
                                                 $query->select('option_id')
                                                       ->from('menu_options')
@@ -754,7 +553,7 @@ App::before(function () {
                                             // Insert into order_menu_options table
                                             DB::table('order_menu_options')->insert([
                                                 'order_id' => $orderId,
-                                                'menu_id' => $item['menu_item_id'],
+                                                'menu_id' => $item['menu_id'],
                                                 'order_option_name' => $optionValue->value,
                                                 'order_option_price' => $optionValue->price,
                                                 'order_menu_id' => $orderMenuId,
@@ -867,16 +666,6 @@ App::before(function () {
                             ]);
                         }
                         
-                        // Store payment method
-                        $paymentMethod = $input['payment_method'] ?? 'cash';
-                        DB::table('order_totals')->insert([
-                            'order_id' => $orderId,
-                            'code' => 'payment_method',
-                            'title' => 'Payment Method',
-                            'value' => $paymentMethod,
-                            'priority' => 0
-                        ]);
-                        
                         // Save coupon discount to order_totals
                         if ($couponDiscount > 0) {
                             DB::table('order_totals')->insert([
@@ -934,20 +723,6 @@ App::before(function () {
 
                         \Log::info('API: Order sync to POS initiated', ['order_id' => $orderId]);
                         
-                        // Open cash drawer if payment is cash
-                        if (\App\Helpers\CashDrawerHelper::shouldOpenDrawer($paymentMethod)) {
-                            try {
-                                $locationId = $input['location_id'] ?? 1;
-                                \App\Helpers\CashDrawerHelper::openDrawerForOrder($orderId, $locationId, $paymentMethod);
-                            } catch (\Exception $e) {
-                                // Log error but don't fail the order
-                                \Log::error('Cash Drawer: Failed to open drawer after order creation', [
-                                    'order_id' => $orderId,
-                                    'error' => $e->getMessage(),
-                                ]);
-                            }
-                        }
-                        
                         return response()->json([
                             'success' => true,
                             'message' => 'Order submitted successfully',
@@ -970,101 +745,7 @@ App::before(function () {
                     }
                 });
                 
-                // Menu endpoints
-                Route::get('/menu', function () {
-                    try {
-                        // Get menu items with categories (matching old API structure)
-                        $p = DB::connection()->getTablePrefix();
-                        $query = "
-                            SELECT 
-                                m.menu_id as id,
-                                m.menu_name as name,
-                                m.menu_description as description,
-                                CAST(m.menu_price AS DECIMAL(10,2)) as price,
-                                COALESCE(c.name, 'Main') as category_name,
-                                ma.name as image,
-                                ma.disk as image_disk
-                            FROM {$p}menus m
-                            LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
-                            LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
-                            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus' 
-                                AND ma.attachment_id = m.menu_id 
-                                AND ma.tag = 'thumb'
-                            WHERE m.menu_status = 1
-                            ORDER BY c.priority ASC, m.menu_name ASC
-                        ";
-                        
-                        $items = DB::select($query);
-                        
-                        // Convert prices to float, fix image paths, and add options
-                        foreach ($items as &$item) {
-                            $item->price = (float)$item->price;
-                            
-                            // CRITICAL FIX: Extract hash from name column if disk is invalid
-                            $hash = null;
-                            if ($item->image_disk && strlen($item->image_disk) >= 9 && $item->image_disk !== 'media') {
-                                $hash = $item->image_disk;
-                            } elseif ($item->image) {
-                                $nameWithoutExt = pathinfo($item->image, PATHINFO_FILENAME);
-                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
-                                    $hash = $nameWithoutExt;
-                                }
-                            }
-                            
-                            if ($hash && strlen($hash) >= 9) {
-                                $p1 = substr($hash, 0, 3);
-                                $p2 = substr($hash, 3, 3);
-                                $p3 = substr($hash, 6, 3);
-                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
-                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
-                                $resolved = null;
-                                foreach ($extensions as $ext) {
-                                    $candidate = $basePath . $hash . '.' . $ext;
-                                    if (file_exists($candidate)) {
-                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
-                                        break;
-                                    }
-                                }
-                                if ($resolved) {
-                                    $item->image = "/api/media/" . $resolved;
-                                } else {
-                                    $item->image = "/api/media/" . $item->image;
-                                }
-                            } elseif ($item->image) {
-                                $item->image = "/api/media/" . $item->image;
-                            } else {
-                                $item->image = '/images/pasta.png';
-                            }
-                            
-                            // Fetch menu options for this item
-                            $item->options = getMenuItemOptions($item->id);
-                        }
-                        
-                        // Get all enabled categories
-                        $categoriesQuery = "
-                            SELECT category_id as id, name, priority 
-                            FROM {$p}categories 
-                            WHERE status = 1 
-                            ORDER BY priority ASC, name ASC
-                        ";
-                        $categories = DB::select($categoriesQuery);
-                        
-                        return response()->json([
-                            'success' => true,
-                            'data' => [
-                                'items' => $items,
-                                'categories' => $categories
-                            ]
-                        ]);
-
-                    } catch (\Exception $e) {
-                        return response()->json([
-                            'success' => false,
-                            'error' => 'Failed to fetch menu',
-                            'message' => $e->getMessage()
-                        ], 500);
-                    }
-                });
+                // Single source of truth for menu: see Route::get('/menu', ...) at top of this v1 group (with DetectTenant + combos).
 
                 Route::get('/categories', function () {
                     try {
