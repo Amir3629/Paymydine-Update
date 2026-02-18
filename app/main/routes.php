@@ -674,12 +674,21 @@ App::before(function () {
                     try {
                         $input = request()->all();
                         
-                        // Validate required fields
-                        if (empty($input['table_id']) || empty($input['items']) || empty($input['customer_name'])) {
+                        // Laravel validation before any item processing
+                        $validator = \Illuminate\Support\Facades\Validator::make($input, [
+                            'table_id' => 'required',
+                            'customer_name' => 'required',
+                            'items' => 'required|array|min:1',
+                            'items.*.menu_id' => 'required|integer',
+                            'items.*.quantity' => 'required|integer|min:1',
+                            'items.*.price' => 'required|numeric|min:0',
+                        ]);
+                        if ($validator->fails()) {
                             return response()->json([
                                 'success' => false,
-                                'error' => 'Missing required fields: table_id, items, customer_name'
-                            ], 400);
+                                'message' => 'Validation failed',
+                                'errors' => $validator->errors(),
+                            ], 422);
                         }
                         
                         // Insert order
