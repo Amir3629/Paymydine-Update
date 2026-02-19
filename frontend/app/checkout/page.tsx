@@ -232,7 +232,14 @@ export default function CheckoutPage() {
         // Clear cart and redirect after success
         setTimeout(() => {
           clearCart()
-          router.push(`/order-placed?order_id=${orderResponse.order_id || 'unknown'}`)
+          const currentUrl =
+            typeof window !== "undefined"
+              ? window.location.pathname + window.location.search
+              : ""
+          const returnUrl = encodeURIComponent(currentUrl)
+          router.push(
+            `/order-placed?order_id=${orderResponse.order_id || 'unknown'}&return_url=${returnUrl}`
+          )
         }, 1500)
       } else {
         throw new Error('Order submission failed')

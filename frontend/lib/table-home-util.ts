@@ -27,5 +27,8 @@ export function getHomeHrefFallback(opts?: {
     validTableNo ??
     validTableId;
 
-  return (p ? `/table/${p}` : "/") + stickySearch();
+  if (p && p !== "undefined" && p !== "null") {
+    return `/table/${p}` + stickySearch();
+  }
+  return "/" + stickySearch();
 }

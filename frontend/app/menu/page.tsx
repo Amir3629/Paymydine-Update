@@ -1920,7 +1920,9 @@ function MenuContent() {
             const tableResult = await apiClient.getTableInfo(tableParam, qr || undefined, useTableNo)
             if (tableResult.success) {
               setTableInfoState(tableResult.data)
+              const current = useCartStore.getState().tableInfo || {}
               setTableInfo({
+                ...current,
                 table_id: tableResult.data.table_id,
                 table_name: tableResult.data.table_name,
                 location_id: tableResult.data.location_id,

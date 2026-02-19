@@ -70,8 +70,12 @@ function OrderPlacedContent() {
     }
   }, [orderId])
 
-  // Use saved home URL if present, otherwise fall back to URL params and store data
-  const menuUrl = searchParams.get("return_url") || getHomeHrefFallback({ tableInfo })
+  // Use return_url from checkout when present, otherwise fall back to URL params and store data
+  const returnUrl = searchParams.get("return_url")
+  const menuUrl =
+    returnUrl && returnUrl !== "undefined"
+      ? decodeURIComponent(returnUrl)
+      : getHomeHrefFallback({ tableInfo })
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen order-placed-page p-4 text-center">
