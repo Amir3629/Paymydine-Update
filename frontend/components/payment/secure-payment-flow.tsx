@@ -51,13 +51,41 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
   const [isInitialized, setIsInitialized] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loadingPayments, setLoadingPayments] = useState(true)
+  const [stripeConfig, setStripeConfig] = useState<{ publishableKey: string; mode: string } | null>(null)
+  const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
 
-  // Initialize payment service
+  // Fetch Stripe config from Laravel (tenant keys from DB)
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    fetch('/api/v1/payments/stripe/config')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        if (data?.success && data.publishableKey != null) {
+          setStripeConfig({ publishableKey: data.publishableKey || '', mode: data.mode || 'test' })
+          setStripeConfigError(null)
+        } else {
+          setStripeConfig({ publishableKey: '', mode: 'test' })
+          setStripeConfigError(data?.error || 'Stripe config unavailable')
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setStripeConfig(null)
+          setStripeConfigError('Failed to load Stripe configuration')
+        }
+      })
+    return () => { cancelled = true }
+  }, [isOpen])
+
+  // Initialize payment service (use Stripe key from API when available)
   useEffect(() => {
     const initializePayment = async () => {
       try {
+        const stripeKey = stripeConfig?.publishableKey ?? merchantSettings.stripePublishableKey ?? ''
         await paymentService.initialize({
-          stripePublishableKey: merchantSettings.stripePublishableKey,
+          stripePublishableKey: stripeKey,
           paypalClientId: merchantSettings.paypalClientId,
           environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
         })
@@ -75,7 +103,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
     if (isOpen && !isInitialized) {
       initializePayment()
     }
-  }, [isOpen, isInitialized, merchantSettings, toast])
+  }, [isOpen, isInitialized, merchantSettings, stripeConfig?.publishableKey, toast])
 
   // Flatten allItems into individual item instances
   const allItemInstances: ItemInstance[] = allItems.flatMap((cartItem, cartIndex) =>
@@ -198,8 +226,23 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
     switch (selectedMethod.code) {
       case "stripe":
       case "authorizenetaim":
+        if (stripeConfigError || (stripeConfig && !stripeConfig.publishableKey)) {
+          return (
+            <div className="rounded-xl p-4 bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <span>
+                {stripeConfigError || 'Stripe is not configured for this store. Please add your Stripe keys in the admin panel.'}
+              </span>
+            </div>
+          )
+        }
+        if (!stripeConfig) {
+          return (
+            <div className="text-paydine-elegant-gray text-sm py-4">Loading Stripe...</div>
+          )
+        }
         return (
-          <Elements stripe={loadStripe(merchantSettings.stripePublishableKey)}>
+          <Elements stripe={loadStripe(stripeConfig.publishableKey)}>
             <StripeCardForm {...commonProps} />
           </Elements>
         )

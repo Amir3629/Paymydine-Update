@@ -677,6 +677,74 @@ Route::group([
         ], 200);
     });
 
+    // Stripe tenant config (safe for frontend: publishable key + mode only)
+    Route::get('/payments/stripe/config', function () {
+        $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
+        if (!$payment) {
+            return response()->json(['success' => false, 'error' => 'Stripe not configured'], 404);
+        }
+        $data = (array) $payment->data;
+        $mode = $data['transaction_mode'] ?? 'test';
+        $publishableKey = $mode === 'live'
+            ? ($data['live_publishable_key'] ?? '')
+            : ($data['test_publishable_key'] ?? '');
+        return response()->json([
+            'success' => true,
+            'publishableKey' => $publishableKey ?: '',
+            'mode' => $mode,
+        ], 200);
+    });
+
+    // Create Stripe PaymentIntent using tenant secret from DB
+    Route::post('/payments/stripe/create-intent', function (\Illuminate\Http\Request $request) {
+        $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
+        if (!$payment) {
+            return response()->json(['success' => false, 'error' => 'Stripe not configured'], 404);
+        }
+        $data = (array) $payment->data;
+        $mode = $data['transaction_mode'] ?? 'test';
+        $secretKey = $mode === 'live'
+            ? ($data['live_secret_key'] ?? null)
+            : ($data['test_secret_key'] ?? null);
+        if (!$secretKey) {
+            return response()->json(['success' => false, 'error' => 'Stripe secret key not configured'], 503);
+        }
+        $body = $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'currency' => 'required|string|size:3',
+            'restaurantId' => 'nullable|string',
+            'items' => 'nullable|array',
+            'customerInfo' => 'nullable|array',
+            'tableNumber' => 'nullable',
+        ]);
+        try {
+            \Stripe\Stripe::setApiKey($secretKey);
+            $intent = \Stripe\PaymentIntent::create([
+                'amount' => (int) round((float) $body['amount'] * 100),
+                'currency' => strtolower($body['currency']),
+                'automatic_payment_methods' => ['enabled' => true],
+                'metadata' => [
+                    'restaurant_id' => $body['restaurantId'] ?? '',
+                    'table_number' => isset($body['tableNumber']) ? (string) $body['tableNumber'] : '',
+                    'customer_email' => $body['customerInfo']['email'] ?? '',
+                    'customer_name' => $body['customerInfo']['name'] ?? '',
+                    'items' => isset($body['items']) ? json_encode($body['items']) : '[]',
+                ],
+            ]);
+            return response()->json([
+                'success' => true,
+                'clientSecret' => $intent->client_secret,
+                'paymentIntentId' => $intent->id,
+            ], 200);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('[Stripe create-intent] ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage() ?: 'Failed to create payment intent',
+            ], 500);
+        }
+    });
+
     // Menu endpoints
     Route::get('/menu', function () {
         try {
@@ -888,7 +956,8 @@ Route::group([
                 'items.*.quantity' => 'required|integer|min:1',
                 'items.*.price' => 'required|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
-                'payment_method' => 'required|in:cash,card,paypal'
+                'payment_method' => 'required|in:cash,card,paypal',
+                'stripe_payment_intent_id' => 'nullable|string|max:255',
             ];
             
             // Only require table_id and table_name if not in cashier mode
@@ -922,14 +991,14 @@ Route::group([
             $comment = trim($comment, ' |');
 
             // Create main order record
-            $orderId = DB::table('orders')->insertGetId([
+            $insertData = [
                 'order_id' => $orderNumber,
                 'first_name' => $request->customer_name,
-                'last_name' => 'Customer', // Default last name
-                'email' => $request->customer_email ?? 'customer@example.com', // Default email
-                'telephone' => $request->customer_phone ?? '0000000000', // Default phone
-                'location_id' => 1, // Default location
-                'order_type' => $isCashier ? 'cashier' : $request->table_id, // Store cashier or table_id
+                'last_name' => 'Customer',
+                'email' => $request->customer_email ?? 'customer@example.com',
+                'telephone' => $request->customer_phone ?? '0000000000',
+                'location_id' => 1,
+                'order_type' => $isCashier ? 'cashier' : $request->table_id,
                 'order_total' => $request->total_amount,
                 'order_date' => now()->format('Y-m-d'),
                 'order_time' => now()->format('H:i:s'),
@@ -943,7 +1012,11 @@ Route::group([
                 'user_agent' => $request->userAgent() ?? 'API Client',
                 'created_at' => now(),
                 'updated_at' => now()
-            ]);
+            ];
+            if ($request->filled('stripe_payment_intent_id')) {
+                $insertData['stripe_payment_intent_id'] = $request->stripe_payment_intent_id;
+            }
+            $orderId = DB::table('orders')->insertGetId($insertData);
 
             // Insert order items
             foreach ($request->items as $item) {

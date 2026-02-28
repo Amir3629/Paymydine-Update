@@ -4,7 +4,9 @@ import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, Wallet, Check, Plus, Minus, CreditCard, Lock, ArrowLeft, DollarSign } from "lucide-react"
+import { Elements } from "@stripe/react-stripe-js"
+import { loadStripe } from "@stripe/stripe-js"
+import { Users, Wallet, Check, Plus, Minus, CreditCard, Lock, ArrowLeft, DollarSign, AlertCircle } from "lucide-react"
 import { useCartStore, type CartItem } from "@/store/cart-store"
 import { useLanguageStore } from "@/store/language-store"
 import { useCmsStore } from "@/store/cms-store"
@@ -16,9 +18,8 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { ApiClient, type PaymentMethod } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
-import { Elements } from "@stripe/react-stripe-js"
-import { loadStripe } from "@stripe/stripe-js"
 import { StripeCardForm } from "@/components/payment/secure-payment-form"
+import type { PaymentData } from "@/lib/payment-service"
 
 // Add type declarations for PayPal and ApplePay
 declare global {
@@ -29,6 +30,10 @@ declare global {
 }
 
 type PaymentFormData = {
+  cardNumber: string
+  expiryDate: string
+  cvv: string
+  cardholderName: string
   email: string
   phone: string
 }
@@ -45,8 +50,7 @@ type SelectedItem = {
 }
 
 
-// Payment processor configuration
-const STRIPE_PUBLIC_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+// Payment processor configuration (Stripe key now from API)
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
 
 export default function CheckoutPage() {
@@ -77,9 +81,34 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false)
   const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+    cardholderName: "",
     email: "",
     phone: "",
   })
+  const [stripeConfig, setStripeConfig] = useState<{ publishableKey: string; mode: string } | null>(null)
+  const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (selectedPaymentMethod !== 'stripe' && selectedPaymentMethod !== 'authorizenetaim') return
+    let cancelled = false
+    fetch('/api/v1/payments/stripe/config')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        if (data?.success && data.publishableKey) {
+          setStripeConfig({ publishableKey: data.publishableKey, mode: data.mode || 'test' })
+          setStripeConfigError(null)
+        } else {
+          setStripeConfig(null)
+          setStripeConfigError(data?.error || 'Stripe is not configured')
+        }
+      })
+      .catch(() => { if (!cancelled) setStripeConfigError('Failed to load Stripe configuration') })
+    return () => { cancelled = true }
+  }, [selectedPaymentMethod])
 
   useEffect(() => {
     if (allItems.length === 0) {
@@ -154,49 +183,84 @@ export default function CheckoutPage() {
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
-  const buildOrderData = (customerName?: string, customerEmail?: string, customerPhone?: string) => ({
-    table_id: isCashier ? "cashier" : (tableInfo?.table_id ?? null),
-    table_name: isCashier ? "Cashier" : (tableInfo?.table_name ?? "Delivery"),
-    location_id: tableInfo?.location_id || 1,
-    is_codier: isCashier,
-    items: itemsToPay.map(item => ({
-      menu_id: item.item.id,
-      name: item.item.name,
-      quantity: 1,
-      price: item.price,
-      special_instructions: '',
-      options: {}
-    })),
-    customer_name: customerName || (isCashier ? "Cashier Customer" : `${tableInfo?.table_name || `Table ${tableInfo?.table_id || 'Unknown'}`} Customer`),
-        customer_phone: (customerPhone ?? paymentFormData.phone) || '',
-        customer_email: (customerEmail ?? paymentFormData.email) || '',
-    payment_method: 'card' as const,
-    total_amount: finalTotal,
-    tip_amount: tipAmount,
-    coupon_code: appliedCoupon?.code || null,
-    coupon_discount: couponDiscount,
-    special_instructions: ''
-  })
-
   const processPayment = async (paymentData: any) => {
     try {
       setIsLoading(true)
-      const paymentMethod = selectedPaymentMethod === 'paypal' ? 'paypal' : selectedPaymentMethod === 'cash' ? 'cod' : 'card'
-      const orderData = buildOrderData(undefined, paymentFormData.email, paymentFormData.phone)
-      Object.assign(orderData, { payment_method: paymentMethod })
 
-      if (paymentMethod === 'cod') {
-        const api = new ApiClient()
-        const orderResponse = await api.submitOrder(orderData)
-        if (!orderResponse.success) throw new Error('Order submission failed')
+      const api = new ApiClient()
+      const orderData: Record<string, unknown> = {
+        table_id: isCashier ? "cashier" : (tableInfo?.table_id ?? null),
+        table_name: isCashier ? "Cashier" : (tableInfo?.table_name ?? null),
+        location_id: tableInfo?.location_id || 1,
+        is_codier: isCashier,
+        items: itemsToPay.map(item => ({
+          menu_id: item.item.id,
+          name: item.item.name,
+          quantity: 1,
+          price: item.price,
+          special_instructions: '',
+          options: {}
+        })),
+        customer_name: paymentFormData.cardholderName || (isCashier ? "Cashier Customer" : `${tableInfo?.table_name || `Table ${tableInfo?.table_id || 'Unknown'}`} Customer`),
+        customer_phone: paymentFormData.phone || '',
+        customer_email: paymentFormData.email || '',
+        payment_method: (selectedPaymentMethod === 'paypal' ? 'paypal' : 
+                        selectedPaymentMethod === 'cash' ? 'cod' : 'card') as 'cod' | 'card' | 'paypal',
+        total_amount: finalTotal,
+        tip_amount: tipAmount,
+        coupon_code: appliedCoupon?.code || null,
+        coupon_discount: couponDiscount,
+        special_instructions: ''
+      }
+
+      // Stripe: intent already confirmed on client; just submit order with payment intent id
+      if (paymentData?.stripePaymentIntentId) {
+        orderData.stripe_payment_intent_id = paymentData.stripePaymentIntentId
+        const orderResponse = await api.submitOrder(orderData as any)
+        if (orderResponse.success) {
+          if (orderResponse.order_id) localStorage.setItem('lastOrderId', orderResponse.order_id.toString())
+          toast({ title: t("paymentSuccessful"), description: `Order #${orderResponse.order_id || 'submitted'} placed successfully!`, variant: "default" })
+          setTimeout(() => {
+            clearCart()
+            const currentUrl = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+            router.push(`/order-placed?order_id=${orderResponse.order_id || 'unknown'}&return_url=${encodeURIComponent(currentUrl)}`)
+          }, 1500)
+        } else throw new Error('Order submission failed')
+        return
+      }
+
+      // Other methods: call payment API then submit order (e.g. cash via /api/payments/process-cash)
+      if (selectedPaymentMethod !== 'cod' && selectedPaymentMethod !== 'cash') {
+        toast({ title: "Payment Failed", description: "This payment method is not configured. Use Stripe card or Cash.", variant: "destructive" })
+        return
+      }
+      const paymentResponse = await fetch('/api/payments/process-cash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: finalTotal,
+          currency: 'USD',
+          items: itemsToPay,
+          customerInfo: paymentFormData,
+          restaurantId: merchantSettings.accountId || 'default',
+          tableNumber: tableInfo?.table_id ?? null,
+        }),
+      })
+      const paymentResult = await paymentResponse.json()
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.error || 'Payment failed')
+      }
+
+      const orderResponse = await api.submitOrder(orderData as any)
+      if (orderResponse.success) {
         if (orderResponse.order_id) localStorage.setItem('lastOrderId', orderResponse.order_id.toString())
         toast({ title: t("paymentSuccessful"), description: `Order #${orderResponse.order_id || 'submitted'} placed successfully!`, variant: "default" })
-        setTimeout(() => { clearCart(); router.push(`/order-placed?order_id=${orderResponse.order_id || 'unknown'}`) }, 1500)
-      } else if (paymentMethod === 'paypal') {
-        toast({ title: "PayPal", description: "Use the PayPal button above to pay.", variant: "default" })
-      } else {
-        throw new Error('Card payments use the secure form above.')
-      }
+        setTimeout(() => {
+          clearCart()
+          const currentUrl = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+          router.push(`/order-placed?order_id=${orderResponse.order_id || 'unknown'}&return_url=${encodeURIComponent(currentUrl)}`)
+        }, 1500)
+      } else throw new Error('Order submission failed')
     } catch (error) {
       console.error('Payment/Order error:', error)
       toast({ title: "Payment Failed", description: error instanceof Error ? error.message : "Please try again", variant: "destructive" })
@@ -207,10 +271,20 @@ export default function CheckoutPage() {
 
   const handlePayment = async () => {
     if (!selectedPaymentMethod) return
-    if (selectedPaymentMethod === 'visa' || selectedPaymentMethod === 'mastercard' || selectedPaymentMethod === 'stripe') {
-      return
-    }
+
     switch (selectedPaymentMethod) {
+      case "visa":
+      case "mastercard":
+        await processPayment({
+          card: {
+            number: paymentFormData.cardNumber.replace(/\s/g, ''),
+            expiry: paymentFormData.expiryDate.replace(/\s/g, ''),
+            cvv: paymentFormData.cvv,
+            name: paymentFormData.cardholderName,
+          }
+        })
+        break
+      
       case "paypal":
         // PayPal integration
         if (window.paypal) {
@@ -491,64 +565,45 @@ export default function CheckoutPage() {
     if (!selectedMethod) return null
 
     switch (selectedMethod.code) {
-      case "visa":
-      case "mastercard":
       case "stripe":
       case "authorizenetaim":
-        return (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="space-y-4 overflow-hidden"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-2">
-                <img src={iconForPayment(selectedMethod.code)} alt={selectedMethod.name} width={32} height={20} className="object-contain" />
-                <span className="font-semibold text-paydine-elegant-gray">{selectedMethod.name}</span>
-              </div>
+        if (stripeConfigError || (stripeConfig && !stripeConfig.publishableKey)) {
+          return (
+            <div className="rounded-xl p-4 bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              {stripeConfigError || 'Stripe is not configured for this store. Add Stripe keys in the admin panel.'}
             </div>
-            <Elements stripe={loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')}>
-              <StripeCardForm
-                paymentData={{
-                  amount: finalTotal,
-                  currency: 'USD',
-                  items: itemsToPay.map((item) => ({ id: String(item.item.id), name: item.item.name, price: item.price, quantity: 1, restaurantId: String(merchantSettings.accountId || 'default') })),
-                  customerInfo: { email: paymentFormData.email, name: '', phone: paymentFormData.phone },
-                  restaurantId: merchantSettings.accountId || 'default-restaurant',
-                  tableNumber: tableInfo?.table_id,
-                }}
-                onPaymentComplete={async (result) => {
-                  if (!result.success || !result.transactionId) {
-                    toast({ title: "Payment Failed", description: result.error || "Please try again", variant: "destructive" })
-                    return
-                  }
-                  setIsLoading(true)
-                  try {
-                    const orderData = buildOrderData((result as any).customerName, (result as any).customerEmail, (result as any).customerPhone)
-                    const res = await fetch('/api/orders/confirm', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ paymentIntentId: result.transactionId, order: orderData }),
-                    })
-                    const data = await res.json()
-                    if (!res.ok || !data.success) throw new Error(data.error || 'Order confirmation failed')
-                    if (data.order_id) localStorage.setItem('lastOrderId', String(data.order_id))
-                    toast({ title: t("paymentSuccessful"), description: `Order #${data.order_id ?? 'placed'} placed successfully!`, variant: "default" })
-                    setTimeout(() => { clearCart(); router.push(`/order-placed?order_id=${data.order_id || 'unknown'}`) }, 1500)
-                  } catch (e: any) {
-                    toast({ title: "Order Error", description: e.message || "Order confirmation failed", variant: "destructive" })
-                  } finally {
-                    setIsLoading(false)
-                  }
-                }}
-                onPaymentError={(msg) => toast({ title: "Payment Error", description: msg, variant: "destructive" })}
-              />
-            </Elements>
-          </motion.div>
+          )
+        }
+        if (!stripeConfig) {
+          return <div className="text-paydine-elegant-gray text-sm py-4">Loading Stripe...</div>
+        }
+        const stripePaymentData: PaymentData = {
+          amount: finalTotal,
+          currency: merchantSettings.currency || 'USD',
+          items: itemsToPay.map(inst => ({
+            id: String(inst.item.id),
+            name: inst.item.name,
+            price: inst.price,
+            quantity: 1,
+            restaurantId: 'default-restaurant',
+          })),
+          customerInfo: { name: paymentFormData.cardholderName, email: paymentFormData.email, phone: paymentFormData.phone },
+          restaurantId: 'default-restaurant',
+          tableNumber: Number(tableInfo?.table_id) || 0,
+        }
+        return (
+          <Elements stripe={loadStripe(stripeConfig.publishableKey)}>
+            <StripeCardForm
+              paymentData={stripePaymentData}
+              onPaymentComplete={(result) => {
+                if (result.success && result.transactionId) {
+                  processPayment({ stripePaymentIntentId: result.transactionId })
+                }
+              }}
+              onPaymentError={(err) => toast({ title: "Payment Error", description: err, variant: "destructive" })}
+            />
+          </Elements>
         )
 
       case "paypal":
@@ -675,17 +730,16 @@ export default function CheckoutPage() {
 
   const renderPaymentButton = () => {
     if (!selectedMethod) return null
-    if (selectedMethod.code === 'visa' || selectedMethod.code === 'mastercard' || selectedMethod.code === 'stripe' || selectedMethod.code === 'authorizenetaim') {
-      return null
-    }
+    if (selectedMethod.code === 'stripe' || selectedMethod.code === 'authorizenetaim') return null
 
     const isFormValid = () => {
       switch (selectedMethod.code) {
-        case "visa":
-        case "mastercard":
         case "stripe":
         case "authorizenetaim":
-          return true
+          return true // Stripe form has its own submit button and validation
+        case "visa":
+        case "mastercard":
+          return paymentFormData.cardNumber && paymentFormData.expiryDate && paymentFormData.cvv && paymentFormData.cardholderName
         case "paypal":
           return true // PayPal handles its own validation
         case "applepay":

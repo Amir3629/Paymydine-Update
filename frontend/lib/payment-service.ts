@@ -98,6 +98,10 @@ export class StripePaymentProcessor {
   private stripe: Stripe | null = null
   
   async initialize(publishableKey: string): Promise<void> {
+    if (!publishableKey || !publishableKey.trim()) {
+      this.stripe = null
+      return
+    }
     this.stripe = await loadStripe(publishableKey)
   }
   
@@ -107,14 +111,14 @@ export class StripePaymentProcessor {
     }
     
     try {
-      // Create payment intent on backend
-      const response = await fetch('/api/payments/create-intent', {
+      // Create payment intent via Laravel (tenant secret in backend only)
+      const response = await fetch('/api/v1/payments/stripe/create-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: Math.round(paymentData.amount * 100), // Convert to cents
+          amount: paymentData.amount,
           currency: paymentData.currency,
           restaurantId: paymentData.restaurantId,
           items: paymentData.items,
@@ -122,12 +126,12 @@ export class StripePaymentProcessor {
           tableNumber: paymentData.tableNumber,
         }),
       })
-      
-      const { clientSecret } = await response.json()
-      
-      if (!clientSecret) {
-        throw new Error('Failed to create payment intent')
+
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create payment intent')
       }
+      const { clientSecret } = data
       
       // Confirm payment with Stripe
       const { error, paymentIntent } = await this.stripe.confirmCardPayment(clientSecret, {

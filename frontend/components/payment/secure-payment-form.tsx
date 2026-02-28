@@ -51,8 +51,8 @@ export function StripeCardForm({
         throw new Error("Card element not found")
       }
 
-      // Create payment intent
-      const response = await fetch('/api/payments/create-intent', {
+      // Create payment intent via Laravel (tenant secret in backend only)
+      const response = await fetch('/api/v1/payments/stripe/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,11 +66,11 @@ export function StripeCardForm({
         }),
       })
 
-      const { clientSecret, error: intentError } = await response.json()
-      
-      if (intentError) {
-        throw new Error(intentError)
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create payment intent')
       }
+      const { clientSecret } = data
 
       // Confirm payment
       const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {

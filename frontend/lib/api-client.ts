@@ -70,6 +70,7 @@ export interface OrderRequest {
   total_amount: number;
   tip_amount?: number;
   special_instructions?: string;
+  stripe_payment_intent_id?: string;
 }
 
 export interface OrderResponse {
