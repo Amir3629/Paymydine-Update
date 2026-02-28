@@ -16,6 +16,9 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { ApiClient, type PaymentMethod } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
+import { Elements } from "@stripe/react-stripe-js"
+import { loadStripe } from "@stripe/stripe-js"
+import { StripeCardForm } from "@/components/payment/secure-payment-form"
 
 // Add type declarations for PayPal and ApplePay
 declare global {
@@ -26,10 +29,6 @@ declare global {
 }
 
 type PaymentFormData = {
-  cardNumber: string
-  expiryDate: string
-  cvv: string
-  cardholderName: string
   email: string
   phone: string
 }
@@ -78,10 +77,6 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false)
   const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    cardholderName: "",
     email: "",
     phone: "",
   })
@@ -159,98 +154,52 @@ export default function CheckoutPage() {
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
+  const buildOrderData = (customerName?: string, customerEmail?: string, customerPhone?: string) => ({
+    table_id: isCashier ? "cashier" : (tableInfo?.table_id ?? null),
+    table_name: isCashier ? "Cashier" : (tableInfo?.table_name ?? "Delivery"),
+    location_id: tableInfo?.location_id || 1,
+    is_codier: isCashier,
+    items: itemsToPay.map(item => ({
+      menu_id: item.item.id,
+      name: item.item.name,
+      quantity: 1,
+      price: item.price,
+      special_instructions: '',
+      options: {}
+    })),
+    customer_name: customerName || (isCashier ? "Cashier Customer" : `${tableInfo?.table_name || `Table ${tableInfo?.table_id || 'Unknown'}`} Customer`),
+        customer_phone: (customerPhone ?? paymentFormData.phone) || '',
+        customer_email: (customerEmail ?? paymentFormData.email) || '',
+    payment_method: 'card' as const,
+    total_amount: finalTotal,
+    tip_amount: tipAmount,
+    coupon_code: appliedCoupon?.code || null,
+    coupon_discount: couponDiscount,
+    special_instructions: ''
+  })
+
   const processPayment = async (paymentData: any) => {
     try {
       setIsLoading(true)
-      
-      // First, process payment with payment provider
-      const paymentResponse = await fetch('/api/process-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentMethod: selectedPaymentMethod,
-          amount: finalTotal,
-          currency: 'USD',
-          items: itemsToPay,
-          customerInfo: paymentFormData,
-          merchantAccount: merchantSettings.accountId,
-          coupon_code: appliedCoupon?.code || null,
-          coupon_discount: couponDiscount,
-          ...paymentData,
-        }),
-      })
+      const paymentMethod = selectedPaymentMethod === 'paypal' ? 'paypal' : selectedPaymentMethod === 'cash' ? 'cod' : 'card'
+      const orderData = buildOrderData(undefined, paymentFormData.email, paymentFormData.phone)
+      Object.assign(orderData, { payment_method: paymentMethod })
 
-      const paymentResult = await paymentResponse.json()
-
-      if (!paymentResult.success) {
-        throw new Error(paymentResult.error || 'Payment failed')
-      }
-
-      // After payment succeeds, submit order to backend
-      const api = new ApiClient()
-      const orderData = {
-        table_id: isCashier ? "cashier" : (tableInfo?.table_id ?? null),
-        table_name: isCashier ? "Cashier" : (tableInfo?.table_name ?? null),
-        location_id: tableInfo?.location_id || 1,
-        is_codier: isCashier,
-        items: itemsToPay.map(item => ({
-          menu_id: item.item.id,
-          name: item.item.name,
-          quantity: 1, // itemsToPay already has individual items
-          price: item.price,
-          special_instructions: '',
-          options: {}
-        })),
-        customer_name: paymentFormData.cardholderName || (isCashier ? "Cashier Customer" : `${tableInfo?.table_name || `Table ${tableInfo?.table_id || 'Unknown'}`} Customer`),
-        customer_phone: paymentFormData.phone || '',
-        customer_email: paymentFormData.email || '',
-        payment_method: (selectedPaymentMethod === 'paypal' ? 'paypal' : 
-                        selectedPaymentMethod === 'cash' ? 'cod' : 'card') as 'cod' | 'card' | 'paypal',
-        total_amount: finalTotal,
-        tip_amount: tipAmount,
-        coupon_code: appliedCoupon?.code || null,
-        coupon_discount: couponDiscount,
-        special_instructions: ''
-      }
-
-      const orderResponse = await api.submitOrder(orderData)
-      
-      if (orderResponse.success) {
-        // Save order ID for status tracking
-        if (orderResponse.order_id) {
-          localStorage.setItem('lastOrderId', orderResponse.order_id.toString())
-        }
-        
-        toast({ 
-          title: t("paymentSuccessful"), 
-          description: `Order #${orderResponse.order_id || 'submitted'} placed successfully!`,
-          variant: "default"
-        })
-        
-        // Clear cart and redirect after success
-        setTimeout(() => {
-          clearCart()
-          const currentUrl =
-            typeof window !== "undefined"
-              ? window.location.pathname + window.location.search
-              : ""
-          const returnUrl = encodeURIComponent(currentUrl)
-          router.push(
-            `/order-placed?order_id=${orderResponse.order_id || 'unknown'}&return_url=${returnUrl}`
-          )
-        }, 1500)
+      if (paymentMethod === 'cod') {
+        const api = new ApiClient()
+        const orderResponse = await api.submitOrder(orderData)
+        if (!orderResponse.success) throw new Error('Order submission failed')
+        if (orderResponse.order_id) localStorage.setItem('lastOrderId', orderResponse.order_id.toString())
+        toast({ title: t("paymentSuccessful"), description: `Order #${orderResponse.order_id || 'submitted'} placed successfully!`, variant: "default" })
+        setTimeout(() => { clearCart(); router.push(`/order-placed?order_id=${orderResponse.order_id || 'unknown'}`) }, 1500)
+      } else if (paymentMethod === 'paypal') {
+        toast({ title: "PayPal", description: "Use the PayPal button above to pay.", variant: "default" })
       } else {
-        throw new Error('Order submission failed')
+        throw new Error('Card payments use the secure form above.')
       }
     } catch (error) {
       console.error('Payment/Order error:', error)
-      toast({ 
-        title: "Payment Failed", 
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive"
-      })
+      toast({ title: "Payment Failed", description: error instanceof Error ? error.message : "Please try again", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -258,20 +207,10 @@ export default function CheckoutPage() {
 
   const handlePayment = async () => {
     if (!selectedPaymentMethod) return
-
+    if (selectedPaymentMethod === 'visa' || selectedPaymentMethod === 'mastercard' || selectedPaymentMethod === 'stripe') {
+      return
+    }
     switch (selectedPaymentMethod) {
-      case "visa":
-      case "mastercard":
-        await processPayment({
-          card: {
-            number: paymentFormData.cardNumber.replace(/\s/g, ''),
-            expiry: paymentFormData.expiryDate.replace(/\s/g, ''),
-            cvv: paymentFormData.cvv,
-            name: paymentFormData.cardholderName,
-          }
-        })
-        break
-      
       case "paypal":
         // PayPal integration
         if (window.paypal) {
@@ -552,6 +491,8 @@ export default function CheckoutPage() {
     if (!selectedMethod) return null
 
     switch (selectedMethod.code) {
+      case "visa":
+      case "mastercard":
       case "stripe":
       case "authorizenetaim":
         return (
@@ -562,87 +503,51 @@ export default function CheckoutPage() {
             className="space-y-4 overflow-hidden"
           >
             <div className="flex items-center gap-2 mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToMethods}
-                className="p-2"
-              >
+              <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <img
-                  src={iconForPayment(selectedMethod.code)}
-                  alt={selectedMethod.name}
-                  width={32}
-                  height={20}
-                  className="object-contain"
-                />
+                <img src={iconForPayment(selectedMethod.code)} alt={selectedMethod.name} width={32} height={20} className="object-contain" />
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod.name}</span>
               </div>
             </div>
-
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="cardNumber" className="text-sm font-medium text-paydine-elegant-gray">
-                  Card Number
-                </Label>
-                <Input
-                  id="cardNumber"
-                  type="text"
-                  placeholder="1234 5678 9012 3456"
-                  value={paymentFormData.cardNumber}
-                  onChange={(e) => handleFormChange("cardNumber", formatCardNumber(e.target.value))}
-                  maxLength={19}
-                  className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="expiryDate" className="text-sm font-medium text-paydine-elegant-gray">
-                    Expiry Date
-                  </Label>
-                  <Input
-                    id="expiryDate"
-                    type="text"
-                    placeholder="MM / YY"
-                    value={paymentFormData.expiryDate}
-                    onChange={(e) => handleFormChange("expiryDate", formatExpiryDate(e.target.value))}
-                    maxLength={7}
-                    className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cvv" className="text-sm font-medium text-paydine-elegant-gray">
-                    CVV
-                  </Label>
-                  <Input
-                    id="cvv"
-                    type="text"
-                    placeholder="123"
-                    value={paymentFormData.cvv}
-                    onChange={(e) => handleFormChange("cvv", e.target.value.replace(/\D/g, ''))}
-                    maxLength={4}
-                    className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="cardholderName" className="text-sm font-medium text-paydine-elegant-gray">
-                  Cardholder Name
-                </Label>
-                <Input
-                  id="cardholderName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={paymentFormData.cardholderName}
-                  onChange={(e) => handleFormChange("cardholderName", e.target.value)}
-                  className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                />
-              </div>
-            </div>
+            <Elements stripe={loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')}>
+              <StripeCardForm
+                paymentData={{
+                  amount: finalTotal,
+                  currency: 'USD',
+                  items: itemsToPay.map((item) => ({ id: String(item.item.id), name: item.item.name, price: item.price, quantity: 1, restaurantId: String(merchantSettings.accountId || 'default') })),
+                  customerInfo: { email: paymentFormData.email, name: '', phone: paymentFormData.phone },
+                  restaurantId: merchantSettings.accountId || 'default-restaurant',
+                  tableNumber: tableInfo?.table_id,
+                }}
+                onPaymentComplete={async (result) => {
+                  if (!result.success || !result.transactionId) {
+                    toast({ title: "Payment Failed", description: result.error || "Please try again", variant: "destructive" })
+                    return
+                  }
+                  setIsLoading(true)
+                  try {
+                    const orderData = buildOrderData((result as any).customerName, (result as any).customerEmail, (result as any).customerPhone)
+                    const res = await fetch('/api/orders/confirm', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ paymentIntentId: result.transactionId, order: orderData }),
+                    })
+                    const data = await res.json()
+                    if (!res.ok || !data.success) throw new Error(data.error || 'Order confirmation failed')
+                    if (data.order_id) localStorage.setItem('lastOrderId', String(data.order_id))
+                    toast({ title: t("paymentSuccessful"), description: `Order #${data.order_id ?? 'placed'} placed successfully!`, variant: "default" })
+                    setTimeout(() => { clearCart(); router.push(`/order-placed?order_id=${data.order_id || 'unknown'}`) }, 1500)
+                  } catch (e: any) {
+                    toast({ title: "Order Error", description: e.message || "Order confirmation failed", variant: "destructive" })
+                  } finally {
+                    setIsLoading(false)
+                  }
+                }}
+                onPaymentError={(msg) => toast({ title: "Payment Error", description: msg, variant: "destructive" })}
+              />
+            </Elements>
           </motion.div>
         )
 
@@ -770,6 +675,9 @@ export default function CheckoutPage() {
 
   const renderPaymentButton = () => {
     if (!selectedMethod) return null
+    if (selectedMethod.code === 'visa' || selectedMethod.code === 'mastercard' || selectedMethod.code === 'stripe' || selectedMethod.code === 'authorizenetaim') {
+      return null
+    }
 
     const isFormValid = () => {
       switch (selectedMethod.code) {
@@ -777,7 +685,7 @@ export default function CheckoutPage() {
         case "mastercard":
         case "stripe":
         case "authorizenetaim":
-          return paymentFormData.cardNumber && paymentFormData.expiryDate && paymentFormData.cvv && paymentFormData.cardholderName
+          return true
         case "paypal":
           return true // PayPal handles its own validation
         case "applepay":

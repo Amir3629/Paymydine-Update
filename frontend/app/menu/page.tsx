@@ -79,10 +79,6 @@ import { wsClient } from '@/lib/websocket-client'
 type ToolbarState = "collapsed" | "preview" | "expanded"
 
 type PaymentFormData = {
-  cardNumber: string
-  expiryDate: string
-  cvv: string
-  cardholderName: string
   email: string
   phone: string
 }
@@ -315,10 +311,6 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
   const [couponLoading, setCouponLoading] = useState(false)
   const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    cardholderName: "",
     email: "",
     phone: "",
   })
@@ -402,29 +394,30 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
   const handlePayment = async () => {
+    if (selectedPaymentMethod === 'stripe' || selectedPaymentMethod === 'authorizenetaim' || selectedPaymentMethod === 'visa' || selectedPaymentMethod === 'mastercard') {
+      router.push('/checkout')
+      return
+    }
     setIsLoading(true)
-    
     try {
-      // Prepare order data for API
       const isCashier = tableInfo?.is_codier || false
       const orderData = {
-        table_id: isCashier ? null : (tableInfo?.table_id ?? null),
-        table_name: isCashier ? null : (tableInfo?.table_name ?? null),
+        table_id: isCashier ? "cashier" : (tableInfo?.table_id ?? null),
+        table_name: isCashier ? "Cashier" : (tableInfo?.table_name ?? "Delivery"),
         location_id: tableInfo?.location_id || 1,
         is_codier: isCashier,
         items: itemsToPay.map(item => ({
           menu_id: item.item.id,
-          name: item.item.name, // Add the item name!
+          name: item.item.name,
           quantity: item.quantity || 1,
           price: item.price,
           special_instructions: '',
-          options: selectedOptions[item.item.id] || {} // Include selected options
+          options: selectedOptions[item.item.id] || {}
         })),
-        customer_name: paymentFormData.cardholderName || (isCashier ? "Cashier Customer" : `${tableInfo?.table_name || `Table ${tableInfo?.table_id || 'Unknown'}`} Customer`),
+        customer_name: (isCashier ? "Cashier Customer" : `${tableInfo?.table_name || `Table ${tableInfo?.table_id || 'Unknown'}`} Customer`),
         customer_phone: paymentFormData.phone || '',
         customer_email: paymentFormData.email || '',
-        payment_method: (selectedPaymentMethod === 'cod' ? 'cod' : 
-                      selectedPaymentMethod === 'paypal' ? 'paypal' : 'card') as 'cod' | 'card' | 'paypal',
+        payment_method: (selectedPaymentMethod === 'cod' ? 'cod' : 'paypal') as 'cod' | 'paypal',
         total_amount: finalTotal,
         tip_amount: tipAmount,
         coupon_code: appliedCoupon?.code || null,
@@ -432,7 +425,6 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
         special_instructions: ''
       }
 
-      // Submit order to backend
       const response = await apiClient.submitOrder(orderData)
       
       if (response.success) {
@@ -533,6 +525,8 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
     switch (selectedMethod.code) {
       case "stripe":
       case "authorizenetaim":
+      case "visa":
+      case "mastercard":
         return (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -541,86 +535,21 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
             className="space-y-4 overflow-hidden"
           >
             <div className="flex items-center gap-2 mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToMethods}
-                className="p-2"
-              >
+              <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <img
-                  src={iconForPayment(selectedMethod.code)}
-                  alt={selectedMethod.name}
-                  width={32}
-                  height={20}
-                  className="object-contain"
-                />
+                <img src={iconForPayment(selectedMethod.code)} alt={selectedMethod.name} width={32} height={20} className="object-contain" />
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod.name}</span>
               </div>
             </div>
-
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="cardNumber" className="text-sm font-medium text-paydine-elegant-gray">
-                  Card Number
-                </Label>
-                <Input
-                  id="cardNumber"
-                  type="text"
-                  placeholder="1234 5678 9012 3456"
-                  value={paymentFormData.cardNumber}
-                  onChange={(e) => handleFormChange("cardNumber", formatCardNumber(e.target.value))}
-                  maxLength={19}
-                  className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="expiryDate" className="text-sm font-medium text-paydine-elegant-gray">
-                    Expiry Date
-                  </Label>
-                  <Input
-                    id="expiryDate"
-                    type="text"
-                    placeholder="MM / YY"
-                    value={paymentFormData.expiryDate}
-                    onChange={(e) => handleFormChange("expiryDate", formatExpiryDate(e.target.value))}
-                    maxLength={7}
-                    className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cvv" className="text-sm font-medium text-paydine-elegant-gray">
-                    CVV
-                  </Label>
-                  <Input
-                    id="cvv"
-                    type="text"
-                    placeholder="123"
-                    value={paymentFormData.cvv}
-                    onChange={(e) => handleFormChange("cvv", e.target.value.replace(/\D/g, ''))}
-                    maxLength={4}
-                    className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="cardholderName" className="text-sm font-medium text-paydine-elegant-gray">
-                  Cardholder Name
-                </Label>
-                <Input
-                  id="cardholderName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={paymentFormData.cardholderName}
-                  onChange={(e) => handleFormChange("cardholderName", e.target.value)}
-                  className="border-paydine-champagne/30 focus:border-paydine-champagne"
-                />
-              </div>
+            <div className="rounded-xl p-4 bg-paydine-champagne/10 border border-paydine-champagne/30 text-center">
+              <p className="text-sm text-paydine-elegant-gray mb-3">
+                Pay securely with card on the next page. No card details are entered here.
+              </p>
+              <p className="text-xs text-gray-500">
+                Click Pay below to continue to secure checkout.
+              </p>
             </div>
           </motion.div>
         )
@@ -768,7 +697,9 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentMo
       switch (selectedMethod.code) {
         case "visa":
         case "mastercard":
-          return paymentFormData.cardNumber && paymentFormData.expiryDate && paymentFormData.cvv && paymentFormData.cardholderName
+        case "stripe":
+        case "authorizenetaim":
+          return true
         case "paypal":
           return paymentFormData.email
         case "apple_pay":
@@ -1920,14 +1851,14 @@ function MenuContent() {
             const tableResult = await apiClient.getTableInfo(tableParam, qr || undefined, useTableNo)
             if (tableResult.success) {
               setTableInfoState(tableResult.data)
-              const current = useCartStore.getState().tableInfo || {}
-              setTableInfo({
-                ...current,
+              setTableInfo(prev => ({
+                ...prev,
                 table_id: tableResult.data.table_id,
                 table_name: tableResult.data.table_name,
                 location_id: tableResult.data.location_id,
-                qr_code: tableResult.data.qr_code
-              })
+                qr_code: tableResult.data.qr_code,
+                table_no: prev?.table_no ?? tableResult.data.table_no ?? null
+              }))
             }
           } catch (error) {
             console.error('Failed to fetch table info:', error)
