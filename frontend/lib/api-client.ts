@@ -105,6 +105,7 @@ export interface PaymentMethod {
   code: string;
   name: string;
   priority: number;
+  provider_code?: string | null;
 }
 
 // Fallback data for offline mode - No default food items
