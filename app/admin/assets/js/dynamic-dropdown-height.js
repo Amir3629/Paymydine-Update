@@ -25,11 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     list.classList.add('ss-many-options');
                 }
                 
-                // Calculate exact height for smooth animation
-                const optionHeight = 48; // Approximate height per option (padding + margin)
-                const maxHeight = Math.min(optionCount * optionHeight + 16, 300); // 16px for padding
-                
-                // Set the calculated height
+                // Cap list height so the bottom edge is not too far down (was 300px)
+                const optionHeight = 36;
+                const maxHeight = Math.min(optionCount * optionHeight + 16, 220);
                 list.style.maxHeight = maxHeight + 'px';
             }
             
@@ -77,22 +75,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (mainField) {
+                // Match dropdown width to the trigger
                 const mainFieldRect = mainField.getBoundingClientRect();
-                console.log(`🔧 Setting dropdown width to ${mainFieldRect.width}px (SlimSelect handles positioning)`);
-                
-                // ONLY SET WIDTH - Let SlimSelect handle left/top positioning
-                dropdown.style.setProperty('width', mainFieldRect.width + 'px', 'important');
-                dropdown.style.setProperty('max-width', mainFieldRect.width + 'px', 'important');
-                dropdown.style.setProperty('min-width', mainFieldRect.width + 'px', 'important');
-                
-                // NUCLEAR OPTION: Use CSS custom properties for width only
-                dropdown.style.setProperty('--dropdown-width', mainFieldRect.width + 'px', 'important');
-                
-                // Force the computed style to match
-                const computedStyle = window.getComputedStyle(dropdown);
-                console.log(`📊 Computed width after setting: ${computedStyle.width}`);
-                console.log(`📍 SlimSelect positioning: left=${computedStyle.left}, top=${computedStyle.top}`);
-                
+                var w = Math.round(mainFieldRect.width);
+                dropdown.style.setProperty('width', w + 'px', 'important');
+                dropdown.style.setProperty('max-width', w + 'px', 'important');
+                dropdown.style.setProperty('min-width', w + 'px', 'important');
+                dropdown.style.setProperty('--dropdown-width', w + 'px', 'important');
             } else {
                 console.warn('Could not find main field for dropdown:', dropdown);
             }
@@ -117,11 +106,52 @@ document.addEventListener('DOMContentLoaded', function() {
     // Run when window is resized
     window.addEventListener('resize', setDynamicDimensions);
     
+    // Reposition SlimSelect dropdown when user scrolls so it stays under the trigger (does not close)
+    function repositionOpenSlimSelectOnScroll() {
+        var openContent = document.querySelector('.ss-content.ss-open-below, .ss-content.ss-open-above');
+        if (!openContent) return;
+        var contentId = openContent.getAttribute('data-id') || openContent.id || '';
+        var main = document.querySelector('.ss-main[data-id="' + contentId + '"], .ss-main[id="' + contentId + '"]');
+        if (!main) {
+            main = openContent.previousElementSibling;
+            while (main && !main.classList.contains('ss-main')) {
+                main = main.previousElementSibling;
+            }
+        }
+        if (main) {
+            var selectEl = main.previousElementSibling;
+            if (selectEl && selectEl.slim && selectEl.slim.render && typeof selectEl.slim.render.moveContent === 'function') {
+                selectEl.slim.render.moveContent();
+            }
+        }
+    }
+    var scrollRepositionTimeout;
+    function onScrollRepositionDropdown() {
+        if (scrollRepositionTimeout) clearTimeout(scrollRepositionTimeout);
+        scrollRepositionTimeout = setTimeout(repositionOpenSlimSelectOnScroll, 16);
+    }
+    window.addEventListener('scroll', onScrollRepositionDropdown, true);
+    document.addEventListener('scroll', onScrollRepositionDropdown, true);
+    
+    // Admin scrolls inside .page-wrapper – listen there so dropdown repositions when that scrolls
+    function attachScrollRepositionToContainers() {
+        var selectors = ['.page-wrapper', '.page-content', '.content', '.modal-body', '.modal-dialog-scrollable .modal-body'];
+        selectors.forEach(function(sel) {
+            document.querySelectorAll(sel).forEach(function(el) {
+                if (el.hasAttribute && el.hasAttribute('data-slim-scroll-reposition')) return;
+                el.setAttribute('data-slim-scroll-reposition', '1');
+                el.addEventListener('scroll', onScrollRepositionDropdown, true);
+            });
+        });
+    }
+    attachScrollRepositionToContainers();
+    
     // Run when new content is loaded (for dynamic forms)
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                 setTimeout(setDynamicDimensions, 100);
+                setTimeout(attachScrollRepositionToContainers, 100);
             }
         });
     });
@@ -146,10 +176,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (mainField) {
                         const mainFieldRect = mainField.getBoundingClientRect();
-                        // ONLY SET WIDTH - Don't interfere with SlimSelect's positioning
-                        target.style.setProperty('width', mainFieldRect.width + 'px', 'important');
-                        target.style.setProperty('max-width', mainFieldRect.width + 'px', 'important');
-                        target.style.setProperty('min-width', mainFieldRect.width + 'px', 'important');
+                        var w = Math.round(mainFieldRect.width);
+                        target.style.setProperty('width', w + 'px', 'important');
+                        target.style.setProperty('max-width', w + 'px', 'important');
+                        target.style.setProperty('min-width', w + 'px', 'important');
                     }
                 }
             }

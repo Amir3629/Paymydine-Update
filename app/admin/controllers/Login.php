@@ -32,7 +32,10 @@ class Login extends \Admin\Classes\AdminController
 
         Template::setTitle(lang('admin::lang.login.text_title'));
 
-        return $this->makeView('auth/login');
+        // Return standalone login page (same design as superadmin)
+        // Use view() helper directly since we're not using the default layout
+        // View is located at app/admin/views/auth/login_standalone.blade.php
+        return view('auth.login_standalone');
     }
 
     public function reset()

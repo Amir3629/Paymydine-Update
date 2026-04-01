@@ -4,6 +4,7 @@ namespace Admin\Models;
 
 use Admin\Traits\Locationable;
 use Admin\Traits\Stockable;
+use Admin\Models\Menu_prices_model;
 use Carbon\Carbon;
 use Igniter\Flame\Database\Attach\HasMedia;
 use Igniter\Flame\Database\Model;
@@ -40,11 +41,13 @@ class Menus_model extends Model
         'order_restriction' => 'array',
         'menu_status' => 'boolean',
         'menu_priority' => 'integer',
+        'is_stock_out' => 'boolean',
     ];
 
     public $relation = [
         'hasMany' => [
             'menu_options' => ['Admin\Models\Menu_item_options_model', 'delete' => true],
+            'prices' => ['Admin\Models\Menu_prices_model', 'delete' => true],
         ],
         'hasOne' => [
             'special' => ['Admin\Models\Menus_specials_model', 'delete' => true],
@@ -59,7 +62,7 @@ class Menus_model extends Model
         ],
     ];
 
-    protected $purgeable = ['menu_options', 'special'];
+    protected $purgeable = ['menu_options', 'special', 'prices'];
 
     public $mediable = ['thumb'];
 
@@ -183,6 +186,38 @@ class Menus_model extends Model
         return $query->where('menu_status', 1);
     }
 
+    /**
+     * Scope to filter items that are NOT stock out
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInStock($query)
+    {
+        return $query->where('is_stock_out', 0);
+    }
+
+    /**
+     * Scope to filter items that ARE stock out
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeStockOut($query)
+    {
+        return $query->where('is_stock_out', 1);
+    }
+
+    /**
+     * Check if item is stock out
+     * 
+     * @return bool
+     */
+    public function isStockOut()
+    {
+        return (bool) $this->is_stock_out;
+    }
+
     //
     // Events
     //
@@ -196,6 +231,9 @@ class Menus_model extends Model
 
         if (array_key_exists('special', $this->attributes))
             $this->addMenuSpecial((array)$this->attributes['special']);
+
+        if (array_key_exists('prices', $this->attributes))
+            $this->addMenuPrices((array)$this->attributes['prices']);
     }
 
     protected function beforeDelete()
@@ -322,6 +360,50 @@ class Menus_model extends Model
     }
 
     /**
+     * Create new or update existing menu prices
+     *
+     * @param array $menuPrices if empty all existing records will be deleted
+     *
+     * @return bool
+     */
+    public function addMenuPrices(array $menuPrices = [])
+    {
+        $menuId = $this->getKey();
+        if (!is_numeric($menuId))
+            return false;
+
+        $idsToKeep = [];
+        foreach ($menuPrices as $price) {
+            $price['menu_id'] = $menuId;
+            $menuPrice = $this->prices()->firstOrNew([
+                'price_id' => array_get($price, 'price_id'),
+            ])->fill(array_except($price, ['price_id']));
+
+            $menuPrice->saveOrFail();
+            $idsToKeep[] = $menuPrice->getKey();
+        }
+
+        $this->prices()->whereNotIn('price_id', $idsToKeep)->delete();
+
+        return count($idsToKeep);
+    }
+
+    /**
+     * Get price for a specific context and time
+     *
+     * @param string $priceType (default, bar, dining_room, room_service, happy_hour)
+     * @param \Carbon\Carbon|null $datetime
+     * @return float|null
+     */
+    public function getPriceForContext($priceType = 'default', $datetime = null)
+    {
+        $price = Menu_prices_model::getPriceForContext($this->menu_id, $priceType, $datetime);
+        
+        // Fallback to base menu_price if no pricing found
+        return $price !== null ? $price : $this->menu_price;
+    }
+
+    /**
      * Is menu item available on a given datetime
      *
      * @param string | \Carbon\Carbon $datetime
@@ -330,6 +412,11 @@ class Menus_model extends Model
      */
     public function isAvailable($datetime = null)
     {
+        // First check if item is enabled and not stock out
+        if ($this->menu_status != 1 || $this->is_stock_out == 1) {
+            return false;
+        }
+
         if (is_null($datetime))
             $datetime = Carbon::now();
 

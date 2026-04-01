@@ -40,6 +40,7 @@ class Staffs_model extends Model
         'sale_permission' => 'integer',
         'language_id' => 'integer',
         'staff_status' => 'boolean',
+        'biometric_enabled' => 'boolean',
     ];
 
     public $relation = [
@@ -48,6 +49,7 @@ class Staffs_model extends Model
         ],
         'hasMany' => [
             'assignable_logs' => ['Admin\Models\Assignable_logs_model', 'foreignKey' => 'assignee_id'],
+            'attendances' => ['Admin\Models\Staff_attendance_model', 'foreignKey' => 'staff_id'],
         ],
         'belongsTo' => [
             'role' => ['Admin\Models\Staff_roles_model', 'foreignKey' => 'staff_role_id'],

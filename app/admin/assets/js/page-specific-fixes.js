@@ -94,6 +94,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Use a MutationObserver to catch any elements added dynamically
         const observer = new MutationObserver(function(mutations) {
+            // Skip processing when modal is open to prevent freeze
+            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+                return;
+            }
+            // Skip if any mutation is inside a modal
+            for (const mutation of mutations) {
+                if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                    return;
+                }
+                if (mutation.target.closest && mutation.target.closest('.modal')) {
+                    return;
+                }
+                // Also check added nodes
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1 && node.closest && node.closest('.modal')) {
+                        return;
+                    }
+                }
+            }
+            
             mutations.forEach(function(mutation) {
                 if (mutation.addedNodes.length) {
                     mutation.addedNodes.forEach(function(node) {
@@ -154,4 +174,804 @@ document.addEventListener('DOMContentLoaded', function() {
             }, delay);
         });
     }
+    
+    // ============================================
+    // FIX: Dark Blue Buttons with Dark Text
+    // Ensure all buttons with dark blue backgrounds have white text
+    // ============================================
+    
+    function fixDarkBlueButtonText() {
+        function getRGB(color) {
+            if (!color) return null;
+            const match = color.match(/\d+/g);
+            if (match && match.length >= 3) {
+                return {
+                    r: parseInt(match[0]),
+                    g: parseInt(match[1]),
+                    b: parseInt(match[2])
+                };
+            }
+            return null;
+        }
+        
+        function isDarkBackground(color) {
+            if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') {
+                return false;
+            }
+            const rgb = getRGB(color);
+            if (!rgb) {
+                // Check for dark blue hex colors
+                const lower = color.toLowerCase();
+                if (lower.includes('#202938') || lower.includes('#364a63') || 
+                    lower.includes('#526484') || lower.includes('#1f2937') ||
+                    lower.includes('#1f2b3a')) {
+                    return true;
+                }
+                return false;
+            }
+            // Calculate luminance
+            const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+            return luminance < 0.5; // Dark if luminance < 50%
+        }
+        
+        function isLightBackground(color) {
+            if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') {
+                return false;
+            }
+            const rgb = getRGB(color);
+            if (!rgb) return false;
+            // Calculate luminance
+            const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+            return luminance >= 0.5; // Light if luminance >= 50%
+        }
+        
+        function isWhiteText(color) {
+            if (!color) return false;
+            const rgb = getRGB(color);
+            if (rgb) {
+                return rgb.r > 240 && rgb.g > 240 && rgb.b > 240;
+            }
+            const lower = color.toLowerCase();
+            return lower.includes('rgb(255') || lower.includes('rgba(255') || 
+                   lower.includes('#fff') || lower.includes('white');
+        }
+        
+        function isDarkText(color) {
+            if (!color) return false;
+            return !isWhiteText(color);
+        }
+        
+        // Find all buttons and labels
+        const buttons = document.querySelectorAll(
+            '.btn, button, label.btn, label.btn-light, .btn-light, [class*="btn"]'
+        );
+        
+        let fixedCount = 0;
+        
+        buttons.forEach((btn) => {
+            if (btn.closest && btn.closest('.notification-toast')) return;
+            if (btn.classList && btn.classList.contains('notification-toast-close')) return;
+            const computedStyle = window.getComputedStyle(btn);
+            const bgColor = computedStyle.backgroundColor;
+            const textColor = computedStyle.color;
+            
+            const bgIsDark = isDarkBackground(bgColor);
+            const bgIsLight = isLightBackground(bgColor);
+            const textIsWhite = isWhiteText(textColor);
+            const textIsDark = isDarkText(textColor);
+            
+            let needsFix = false;
+            
+            // Case 1: Dark background → should have WHITE text
+            if (bgIsDark && textIsDark) {
+                btn.style.setProperty('color', '#ffffff', 'important');
+                // Also fix all children
+                const children = btn.querySelectorAll('*');
+                children.forEach(child => {
+                    child.style.setProperty('color', '#ffffff', 'important');
+                });
+                needsFix = true;
+            }
+            
+            // Case 2: Light background (unselected) → should have DARK BLUE text
+            if (bgIsLight && textIsWhite) {
+                // Only fix if it's a btn-light that's not selected
+                const isSelected = btn.classList.contains('active') || 
+                                 btn.getAttribute('aria-pressed') === 'true' ||
+                                 (btn.tagName === 'INPUT' && btn.checked) ||
+                                 (btn.tagName === 'LABEL' && btn.querySelector('input:checked'));
+                
+                if (!isSelected) {
+                    btn.style.setProperty('color', '#202938', 'important');
+                    // Also fix all children
+                    const children = btn.querySelectorAll('*');
+                    children.forEach(child => {
+                        child.style.setProperty('color', '#202938', 'important');
+                    });
+                    needsFix = true;
+                }
+            }
+            
+            if (needsFix) {
+                fixedCount++;
+            }
+        });
+        
+        if (fixedCount > 0) {
+            console.log(`✅ Fixed ${fixedCount} buttons with incorrect text colors`);
+        }
+        
+        return fixedCount;
+    }
+    
+    // Run immediately
+    fixDarkBlueButtonText();
+    
+    // Run after a short delay to catch dynamically added elements
+    setTimeout(fixDarkBlueButtonText, 100);
+    setTimeout(fixDarkBlueButtonText, 500);
+    setTimeout(fixDarkBlueButtonText, 1000);
+    
+    // Watch for changes (e.g., when radio buttons are checked/unchecked)
+    const observer = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
+        let shouldFix = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && 
+                (mutation.attributeName === 'class' || mutation.attributeName === 'style')) {
+                shouldFix = true;
+            }
+            if (mutation.addedNodes.length) {
+                shouldFix = true;
+            }
+        });
+        if (shouldFix) {
+            setTimeout(fixDarkBlueButtonText, 50);
+        }
+    });
+    
+    // Observe the document for changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+    });
+    
+    // Also watch for input changes (radio/checkbox checked state)
+    document.addEventListener('change', function(e) {
+        if (e.target.type === 'radio' || e.target.type === 'checkbox') {
+            setTimeout(fixDarkBlueButtonText, 50);
+        }
+    });
+    
+    // Watch for click events on buttons (in case styles change on click)
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn, button, label.btn, label.btn-light, .btn-light');
+        if (btn) {
+            // Fix immediately and after a delay to catch state changes
+            setTimeout(fixDarkBlueButtonText, 10);
+            setTimeout(fixDarkBlueButtonText, 100);
+            setTimeout(fixDarkBlueButtonText, 300);
+            
+            // Also fix related buttons in the same group
+            const form = btn.closest('form');
+            const btnGroup = btn.closest('.btn-group');
+            if (form || btnGroup) {
+                setTimeout(fixDarkBlueButtonText, 150);
+            }
+        }
+    }, true);
+    
+    // ============================================
+    // FIX: Image Upload Fields - Ice White Background + Dark Blue Plus Icon
+    // ============================================
+    
+    function fixImageUploadFields() {
+        // Blank-cover: let CSS control appearance (same as filled card) – strip ALL inline background so nothing overrides
+        const blankCovers = document.querySelectorAll(
+            '.media-finder .grid .blank-cover, ' +
+            '.media-finder .grid .find-button.blank-cover, ' +
+            '.media-finder .grid a.blank-cover'
+        );
+        
+        blankCovers.forEach((cover) => {
+            cover.style.removeProperty('background');
+            cover.style.removeProperty('background-color');
+            cover.style.removeProperty('background-image');
+            cover.style.removeProperty('background-position');
+            cover.style.removeProperty('background-size');
+            cover.style.removeProperty('background-repeat');
+            cover.style.removeProperty('background-attachment');
+            cover.style.removeProperty('background-origin');
+            cover.style.removeProperty('background-clip');
+            var plusIcon = cover.querySelector('i.fa-plus, .fa-plus, i[class*="fa-plus"]');
+            if (plusIcon) plusIcon.style.removeProperty('color');
+        });
+        
+        // Fix image grid hover - remove green colors
+        const imageGrids = document.querySelectorAll('.media-finder .grid');
+        imageGrids.forEach((grid) => {
+            // Remove green border and shadow on hover
+            grid.addEventListener('mouseenter', function() {
+                const computedStyle = window.getComputedStyle(this);
+                // Check if border is green
+                if (computedStyle.borderColor.includes('rgb(8, 129, 94)') || 
+                    computedStyle.borderColor.includes('#08815e')) {
+                    this.style.setProperty('border-color', '#364a63', 'important');
+                }
+                // Check if box-shadow has green
+                if (computedStyle.boxShadow.includes('rgb(8, 129, 94)') || 
+                    computedStyle.boxShadow.includes('rgba(8, 129, 94')) {
+                    this.style.setProperty('box-shadow', '0 8px 24px rgba(54, 74, 99, 0.15)', 'important');
+                }
+            });
+        });
+    }
+    
+    // Run immediately
+    fixImageUploadFields();
+    
+    // Run after delays so we win over other scripts that set inline styles (e.g. at 100, 500, 1000, 2000ms)
+    setTimeout(fixImageUploadFields, 100);
+    setTimeout(fixImageUploadFields, 500);
+    setTimeout(fixImageUploadFields, 1000);
+    setTimeout(fixImageUploadFields, 2500);
+    
+    // Watch for new image upload fields
+    const imageFieldObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
+        let shouldFix = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1 && 
+                        (node.classList && (node.classList.contains('blank-cover') || 
+                         node.classList.contains('find-button') ||
+                         node.querySelector && node.querySelector('.blank-cover')))) {
+                        shouldFix = true;
+                    }
+                });
+            }
+        });
+        if (shouldFix) {
+            setTimeout(fixImageUploadFields, 50);
+        }
+    });
+    
+    imageFieldObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // ============================================
+    // FIX: Remove ALL Green Colors - Replace with Dark Blue
+    // ============================================
+    
+    function removeAllGreenColors() {
+        const greenColors = [
+            '#08815e', '#066b52', '#055a45', '#0bb87a', '#0f9d58', '#0c7d47', '#0aa868',
+            'rgb(8, 129, 94)', 'rgb(6, 107, 82)', 'rgb(5, 90, 69)', 'rgb(11, 184, 122)',
+            'rgb(15, 157, 88)', 'rgb(12, 125, 71)', 'rgb(10, 168, 104)',
+            'rgba(8, 129, 94', 'rgba(6, 107, 82', 'rgba(15, 157, 88'
+        ];
+        
+        const darkBlueColors = {
+            '#08815e': '#364a63',
+            '#066b52': '#526484',
+            '#055a45': '#2a3a4e',
+            '#0bb87a': '#526484',
+            '#0f9d58': '#364a63',
+            '#0c7d47': '#364a63',
+            '#0aa868': '#526484',
+            'rgb(8, 129, 94)': 'rgb(54, 74, 99)',
+            'rgb(6, 107, 82)': 'rgb(82, 100, 132)',
+            'rgb(5, 90, 69)': 'rgb(42, 58, 78)',
+            'rgb(11, 184, 122)': 'rgb(82, 100, 132)',
+            'rgb(15, 157, 88)': 'rgb(54, 74, 99)',
+            'rgb(12, 125, 71)': 'rgb(54, 74, 99)',
+            'rgb(10, 168, 104)': 'rgb(82, 100, 132)',
+            'rgba(8, 129, 94': 'rgba(54, 74, 99',
+            'rgba(6, 107, 82': 'rgba(54, 74, 99',
+            'rgba(15, 157, 88': 'rgba(54, 74, 99'
+        };
+        
+        let fixedCount = 0;
+        
+        // FIRST: Specifically target .btn-secondary buttons and force dark blue
+        const secondaryButtons = document.querySelectorAll('.btn-secondary, button.btn-secondary, a.btn-secondary');
+        secondaryButtons.forEach((btn) => {
+            if (btn.closest && btn.closest('#addGeneralStaffNoteModal')) return;
+            if (btn.closest && btn.closest('#adminConfirmModal')) return;
+            if (btn.closest && btn.closest('.notification-toast')) return;
+            if (btn.classList && btn.classList.contains('notification-toast-close')) return;
+            // Never overwrite style while hovered/focused so hover effect stays until mouse out
+            if (btn.matches && (btn.matches(':hover') || document.activeElement === btn)) return;
+            const computedStyle = window.getComputedStyle(btn);
+            const bgColor = computedStyle.backgroundColor;
+            const borderColor = computedStyle.borderColor;
+            const bg = computedStyle.background;
+            
+            let needsFix = false;
+            
+            if (bgColor && greenColors.some(g => bgColor.includes(g))) {
+                btn.style.setProperty('background-color', '#364a63', 'important');
+                needsFix = true;
+            }
+            if (bg && greenColors.some(g => bg.includes(g))) {
+                btn.style.setProperty('background', '#364a63', 'important');
+                needsFix = true;
+            }
+            if (borderColor && greenColors.some(g => borderColor.includes(g))) {
+                btn.style.setProperty('border-color', '#364a63', 'important');
+                needsFix = true;
+            }
+            btn.style.setProperty('color', '#ffffff', 'important');
+            
+            if (needsFix) {
+                fixedCount++;
+            }
+        });
+        
+        // SECOND: Fix all elements with green colors in inline styles
+        const allElements = document.querySelectorAll('*');
+        
+        allElements.forEach((el) => {
+            if (el.closest && el.closest('#addGeneralStaffNoteModal')) return;
+            if (el.closest && el.closest('#adminConfirmModal')) return;
+            if (el.closest && el.closest('.notification-toast')) return;
+            if (el.matches && (el.matches(':hover') || document.activeElement === el)) return;
+            const style = el.getAttribute('style');
+            if (!style) return;
+            
+            let newStyle = style;
+            let wasChanged = false;
+            
+            // Check for green colors in various CSS properties
+            greenColors.forEach(green => {
+                const darkBlue = darkBlueColors[green] || '#364a63';
+                
+                // Replace in border-color
+                if (newStyle.includes('border') && newStyle.includes(green)) {
+                    newStyle = newStyle.replace(
+                        new RegExp(`border[^:]*:\\s*[^;]*${green.replace(/[()]/g, '\\$&')}[^;]*`, 'gi'),
+                        (match) => match.replace(new RegExp(green.replace(/[()]/g, '\\$&'), 'gi'), darkBlue)
+                    );
+                    wasChanged = true;
+                }
+                
+                // Replace in box-shadow
+                if (newStyle.includes('box-shadow') && newStyle.includes(green)) {
+                    newStyle = newStyle.replace(
+                        new RegExp(`box-shadow[^:]*:\\s*[^;]*${green.replace(/[()]/g, '\\$&')}[^;]*`, 'gi'),
+                        (match) => match.replace(new RegExp(green.replace(/[()]/g, '\\$&'), 'gi'), darkBlue)
+                    );
+                    wasChanged = true;
+                }
+                
+                // Replace in background
+                if (newStyle.includes('background') && newStyle.includes(green)) {
+                    newStyle = newStyle.replace(
+                        new RegExp(`background[^:]*:\\s*[^;]*${green.replace(/[()]/g, '\\$&')}[^;]*`, 'gi'),
+                        (match) => match.replace(new RegExp(green.replace(/[()]/g, '\\$&'), 'gi'), darkBlue)
+                    );
+                    wasChanged = true;
+                }
+            });
+            
+            if (wasChanged) {
+                el.setAttribute('style', newStyle);
+                fixedCount++;
+            }
+        });
+        
+        // Also fix image upload field hover effects
+        const imageGrids = document.querySelectorAll('.media-finder .grid');
+        imageGrids.forEach((grid) => {
+            // Remove green border on hover
+            grid.addEventListener('mouseenter', function() {
+                const computedStyle = window.getComputedStyle(this);
+                if (computedStyle.borderColor.includes('rgb(8, 129, 94)') || 
+                    computedStyle.borderColor.includes('#08815e')) {
+                    this.style.setProperty('border-color', '#364a63', 'important');
+                }
+                if (computedStyle.boxShadow.includes('rgb(8, 129, 94)') || 
+                    computedStyle.boxShadow.includes('rgba(8, 129, 94')) {
+                    this.style.setProperty('box-shadow', '0 8px 24px rgba(54, 74, 99, 0.15)', 'important');
+                }
+            });
+        });
+        
+        if (fixedCount > 0) {
+            console.log(`✅ Removed ${fixedCount} green colors, replaced with dark blue`);
+        }
+        
+        return fixedCount;
+    }
+    
+    // Run immediately
+    removeAllGreenColors();
+    
+    // Run after delays
+    setTimeout(removeAllGreenColors, 100);
+    setTimeout(removeAllGreenColors, 500);
+    setTimeout(removeAllGreenColors, 1000);
+    
+    // Watch for style changes AND new elements being added
+    const greenColorObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
+        let shouldFix = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                shouldFix = true;
+            }
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // Check if any added nodes are buttons
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList && (node.classList.contains('btn-secondary') || node.querySelector('.btn-secondary'))) {
+                            shouldFix = true;
+                        }
+                    }
+                });
+            }
+        });
+        if (shouldFix) {
+            setTimeout(removeAllGreenColors, 50);
+        }
+    });
+    
+    greenColorObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['style', 'class'],
+        childList: true,
+        subtree: true
+    });
+    
+    // Also run periodically to catch any missed cases
+    setInterval(removeAllGreenColors, 2000);
+    
+    // ============================================
+    // FIX: Hide Green Progress Indicator Text
+    // Remove green text that appears behind save button
+    // ============================================
+    
+    function hideProgressIndicatorText() {
+        // Find all progress indicators
+        const progressIndicators = document.querySelectorAll('.progress-indicator');
+        
+        progressIndicators.forEach((indicator) => {
+            // Hide the text div inside progress indicator
+            const textDiv = indicator.querySelector('div');
+            if (textDiv) {
+                textDiv.style.setProperty('display', 'none', 'important');
+                textDiv.style.setProperty('visibility', 'hidden', 'important');
+                textDiv.style.setProperty('opacity', '0', 'important');
+                textDiv.style.setProperty('color', 'transparent', 'important');
+            }
+            
+            // Also hide the entire text content
+            indicator.style.setProperty('color', 'transparent', 'important');
+        });
+    }
+    
+    // Run immediately
+    hideProgressIndicatorText();
+    
+    // Run after delays to catch dynamically added indicators
+    setTimeout(hideProgressIndicatorText, 100);
+    setTimeout(hideProgressIndicatorText, 500);
+    setTimeout(hideProgressIndicatorText, 1000);
+    
+    // Watch for new progress indicators being added
+    const progressObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze
+        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            return;
+        }
+        // Skip if any mutation is inside a modal
+        for (const mutation of mutations) {
+            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                return;
+            }
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return;
+            }
+        }
+        
+        let shouldHide = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList && (node.classList.contains('progress-indicator') || 
+                            node.querySelector && node.querySelector('.progress-indicator'))) {
+                            shouldHide = true;
+                        }
+                    }
+                });
+            }
+        });
+        if (shouldHide) {
+            setTimeout(hideProgressIndicatorText, 10);
+        }
+    });
+    
+    progressObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // Also run periodically to catch any missed cases
+    setInterval(hideProgressIndicatorText, 500);
+    
+    // ============================================
+    // REBUILD btn-group-toggle - match settings page exactly (Kilometers, Geocoder)
+    // Removes old labels, rebuilds with correct structure and styles
+    // ============================================
+    function rebuildBtnGroupToggle(container) {
+        var root = container || document;
+        var groups = root.querySelectorAll('.btn-group.btn-group-toggle.bg-light');
+        var DARK = 'rgb(32, 41, 56)';
+        var WHITE = 'rgb(255, 255, 255)';
+        var baseStyle = 'pointer-events: auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important; transition: none 0s ease 0s !important; border-radius: 12px !important; padding: 0.4rem 1rem !important;';
+
+        groups.forEach(function(group) {
+            var radios = group.querySelectorAll('input[type="radio"].btn-check');
+            if (!radios.length) return;
+
+            function syncColors() {
+                radios.forEach(function(r) {
+                    var lbl = group.querySelector('label[for="' + r.id + '"]');
+                    if (lbl) lbl.style.setProperty('color', r.checked ? WHITE : DARK, 'important');
+                });
+            }
+
+            radios.forEach(function(radio) {
+                var label = group.querySelector('label[for="' + radio.id + '"]');
+                if (!label || label.tagName !== 'LABEL') return;
+
+                label.removeAttribute('data-btn-toggle-fixed');
+                label.removeAttribute('style');
+                label.className = 'btn btn-light text-nowrap';
+                label.style.cssText = baseStyle + (radio.checked ? ' color: rgb(255, 255, 255) !important;' : ' color: rgb(32, 41, 56) !important;');
+
+                if (!radio.dataset.rebuildDone) {
+                    radio.dataset.rebuildDone = '1';
+                    radio.addEventListener('change', syncColors, { passive: true });
+                    label.addEventListener('click', function() { setTimeout(syncColors, 0); }, { passive: true });
+                }
+            });
+        });
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { rebuildBtnGroupToggle(document); });
+    } else {
+        rebuildBtnGroupToggle(document);
+    }
+    setTimeout(function() { rebuildBtnGroupToggle(document); }, 100);
+    setTimeout(function() { rebuildBtnGroupToggle(document); }, 500);
+
+    document.addEventListener('shown.bs.modal', function(e) {
+        var modal = e.target;
+        if (modal && modal.classList && modal.classList.contains('modal')) {
+            rebuildBtnGroupToggle(modal);
+            setTimeout(function() { rebuildBtnGroupToggle(modal); }, 200);
+            setTimeout(function() { rebuildBtnGroupToggle(modal); }, 400);
+        }
+    });
+
+    document.addEventListener('pageContentLoaded', function() {
+        rebuildBtnGroupToggle(document);
+    });
+
+    // ============================================
+    // FIX: Lock Save Button Width - Prevent Size Changes
+    // Keep save button at fixed 90px width
+    // ============================================
+    
+    // Save button: only force-button-alignment touches it (page-specific-fixes never touches Save - stopped vibration).
+    // Back button: we set square size and install hooks here.
+    function protectButtonStyles(button) {
+        if (!button || button.dataset.styleLocked) return;
+        if (button.matches && (button.matches(':hover') || document.activeElement === button)) return;
+        
+        button.dataset.styleLocked = 'true';
+        const isBack = button.closest('.progress-indicator-container') && button.matches('.btn-outline-secondary');
+        if (!isBack) return;
+        
+        // Back: set square dimensions and install hooks
+        const criticalStyles = 'display:inline-flex!important;width:40px!important;min-width:40px!important;padding:0!important;';
+        const baseStyles = 'align-items:center!important;justify-content:center!important;text-align:center!important;line-height:1.3!important;white-space:nowrap!important;height:40px!important;min-height:40px!important;box-sizing:border-box!important;vertical-align:middle!important;';
+        const currentStyle = button.getAttribute('style') || '';
+        button.style.cssText = criticalStyles + baseStyles + currentStyle;
+        
+        const originalSetAttribute = button.setAttribute.bind(button);
+        button.setAttribute = function(name, value) {
+            if (name === 'style') {
+                originalSetAttribute(name, value);
+                this.style.setProperty('display', 'inline-flex', 'important');
+                this.style.setProperty('align-items', 'center', 'important');
+                this.style.setProperty('justify-content', 'center', 'important');
+                this.style.setProperty('line-height', '1.3', 'important');
+                this.style.setProperty('white-space', 'nowrap', 'important');
+                this.style.setProperty('box-sizing', 'border-box', 'important');
+                this.style.setProperty('width', '40px', 'important');
+                this.style.setProperty('min-width', '40px', 'important');
+                this.style.setProperty('padding', '0', 'important');
+                this.style.setProperty('height', '40px', 'important');
+                this.style.setProperty('min-height', '40px', 'important');
+            } else {
+                originalSetAttribute(name, value);
+            }
+        };
+        
+        const originalSetProperty = button.style.setProperty.bind(button.style);
+        button.style.setProperty = function(property, value, priority) {
+            if (property === 'display' && (value === 'inline-block' || value === 'block')) {
+                return originalSetProperty('display', 'inline-flex', 'important');
+            }
+            if (property === 'width' || property === 'min-width' || property === 'padding') {
+                if (property === 'width' || property === 'min-width') return originalSetProperty(property, '40px', 'important');
+                if (property === 'padding') return originalSetProperty('padding', '0', 'important');
+            }
+            return originalSetProperty(property, value, priority);
+        };
+    }
+    
+    function lockSaveButtonWidth() {
+        // Only protect Back buttons - never touch Save (force-button-alignment owns it; any touch here caused vibration)
+        const backButtons = document.querySelectorAll(
+            '.progress-indicator-container .btn-outline-secondary'
+        );
+        backButtons.forEach((btn) => {
+            protectButtonStyles(btn);
+        });
+    }
+    
+    /* Button size is defined once in custom-fixes.css (progress-indicator-container) - no injected style to avoid size flash on load */
+    
+    // Run immediately to protect buttons
+    lockSaveButtonWidth();
+    
+    // Run a few times to catch dynamically added buttons, then STOP
+    setTimeout(lockSaveButtonWidth, 50);
+    setTimeout(lockSaveButtonWidth, 200);
+    setTimeout(lockSaveButtonWidth, 500);
+    // Stop calling it after 500ms - protectButtonStyles will handle ongoing protection
+    
+    // Watch for style changes on save buttons and IMMEDIATELY fix them
+    const widthObserver = new MutationObserver(function(mutations) {
+        // Skip processing when modal is open to prevent freeze (except for modal buttons)
+        const isModalMutation = mutations.some(mutation => {
+            if (mutation.target.closest && mutation.target.closest('.modal')) {
+                return true;
+            }
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType === 1 && node.closest && node.closest('.modal')) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        
+        // Only skip if it's NOT a modal button we care about
+        if (document.body.classList.contains('modal-open') && !isModalMutation) {
+            // Check if mutation is for a button we care about
+            let isImportantButton = false;
+            for (const mutation of mutations) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const btn = mutation.target;
+                    const isSaveButton = btn.matches && (
+                        btn.matches('[data-request="onSave"]') ||
+                        btn.matches('.btn-primary[data-request="onSave"]')
+                    );
+                    if (isSaveButton) {
+                        isImportantButton = true;
+                        break;
+                    }
+                }
+            }
+            if (!isImportantButton) {
+                return;
+            }
+        }
+        
+        let shouldLock = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const btn = mutation.target;
+                const isSaveButton = btn.matches && (
+                    btn.matches('[data-request="onSave"]') ||
+                    btn.matches('.btn-primary[data-request="onSave"]') ||
+                    (btn.closest('.progress-indicator-container') && btn.matches('.btn-primary[data-request="onSave"]'))
+                );
+                
+                const isBackButton = btn.matches && (
+                    btn.closest('.progress-indicator-container') && btn.matches('.btn-outline-secondary')
+                );
+                
+                if (isBackButton) {
+                    protectButtonStyles(btn);
+                    btn.style.setProperty('display', 'inline-flex', 'important');
+                    btn.style.setProperty('width', '40px', 'important');
+                    btn.style.setProperty('min-width', '40px', 'important');
+                    btn.style.setProperty('padding', '0', 'important');
+                }
+                /* Save: skip - restore only in setAttribute when something else overwrites; observer writes caused vibration */
+            }
+            if (mutation.addedNodes.length) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) {
+                        if (node.matches && (
+                            node.matches('[data-request="onSave"]') ||
+                            node.matches('.btn-primary[data-request="onSave"]')
+                        )) {
+                            protectButtonStyles(node);
+                            shouldLock = true;
+                        }
+                    }
+                });
+            }
+        });
+        if (shouldLock) {
+            // Run immediately, no timeout
+            lockSaveButtonWidth();
+        }
+    });
+    
+    widthObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['style'],
+        childList: true,
+        subtree: true
+    });
+    
+    // Protect Back buttons when found (Save is never touched here)
+    setTimeout(function() {
+        document.querySelectorAll('.progress-indicator-container .btn-outline-secondary').forEach(protectButtonStyles);
+    }, 0);
+    
+    // DON'T run periodically - protectButtonStyles handles everything
+    // Running this causes constant re-renders and jumping
 });

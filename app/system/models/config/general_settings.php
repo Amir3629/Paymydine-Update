@@ -38,11 +38,6 @@ return [
                 'tab' => 'lang:system::lang.settings.text_tab_restaurant',
                 'type' => 'mediafinder',
             ],
-            'loader_logo' => [
-                'label' => 'Loader Logo',
-                'tab' => 'lang:system::lang.settings.text_tab_restaurant',
-                'type' => 'mediafinder',
-            ],
             'favicon_logo' => [
                 'label' => 'Favicon Logo',
                 'tab' => 'lang:system::lang.settings.text_tab_restaurant',

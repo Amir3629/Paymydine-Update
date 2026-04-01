@@ -1,6 +1,7 @@
 <?php
 
 namespace Admin\Controllers;
+use Illuminate\Validation\Rule;
 
 use Admin\Classes\PaymentGateways;
 use Admin\Facades\AdminMenu;
@@ -121,6 +122,17 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formExtendFields($form)
     {
+        @file_put_contents('/tmp/payments_form_debug.log',
+            date('Y-m-d H:i:s')
+            .' | formExtendFields'
+            .' | db='.(\DB::connection()->getDatabaseName() ?? 'NULL')
+            .' | id='.(method_exists($form->model,'getKey') ? ($form->model->getKey() ?? 'NULL') : 'NULL')
+            .' | code='.($form->model->code ?? 'NULL')
+            .' | class_attr='.($form->model->class_name ?? 'NULL')
+            .' | class_orig='.(method_exists($form->model,'getOriginal') ? ($form->model->getOriginal('class_name') ?? 'NULL') : 'NULL')
+            ."\n",
+            FILE_APPEND
+        );
         $model = $form->model;
 
         // Try to get config fields from the gateway class directly
@@ -131,13 +143,22 @@ class Payments extends \Admin\Classes\AdminController
                 if (is_array($configFields) && $configFields) {
                     $form->addTabFields($configFields);
                 }
+
+                $form->addTabFields([
+                    'debug_paypal_probe' => [
+                        'label' => 'DEBUG PAYPAL PROBE',
+                        'type' => 'text',
+                        'default' => 'PROBE_VISIBLE_123',
+                        'comment' => 'If you see this field, formExtendFields and addTabFields are working.',
+                    ],
+                ]);
             }
         }
 
-        // Lock the code on edit
+        // code is editable on edit
         if ($form->context !== 'create') {
             if ($field = $form->getField('code')) {
-                $field->disabled = true;
+                $field->disabled = false;
             }
         }
     }
@@ -157,7 +178,12 @@ class Payments extends \Admin\Classes\AdminController
         $rules = [
             'payment'     => ['sometimes', 'required', 'alpha_dash'],
             'name'        => ['required', 'min:2', 'max:128'],
-            'code'        => ['sometimes', 'required', 'alpha_dash', 'unique:payments,code'],
+            'code' => [
+                'sometimes',
+                'required',
+                'alpha_dash',
+                Rule::unique('payments', 'code')->ignore(optional($model)->payment_id, 'payment_id'),
+            ],
             'priority'    => ['required', 'integer'],
             'description' => ['max:255'],
             'is_default'  => ['required', 'integer'],
@@ -222,4 +248,46 @@ class Payments extends \Admin\Classes\AdminController
         if (isset($widget->showCheckboxes)) { $widget->showCheckboxes = false; }
         if (isset($widget->bulkActions))   { $widget->bulkActions   = [];    }
     }
+
+    public function formBeforeSave($model)
+    {
+        $postedStatus = post('status');
+
+        if ($postedStatus === null) {
+            $postedStatus = post('Payment.status');
+        }
+
+        if ($postedStatus === null) {
+            $postedStatus = post('Payments.status');
+        }
+
+        if ($postedStatus === null && request()->has('status')) {
+            $postedStatus = request()->input('status');
+        }
+
+        if ($postedStatus === null) {
+            $postedStatus = $model->status;
+        }
+
+        if ((int)$postedStatus !== 1) {
+            $model->is_default = 0;
+        }
+
+        $postedDefault = post('is_default');
+
+        if ($postedDefault === null) {
+            $postedDefault = post('Payment.is_default');
+        }
+
+        if ($postedDefault === null) {
+            $postedDefault = post('Payments.is_default');
+        }
+
+        if ((int)$postedDefault === 1) {
+            $model->status = 1;
+        }
+    }
+
+
 }
+

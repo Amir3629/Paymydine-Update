@@ -130,11 +130,25 @@
       vertical-align: middle;
     }
 
+    // Keep bulk row compact: colspan cell has minimal vertical padding to avoid
+    // large gap and "row moving down" when checkboxes are selected
+    td.bulk-actions-cell,
+    td.w-100.pb-0 {
+      padding-top: 0.25rem !important;
+      padding-bottom: 0.25rem !important;
+    }
+
     .btn-counter,
     .btn-counter + span,
     .btn-select-all {
       display: none !important;
     }
+  }
+
+  // Remove harsh border between thead and tbody so no black line appears
+  // when the bulk-actions row is visible above the data rows
+  .table > tbody {
+    border-top: 1px solid transparent !important;
   }
 }
 .table-striped {

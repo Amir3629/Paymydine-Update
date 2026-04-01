@@ -209,10 +209,10 @@
                     min-height: 40px !important;
                     height: 40px !important;
                     font-weight: 600 !important;
-                    background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-                    border: 1px solid #0bb87a !important;
+                    background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+                    border: 2px solid #364a63 !important;
                     color: #ffffff !important;
-                    box-shadow: 0 4px 10px rgba(8, 129, 94, 0.24) !important;
+                    box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
                     transition: all 0.3s ease !important;
                 `;
             }

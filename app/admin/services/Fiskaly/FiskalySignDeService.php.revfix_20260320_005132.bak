@@ -1,0 +1,239 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Admin\Models\Fiskaly_transactions_model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+class FiskalySignDeService
+{
+    protected FiskalyConfigResolver $resolver;
+    protected FiskalyReceiptDataBuilder $receiptBuilder;
+
+    public function __construct()
+    {
+        $this->resolver = new FiskalyConfigResolver();
+        $this->receiptBuilder = new FiskalyReceiptDataBuilder();
+    }
+
+    public function finalizeOrder($order): array
+    {
+        $cfg = $this->resolver->forLocation($locationId);
+
+        if (!$cfg || !$cfg->is_enabled) {
+            $this->markOrderSkipped($orderId, 'No enabled fiskaly config for location');
+            return ['ok' => false, 'skipped' => true, 'reason' => 'config_missing'];
+        }
+
+        if (empty($cfg->api_key) || empty($cfg->api_secret) || empty($cfg->tss_id) || empty($cfg->client_id)) {
+            $this->markOrderSkipped($orderId, 'Incomplete fiskaly config');
+            return ['ok' => false, 'skipped' => true, 'reason' => 'config_incomplete'];
+        }
+
+        $existingFinishedTx = Fiskaly_transactions_model::where('order_id', $orderId)
+            ->where('status', 'finished')
+            ->first();
+
+        if ($existingFinishedTx && !empty($existingFinishedTx->tx_id)) {
+            Log::info('[Fiskaly] finalizeOrder idempotent hit', [
+                'order_id' => $orderId,
+                'fiskaly_transaction_id' => $existingFinishedTx->fiskaly_transaction_id ?? null,
+                'tx_id' => $existingFinishedTx->tx_id,
+            ]);
+
+            return [
+                'ok' => true,
+                'already_finished' => true,
+                'fiskaly_transaction_id' => $existingFinishedTx->fiskaly_transaction_id ?? null,
+                'tx_id' => $existingFinishedTx->tx_id,
+            ];
+        }
+
+        $orderItemsCount = DB::table('order_menus')->where('order_id', $orderId)->count();
+        if ($orderItemsCount < 1) {
+            throw new \RuntimeException('Fiskaly finalize aborted: order has no order_menus rows');
+        }
+
+        $txModel = Fiskaly_transactions_model::firstOrNew(['order_id' => $orderId]);
+        $txModel->location_id = $locationId;
+        $txModel->payment_method = $paymentMethod ?: $txModel->payment_method;
+        $txModel->payment_reference = $paymentReference ?: $txModel->payment_reference;
+        $txModel->tss_id = $cfg->tss_id;
+        $txModel->client_id = $cfg->client_id;
+        $txModel->status = 'started';
+        $txModel->started_at = $txModel->started_at ?: now();
+        if (($txModel->status ?? null) === 'failed') {
+            $txModel->tx_id = (string) Str::uuid();
+            $txModel->tx_revision = '1';
+            $txModel->tx_state = null;
+            $txModel->tx_number = null;
+            $txModel->signature_counter = null;
+            $txModel->signature_algorithm = null;
+            $txModel->signature_value = null;
+            $txModel->serial_number = null;
+            $txModel->qr_code_data = null;
+            $txModel->response_payload = null;
+            $txModel->request_payload = null;
+            $txModel->error_message = null;
+            $txModel->meta = null;
+        }
+
+        if (($txModel->status ?? null) === 'failed') {
+            $txModel->tx_id = (string) Str::uuid();
+            $txModel->tx_revision = '1';
+            $txModel->tx_state = null;
+            $txModel->tx_number = null;
+            $txModel->signature_counter = null;
+            $txModel->signature_algorithm = null;
+            $txModel->signature_value = null;
+            $txModel->serial_number = null;
+            $txModel->qr_code_data = null;
+            $txModel->response_payload = null;
+            $txModel->request_payload = null;
+            $txModel->error_message = null;
+            $txModel->meta = null;
+        }
+
+        $txModel->tx_id = $txModel->tx_id ?: (string) Str::uuid();
+        $txModel->tx_revision = (string)((int)($txModel->tx_revision ?: 1));
+        $txModel->save();
+
+        $api = new FiskalyApiClient($cfg);
+        $receiptData = $this->receiptBuilder->buildForOrder($orderId);
+        $receiptType = $receiptData['receipt_type'] ?? 'RECEIPT';
+        $schema = $receiptData['schema'] ?? [];
+
+        $responses = [];
+
+        try {
+            $payloadStart = [
+                'tx_revision' => (int)$txModel->tx_revision,
+                'state' => 'ACTIVE',
+                'client_id' => $cfg->client_id,
+                'receipt_type' => $receiptType,
+            ];
+
+            $responses['start'] = $api->upsertTransaction($txModel->tx_id, $payloadStart);
+            $txModel->tx_state = $responses['start']['state'] ?? 'ACTIVE';
+            $txModel->tx_revision = isset($responses['start']['revision'])
+                ? (string)$responses['start']['revision']
+                : (string)((int)$txModel->tx_revision + 1);
+            $txModel->request_payload = $payloadStart;
+            $txModel->response_payload = $responses['start'];
+            $txModel->save();
+
+            $payloadUpdate = [
+                'tx_revision' => (int)$txModel->tx_revision,
+                'state' => 'ACTIVE',
+                'client_id' => $cfg->client_id,
+                'receipt_type' => $receiptType,
+                'schema' => $schema,
+            ];
+
+            \Illuminate\Support\Facades\Log::info('[Fiskaly] payloadUpdate DEBUG', $payloadUpdate);
+            file_put_contents(storage_path('logs/fiskaly_update_payload.log'), json_encode($payloadUpdate, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).PHP_EOL, FILE_APPEND);
+
+            $responses['update'] = $api->upsertTransaction($txModel->tx_id, $payloadUpdate);
+            $txModel->tx_state = $responses['update']['state'] ?? 'ACTIVE';
+            $txModel->tx_revision = isset($responses['update']['revision'])
+                ? (string)$responses['update']['revision']
+                : (string)((int)$txModel->tx_revision + 1);
+            $txModel->request_payload = $payloadUpdate;
+            $txModel->response_payload = $responses['update'];
+            $txModel->save();
+
+            $payloadFinish = [
+                'tx_revision' => (int)$txModel->tx_revision,
+                'state' => 'FINISHED',
+                'client_id' => $cfg->client_id,
+                'receipt_type' => $receiptType,
+            ];
+
+            $responses['finish'] = $api->upsertTransaction($txModel->tx_id, $payloadFinish);
+
+            $final = $responses['finish'];
+
+            $txModel->tx_state = $final['state'] ?? 'FINISHED';
+            $txModel->tx_revision = isset($final['revision'])
+                ? (string)$final['revision']
+                : (string)((int)$txModel->tx_revision + 1);
+            $txModel->tx_number = $final['transaction_number'] ?? ($final['number'] ?? null);
+            $txModel->signature_counter = isset($final['signature']['counter'])
+                ? (string)$final['signature']['counter']
+                : ($final['signature_counter'] ?? null);
+            $txModel->signature_algorithm = $final['signature']['algorithm'] ?? null;
+            $txModel->signature_value = $final['signature']['value'] ?? ($final['signature_value'] ?? null);
+            $txModel->serial_number = $final['signature']['serial_number'] ?? ($final['serial_number'] ?? null);
+            $txModel->qr_code_data = $final['qr_code_data'] ?? ($final['qrCodeData'] ?? null);
+            $txModel->request_payload = $payloadFinish;
+            $txModel->response_payload = $final;
+            $txModel->meta = [
+                'responses' => $responses,
+            ];
+            $txModel->status = 'finished';
+            $txModel->finished_at = now();
+            $txModel->error_message = null;
+            $txModel->save();
+
+            DB::table('orders')->where('order_id', $orderId)->update([
+                'fiskaly_status' => 'finished',
+                'fiskaly_transaction_id_ref' => $txModel->fiskaly_transaction_id,
+                'fiskaly_qr_code_data' => $txModel->qr_code_data,
+                'fiskaly_signature_counter' => $txModel->signature_counter,
+                'fiskaly_tx_number' => $txModel->tx_number,
+                'fiskaly_serial_number' => $txModel->serial_number,
+                'updated_at' => now(),
+            ]);
+
+            Log::info('[Fiskaly] finalizeOrder OK', [
+                'order_id' => $orderId,
+                'location_id' => $locationId,
+                'fiskaly_transaction_id' => $txModel->fiskaly_transaction_id,
+                'tx_id' => $txModel->tx_id,
+                'tx_revision' => $txModel->tx_revision,
+            ]);
+
+            return [
+                'ok' => true,
+                'fiskaly_transaction_id' => $txModel->fiskaly_transaction_id,
+                'tx_id' => $txModel->tx_id,
+            ];
+        } catch (\Throwable $e) {
+            $txModel->status = 'failed';
+            $txModel->error_message = $e->getMessage();
+            $txModel->meta = [
+                'responses' => $responses,
+            ];
+            $txModel->save();
+
+            DB::table('orders')->where('order_id', $orderId)->update([
+                'fiskaly_status' => 'failed',
+                'updated_at' => now(),
+            ]);
+
+            Log::error('[Fiskaly] finalizeOrder failed', [
+                'order_id' => $orderId,
+                'location_id' => $locationId,
+                'message' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    protected function markOrderSkipped(int $orderId, string $reason): void
+    {
+        DB::table('orders')->where('order_id', $orderId)->update([
+            'fiskaly_status' => 'skipped',
+            'updated_at' => now(),
+        ]);
+
+        $tx = Fiskaly_transactions_model::firstOrNew(['order_id' => $orderId]);
+        $tx->location_id = (int)(DB::table('orders')->where('order_id', $orderId)->value('location_id') ?: 1);
+        $tx->status = 'skipped';
+        $tx->error_message = $reason;
+        $tx->save();
+    }
+}

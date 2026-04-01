@@ -7,6 +7,7 @@ use Admin\Traits\HasLocationOptions;
 use Admin\Traits\HasWorkingHours;
 use Igniter\Flame\Database\Attach\HasMedia;
 use Igniter\Flame\Database\Traits\HasPermalink;
+use Main\Classes\MediaLibrary;
 use Igniter\Flame\Database\Traits\Purgeable;
 use Igniter\Flame\Exception\ValidationException;
 use Igniter\Flame\Location\Models\AbstractLocation;
@@ -188,9 +189,39 @@ class Locations_model extends AbstractLocation
     // Accessors & Mutators
     //
 
+    /**
+     * When thumb is path-based (useAttachment false), return path from options.
+     * Otherwise return first media for thumb (legacy).
+     */
+    public function getThumbAttribute()
+    {
+        if ($path = $this->getOption('thumb_path')) {
+            return $path;
+        }
+        $media = $this->getFirstMedia('thumb');
+        return $media ? $media->getDiskPath() : null;
+    }
+
+    /**
+     * Store path-based thumb in options (used when mediafinder useAttachment is false).
+     */
+    public function setThumbAttribute($value)
+    {
+        if (is_string($value)) {
+            $this->setOption('thumb_path', strlen(trim($value)) ? trim($value, '/') : null);
+        }
+    }
+
     public function getLocationThumbAttribute()
     {
-        return $this->hasMedia() ? $this->getThumb() : null;
+        if ($path = $this->getOption('thumb_path')) {
+            try {
+                return MediaLibrary::instance()->getMediaThumb($path, ['width' => 122, 'height' => 122, 'fit' => 'contain']);
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return $this->hasMedia('thumb') ? $this->getThumb() : null;
     }
 
     public function getDeliveryTimeAttribute($value)

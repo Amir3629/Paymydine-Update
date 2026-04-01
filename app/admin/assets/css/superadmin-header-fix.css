@@ -8,22 +8,30 @@
    DARK HEADER - Same as Admin Panel
    ============================================ */
 
-/* Main Header - Dark Background */
+/* Main Header - Blue Gradient (Same as Login Page) */
 .nk-header,
 .nk-header.nk-header-fixed,
 .nk-header.is-light {
-  background-color: #202938 !important;
-  border-bottom: 1px solid #202938 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-  height: 63px !important;
+  /* SMOOTH GRADIENT: Left side BRIGHT (#516584) -> smoothly transitions -> Right side DARKER (#2a3447) */
+  /* EXACT same as admin panel */
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  border-bottom: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important; /* EXACT same as admin panel */
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
   padding: 0 !important;
+  border-bottom-right-radius: 25px !important; /* EXACT same as admin panel */
 }
 
 .nk-header-wrap {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  height: 63px !important;
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
   padding: 0 20px !important;
 }
 
@@ -31,7 +39,8 @@
 .nk-header-brand {
   display: flex !important;
   align-items: center !important;
-  height: 63px !important;
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
 }
 
 .nk-header-brand img {
@@ -139,16 +148,70 @@
    ============================================ */
 
 .nk-sidebar-brand {
-  background-color: #202938 !important;
+  /* Logo area gradient - smooth transition from top to #516584 (bottom) */
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
   height: 63px !important;
   display: flex !important;
   align-items: center !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-bottom: none !important;
 }
 
 .nk-sidebar {
-  background-color: #1f2b3a !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  /* Continues seamlessly from header: starts at #516584 (brighter, matching header left) */
+  /* ADJUSTED: Left side is brighter, middle section is less dark, bottom part is also brighter */
+  background: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #455a73 25%, #455a73 60%, #364a63 80%, #364a63 100%) !important;
+  border-right: none !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Ensure header and sidebar connect seamlessly - no border between them */
+.nk-header + .nk-sidebar,
+.nk-header ~ .nk-sidebar {
+  border-top: none !important;
+}
+
+/* Remove any border-bottom from header that might create a line */
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  border-bottom: none !important;
+}
+
+/* Remove any border-top from sidebar that might create a line */
+.nk-sidebar,
+.nk-sidebar-brand {
+  border-top: none !important;
+}
+
+/* Star icon in sidebar top right - gradient from #4e6381 (left) to #506584 (right) */
+/* Smooth gradient: left half #4e6381, smoothly transitions to #506584 on right */
+#sidebar-star-icon,
+.nk-sidebar .star-icon,
+.nk-sidebar [class*="star"],
+.nk-sidebar .fa-star,
+.nk-sidebar .icon-star {
+  background: linear-gradient(90deg, #4e6381 0%, #4e6381 45%, #506584 55%, #506584 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important; /* Fallback for browsers that don't support background-clip */
+}
+
+/* Hide star icon on mobile/tablet - only show on desktop */
+@media (max-width: 991.98px) {
+  #sidebar-star-icon,
+  .nk-sidebar .star-icon,
+  .nk-sidebar [class*="star"],
+  .nk-sidebar .fa-star,
+  .nk-sidebar .icon-star {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
 }
 
 /* ============================================
@@ -157,7 +220,7 @@
 
 .nk-header .dropdown-menu {
   background-color: #ffffff !important;
-  border: 2px solid #08815e !important;
+  border: 2px solid #364a63 !important;
   border-radius: 8px !important;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
 }
@@ -170,7 +233,7 @@
 .nk-header .dropdown-menu .link-list-opt a:hover,
 .nk-header .dropdown-menu .link-list a:hover {
   background-color: rgba(8, 129, 94, 0.1) !important;
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 .nk-header .user-card-wrap {

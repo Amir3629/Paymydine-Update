@@ -34,34 +34,46 @@
     justify-content: flex-end !important;
 }
 
-/* Style control buttons */
+/* Style control buttons - White/Ice color theme, square shape */
 .widget-item-action .btn {
-    background: rgba(8, 129, 94, 0.9) !important;
-    border: 1px solid #08815e !important;
+    background: #f1f4fb !important;
+    border: 1px solid #c9d2e3 !important;
     border-radius: 6px !important;
-    padding: 5px 8px !important;
+    padding: 0 !important;
+    margin: 0 !important;
     transition: all 0.2s ease !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
-    min-width: 32px !important; /* Consistent button size */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+    box-sizing: border-box !important; /* Include border in width/height */
+    width: 32px !important; /* Square: equal width and height */
     height: 32px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    line-height: 32px !important; /* Match height for vertical centering */
+    display: inline-block !important;
+    text-align: center !important;
 }
 
 .widget-item-action .btn:hover {
-    background: rgba(11, 184, 122, 1) !important;
+    background: #e5ebf7 !important;
+    border-color: #b8c6dd !important;
     transform: scale(1.05) !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Button icons */
+/* Button icons - dark text color, perfectly centered */
 .widget-item-action .btn i {
-    color: #ffffff !important;
+    color: #202938 !important;
     font-size: 14px !important;
+    line-height: 32px !important; /* Match button line-height */
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-block !important;
+    vertical-align: top !important; /* Use top alignment with matching line-height */
 }
 
-/* Delete button - keep red color */
+/* Delete button - keep red color for icon */
 .widget-item-action .btn i.text-danger {
     color: #ef4444 !important;
 }

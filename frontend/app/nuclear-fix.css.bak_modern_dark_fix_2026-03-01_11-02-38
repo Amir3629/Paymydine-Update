@@ -1,0 +1,78 @@
+/* NUCLEAR CSS FIX - This will override everything */
+
+/* Force exact background colors on ALL elements for each theme */
+[data-theme="clean-light"] * {
+  background: #FAFAFA !important;
+  background-color: #FAFAFA !important;
+}
+
+[data-theme="modern-dark"] * {
+  background: #0A0E12 !important;
+  background-color: #0A0E12 !important;
+}
+
+[data-theme="gold-luxury"] * {
+  background: #0F0B05 !important;
+  background-color: #0F0B05 !important;
+}
+
+[data-theme="vibrant-colors"] * {
+  background: #e2ceb1 !important;
+  background-color: #e2ceb1 !important;
+}
+
+[data-theme="minimal"] * {
+  background: #CFEBF7 !important;
+  background-color: #CFEBF7 !important;
+}
+
+/* Then selectively restore individual element styling */
+[data-theme] .card,
+[data-theme] .surface,
+[data-theme] .surface-sub,
+[data-theme] button,
+[data-theme] .icon,
+[data-theme] .logo,
+[data-theme] h1,
+[data-theme] h2,
+[data-theme] h3,
+[data-theme] p,
+[data-theme] span,
+[data-theme] div[class*="card"],
+[data-theme] div[class*="surface"],
+[data-theme] .bg-white,
+[data-theme] .bg-gray-50,
+[data-theme] .bg-gray-100,
+[data-theme] .bg-gray-200,
+[data-theme] .bg-gray-300,
+[data-theme] .bg-gray-400,
+[data-theme] .bg-gray-500,
+[data-theme] .bg-gray-600,
+[data-theme] .bg-gray-700,
+[data-theme] .bg-gray-800,
+[data-theme] .bg-gray-900,
+[data-theme] .bg-black,
+[data-theme] .bg-red-500,
+[data-theme] .bg-blue-500,
+[data-theme] .bg-green-500,
+[data-theme] .bg-yellow-500,
+[data-theme] .bg-purple-500,
+[data-theme] .bg-pink-500,
+[data-theme] .bg-indigo-500,
+[data-theme] .bg-orange-500,
+[data-theme] .bg-teal-500,
+[data-theme] .bg-cyan-500,
+[data-theme] .bg-lime-500,
+[data-theme] .bg-emerald-500,
+[data-theme] .bg-violet-500,
+[data-theme] .bg-fuchsia-500,
+[data-theme] .bg-rose-500,
+[data-theme] .bg-sky-500,
+[data-theme] .bg-amber-500,
+[data-theme] .bg-stone-500,
+[data-theme] .bg-neutral-500,
+[data-theme] .bg-zinc-500,
+[data-theme] .bg-slate-500 {
+  background: unset !important;
+  background-color: unset !important;
+}

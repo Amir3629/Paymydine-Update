@@ -1,4 +1,14 @@
 (function () {
+  // CRITICAL: Prevent multiple initializations - check and set flag atomically at the VERY TOP
+  // This MUST be the first thing that runs to prevent race conditions
+  if (window.NotificationSystemInitialized || window.notificationCountInterval) {
+    console.warn('⚠️ Notification system already initialized, skipping duplicate script execution');
+    return; // Exit immediately - don't run ANY code below
+  }
+  
+  // Set flag IMMEDIATELY to prevent other script loads from running
+  window.NotificationSystemInitialized = true;
+  
   // Do NOT run on the admin login page
   try {
     const path = (location && location.pathname) || '';
@@ -10,6 +20,7 @@
         style.textContent = '#notif-root, #notification-panel { display: none !important; visibility: hidden !important; }';
         document.documentElement.appendChild(style);
       } catch (_e) {}
+      window.NotificationSystemInitialized = false; // Reset if we're exiting early
       return;
     }
   } catch (_) {}
@@ -104,6 +115,9 @@
     if (item.type === 'order_status') {
       const orderId = payload.order_id || 'Unknown Order';
       metaDiv.textContent = `${time} • Order #${orderId}`;
+    } else if (item.type === 'general_staff_note') {
+      // For general staff notes: just show time
+      metaDiv.textContent = time;
     } else {
       // For all other types: just show time without bullet
       metaDiv.textContent = time;
@@ -128,9 +142,19 @@
     } else if (item.type === 'table_note') {
       // For table notes: show "TABLE X • Note"
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Note</span>`;
+    } else if (item.type === 'staff_note') {
+      // For staff notes: show just "TABLE X" (note text will be in body)
+      tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
+    } else if (item.type === 'general_staff_note') {
+      // For general staff notes: show "General Note" label
+      const staffName = payload.staff_name || 'Staff';
+      tableDiv.innerHTML = `<strong style="color: #000000; font-weight: 600;">Note</strong> • <span style="color: #6c757d; font-weight: 500;">${escapeHtml(staffName)}</span>`;
     } else if (item.type === 'waiter_call') {
       // For waiter calls: show "TABLE X • Waiter Call"
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong> • <span style="color: #000000; font-weight: 600;">Waiter Call</span>`;
+    } else if (item.type === 'stock_out') {
+      // For stock out: don't show table, just show "Stock Status" label
+      tableDiv.innerHTML = `<strong style="color: #000000; font-weight: 600;">Stock Status</strong>`;
     } else {
       tableDiv.innerHTML = `<strong>${escapeHtml(table)}</strong>`;
     }
@@ -146,6 +170,32 @@
     if (item.type === 'table_note') {
       // Show the note content in dropdown (full text)
       const noteContent = payload.note || '(no note text)';
+      text = noteContent;
+    } else if (item.type === 'staff_note') {
+      // Show the note content in dropdown with "Staff Note: " prefix
+      // Try multiple sources for the note text
+      let noteContent = '';
+      if (payload && payload.note) {
+        noteContent = payload.note;
+      } else if (item.message) {
+        noteContent = item.message;
+      } else if (item.title && item.title.includes('Staff Note')) {
+        // If title exists but no payload note, try to extract from title or use empty
+        noteContent = '(no note text)';
+      } else {
+        noteContent = '(no note text)';
+      }
+      text = 'Staff Note: ' + noteContent;
+    } else if (item.type === 'general_staff_note') {
+      // For general staff notes: show the note content directly
+      let noteContent = '';
+      if (payload && payload.note) {
+        noteContent = payload.note;
+      } else if (item.message) {
+        noteContent = item.message;
+      } else {
+        noteContent = '(no note text)';
+      }
       text = noteContent;
     } else if (item.type === 'valet_request') {
       const name = payload.name || '';
@@ -165,6 +215,25 @@
     } else if (item.type === 'order_status') {
       // For order status, we've already shown order ID and status, so no additional text needed
       text = "";
+    } else if (item.type === 'table_move') {
+      // For table move: extract source and destination from payload and format as "Table X move to Table Y"
+      let payload = {};
+      try {
+        if (item.payload) {
+          payload = typeof item.payload === 'string' ? JSON.parse(item.payload) : item.payload;
+        }
+      } catch (e) {
+        console.error('Failed to parse notification payload:', e);
+      }
+      if (payload.source_table_name && payload.dest_table_name) {
+        text = payload.source_table_name + ' move to ' + payload.dest_table_name;
+      } else {
+        // Fallback to title if payload doesn't have the info
+        text = item.title || 'Table Move';
+      }
+    } else if (item.type === 'stock_out') {
+      // For stock out: show the title directly (e.g., "Item name is not in stock anymore")
+      text = item.title || 'Item stock status changed';
     } else {
       text = item.title || type;
     }
@@ -248,5 +317,36 @@
 
   // keep the badge fresh
   refreshCount();
-  setInterval(refreshCount, 5000);
+  
+  // Store interval ID in global scope for cleanup and duplicate prevention
+  if (window.notificationCountInterval) {
+    clearInterval(window.notificationCountInterval);
+  }
+  window.notificationCountInterval = setInterval(refreshCount, 20000); // Very slow polling (20s) to reduce CPU load
+  
+  // Clean up interval on page unload to prevent memory leaks and CPU usage
+  window.addEventListener('beforeunload', () => {
+    if (window.notificationCountInterval) {
+      clearInterval(window.notificationCountInterval);
+      window.notificationCountInterval = null;
+      window.NotificationSystemInitialized = false;
+    }
+  }, { once: true });
+  
+  // Pause polling when tab is hidden, resume when visible
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // Pause polling when tab is hidden
+      if (window.notificationCountInterval) {
+        clearInterval(window.notificationCountInterval);
+        window.notificationCountInterval = null;
+      }
+    } else {
+      // Resume polling when tab becomes visible
+      if (!window.notificationCountInterval) {
+        refreshCount(); // Refresh immediately
+        window.notificationCountInterval = setInterval(refreshCount, 20000); // Match the slow polling interval
+      }
+    }
+  });
 })();

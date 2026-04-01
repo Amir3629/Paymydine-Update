@@ -7,8 +7,8 @@ if ($record && $record->exists_webhook == 1) {
     return;
 }
 ?>
-<button id="btn-register-webhook" type="button" class="btn btn-success">
-    Register Webhook
+<button id="btn-register-webhook" type="button" class="btn btn-default">
+    <i class="fa fa-link"></i> Register Webhook
 </button>
 
 <!-- Modal -->

@@ -29,7 +29,9 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Validator;
+use App\Helpers\TenantContextHelper;
 use Main\Classes\Customer;
 use System\Classes\ErrorHandler;
 use System\Classes\ExtensionManager;
@@ -398,8 +400,12 @@ class ServiceProvider extends AppServiceProvider
                 Classes\UpdateManager::instance()->requestUpdateList(true);
             })->name('System Updates Checker')->cron('0 */12 * * *')->evenInMaintenanceMode();
 
-            // Cleanup activity log
-            $schedule->command('activitylog:cleanup')->name('Activity Log Cleanup')->daily();
+            // Cleanup activity log (per-tenant)
+            $schedule->call(function () {
+                TenantContextHelper::eachTenant(function () {
+                    Artisan::call('activitylog:cleanup');
+                });
+            })->name('Activity Log Cleanup')->daily();
         });
     }
 
@@ -472,21 +478,22 @@ class ServiceProvider extends AppServiceProvider
                     'form' => '~/app/system/models/config/mail_settings',
                     'request' => 'System\Requests\MailSettings',
                 ],
-                'advanced' => [
-                    'label' => 'lang:system::lang.settings.text_tab_server',
-                    'description' => 'lang:system::lang.settings.text_tab_desc_server',
-                    'icon' => 'fa fa-cog',
-                    'priority' => 7,
-                    'permission' => ['Site.Settings'],
-                    'url' => admin_url('settings/edit/advanced'),
-                    'form' => '~/app/system/models/config/advanced_settings',
-                    'request' => 'System\Requests\AdvancedSettings',
-                ],
+                // Advanced Settings has been combined with Panel Settings
+                // 'advanced' => [
+                //     'label' => 'lang:system::lang.settings.text_tab_server',
+                //     'description' => 'lang:system::lang.settings.text_tab_desc_server',
+                //     'icon' => 'fa fa-cog',
+                //     'priority' => 7,
+                //     'permission' => ['Site.Settings'],
+                //     'url' => admin_url('settings/edit/advanced'),
+                //     'form' => '~/app/system/models/config/advanced_settings',
+                //     'request' => 'System\Requests\AdvancedSettings',
+                // ],
                 'about' => [
                     'label' => 'About',
                     'description' => 'Company overview, policies, and legal details for PayMyDine.',
                     'icon' => 'fa fa-info-circle',
-                    'priority' => 8,
+                    'priority' => 20,
                     'permission' => ['Site.Settings'],
                     'url' => admin_url('settings/edit/about'),
                     'form' => '~/app/system/models/config/about_settings',

@@ -126,7 +126,7 @@ return [
                     'tab' => 'lang:system::lang.settings.text_tab_title_invoice',
                     'type' => 'mediafinder',
                     'span' => 'right',
-                    'mode' => 'inline',
+                    'mode' => 'grid',
                     'comment' => 'lang:system::lang.settings.help_invoice_logo',
                 ],
             ],

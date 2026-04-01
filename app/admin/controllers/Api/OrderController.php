@@ -122,6 +122,20 @@ class OrderController extends BaseController
                 'updated_at' => now()
             ]);
 
+            // Open cash drawer if payment is cash
+            if (\App\Helpers\CashDrawerHelper::shouldOpenDrawer($request->payment_method)) {
+                try {
+                    \App\Helpers\CashDrawerHelper::openDrawerForOrder($order->order_id, $locationId, $request->payment_method);
+                } catch (\Exception $e) {
+                    // Log error but don't fail the order
+                    \Log::error('Cash Drawer: Failed to open drawer after order creation', [
+                        'order_id' => $order->order_id,
+                        'location_id' => $locationId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'order_id' => $order->order_id,

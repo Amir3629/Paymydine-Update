@@ -46,8 +46,11 @@ class PushNotificationManager {
         const toast = this.createToast(notification);
         this.container.appendChild(toast);
 
-        // Shake bell icon
-        this.shakeBell();
+        const isFlash = notification._flash === true;
+        if (!isFlash) {
+            this.shakeBell();
+            this.playNotificationSound();
+        }
 
         // Auto-dismiss after 5 seconds
         const dismissTimer = setTimeout(() => {
@@ -69,9 +72,23 @@ class PushNotificationManager {
             clearTimeout(dismissTimer);
             this.flyToBell(toast);
         });
+    }
 
-        // Play sound (optional)
-        this.playNotificationSound();
+    /**
+     * Show a one-off flash/confirmation message in the same toast card.
+     * Only for the current user, once; NOT saved to notification history.
+     * @param {string} message - Message text (e.g. "Dashboard widgets updated successfully.")
+     * @param {string} level - 'success' | 'danger' | 'warning' | 'info'
+     */
+    showFlash(message, level) {
+        const statusMap = { success: 'completed', danger: 'cancelled', warning: 'preparation', info: 'ready' };
+        this.show({
+            message: message,
+            type: level || 'success',
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            statusName: statusMap[level] || 'completed',
+            _flash: true
+        });
     }
 
     createToast(notification) {
@@ -156,18 +173,75 @@ class PushNotificationManager {
     }
 
     startListening() {
-        // Poll for new notifications from the API every 2 seconds (faster response)
+        // Prevent multiple instances from running
+        if (this.pollInterval) {
+            console.warn('Push notification polling already active, skipping duplicate initialization');
+            return;
+        }
+        
+        // Poll for new notifications from the API every 15 seconds (SLOW polling to reduce CPU load)
+        // TODO: Consider migrating to WebSockets or Server-Sent Events for real-time updates
         this.pollInterval = setInterval(() => {
             this.checkForNewNotifications();
-        }, 2000); // Check every 2 seconds for faster notification delivery
+        }, 15000); // Check every 15 seconds (much slower to prevent CPU overload)
         
         // Check immediately on page load (but wait for initial setup)
         setTimeout(() => {
             this.checkForNewNotifications();
         }, 1000);
         
-        console.log('✅ Push notification system active - polling API every 2 seconds');
+        // Clean up interval on page unload to prevent memory leaks and CPU usage
+        // Use named function to prevent duplicate listeners
+        if (!this._beforeUnloadHandler) {
+            this._beforeUnloadHandler = () => {
+                this.stopListening();
+            };
+            window.addEventListener('beforeunload', this._beforeUnloadHandler);
+        }
+        
+        // Also clean up on visibility change (when tab becomes hidden)
+        // Use named function to prevent duplicate listeners
+        if (!this._visibilityHandler) {
+            this._visibilityHandler = () => {
+                if (document.hidden) {
+                    // Pause polling when tab is hidden
+                    if (this.pollInterval) {
+                        clearInterval(this.pollInterval);
+                        this.pollInterval = null;
+                    }
+                } else {
+                    // Resume polling when tab becomes visible
+                    if (!this.pollInterval) {
+                        this.pollInterval = setInterval(() => {
+                            this.checkForNewNotifications();
+                        }, 15000); // Match the slow polling interval
+                        this.checkForNewNotifications(); // Check immediately
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', this._visibilityHandler);
+        }
+        
+        console.log('✅ Push notification system active - polling API every 15 seconds');
         console.log('📌 Shows push for BRAND NEW notifications as they arrive!');
+        console.log('⚠️  Using slow polling - consider WebSockets/SSE for better performance');
+    }
+    
+    stopListening() {
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+            console.log('🛑 Push notification polling stopped');
+        }
+        // Clean up event listeners
+        if (this._visibilityHandler) {
+            document.removeEventListener('visibilitychange', this._visibilityHandler);
+            this._visibilityHandler = null;
+        }
+        if (this._beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+            this._beforeUnloadHandler = null;
+        }
     }
 
     async checkForNewNotifications() {
@@ -283,6 +357,37 @@ class PushNotificationManager {
                 // For table note: just show "Note" without content in push notification
                 title = '';  // No title, just time
                 message = tableName + ' • Note';
+            } else if (notif.type === 'staff_note') {
+                // For staff note (order notes): Title = "Order #X", Message = "TABLE Y • Staff Note"
+                const staffNoteOrderId = payload.order_id || notif.order_id;
+                title = staffNoteOrderId ? `Order #${staffNoteOrderId}` : '';
+                message = tableName + ' • Staff Note';
+                
+                console.log('📝 Staff Note notification:', {
+                    orderId: staffNoteOrderId,
+                    tableName: tableName,
+                    title: title,
+                    message: message
+                });
+            } else if (notif.type === 'general_staff_note') {
+                // For general staff note: Title = "General Note", Message = "Staff Name • Note preview"
+                const staffName = payload.staff_name || 'Staff';
+                const notePreview = payload.note ? (payload.note.length > 50 ? payload.note.substring(0, 50) + '...' : payload.note) : 'Note';
+                title = 'Note';
+                message = staffName + ' • ' + notePreview;
+            } else if (notif.type === 'table_move') {
+                // For table move: extract source and destination from payload and format as "Table X move to Table Y"
+                title = '';  // No title, just time
+                if (payload.source_table_name && payload.dest_table_name) {
+                    message = payload.source_table_name + ' move to ' + payload.dest_table_name;
+                } else {
+                    // Fallback to title if payload doesn't have the info
+                    message = notif.title || 'Table Move';
+                }
+            } else if (notif.type === 'stock_out') {
+                // For stock out: show the title directly (e.g., "Item name is not in stock anymore")
+                title = '';  // No title, just time
+                message = notif.title || 'Item stock status changed';
             } else {
                 // For other notification types
                 title = tableName;
@@ -299,9 +404,23 @@ class PushNotificationManager {
                 type = 'reservation';
             } else if (text.includes('alert') || text.includes('urgent') || text.includes('canceled')) {
                 type = 'alert';
+            } else if (notif.type === 'staff_note' || text.includes('staff note')) {
+                // Staff notes use order type styling
+                type = 'order';
+            } else if (notif.type === 'general_staff_note' || text.includes('general note')) {
+                // General staff notes use order type styling
+                type = 'order';
             }
             
             // Show the push notification
+            console.log('🔔 Showing push notification:', {
+                notifId: notifId,
+                type: notif.type,
+                title: title,
+                message: message,
+                notificationType: type
+            });
+            
             this.show({
                 title: title,
                 message: message || 'New notification',
@@ -336,24 +455,67 @@ class PushNotificationManager {
 }
 
 // Initialize the push notification manager
-let pushNotificationManager;
+// CRITICAL: Check immediately if already initialized - prevents multiple script loads
+// Use a "locking" mechanism: check and claim in one operation
+// Check for: 'claiming' (being initialized), true (already initialized), or existing instance
+if (window.PushNotificationManagerInitialized === 'claiming' || 
+    window.PushNotificationManagerInitialized === true || 
+    (window.pushNotif && window.pushNotif.pollInterval)) {
+    // Script already ran or is being initialized - exit immediately without defining anything
+    console.warn('⚠️ Push notification manager already initialized, skipping duplicate script execution');
+} else {
+    // Claim the initialization immediately to prevent other script loads from running
+    // Set to 'claiming' first, then 'true' after successful init
+    window.PushNotificationManagerInitialized = 'claiming'; // Lock it NOW, before any async operations
 
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        const path = (location && location.pathname) || '';
-        const isAuthScreen = /\/admin\/(login|logout)(?:$|[/?#])/i.test(path) || path === '/admin/login';
-        if (isAuthScreen) {
-            // Do not initialize push notifications on auth screens; also hide any container if present
-            const style = document.createElement('style');
-            style.textContent = '.notification-toast-container{display:none!important;visibility:hidden!important;}';
-            document.documentElement.appendChild(style);
+    function initializePushNotifications() {
+        // Double-check (in case script loaded multiple times rapidly)
+        // Check for 'claiming' (another script is initializing) or 'true' (already initialized)
+        if (window.PushNotificationManagerInitialized === true || (window.pushNotif && window.pushNotif.pollInterval)) {
+            console.warn('⚠️ Push notification manager already active, skipping duplicate initialization');
             return;
         }
-    } catch (_) {}
-    pushNotificationManager = new PushNotificationManager();
-    // Make it globally accessible for manual testing and integration
-    window.pushNotif = pushNotificationManager;
-});
+        
+        // If we're here, we have the lock - proceed with initialization
+        
+        try {
+            const path = (location && location.pathname) || '';
+            const isAuthScreen = /\/admin\/(login|logout)(?:$|[/?#])/i.test(path) || path === '/admin/login';
+            if (isAuthScreen) {
+                // Do not initialize push notifications on auth screens; also hide any container if present
+                const style = document.createElement('style');
+                style.textContent = '.notification-toast-container{display:none!important;visibility:hidden!important;}';
+                document.documentElement.appendChild(style);
+                return;
+            }
+        } catch (_) {}
+        
+        // Stop any existing instance first (safety check)
+        if (window.pushNotif && window.pushNotif.stopListening) {
+            window.pushNotif.stopListening();
+        }
+        
+        const pushNotificationManager = new PushNotificationManager();
+        window.PushNotificationManagerInitialized = true;
+        window.pushNotif = pushNotificationManager;
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.pushNotif && window.pushNotif.stopListening) {
+                window.pushNotif.stopListening();
+                window.PushNotificationManagerInitialized = false;
+            }
+        }, { once: true });
+    }
+
+    // Initialize when DOM is ready, but only if not already initialized
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializePushNotifications, { once: true });
+    } else {
+        // DOM already loaded
+        initializePushNotifications();
+    }
+}
 
 // Example usage (you can call this from your backend):
 // window.pushNotif.show({

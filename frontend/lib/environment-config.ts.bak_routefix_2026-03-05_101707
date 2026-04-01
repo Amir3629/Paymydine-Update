@@ -1,0 +1,112 @@
+export interface EnvironmentConfigShape {
+  apiBaseUrl: string;
+  frontendUrl: string;
+  wsUrl: string;
+  environment: 'development' | 'production';
+  tenantDetection: boolean;
+  defaultTenant: string;
+}
+
+export class EnvironmentConfig {
+  private static instance: EnvironmentConfig;
+  private config: EnvironmentConfigShape;
+
+  private constructor() {
+    this.config = this.detectEnvironment();
+  }
+
+  static getInstance(): EnvironmentConfig {
+    if (!EnvironmentConfig.instance) {
+      EnvironmentConfig.instance = new EnvironmentConfig();
+    }
+    return EnvironmentConfig.instance;
+  }
+
+  private detectEnvironment(): EnvironmentConfigShape {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isDevelopment = process.env.NODE_ENV === 'development' || isLocalhost;
+
+    if (isDevelopment) {
+      // Development environment - use Laravel backend (or local)
+      return {
+        apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
+        frontendUrl: process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000',
+        wsUrl: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
+        environment: 'development',
+        tenantDetection: false,
+        defaultTenant: 'paymydine',
+      };
+    }
+
+    // Production environment
+    // IMPORTANT: allow overriding API base (e.g. /api-server-multi-tenant.php)
+    const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+    const currentDomain = hostname || 'paymydine.com';
+
+    const apiBaseOverride = (process.env.NEXT_PUBLIC_API_BASE_URL || '').trim();
+
+    return {
+      apiBaseUrl: apiBaseOverride || `${protocol}//${currentDomain}`,
+      frontendUrl: `${protocol}//${currentDomain}`,
+      wsUrl: `${protocol === 'https:' ? 'wss:' : 'ws:'}//${currentDomain}`,
+      environment: 'production',
+      tenantDetection: true,
+      defaultTenant: 'paymydine',
+    };
+  }
+
+  getConfig(): EnvironmentConfigShape {
+    return this.config;
+  }
+
+  getApiBaseUrl(): string {
+    return this.config.apiBaseUrl;
+  }
+
+  backendBaseUrl(): string {
+    return this.config.apiBaseUrl;
+  }
+
+  getFrontendUrl(): string {
+    return this.config.frontendUrl;
+  }
+
+  getWsUrl(): string {
+    return this.config.wsUrl;
+  }
+
+  isProduction(): boolean {
+    return this.config.environment === 'production';
+  }
+
+  isDevelopment(): boolean {
+    return this.config.environment === 'development';
+  }
+
+  shouldDetectTenant(): boolean {
+    return this.config.tenantDetection;
+  }
+
+  getDefaultTenant(): string {
+    return this.config.defaultTenant;
+  }
+
+  // Get API endpoint with tenant detection
+  getApiEndpoint(endpoint: string): string {
+    const ep = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+    // In prod with tenant detection: prefer base if set (like /api-server-multi-tenant.php)
+    if (this.isProduction() && this.shouldDetectTenant()) {
+      const base = (this.getApiBaseUrl() || '').replace(/\/+$/, '');
+
+      // If base is relative like "/api-server-multi-tenant.php" => return "/api-server-multi-tenant.php/api/v1/xxx"
+      // If base is absolute like "https://domain" => return "https://domain/api/v1/xxx"
+      return base ? `${base}/api/v1${ep}` : `/api/v1${ep}`;
+    }
+
+    // Dev: use full URL to backend
+    const base = (this.getApiBaseUrl() || '').replace(/\/+$/, '');
+    return `${base}/api/v1${ep}`;
+  }
+}

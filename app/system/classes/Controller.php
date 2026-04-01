@@ -111,8 +111,33 @@ class Controller extends IlluminateController
             return Response::make(View::make('system::no_database'));
         }
 
-        if ($result = $this->locateController($url)) {
-            return $result['controller']->initialize()->remap($result['action'], $result['segments']);
+        $result = $this->locateController($url);
+        
+        // Debug for biometric
+        if (strpos($url, 'biometric') !== false) {
+            \Log::error('Biometric controller lookup', [
+                'url' => $url,
+                'result' => $result ? 'FOUND' : 'NOT FOUND',
+                'controller' => $result ? get_class($result['controller']) : null,
+                'action' => $result ? $result['action'] : null,
+            ]);
+        }
+        
+        if ($result) {
+            try {
+                $controller = $result['controller'];
+                $controller->initialize();
+                return $controller->remap($result['action'], $result['segments']);
+            } catch (\Exception $e) {
+                // Debug for biometric
+                if (strpos($url, 'biometric') !== false) {
+                    \Log::error('Biometric controller initialization/remap failed', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+                throw $e;
+            }
         }
 
         return App::make('Admin\Classes\AdminController')->initialize()->remap('404', []);
@@ -173,25 +198,106 @@ class Controller extends IlluminateController
         is_array($inPath) || $inPath = [$inPath];
 
         $controllerClass = null;
+        $foundController = false;
         foreach ($modules as $module => $namespace) {
-            $controller = strtolower(str_replace(['\\', '_'], ['/', ''], $controller));
+            $controllerName = strtolower(str_replace(['\\', '_'], ['/', ''], $controller));
             foreach ($inPath as $path) {
                 $matchPath = $path.'/%s/controllers/%s.php';
-                $controllerFile = File::existsInsensitive(sprintf($matchPath, $module, $controller));
-                if ($controllerFile && !class_exists($controllerClass = '\\'.$namespace.'\Controllers\\'.$controller)) {
+                $controllerFile = File::existsInsensitive(sprintf($matchPath, $module, $controllerName));
+                if ($controllerFile) {
+                    $controllerClass = '\\'.$namespace.'\Controllers\\'.$controllerName;
+                    if (!class_exists($controllerClass)) {
                     include_once $controllerFile;
-                    break 2;
+                    }
+                    
+                    // Find the actual class name (case-sensitive) using Reflection
+                    // class_exists is case-insensitive, but App::make needs exact name
+                    if (class_exists($controllerClass)) {
+                        try {
+                            // Use ReflectionClass to get the exact class name
+                            $reflection = new \ReflectionClass($controllerClass);
+                            $controllerClass = $reflection->getName();
+                            $foundController = true;
+                            break 2; // Break out of $inPath and $modules loops
+                        } catch (\ReflectionException $e) {
+                            // Fallback: search declared classes
+                            $declaredClasses = get_declared_classes();
+                            $namespacePrefix = '\\'.$namespace.'\\Controllers\\';
+                            $searchLower = strtolower($controllerClass);
+                            $foundExactClass = false;
+                            foreach ($declaredClasses as $declaredClass) {
+                                if (strpos($declaredClass, $namespacePrefix) === 0 && 
+                                    strtolower($declaredClass) === $searchLower) {
+                                    $controllerClass = $declaredClass;
+                                    $foundExactClass = true;
+                                    break;
+                                }
+                            }
+                            if ($foundExactClass) {
+                                $foundController = true;
+                                break 2; // Break out of $inPath and $modules loops
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        if (!$controllerClass || !class_exists($controllerClass))
+        if (!$foundController || !$controllerClass || !class_exists($controllerClass)) {
+            // Debug for biometric
+            if (stripos($controller, 'biometric') !== false) {
+                \Log::error('Biometric controller not found', [
+                    'foundController' => $foundController,
+                    'controllerClass' => $controllerClass,
+                    'classExists' => $controllerClass ? class_exists($controllerClass) : false,
+                    'controllerName' => $controllerName ?? null,
+                ]);
+            }
             return null;
+        }
 
+        try {
         $controllerObj = App::make($controllerClass);
+        } catch (\Exception $e) {
+            // Debug for biometric
+            if (stripos($controller, 'biometric') !== false) {
+                \Log::error('Biometric controller make failed', [
+                    'controllerClass' => $controllerClass,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            // If App::make fails, try to find the actual class name again
+            $declaredClasses = get_declared_classes();
+            $namespacePrefix = '\\Admin\\Controllers\\';
+            $searchLower = strtolower($controllerClass);
+            foreach ($declaredClasses as $declaredClass) {
+                if (strpos($declaredClass, $namespacePrefix) === 0 && 
+                    strtolower($declaredClass) === $searchLower) {
+                    try {
+                        $controllerObj = App::make($declaredClass);
+                        break;
+                    } catch (\Exception $e2) {
+                        continue;
+                    }
+                }
+            }
+            if (!isset($controllerObj)) {
+                return null;
+            }
+        }
 
-        if ($controllerObj->checkAction(self::$action)) {
+        $actionCheck = $controllerObj->checkAction(self::$action);
+        if ($actionCheck) {
             return $controllerObj;
+        }
+
+        // Debug: Log when checkAction fails for biometric
+        if (stripos($controller, 'biometric') !== false) {
+            \Log::error('Biometric checkAction failed', [
+                'controller' => get_class($controllerObj),
+                'action' => self::$action,
+                'result' => $actionCheck,
+            ]);
         }
 
         return false;

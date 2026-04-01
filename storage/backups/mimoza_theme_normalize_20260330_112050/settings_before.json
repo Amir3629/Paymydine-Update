@@ -1,0 +1,16 @@
+[
+    {
+        "setting_id": 74,
+        "sort": "prefs",
+        "item": "default_themes.main",
+        "value": "frontend-theme",
+        "serialized": null
+    },
+    {
+        "setting_id": 258,
+        "sort": "prefs",
+        "item": "default_themes",
+        "value": "a:1:{s:4:\"main\";s:10:\"Amir-theme\";}",
+        "serialized": 1
+    }
+]

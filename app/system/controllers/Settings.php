@@ -12,6 +12,7 @@ use Igniter\Flame\Exception\ApplicationException;
 use Igniter\Flame\Support\Facades\File;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Session;
@@ -118,8 +119,94 @@ class Settings extends \Admin\Classes\AdminController
 
         $this->formBeforeSave($model);
 
-        setting()->set($this->formWidget->getSaveData());
-        setting()->save();
+        $saveData = $this->formWidget->getSaveData();
+
+        // PMD FIX: force logo fields from raw request hidden inputs
+        $rawSettingInput = (array)request()->input('setting', []);
+
+        if (array_key_exists('site_logo', $rawSettingInput)) {
+            $saveData['site_logo'] = $rawSettingInput['site_logo'];
+        }
+
+        if (array_key_exists('favicon_logo', $rawSettingInput)) {
+            $saveData['favicon_logo'] = $rawSettingInput['favicon_logo'];
+        }
+
+        \Log::info('PMD_SETTINGS_LOGO_DEBUG', [
+            'site_logo' => $saveData['site_logo'] ?? null,
+            'dashboard_logo' => $saveData['dashboard_logo'] ?? null,
+            'favicon_logo' => $saveData['favicon_logo'] ?? null,
+            'raw_site_logo' => $rawSettingInput['site_logo'] ?? null,
+            'raw_dashboard_logo' => $rawSettingInput['dashboard_logo'] ?? null,
+            'raw_favicon_logo' => $rawSettingInput['favicon_logo'] ?? null,
+        ]);
+
+        // PMD FIX: force logo fields from raw request so site_logo does not get overwritten
+        $rawSettingInput = (array)request()->input('setting', []);
+        if (array_key_exists('site_logo', $rawSettingInput)) {
+            $saveData['site_logo'] = $rawSettingInput['site_logo'];
+        }
+        if (array_key_exists('favicon_logo', $rawSettingInput)) {
+            $saveData['favicon_logo'] = $rawSettingInput['favicon_logo'];
+        }
+        
+        // CRITICAL: Ensure site_name and site_email are never empty or null
+        // If they're empty in form data, prevent saving empty values that could cause defaults to be applied
+        if (isset($saveData['site_name']) && empty(trim($saveData['site_name']))) {
+            unset($saveData['site_name']); // Don't save empty value
+        }
+        if (isset($saveData['site_email']) && empty(trim($saveData['site_email']))) {
+            unset($saveData['site_email']); // Don't save empty value
+        }
+        
+        // Sync dashboard_logo to logos table if it exists in save data (for navbar display)
+        if (isset($saveData['dashboard_logo'])) {
+            $dashboardLogo = $saveData['dashboard_logo'];
+            // Convert relative path to full URL if needed
+            if (!empty($dashboardLogo)) {
+                if (strpos($dashboardLogo, 'http') !== 0) {
+                    // It's a relative path, convert to full URL
+                    $dashboardLogo = url('assets/media/uploads/' . ltrim($dashboardLogo, '/'));
+                }
+                
+                $exists = DB::table('logos')->exists();
+                if ($exists) {
+                    DB::table('logos')->update(['dashboard_logo' => $dashboardLogo]);
+                } else {
+                    DB::table('logos')->insert(['dashboard_logo' => $dashboardLogo]);
+                }
+            } else {
+                // Empty value - clear from logos table
+                DB::table('logos')->update(['dashboard_logo' => null]);
+            }
+        }
+        
+        // Save settings - only save if we have data to save
+        if (!empty($saveData)) {
+            setting()->set($saveData);
+            setting()->save();
+            
+            // CRITICAL: After saving, verify site_name and site_email were saved correctly
+            // If they're missing from database, this could cause defaults to be used later
+            if (isset($saveData['site_name'])) {
+                $verifySiteName = DB::table('settings')->where('item', 'site_name')->first();
+                if (!$verifySiteName || $verifySiteName->value !== $saveData['site_name']) {
+                    \Log::warning('Settings save verification failed for site_name', [
+                        'saved_value' => $saveData['site_name'] ?? null,
+                        'db_value' => $verifySiteName->value ?? null
+                    ]);
+                }
+            }
+            if (isset($saveData['site_email'])) {
+                $verifySiteEmail = DB::table('settings')->where('item', 'site_email')->first();
+                if (!$verifySiteEmail || $verifySiteEmail->value !== $saveData['site_email']) {
+                    \Log::warning('Settings save verification failed for site_email', [
+                        'saved_value' => $saveData['site_email'] ?? null,
+                        'db_value' => $verifySiteEmail->value ?? null
+                    ]);
+                }
+            }
+        }
 
         $this->formAfterSave($model);
 
@@ -187,7 +274,7 @@ class Settings extends \Admin\Classes\AdminController
         $formConfig['model'] = $model;
         $formConfig['data'] = array_undot($model->getFieldValues());
         $formConfig['alias'] = 'form';
-        $formConfig['arrayName'] = str_singular(strip_class_basename($model, '_model'));
+        $formConfig['arrayName'] = strtolower(str_singular(strip_class_basename($model, '_model'))); // Changed to lowercase to match form field names (setting[site_logo])
         $formConfig['context'] = 'edit';
 
         // Form Widget with extensibility
@@ -267,7 +354,7 @@ class Settings extends \Admin\Classes\AdminController
             if (method_exists($request, 'setController'))
                 $request->setController($this);
 
-            $request->setInputKey('Setting');
+            $request->setInputKey('setting'); // Changed to lowercase to match form field names (setting[site_logo])
         });
 
         return app()->make($requestClass);

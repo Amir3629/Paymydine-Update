@@ -6,18 +6,37 @@
 (function() {
     'use strict';
     
-    console.log('🔍 REDIRECT DEBUGGER INITIALIZED');
-    
-    // Track all redirects and their causes
-    let redirectCount = 0;
-    let lastRedirectTime = null;
-    let redirectCauses = [];
-    
-    // Monitor page redirects
-    const originalLocation = window.location.href;
-    
-    // Track AJAX errors that cause redirects
-    $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
+    // Wait for jQuery to be available
+    var initDebugRedirects = function() {
+        // Check if jQuery is available
+        var jQueryAvailable = typeof window.jQuery !== 'undefined' || typeof window.$ !== 'undefined';
+        
+        if (!jQueryAvailable) {
+            // Wait a bit and try again
+            setTimeout(initDebugRedirects, 100);
+            return;
+        }
+        
+        // Use jQuery or $ (whichever is available)
+        var $ = window.jQuery || window.$;
+        
+        if (!$) {
+            console.warn('🔍 REDIRECT DEBUGGER: jQuery not available, skipping initialization');
+            return;
+        }
+        
+        console.log('🔍 REDIRECT DEBUGGER INITIALIZED');
+        
+        // Track all redirects and their causes
+        let redirectCount = 0;
+        let lastRedirectTime = null;
+        let redirectCauses = [];
+        
+        // Monitor page redirects
+        const originalLocation = window.location.href;
+        
+        // Track AJAX errors that cause redirects
+        $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
         const errorInfo = {
             timestamp: new Date().toISOString(),
             status: jqXHR.status,
@@ -109,11 +128,20 @@
         console.log('Form data:', $(this).serialize());
     });
     
-    // Track button clicks that might cause redirects
-    $('button[type="submit"], input[type="submit"]').on('click', function(e) {
-        console.log('🔘 SUBMIT BUTTON CLICKED:', $(this).attr('name') || 'Unknown button');
-    });
+        // Track button clicks that might cause redirects
+        $('button[type="submit"], input[type="submit"]').on('click', function(e) {
+            console.log('🔘 SUBMIT BUTTON CLICKED:', $(this).attr('name') || 'Unknown button');
+        });
+        
+        console.log('✅ Redirect debugger is now active. Watch the console for redirect causes.');
+    }
     
-    console.log('✅ Redirect debugger is now active. Watch the console for redirect causes.');
+    // Start initialization when DOM is ready or immediately if already loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDebugRedirects);
+    } else {
+        // DOM already loaded, but jQuery might not be
+        initDebugRedirects();
+    }
     
 })();

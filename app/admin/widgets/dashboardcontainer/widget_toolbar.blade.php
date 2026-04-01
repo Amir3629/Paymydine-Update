@@ -25,7 +25,7 @@
                 type="button"
                 class="btn btn-primary"
                 id="edit-layout-toggle"
-                style="background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%); border-color: #202938; margin-right: 10px;"
+                style="background: linear-gradient(135deg, #364a63 0%, #526484 100%); border-color: #202938; margin-right: 10px;"
                 onclick="toggleEditMode()"
             >
                 <i class="fa fa-edit"></i>&nbsp;&nbsp;<span id="edit-layout-text">Edit Layout</span>
@@ -99,7 +99,7 @@ function toggleEditMode() {
         dashboardContainer.classList.add('edit-mode');
         document.body.classList.add('edit-mode-active');
         editText.textContent = 'Save Edit';
-        editButton.style.background = 'linear-gradient(135deg, #08815e 0%, #0bb87a 100%)';
+        editButton.style.background = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
         
         // Show Add Widget and Set As Default buttons
         editModeButtons.forEach(btn => {
@@ -110,12 +110,17 @@ function toggleEditMode() {
             dateRangeButton.dataset.originalDisplay = dateRangeButton.style.display;
             dateRangeButton.style.setProperty('display', 'none', 'important');
         }
+
+        // Ensure dashboard sortable (drag handles) is initialized immediately so move works on first click
+        if (typeof jQuery !== 'undefined' && dashboardContainer) {
+            jQuery(dashboardContainer).trigger('dashboard-edit-mode-entered');
+        }
     } else {
         // Exit edit mode (save)
         dashboardContainer.classList.remove('edit-mode');
         document.body.classList.remove('edit-mode-active');
         editText.textContent = 'Edit Layout';
-        editButton.style.background = 'linear-gradient(135deg, #08815e 0%, #0bb87a 100%)';
+        editButton.style.background = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
         
         // Hide Add Widget and Set As Default buttons
         editModeButtons.forEach(btn => {
@@ -127,10 +132,16 @@ function toggleEditMode() {
             dateRangeButton.style.setProperty('display', previousDisplay || '', 'important');
             delete dateRangeButton.dataset.originalDisplay;
         }
-        
-        // Trigger save - this will save the current widget positions
-        // The dashboard container already has auto-save functionality
-        console.log('Layout saved');
+
+        // Destroy sortable when leaving edit mode (clean state)
+        if (typeof jQuery !== 'undefined' && dashboardContainer) {
+            jQuery(dashboardContainer).trigger('dashboard-edit-mode-exited');
+        }
+
+        // Show confirmation in push-notification toast (only when Save is clicked, not from widget layout edit)
+        if (window.pushNotif && typeof window.pushNotif.showFlash === 'function') {
+            window.pushNotif.showFlash('Dashboard widgets updated successfully.', 'success');
+        }
     }
 }
 

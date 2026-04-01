@@ -16,8 +16,12 @@ function restyleEditButtons() {
         button.style.setProperty('background-color', '#f1f4fb', 'important');
         button.style.setProperty('color', '#202938', 'important');
         button.style.setProperty('border', '1px solid #c9d2e3', 'important');
-        button.style.setProperty('border-radius', '10px', 'important');
-        button.style.setProperty('padding', '6px 10px', 'important');
+        button.style.setProperty('border-radius', '20px', 'important');
+        button.style.setProperty('min-height', '48px', 'important');
+        button.style.setProperty('min-width', '48px', 'important');
+        button.style.setProperty('height', '48px', 'important');
+        button.style.setProperty('width', '48px', 'important');
+        button.style.setProperty('padding', '12px 16px', 'important');
         button.style.setProperty('display', 'inline-flex', 'important');
         button.style.setProperty('align-items', 'center', 'important');
         button.style.setProperty('justify-content', 'center', 'important');
@@ -26,6 +30,8 @@ function restyleEditButtons() {
         const icons = button.querySelectorAll('i, svg, span.fa');
         icons.forEach(icon => {
             icon.style.setProperty('color', '#202938', 'important');
+            icon.style.setProperty('font-size', '20px', 'important');
+            icon.style.setProperty('margin', '0', 'important');
         });
 
         button.addEventListener('mouseenter', () => {
@@ -69,9 +75,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const buttons = document.querySelectorAll('button, .btn');
         buttons.forEach(button => {
             if (button.classList.contains('btn-primary')) {
-                button.style.backgroundColor = '#08815e';
-                button.style.borderColor = '#08815e';
+                button.style.background = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)';
+                button.style.backgroundColor = '#1f2b3a';
+                button.style.borderColor = '#364a63';
                 button.style.color = '#ffffff';
+                button.style.boxShadow = '0 4px 15px rgba(31, 43, 58, 0.3)';
             }
         });
 

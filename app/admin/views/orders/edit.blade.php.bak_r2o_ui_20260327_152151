@@ -1,0 +1,270 @@
+<div class="row-fluid">
+    {!! form_open([
+        'id'     => 'edit-form',
+        'role'   => 'form',
+        'method' => 'PATCH',
+    ]) !!}
+
+    {!! $this->renderForm() !!}
+
+    {!! form_close() !!}
+</div>
+
+<script>
+(function () {
+    function getOrderIdFromUrl() {
+        try {
+            var m = window.location.pathname.match(/\/admin\/orders\/edit\/(\d+)/);
+            return m ? m[1] : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function makeNote(meta) {
+        var box = document.createElement('div');
+        box.id = 'pmd-pos-tax-note-safe';
+        box.style.marginTop = '14px';
+        box.style.padding = '12px 14px';
+        box.style.border = '1px solid #d9e2ef';
+        box.style.borderRadius = '12px';
+        box.style.background = '#f8fbff';
+        box.style.color = '#364a63';
+        box.style.fontSize = '14px';
+        box.style.lineHeight = '1.6';
+
+        var title = document.createElement('div');
+        title.textContent = 'POS import tax info';
+        title.style.fontWeight = '700';
+        title.style.marginBottom = '6px';
+
+        var text = document.createElement('div');
+        var parts = [];
+        if (meta && meta.source) parts.push('Source: ' + meta.source);
+        if (meta && meta.invoice_number) parts.push('Invoice: ' + meta.invoice_number);
+        if (meta && meta.gross !== null) parts.push('Gross: €' + meta.gross);
+        if (meta && meta.net !== null) parts.push('Net: €' + meta.net);
+        if (meta && meta.vat !== null) parts.push('VAT: €' + meta.vat);
+
+        text.textContent = parts.join(' | ') || 'POS imported order';
+
+        var hint = document.createElement('div');
+        hint.textContent = 'This tax display comes from POS import data, not PayMyDine tax settings.';
+        hint.style.marginTop = '6px';
+        hint.style.opacity = '0.85';
+
+        box.appendChild(title);
+        box.appendChild(text);
+        box.appendChild(hint);
+
+        return box;
+    }
+
+    function findSafeMountPoint() {
+        var candidates = Array.from(document.querySelectorAll('.card, .panel, .box, .invoice, .panel-body, .card-body, .form-fields, .row'));
+        for (var i = 0; i < candidates.length; i++) {
+            var el = candidates[i];
+            var txt = (el.innerText || '').toLowerCase();
+            if (
+                txt.indexOf('invoice') !== -1 ||
+                txt.indexOf('date added') !== -1 ||
+                txt.indexOf('date modified') !== -1 ||
+                txt.indexOf('user agent') !== -1
+            ) {
+                return el;
+            }
+        }
+        return null;
+    }
+
+    function injectNote(meta) {
+        if (document.getElementById('pmd-pos-tax-note-safe')) return;
+
+        var mount = findSafeMountPoint();
+        if (!mount) return;
+
+        var note = makeNote(meta);
+        mount.appendChild(note);
+    }
+
+    function run() {
+        var orderId = getOrderIdFromUrl();
+        if (!orderId) return;
+
+        fetch('/order_pos_tax_lookup_ajax.php?order_id=' + encodeURIComponent(orderId), {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data || !data.success || !data.meta || !data.meta.is_pos_import) return;
+            injectNote(data.meta);
+        })
+        .catch(function () {});
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(run, 300);
+        setTimeout(run, 1000);
+    });
+})();
+</script>
+
+
+
+
+
+<!-- PMD_POS_IMPORT_VAT_INLINE_ONLY_START -->
+<script>
+(function () {
+    function getOrderId() {
+        var m = window.location.pathname.match(/\/edit\/(\d+)/);
+        return m ? m[1] : null;
+    }
+
+    function formatMoney(v) {
+        var n = Number(v);
+        if (isNaN(n)) return null;
+        return '€' + n.toFixed(2);
+    }
+
+    function findVatValueNode() {
+        var nodes = document.querySelectorAll('label, strong, span, div, td, th');
+        for (var i = 0; i < nodes.length; i++) {
+            var txt = (nodes[i].textContent || '').trim().toLowerCase();
+            if (txt === 'vat' || txt === 'vat:' || txt.indexOf('vat') !== -1) {
+                if (nodes[i].nextElementSibling) return nodes[i].nextElementSibling;
+
+                var parent = nodes[i].parentElement;
+                if (parent) {
+                    var candidates = parent.querySelectorAll('span, div, strong, td');
+                    for (var j = 0; j < candidates.length; j++) {
+                        if (candidates[j] !== nodes[i]) return candidates[j];
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function run() {
+        var id = getOrderId();
+        if (!id) return;
+
+        fetch('/order_pos_tax_lookup_ajax.php?order_id=' + encodeURIComponent(id), {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function (data) {
+            if (!data || typeof data !== 'object') return;
+            if (data.success !== true) return;
+            if (typeof data.vat === 'undefined' || data.vat === null) return;
+
+            var vatNode = findVatValueNode();
+            var formatted = formatMoney(data.vat);
+            if (vatNode && formatted) {
+                vatNode.textContent = formatted;
+            }
+        })
+        .catch(function (err) {
+            console.log('PMD VAT patch skipped:', err.message);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+    } else {
+        run();
+    }
+})();
+</script>
+<!-- PMD_POS_IMPORT_VAT_INLINE_ONLY_END -->
+
+
+
+<!-- PMD_R2O_HIDE_DUPLICATE_TAX_SAFE -->
+<style>
+.r2o-pos-import-note{
+    margin-top:10px;
+    padding:10px 12px;
+    border:1px solid #d9e2ef;
+    border-radius:10px;
+    background:#f8fbff;
+    color:#41556f;
+    font-size:14px;
+    line-height:1.45;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function textOf(el) {
+        return (el && el.innerText ? el.innerText : '').replace(/\s+/g, ' ').trim();
+    }
+
+    function isR2OPage() {
+        var bodyText = textOf(document.body);
+        return (
+            bodyText.indexOf('POS import tax info') !== -1 ||
+            bodyText.indexOf('Source: ready2order') !== -1 ||
+            bodyText.indexOf('Imported from ready2order invoice') !== -1
+        );
+    }
+
+    function findVatRow() {
+        var candidates = document.querySelectorAll('tr, .row, .form-group, .list-group-item, .card-body > div, .table-responsive tr');
+        for (var i = 0; i < candidates.length; i++) {
+            var t = textOf(candidates[i]);
+            if (t.indexOf('VAT included') !== -1) {
+                return candidates[i];
+            }
+        }
+        return null;
+    }
+
+    function hideDuplicateVat() {
+        if (!isR2OPage()) return;
+
+        var vatRow = findVatRow();
+        if (vatRow) {
+            vatRow.style.display = 'none';
+        }
+
+        if (document.getElementById('r2o-pos-import-note')) return;
+
+        var taxBox = null;
+        var divs = document.querySelectorAll('div');
+        for (var i = 0; i < divs.length; i++) {
+            var t = textOf(divs[i]);
+            if (t.indexOf('POS import tax info') !== -1) {
+                taxBox = divs[i];
+                break;
+            }
+        }
+
+        if (taxBox) {
+            var note = document.createElement('div');
+            note.id = 'r2o-pos-import-note';
+            note.className = 'r2o-pos-import-note';
+            note.textContent = 'مالیات این سفارش از داده‌های ready2order گرفته شده و ردیف VAT خود PayMyDine برای جلوگیری از نمایش تکراری مخفی شد.';
+            taxBox.parentNode.insertBefore(note, taxBox.nextSibling);
+        }
+    }
+
+    hideDuplicateVat();
+    setTimeout(hideDuplicateVat, 300);
+    setTimeout(hideDuplicateVat, 1000);
+    setTimeout(hideDuplicateVat, 2000);
+});
+</script>
+

@@ -4,6 +4,7 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Models\Notifications_model;
+use Admin\Models\General_staff_notes_model;
 use App\Helpers\NotificationHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -325,5 +326,69 @@ class Notifications extends AdminController
 
         // System alerts require super admin
         return false;
+    }
+
+    /**
+     * Add general staff note
+     */
+    public function onAddGeneralStaffNote()
+    {
+        $noteText = post('note');
+
+        if (empty($noteText)) {
+            flash()->error('Note cannot be empty')->now();
+            return ['#notification' => $this->makePartial('flash')];
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Get current user
+            $user = $this->getUser();
+            $staffId = $user ? $user->staff_id : null;
+
+            // Create the general staff note
+            $note = new General_staff_notes_model();
+            $note->staff_id = $staffId;
+            $note->note = $noteText;
+            $note->status = 'active';
+            $note->save();
+
+            // Get tenant ID
+            $tenantId = $this->getCurrentTenantId();
+
+            // Create notification for general staff note
+            try {
+                NotificationHelper::createGeneralStaffNoteNotification([
+                    'tenant_id' => $tenantId,
+                    'staff_id' => $staffId,
+                    'note' => $noteText,
+                ]);
+            } catch (\Exception $e) {
+                // Log notification error but don't fail the note creation
+                Log::warning('Failed to create general staff note notification', [
+                    'note_id' => $note->note_id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            DB::commit();
+
+            flash()->success('Note added successfully!')->now();
+            return [
+                '#notification' => $this->makePartial('flash'),
+                'success' => true
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to add general staff note', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            flash()->error('Failed to add note. Please try again.')->now();
+            return ['#notification' => $this->makePartial('flash')];
+        }
     }
 }

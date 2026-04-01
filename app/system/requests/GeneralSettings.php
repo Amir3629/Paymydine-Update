@@ -11,7 +11,7 @@ class GeneralSettings extends FormRequest
         return [
             'site_name' => lang('system::lang.settings.label_site_name'),
             'site_email' => lang('system::lang.settings.label_site_email'),
-            'site_logo' => lang('system::lang.settings.label_site_logo'),
+            'site_logo' => lang('system::lang.settings.label_site_logo'), // validationData() returns post('setting') which is already the nested array
             'maps_api_key' => lang('system::lang.settings.label_maps_api_key'),
             'distance_unit' => lang('system::lang.settings.label_distance_unit'),
         ];
@@ -22,7 +22,7 @@ class GeneralSettings extends FormRequest
         return [
             'site_name' => ['required', 'min:2', 'max:128'],
             'site_email' => ['required', 'email:filter', 'max:96'],
-            'site_logo' => ['required'],
+            'site_logo' => ['nullable', 'string'], // Optional - allows empty values like dashboard_logo and favicon_logo
             'menus_page' => ['required', 'string'],
             'reservation_page' => ['required', 'string'],
         ];
@@ -30,6 +30,6 @@ class GeneralSettings extends FormRequest
 
     protected function useDataFrom()
     {
-        return static::DATA_TYPE_POST;
+        return static::DATA_TYPE_FORM; // Use form widget's processed data instead of raw POST
     }
 }

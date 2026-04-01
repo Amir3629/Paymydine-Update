@@ -932,6 +932,12 @@ if (window.jQuery.request !== undefined)
         var options = $.extend({}, FlashMessage.DEFAULTS, options),
             $element = $(el)
 
+        // Use push-notification toast for one-off messages (no top alert, not saved to history)
+        if ($element.length === 0 && window.pushNotif && typeof window.pushNotif.showFlash === 'function' && options.text) {
+            window.pushNotif.showFlash(options.text, options.class || 'success')
+            return
+        }
+
         $('body > p.flash-message').remove()
 
         if ($element.length === 0) {
@@ -997,9 +1003,23 @@ if (window.jQuery.request !== undefined)
 
     $(document).render(function () {
         $('[data-control="flash-message"]').each(function (index, element) {
-            setTimeout(function () {
-                $.ti.flashMessage($(element).data(), element)
-            }, (index + 1) * 500)
+            var $el = $(element)
+            var messageText = $el.text().trim() || (element.innerText || '').trim()
+            var level = 'success'
+            if ($el.hasClass('alert-danger')) level = 'danger'
+            else if ($el.hasClass('alert-warning')) level = 'warning'
+            else if ($el.hasClass('alert-info')) level = 'info'
+
+            if (window.pushNotif && typeof window.pushNotif.showFlash === 'function') {
+                setTimeout(function () {
+                    window.pushNotif.showFlash(messageText, level)
+                    $el.remove()
+                }, (index + 1) * 300)
+            } else {
+                setTimeout(function () {
+                    $.ti.flashMessage($el.data(), element)
+                }, (index + 1) * 500)
+            }
         })
 
         $('[data-control="flash-overlay"]').each(function (index, element) {
@@ -1401,8 +1421,8 @@ if (window.jQuery.request !== undefined)
         $('.sidebar').removeClass('show')
     })
 
-    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #0f9d58 0%, #0bb87a 100%)';
-    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #0c7d47 0%, #0aa868 100%)';
+    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)';
+    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
 
     function applyDeleteIconColor(context) {
         var scope = context || document;
@@ -1413,17 +1433,42 @@ if (window.jQuery.request !== undefined)
             });
     }
 
+    var REFERENCE_MODAL_GRADIENT = 'linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%)';
+
     function applyGreenButtonBase(element) {
+        if (element.matches && (element.matches(':hover') || document.activeElement === element)) return;
+        var isWidgetModalSave = $(element).hasClass('btn-add-widget');
+        if (isWidgetModalSave) {
+            element.style.setProperty('background', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('background-image', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('border', '2px solid rgb(54, 74, 99)', 'important');
+            element.style.setProperty('color', '#ffffff', 'important');
+            element.style.setProperty('box-shadow', 'rgba(31, 43, 58, 0.3) 0px 4px 15px', 'important');
+            element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
+            element.style.setProperty('transform', 'translateY(0)', 'important');
+            element.style.setProperty('min-width', '110px', 'important');
+            element.style.setProperty('height', '40px', 'important');
+            element.style.setProperty('min-height', '40px', 'important');
+            element.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+            element.style.setProperty('line-height', '1.3', 'important');
+            element.style.setProperty('display', 'inline-block', 'important');
+            element.style.setProperty('text-align', 'center', 'important');
+            element.style.removeProperty('align-items');
+            element.style.removeProperty('justify-content');
+            element.style.removeProperty('gap');
+            return;
+        }
         element.style.setProperty('background', GREEN_BUTTON_BASE_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_BASE_GRADIENT, 'important');
-        element.style.setProperty('border', '1px solid #0c7d47', 'important');
-        element.style.setProperty('border-color', '#0c7d47', 'important');
+        element.style.setProperty('border', '2px solid #364a63', 'important');
+        element.style.setProperty('border-color', '#364a63', 'important');
         element.style.setProperty('color', '#ffffff', 'important');
-        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.25)', 'important');
+        element.style.setProperty('box-shadow', '0 4px 15px rgba(31, 43, 58, 0.3)', 'important');
         element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
         element.style.setProperty('transform', 'translateY(0)', 'important');
-        element.style.setProperty('min-width', '90px', 'important');
-        element.style.setProperty('padding', '0.4rem 0.9rem', 'important');
+        element.style.setProperty('min-width', '110px', 'important');
+        element.style.setProperty('width', 'auto', 'important');
+        element.style.setProperty('padding', '0.55rem 1.75rem', 'important');
         element.style.setProperty('display', 'inline-block', 'important');
         element.style.setProperty('text-align', 'center', 'important');
         element.style.removeProperty('align-items');
@@ -1433,10 +1478,17 @@ if (window.jQuery.request !== undefined)
 
     function handleGreenButtonHover(event) {
         var element = event.currentTarget;
+        if ($(element).hasClass('btn-add-widget')) {
+            element.style.setProperty('background', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('background-image', REFERENCE_MODAL_GRADIENT, 'important');
+            element.style.setProperty('transform', 'translateY(-1px)', 'important');
+            element.style.setProperty('box-shadow', 'rgba(31, 43, 58, 0.4) 0px 6px 18px', 'important');
+            return;
+        }
         element.style.setProperty('background', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('transform', 'translateY(-1px)', 'important');
-        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.35)', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(31, 43, 58, 0.4)', 'important');
     }
 
     function handleGreenButtonLeave(event) {
@@ -1472,9 +1524,11 @@ if (window.jQuery.request !== undefined)
             this.style.setProperty('background', '#f1f4fb', 'important');
             this.style.setProperty('border', '1px solid #c9d2e3', 'important');
             this.style.setProperty('color', '#202938', 'important');
-            this.style.setProperty('width', '90px', 'important');
-            this.style.setProperty('min-width', '90px', 'important');
-            this.style.setProperty('padding', '0.4rem 0.9rem', 'important');
+            this.style.setProperty('min-width', '110px', 'important');
+            this.style.setProperty('height', '40px', 'important');
+            this.style.setProperty('min-height', '40px', 'important');
+            this.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+            this.style.setProperty('line-height', '1.3', 'important');
             this.style.setProperty('border-radius', '12px', 'important');
             this.style.setProperty('display', 'inline-block', 'important');
             this.style.setProperty('text-align', 'center', 'important');
@@ -1526,7 +1580,7 @@ if (window.jQuery.request !== undefined)
     $(document).render(function (event) {
         var context = event && event.target ? event.target : document;
 
-        $('a[title], span[title], button[title]', document).not('[data-bs-toggle]').tooltip({placement: 'bottom'});
+        $('a[title], span[title], button[title], label[title]', document).not('[data-bs-toggle]').not('[data-no-tooltip]').tooltip({placement: 'bottom'});
         $('.alert', document).alert();
 
         applyDeleteIconColor(context);
@@ -1697,8 +1751,11 @@ if (window.jQuery.request !== undefined)
 
         var $buttons = $container.find('.drp-buttons');
         if ($buttons.length) {
-            $buttons.css('display', 'grid');
-            $buttons.css('grid-template-columns', '1fr auto auto');
+            $buttons.css({
+                'display': 'flex',
+                'flex-wrap': 'nowrap',
+                'grid-template-columns': ''
+            });
         }
     }
 
@@ -1796,13 +1853,138 @@ if (window.jQuery.request !== undefined)
         }
     }
 
+    function fixDaterangepickerVisibleMonth(picker) {
+        if (!picker || !picker.leftCalendar || !picker.rightCalendar) return;
+        var focusDate = (picker.endDate && picker.endDate.isValid())
+            ? picker.endDate.clone()
+            : (picker.startDate && picker.startDate.isValid())
+                ? picker.startDate.clone()
+                : null;
+        if (!focusDate) return;
+        var baseMonth = focusDate.startOf('month');
+        picker.leftCalendar.month = baseMonth.clone();
+        picker.rightCalendar.month = baseMonth.clone();
+        if (typeof picker.updateCalendars === 'function') picker.updateCalendars();
+    }
+
+    function centerDaterangepickerRangeAndFooter(picker) {
+        var $container = picker && picker.container ? picker.container : $('.daterangepicker.show-calendar, .daterangepicker.ti-visible').last();
+        if (!$container.length) return;
+        $container.find('.ranges').css({
+            'display': 'flex',
+            'flex-direction': 'column',
+            'align-items': 'center',
+            'margin-left': '32px'
+        });
+        $container.find('.ranges ul').css({
+            'display': 'flex',
+            'flex-direction': 'column',
+            'width': 'auto',
+            'min-width': '140px',
+            'margin-left': '0',
+            'margin-right': '0'
+        });
+        $container.find('.ranges li').css({
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'min-height': '44px',
+            'height': '44px',
+            'padding': '0 16px',
+            'box-sizing': 'border-box'
+        });
+        $container.find('.drp-buttons').css({
+            'display': 'flex',
+            'flex-wrap': 'nowrap',
+            'align-items': 'center'
+        });
+        $container.find('.drp-buttons .cancelBtn, .drp-buttons .applyBtn').css({
+            'flex-shrink': '0',
+            'white-space': 'nowrap'
+        });
+        var cancelEl = $container.find('.drp-buttons .cancelBtn').get(0);
+        if (cancelEl && cancelEl.style) {
+            cancelEl.style.setProperty('margin-left', '40px', 'important');
+        }
+        $container.find('.drp-buttons .drp-selected').css({
+            'display': 'inline-flex',
+            'align-items': 'center',
+            'min-height': '38px',
+            'align-self': 'center',
+            'padding': '0 12px 0 0'
+        });
+    }
+
     $(document).on('show.daterangepicker', function (event, picker) {
+        // AGGRESSIVE FIX: Completely disable profile dropdown when calendar opens
+        var $profileDropdown = $('.profile-dropdown-menu');
+        if ($profileDropdown.length) {
+            // Remove show class
+            $profileDropdown.removeClass('show');
+            // Completely disable pointer events and hide it
+            $profileDropdown.css({
+                'display': 'none !important',
+                'visibility': 'hidden !important',
+                'opacity': '0 !important',
+                'pointer-events': 'none !important',
+                'z-index': '-1 !important'
+            });
+            // Disable all links inside
+            $profileDropdown.find('a, button, .dropdown-item').css({
+                'pointer-events': 'none !important'
+            });
+        }
+        
+        // Close all other Bootstrap dropdowns
+        $('.dropdown-menu.show').removeClass('show').css({
+            'display': 'none',
+            'visibility': 'hidden',
+            'opacity': '0',
+            'pointer-events': 'none'
+        });
+        $('[data-bs-toggle="dropdown"][aria-expanded="true"]').attr('aria-expanded', 'false');
+        $('.dropdown-backdrop').remove();
+        
+        // Ensure calendar has highest z-index
+        setTimeout(function() {
+            $('.daterangepicker').css({
+                'z-index': '99999',
+                'pointer-events': 'auto'
+            });
+        }, 10);
+        
+        fixDaterangepickerVisibleMonth(picker);
         enforceSingleCalendarLayout(picker);
         ensureRangePickerArrows(picker);
+        centerDaterangepickerRangeAndFooter(picker);
         setTimeout(function () {
+            fixDaterangepickerVisibleMonth(picker);
             enforceSingleCalendarLayout(picker);
             ensureRangePickerArrows(picker);
+            centerDaterangepickerRangeAndFooter(picker);
         }, 50);
+        setTimeout(function () {
+            fixDaterangepickerVisibleMonth(picker);
+            centerDaterangepickerRangeAndFooter(picker);
+        }, 120);
+    });
+    
+    // When calendar closes, restore profile dropdown functionality
+    $(document).on('hide.daterangepicker', function (event, picker) {
+        var $profileDropdown = $('.profile-dropdown-menu');
+        if ($profileDropdown.length) {
+            // Remove the forced styles so it can work normally again
+            $profileDropdown.css({
+                'display': '',
+                'visibility': '',
+                'opacity': '',
+                'pointer-events': '',
+                'z-index': ''
+            });
+            $profileDropdown.find('a, button, .dropdown-item').css({
+                'pointer-events': ''
+            });
+        }
     });
 
     $(document).on('click focus', '[data-control="datepicker"] [data-datepicker-trigger]', function () {

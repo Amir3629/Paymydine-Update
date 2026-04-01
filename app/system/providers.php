@@ -29,4 +29,7 @@ return [
     Igniter\Flame\Setting\SettingServiceProvider::class,
     Igniter\Flame\Html\UrlServiceProvider::class, // force https -- url policy
     Igniter\Flame\Validation\ValidationServiceProvider::class,
+
+    // Log
+
 ];

@@ -1,0 +1,33 @@
+import:
+  - recipe/laravel.php
+  - contrib/php-fpm.php
+
+config:
+  repository: 'git@github.com:arabelhousseyn/taste.git'
+  php_fpm_version: '8.2'
+
+hosts:
+  staging:
+    hostname: 197.140.11.160
+    port: 5604
+    remote_user: ubuntu
+    branch: master
+    deploy_path: '/var/www'
+    ssh_multiplexing: true
+
+tasks:
+  deploy:
+    - deploy:prepare
+    - deploy:vendors
+    - artisan:down
+    - artisan:storage:link
+    - artisan:view:cache
+    - artisan:route:cache
+    - artisan:config:cache
+    - artisan:migrate
+    - artisan:queue:restart
+    - artisan:up
+    - deploy:publish
+
+after:
+  deploy:failed: deploy:unlock

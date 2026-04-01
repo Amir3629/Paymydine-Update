@@ -10,6 +10,7 @@ use Igniter\Flame\Assetic\Asset\HttpAsset;
 use Igniter\Flame\Assetic\Cache\FilesystemCache;
 use Igniter\Flame\Exception\ApplicationException;
 use Igniter\Flame\Support\Facades\File;
+use App\Helpers\TenantHelper;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
@@ -49,10 +50,13 @@ trait CombinesAssets
 
     protected function initCombiner()
     {
-        $this->cacheKeyPrefix = 'ti.combiner.';
+        $this->cacheKeyPrefix = TenantHelper::scopedCacheKey('ti.combiner.');
         $this->useCache = config('system.enableAssetCache', true);
-        $this->combineAssets = config('system.enableAssetCombiner', !config('app.debug', false));
-        $this->storagePath = storage_path('system/combiner/data');
+        // Explicitly check if enableAssetCombiner is set, otherwise default based on debug mode
+        $this->combineAssets = config('system.enableAssetCombiner') !== null 
+            ? (bool)config('system.enableAssetCombiner')
+            : !config('app.debug', false);
+        $this->storagePath = storage_path('system/combiner/data/'.TenantHelper::tenantStorageSegment());
         $this->assetsCombinerUri = config('system.assetsCombinerUri', '/_assets');
 
         if (app()->runningInAdmin())

@@ -1,0 +1,751 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+class FiskalySignDeService
+{
+    protected function connectionName()
+    {
+        try {
+            if (app()->bound('tenant')) {
+                return 'tenant';
+            }
+        } catch (\Throwable $e) {
+        }
+
+        try {
+            return DB::getDefaultConnection();
+        } catch (\Throwable $e) {
+            return 'mysql';
+        }
+    }
+
+    protected function db()
+    {
+        return DB::connection($this->connectionName());
+    }
+
+    protected function hasColumn($table, $column)
+    {
+        try {
+            return $this->db()->getSchemaBuilder()->hasColumn($table, $column);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    protected function resolveOrder($orderOrId)
+    {
+        if (is_object($orderOrId)) {
+            return $orderOrId;
+        }
+
+        if (is_numeric($orderOrId)) {
+            return $this->db()->table('orders')->where('order_id', (int)$orderOrId)->first();
+        }
+
+        return null;
+    }
+
+    protected function resolveConfig($locationId = 1)
+    {
+        $q = $this->db()->table('fiskaly_configs')
+            ->where('provider', 'fiskaly')
+            ->where('is_enabled', 1);
+
+        if ($this->hasColumn('fiskaly_configs', 'location_id')) {
+            $cfg = (clone $q)->where('location_id', (int)$locationId)->first();
+            if ($cfg) {
+                return $cfg;
+            }
+        }
+
+        return $q->orderByDesc('fiskaly_config_id')->first();
+    }
+
+    protected function resolveMenus($order)
+    {
+        try {
+            if (isset($order->menus) && is_iterable($order->menus)) {
+                $items = [];
+                foreach ($order->menus as $m) {
+                    $items[] = $m;
+                }
+                if (!empty($items)) {
+                    return $items;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        $orderId = (int)($order->order_id ?? 0);
+        if ($orderId <= 0) {
+            return [];
+        }
+
+        try {
+            return $this->db()->table('order_menus')->where('order_id', $orderId)->get()->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    protected function money($value)
+    {
+        return number_format((float)$value, 2, '.', '');
+    }
+
+    protected function detectTotal($order, array $items)
+    {
+        foreach (['order_total', 'total_amount', 'total', 'amount_total'] as $f) {
+            if (isset($order->$f) && $order->$f !== null && $order->$f !== '') {
+                return (float)$order->$f;
+            }
+        }
+
+        $sum = 0.0;
+        foreach ($items as $it) {
+            $qty = (float)($it->quantity ?? 1);
+            if ($qty <= 0) {
+                $qty = 1.0;
+            }
+
+            $lineTotal = null;
+
+            if (isset($it->subtotal) && $it->subtotal !== null && $it->subtotal !== '') {
+                $lineTotal = (float)$it->subtotal;
+            } elseif (isset($it->total_price) && $it->total_price !== null && $it->total_price !== '') {
+                $lineTotal = (float)$it->total_price;
+            } else {
+                $price = null;
+                foreach (['price', 'unit_price', 'menu_price'] as $pf) {
+                    if (isset($it->$pf) && $it->$pf !== null && $it->$pf !== '') {
+                        $price = (float)$it->$pf;
+                        break;
+                    }
+                }
+                if ($price === null) {
+                    $price = 0.0;
+                }
+                $lineTotal = $qty * $price;
+            }
+
+            $sum += (float)$lineTotal;
+        }
+
+        return $sum;
+    }
+
+
+    protected function getSettingValue(string $key, $default = null)
+    {
+        try {
+            if (!$this->db()->getSchemaBuilder()->hasTable('settings')) {
+                return $default;
+            }
+
+            $row = $this->db()->table('settings')
+                ->where('item', $key)
+                ->orderByDesc('setting_id')
+                ->first();
+
+            if (!$row) {
+                return $default;
+            }
+
+            return $row->value ?? $default;
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+
+    protected function detectVatRate($order = null): string
+    {
+        $raw = $this->getSettingValue('tax_percentage', null);
+
+        if ($raw === null || $raw === '') {
+            return '19.00';
+        }
+
+        return number_format((float)$raw, 2, '.', '');
+    }
+
+    protected function getOrderTotalsMap(int $orderId): array
+    {
+        $map = [
+            'subtotal' => 0.0,
+            'tax' => 0.0,
+            'tip' => 0.0,
+            'discount' => 0.0,
+            'total' => 0.0,
+        ];
+
+        if ($orderId <= 0) {
+            return $map;
+        }
+
+        try {
+            if (!$this->db()->getSchemaBuilder()->hasTable('order_totals')) {
+                return $map;
+            }
+
+            $rows = $this->db()->table('order_totals')
+                ->where('order_id', $orderId)
+                ->get();
+
+            foreach ($rows as $row) {
+                $code = strtolower((string)($row->code ?? ''));
+                $value = (float)($row->value ?? 0);
+
+                if (array_key_exists($code, $map)) {
+                    $map[$code] = $value;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return $map;
+    }
+
+    protected function envBool(string $key, bool $default = false): bool
+    {
+        try {
+            $value = env($key, $default ? '1' : '0');
+        } catch (\Throwable $e) {
+            $value = $default ? '1' : '0';
+        }
+
+        $value = strtolower(trim((string)$value));
+        return in_array($value, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    protected function envString(string $key, string $default = ''): string
+    {
+        try {
+            $value = env($key, $default);
+        } catch (\Throwable $e) {
+            $value = $default;
+        }
+
+        return trim((string)$value);
+    }
+
+    protected function detectPaymentMethod($order, $paymentMethod = null)
+    {
+        $pm = $paymentMethod
+            ?? ($order->payment_method ?? null)
+            ?? ($order->payment ?? null)
+            ?? 'card';
+
+        $pm = strtolower((string)$pm);
+
+        if (in_array($pm, ['cash', 'bar', 'cash_payment'], true)) {
+            return 'CASH';
+        }
+
+        return 'NON_CASH';
+    }
+
+    protected function buildProcessData($order, array $menus = []): string
+    {
+        $items = [];
+
+        $vatRate = (string) number_format((float) $this->getTaxRate(), 2, '.', '');
+        $taxIncluded = ((string) $this->getSettingValue('tax_menu_price', '1') === '1');
+        $taxPercent = (float) $this->getTaxRate();
+
+        $grossify = function ($amount) use ($taxIncluded, $taxPercent) {
+            $amount = (float) $amount;
+            if (!$taxIncluded || $taxPercent <= 0) {
+                return round($amount, 2);
+            }
+            return round($amount * (1 + ($taxPercent / 100)), 2);
+        };
+
+        if (!empty($menus)) {
+            foreach ($menus as $menu) {
+                $name = (string)($menu->name ?? $menu['name'] ?? 'Item');
+                $qty = (float)($menu->quantity ?? $menu['quantity'] ?? 1);
+                $subtotal = (float)($menu->subtotal ?? $menu['subtotal'] ?? 0);
+                $price = (float)($menu->price ?? $menu['price'] ?? 0);
+
+                $signedTotalPrice = $subtotal > 0 ? $grossify($subtotal) : $grossify($qty * $price);
+                $signedUnitPrice = $qty > 0 ? round($signedTotalPrice / $qty, 2) : $signedTotalPrice;
+
+                \Log::info('[Fiskaly] buildProcessData line', [
+                    'order_id' => $order->order_id ?? null,
+                    'name' => $name,
+                    'qty' => $qty,
+                    'raw_price' => $price,
+                    'raw_subtotal' => $subtotal,
+                    'signed_unit_price' => $signedUnitPrice,
+                    'signed_total_price' => $signedTotalPrice,
+                    'vat_rate' => $vatRate,
+                    'tax_included' => $taxIncluded,
+                ]);
+
+                $items[] = [
+                    'name' => $name,
+                    'quantity' => number_format($qty, 2, '.', ''),
+                    'unit_price' => number_format($signedUnitPrice, 2, '.', ''),
+                    'total_price' => number_format($signedTotalPrice, 2, '.', ''),
+                    'vat_rate' => $vatRate,
+                ];
+            }
+        }
+
+        if (empty($items)) {
+            $total = (float)($order->order_total ?? 0);
+            $items[] = [
+                'name' => 'Order #'.($order->order_id ?? 'N/A'),
+                'quantity' => '1.00',
+                'unit_price' => number_format($total, 2, '.', ''),
+                'total_price' => number_format($total, 2, '.', ''),
+                'vat_rate' => $vatRate,
+            ];
+        }
+
+        $paymentType = $this->detectPaymentMethod($order, null);
+
+        $signedItemsTotal = 0.0;
+        foreach ($items as $it) {
+            $signedItemsTotal += (float)($it['total_price'] ?? 0);
+        }
+
+        $tipAmount = 0.0;
+        try {
+            $totals = $this->getOrderTotalsMap((int)($order->order_id ?? 0));
+            $tipAmount = (float)($totals['tip']['value'] ?? 0);
+        } catch (\Throwable $e) {
+            $tipAmount = 0.0;
+        }
+
+        if ($tipAmount > 0) {
+            $items[] = [
+                'name' => 'Tip',
+                'quantity' => '1.00',
+                'unit_price' => number_format($tipAmount, 2, '.', ''),
+                'total_price' => number_format($tipAmount, 2, '.', ''),
+                'vat_rate' => $vatRate,
+            ];
+
+            \Log::info('[Fiskaly] buildProcessData tip line included', [
+                'order_id' => $order->order_id ?? null,
+                'tip_amount' => $tipAmount,
+                'tip_vat_rate' => $vatRate,
+            ]);
+        }
+
+        $totalAmount = round($signedItemsTotal + $tipAmount, 2);
+
+        \Log::info('[Fiskaly] buildProcessData summary', [
+            'order_id' => $order->order_id ?? null,
+            'vat_rate' => $vatRate,
+            'payment_type' => $paymentType,
+            'db_order_total' => $order->order_total ?? null,
+            'signed_items_total' => $signedItemsTotal,
+            'include_tip' => $tipAmount > 0,
+            'tip_amount' => $tipAmount,
+            'final_total_amount' => $totalAmount,
+            'tax_included' => $taxIncluded,
+        ]);
+
+        $raw = [
+            'currency' => 'EUR',
+            'payment_type' => $paymentType,
+            'total_amount' => number_format($totalAmount, 2, '.', ''),
+            'items' => $items,
+        ];
+
+        $json = json_encode($raw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if ($json === false) {
+            throw new \RuntimeException('Unable to encode Fiskaly process_data JSON');
+        }
+
+        return base64_encode($json);
+    }
+
+    protected function getAccessToken(string $apiKey, string $apiSecret): string
+    {
+        $base = 'https://kassensichv-middleware.fiskaly.com/api/v2';
+        $url = $base.'/auth';
+
+        $payload = [
+            'api_key' => $apiKey,
+            'api_secret' => $apiSecret,
+        ];
+
+        \Log::info('[Fiskaly] auth request', [
+            'url' => $url,
+            'payload_masked' => [
+                'api_key_prefix' => substr((string)$apiKey, 0, 8),
+                'api_secret_prefix' => substr((string)$apiSecret, 0, 8),
+            ],
+        ]);
+
+        $response = Http::acceptJson()
+            ->asJson()
+            ->post($url, $payload);
+
+        \Log::info('[Fiskaly] auth response', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('Fiskaly auth failed: HTTP '.$response->status().' BODY: '.$response->body());
+        }
+
+        $accessToken = (string)($response->json('access_token') ?? '');
+
+        if ($accessToken === '') {
+            throw new \RuntimeException('Fiskaly auth failed: empty access_token');
+        }
+
+        return $accessToken;
+    }
+
+    protected function apiPut(string $url, array $payload, string $apiKey, string $apiSecret)
+    {
+        $accessToken = $this->getAccessToken($apiKey, $apiSecret);
+
+        \Log::info('[Fiskaly] bearer request', [
+            'url' => $url,
+            'token_prefix' => substr((string)$accessToken, 0, 16),
+            'payload' => $payload,
+        ]);
+
+        $response = Http::withToken($accessToken)
+            ->acceptJson()
+            ->asJson()
+            ->put($url, $payload);
+
+        \Log::info('[Fiskaly] bearer response', [
+            'url' => $url,
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
+
+        return $response;
+    }
+
+    protected function updateOrderColumns($orderId, array $responseData)
+    {
+        if ((int)$orderId <= 0) {
+            return;
+        }
+
+        try {
+            $updates = [];
+
+            if ($this->hasColumn('orders', 'fiskaly_status')) {
+                $updates['fiskaly_status'] = $responseData['state'] ?? $responseData['status'] ?? 'finished';
+            }
+            if ($this->hasColumn('orders', 'fiskaly_qr_code_data') && !empty($responseData['qr_code_data'])) {
+                $updates['fiskaly_qr_code_data'] = $responseData['qr_code_data'];
+            }
+            if ($this->hasColumn('orders', 'fiskaly_signature_counter') && isset($responseData['signature']['counter'])) {
+                $updates['fiskaly_signature_counter'] = $responseData['signature']['counter'];
+            }
+            if ($this->hasColumn('orders', 'fiskaly_tx_number') && isset($responseData['number'])) {
+                $updates['fiskaly_tx_number'] = $responseData['number'];
+            }
+            if ($this->hasColumn('orders', 'fiskaly_serial_number') && !empty($responseData['tss_serial_number'])) {
+                $updates['fiskaly_serial_number'] = $responseData['tss_serial_number'];
+            }
+            if ($this->hasColumn('orders', 'fiskaly_transaction_id_ref') && !empty($responseData['tx_id'])) {
+                $updates['fiskaly_transaction_id_ref'] = $responseData['tx_id'];
+            }
+
+            if (!empty($updates)) {
+                $this->db()->table('orders')->where('order_id', (int)$orderId)->update($updates);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[Fiskaly] order columns update skipped', [
+                'order_id' => $orderId,
+                'message'  => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function finalizeOrder($orderOrId, $locationId = null, $paymentMethod = null, $paymentReference = null)
+    {
+        try {
+            $order = $this->resolveOrder($orderOrId);
+
+            if (!$order) {
+                throw new \RuntimeException('Order could not be resolved');
+            }
+
+            $orderId = (int)($order->order_id ?? 0);
+            $locationId = $locationId ?: (int)($order->location_id ?? 1);
+
+            $config = $this->resolveConfig($locationId);
+            if (!$config) {
+                throw new \RuntimeException('Fiskaly config not found');
+            }
+
+            $txTable = $this->db()->table('fiskaly_transactions');
+
+            $existingFinished = null;
+            if ($orderId > 0) {
+                $existingFinished = $txTable
+                    ->where('order_id', $orderId)
+                    ->where(function ($q) {
+                        $q->where('status', 'finished')
+                          ->orWhereNotNull('finished_at')
+                          ->orWhereNotNull('qr_code_data');
+                    })
+                    ->orderByDesc('fiskaly_transaction_id')
+                    ->first();
+            }
+
+            if ($existingFinished) {
+                Log::info('[Fiskaly] idempotent guard hit', [
+                    'order_id' => $orderId,
+                    'tx_id' => $existingFinished->tx_id ?? null,
+                    'tx_number' => $existingFinished->tx_number ?? null,
+                    'status' => $existingFinished->status ?? null,
+                    'finished_at' => $existingFinished->finished_at ?? null,
+                ]);
+
+                $responseData = [
+                    'tx_id' => $existingFinished->tx_id ?? null,
+                    'state' => 'FINISHED',
+                    'client_id' => $existingFinished->client_id ?? $config->client_id,
+                    'tss_id' => $existingFinished->tss_id ?? $config->tss_id,
+                    'tss_serial_number' => $existingFinished->serial_number ?? null,
+                    'number' => $existingFinished->tx_number ?? null,
+                    'qr_code_data' => $existingFinished->qr_code_data ?? null,
+                    'signature' => [
+                        'counter' => $existingFinished->signature_counter ?? null,
+                        'algorithm' => $existingFinished->signature_algorithm ?? null,
+                        'value' => $existingFinished->signature_value ?? null,
+                    ],
+                ];
+
+                $this->updateOrderColumns($orderId, $responseData);
+
+                return $responseData;
+            }
+
+            $items = $this->resolveMenus($order);
+            $processData = $this->buildProcessData($order, $items);
+
+            if (!is_string($processData) || trim($processData) === '') {
+                throw new \RuntimeException('process_data could not be built');
+            }
+
+            $existing = null;
+
+            if ($orderId > 0) {
+                $existing = $txTable->where('order_id', $orderId)->orderByDesc('fiskaly_transaction_id')->first();
+            }
+
+            $txId = null;
+            if ($existing && !empty($existing->tx_id)) {
+                $txId = (string)$existing->tx_id;
+            } else {
+                $txId = (string) Str::uuid();
+            }
+
+            $base = 'https://kassensichv-middleware.fiskaly.com/api/v2';
+            $url1 = $base . '/tss/' . $config->tss_id . '/tx/' . $txId . '?tx_revision=1';
+            $url2 = $base . '/tss/' . $config->tss_id . '/tx/' . $txId . '?tx_revision=2';
+
+            $payloadActive = [
+                'state'        => 'ACTIVE',
+                'client_id'    => $config->client_id,
+                'receipt_type' => 'RECEIPT',
+                'schema'       => [
+                    'raw' => [
+                        'process_type' => 'RECEIPT',
+                        'process_data' => $processData,
+                    ],
+                ],
+            ];
+
+            $payloadFinish = [
+                'state'        => 'FINISHED',
+                'client_id'    => $config->client_id,
+                'receipt_type' => 'RECEIPT',
+                'schema'       => [
+                    'raw' => [
+                        'process_type' => 'RECEIPT',
+                        'process_data' => $processData,
+                    ],
+                ],
+            ];
+
+            $startData = [
+                'order_id'          => $orderId ?: null,
+                'location_id'       => $locationId ?: 1,
+                'payment_method'    => $paymentMethod ?? ($order->payment_method ?? $order->payment ?? null),
+                'payment_reference' => $paymentReference,
+                'tss_id'            => $config->tss_id ?? null,
+                'client_id'         => $config->client_id ?? null,
+                'status'            => 'started',
+                'started_at'        => now(),
+                'tx_id'             => $txId,
+                'tx_revision'       => 1,
+                'tx_state'          => 'ACTIVE',
+                'amount_total'      => $this->detectTotal($order, $items),
+                'currency'          => 'EUR',
+                'request_payload'   => json_encode($payloadActive, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'meta'              => json_encode(['responses' => []], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'updated_at'        => now(),
+                'created_at'        => $existing->created_at ?? now(),
+            ];
+
+            if ($orderId > 0) {
+                $txTable->updateOrInsert(
+                    ['order_id' => $orderId],
+                    $startData
+                );
+            }
+
+            Log::info('[Fiskaly] upsert ACTIVE request', [
+                'order_id'    => $orderId,
+                'location_id' => $locationId,
+                'url'         => $url1,
+                'payload'     => $payloadActive,
+            ]);
+
+            $r1 = $this->apiPut($url1, $payloadActive, $config->api_key, $config->api_secret);
+
+            Log::info('[Fiskaly] upsert ACTIVE response', [
+                'order_id' => $orderId,
+                'status'   => $r1->status(),
+                'body'     => $r1->body(),
+            ]);
+
+            if (!$r1->successful()) {
+                throw new \RuntimeException('Fiskaly ACTIVE failed: HTTP ' . $r1->status() . ' BODY: ' . $r1->body());
+            }
+
+            $j1 = $r1->json() ?: [];
+
+            $midUpdate = [
+                'status'           => 'active',
+                'tx_revision'      => 1,
+                'tx_state'         => $j1['state'] ?? 'ACTIVE',
+                'response_payload' => json_encode($j1, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'meta'             => json_encode(['responses' => [$j1]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'updated_at'       => now(),
+            ];
+
+            if ($orderId > 0) {
+                $txTable->where('order_id', $orderId)->update($midUpdate);
+            }
+
+            Log::info('[Fiskaly] upsert FINISHED request', [
+                'order_id'    => $orderId,
+                'location_id' => $locationId,
+                'url'         => $url2,
+                'payload'     => $payloadFinish,
+            ]);
+
+            $r2 = $this->apiPut($url2, $payloadFinish, $config->api_key, $config->api_secret);
+
+            Log::info('[Fiskaly] upsert FINISHED response', [
+                'order_id' => $orderId,
+                'status'   => $r2->status(),
+                'body'     => $r2->body(),
+            ]);
+
+            if (!$r2->successful()) {
+                throw new \RuntimeException('Fiskaly FINISHED failed: HTTP ' . $r2->status() . ' BODY: ' . $r2->body());
+            }
+
+            $j2 = $r2->json() ?: [];
+            $signature = is_array($j2['signature'] ?? null) ? $j2['signature'] : [];
+
+            $finalUpdate = [
+                'status'              => 'finished',
+                'finished_at'         => now(),
+                'tx_revision'         => 2,
+                'tx_state'            => $j2['state'] ?? 'FINISHED',
+                'tx_number'           => $j2['number'] ?? null,
+                'signature_counter'   => $signature['counter'] ?? null,
+                'signature_algorithm' => $signature['algorithm'] ?? null,
+                'signature_value'     => $signature['value'] ?? null,
+                'serial_number'       => $j2['tss_serial_number'] ?? null,
+                'qr_code_data'        => $j2['qr_code_data'] ?? null,
+                'response_payload'    => json_encode($j2, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'meta'                => json_encode(['responses' => [$j1, $j2]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'updated_at'          => now(),
+            ];
+
+            if ($orderId > 0) {
+                $txTable->where('order_id', $orderId)->update($finalUpdate);
+            }
+
+            $j2['tx_id'] = $txId;
+            $this->updateOrderColumns($orderId, $j2);
+
+            return $j2;
+        } catch (\Throwable $e) {
+            $message = $e->getMessage();
+
+            try {
+                $resolved = $this->resolveOrder($orderOrId);
+                $orderId = (int)($resolved->order_id ?? 0);
+
+                if ($orderId > 0) {
+                    $txTable = $this->db()->table('fiskaly_transactions');
+                    $lastTx = $txTable
+                        ->where('order_id', $orderId)
+                        ->orderByDesc('fiskaly_transaction_id')
+                        ->first();
+
+                    $alreadyFinished = false;
+                    if ($lastTx) {
+                        $alreadyFinished =
+                            (($lastTx->status ?? null) === 'finished')
+                            || !empty($lastTx->finished_at)
+                            || !empty($lastTx->qr_code_data);
+                    }
+
+                    if ($alreadyFinished) {
+                        $txTable
+                            ->where('order_id', $orderId)
+                            ->update([
+                                'error_message' => $message,
+                                'updated_at'    => now(),
+                            ]);
+                    } else {
+                        $txTable->updateOrInsert(
+                            ['order_id' => $orderId],
+                            [
+                                'location_id'       => $locationId ?: (int)($resolved->location_id ?? 1),
+                                'payment_method'    => $paymentMethod ?? ($resolved->payment_method ?? $resolved->payment ?? null),
+                                'payment_reference' => $paymentReference,
+                                'status'            => 'failed',
+                                'error_message'     => $message,
+                                'updated_at'        => now(),
+                                'created_at'        => now(),
+                            ]
+                        );
+                    }
+                }
+            } catch (\Throwable $inner) {
+            }
+
+            Log::error('[Fiskaly] finalizeOrder failed', [
+                'input_type'   => gettype($orderOrId),
+                'location_id'  => $locationId,
+                'message'      => $message,
+                'class'        => __CLASS__,
+                'file'         => __FILE__,
+            ]);
+
+            throw $e;
+        }
+    }
+}

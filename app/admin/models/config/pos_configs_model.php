@@ -64,9 +64,17 @@ $config['list']['columns'] = [
     ],
     'access_token' => [
         'label' => 'lang:admin::lang.label_access_token_pos',
-        'type' => 'text',
-        'searchable' => true,
-        'invisible' => true,
+        'type' => 'textarea',
+        'span' => 'full',
+        'attributes' => [
+            'rows' => 6,
+            'style' => 'font-family:monospace; word-break:break-all;',
+            'spellcheck' => 'false',
+            'autocomplete' => 'off',
+            'autocorrect' => 'off',
+            'autocapitalize' => 'off',
+        ],
+        'comment' => 'Paste the full account access token here',
     ],
     'id_application' => [
          'label' => 'lang:admin::lang.label_id_application_pos',
@@ -90,14 +98,15 @@ $config['list']['columns'] = [
 ];
 
 $config['form']['toolbar'] = [
+    'cssClasses' => ['toolbar-grouped'],
     'buttons' => [
         'back' => [
-            'label' => 'Back',
+            'label' => 'lang:admin::lang.button_icon_back',
             'class' => 'btn btn-outline-secondary',
             'href' => 'pos_configs',
         ],
         'save' => [
-             'label' => 'lang:admin::lang.button_save',
+            'label' => 'lang:admin::lang.button_save',
             'context' => ['create', 'edit'],
             'partial' => 'form/toolbar_save_button',
             'class' => 'btn btn-primary',
@@ -113,21 +122,18 @@ $config['form']['toolbar'] = [
             'data-progress-indicator' => 'admin::lang.text_deleting',
             'context' => ['edit'],
         ],
-       'test_integration' => [
-            'label' => 'Test Integration POS',
+        'test_integration' => [
             'class' => 'btn btn-info',
             'context' => ['edit'],
             'partial' => 'form/partials/toolbar_test_integration_button',
-       ],
-       'sync_menu' => [
-            'label' => 'Sincronizar menu',
+        ],
+        'sync_menu' => [
             'class' => 'btn btn-warning',
             'context' => ['edit'],
             'partial' => 'form/partials/toolbar_sync_menu_button',
         ],
-       'register_webhook' => [
-            'label' => 'Register Webhook',
-            'class' => 'btn btn-success',
+        'register_webhook' => [
+            'class' => 'btn btn-default',
             'context' => ['edit'],
             'partial' => 'form/partials/toolbar_register_webhook_button',
         ],
@@ -160,8 +166,17 @@ $config['form']['fields'] = [
     ],
      'access_token' => [
         'label' => 'lang:admin::lang.label_access_token_pos',
-        'type' => 'text',
-        'span' => 'right',
+        'type' => 'textarea',
+        'span' => 'full',
+        'attributes' => [
+            'rows' => 6,
+            'style' => 'font-family:monospace; word-break:break-all;',
+            'spellcheck' => 'false',
+            'autocomplete' => 'off',
+            'autocorrect' => 'off',
+            'autocapitalize' => 'off',
+        ],
+        'comment' => 'Paste the full account access token here',
     ],
      'id_application' => [
         'label' => 'lang:admin::lang.label_id_application_pos',

@@ -1,7 +1,7 @@
 <div
     class="col col-sm-{{ $widget->getWidth() }} my-3"
 >
-    <div class="widget-item card {{ $widget->getCssClass() }} p-3 shadow-sm">
+    <div class="widget-item card {{ $widget->getCssClass() }} @if(strpos($widgetAlias, 'stat_') === 0 || strpos($widgetAlias, 'chart_') === 0) no-padding @else p-3 @endif shadow-sm">
         <div class="widget-item-action">
             <a class="btn handle pull-left"><i class="fa fa-arrows-alt"></i></a>
             @if ($this->canManage)
@@ -16,7 +16,7 @@
                         data-control="duplicate-widget"
                         title="Duplicate this circle"
                         style="cursor: pointer;"
-                    ><i class="fa fa-plus-circle" style="color: #08815e;"></i></a>
+                    ><i class="fa fa-plus-circle"></i></a>
                 @endif
                 
                 <a

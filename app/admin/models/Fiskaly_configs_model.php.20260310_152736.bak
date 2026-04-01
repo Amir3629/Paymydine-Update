@@ -1,0 +1,18 @@
+<?php
+
+namespace Admin\Models;
+
+use Igniter\Flame\Database\Model;
+
+class Fiskaly_configs_model extends Model
+{
+    protected $table = 'fiskaly_configs';
+    protected $primaryKey = 'fiskaly_config_id';
+
+    protected $casts = [
+        'is_enabled' => 'boolean',
+        'meta' => 'array',
+    ];
+
+    public $timestamps = true;
+}

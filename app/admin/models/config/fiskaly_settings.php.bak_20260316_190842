@@ -1,0 +1,144 @@
+<?php
+
+$panelConfig = include __DIR__.'/panel_settings.php';
+
+return [
+    'form' => [
+        'toolbar' => $panelConfig['form']['toolbar'] ?? [],
+
+        'fields' => [
+            'fiskaly_is_enabled' => [
+                'label' => 'Enable Fiskaly / TSE',
+                'type' => 'switch',
+                'default' => 0,
+                'comment' => 'Enable SIGN DE / TSE signing for this restaurant tenant.',
+                'span' => 'left',
+            ],
+
+            'fiskaly_environment' => [
+                'label' => 'Environment',
+                'type' => 'select',
+                'default' => 'test',
+                'options' => [
+                    'test' => 'Test',
+                    'live' => 'Live',
+                ],
+                'comment' => 'Use test while onboarding. Switch to live only with real production credentials.',
+                'span' => 'right',
+            ],
+
+            'fiskaly_api_key' => [
+                'label' => 'API Key',
+                'type' => 'text',
+                'span' => 'left',
+            ],
+
+            'fiskaly_api_secret' => [
+                'label' => 'API Secret',
+                'type' => 'text',
+                'span' => 'right',
+            ],
+
+            'fiskaly_organization_id' => [
+                'label' => 'Organization ID',
+                'type' => 'text',
+                'span' => 'left',
+            ],
+
+            'fiskaly_tss_id' => [
+                'label' => 'TSS ID',
+                'type' => 'text',
+                'span' => 'right',
+            ],
+
+            'fiskaly_client_id' => [
+                'label' => 'Client ID',
+                'type' => 'text',
+                'span' => 'left',
+                'commentHtml' => true,
+                'comment' => '
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        style="margin-top:8px;"
+                        onclick="window.payMyDineFiskalyCreateClient(this)"
+                    >Create Client</button>
+
+                    <div style="margin-top:8px;color:#666;">
+                        Creates a Fiskaly client from saved backend settings and fills the Client ID field automatically.
+                    </div>
+
+                    <script>
+                    window.payMyDineFiskalyCreateClient = async function(btn) {
+                        try {
+                            btn.disabled = true;
+                            var originalText = btn.innerText;
+                            btn.innerText = "Creating...";
+
+                            const token =
+                                document.querySelector(\'meta[name="csrf-token"]\')?.getAttribute(\'content\') ||
+                                document.querySelector(\'input[name="_token"]\')?.value || "";
+
+                            const response = await fetch(window.location.origin + "/admin/fiskaly/create-client-ajax", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "X-CSRF-TOKEN": token,
+                                    "X-Requested-With": "XMLHttpRequest",
+                                    "Accept": "application/json"
+                                },
+                                credentials: "same-origin",
+                                body: JSON.stringify({})
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok || !data.ok) {
+                                alert(data.message || "Create Client failed.");
+                                return;
+                            }
+
+                            const input =
+                                document.querySelector(\'input[name="fiskaly_client_id"]\') ||
+                                document.querySelector(\'input[id*="fiskaly_client_id"]\') ||
+                                document.querySelector(\'input[name*="fiskaly_client_id"]\');
+
+                            if (input) {
+                                input.value = data.client_id || "";
+                                input.dispatchEvent(new Event("input", { bubbles: true }));
+                                input.dispatchEvent(new Event("change", { bubbles: true }));
+                            }
+
+                            alert("Client created successfully: " + (data.client_id || ""));
+                        } catch (e) {
+                            alert("Create Client failed: " + (e && e.message ? e.message : e));
+                        } finally {
+                            btn.disabled = false;
+                            btn.innerText = "Create Client";
+                        }
+                    };
+                    </script>
+                ',
+            ],
+
+            'fiskaly_cash_register_id' => [
+                'label' => 'Cash Register ID',
+                'type' => 'text',
+                'span' => 'right',
+                'comment' => 'Example: POS-1',
+            ],
+
+            'fiskaly_admin_pin' => [
+                'label' => 'Admin PIN',
+                'type' => 'text',
+                'span' => 'left',
+            ],
+
+            'fiskaly_time_admin_pin' => [
+                'label' => 'Time Admin PIN',
+                'type' => 'text',
+                'span' => 'right',
+            ],
+        ],
+    ],
+];

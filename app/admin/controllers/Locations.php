@@ -63,7 +63,9 @@ class Locations extends \Admin\Classes\AdminController
 
     public function remap($action, $params)
     {
-        if ($action != 'settings' && AdminLocation::check())
+        // FIXED: Only redirect to settings in single location mode, not just when a location is checked
+        // This allows users to access the locations list page even when a location is selected
+        if ($action != 'settings' && AdminLocation::isSingleMode())
             return $this->redirect('locations/settings');
 
         return parent::remap($action, $params);

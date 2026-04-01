@@ -299,6 +299,23 @@ $config['form']['fields'] = [
             3 => ['lang:admin::lang.staff.text_sale_permission_restricted', 'lang:admin::lang.staff.help_sale_permission_restricted'],
         ],
     ],
+    // Biometric Authentication Fields
+    'card_id' => [
+        'label' => 'Card ID (RFID/NFC)',
+        'type' => 'text',
+        'context' => ['create', 'edit'],
+        'span' => 'left',
+        'comment' => 'Unique card ID for card-based authentication',
+        'placeholder' => 'Scan card to get ID',
+    ],
+    'biometric_enabled' => [
+        'label' => 'Enable Biometric Authentication',
+        'type' => 'switch',
+        'context' => ['create', 'edit'],
+        'span' => 'right',
+        'default' => 0,
+        'comment' => 'Enable fingerprint authentication for this staff member',
+    ],
 ];
 
 return $config;

@@ -50,4 +50,50 @@ class Pos_configs_model extends Model
             return [$device->device_id => $img . $device->name];
         })->toArray();
     }
+
+
+    public function syncReady2OrderTables()
+    {
+        try {
+            $sync1 = '/home/ubuntu/pmd_r2o_sync_tables.php';
+            $sync2 = '/home/ubuntu/pmd_r2o_auto_create_tables.php';
+
+            $out1 = [];
+            $out2 = [];
+            $rc1 = 0;
+            $rc2 = 0;
+
+            if (file_exists($sync1)) {
+                exec('php ' . escapeshellarg($sync1) . ' 2>&1', $out1, $rc1);
+            } else {
+                $out1[] = 'Missing file: ' . $sync1;
+                $rc1 = 1;
+            }
+
+            if (file_exists($sync2)) {
+                exec('php ' . escapeshellarg($sync2) . ' 2>&1', $out2, $rc2);
+            } else {
+                $out2[] = 'Missing file: ' . $sync2;
+                $rc2 = 1;
+            }
+
+            $ok = ($rc1 === 0 && $rc2 === 0);
+
+            return response()->json([
+                'success' => $ok,
+                'message' => $ok ? 'Tables synced successfully' : 'Sync failed',
+                'step1_code' => $rc1,
+                'step2_code' => $rc2,
+                'step1_output' => $out1,
+                'step2_output' => $out2,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
 }

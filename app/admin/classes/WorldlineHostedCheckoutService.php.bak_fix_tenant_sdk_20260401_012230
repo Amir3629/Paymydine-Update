@@ -1,0 +1,135 @@
+<?php
+
+namespace Admin\Classes;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use OnlinePayments\Sdk\Client;
+use OnlinePayments\Sdk\Communicator;
+use OnlinePayments\Sdk\CommunicatorConfiguration;
+use OnlinePayments\Sdk\V1HmacAuthenticator;
+use OnlinePayments\Sdk\Domain\CreateHostedCheckoutRequest;
+use OnlinePayments\Sdk\Domain\Order;
+use OnlinePayments\Sdk\Domain\AmountOfMoney;
+use OnlinePayments\Sdk\Domain\HostedCheckoutSpecificInput;
+
+class WorldlineHostedCheckoutService
+{
+    public function getConfig(): array
+    {
+        $row = DB::table('pos_configs as pc')
+            ->join('pos_devices as pd', 'pd.device_id', '=', 'pc.device_id')
+            ->where('pd.code', 'worldline')
+            ->select(
+                'pc.config_id',
+                'pc.url',
+                'pc.username',
+                'pc.access_token',
+                'pc.id_application',
+                'pc.password'
+            )
+            ->orderByDesc('pc.config_id')
+            ->first();
+
+        if (!$row) {
+            throw new \RuntimeException('Worldline config not found in current tenant DB');
+        }
+
+        return [
+            'config_id'       => $row->config_id,
+            'api_endpoint'    => rtrim((string)$row->url, '/').'/',
+            'api_key_id'      => (string)$row->username,
+            'secret_api_key'  => (string)$row->access_token,
+            'merchant_id'     => (string)$row->id_application,
+            'webhook_secret'  => (string)$row->password,
+        ];
+    }
+
+    public function getEnvironment(array $cfg): string
+    {
+        $base = $cfg['api_endpoint'] ?? '';
+        if (str_contains($base, 'payment.preprod.direct.worldline-solutions.com')) {
+            return 'preprod';
+        }
+        if (str_contains($base, 'payment.direct.worldline-solutions.com')) {
+            return 'live';
+        }
+        return 'custom';
+    }
+
+    protected function makeMerchantClient(array $cfg)
+    {
+        $integrator = 'PayMyDine';
+        $communicatorConfiguration = new CommunicatorConfiguration(
+            $cfg['api_key_id'],
+            $cfg['secret_api_key'],
+            $cfg['api_endpoint'],
+            $integrator,
+            null
+        );
+
+        $authenticator = new V1HmacAuthenticator($communicatorConfiguration);
+        $communicator = new Communicator($communicatorConfiguration, $authenticator);
+        $client = new Client($communicator);
+
+        return $client->merchant($cfg['merchant_id']);
+    }
+
+    public function createHostedCheckout(array $payload): array
+    {
+        $cfg = $this->getConfig();
+        $merchantClient = $this->makeMerchantClient($cfg);
+        $hostedCheckoutClient = $merchantClient->hostedCheckout();
+
+        $amountMinor = (int)($payload['amount_minor'] ?? 0);
+        $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
+        $returnUrl = (string)($payload['return_url'] ?? url('/order-placed'));
+        $locale = (string)($payload['locale'] ?? 'en_GB');
+
+        if ($amountMinor <= 0) {
+            throw new \RuntimeException('amount_minor must be > 0');
+        }
+
+        $request = new CreateHostedCheckoutRequest();
+
+        $order = new Order();
+        $amount = new AmountOfMoney();
+        $amount->setCurrencyCode($currency);
+        $amount->setAmount($amountMinor);
+        $order->setAmountOfMoney($amount);
+        $request->setOrder($order);
+
+        $specific = new HostedCheckoutSpecificInput();
+        $specific->setReturnUrl($returnUrl);
+        $specific->setLocale($locale);
+        $request->setHostedCheckoutSpecificInput($specific);
+
+        $response = $hostedCheckoutClient->createHostedCheckout($request);
+
+        $redirectUrl = method_exists($response, 'getRedirectUrl') ? $response->getRedirectUrl() : null;
+        $partialRedirectUrl = method_exists($response, 'getPartialRedirectUrl') ? $response->getPartialRedirectUrl() : null;
+        $hostedCheckoutId = method_exists($response, 'getHostedCheckoutId') ? $response->getHostedCheckoutId() : null;
+        $returnMac = method_exists($response, 'getRETURNMAC') ? $response->getRETURNMAC() : null;
+
+        if (!$redirectUrl && $partialRedirectUrl) {
+            $redirectUrl = 'https://payment.'.$partialRedirectUrl;
+        }
+
+        return [
+            'environment' => $this->getEnvironment($cfg),
+            'config_id' => $cfg['config_id'],
+            'merchant_id' => $cfg['merchant_id'],
+            'redirect_url' => $redirectUrl,
+            'partial_redirect_url' => $partialRedirectUrl,
+            'hosted_checkout_id' => $hostedCheckoutId,
+            'return_mac' => $returnMac,
+            'request_meta' => [
+                'amount_minor' => $amountMinor,
+                'currency' => $currency,
+                'return_url' => $returnUrl,
+                'locale' => $locale,
+                'trace_id' => (string) Str::uuid(),
+            ],
+        ];
+    }
+}

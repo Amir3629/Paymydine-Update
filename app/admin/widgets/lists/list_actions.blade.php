@@ -12,7 +12,7 @@
                 <label class="form-check-label" for="{{ 'checkboxAll-bulk-'.$listId }}">&nbsp;</label>
             </div>
         </td>
-        <td class="w-100 pb-0 pt-1" colspan="999">
+        <td class="w-100 pb-0 pt-0 bulk-actions-cell" colspan="999">
             <div>
                 <div class="btn-counter btn py-1 text-nowrap">
                     <span data-action-counter>0</span> record(s) selected

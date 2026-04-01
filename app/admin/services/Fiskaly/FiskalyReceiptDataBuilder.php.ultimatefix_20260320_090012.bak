@@ -1,0 +1,63 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Illuminate\Support\Facades\DB;
+
+class FiskalyReceiptDataBuilder
+{
+    public function buildForOrder(int $orderId): array
+    {
+        $order = DB::table('orders')->where('order_id', $orderId)->first();
+        $items = DB::table('order_menus')->where('order_id', $orderId)->get();
+
+        $lines = [];
+        foreach ($items as $item) {
+            $qty = (int)($item->quantity ?? 1);
+            $unit = (float)($item->price ?? 0);
+            $total = (float)($item->subtotal ?? ($qty * $unit));
+
+            $lines[] = [
+                'name' => (string)($item->name ?? 'Item'),
+                'quantity' => (string)$qty,
+                'unit_price' => number_format($unit, 2, '.', ''),
+                'total_price' => number_format($total, 2, '.', ''),
+                'vat_rate' => '0',
+            ];
+        }
+
+        $payment = strtoupper((string)($order->payment ?? 'CASH'));
+        if (in_array($payment, ['COD','CASH_ON_DELIVERY','CASH'], true)) {
+            $payment = 'CASH';
+        }
+
+        $totalAmount = number_format((float)($order->order_total ?? 0), 2, '.', '');
+
+        $processData = [
+            'currency' => 'EUR',
+            'payment_type' => $payment,
+            'total_amount' => $totalAmount,
+            'items' => $lines,
+        ];
+
+        // 🔥 THIS IS THE FINAL FIX
+        $processDataJson = json_encode($processData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $processDataBase64 = base64_encode($processDataJson);
+
+        return [
+            'receipt_type' => 'RECEIPT',
+            'schema' => [
+                'raw' => [
+                    'process_type' => 'RECEIPT',
+                    'process_data' => $processDataBase64,
+                ],
+            ],
+            'meta' => [
+                'order_id' => $orderId,
+                'order_total' => $totalAmount,
+                'payment' => (string)($order->payment ?? ''),
+                'items_count' => count($lines),
+            ],
+        ];
+    }
+}

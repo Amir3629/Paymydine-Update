@@ -94,6 +94,7 @@ class Orders_model extends Model
         ],
         'hasMany' => [
             'payment_logs' => 'Admin\Models\Payment_logs_model',
+            'order_notes' => 'Admin\Models\Order_notes_model',
         ],
     ];
 
@@ -271,41 +272,67 @@ class Orders_model extends Model
         return $this->first_name . ' ' . $this->last_name;
     }
     public function getOrderTypeNameAttribute()
-{
-    $orderType = $this->order_type;
-    
-    // Check if this is a cashier order
-    if ($orderType === 'cashier') {
-        return 'Cashier';
-    }
-    
-    // Check if order_type is a table_id (numeric)
-    if (is_numeric($orderType)) {
-        // Look up the actual table name from the tables table
-        $table = \DB::table('tables')->where('table_id', $orderType)->first();
-        if ($table) {
-            return $table->table_no === 0
-                ? 'Cashier'
-                : 'Table '.$table->table_no;   // 👈 use table_no for display
-        }
-    }
-    
-    // Check if order_type contains a table number (e.g., "Table 1", "1", "Table 01")
-    if (preg_match('/(?:Table\s*)?(\d+)/', $orderType, $matches)) {
-        $tableNumber = (int)$matches[1];
-        return "Table " . $tableNumber;
-    }
-    
-    // Return the raw order_type if no related location exists
-    if (!$this->location) {
-        return $orderType;
-    }
+    {
+        $orderType = trim((string) $this->order_type);
+        $comment = (string) ($this->comment ?? '');
 
-    // Otherwise, return the label from the related availableOrderTypes
-    return optional(
-        $this->location->availableOrderTypes()->get($orderType)
-    )->getLabel() ?: $orderType;
-}
+        $isReady2OrderImport = stripos($comment, 'ready2order') !== false
+            || stripos($comment, 'r2o-invoice') !== false
+            || stripos($comment, 'Imported from ready2order') !== false;
+
+        if ($isReady2OrderImport && $comment !== '') {
+            if (preg_match('/mapped_local_table_name=([^|]+)/u', $comment, $m)) {
+                $name = trim($m[1]);
+                if ($name !== '') {
+                    return $name;
+                }
+            }
+
+            if (preg_match('/table_name=([^|]+)/u', $comment, $m)) {
+                $name = trim($m[1]);
+                if ($name !== '') {
+                    return $name;
+                }
+            }
+        }
+
+        if ($orderType === 'delivery') {
+            return 'Delivery';
+        }
+
+        if (strtolower($orderType) === 'cashier') {
+            return 'Cashier';
+        }
+
+        if (is_numeric($orderType)) {
+            $table = \DB::table('tables')->where('table_id', $orderType)->first();
+            if ($table) {
+                if (!empty($table->table_name)) {
+                    return $table->table_name;
+                }
+
+                return (isset($table->table_no) && (int) $table->table_no === 0)
+                    ? 'Cashier'
+                    : 'Table '.((int) $table->table_no);
+            }
+        }
+
+        if ($orderType !== '' && !preg_match('/^(table\s*)?$/i', $orderType)) {
+            return $orderType;
+        }
+
+        if (preg_match('/(?:Table\s*)?(\d+)/', $orderType, $matches)) {
+            return 'Table '.((int) $matches[1]);
+        }
+
+        if (!$this->location) {
+            return $orderType;
+        }
+
+        return optional(
+            $this->location->availableOrderTypes()->get($orderType)
+        )->getLabel() ?: $orderType;
+    }
 
     public function getOrderDatetimeAttribute($value)
     {
@@ -528,42 +555,138 @@ class Orders_model extends Model
 
         $data['order_payment'] = $model->payment_method->name ?? lang('admin::lang.orders.text_no_payment');
 
+        
+        
         $data['order_menus'] = [];
         $menus = $model->getOrderMenusWithOptions();
+
+        $readTaxSetting = function ($key, $default = null) {
+            try {
+                $value = setting($key, null);
+                if ($value !== null && $value !== '') {
+                    return $value;
+                }
+            } catch (\Throwable $e) {}
+
+            try {
+                $row = \Illuminate\Support\Facades\DB::table('settings')
+                    ->where('item', $key)
+                    ->first();
+
+                if ($row && $row->value !== null && $row->value !== '') {
+                    return $row->value;
+                }
+            } catch (\Throwable $e) {}
+
+            return $default;
+        };
+
+        $pmdTaxPercent = (float) $readTaxSetting('tax_percentage', 0);
+        $pmdTaxIncluded = ((string) $readTaxSetting('tax_menu_price', '1')) === '1';
+        $pmdGrossFactor = $pmdTaxIncluded ? (1 + ($pmdTaxPercent / 100)) : 1;
+
+        $displaySubtotal = 0.0;
+
         foreach ($menus as $menu) {
             $optionData = [];
+
+            $displayMenuPrice = (float) ($menu->price ?? 0);
+            $displayMenuSubtotal = (float) ($menu->subtotal ?? 0);
+
+            if ($pmdTaxIncluded && $pmdTaxPercent > 0) {
+                $displayMenuPrice = round($displayMenuPrice * $pmdGrossFactor, 2);
+                $displayMenuSubtotal = round($displayMenuSubtotal * $pmdGrossFactor, 2);
+            } else {
+                $displayMenuPrice = round($displayMenuPrice, 2);
+                $displayMenuSubtotal = round($displayMenuSubtotal, 2);
+            }
+
+            $displaySubtotal += $displayMenuSubtotal;
+
             foreach ($menu->menu_options->groupBy('order_option_group') as $menuItemOptionGroupName => $menuItemOptions) {
                 $optionData[] = $menuItemOptionGroupName;
                 foreach ($menuItemOptions as $menuItemOption) {
+                    $displayOptionValue = (float) $menuItemOption->quantity * (float) $menuItemOption->order_option_price;
+
+                    if ($pmdTaxIncluded && $pmdTaxPercent > 0) {
+                        $displayOptionValue = round($displayOptionValue * $pmdGrossFactor, 2);
+                    } else {
+                        $displayOptionValue = round($displayOptionValue, 2);
+                    }
+
                     $optionData[] = $menuItemOption->quantity
                         .'&nbsp;'.lang('admin::lang.text_times').'&nbsp;'
                         .$menuItemOption->order_option_name
                         .lang('admin::lang.text_equals')
-                        .currency_format($menuItemOption->quantity * $menuItemOption->order_option_price);
+                        .currency_format($displayOptionValue);
                 }
             }
 
             $data['order_menus'][] = [
                 'menu_name' => $menu->name,
                 'menu_quantity' => $menu->quantity,
-                'menu_price' => currency_format($menu->price),
-                'menu_subtotal' => currency_format($menu->subtotal),
+                'menu_price' => currency_format($displayMenuPrice),
+                'menu_subtotal' => currency_format($displayMenuSubtotal),
                 'menu_options' => implode('<br /> ', $optionData),
                 'menu_comment' => $menu->comment,
             ];
         }
 
         $data['order_totals'] = [];
-        $orderTotals = $model->getOrderTotals();
-        foreach ($orderTotals as $total) {
+        $orderTotalsByCode = collect($model->getOrderTotals())->keyBy('code');
+
+        $tipValue = round((float) optional($orderTotalsByCode->get('tip'))->value, 2);
+        $discountValue = round(abs((float) optional($orderTotalsByCode->get('discount'))->value), 2);
+
+        $displayTaxValue = $pmdTaxIncluded && $pmdTaxPercent > 0
+            ? round($displaySubtotal - ($displaySubtotal / (1 + ($pmdTaxPercent / 100))), 2)
+            : round((float) optional($orderTotalsByCode->get('tax'))->value, 2);
+
+        $displayTaxTitle = $pmdTaxIncluded
+            ? ('VAT included ('.rtrim(rtrim(number_format($pmdTaxPercent, 2, '.', ''), '0'), '.').'%)')
+            : htmlspecialchars_decode(optional($orderTotalsByCode->get('tax'))->title ?? 'Tax');
+
+        $displayTotal = round(($pmdTaxIncluded ? $displaySubtotal : ($displaySubtotal + $displayTaxValue)) + $tipValue - $discountValue, 2);
+
+        $data['order_totals'][] = [
+            'order_total_title' => 'Subtotal',
+            'order_total_value' => currency_format($displaySubtotal),
+            'priority' => 1,
+        ];
+
+        if ($displayTaxValue > 0) {
             $data['order_totals'][] = [
-                'order_total_title' => htmlspecialchars_decode($total->title),
-                'order_total_value' => currency_format($total->value),
-                'priority' => $total->priority,
+                'order_total_title' => $displayTaxTitle,
+                'order_total_value' => currency_format($displayTaxValue),
+                'priority' => 2,
             ];
         }
 
+        if ($tipValue > 0) {
+            $data['order_totals'][] = [
+                'order_total_title' => 'Tip',
+                'order_total_value' => currency_format($tipValue),
+                'priority' => 3,
+            ];
+        }
+
+        if ($discountValue > 0) {
+            $data['order_totals'][] = [
+                'order_total_title' => 'Discount',
+                'order_total_value' => currency_format(-1 * $discountValue),
+                'priority' => 4,
+            ];
+        }
+
+        $data['order_totals'][] = [
+            'order_total_title' => 'Total',
+            'order_total_value' => currency_format($displayTotal),
+            'priority' => 99,
+        ];
+
         $data['order_address'] = lang('admin::lang.orders.text_collection_order_type');
+
+
         if ($model->address)
             $data['order_address'] = format_address($model->address->toArray(), false);
 

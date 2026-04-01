@@ -61,6 +61,13 @@ $config['list']['toolbar'] = [
             'class' => 'btn btn-primary',
             'href' => 'orders/create',
         ],
+        'history' => [
+            'label' => '<i class="fa fa-history"></i> <span>History</span>',
+            'type' => 'button',
+            'class' => 'btn btn-light orders-history-toggle',
+            'onclick' => 'return toggleOrdersHistory(this);',
+            'id' => 'orders-history-btn',
+        ],
     ],
 ];
 
@@ -124,7 +131,7 @@ $config['list']['columns'] = [
         'relation' => 'status',
         'select' => 'status_name',
         'type' => 'partial',
-        'path' => 'statuses/form/status_column',
+        'path' => 'orders/status_column',
     ],
     'payment' => [
         'label' => 'lang:admin::lang.orders.column_payment',
@@ -279,6 +286,23 @@ $config['form']['tabs'] = [
                 ],
                 'message' => [
                     'title' => 'lang:admin::lang.orders.column_comment',
+                ],
+            ],
+        ],
+        'order_notes' => [
+            'tab' => 'lang:admin::lang.orders.text_note_history',
+            'type' => 'datatable',
+            'useAjax' => true,
+            'defaultSort' => ['created_at', 'desc'],
+            'columns' => [
+                'date_added_since' => [
+                    'title' => 'lang:admin::lang.orders.column_time_date',
+                ],
+                'note' => [
+                    'title' => 'lang:admin::lang.orders.column_note',
+                ],
+                'staff_name' => [
+                    'title' => 'lang:admin::lang.orders.column_staff',
                 ],
             ],
         ],

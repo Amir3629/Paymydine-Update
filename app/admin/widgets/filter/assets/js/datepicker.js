@@ -166,8 +166,7 @@
         picker.container.css('display', 'grid');
         var $header = picker.container.find('.drp-buttons');
         if ($header.length) {
-            $header.css('display', 'grid');
-            $header.css('grid-template-columns', '1fr auto auto');
+            $header.css({ display: 'flex', flexWrap: 'nowrap', gridTemplateColumns: '' });
         }
 
         var $left = picker.container.find('.drp-calendar.left');
@@ -185,7 +184,7 @@
         if (focusDate && picker.leftCalendar && picker.rightCalendar) {
             var baseMonth = focusDate.clone().startOf('month');
             picker.leftCalendar.month = baseMonth.clone();
-            picker.rightCalendar.month = baseMonth.clone().add(1, 'month');
+            picker.rightCalendar.month = baseMonth.clone();
             picker.updateCalendars();
         }
 
@@ -212,8 +211,7 @@
                 self.forceSingleCalendarLayout(picker);
                 var $header = picker.container.find('.drp-buttons');
                 if ($header.length) {
-                    $header.css('display', 'grid');
-                    $header.css('grid-template-columns', '1fr auto auto');
+                    $header.css({ display: 'flex', flexWrap: 'nowrap', gridTemplateColumns: '' });
                 }
             });
             observer.observe(containerNode, { attributes: true, attributeFilter: ['class', 'style'] });
@@ -390,8 +388,7 @@
         $container.css('display', 'grid');
         var $header = $container.find('.drp-buttons');
         if ($header.length) {
-            $header.css('display', 'grid');
-            $header.css('grid-template-columns', '1fr auto auto');
+            $header.css({ display: 'flex', flexWrap: 'nowrap', gridTemplateColumns: '' });
         }
     }
 

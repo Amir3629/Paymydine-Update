@@ -202,8 +202,8 @@ $config['form']['tabs'] = [
             'label' => 'lang:admin::lang.locations.label_image',
             'type' => 'mediafinder',
             'span' => 'left',
-            'mode' => 'inline',
-            'useAttachment' => true,
+            'mode' => 'grid',
+            'useAttachment' => false,
             'comment' => 'lang:admin::lang.locations.help_image',
         ],
         'options[auto_lat_lng]' => [

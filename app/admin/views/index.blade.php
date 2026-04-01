@@ -14,12 +14,46 @@
     <!-- StyleSheets  -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dashboard.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-exact-match.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/active-menu-bright.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/force-seamless-connection.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-menu-position-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-scrollbar-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-spacing-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-simple-fade.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-sidebar-inward-curve.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-mobile-sidebar-fix.css') }}?ver={{ time() }}">
+    <!-- Blue Buttons Override - Replace all green buttons with login button style -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?ver={{ time() }}">
+    <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?ver={{ time() }}">
+    <!-- CRITICAL: Inject curve fix element IMMEDIATELY - runs before DOMContentLoaded -->
+    <script src="{{ asset('app/admin/assets/js/curve-fix-immediate.js') }}?ver={{ time() }}"></script>
+    <!-- CRITICAL: Ensure curve fix element is visible immediately - no delays -->
+    <style>
+        .sidebar-curve-fix {
+            position: fixed !important;
+            left: 190px !important;
+            top: 24px !important;
+            width: 80px !important;
+            height: 80px !important;
+            background: #516584 !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            z-index: 1031 !important;
+            pointer-events: none !important;
+            transition: none !important;
+            animation: none !important;
+            transform: none !important;
+        }
+    </style>
     
-    <!-- Sidebar Star Icon -->
-    <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?ver={{ time() }}" defer></script>
+    <!-- Sidebar Star Icon - DISABLED (replaced by smooth corner) -->
+    <!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?ver={{ time() }}" defer></script> -->
+    <!-- Mobile Sidebar Toggle -->
+    <script src="{{ asset('app/admin/assets/js/mobile-sidebar-toggle.js') }}?ver={{ time() }}" defer></script>
+    <!-- Force Blue Buttons Override -->
+    <script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?ver={{ time() }}"></script>
 </head>
 
 <body class="nk-body bg-lighter npc-general has-sidebar ">
@@ -55,6 +89,13 @@
                                     <a href="/superadmin/new" class="nk-menu-link">
                                         <span class="nk-menu-icon"><em class="icon ni ni-user-list-fill"></em></span>
                                         <span class="nk-menu-text">Restaurants</span>
+                                    </a>
+                                </li><!-- .nk-menu-item -->
+
+                                <li class="nk-menu-item">
+                                    <a href="/superadmin/location-requests" class="nk-menu-link">
+                                        <span class="nk-menu-icon"><em class="icon ni ni-map-pin-fill"></em></span>
+                                        <span class="nk-menu-text">Location Requests</span>
                                     </a>
                                 </li><!-- .nk-menu-item -->
                              
@@ -230,6 +271,8 @@ $totalTenants = $tns->count(); // ✅ Correct method
                     </div><!-- .container-fliud -->
                 </div>
                 <!-- main header @e -->
+                <!-- wrap @s -->
+            <div class="nk-wrap ">
                 <!-- content @s -->
                 <div class="nk-content ">
                     <div class="container-fluid">
@@ -457,6 +500,8 @@ $recentTenants = DB::connection('mysql')
    <script src=" {{ asset('app/admin/assets/js/scripts.js?ver=3.2.3') }}"></script>
    <script src=" {{ asset('app/admin/assets/js/charts/chart-crm.js?ver=3.2.3') }}"></script>
 
+   <!-- Decorative curve replacing star icon -->
+   <div class="sidebar-curve-fix" style="position: fixed !important; left: 190px !important; top: 24px !important; width: 80px !important; height: 80px !important; background: #516584 !important; display: block !important; opacity: 1 !important; visibility: visible !important; z-index: 1031 !important; pointer-events: none !important; transition: none !important; animation: none !important;"></div>
 
 </body>
 

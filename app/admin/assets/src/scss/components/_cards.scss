@@ -43,36 +43,223 @@
 	&:focus {
 		text-decoration: none;
 	}
+
+	/* Fix: Ensure ALL settings cards have white/light background, NOT green */
+	.card.bg-light,
+	.card.settings-card--about {
+		background-color: #ffffff !important;
+		background: #ffffff !important;
+		border: 1px solid #e5e9f2 !important;
+		border-radius: 12px !important;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+		transition: none !important;
+		min-height: auto !important;
+		height: 100% !important;
+		width: 100% !important;
+		flex: 1 1 auto !important;
+		transform: none !important;
+	}
+
+	/* Remove card hover effects - hover effect is on icon frames only */
+	.card.bg-light:hover,
+	.card.settings-card--about:hover {
+		transform: none !important;
+		scale: 1 !important;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+	}
+
+	.card.bg-light,
+	.card.settings-card--about {
+		height: 140px !important;
+		min-height: 140px !important;
+		max-height: 140px !important;
+	}
+
+	.card.bg-light .card-body,
+	.card.settings-card--about .card-body {
+		background-color: transparent !important;
+		color: #364a63 !important;
+		height: 100% !important;
+		min-height: 100% !important;
+		max-height: 100% !important;
+		padding: 1.25rem !important;
+		display: flex !important;
+		align-items: center !important;
+		overflow: hidden !important;
+	}
+
+	/* Text container - handle overflow */
+	.card .card-body > div:last-child {
+		flex: 1 1 auto !important;
+		min-width: 0 !important;
+		overflow: hidden !important;
+	}
+
+	/* Title - compact */
+	.card .card-body h5.mb-1 {
+		margin-bottom: 0.25rem !important;
+		font-size: 1rem !important;
+		line-height: 1.3 !important;
+	}
+
+	/* Description - truncate long text */
+	.card .card-body p.text-muted {
+		margin-bottom: 0 !important;
+		font-size: 0.875rem !important;
+		line-height: 1.4 !important;
+		display: -webkit-box !important;
+		-webkit-line-clamp: 2 !important;
+		-webkit-box-orient: vertical !important;
+		overflow: hidden !important;
+		text-overflow: ellipsis !important;
+		max-height: 2.8em !important;
+	}
+
+	.card.bg-light h5,
+	.card.settings-card--about h5 {
+		color: #364a63 !important;
+	}
+
+	.card.bg-light .text-muted,
+	.card.settings-card--about .text-muted {
+		color: #6b7280 !important;
+	}
+
+	/* Regular card icons - light gray background */
+	.card.bg-light .about-card__icon,
+	.card.settings-card--about .about-card__icon {
+		background-color: #f5f6fa !important;
+		background: #f5f6fa !important;
+		border: 1px solid #e5e9f2 !important;
+		width: 56px !important;
+		height: 56px !important;
+		border-radius: 12px !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		transition: all 0.3s ease !important;
+	}
+
+	.card.bg-light .about-card__icon i,
+	.card.bg-light .about-card__icon i.text-muted,
+	.settings-card-link:hover .card.bg-light .about-card__icon i,
+	.settings-card-link:hover .card.bg-light .about-card__icon i.text-muted,
+	.settings-card-link:focus .card.bg-light .about-card__icon i,
+	.settings-card-link:focus .card.bg-light .about-card__icon i.text-muted {
+		color: #6b7280 !important;
+	}
+
+	/* Hover effect on icon frames ONLY - scale up for ALL cards (same for all) */
+	/* ONLY transform - NO background or border color changes */
+	.settings-card-link:hover .about-card__icon,
+	.settings-card-link:focus .about-card__icon {
+		transform: scale(1.15) !important;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+		/* Keep original background colors - no changes */
+	}
+
+	/* Regular card icon frame - keep light gray background on hover */
+	.settings-card-link:hover .card.bg-light .about-card__icon,
+	.settings-card-link:focus .card.bg-light .about-card__icon {
+		background-color: #f5f6fa !important;
+		background: #f5f6fa !important;
+		border-color: #e5e9f2 !important;
+	}
+
+	/* About card icon frame - keep blue gradient background on hover */
+	.settings-card-link:hover .card.settings-card--about .about-card__icon,
+	.settings-card-link:focus .card.settings-card--about .about-card__icon {
+		background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+		background-color: #364a63 !important;
+		border-color: #364a63 !important;
+	}
+
+	/* Ensure card itself doesn't scale or transform */
+	.settings-card-link:hover .card,
+	.settings-card-link:focus .card,
+	.settings-card-link:hover,
+	.settings-card-link:focus {
+		transform: none !important;
+		scale: 1 !important;
+	}
+
+	/* ONLY size effect - NO color changes at all */
+	/* Icon frames keep their original colors - no background or icon color changes */
 }
 
 .settings-card-link--about {
-	&:hover .settings-card--about,
-	&:focus .settings-card--about {
-		transform: translateY(-6px) scale(1.03);
-		box-shadow: 0 18px 36px rgba(15, 35, 75, 0.35);
-	}
+	/* Same hover effect as other cards - handled by icon frame hover */
 }
 
+/* About card should look the same as other cards */
 .settings-card--about {
-	background: linear-gradient(135deg, #1b2a52, #26406f);
-	border: 1px solid rgba(27, 42, 82, 0.85);
-	border-radius: 20px;
-	color: #ffffff;
-	transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+	background-color: #ffffff !important;
+	background: #ffffff !important;
+	border: 1px solid #e5e9f2 !important;
+	border-radius: 12px !important;
+	color: #364a63 !important;
+	transition: all 0.3s ease !important;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+	width: 100% !important;
+	flex: 1 1 auto !important;
 
 	.card-body {
-		min-height: 160px;
+		min-height: auto !important;
+		background-color: transparent !important;
+		color: #364a63 !important;
 	}
 
 	h5 {
-		color: #ffffff;
+		color: #364a63 !important;
+	}
+
+	p,
+	.text-muted,
+	.no-margin,
+	.text-white,
+	.text-white-50 {
+		color: #6b7280 !important;
+	}
+
+	/* Override any white text - but NOT the icon */
+	*:not(.about-card__icon):not(.about-card__icon *) {
+		color: #364a63 !important;
+	}
+
+	p,
+	.text-muted,
+	.no-margin {
+		color: #6b7280 !important;
+	}
+
+	/* Icon must always stay white - highest priority */
+	.about-card__icon i,
+	.about-card__icon i:hover,
+	.about-card__icon i:focus {
+		color: #ffffff !important;
 	}
 }
 
+/* About card icon - special color (blue gradient) */
 .settings-card--about .about-card__icon {
-	width: 56px;
-	height: 56px;
-	border-radius: 16px;
+	width: 56px !important;
+	height: 56px !important;
+	border-radius: 12px !important;
+	background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+	border: 1px solid #364a63 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	transition: all 0.3s ease !important;
+}
+
+.settings-card--about .about-card__icon i,
+.settings-card--about .about-card__icon i:hover,
+.settings-card--about .about-card__icon i:focus,
+.settings-card-link:hover .card.settings-card--about .about-card__icon i,
+.settings-card-link:focus .card.settings-card--about .about-card__icon i,
+.settings-card-link:active .card.settings-card--about .about-card__icon i {
+	color: #ffffff !important;
 }
 
 .brochure-download-btn {

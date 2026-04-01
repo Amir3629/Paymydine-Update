@@ -41,6 +41,8 @@ class Payments_model extends Model
         'priority' => 'integer',
     ];
 
+    protected $jsonable = ['data'];
+
     protected $purgeable = ['payment'];
 
     protected static $defaultPayment;
@@ -104,36 +106,42 @@ class Payments_model extends Model
 
     protected function beforeSave()
     {
-        if (!$this->exists)
+        // This only happens during updates (edits) — it maintains its current behavior.
+        if (!$this->exists) {
             return;
+        }
 
-        if ($this->is_default)
+        if ($this->is_default) {
             $this->makeDefault();
-
-        // Only collect gateway config fields if the extended gateway exposes them
-        $data = [];
-        $fields = [];
-
-        if (method_exists($this, 'getConfigFields')) {
-            $configFields = $this->getConfigFields();
-            if (is_array($configFields)) {
-                $fields = $configFields;
-            }
         }
 
-        // Persist only the dynamic config attributes (if any)
-        foreach ($fields as $name => $config) {
-            if (!array_key_exists($name, $this->attributes)) continue;
-            $data[$name] = $this->attributes[$name];
+        // Everything that came from the form is in Payment[...]
+        $posted = (array) post('Payment', []);
+
+        // Remove fields that do NOT belong to the JSON data (they are form columns/controls).
+        foreach ([
+            'payment',        // gateway select
+            'name',
+            'code',
+            'priority',
+            'status',
+            'is_default',
+            'description',
+            'class_name',
+        ] as $k) {
+            unset($posted[$k]);
+        }
+        
+        if (!empty($posted)) {
+            $current = is_array($this->data) ? $this->data : [];
+            $this->data = array_merge($current, $posted);
         }
 
-        // Keep non-fillable attributes off the base table
-        foreach ($this->attributes as $name => $value) {
+        // Remove attributes that cannot be filled (prevents attempts to save non-existent columns).
+        foreach (array_keys($this->attributes) as $name) {
             if (in_array($name, $this->fillable)) continue;
             unset($this->attributes[$name]);
         }
-
-        $this->data = $data ?: null;
     }
 
     //

@@ -1,8 +1,68 @@
 .dashboard-widgets {
-  margin-top: -15px;
+  margin-top: 0;
+  position: relative;
+  min-height: 0;
+}
+.dashboard-widgets .progress-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  padding: 0;
+}
+.dashboard-widgets .progress-indicator[style*="display: none"],
+.dashboard-widgets .progress-indicator.hidden {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
 }
 .dashboard-toolbar {
   padding: 0 0 20px;
+}
+
+/* Fix daterangepicker z-index to prevent interference with profile dropdown */
+.daterangepicker {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+/* When calendar is open, completely disable profile dropdown - MAXIMUM SPECIFICITY */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu,
+.daterangepicker:visible ~ .profile-dropdown-menu,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu,
+body:has(.daterangepicker:visible) .profile-dropdown-menu {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+}
+
+/* Disable all interactive elements inside profile dropdown when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu *,
+.daterangepicker:visible ~ .profile-dropdown-menu *,
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu *,
+body:has(.daterangepicker:visible) .profile-dropdown-menu * {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+/* Override inline styles on profile dropdown items when calendar is open */
+.daterangepicker.show-calendar ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+.daterangepicker:visible ~ .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker.show-calendar) .profile-dropdown-menu .dropdown-item[style*="pointer-events"],
+body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*="pointer-events"] {
+  pointer-events: none !important;
+  z-index: -1 !important;
 }
 #newWidgetModal .modal-dialog,
 .dashboard-widget-modal-dialog {
@@ -96,26 +156,33 @@
   gap: 0.75rem;
 }
 
+/* Match Add General Staff Note modal: same size, round corners, gradient and shadow */
 .dashboard-widget-modal .btn-add-widget,
 #newWidgetModal .btn-add-widget {
-  background: linear-gradient(135deg, #0f9d58 0%, #0bb87a 100%) !important;
-  border-color: #0c7d47 !important;
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
   color: #ffffff !important;
-  min-width: 90px !important;
-  padding: 0.4rem 0.9rem !important;
+  min-width: 110px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0.55rem 1.75rem !important;
+  line-height: 1.3 !important;
   font-weight: 600 !important;
   display: inline-block !important;
   text-align: center !important;
+  box-shadow: rgba(31, 43, 58, 0.3) 0 4px 15px !important;
+  border-radius: 12px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .dashboard-widget-modal .btn-add-widget:hover,
 .dashboard-widget-modal .btn-add-widget:focus,
 #newWidgetModal .btn-add-widget:hover,
 #newWidgetModal .btn-add-widget:focus {
-  background: linear-gradient(135deg, #0c7d47 0%, #0aa868 100%) !important;
-  border-color: #0a6437 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(15, 157, 88, 0.25) !important;
+  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
+  border: 2px solid #364a63 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: rgba(31, 43, 58, 0.4) 0 6px 18px !important;
 }
 
 .dashboard-widget-modal .btn-close-modal,
@@ -123,8 +190,11 @@
   background: #f1f4fb !important;
   border: 1px solid #c9d2e3 !important;
   color: #202938 !important;
-  min-width: 90px !important;
-  padding: 0.4rem 0.9rem !important;
+  min-width: 110px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0.55rem 1.75rem !important;
+  line-height: 1.3 !important;
   font-weight: 600 !important;
   display: inline-block !important;
   text-align: center !important;
@@ -166,6 +236,44 @@
 .edit-mode .widget-item .widget-item-action {
   display: block;
 }
+
+/* FIX: Ensure widget-item uses flexbox to prevent wrapper div collapsing */
+.widget-item {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: auto !important;
+}
+
+/* FIX: Remove padding from widget-items with wrapper divs - Must override .p-3 !important */
+.widget-item.card.no-padding,
+.widget-item.no-padding {
+  padding: 0 !important;
+}
+
+/* FIX: Override .p-3 specifically when .no-padding is also present */
+.widget-item.no-padding.p-3 {
+  padding: 0 !important;
+}
+
+/* FIX: Ensure wrapper divs (widget content containers) expand to fit content */
+.widget-item > div[id^="stat_"],
+.widget-item > div[id^="chart_"] {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  flex: 1 1 auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure card-counter expands to fill wrapper div */
+.widget-item .card-counter,
+.widget-item [class*="card-counter"] {
+  height: 100% !important;
+  min-height: 244px !important;
+  display: block !important;
+  width: 100% !important;
+}
 .widget-title {
   padding-bottom: 10px;
 }
@@ -195,7 +303,7 @@
 
 .widget-news .list-group-item:hover {
   background: #ffffff !important;
-  border-color: #08815e !important;
+  border-color: #d1d5db !important;
   transform: translateX(2px);
 }
 
@@ -204,7 +312,7 @@
 }
 
 .widget-news .list-group-item .text-muted {
-  color: #08815e !important;
+  color: #364a63 !important;
 }
 
 /* Cache Usage widget - Dynamic circular donut chart */
@@ -492,7 +600,7 @@
 .navbar-top .nav-item .dropdown-menu,
 .dropdown-menu {
   background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%) !important;
-  border: 2px solid #08815e !important;
+  border: none !important;
   border-radius: 10px !important;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
   padding: 8px !important;
@@ -529,7 +637,7 @@
   font-size: 11px !important;
   letter-spacing: 0.5px !important;
   padding: 12px 16px 8px !important;
-  border-bottom: 2px solid #08815e !important;
+  border-bottom: 2px solid #e5e7eb !important;
   background: transparent !important;
 }
 
@@ -585,21 +693,44 @@
   }
 }
 
-/* Dropdown item hover */
+/* Dropdown item hover - EXCLUDE menu-grid items AND dropdown-footer */
 .dropdown-menu .dropdown-item:hover,
-.dropdown-menu .menu-link:hover,
-.dropdown-menu .menu-item:hover,
-.dropdown-menu a:not(.btn):hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+.dropdown-menu .menu-link:not(.menu-grid .menu-link):hover,
+.dropdown-menu .menu-item:not(.menu-grid .menu-item):hover,
+.dropdown-menu a:not(.btn):not(.menu-grid .menu-link):not(.dropdown-footer a):hover {
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: #202938 !important;
   transform: translateX(3px) !important;
+}
+
+/* Exclude profile dropdown from green hover effect - MAXIMUM SPECIFICITY */
+.profile-dropdown-menu .dropdown-item:hover,
+.profile-dropdown-menu .menu-link:hover,
+.profile-dropdown-menu a:not(.btn):hover,
+.profile-dropdown-menu .dropdown-item:focus,
+.profile-dropdown-menu .dropdown-item:active,
+.profile-dropdown-menu .dropdown-item:focus-visible {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  color: #202938 !important;
+  transform: scale(1.05) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Remove any green gradients or colors from profile dropdown items */
+.profile-dropdown-menu .dropdown-item:hover *,
+.profile-dropdown-menu .dropdown-item:focus *,
+.profile-dropdown-menu .dropdown-item:active * {
+  color: #202938 !important;
 }
 
 /* Active/selected dropdown item */
 .dropdown-menu .dropdown-item.active,
 .dropdown-menu .dropdown-item:active,
 .dropdown-menu .menu-item.active .menu-link {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: white !important;
   font-weight: 600 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
@@ -607,7 +738,7 @@
 
 /* Dropdown divider */
 .dropdown-menu .dropdown-divider {
-  border-top: 2px solid #08815e !important;
+  border-top: 2px solid rgba(32, 41, 56, 0.15) !important;
   margin: 8px 0 !important;
   opacity: 1 !important;
 }
@@ -615,7 +746,7 @@
 /* Dropdown footer */
 .dropdown-menu .dropdown-footer,
 .dropdown-menu .dropdown-footer a {
-  border-top: 2px solid #08815e !important;
+  border-top: 2px solid rgba(32, 41, 56, 0.15) !important;
   padding: 12px 16px !important;
   color: #202938 !important;
   font-weight: 600 !important;
@@ -623,8 +754,19 @@
   background: transparent !important;
 }
 
-.dropdown-menu .dropdown-footer a:hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+.dropdown-menu .dropdown-footer a:hover,
+.dropdown-menu .dropdown-footer a:focus,
+.dropdown-menu .dropdown-footer a:active {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  background-image: none !important;
+  border-color: #d1d5db !important;
+  color: #202938 !important;
+}
+
+.dropdown-menu .dropdown-footer a:hover i,
+.dropdown-menu .dropdown-footer a:focus i,
+.dropdown-menu .dropdown-footer a:active i {
   color: #202938 !important;
 }
 
@@ -636,7 +778,7 @@
 }
 
 .dropdown-menu .menu-item {
-  border-bottom: 1px solid #08815e !important;
+  border-bottom: 1px solid rgba(32, 41, 56, 0.1) !important;
   margin: 4px 0 !important;
   border-radius: 8px !important;
   overflow: visible !important; /* Changed from hidden to visible */
@@ -660,6 +802,9 @@
   padding: 0 !important;
   flex: 0 0 calc(33.333% - 6px) !important; /* Force 3 columns */
   max-width: calc(33.333% - 6px) !important;
+  position: relative !important;
+  pointer-events: auto !important; /* Ensure entire item is hoverable */
+  z-index: 20 !important; /* HIGHER than dropdown-item (z-index: 10) to prevent blocking */
 }
 
 .dropdown-menu .menu-grid .menu-link {
@@ -671,16 +816,35 @@
   min-height: 75px !important;
   border-radius: 10px !important;
   text-decoration: none !important;
-  transition: all 0.2s ease !important;
+  transition: none !important;
   width: 100% !important;
+  height: 100% !important; /* Fill entire menu-item */
+  text-align: center !important;
+  position: relative !important;
+  pointer-events: auto !important; /* Ensure entire link is hoverable */
+  z-index: 20 !important; /* HIGHER than dropdown-item (z-index: 10) to prevent blocking */
 }
 
 .dropdown-menu .menu-grid .menu-link i {
   font-size: 24px !important;
-  margin-bottom: 6px !important;
-  margin-right: 0 !important; /* Override default icon margin */
-  color: #08815e !important;
-  transition: all 0.2s ease !important;
+  margin: 0 auto 6px auto !important;
+  margin-right: 0 !important;
+  margin-left: auto !important;
+  color: #4b5563 !important;
+  transition: transform 0.3s ease-out !important; /* Smoother transition */
+  display: block !important;
+  text-align: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  line-height: 24px !important;
+  pointer-events: none !important; /* Don't block hover on parent */
+}
+
+/* FIX: Hover on menu-item triggers icon scale - works for entire button area */
+.dropdown-menu .menu-grid .menu-item:hover .menu-link i {
+  transform: scale(1.05) !important; /* Scale when hovering anywhere on item */
+  color: #000000 !important;
+  transition: transform 0.3s ease-out !important;
 }
 
 .dropdown-menu .menu-grid .menu-link span {
@@ -691,30 +855,55 @@
   line-height: 1.2 !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
-  white-space: normal !important; /* Allow text to wrap */
+  white-space: normal !important;
   max-width: 100% !important;
   display: block !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+
+/* Menu-grid links - ONLY icon scale on hover, nothing else */
+.dropdown-menu .menu-grid .menu-link {
+  background: transparent !important;
+  transition: none !important;
 }
 
 .dropdown-menu .menu-grid .menu-link:hover {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1) !important;
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.dropdown-menu .menu-grid .menu-link i {
+  transition: transform 0.2s ease !important;
 }
 
 .dropdown-menu .menu-grid .menu-link:hover i {
-  color: #202938 !important;
-  transform: scale(1.08) !important;
+  color: #000000 !important;
+  transform: scale(1.05) !important; /* Smaller scale, smoother */
+  transition: transform 0.3s ease-out !important;
 }
 
 .dropdown-menu .menu-grid .menu-link:hover span {
   color: #202938 !important;
+  transform: none !important;
+}
+
+/* Disable ALL hover effects on menu-grid menu-item parent */
+.dropdown-menu .menu-grid .menu-item:hover {
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-color: transparent !important;
 }
 
 /* Icons in dropdown items */
 .dropdown-menu .dropdown-item .fa,
 .dropdown-menu .menu-link .fa {
-  color: #08815e !important;
+  color: #364a63 !important;
   margin-right: 10px !important;
   width: 16px !important;
   text-align: center !important;
@@ -732,7 +921,7 @@
 
 /* Notification badges in dropdown */
 .dropdown-menu .badge {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   color: white !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
@@ -742,7 +931,7 @@
 
 /* Location selector specific */
 .dropdown-menu .menu-item-meta {
-  color: #08815e !important;
+  color: #364a63 !important;
   font-size: 12px !important;
   margin-top: 2px !important;
 }
@@ -765,12 +954,12 @@
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   border-radius: 10px !important;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
 }
 
 /* ============================================
@@ -811,7 +1000,7 @@
   background: transparent !important; /* Remove gold background */
   color: #202938 !important;
   padding: 12px 16px !important;
-  border-bottom: 2px solid #08815e !important; /* Match other dropdowns */
+  border-bottom: 2px solid #e5e7eb !important; /* Match other dropdowns */
   border-radius: 0 !important;
 }
 
@@ -840,10 +1029,10 @@
 
 #notif-history-link:hover,
 #notification-panel .btn-light:hover {
-  background: #e5ebf7 !important;
-  border-color: #b8c6dd !important;
-  transform: scale(1.05) !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+  background: #f3f4f6 !important; /* Subtle gray instead of light blue */
+  border-color: #d1d5db !important; /* Darker gray border */
+  transform: scale(1.02) !important; /* Subtle scale */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
 }
 
 /* Notification list container */
@@ -859,7 +1048,7 @@
 #notification-list .list-group-item,
 .notification-item {
   background: white !important;
-  border: 1px solid #08815e !important;
+  border: 1px solid #e5e7eb !important;
   border-radius: 10px !important;
   padding: 14px 16px !important;
   margin-bottom: 8px !important;
@@ -894,7 +1083,7 @@
 #notification-list .list-group-item:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-  border-color: #08815e !important;
+  border-color: #d1d5db !important;
   background: linear-gradient(135deg, #ffffff 0%, white 100%) !important;
 }
 
@@ -922,7 +1111,7 @@
 /* Notification timestamp */
 #notification-list .list-group-item .text-muted,
 .notification-item .timestamp {
-  color: #08815e !important;
+  color: #364a63 !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   margin-top: 6px !important;
@@ -931,9 +1120,8 @@
 
 /* Empty/loading/error states */
 #notification-loading,
-#notification-error,
 #notification-empty {
-  color: #08815e !important;
+  color: #6b7280 !important; /* Neutral gray instead of green */
   text-align: center !important;
   padding: 40px 20px !important;
   font-weight: 500 !important;
@@ -965,7 +1153,7 @@
 
 #bell-icon:hover,
 .fa-bell:hover {
-  color: #0bb87a !important;
+  color: #526484 !important;
   transform: scale(1.1) rotate(15deg) !important;
 }
 
@@ -995,11 +1183,11 @@
 
 #notification-list::-webkit-scrollbar-thumb,
 #notification-panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #08815e 0%, #0bb87a 100%) !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   border-radius: 10px !important;
 }
 
 #notification-list::-webkit-scrollbar-thumb:hover,
 #notification-panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #202938 0%, #08815e 100%) !important;
+  background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
 }

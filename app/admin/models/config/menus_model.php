@@ -36,11 +36,10 @@ $config['list']['toolbar'] = [
             'class' => 'btn btn-primary',
             'href' => 'menus/create',
         ],
-        'allergens' => [
-            'label' => 'lang:admin::lang.allergens.text_allergens',
+        'combi' => [
+            'label' => 'Combo',
             'class' => 'btn btn-default',
-            'href' => 'allergens',
-            'permission' => 'Admin.Allergens',
+            'href' => 'combos',
         ],
     ],
 ];
@@ -61,6 +60,25 @@ $config['list']['bulkActions'] = [
                 'label' => 'lang:admin::lang.list.actions.label_disable',
                 'type' => 'button',
                 'class' => 'dropdown-item text-danger',
+            ],
+        ],
+    ],
+    'stockout' => [
+        'label' => 'Stock Out',
+        'type' => 'dropdown',
+        'class' => 'btn btn-light',
+        'widget' => 'Admin\BulkActionWidgets\StockOut',
+        'stockOutColumn' => 'is_stock_out',
+        'menuItems' => [
+            'mark' => [
+                'label' => 'Stock Out',
+                'type' => 'button',
+                'class' => 'dropdown-item text-warning',
+            ],
+            'restore' => [
+                'label' => 'Stock In',
+                'type' => 'button',
+                'class' => 'dropdown-item text-success',
             ],
         ],
     ],
@@ -119,6 +137,13 @@ $config['list']['columns'] = [
     'menu_status' => [
         'label' => 'lang:admin::lang.label_status',
         'type' => 'switch',
+    ],
+    'is_stock_out' => [
+        'label' => 'Stock Out',
+        'type' => 'switch',
+        'onText' => 'Out of Stock',
+        'offText' => 'In Stock',
+        'sortable' => false,
     ],
     'menu_id' => [
         'label' => 'lang:admin::lang.column_id',
@@ -394,6 +419,18 @@ $config['form']['tabs'] = [
             'tab' => 'lang:admin::lang.menus.text_tab_special',
             'type' => 'switch',
             'comment' => 'lang:admin::lang.menus.help_specials',
+        ],
+
+        'prices' => [
+            'label' => 'Multiple Price Levels',
+            'tab' => 'lang:admin::lang.menus.text_tab_pricing',
+            'type' => 'repeater',
+            'form' => 'menu_prices_model',
+            'prompt' => 'Add Price Level',
+            'sortable' => true,
+            'sortColumnName' => 'priority',
+            'context' => ['create', 'edit', 'preview'],
+            'comment' => 'Set different prices for different contexts (bar, dining room, room service, happy hour). You can also set time-based pricing for happy hour.',
         ],
     ],
 ];

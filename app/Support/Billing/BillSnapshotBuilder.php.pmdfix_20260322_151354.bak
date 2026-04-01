@@ -1,0 +1,135 @@
+<?php
+
+namespace App\Support\Billing;
+
+class BillSnapshotBuilder
+{
+    protected function r($value): float
+    {
+        return round((float)$value, (int) config('billing.round_scale', 2));
+    }
+
+    /**
+     * Build from stored order rows.
+     *
+     * Each item:
+     * [
+     *   'name'       => string,
+     *   'qty'        => float,
+     *   'line_total' => float,   // stored subtotal of that order line
+     *   'tax_rate'   => float
+     * ]
+     */
+    public function buildFromStoredOrder(array $items, float $tipAmount, string $taxMode = 'included'): array
+    {
+        $taxMode = in_array($taxMode, ['included', 'add_at_end'], true) ? $taxMode : 'included';
+
+        $lines = [];
+        $grossSubtotal = 0.0;
+        $netSubtotal   = 0.0;
+        $vatTotal      = 0.0;
+
+        foreach ($items as $item) {
+            $name      = (string) ($item['name'] ?? '');
+            $qty       = (float)  ($item['qty'] ?? 1);
+            $lineTotal = (float)  ($item['line_total'] ?? 0);
+            $taxRate   = (float)  ($item['tax_rate'] ?? 0);
+
+            if ($taxMode === 'included') {
+                $gross = $lineTotal;
+                $net   = $taxRate > 0 ? ($gross / (1 + ($taxRate / 100))) : $gross;
+                $vat   = $gross - $net;
+            } else {
+                $net   = $lineTotal;
+                $vat   = $net * ($taxRate / 100);
+                $gross = $net + $vat;
+            }
+
+            $grossSubtotal += $gross;
+            $netSubtotal   += $net;
+            $vatTotal      += $vat;
+
+            $lines[] = [
+                'name'          => $name,
+                'qty'           => $this->r($qty),
+                'tax_rate'      => $this->r($taxRate),
+                'line_total'    => $this->r($lineTotal),
+                'net_amount'    => $this->r($net),
+                'vat_amount'    => $this->r($vat),
+                'gross_amount'  => $this->r($gross),
+            ];
+        }
+
+        $tipAmount = $this->r($tipAmount);
+        $grossSubtotal = $this->r($grossSubtotal);
+        $netSubtotal   = $this->r($netSubtotal);
+        $vatTotal      = $this->r($vatTotal);
+
+        $displaySubtotal = $taxMode === 'included' ? $grossSubtotal : $netSubtotal;
+        $total = $this->r($displaySubtotal + $vatTotal + $tipAmount - ($taxMode === 'included' ? $vatTotal : 0));
+        if ($taxMode === 'included') {
+            $total = $this->r($grossSubtotal + $tipAmount);
+        }
+
+        $rateLabel = $this->makeRateLabel($lines, $taxMode);
+
+        return [
+            'tax_mode' => $taxMode,
+            'currency' => 'EUR',
+
+            'lines' => $lines,
+
+            'display' => [
+                'subtotal' => $this->r($displaySubtotal),
+                'tax_title' => $taxMode === 'included'
+                    ? ('VAT included' . ($rateLabel ? ' (' . $rateLabel . ')' : ''))
+                    : ('VAT' . ($rateLabel ? ' (' . $rateLabel . ')' : '')),
+                'tax_value' => $vatTotal,
+                'tip_title' => (string) config('billing.tip_label', 'Tip'),
+                'tip_value' => $tipAmount,
+                'total' => $this->r($taxMode === 'included' ? ($grossSubtotal + $tipAmount) : ($netSubtotal + $vatTotal + $tipAmount)),
+                'tax_is_included' => $taxMode === 'included',
+            ],
+
+            'fiscal' => [
+                'subtotal_net' => $netSubtotal,
+                'subtotal_gross' => $grossSubtotal,
+                'vat_total' => $vatTotal,
+                'tip_total' => $tipAmount,
+                'total_amount' => $this->r($taxMode === 'included' ? ($grossSubtotal + $tipAmount) : ($netSubtotal + $vatTotal + $tipAmount)),
+                'items' => array_map(function ($line) {
+                    return [
+                        'name' => $line['name'],
+                        'quantity' => number_format((float)$line['qty'], 2, '.', ''),
+                        'unit_price' => number_format((float)$line['gross_amount'], 2, '.', ''),
+                        'total_price' => number_format((float)$line['gross_amount'], 2, '.', ''),
+                        'vat_rate' => number_format((float)$line['tax_rate'], 2, '.', ''),
+                    ];
+                }, $lines),
+            ],
+        ];
+    }
+
+    protected function makeRateLabel(array $lines, string $taxMode): string
+    {
+        $rates = [];
+
+        foreach ($lines as $line) {
+            $r = (float) ($line['tax_rate'] ?? 0);
+            $rates[number_format($r, 2, '.', '')] = true;
+        }
+
+        $keys = array_keys($rates);
+        if (!$keys) {
+            return '';
+        }
+
+        if (count($keys) === 1) {
+            return rtrim(rtrim($keys[0], '0'), '.') . '%';
+        }
+
+        return implode(', ', array_map(function ($v) {
+            return rtrim(rtrim($v, '0'), '.') . '%';
+        }, $keys));
+    }
+}

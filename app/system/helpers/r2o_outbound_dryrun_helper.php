@@ -1,0 +1,343 @@
+<?php
+
+use Illuminate\Support\Facades\DB;
+
+if (!function_exists('pmd_r2o_outbound_dryrun_after_order_create')) {
+    function pmd_r2o_outbound_dryrun_after_order_create($orderId, array $requestPayload = [])
+    {
+        try {
+            $orderId = (int)$orderId;
+            if ($orderId <= 0) {
+                \Log::warning('PMD_R2O_DRYRUN_SKIP_INVALID_ORDER_ID', [
+                    'order_id' => $orderId,
+                ]);
+                return;
+            }
+
+            $specialInstructions = (string)($requestPayload['special_instructions'] ?? '');
+            $sourceKey = (string)($requestPayload['source_key'] ?? '');
+            $externalSource = (string)($requestPayload['external_source'] ?? '');
+
+            $isImportedReady2Order =
+                str_contains($specialInstructions, 'Imported from ready2order')
+                || str_contains($sourceKey, 'r2o')
+                || str_contains($sourceKey, 'ready2order')
+                || str_contains($externalSource, 'r2o')
+                || str_contains($externalSource, 'ready2order');
+
+            if ($isImportedReady2Order) {
+                \Log::info('PMD_R2O_DRYRUN_SKIP_IMPORTED_ORDER', [
+                    'order_id' => $orderId,
+                    'special_instructions' => $specialInstructions,
+                    'source_key' => $sourceKey,
+                    'external_source' => $externalSource,
+                ]);
+                return;
+            }
+
+            $order = DB::table('orders')->where('order_id', $orderId)->first();
+            if (!$order) {
+                \Log::warning('PMD_R2O_DRYRUN_SKIP_ORDER_NOT_FOUND', [
+                    'order_id' => $orderId,
+                ]);
+                return;
+            }
+
+            $orderMenus = DB::table('order_menus')
+                ->where('order_id', $orderId)
+                ->orderBy('order_menu_id')
+                ->get();
+
+            $tableRaw = (string)($order->order_type ?? '');
+            $tableMatch = null;
+
+            if ($tableRaw !== '' && !in_array(strtolower($tableRaw), ['cashier', 'delivery', 'pickup', 'collection'], true)) {
+                $tableMatch = DB::table('tables')
+                    ->where(function ($q) use ($tableRaw) {
+                        $q->where('table_id', $tableRaw)
+                          ->orWhere('table_name', $tableRaw);
+                    })
+                    ->first();
+            }
+
+            $items = [];
+            $missingMappings = [];
+
+            foreach ($orderMenus as $row) {
+                $menuId = isset($row->menu_id) ? (int)$row->menu_id : 0;
+                $menu = null;
+
+                if ($menuId > 0) {
+                    $menu = DB::table('menus')->where('menu_id', $menuId)->first();
+                }
+
+                $itemName = (string)($row->name ?? ($menu->menu_name ?? ''));
+                $qty = (int)($row->quantity ?? 1);
+                $unitPrice = (float)($row->price ?? 0);
+                $subtotal = (float)($row->subtotal ?? 0);
+
+                $candidateProductId = null;
+                $candidateMappingSource = null;
+
+                $nameVariants = array_values(array_unique(array_filter([
+                    trim($itemName),
+                    trim((string)($menu->menu_name ?? '')),
+                ])));
+
+
+                foreach ($nameVariants as $nm) {
+                    $matched = DB::table('settings')
+                        ->whereRaw('LOWER(item) = ?', ['ready2order_product_map_' . strtolower($nm)])
+                        ->value('value');
+
+                    if (!empty($matched) && ctype_digit((string)$matched)) {
+                        $candidateProductId = (int)$matched;
+                        $candidateMappingSource = 'settings.name_map';
+                        break;
+                    }
+                }
+
+                if (!$candidateProductId && $menuId > 0) {
+                    $matched = DB::table('settings')
+                        ->where('item', 'ready2order_product_map_menu_id_' . $menuId)
+                        ->value('value');
+
+                    if (!empty($matched) && ctype_digit((string)$matched)) {
+                        $candidateProductId = (int)$matched;
+                        $candidateMappingSource = 'settings.menu_id_map';
+                    }
+                }
+
+                if (!$candidateProductId) {
+                    $missingMappings[] = [
+                        'menu_id' => $menuId,
+                        'name' => $itemName,
+                    ];
+                }
+
+                $items[] = [
+                    'order_menu_id' => (int)($row->order_menu_id ?? 0),
+                    'menu_id' => $menuId,
+                    'name' => $itemName,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $subtotal,
+                    'comment' => (string)($row->comment ?? ''),
+                    'option_values_raw' => $row->option_values ?? null,
+                    'candidate_r2o_product_id' => $candidateProductId,
+                    'candidate_mapping_source' => $candidateMappingSource,
+                ];
+            }
+
+            $paymentRaw = strtolower((string)($order->payment ?? ''));
+            $candidatePaymentMethod = match ($paymentRaw) {
+                'cash' => [
+                    'name' => 'Barzahlung',
+                    'settings_key' => 'ready2order_payment_method_cash_id',
+                ],
+                'paypal' => [
+                    'name' => 'Kartenzahlung',
+                    'settings_key' => 'ready2order_payment_method_paypal_id',
+                ],
+                'card', 'stripe', 'apple_pay', 'google_pay' => [
+                    'name' => 'Kartenzahlung',
+                    'settings_key' => 'ready2order_payment_method_card_id',
+                ],
+                default => [
+                    'name' => 'Kartenzahlung',
+                    'settings_key' => 'ready2order_payment_method_default_id',
+                ],
+            };
+
+            $mappedPaymentMethodId = DB::table('settings')
+                ->where('item', $candidatePaymentMethod['settings_key'])
+                ->value('value');
+
+            $accountToken = DB::table('settings')
+                ->where('item', 'ready2order_account_token')
+                ->value('value');
+
+            $outboundLiveEnabledRaw = DB::table('settings')
+                ->where('item', 'ready2order_outbound_live_enabled')
+                ->value('value');
+
+            $outboundLiveEnabled = in_array(
+                strtolower((string)$outboundLiveEnabledRaw),
+                ['1', 'true', 'yes', 'on'],
+                true
+            );
+
+            $payload = [
+                'mode' => 'DRY_RUN_ONLY',
+                'tenant_hint' => request()->getHost(),
+                'order' => [
+                    'order_id' => (int)$order->order_id,
+                    'customer_first_name' => (string)($order->first_name ?? ''),
+                    'customer_last_name' => (string)($order->last_name ?? ''),
+                    'email' => (string)($order->email ?? ''),
+                    'telephone' => (string)($order->telephone ?? ''),
+                    'order_total' => (float)($order->order_total ?? 0),
+                    'payment' => (string)($order->payment ?? ''),
+                    'order_type' => (string)($order->order_type ?? ''),
+                    'comment' => (string)($order->comment ?? ''),
+                    'created_at' => (string)($order->created_at ?? ''),
+                ],
+                'table' => [
+                    'input_order_type' => $tableRaw,
+                    'matched_table_id' => $tableMatch->table_id ?? null,
+                    'matched_table_name' => $tableMatch->table_name ?? null,
+                ],
+                'payment_mapping' => [
+                    'input_payment' => $paymentRaw,
+                    'candidate_r2o_payment_name' => $candidatePaymentMethod['name'],
+                    'candidate_r2o_payment_method_id' => (!empty($mappedPaymentMethodId) && ctype_digit((string)$mappedPaymentMethodId))
+                        ? (int)$mappedPaymentMethodId
+                        : null,
+                    'mapping_settings_key' => $candidatePaymentMethod['settings_key'],
+                ],
+                'items' => $items,
+                'missing_product_mappings' => $missingMappings,
+                'push_allowed_now' => empty($missingMappings) && !empty($tableMatch?->table_id),
+                'notes' => [
+                    'No real API request sent.',
+                    'This log is only for payload validation.',
+                    'If push_allowed_now is false, real outbound push must stay disabled.',
+                ],
+            ];
+
+
+            \Log::info('PMD_R2O_OUTBOUND_DRYRUN_PAYLOAD', $payload);
+
+            if (!$outboundLiveEnabled) {
+                \Log::info('PMD_R2O_OUTBOUND_PUSH_SKIP', [
+                    'reason' => 'live_push_disabled',
+                    'order_id' => (int)$order->order_id,
+                ]);
+                return;
+            }
+
+            if (empty($accountToken)) {
+                \Log::warning('PMD_R2O_OUTBOUND_PUSH_SKIP', [
+                    'reason' => 'missing_account_token',
+                    'order_id' => (int)$order->order_id,
+                ]);
+                return;
+            }
+
+            if (!$payload['push_allowed_now']) {
+                \Log::info('PMD_R2O_OUTBOUND_PUSH_SKIP', [
+                    'reason' => 'payload_not_allowed',
+                    'order_id' => (int)$order->order_id,
+                    'missing_product_mappings' => $missingMappings,
+                    'table' => $payload['table'],
+                ]);
+                return;
+            }
+
+            $realItems = [];
+            foreach ($items as $it) {
+                if (!empty($it['candidate_r2o_product_id'])) {
+                    $realItems[] = [
+                        'product_id' => (int)$it['candidate_r2o_product_id'],
+                        'item_quantity' => max(1, (int)$it['quantity']),
+                        'item_price' => round((float)$it['unit_price'], 2),
+                        'item_vatId' => 3371736,
+                        
+                    ];
+                }
+            }
+
+            if (empty($realItems)) {
+                \Log::warning('PMD_R2O_OUTBOUND_PUSH_SKIP', [
+                    'reason' => 'empty_real_items',
+                    'order_id' => (int)$order->order_id,
+                ]);
+                return;
+            }
+
+            $localTableId = !empty($tableMatch?->table_id) ? (int)$tableMatch->table_id : null;
+            if (!$localTableId) {
+                \Log::warning('PMD_R2O_OUTBOUND_PUSH_SKIP', [
+                    'reason' => 'missing_r2o_table_id',
+                    'order_id' => (int)$order->order_id,
+                ]);
+                return;
+            }
+
+            $mappedTableId = DB::table('settings')
+                ->where('item', 'ready2order_table_map_' . $localTableId)
+                ->value('value');
+
+            $r2oTableId = (!empty($mappedTableId) && ctype_digit((string)$mappedTableId))
+                ? (int)$mappedTableId
+                : $localTableId;
+
+            $requestBody = [
+                'table_id' => $r2oTableId,
+                'price_base' => 'gross',
+                'training_mode' => false,
+                'items' => $realItems,
+            ];
+
+            $pushUrl = 'https://api.ready2order.com/v1/orders';
+
+            \Log::info('PMD_R2O_OUTBOUND_PUSH_REQUEST', [
+                'order_id' => (int)$order->order_id,
+                'url' => $pushUrl,
+                'body' => $requestBody,
+                'token_present' => !empty($accountToken),
+            ]);
+
+            $ch = curl_init($pushUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Bearer ' . $accountToken,
+                    'Accept: application/json',
+                    'Content-Type: application/json',
+                ],
+                CURLOPT_POSTFIELDS => json_encode($requestBody, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                CURLOPT_TIMEOUT => 30,
+            ]);
+
+            $resp = curl_exec($ch);
+            $curlErr = curl_error($ch);
+            $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($resp === false) {
+                \Log::error('PMD_R2O_OUTBOUND_PUSH_FAILED', [
+                    'order_id' => (int)$order->order_id,
+                    'reason' => 'curl_exec_false',
+                    'curl_error' => $curlErr,
+                    'http_code' => $httpCode,
+                ]);
+                return;
+            }
+
+            $decoded = json_decode($resp, true);
+
+            if ($httpCode >= 200 && $httpCode < 300) {
+                \Log::info('PMD_R2O_OUTBOUND_PUSH_SUCCESS', [
+                    'order_id' => (int)$order->order_id,
+                    'http_code' => $httpCode,
+                    'response' => $decoded ?? $resp,
+                ]);
+            } else {
+                \Log::error('PMD_R2O_OUTBOUND_PUSH_FAILED', [
+                    'order_id' => (int)$order->order_id,
+                    'http_code' => $httpCode,
+                    'response' => $decoded ?? $resp,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('PMD_R2O_OUTBOUND_DRYRUN_FAILED', [
+                'order_id' => $orderId ?? null,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+        }
+    }
+}

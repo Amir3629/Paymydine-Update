@@ -78,10 +78,9 @@ class Themes extends \Admin\Classes\AdminController
 
         $this->asExtension('ListController')->index();
     }
-
     public function listExtendQuery($query)
     {
-        $query->where('code', 'frontend-theme');
+        // PayMyDine: show all themes in admin/themes
     }
 
     public function edit($context, $themeCode = null)

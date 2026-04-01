@@ -51,7 +51,7 @@ class PosWebhookController extends Controller
 
             //  Fetch full order details from external POS API
             $accessToken = $posConfig->access_token;
-            $apiUrl = "https://pay-my-dine-api-pos.onrender.com/api/pos/{$provider}/order/{$externalOrderId}";
+            $apiUrl = "https://api.ready2order.com/v1/orders";
 
             $response = Http::withHeaders([
                 'Authorization' => "Bearer {$accessToken}",

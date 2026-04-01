@@ -27,8 +27,14 @@
         }
         
         $rowId = 'order-row-' . $record->getKey();
+        $statusName = $record->status ? $record->status->status_name : '';
+        $isHistory = in_array(strtolower($statusName), ['delivery', 'completed']);
     @endphp
-    <tr id="{{ $rowId }}" style="background-color: {{ $lightBackground }}; transition: background-color 0.3s ease;" 
+    <tr id="{{ $rowId }}" 
+        data-status-name="{{ strtolower($statusName) }}" 
+        data-is-history="{{ $isHistory ? '1' : '0' }}"
+        class="order-row {{ $isHistory ? 'history-order' : 'active-order' }}"
+        style="background-color: {{ $lightBackground }}; transition: all 0.3s ease, opacity 0.3s ease, transform 0.3s ease;" 
         onmouseover="this.style.backgroundColor='{{ $hoverBackground }}'" 
         onmouseout="this.style.backgroundColor='{{ $lightBackground }}'"
     >

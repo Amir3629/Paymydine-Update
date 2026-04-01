@@ -1,0 +1,418 @@
+.note-editor.note-frame {
+  border-color: var(--bs-gray-300);
+}
+.note-editor.note-frame .note-toolbar {
+  background-color: var(--bs-gray-200);
+  border-radius: 3px 3px 0 0;
+}
+
+/* Prevent toolbar/card from expanding when dropdowns open - menus must float outside */
+.note-editor.note-frame,
+.note-editor.note-frame .card,
+.note-toolbar.card-header {
+  overflow: visible !important;
+}
+.note-toolbar .note-btn-group.dropdown,
+.note-toolbar .dropdown {
+  position: relative;
+}
+.note-toolbar .dropdown-menu,
+.note-toolbar .note-dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  z-index: 1050;
+  margin-top: 2px;
+  max-height: 280px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+/* Override Bootstrap btn-group joining - use gap instead */
+.note-editor.note-frame .note-toolbar .btn-group .btn + .btn,
+.note-editor .note-toolbar .note-btn-group .btn + .btn,
+.note-editor .note-toolbar .note-btn-group .note-btn + .note-btn {
+  margin-left: 0 !important;
+}
+
+.note-editor.note-frame .note-statusbar {
+  background-color: var(--bs-gray-200);
+  border-top: 1px solid var(--bs-gray-300);
+  margin-top: -1px;
+}
+
+.note-editor.note-frame .note-status-output {
+  height: 11px;
+}
+
+.note-editor .note-editable {
+  background-color: var(--bs-white);
+}
+
+/* Tables in editor - ensure borders are visible */
+.note-editor .note-editable table,
+.note-editor .note-editable .table {
+  border-collapse: collapse !important;
+}
+.note-editor .note-editable table td,
+.note-editor .note-editable table th,
+.note-editor .note-editable .table td,
+.note-editor .note-editable .table th {
+  border: 1px solid #dee2e6 !important;
+  padding: 0.5rem !important;
+}
+.note-editor .note-editable .table-bordered td,
+.note-editor .note-editable .table-bordered th,
+.note-editor .note-editable table.table-bordered td,
+.note-editor .note-editable table.table-bordered th {
+  border: 1px solid #dee2e6 !important;
+}
+
+/* ========================================
+   RICH EDITOR TOOLBAR - Consistent button styling
+   Same size, SAME gap everywhere (8px)
+   ======================================== */
+.note-toolbar.card-header,
+.note-editor .note-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px !important;
+}
+/* Direct child groups only - exclude nested dropdown content */
+.note-toolbar.card-header > .note-btn-group,
+.note-editor .note-toolbar > .note-btn-group {
+  margin: 0 !important;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 8px !important;
+}
+.note-toolbar.card-header > .note-btn-group + .note-btn-group,
+.note-editor .note-toolbar > .note-btn-group + .note-btn-group {
+  margin-left: 0 !important;
+}
+/* All toolbar buttons - same square size, icons centered (direct children of toolbar groups only) */
+.note-toolbar.card-header > .note-btn-group > .note-btn,
+.note-toolbar.card-header > .note-btn-group > .btn,
+.note-toolbar.card-header > .note-btn-group > button,
+.note-editor .note-toolbar > .note-btn-group > .note-btn,
+.note-editor .note-toolbar > .note-btn-group > .btn,
+.note-editor .note-toolbar > .note-btn-group > button {
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+}
+/* Center icons (A, Bold, etc.) - reset Summernote pull margins */
+.note-editor .note-toolbar .note-btn i,
+.note-editor .note-toolbar .note-btn .note-icon,
+.note-editor .note-toolbar .btn i,
+.note-editor .note-toolbar .btn .note-icon,
+.note-editor .note-toolbar button i,
+.note-editor .note-toolbar button .note-icon {
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+/* Dropdown toggles (Style, Font, Paragraph, Table) - wider, text centered, same 38px height */
+.note-toolbar.card-header > .note-btn-group > .dropdown-toggle,
+.note-editor .note-toolbar > .note-btn-group > .dropdown-toggle,
+.note-toolbar.card-header > .note-btn-group > .dropdown > .dropdown-toggle,
+.note-editor .note-toolbar > .note-btn-group > .dropdown > .dropdown-toggle {
+  border-radius: 10px !important;
+  width: auto !important;
+  min-width: 50px !important;
+  max-width: 100px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+.note-toolbar.card-header .note-current-fontname,
+.note-editor .note-toolbar .note-current-fontname {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+/* Font Family dropdown - wider, text centered */
+.note-toolbar.card-header > .note-fontname .dropdown-toggle,
+.note-editor .note-toolbar > .note-fontname .dropdown-toggle {
+  max-width: 120px !important;
+  min-width: 70px !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  line-height: 1 !important;
+}
+/* Style, Paragraph, Table dropdowns - wider, text centered (nested .btn-group structure) */
+.note-toolbar .note-style .dropdown-toggle,
+.note-toolbar .note-para .dropdown-toggle,
+.note-toolbar .note-table .dropdown-toggle,
+.note-editor .note-toolbar .note-style .dropdown-toggle,
+.note-editor .note-toolbar .note-para .dropdown-toggle,
+.note-editor .note-toolbar .note-table .dropdown-toggle {
+  min-width: 50px !important;
+  max-width: 100px !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  border-radius: 10px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  line-height: 1 !important;
+}
+/* Hover effect - all toolbar buttons (exclude color swatches in dropdown) */
+.note-toolbar .note-btn:hover:not(.note-color-btn),
+.note-toolbar .btn:hover:not(.note-color-btn),
+.note-toolbar button:hover:not(.note-color-btn),
+.note-toolbar .dropdown-toggle:hover,
+.note-editor .note-toolbar .note-btn:hover:not(.note-color-btn),
+.note-editor .note-toolbar .btn:hover:not(.note-color-btn),
+.note-editor .note-toolbar button:hover:not(.note-color-btn),
+.note-editor .note-toolbar .dropdown-toggle:hover {
+  background: #e5e7eb !important;
+  border-color: #9ca3af !important;
+  color: #1f2937 !important;
+}
+/* Focus visible for accessibility */
+.note-toolbar .note-btn:focus-visible,
+.note-toolbar .btn:focus-visible,
+.note-toolbar button:focus-visible,
+.note-toolbar .dropdown-toggle:focus-visible,
+.note-editor .note-toolbar .note-btn:focus-visible,
+.note-editor .note-toolbar .btn:focus-visible,
+.note-editor .note-toolbar button:focus-visible,
+.note-editor .note-toolbar .dropdown-toggle:focus-visible {
+  background: #e5e7eb !important;
+  border-color: #9ca3af !important;
+  color: #1f2937 !important;
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+/* Active/selected state - Bold, Underline, etc. when formatting is applied */
+.note-toolbar .note-btn.active,
+.note-toolbar .btn.active,
+.note-toolbar .dropdown-toggle.active,
+.note-editor .note-toolbar .note-btn.active,
+.note-editor .note-toolbar .btn.active,
+.note-editor .note-toolbar .dropdown-toggle.active {
+  background: #d1d5db !important;
+  border-color: #9ca3af !important;
+  color: #1f2937 !important;
+}
+/* Dropdown toggle when menu is open (.show) */
+.note-toolbar .dropdown-toggle.show,
+.note-editor .note-toolbar .dropdown-toggle.show {
+  background: #d1d5db !important;
+  border-color: #9ca3af !important;
+  color: #1f2937 !important;
+}
+/* Dropdown items - hover and selected (.checked) */
+.note-toolbar .dropdown-item:hover,
+.note-toolbar .dropdown-item:focus,
+.note-editor .note-toolbar .dropdown-item:hover,
+.note-editor .note-toolbar .dropdown-item:focus {
+  background: #e5e7eb !important;
+  color: #1f2937 !important;
+}
+.note-toolbar .dropdown-item.checked,
+.note-editor .note-toolbar .dropdown-item.checked {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+}
+/* Color group - force gap between Recent Color and More Color (they were stuck) */
+.note-toolbar.card-header > .note-color,
+.note-editor .note-toolbar > .note-color,
+.note-toolbar.card-header > .note-color .btn-group,
+.note-editor .note-toolbar > .note-color .btn-group {
+  gap: 8px !important;
+  display: inline-flex !important;
+}
+.note-toolbar.card-header > .note-color .btn-group,
+.note-editor .note-toolbar > .note-color .btn-group {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.note-toolbar.card-header > .note-color .btn + .btn,
+.note-toolbar.card-header > .note-color .note-btn + .note-btn,
+.note-editor .note-toolbar > .note-color .btn + .btn,
+.note-editor .note-toolbar > .note-color .note-btn + .note-btn {
+  margin-left: 0 !important;
+}
+/* Color button - ensure square, same 38px size, same rounded corners, icon centered */
+.note-toolbar.card-header > .note-color .note-current-color-button,
+.note-toolbar.card-header > .note-color .dropdown-toggle,
+.note-toolbar.card-header > .note-color .btn,
+.note-editor .note-toolbar > .note-color .note-current-color-button,
+.note-editor .note-toolbar > .note-color .dropdown-toggle,
+.note-editor .note-toolbar > .note-color .btn {
+  border-radius: 10px !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.note-toolbar.card-header .note-color .note-recent-color,
+.note-editor .note-toolbar .note-color .note-recent-color {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  display: block;
+}
+
+/* ========================================
+   COLOR PICKER DROPDOWN - Clean layout
+   ======================================== */
+/* Hide white swatches, Reset/Transparent, Select + color input, custom palette */
+.note-dropdown-menu .note-color-btn[data-value="#FFFFFF"],
+.note-dropdown-menu .note-color-btn[data-value="#ffffff"],
+.note-dropdown-menu .note-color-reset,
+.note-dropdown-menu .note-color-select,
+.note-dropdown-menu .note-palette > div:has(.note-color-reset),
+.note-dropdown-menu .note-palette > div:has(.note-color-select),
+.note-dropdown-menu .note-palette div:has(.note-color-select),
+.note-dropdown-menu .note-palette div:has(input[type="color"]),
+.note-dropdown-menu .note-holder-custom,
+.note-dropdown-menu input[type="color"],
+.note-dropdown-menu input[type="color"].note-color-select-btn {
+  display: none !important;
+}
+.note-dropdown-menu .note-palette {
+  padding: 14px 16px;
+  margin: 0;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center !important;
+}
+.note-dropdown-menu .note-palette:last-child {
+  border-bottom: none;
+}
+/* Titles - visible, centered */
+.note-dropdown-menu .note-palette-title {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  text-align: center !important;
+  margin: 0 0 10px 0 !important;
+  padding: 0 !important;
+}
+/* Reset / Transparent button row - compact */
+.note-dropdown-menu .note-palette > div:has(.note-color-reset) {
+  margin-bottom: 8px !important;
+  text-align: center !important;
+}
+.note-dropdown-menu .note-color-reset {
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+}
+/* Color grid - touch-friendly size, centered */
+.note-dropdown-menu .note-holder {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 0 !important;
+  width: fit-content !important;
+}
+.note-dropdown-menu .note-color-palette {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  align-items: center !important;
+}
+.note-dropdown-menu .note-color-row {
+  display: flex !important;
+  gap: 4px !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.note-dropdown-menu .note-color-btn {
+  position: relative !important;
+  z-index: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: z-index 0s, box-shadow 0.15s ease !important;
+}
+.note-dropdown-menu .note-color-btn:hover {
+  z-index: 10 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35) !important;
+}
+/* Select button + color input row - compact, centered */
+.note-dropdown-menu .note-palette > div:has(.note-color-select) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+.note-dropdown-menu .note-color-select {
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+}
+.note-dropdown-menu .note-btn.note-color-select-btn,
+.note-dropdown-menu input[type="color"] {
+  width: 32px !important;
+  height: 24px !important;
+  padding: 2px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+}
+/* Custom palette - hide or compact (often empty white squares) */
+.note-dropdown-menu .note-holder-custom .note-color-palette {
+  max-height: 40px;
+  overflow: hidden;
+}
+.note-dropdown-menu .note-holder-custom .note-color-btn {
+  width: 14px !important;
+  height: 14px !important;
+}
+/* Dropdown menu container - wider, touch-friendly (only when shown via .show) */
+.note-dropdown-menu.show:has(.note-palette) {
+  padding: 0 !important;
+  min-width: 320px !important;
+  max-width: 360px !important;
+  max-height: 420px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+  border-radius: 10px !important;
+  border: 1px solid #e5e7eb !important;
+}

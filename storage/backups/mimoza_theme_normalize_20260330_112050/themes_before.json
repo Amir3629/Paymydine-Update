@@ -1,0 +1,38 @@
+[
+    {
+        "theme_id": 2,
+        "name": "Orange Theme",
+        "code": "tastyigniter-orange",
+        "description": "Free Modern, Responsive and Clean TastyIgniter Theme based on Bootstrap.",
+        "version": "0.1.0",
+        "data": null,
+        "status": 1,
+        "is_default": 0,
+        "created_at": null,
+        "updated_at": "2026-03-30 11:16:36"
+    },
+    {
+        "theme_id": 3,
+        "name": "Typical Theme",
+        "code": "tastyigniter-typical",
+        "description": "The Typical theme features a clean and modern design that is optimized for restaurants and food businesses.",
+        "version": "0.1.0",
+        "data": "{\"social\": [], \"favicon\": null, \"custom_js\": \"\", \"logo_text\": \"\", \"custom_css\": \"\", \"font.color\": \"#34495e\", \"logo_image\": null, \"enable_gdpr\": \"1\", \"font.family\": \"\\\"Gilroy\\\", helveticaneue-light, helvetica neue light\", \"font.weight\": \"400\", \"logo_height\": \"40px\", \"heading.color\": \"#ffffff\", \"title_history\": \"\", \"enable_history\": \"0\", \"body.background\": \"#ffffff\", \"gdpr_text_color\": \"#ffffff\", \"ga_tracking_code\": \"\", \"gdpr_accept_text\": \"OK\", \"history_repeater\": [], \"subtitle_history\": \"\", \"button.item.price\": \"#ffffff\", \"footer.background\": \"#2d2b2f\", \"footer.font_color\": \"#ffffff\", \"header_breadcrumb\": null, \"reservation_image\": null, \"button.icons.color\": \"#ffffff\", \"button.item.border\": \"#29282d\", \"heading.background\": \"#2b3e50\", \"button.titles.color\": \"#ffffff\", \"gdpr_cookie_message\": \"We use own and third party cookies to improve our services. If you continue to browse, consider accepting its use\", \"gdpr_more_info_link\": \"1\", \"gdpr_more_info_text\": \"More Information\", \"introduction_history\": \"\", \"gdpr_background_color\": \"#000000\", \"button.dark.background\": \"#7f8c8d\", \"button.info.background\": \"#17a2b8\", \"button.item.background\": \"#2e2c30\", \"button.item.transition\": \"#232227\", \"button.light.background\": \"#efeded\", \"button.panel.background\": \"#2e2c30\", \"button.button.text.color\": \"#ffffff\", \"button.danger.background\": \"#dc3545\", \"button.flecha.categorias\": \"#ef1010\", \"button.item.button.hover\": \"#232227\", \"button.default.background\": \"#29d884\", \"button.primary.background\": \"#ef1010\", \"button.success.background\": \"#28a745\", \"button.warning.background\": \"#ffc107\", \"button.item.button.border.hover\": \"#333235\"}",
+        "status": 1,
+        "is_default": 0,
+        "created_at": null,
+        "updated_at": "2026-03-30 11:16:36"
+    },
+    {
+        "theme_id": 5,
+        "name": "Menu Theme",
+        "code": "frontend-theme",
+        "description": "Next.js powered front-end theme for PayMyDine.",
+        "version": "0.1.0",
+        "data": "{\"theme_configuration\":\"dark\"}",
+        "status": 1,
+        "is_default": 0,
+        "created_at": null,
+        "updated_at": "2026-03-30 11:16:36"
+    }
+]

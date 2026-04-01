@@ -2,7 +2,7 @@
 // PAYMYDINE ADMIN PANEL - LANDING PAGE COLOR SCHEME
 // ========================================================================
 // This file contains the brown/cream/gold color palette from the landing page
-// Primary Brand: Green (#08815e)
+// Primary Brand: Green (#364a63)
 // Secondary Brand: White (#ffffff)
 // ========================================================================
 
@@ -12,11 +12,11 @@
 $brown-50: #ffffff !default;   // White
 $brown-100: #ffffff !default;  // White
 $brown-200: #ffffff !default;  // White
-$brown-300: #0bb87a !default;  // Light green
-$brown-400: #0bb87a !default;  // Medium green
-$brown-500: #08815e !default;  // PRIMARY GREEN (Main logo color)
-$brown-600: #08815e !default;  // Green
-$brown-700: #08815e !default;  // Green
+$brown-300: #526484 !default;  // Light green
+$brown-400: #526484 !default;  // Medium green
+$brown-500: #364a63 !default;  // PRIMARY GREEN (Main logo color)
+$brown-600: #364a63 !default;  // Green
+$brown-700: #364a63 !default;  // Green
 $brown-800: #065a42 !default;  // Dark green
 $brown-900: #202938 !default;  // Dark blue-gray (HEADINGS)
 
@@ -57,10 +57,10 @@ $gray-900: #111827 !default;   // Almost black
 // ========================================================================
 // THEME COLORS (Mapped to Brown/Cream palette)
 // ========================================================================
-$primary: $brown-500 !default;      // #08815e - Main brand color
-$secondary: $brown-700 !default;    // #08815e - Secondary actions
+$primary: $brown-500 !default;      // #364a63 - Main brand color
+$secondary: $brown-700 !default;    // #364a63 - Secondary actions
 $success: #22c55e !default;         // Green - Keep for success states
-$info: $brown-400 !default;         // #0bb87a - Info states
+$info: $brown-400 !default;         // #526484 - Info states
 $warning: #f59e0b !default;         // Amber - Warning states
 $danger: #ef4444 !default;          // Red - Keep for errors
 $light: $cream-50 !default;         // #fefefe - Light backgrounds
@@ -94,14 +94,14 @@ $fa-font-path: $icon-font-path+'FontAwesome';
 // ========================================================================
 $body-bg: $brown-50 !default;           // #ffffff - White background
 $body-color: $gray-700 !default;        // #374151 - Dark text for readability
-$link-color: $brown-600 !default;       // #08815e - Link color
+$link-color: $brown-600 !default;       // #364a63 - Link color
 $link-hover-color: $brown-800 !default; // #065a42 - Link hover
 $link-hover-decoration: none !default;
 
 // ========================================================================
 // TYPOGRAPHY
 // ========================================================================
-$text-muted: $brown-600 !default;  // #08815e - Muted text
+$text-muted: $brown-600 !default;  // #364a63 - Muted text
 $line-height-base: 1.5 !default;
 $h5-font-size: 15px !default;
 
@@ -183,7 +183,7 @@ $dropdown-link-color: $gray-900 !default;           // #111827 - Link color
 $dropdown-link-hover-color: $brown-900 !default;    // #202938 - Hover color
 $dropdown-link-hover-bg: $brown-50 !default;        // #ffffff - Hover background
 $dropdown-link-disabled-color: $gray-600 !default;  // #4b5563 - Disabled
-$dropdown-header-color: $brown-600 !default;        // #08815e - Headers
+$dropdown-header-color: $brown-600 !default;        // #364a63 - Headers
 
 // ========================================================================
 // CARDS
@@ -276,8 +276,8 @@ $dropdown-item-padding-y: 0.5rem !default;
 // GRADIENTS (Landing Page Style)
 // ========================================================================
 // Primary button gradient: from-brown-500 to-brown-600
-$gradient-primary-start: $brown-500 !default;  // #08815e
-$gradient-primary-end: $brown-600 !default;    // #08815e
+$gradient-primary-start: $brown-500 !default;  // #364a63
+$gradient-primary-end: $brown-600 !default;    // #364a63
 
 // Cream gradient: from-cream-500 to-cream-600
 $gradient-cream-start: $cream-500 !default;    // #ffffff

@@ -20,7 +20,7 @@
             appearance: none;
             width: 20px;
             height: 20px;
-            border: 2px solid #0f9d58;
+            border: 2px solid #364a63 !important;
             border-radius: 50%;
             cursor: pointer;
             margin: 0;
@@ -40,7 +40,7 @@
         }
 
         .panel-save-option input[type="radio"]:checked::after {
-            background-color: #0f9d58;
+            background-color: #364a63 !important;
         }
 
         .panel-save-option .option-label {

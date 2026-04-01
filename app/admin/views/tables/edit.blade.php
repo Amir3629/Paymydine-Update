@@ -100,10 +100,10 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         align-items:end;
     }
     .ms-qr button{
-        background: #08815e;
+        background: #364a63;
         color: #ffffff;
         padding: 10px 12px;
-        border: 2px solid #08815e;
+        border: 2px solid #364a63;
         margin-left: 1rem;
         border-radius: 6px;
         font-weight: 600;
