@@ -703,7 +703,28 @@ Route::group([
         // Only return enabled methods in priority order
         $payments = \Admin\Models\Payments_model::isEnabled()
             ->orderBy('priority')
-            ->get(['code', 'name', 'priority']);
+            ->get(['code', 'name', 'priority', 'data'])
+            ->map(function ($payment) {
+                $data = (array)($payment->data ?? []);
+
+                $providerCode = $data['provider_code'] ?? null;
+                if (!$providerCode) {
+                    $providerCode = match ($payment->code) {
+                        'stripe', 'apple_pay', 'google_pay' => 'stripe',
+                        'paypal' => 'paypal',
+                        'cod' => null,
+                        default => null,
+                    };
+                }
+
+                return [
+                    'code' => $payment->code,
+                    'name' => $payment->name,
+                    'priority' => $payment->priority,
+                    'provider_code' => $providerCode,
+                ];
+            })
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -3460,4 +3481,3 @@ Route::get('admin/orders/pos-bon/{id}', function ($id) {
     }
 });
 /* /PMD_WORLDLINE_PHASE1_ROUTES */
-
