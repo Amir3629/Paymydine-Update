@@ -766,12 +766,22 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     [stripeConfig?.publishableKey]
   )
 
+  const visiblePaymentMethods = useMemo(() => {
+    const allowed = new Set(["card", "apple_pay", "google_pay", "paypal", "cod"])
+    return (paymentMethods || []).filter((method) => allowed.has(method.code))
+  }, [paymentMethods])
+
+  useEffect(() => {
+    if (!selectedPaymentMethod) return
+    const exists = visiblePaymentMethods.some((method) => method.code === selectedPaymentMethod)
+    if (!exists) {
+      setSelectedPaymentMethod(null)
+    }
+  }, [selectedPaymentMethod, visiblePaymentMethods])
+
   useEffect(() => {
     const isStripe =
-      selectedPaymentMethod === "stripe" ||
-      selectedPaymentMethod === "authorizenetaim" ||
-      selectedPaymentMethod === "visa" ||
-      selectedPaymentMethod === "mastercard" ||
+      selectedPaymentMethod === "card" ||
       selectedPaymentMethod === "apple_pay" ||
       selectedPaymentMethod === "google_pay"
 
@@ -885,7 +895,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
   const handlePayment = async (stripePaymentIntentId?: string) => {
-    if ((selectedPaymentMethod === 'stripe' || selectedPaymentMethod === 'authorizenetaim' || selectedPaymentMethod === 'visa' || selectedPaymentMethod === 'mastercard') && !stripePaymentIntentId) {
+    if ((selectedPaymentMethod === 'card') && !stripePaymentIntentId) {
       return
     }
     setIsLoading(true)
@@ -953,9 +963,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         customer_phone: String(paymentFormData.phone || ""),
         customer_email: String(paymentFormData.email || ""),
         payment_method: (
-      stripePaymentIntentId ? 'card' :
-      (selectedPaymentMethod === 'cod' ? 'cod' : (['paypal','paypalexpress'].includes(selectedPaymentMethod) ? 'paypal' : 'card'))
-    ) as 'cod' | 'paypal' | 'card',
+          selectedPaymentMethod === "cod"
+            ? "cod"
+            : selectedPaymentMethod === "paypal"
+              ? "paypal"
+              : "card"
+        ) as 'cod' | 'paypal' | 'card',
         stripe_payment_intent_id: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
         total_amount: Number(finalTotal || 0),
         tip_amount: Number(tipAmount || 0),
@@ -1025,7 +1038,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     // Apple Pay / Google Pay must remain their own methods.
     // Do NOT reroute them to Stripe card fields.
-    if (methodId === "stripe") {
+    if (methodId === "card") {
       try {
         (globalThis as any).__stripePreferred = "card"
       } catch {}
@@ -1153,7 +1166,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     "default"
   )
 
-  const selectedMethod = paymentMethods.find(method => method.code === selectedPaymentMethod)
+  const selectedMethod = visiblePaymentMethods.find(method => method.code === selectedPaymentMethod)
 
   const stripePaymentData = {
     amount: finalTotal,
@@ -1198,10 +1211,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     if (!selectedMethod) return null
 
     switch (selectedMethod.code) {
-      case "stripe":
-      case "authorizenetaim":
-      case "visa":
-      case "mastercard":
+      case "card":
         return (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -1254,13 +1264,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                         <ArrowLeft className="h-4 w-4" />
                       </Button>
                       <div className="flex items-center gap-2">
-                        <img
-                          src={iconForPayment(selectedPaymentMethod || "stripe")}
-                          alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
-                          width={32}
-                          height={20}
-                          className="object-contain"
-                        />
+                        <CreditCard className="h-5 w-5 text-paydine-elegant-gray" />
                       </div>
                     </>
                   }
@@ -1272,7 +1276,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         )
 
       case "paypal":
-      case "paypalexpress":
         return (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -1286,7 +1289,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </Button>
               <div className="flex items-center gap-2">
                 <img
-                  src={iconForPayment(selectedPaymentMethod || "stripe")}
+                  src={iconForPayment(selectedPaymentMethod || "card")}
                   alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
                   width={32}
                   height={20}
@@ -1372,7 +1375,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </Button>
               <div className="flex items-center gap-2">
                 <img
-                  src={iconForPayment(selectedPaymentMethod || "stripe")}
+                  src={iconForPayment(selectedPaymentMethod || "card")}
                   alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
                   width={32}
                   height={20}
@@ -1474,19 +1477,15 @@ case "cod":
     // to submit/place the order directly.
     // Payment must happen only through StripeCardForm:
     // create-intent -> confirmCardPayment -> onPaymentComplete -> handlePayment(transactionId)
-    if (["stripe", "authorizenetaim", "visa", "mastercard", "paypal", "paypalexpress"].includes(selectedMethod.code)) {
+    if (["card", "paypal"].includes(selectedMethod.code)) {
       return null
     }
 
     const isFormValid = () => {
       switch (selectedMethod.code) {
-        case "visa":
-        case "mastercard":
-        case "stripe":
-        case "authorizenetaim":
+        case "card":
           return true
         case "paypal":
-      case "paypalexpress":
           return paymentFormData.email
         case "apple_pay":
         case "google_pay":
@@ -1500,11 +1499,9 @@ case "cod":
 
     const getButtonText = () => {
       switch (selectedMethod.code) {
-        case "visa":
-        case "mastercard":
+        case "card":
   return `Pay ${formatCurrency(finalTotal)}`
         case "paypal":
-      case "paypalexpress":
           return "Pay with PayPal"
         case "apple_pay":
         case "google_pay":
@@ -1803,7 +1800,7 @@ case "cod":
             </div>
           </div>
 
-          {selectedPaymentMethod && ["stripe","authorizenetaim","visa","mastercard","apple_pay","google_pay","paypal","paypalexpress","cod"].includes(selectedPaymentMethod) && (
+          {selectedPaymentMethod && ["card","apple_pay","google_pay","paypal","cod"].includes(selectedPaymentMethod) && (
             <div className="pt-3">
               {renderPaymentForm()}
             </div>
@@ -1823,35 +1820,10 @@ case "cod":
                 <div className="flex justify-center items-center gap-3 flex-wrap">
                   {loadingPayments ? (
                     <div className="text-sm muted">Loading payment methods...</div>
-                  ) : paymentMethods.length === 0 ? (
+                  ) : visiblePaymentMethods.length === 0 ? (
                     <div className="text-sm muted">No payment methods available</div>
                   ) : (
-                    (() => {
-                      const base = (paymentMethods || []).filter((m) => {
-                        if (m.code === "paypal" || m.code === "paypalexpress") {
-                          return !!effectivePayPalClientId
-                        }
-                        return true
-                      })
-                      const has = new Set(base.map((m: any) => m.code))
-                      const extra: any[] = []
-
-                      // اگر stripeConfig وجود داشت ازش تبعیت کن، وگرنه true فرض کن
-                      const apEnabled = (typeof stripeConfig !== "undefined" && stripeConfig)
-                        ? !!(stripeConfig as any).applePayEnabled
-                        : true
-                      const gpEnabled = (typeof stripeConfig !== "undefined" && stripeConfig)
-                        ? !!(stripeConfig as any).googlePayEnabled
-                        : true
-
-                      if (apEnabled && !has.has("apple_pay")) {
-                        extra.push({ code: "apple_pay", name: "Apple Pay" })
-                      }
-                      if (gpEnabled && !has.has("google_pay")) {
-                        extra.push({ code: "google_pay", name: "Google Pay" })
-                      }
-                      return [...base, ...extra]
-                    })().map((method) => (
+                    visiblePaymentMethods.map((method) => (
                       <motion.div key={method.code} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant="outline"
@@ -1885,13 +1857,17 @@ case "cod":
                             handlePaymentMethodSelect(method.code)
                           }}
                         >
-                          <img
-                            src={iconForPayment(method.code === "paypal" ? "paypal" : method.code)}
-                            alt={method.name}
-                            width={40}
-                            height={20}
-                            className="object-contain"
-                          />
+                          {method.code === "card" ? (
+                            <CreditCard className="h-6 w-6 text-paydine-elegant-gray" />
+                          ) : (
+                            <img
+                              src={iconForPayment(method.code === "paypal" ? "paypal" : method.code)}
+                              alt={method.name}
+                              width={40}
+                              height={20}
+                              className="object-contain"
+                            />
+                          )}
                         </Button>
                       </motion.div>
                     ))
