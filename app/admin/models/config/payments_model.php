@@ -23,6 +23,11 @@ $config['list']['toolbar'] = [
             'class' => 'btn btn-outline-primary',
             'href' => 'payments/providers',
         ],
+        'pos_configs' => [
+            'label' => 'POS Configs',
+            'class' => 'btn btn-outline-secondary',
+            'href' => 'pos_configs',
+        ],
     ],
 ];
 

@@ -1861,10 +1861,10 @@ case "cod":
                             <CreditCard className="h-7 w-7 text-paydine-elegant-gray" />
                           ) : (
                             <img
-                              src={iconForPayment(method.code === "paypal" ? "paypal" : method.code)}
+                              src={method.code === "paypal" ? "/images/payments/paypal.svg" : iconForPayment(method.code)}
                               alt={method.name}
-                              width={40}
-                              height={20}
+                              width={method.code === "cash" || method.code === "cod" ? 30 : (method.code === "apple_pay" || method.code === "google_pay" ? 48 : 42)}
+                              height={method.code === "cash" || method.code === "cod" ? 16 : (method.code === "apple_pay" || method.code === "google_pay" ? 24 : 22)}
                               className="object-contain"
                             />
                           )}

@@ -73,9 +73,7 @@ class Payments extends \Admin\Classes\AdminController
 
     public function providers()
     {
-        Payments_model::syncAll();
-        $this->vars['pageTitle'] = 'Payment Providers';
-        $this->asExtension('ListController')->index();
+        return \Redirect::to(admin_url('payments?mode=providers'));
     }
 
     /**
@@ -135,7 +133,7 @@ class Payments extends \Admin\Classes\AdminController
         $model = $form->model;
         $isMethodRecord = in_array((string)$model->code, self::METHOD_CODES, true);
 
-        if ($isMethodRecord) {
+        if ($isMethodRecord && (string)$model->code !== 'cod') {
             $form->addFields([
                 'provider_code' => [
                     'label' => 'Provider',
@@ -305,8 +303,8 @@ class Payments extends \Admin\Classes\AdminController
 
     public function listExtendQuery($query)
     {
-        $path = request()->path();
-        if (str_contains($path, 'payments/providers')) {
+        $mode = (string)request()->get('mode', '');
+        if ($mode === 'providers' || str_contains(request()->path(), 'payments/providers')) {
             $query->whereIn('code', self::PROVIDER_CODES);
             return;
         }
@@ -371,20 +369,30 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function getPaymentProviderSettings(): array
     {
-        $row = \DB::table('settings')
-            ->where('sort', 'paymydine')
-            ->where('item', 'payment_providers')
-            ->first();
-        $decoded = $row ? json_decode((string)$row->value, true) : null;
-        if (is_array($decoded) && count($decoded)) return $decoded;
-
-        return [
+        $defaults = [
             ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],
             ['code' => 'square', 'name' => 'Square', 'supported_methods' => ['card']],
         ];
+
+        $row = \DB::table('settings')
+            ->where('sort', 'paymydine')
+            ->where('item', 'payment_providers')
+            ->first();
+        $decoded = $row ? json_decode((string)$row->value, true) : null;
+        if (!is_array($decoded) || !count($decoded)) return $defaults;
+
+        $decodedByCode = collect($decoded)->keyBy('code');
+        return collect($defaults)->map(function ($base) use ($decodedByCode) {
+            $stored = (array)$decodedByCode->get($base['code'], []);
+            return [
+                'code' => $base['code'],
+                'name' => $stored['name'] ?? $base['name'],
+                'supported_methods' => array_values($stored['supported_methods'] ?? $base['supported_methods']),
+            ];
+        })->values()->all();
     }
 
     protected function getCompatibleProviders(string $methodCode): array
