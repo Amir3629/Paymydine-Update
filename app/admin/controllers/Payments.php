@@ -67,13 +67,22 @@ class Payments extends \Admin\Classes\AdminController
 
     public function index()
     {
-        if ((string)request()->get('mode', '') === 'providers') {
-            session(['payments.form_mode' => 'providers']);
-        } else {
-            session()->forget('payments.form_mode');
+        $requestedMode = (string)request()->get('mode', '');
+        $sessionMode = (string)session('payments.form_mode', 'methods');
+        $mode = in_array($requestedMode, ['methods', 'providers'], true) ? $requestedMode : $sessionMode;
+        if (!in_array($mode, ['methods', 'providers'], true)) {
+            $mode = 'methods';
+        }
+
+        session(['payments.form_mode' => $mode]);
+
+        if ($requestedMode === '') {
+            return \Redirect::to(admin_url('payments?mode='.$mode));
         }
 
         $this->syncMethodRecords();
+        $this->syncProviderRecords();
+        $this->applyModeToolbarButton($mode);
 
         $this->asExtension('ListController')->index();
     }
@@ -81,6 +90,7 @@ class Payments extends \Admin\Classes\AdminController
     public function providers()
     {
         $this->syncProviderRecords();
+        session(['payments.form_mode' => 'providers']);
         return \Redirect::to(admin_url('payments?mode=providers'));
     }
 
@@ -140,7 +150,8 @@ class Payments extends \Admin\Classes\AdminController
     {
         $model = $form->model;
         $isMethodRecord = in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode();
-        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true) && $this->isProvidersMode();
+        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
 
         if ($isMethodRecord && (string)$model->code !== 'cod') {
             $form->addFields([
@@ -159,20 +170,21 @@ class Payments extends \Admin\Classes\AdminController
         if ($isProviderRecord) {
             if (method_exists($form, 'removeField')) {
                 $form->removeField('is_default');
+                $form->removeField('priority');
+                $form->removeField('description');
+                $form->removeField('code');
             }
 
             $providerFields = $this->getProviderSpecificFields((string)$model->code);
             if (!empty($providerFields)) {
                 $form->addTabFields($providerFields);
             }
-
-            $form->addFields([
-                'provider_test_connection' => [
-                    'type' => 'partial',
-                    'path' => 'payments/provider_test_connection',
-                    'span' => 'right',
-                ],
-            ]);
+            $this->formConfig['form']['toolbar']['buttons']['test_api_connection'] = [
+                'label' => 'Test API Connection',
+                'class' => 'btn btn-outline-secondary',
+                'data-request' => 'onTestProviderConnection',
+                'data-request-form' => '#edit-form',
+            ];
         } elseif (!$isMethodRecord && $model->exists && $model->class_name && class_exists($model->class_name)) {
             // Fallback for non-provider records that still rely on gateway-defined fields.
             $gateway = new $model->class_name();
@@ -182,6 +194,10 @@ class Payments extends \Admin\Classes\AdminController
                     $form->addTabFields($configFields);
                 }
             }
+        }
+
+        if (!$isProviderRecord && isset($this->formConfig['form']['toolbar']['buttons']['test_api_connection'])) {
+            unset($this->formConfig['form']['toolbar']['buttons']['test_api_connection']);
         }
 
         // code is editable on edit
@@ -290,7 +306,9 @@ class Payments extends \Admin\Classes\AdminController
             $model->data = $data;
         }
 
-        if (in_array((string)$model->code, self::PROVIDER_CODES, true) && $this->isProvidersMode()) {
+        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
+        if ($isProviderRecord) {
             $model->data = $this->filterProviderDataFromPost((string)$model->code, post('Payment', []), is_array($model->data) ? $model->data : []);
         }
 
@@ -333,7 +351,11 @@ class Payments extends \Admin\Classes\AdminController
 
     public function listExtendQuery($query)
     {
-        $mode = (string)request()->get('mode', '');
+        $mode = (string)request()->get('mode', (string)session('payments.form_mode', 'methods'));
+        if (!in_array($mode, ['methods', 'providers'], true)) {
+            $mode = 'methods';
+        }
+
         if ($mode === 'providers' || str_contains(request()->path(), 'payments/providers')) {
             $this->syncProviderRecords();
             $query->whereIn('code', self::PROVIDER_CODES);
@@ -345,7 +367,9 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formAfterSave($model)
     {
-        if (!in_array((string)$model->code, self::PROVIDER_CODES, true) || !$this->isProvidersMode()) {
+        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
+        if (!$isProviderRecord) {
             return;
         }
 
@@ -617,7 +641,7 @@ class Payments extends \Admin\Classes\AdminController
 
     public function onTestProviderConnection()
     {
-        $code = (string)post('code', post('Payment.code', ''));
+        $code = (string)post('code', post('Payment.code', (string)($this->params[0] ?? '')));
         $model = Payments_model::query()->where('code', $code)->first();
         if (!$model || !in_array($code, self::PROVIDER_CODES, true)) {
             throw new ApplicationException('Provider record not found.');
@@ -663,6 +687,20 @@ class Payments extends \Admin\Classes\AdminController
         }
 
         flash()->{$result['success'] ? 'success' : 'danger'}($result['message']);
+    }
+
+    protected function applyModeToolbarButton(string $mode): void
+    {
+        $isProvidersMode = $mode === 'providers';
+        $this->listConfig['list']['toolbar']['buttons']['manage_toggle'] = [
+            'label' => $isProvidersMode ? 'Manage Methods' : 'Manage Providers',
+            'class' => 'btn btn-primary pull-left',
+            'href' => $isProvidersMode ? 'payments?mode=methods' : 'payments?mode=providers',
+        ];
+
+        if (isset($this->listConfig['list']['toolbar']['buttons']['manage_providers'])) {
+            unset($this->listConfig['list']['toolbar']['buttons']['manage_providers']);
+        }
     }
 
     protected function syncProviderIntoPosConfig(string $deviceCode, array $values): void

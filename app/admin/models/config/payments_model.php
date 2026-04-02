@@ -17,13 +17,7 @@ $config['list']['filter'] = [
 ];
 
 $config['list']['toolbar'] = [
-    'buttons' => [
-        'manage_providers' => [
-            'label' => 'Manage Providers',
-            'class' => 'btn btn-primary',
-            'href' => 'payments/providers',
-        ],
-    ],
+    'buttons' => [],
 ];
 
 $config['list']['showCheckboxes'] = false;
