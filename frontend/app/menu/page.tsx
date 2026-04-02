@@ -1861,8 +1861,8 @@ case "cod":
                             <img
                               src="/images/payments/card.svg"
                               alt={method.name}
-                              width={44}
-                              height={24}
+                              width={40}
+                              height={22}
                               className="object-contain"
                             />
                           ) : (

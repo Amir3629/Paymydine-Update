@@ -615,27 +615,27 @@ class Payments extends \Admin\Classes\AdminController
 
         $fields = [
             'stripe' => array_merge($commonModeField, [
-                'test_secret_key' => ['label' => 'Test Secret Key', 'type' => 'password', 'span' => 'left', 'comment' => 'Starts with sk_test_. Used for sandbox checkout sessions.'],
-                'live_secret_key' => ['label' => 'Live Secret Key', 'type' => 'password', 'span' => 'right', 'comment' => 'Starts with sk_live_. Used for live checkout sessions.'],
+                'test_secret_key' => ['label' => 'Test Secret Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Starts with sk_test_. Saved value is shown; replace to update.'],
+                'live_secret_key' => ['label' => 'Live Secret Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Starts with sk_live_. Saved value is shown; replace to update.'],
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
             ]),
             'paypal' => array_merge($commonModeField, [
                 'test_client_id' => ['label' => 'Sandbox Client ID', 'type' => 'text', 'span' => 'left', 'comment' => 'From PayPal Developer dashboard (sandbox app).'],
-                'test_client_secret' => ['label' => 'Sandbox Client Secret', 'type' => 'password', 'span' => 'right', 'comment' => 'Keep this secret. Used only in sandbox mode.'],
+                'test_client_secret' => ['label' => 'Sandbox Client Secret', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
                 'live_client_id' => ['label' => 'Live Client ID', 'type' => 'text', 'span' => 'left', 'comment' => 'From your live PayPal app credentials.'],
-                'live_client_secret' => ['label' => 'Live Client Secret', 'type' => 'password', 'span' => 'right', 'comment' => 'Keep this secret. Used only in live mode.'],
+                'live_client_secret' => ['label' => 'Live Client Secret', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
                 'brand_name' => ['label' => 'Checkout Brand Name', 'type' => 'text', 'span' => 'left', 'comment' => 'Shown on PayPal checkout page to customers.'],
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'right', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
             ]),
             'square' => array_merge($commonModeField, [
-                'test_access_token' => ['label' => 'Sandbox Access Token', 'type' => 'password', 'span' => 'left', 'comment' => 'Square sandbox access token.'],
+                'test_access_token' => ['label' => 'Sandbox Access Token', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
                 'test_location_id' => ['label' => 'Sandbox Location ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Location ID used to create payment links.'],
-                'live_access_token' => ['label' => 'Live Access Token', 'type' => 'password', 'span' => 'left', 'comment' => 'Square production access token.'],
+                'live_access_token' => ['label' => 'Live Access Token', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
                 'live_location_id' => ['label' => 'Live Location ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Production location for payment links.'],
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
             ]),
             'sumup' => [
-                'access_token' => ['label' => 'Access Token', 'type' => 'password', 'span' => 'left', 'comment' => 'OAuth access token used for SumUp API requests.'],
+                'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
                 'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'right', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
                 'id_application' => ['label' => 'Merchant Code', 'type' => 'text', 'span' => 'left', 'comment' => 'SumUp merchant code. If empty, system attempts auto-resolve.'],
             ],
@@ -643,8 +643,8 @@ class Payments extends \Admin\Classes\AdminController
                 'api_endpoint' => ['label' => 'API Endpoint', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.preprod.connect.worldline-solutions.com', 'comment' => 'Preprod or live Connect API endpoint URL.'],
                 'merchant_id' => ['label' => 'Merchant ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Worldline merchant identifier.'],
                 'api_key_id' => ['label' => 'API Key ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Public API key identifier from Worldline portal.'],
-                'secret_api_key' => ['label' => 'Secret API Key', 'type' => 'password', 'span' => 'right', 'comment' => 'Private API key/secret from Worldline portal.'],
-                'webhook_secret' => ['label' => 'Webhook Secret (optional)', 'type' => 'password', 'span' => 'left', 'comment' => 'Used to validate webhook signatures if configured.'],
+                'secret_api_key' => ['label' => 'Secret API Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
+                'webhook_secret' => ['label' => 'Webhook Secret (optional)', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
             ],
         ];
 
