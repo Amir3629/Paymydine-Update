@@ -73,6 +73,7 @@ class Payments extends \Admin\Classes\AdminController
 
     public function providers()
     {
+        $this->syncProviderRecords();
         return \Redirect::to(admin_url('payments?mode=providers'));
     }
 
@@ -131,7 +132,7 @@ class Payments extends \Admin\Classes\AdminController
     public function formExtendFields($form)
     {
         $model = $form->model;
-        $isMethodRecord = in_array((string)$model->code, self::METHOD_CODES, true);
+        $isMethodRecord = in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode();
 
         if ($isMethodRecord && (string)$model->code !== 'cod') {
             $form->addFields([
@@ -254,7 +255,7 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formBeforeSave($model)
     {
-        if (in_array((string)$model->code, self::METHOD_CODES, true)) {
+        if (in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode()) {
             $providerCode = post('provider_code', post('Payment.provider_code'));
             $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
             $this->validateProviderCompatibility((string)$model->code, $providerCode);
@@ -305,6 +306,7 @@ class Payments extends \Admin\Classes\AdminController
     {
         $mode = (string)request()->get('mode', '');
         if ($mode === 'providers' || str_contains(request()->path(), 'payments/providers')) {
+            $this->syncProviderRecords();
             $query->whereIn('code', self::PROVIDER_CODES);
             return;
         }
@@ -365,6 +367,39 @@ class Payments extends \Admin\Classes\AdminController
             }
         }
         return $map;
+    }
+
+    protected function syncProviderRecords(): void
+    {
+        Payments_model::syncAll();
+
+        $providerDefaults = [
+            'stripe' => ['name' => 'Stripe', 'priority' => 100],
+            'paypal' => ['name' => 'PayPal', 'priority' => 101],
+            'worldline' => ['name' => 'Worldline', 'priority' => 102],
+            'sumup' => ['name' => 'SumUp', 'priority' => 103],
+            'square' => ['name' => 'Square', 'priority' => 104],
+        ];
+
+        $classMap = $this->resolveProviderGatewayClasses();
+        foreach ($providerDefaults as $code => $cfg) {
+            $row = Payments_model::query()->where('code', $code)->first();
+            if (!$row) {
+                $row = new Payments_model();
+                $row->code = $code;
+            }
+
+            $row->name = $row->name ?: $cfg['name'];
+            $row->description = $row->description ?: ($cfg['name'].' provider configuration');
+            $row->priority = $row->priority ?: $cfg['priority'];
+            if (!empty($classMap[$code])) {
+                $row->class_name = $row->class_name ?: $classMap[$code];
+            }
+            if ($row->status === null) {
+                $row->status = false;
+            }
+            $row->save();
+        }
     }
 
     protected function getPaymentProviderSettings(): array
@@ -431,6 +466,16 @@ class Payments extends \Admin\Classes\AdminController
         if (!is_array($model->data)) return null;
         $code = $model->data['provider_code'] ?? null;
         return strlen((string)$code) ? (string)$code : null;
+    }
+
+    protected function isProvidersMode(): bool
+    {
+        $mode = (string)request()->get('mode', '');
+        if ($mode === 'providers') {
+            return true;
+        }
+        $referer = (string)request()->headers->get('referer', '');
+        return str_contains($referer, 'mode=providers');
     }
 
 

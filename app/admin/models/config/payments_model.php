@@ -20,12 +20,12 @@ $config['list']['toolbar'] = [
     'buttons' => [
         'manage_providers' => [
             'label' => 'Manage Providers',
-            'class' => 'btn btn-outline-primary',
+            'class' => 'btn btn-primary',
             'href' => 'payments/providers',
         ],
         'pos_configs' => [
             'label' => 'POS Configs',
-            'class' => 'btn btn-outline-secondary',
+            'class' => 'btn btn-default',
             'href' => 'pos_configs',
         ],
     ],
