@@ -351,8 +351,8 @@ body {
 /* DARK THEME PAYMENT ICON FIX  */
 /* ============================= */
 
-html.theme-dark img[src*="/images/payments/"],
-.theme-dark img[src*="/images/payments/"] {
+html.theme-dark img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]),
+.theme-dark img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
   filter: brightness(0) invert(1);
 }
 
@@ -361,8 +361,7 @@ html.theme-dark img[src*="/images/payments/"],
 /* FORCE DARK THEME PAYMENT FIX */
 /* ============================= */
 
-html[class*="dark"] img[src*="/images/payments/"],
-body[class*="dark"] img[src*="/images/payments/"] {
+html[class*="dark"] img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]),
+body[class*="dark"] img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
   filter: brightness(0) invert(1) !important;
 }
-
