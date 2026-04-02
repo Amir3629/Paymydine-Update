@@ -34,7 +34,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <CreditCard className="h-5 w-5" />
-            <span>Payment & Tips</span>
+            <span>Payment Methods</span>
+          </Link>
+          <Link
+            href="/admin/payment-providers"
+            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <CreditCard className="h-5 w-5" />
+            <span>Payment Providers</span>
           </Link>
           <Link
             href="/admin/merchant"

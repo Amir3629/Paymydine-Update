@@ -11,17 +11,18 @@ $config['list']['filter'] = [
             'type' => 'switch',
             'conditions' => 'status = :filtered',
             'onText' => 'lang:admin::lang.text_enabled',
-            'offText' => 'lang:admin::lang.text_disabled',        'on' => 'ON__PAYMENTS__'.date('His'),
-        'off' => 'OFF__PAYMENTS__'.date('His'),
-        'onText' => 'ON__PAYMENTS__'.date('His'),
-        'offText' => 'OFF__PAYMENTS__'.date('His'),
+            'offText' => 'lang:admin::lang.text_disabled',
         ],
     ],
 ];
 
 $config['list']['toolbar'] = [
     'buttons' => [
-        // intentionally disabled
+        'manage_providers' => [
+            'label' => 'Manage Providers',
+            'class' => 'btn btn-outline-primary',
+            'href' => 'payments/providers',
+        ],
     ],
 ];
 
@@ -46,6 +47,10 @@ $config['list']['columns'] = [
         'label' => 'lang:admin::lang.label_description',
         'searchable' => true,
     ],
+    'provider_code' => [
+        'label' => 'Provider',
+        'type' => 'text',
+    ],
     'status' => [
         'label' => 'lang:admin::lang.label_status',
         'type' => 'switch',
@@ -56,10 +61,7 @@ $config['list']['columns'] = [
         'label' => 'lang:admin::lang.payments.label_default',
         'type' => 'switch',
         'onText' => 'lang:admin::lang.text_yes',
-        'offText' => 'lang:admin::lang.text_no',        'on' => 'YES__DEFAULT__'.date('His'),
-        'off' => 'NO__DEFAULT__'.date('His'),
-        'onText' => 'YES__DEFAULT__'.date('His'),
-        'offText' => 'NO__DEFAULT__'.date('His'),
+        'offText' => 'lang:admin::lang.text_no',
     ],
     'updated_at' => [
         'label' => 'lang:admin::lang.column_date_updated',
@@ -107,7 +109,7 @@ $config['form']['fields'] = [
         'type' => 'number',
         'span' => 'right',
         'cssClass' => 'flex-width',
-        'default' => 999,
+        'default' => 10,
     ],
     'code' => [
         'label' => 'lang:admin::lang.payments.label_code',

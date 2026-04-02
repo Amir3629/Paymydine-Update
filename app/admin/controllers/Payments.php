@@ -14,6 +14,9 @@ use System\Helpers\ValidationHelper;
 
 class Payments extends \Admin\Classes\AdminController
 {
+    protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'paypal', 'cod'];
+    protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square'];
+
     public $implement = [
         'Admin\Actions\ListController',
         'Admin\Actions\FormController',
@@ -63,8 +66,15 @@ class Payments extends \Admin\Classes\AdminController
 
     public function index()
     {
-        Payments_model::syncAll();
+        $this->syncMethodRecords();
 
+        $this->asExtension('ListController')->index();
+    }
+
+    public function providers()
+    {
+        Payments_model::syncAll();
+        $this->vars['pageTitle'] = 'Payment Providers';
         $this->asExtension('ListController')->index();
     }
 
@@ -122,36 +132,31 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formExtendFields($form)
     {
-        @file_put_contents('/tmp/payments_form_debug.log',
-            date('Y-m-d H:i:s')
-            .' | formExtendFields'
-            .' | db='.(\DB::connection()->getDatabaseName() ?? 'NULL')
-            .' | id='.(method_exists($form->model,'getKey') ? ($form->model->getKey() ?? 'NULL') : 'NULL')
-            .' | code='.($form->model->code ?? 'NULL')
-            .' | class_attr='.($form->model->class_name ?? 'NULL')
-            .' | class_orig='.(method_exists($form->model,'getOriginal') ? ($form->model->getOriginal('class_name') ?? 'NULL') : 'NULL')
-            ."\n",
-            FILE_APPEND
-        );
         $model = $form->model;
+        $isMethodRecord = in_array((string)$model->code, self::METHOD_CODES, true);
 
-        // Try to get config fields from the gateway class directly
-        if ($model->exists && $model->class_name && class_exists($model->class_name)) {
+        if ($isMethodRecord) {
+            $form->addFields([
+                'provider_code' => [
+                    'label' => 'Provider',
+                    'type' => 'select',
+                    'span' => 'left',
+                    'options' => $this->getCompatibleProviders($model->code),
+                    'placeholder' => 'Select provider',
+                    'comment' => 'Only providers compatible with this method are shown.',
+                    'default' => $this->extractProviderCode($model),
+                ],
+            ]);
+        }
+
+        // Provider edit pages keep existing integration config fields.
+        if (!$isMethodRecord && $model->exists && $model->class_name && class_exists($model->class_name)) {
             $gateway = new $model->class_name();
             if (method_exists($gateway, 'getConfigFields')) {
                 $configFields = $gateway->getConfigFields();
                 if (is_array($configFields) && $configFields) {
                     $form->addTabFields($configFields);
                 }
-
-                $form->addTabFields([
-                    'debug_paypal_probe' => [
-                        'label' => 'DEBUG PAYPAL PROBE',
-                        'type' => 'text',
-                        'default' => 'PROBE_VISIBLE_123',
-                        'comment' => 'If you see this field, formExtendFields and addTabFields are working.',
-                    ],
-                ]);
             }
         }
 
@@ -251,6 +256,16 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formBeforeSave($model)
     {
+        if (in_array((string)$model->code, self::METHOD_CODES, true)) {
+            $providerCode = post('provider_code', post('Payment.provider_code'));
+            $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
+            $this->validateProviderCompatibility((string)$model->code, $providerCode);
+
+            $data = is_array($model->data) ? $model->data : [];
+            $data['provider_code'] = $providerCode;
+            $model->data = $data;
+        }
+
         $postedStatus = post('status');
 
         if ($postedStatus === null) {
@@ -288,6 +303,127 @@ class Payments extends \Admin\Classes\AdminController
         }
     }
 
+    public function listExtendQuery($query)
+    {
+        $path = request()->path();
+        if (str_contains($path, 'payments/providers')) {
+            $query->whereIn('code', self::PROVIDER_CODES);
+            return;
+        }
+
+        $query->whereIn('code', self::METHOD_CODES);
+    }
+
+    protected function syncMethodRecords(): void
+    {
+        $defaults = [
+            'card' => ['name' => 'Card', 'priority' => 1, 'provider_code' => 'stripe'],
+            'apple_pay' => ['name' => 'Apple Pay', 'priority' => 2, 'provider_code' => 'stripe'],
+            'google_pay' => ['name' => 'Google Pay', 'priority' => 3, 'provider_code' => 'stripe'],
+            'paypal' => ['name' => 'PayPal', 'priority' => 4, 'provider_code' => 'paypal'],
+            'cod' => ['name' => 'Cash', 'priority' => 5, 'provider_code' => null],
+        ];
+
+        $providerClassMap = $this->resolveProviderGatewayClasses();
+        foreach ($defaults as $code => $cfg) {
+            $row = Payments_model::query()->where('code', $code)->first();
+            $payload = [
+                'name' => $cfg['name'],
+                'description' => $cfg['name'].' payment method',
+                'priority' => $cfg['priority'],
+                'status' => true,
+                'is_default' => $code === 'cod',
+            ];
+
+            $providerCode = $cfg['provider_code'];
+            if ($providerCode && isset($providerClassMap[$providerCode])) {
+                $payload['class_name'] = $providerClassMap[$providerCode];
+            }
+
+            if (!$row) {
+                $row = new Payments_model();
+                $row->code = $code;
+            }
+            foreach ($payload as $k => $v) {
+                $row->{$k} = $v;
+            }
+            $data = is_array($row->data) ? $row->data : [];
+            $data['provider_code'] = $cfg['provider_code'];
+            $row->data = $data;
+            $row->save();
+        }
+    }
+
+    protected function resolveProviderGatewayClasses(): array
+    {
+        $rows = Payments_model::query()
+            ->whereIn('code', ['stripe', 'paypal', 'paypalexpress', 'worldline', 'sumup', 'square'])
+            ->get(['code', 'class_name']);
+        $map = [];
+        foreach ($rows as $row) {
+            $key = $row->code === 'paypalexpress' ? 'paypal' : $row->code;
+            if (!empty($row->class_name) && !isset($map[$key])) {
+                $map[$key] = $row->class_name;
+            }
+        }
+        return $map;
+    }
+
+    protected function getPaymentProviderSettings(): array
+    {
+        $row = \DB::table('settings')
+            ->where('sort', 'paymydine')
+            ->where('item', 'payment_providers')
+            ->first();
+        $decoded = $row ? json_decode((string)$row->value, true) : null;
+        if (is_array($decoded) && count($decoded)) return $decoded;
+
+        return [
+            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
+            ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
+            ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card']],
+            ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],
+            ['code' => 'square', 'name' => 'Square', 'supported_methods' => ['card']],
+        ];
+    }
+
+    protected function getCompatibleProviders(string $methodCode): array
+    {
+        if ($methodCode === 'cod') {
+            return ['' => 'No provider (Cash)'];
+        }
+
+        $options = [];
+        foreach ($this->getPaymentProviderSettings() as $provider) {
+            $supported = (array)($provider['supported_methods'] ?? []);
+            if (in_array($methodCode, $supported, true)) {
+                $options[(string)$provider['code']] = (string)($provider['name'] ?? strtoupper((string)$provider['code']));
+            }
+        }
+        return $options;
+    }
+
+    protected function validateProviderCompatibility(string $methodCode, ?string $providerCode): void
+    {
+        if ($methodCode === 'cod') {
+            if ($providerCode !== null && $providerCode !== '') {
+                throw new ApplicationException('Cash method must not have a provider.');
+            }
+            return;
+        }
+
+        $compatible = array_keys($this->getCompatibleProviders($methodCode));
+        if (!$providerCode || !in_array($providerCode, $compatible, true)) {
+            throw new ApplicationException("Provider '{$providerCode}' is not compatible with '{$methodCode}'.");
+        }
+    }
+
+    protected function extractProviderCode($model): ?string
+    {
+        if (!is_array($model->data)) return null;
+        $code = $model->data['provider_code'] ?? null;
+        return strlen((string)$code) ? (string)$code : null;
+    }
+
 
 }
-

@@ -698,17 +698,155 @@ Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web']
 ], function () {
-    // === Payments (read-only) ===
-    Route::get('/payments', function () {
-        // Only return enabled methods in priority order
-        $payments = \Admin\Models\Payments_model::isEnabled()
-            ->orderBy('priority')
-            ->get(['code', 'name', 'priority']);
+    $defaultPaymentMethods = [
+        ['code' => 'card', 'name' => 'Card', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 1],
+        ['code' => 'apple_pay', 'name' => 'Apple Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 2],
+        ['code' => 'google_pay', 'name' => 'Google Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 3],
+        ['code' => 'paypal', 'name' => 'PayPal', 'provider_code' => 'paypal', 'enabled' => true, 'priority' => 4],
+        ['code' => 'cod', 'name' => 'Cash', 'provider_code' => null, 'enabled' => true, 'priority' => 5],
+    ];
 
+    $defaultPaymentProviders = [
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => ['card', 'apple_pay', 'google_pay'], 'config' => ['publishable_key' => '', 'secret_key' => '', 'mode' => 'test']],
+        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => ['paypal'], 'config' => ['client_id' => '', 'secret' => '']],
+        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '', 'merchant_id' => '']],
+        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '']],
+        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '', 'location_id' => '']],
+    ];
+
+    $loadJsonSetting = function (string $item, array $fallback) {
+        $row = \Illuminate\Support\Facades\DB::table('settings')
+            ->where('sort', 'paymydine')
+            ->where('item', $item)
+            ->first();
+        if (!$row || !isset($row->value)) return $fallback;
+        $decoded = json_decode((string)$row->value, true);
+        return is_array($decoded) ? $decoded : $fallback;
+    };
+
+    $saveJsonSetting = function (string $item, array $value): void {
+        \Illuminate\Support\Facades\DB::table('settings')->updateOrInsert(
+            ['sort' => 'paymydine', 'item' => $item],
+            ['value' => json_encode($value), 'serialized' => 1]
+        );
+    };
+
+    // === Payments (read-only) ===
+    Route::get('/payments', function () use ($defaultPaymentMethods, $loadJsonSetting) {
+        $defaults = $defaultPaymentMethods;
+        $load = $loadJsonSetting;
+        $methods = collect($load('payment_methods', $defaults))
+            ->where('enabled', true)
+            ->sortBy('priority')
+            ->values()
+            ->map(fn ($m) => [
+                'code' => $m['code'],
+                'name' => $m['name'],
+                'provider_code' => $m['provider_code'] ?? null,
+                'priority' => (int)($m['priority'] ?? 0),
+            ]);
+
+        return response()->json($methods, 200);
+    });
+
+    Route::get('/payment-methods-admin', function () use ($defaultPaymentMethods, $loadJsonSetting) {
+        $defaults = $defaultPaymentMethods;
+        $load = $loadJsonSetting;
         return response()->json([
             'success' => true,
-            'data' => $payments,
-        ], 200);
+            'data' => array_values($load('payment_methods', $defaults)),
+        ]);
+    });
+
+    Route::post('/payment-methods-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $saveJsonSetting, $loadJsonSetting) {
+        $methods = $request->input('methods', []);
+        if (!is_array($methods)) {
+            return response()->json(['success' => false, 'message' => 'Invalid methods payload'], 422);
+        }
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $defaults = collect($defaultPaymentMethods)->keyBy('code');
+        $normalized = collect($methods)
+            ->filter(fn ($m) => is_array($m) && isset($m['code']) && $defaults->has($m['code']))
+            ->map(function ($m, $i) use ($defaults) {
+                $base = $defaults[$m['code']];
+                return [
+                    'code' => $base['code'],
+                    'name' => (string)($m['name'] ?? $base['name']),
+                    'provider_code' => array_key_exists('provider_code', $m) ? ($m['provider_code'] ?: null) : $base['provider_code'],
+                    'enabled' => (bool)($m['enabled'] ?? $base['enabled']),
+                    'priority' => (int)($m['priority'] ?? ($i + 1)),
+                ];
+            })
+            ->values()
+            ->all();
+        if (count($normalized) !== count($defaults)) {
+            return response()->json(['success' => false, 'message' => 'All payment methods are required'], 422);
+        }
+        foreach ($normalized as $method) {
+            $methodCode = (string)$method['code'];
+            $providerCode = $method['provider_code'] ?? null;
+            if ($methodCode === 'cod') {
+                if (!is_null($providerCode)) {
+                    return response()->json(['success' => false, 'message' => 'Cash method must not have a provider'], 422);
+                }
+                continue;
+            }
+            if (!$providerCode || !$providers->has($providerCode)) {
+                return response()->json(['success' => false, 'message' => "Provider is required for method {$methodCode}"], 422);
+            }
+            $supported = collect($providers[$providerCode]['supported_methods'] ?? [])->map(fn ($m) => (string)$m);
+            if (!$supported->contains($methodCode)) {
+                return response()->json(['success' => false, 'message' => "Provider {$providerCode} does not support method {$methodCode}"], 422);
+            }
+        }
+        $saveJsonSetting('payment_methods', $normalized);
+        return response()->json(['success' => true, 'data' => $normalized]);
+    });
+
+    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting) {
+        $defaults = collect($defaultPaymentProviders)->keyBy('code');
+        $stored = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $data = $defaults->map(function ($base, $code) use ($stored) {
+            $existing = $stored->get($code, []);
+            return [
+                'code' => $base['code'],
+                'name' => $base['name'],
+                'enabled' => (bool)($existing['enabled'] ?? $base['enabled']),
+                'supported_methods' => array_values($base['supported_methods']),
+                'config' => array_merge($base['config'], is_array($existing['config'] ?? null) ? $existing['config'] : []),
+            ];
+        })->values()->all();
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    });
+
+    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting) {
+        $providers = $request->input('providers', []);
+        if (!is_array($providers)) {
+            return response()->json(['success' => false, 'message' => 'Invalid providers payload'], 422);
+        }
+        $defaults = collect($defaultPaymentProviders)->keyBy('code');
+        $normalized = collect($providers)
+            ->filter(fn ($p) => is_array($p) && isset($p['code']) && $defaults->has($p['code']))
+            ->map(function ($p) use ($defaults) {
+                $base = $defaults[$p['code']];
+                return [
+                    'code' => $base['code'],
+                    'name' => $base['name'],
+                    'enabled' => (bool)($p['enabled'] ?? $base['enabled']),
+                    'supported_methods' => array_values($base['supported_methods']),
+                    'config' => array_merge($base['config'], is_array($p['config'] ?? null) ? $p['config'] : []),
+                ];
+            })
+            ->values()
+            ->all();
+        if (count($normalized) !== count($defaults)) {
+            return response()->json(['success' => false, 'message' => 'All payment providers are required'], 422);
+        }
+        $saveJsonSetting('payment_providers', $normalized);
+        return response()->json(['success' => true, 'data' => $normalized]);
     });
 
     // Stripe tenant config (safe for frontend: publishable key + mode only)
@@ -3460,4 +3598,3 @@ Route::get('admin/orders/pos-bon/{id}', function ($id) {
     }
 });
 /* /PMD_WORLDLINE_PHASE1_ROUTES */
-
