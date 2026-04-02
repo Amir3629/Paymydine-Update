@@ -1863,9 +1863,9 @@ case "cod":
                             <img
                               src={
                                 method.code === "paypal"
-                                  ? "/images/payments/paypal.svg"
+                                  ? "/images/payments/paypal.png"
                                   : method.code === "google_pay"
-                                    ? "/images/payments/googlepay.svg"
+                                    ? "/images/payments/google_pay.png"
                                     : iconForPayment(method.code)
                               }
                               alt={method.name}

@@ -16,6 +16,15 @@ class Pos_configs_model extends Model
         ],
     ];
 
+    protected static function booted()
+    {
+        static::addGlobalScope('exclude_worldline_pos', function ($query) {
+            $query->whereHas('devices', function ($deviceQuery) {
+                $deviceQuery->whereRaw('LOWER(name) NOT LIKE ?', ['%worldline%']);
+            });
+        });
+    }
+
     public static function getDropdownOptions()
     {
         return static::dropdown('url');
@@ -45,7 +54,10 @@ class Pos_configs_model extends Model
 
     public function getPosDevicesOptions()
     {
-        return \Admin\Models\Pos_devices_model::all()->mapWithKeys(function ($device) {
+        return \Admin\Models\Pos_devices_model::query()
+            ->whereRaw('LOWER(name) NOT LIKE ?', ['%worldline%'])
+            ->get()
+            ->mapWithKeys(function ($device) {
             $img = $device->getImageUrl() ? '<img src="'.$device->getImageUrl().'" style="height:30px;margin-right:5px;" />' : '';
             return [$device->device_id => $img . $device->name];
         })->toArray();
