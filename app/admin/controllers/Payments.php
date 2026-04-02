@@ -175,7 +175,7 @@ class Payments extends \Admin\Classes\AdminController
             }
             if ($nameField = $form->getField('name')) {
                 $nameField->readOnly = true;
-                $nameField->disabled = true;
+                $nameField->disabled = false;
                 $nameField->comment = 'Provider name is fixed and managed by system defaults.';
             }
 
@@ -316,6 +316,9 @@ class Payments extends \Admin\Classes\AdminController
         $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
             && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
         if ($isProviderRecord) {
+            if (!strlen((string)$model->name)) {
+                $model->name = (string)($model->getOriginal('name') ?: $model->name);
+            }
             $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
             $model->data = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, is_array($model->data) ? $model->data : []);
             $model->is_default = 0;

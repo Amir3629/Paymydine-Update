@@ -9,7 +9,7 @@
         $toggleHref = $isProvidersMode ? admin_url('payments?mode=methods') : admin_url('payments?mode=providers');
     @endphp
 
-    <div class="d-flex justify-content-start align-items-center" style="margin: 0 0 16px 0;">
+    <div class="d-flex justify-content-start align-items-center" style="margin: 12px 0 16px 0;">
         <a href="{{ $toggleHref }}" class="btn btn-primary">
             {{ $toggleLabel }}
         </a>
