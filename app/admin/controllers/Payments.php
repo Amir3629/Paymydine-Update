@@ -320,7 +320,9 @@ class Payments extends \Admin\Classes\AdminController
                 $model->name = (string)($model->getOriginal('name') ?: $model->name);
             }
             $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
-            $model->data = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, is_array($model->data) ? $model->data : []);
+            $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, is_array($model->data) ? $model->data : []);
+            $model->data = $normalizedProviderData;
+            $this->applyNormalizedProviderDataToPost((array)post('Payment', []), $normalizedProviderData);
             $model->is_default = 0;
             if (!isset($model->priority) || $model->priority === null || $model->priority === '') {
                 $model->priority = $this->providerPriorityDefaults()[(string)$model->code] ?? 100;
@@ -701,6 +703,13 @@ class Payments extends \Admin\Classes\AdminController
         }
 
         return $payload;
+    }
+
+    protected function applyNormalizedProviderDataToPost(array $paymentPayload, array $normalizedProviderData): void
+    {
+        $paymentPayload = array_merge($paymentPayload, $normalizedProviderData);
+        request()->request->set('Payment', $paymentPayload);
+        request()->request->set('Payments', $paymentPayload);
     }
 
     protected function providerSecretFields(string $providerCode): array
