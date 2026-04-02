@@ -82,7 +82,6 @@ class Payments extends \Admin\Classes\AdminController
 
         $this->syncMethodRecords();
         $this->syncProviderRecords();
-        $this->applyModeToolbarButton($mode);
 
         $this->asExtension('ListController')->index();
     }
@@ -687,20 +686,6 @@ class Payments extends \Admin\Classes\AdminController
         }
 
         flash()->{$result['success'] ? 'success' : 'danger'}($result['message']);
-    }
-
-    protected function applyModeToolbarButton(string $mode): void
-    {
-        $isProvidersMode = $mode === 'providers';
-        $this->listConfig['list']['toolbar']['buttons']['manage_toggle'] = [
-            'label' => $isProvidersMode ? 'Manage Methods' : 'Manage Providers',
-            'class' => 'btn btn-primary pull-left',
-            'href' => $isProvidersMode ? 'payments?mode=methods' : 'payments?mode=providers',
-        ];
-
-        if (isset($this->listConfig['list']['toolbar']['buttons']['manage_providers'])) {
-            unset($this->listConfig['list']['toolbar']['buttons']['manage_providers']);
-        }
     }
 
     protected function syncProviderIntoPosConfig(string $deviceCode, array $values): void

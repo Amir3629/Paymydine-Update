@@ -1858,7 +1858,7 @@ case "cod":
                           }}
                         >
                           {method.code === "card" ? (
-                            <CreditCard className="h-10 w-10 text-paydine-elegant-gray" />
+                            <CreditCard className="h-12 w-12 text-paydine-elegant-gray" strokeWidth={2.25} />
                           ) : (
                             <img
                               src={
@@ -1873,7 +1873,7 @@ case "cod":
                                 method.code === "cod"
                                   ? 30
                                   : method.code === "paypal"
-                                    ? 36
+                                    ? 32
                                     : method.code === "apple_pay" || method.code === "google_pay"
                                       ? 50
                                       : 42
@@ -1882,7 +1882,7 @@ case "cod":
                                 method.code === "cod"
                                   ? 16
                                   : method.code === "paypal"
-                                    ? 20
+                                    ? 18
                                     : method.code === "apple_pay" || method.code === "google_pay"
                                       ? 26
                                       : 24
