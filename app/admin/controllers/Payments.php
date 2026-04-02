@@ -219,6 +219,9 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formValidate($model, $form)
     {
+        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
+
         $rules = [
             'payment'     => ['sometimes', 'required', 'alpha_dash'],
             'name'        => ['required', 'min:2', 'max:128'],
@@ -228,9 +231,9 @@ class Payments extends \Admin\Classes\AdminController
                 'alpha_dash',
                 Rule::unique('payments', 'code')->ignore(optional($model)->payment_id, 'payment_id'),
             ],
-            'priority'    => ['required', 'integer'],
+            'priority'    => $isProviderRecord ? ['sometimes', 'nullable', 'integer'] : ['required', 'integer'],
             'description' => ['max:255'],
-            'is_default'  => ['required', 'integer'],
+            'is_default'  => $isProviderRecord ? ['sometimes', 'nullable', 'integer'] : ['required', 'integer'],
             'status'      => ['required', 'integer'],
         ];
 
@@ -309,6 +312,10 @@ class Payments extends \Admin\Classes\AdminController
             && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
         if ($isProviderRecord) {
             $model->data = $this->filterProviderDataFromPost((string)$model->code, post('Payment', []), is_array($model->data) ? $model->data : []);
+            $model->is_default = 0;
+            if (!isset($model->priority) || $model->priority === null || $model->priority === '') {
+                $model->priority = $this->providerPriorityDefaults()[(string)$model->code] ?? 100;
+            }
         }
 
         $postedStatus = post('status');
@@ -449,13 +456,13 @@ class Payments extends \Admin\Classes\AdminController
     {
         Payments_model::syncAll();
 
-        $providerDefaults = [
-            'stripe' => ['name' => 'Stripe', 'priority' => 100],
-            'paypal' => ['name' => 'PayPal', 'priority' => 101],
-            'worldline' => ['name' => 'Worldline', 'priority' => 102],
-            'sumup' => ['name' => 'SumUp', 'priority' => 103],
-            'square' => ['name' => 'Square', 'priority' => 104],
-        ];
+        $providerDefaults = collect($this->providerPriorityDefaults())
+            ->mapWithKeys(fn ($priority, $code) => [$code => ['name' => ucfirst($code === 'sumup' ? 'SumUp' : $code), 'priority' => $priority]])
+            ->toArray();
+        $providerDefaults['paypal']['name'] = 'PayPal';
+        $providerDefaults['worldline']['name'] = 'Worldline';
+        $providerDefaults['stripe']['name'] = 'Stripe';
+        $providerDefaults['square']['name'] = 'Square';
 
         $classMap = $this->resolveProviderGatewayClasses();
         foreach ($providerDefaults as $code => $cfg) {
@@ -568,6 +575,17 @@ class Payments extends \Admin\Classes\AdminController
             'worldline' => ['card'],
             'sumup' => ['card'],
             'square' => ['card'],
+        ];
+    }
+
+    protected function providerPriorityDefaults(): array
+    {
+        return [
+            'stripe' => 100,
+            'paypal' => 101,
+            'worldline' => 102,
+            'sumup' => 103,
+            'square' => 104,
         ];
     }
 

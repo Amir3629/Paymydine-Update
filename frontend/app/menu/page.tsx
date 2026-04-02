@@ -1858,7 +1858,13 @@ case "cod":
                           }}
                         >
                           {method.code === "card" ? (
-                            <CreditCard className="h-12 w-12 text-paydine-elegant-gray" strokeWidth={2.25} />
+                            <img
+                              src="/images/payments/card.svg"
+                              alt={method.name}
+                              width={56}
+                              height={32}
+                              className="object-contain"
+                            />
                           ) : (
                             <img
                               src={
@@ -1873,7 +1879,7 @@ case "cod":
                                 method.code === "cod"
                                   ? 30
                                   : method.code === "paypal"
-                                    ? 32
+                                    ? 30
                                     : method.code === "apple_pay" || method.code === "google_pay"
                                       ? 50
                                       : 42
@@ -1882,7 +1888,7 @@ case "cod":
                                 method.code === "cod"
                                   ? 16
                                   : method.code === "paypal"
-                                    ? 18
+                                    ? 16
                                     : method.code === "apple_pay" || method.code === "google_pay"
                                       ? 26
                                       : 24
