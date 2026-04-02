@@ -10,6 +10,7 @@ use Exception;
 use Igniter\Flame\Database\Model;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Http;
 use System\Helpers\ValidationHelper;
 
 class Payments extends \Admin\Classes\AdminController
@@ -139,6 +140,7 @@ class Payments extends \Admin\Classes\AdminController
     {
         $model = $form->model;
         $isMethodRecord = in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode();
+        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true) && $this->isProvidersMode();
 
         if ($isMethodRecord && (string)$model->code !== 'cod') {
             $form->addFields([
@@ -154,8 +156,25 @@ class Payments extends \Admin\Classes\AdminController
             ]);
         }
 
-        // Provider edit pages keep existing integration config fields.
-        if (!$isMethodRecord && $model->exists && $model->class_name && class_exists($model->class_name)) {
+        if ($isProviderRecord) {
+            if (method_exists($form, 'removeField')) {
+                $form->removeField('is_default');
+            }
+
+            $providerFields = $this->getProviderSpecificFields((string)$model->code);
+            if (!empty($providerFields)) {
+                $form->addTabFields($providerFields);
+            }
+
+            $form->addFields([
+                'provider_test_connection' => [
+                    'type' => 'partial',
+                    'path' => 'payments/provider_test_connection',
+                    'span' => 'right',
+                ],
+            ]);
+        } elseif (!$isMethodRecord && $model->exists && $model->class_name && class_exists($model->class_name)) {
+            // Fallback for non-provider records that still rely on gateway-defined fields.
             $gateway = new $model->class_name();
             if (method_exists($gateway, 'getConfigFields')) {
                 $configFields = $gateway->getConfigFields();
@@ -271,6 +290,10 @@ class Payments extends \Admin\Classes\AdminController
             $model->data = $data;
         }
 
+        if (in_array((string)$model->code, self::PROVIDER_CODES, true) && $this->isProvidersMode()) {
+            $model->data = $this->filterProviderDataFromPost((string)$model->code, post('Payment', []), is_array($model->data) ? $model->data : []);
+        }
+
         $postedStatus = post('status');
 
         if ($postedStatus === null) {
@@ -318,6 +341,30 @@ class Payments extends \Admin\Classes\AdminController
         }
 
         $query->whereIn('code', self::METHOD_CODES);
+    }
+
+    public function formAfterSave($model)
+    {
+        if (!in_array((string)$model->code, self::PROVIDER_CODES, true) || !$this->isProvidersMode()) {
+            return;
+        }
+
+        $data = is_array($model->data) ? $model->data : [];
+        if ((string)$model->code === 'worldline') {
+            $this->syncProviderIntoPosConfig('worldline', [
+                'url' => $data['api_endpoint'] ?? null,
+                'username' => $data['api_key_id'] ?? null,
+                'access_token' => $data['secret_api_key'] ?? null,
+                'id_application' => $data['merchant_id'] ?? null,
+                'password' => $data['webhook_secret'] ?? null,
+            ]);
+        } elseif ((string)$model->code === 'sumup') {
+            $this->syncProviderIntoPosConfig('sumup', [
+                'url' => $data['url'] ?? null,
+                'access_token' => $data['access_token'] ?? null,
+                'id_application' => $data['id_application'] ?? null,
+            ]);
+        }
     }
 
     protected function syncMethodRecords(): void
@@ -401,6 +448,9 @@ class Payments extends \Admin\Classes\AdminController
             if (!empty($classMap[$code])) {
                 $row->class_name = $row->class_name ?: $classMap[$code];
             }
+            $data = is_array($row->data) ? $row->data : [];
+            $data['supported_methods'] = $data['supported_methods'] ?? $this->defaultProviderSupportedMethods()[$code] ?? [];
+            $row->data = $data;
             if ($row->status === null) {
                 $row->status = false;
             }
@@ -485,6 +535,159 @@ class Payments extends \Admin\Classes\AdminController
         }
         $referer = (string)request()->headers->get('referer', '');
         return str_contains($referer, 'mode=providers');
+    }
+
+    protected function defaultProviderSupportedMethods(): array
+    {
+        return [
+            'stripe' => ['card', 'apple_pay', 'google_pay'],
+            'paypal' => ['paypal'],
+            'worldline' => ['card'],
+            'sumup' => ['card'],
+            'square' => ['card'],
+        ];
+    }
+
+    protected function getProviderSpecificFields(string $providerCode): array
+    {
+        $commonModeField = [
+            'transaction_mode' => [
+                'label' => 'Connection mode',
+                'type' => 'select',
+                'span' => 'left',
+                'default' => 'test',
+                'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production'],
+                'comment' => 'Use test credentials first, then switch to live after verification.',
+            ],
+        ];
+
+        $fields = [
+            'stripe' => array_merge($commonModeField, [
+                'test_secret_key' => ['label' => 'Test Secret Key', 'type' => 'password', 'span' => 'left', 'comment' => 'Starts with sk_test_. Used for sandbox checkout sessions.'],
+                'live_secret_key' => ['label' => 'Live Secret Key', 'type' => 'password', 'span' => 'right', 'comment' => 'Starts with sk_live_. Used for live checkout sessions.'],
+                'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
+            ]),
+            'paypal' => array_merge($commonModeField, [
+                'test_client_id' => ['label' => 'Sandbox Client ID', 'type' => 'text', 'span' => 'left', 'comment' => 'From PayPal Developer dashboard (sandbox app).'],
+                'test_client_secret' => ['label' => 'Sandbox Client Secret', 'type' => 'password', 'span' => 'right', 'comment' => 'Keep this secret. Used only in sandbox mode.'],
+                'live_client_id' => ['label' => 'Live Client ID', 'type' => 'text', 'span' => 'left', 'comment' => 'From your live PayPal app credentials.'],
+                'live_client_secret' => ['label' => 'Live Client Secret', 'type' => 'password', 'span' => 'right', 'comment' => 'Keep this secret. Used only in live mode.'],
+                'brand_name' => ['label' => 'Checkout Brand Name', 'type' => 'text', 'span' => 'left', 'comment' => 'Shown on PayPal checkout page to customers.'],
+                'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'right', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
+            ]),
+            'square' => array_merge($commonModeField, [
+                'test_access_token' => ['label' => 'Sandbox Access Token', 'type' => 'password', 'span' => 'left', 'comment' => 'Square sandbox access token.'],
+                'test_location_id' => ['label' => 'Sandbox Location ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Location ID used to create payment links.'],
+                'live_access_token' => ['label' => 'Live Access Token', 'type' => 'password', 'span' => 'left', 'comment' => 'Square production access token.'],
+                'live_location_id' => ['label' => 'Live Location ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Production location for payment links.'],
+                'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
+            ]),
+            'sumup' => [
+                'access_token' => ['label' => 'Access Token', 'type' => 'password', 'span' => 'left', 'comment' => 'OAuth access token used for SumUp API requests.'],
+                'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'right', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
+                'id_application' => ['label' => 'Merchant Code', 'type' => 'text', 'span' => 'left', 'comment' => 'SumUp merchant code. If empty, system attempts auto-resolve.'],
+            ],
+            'worldline' => [
+                'api_endpoint' => ['label' => 'API Endpoint', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.preprod.connect.worldline-solutions.com', 'comment' => 'Preprod or live Connect API endpoint URL.'],
+                'merchant_id' => ['label' => 'Merchant ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Worldline merchant identifier.'],
+                'api_key_id' => ['label' => 'API Key ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Public API key identifier from Worldline portal.'],
+                'secret_api_key' => ['label' => 'Secret API Key', 'type' => 'password', 'span' => 'right', 'comment' => 'Private API key/secret from Worldline portal.'],
+                'webhook_secret' => ['label' => 'Webhook Secret (optional)', 'type' => 'password', 'span' => 'left', 'comment' => 'Used to validate webhook signatures if configured.'],
+            ],
+        ];
+
+        return $fields[$providerCode] ?? [];
+    }
+
+    protected function filterProviderDataFromPost(string $providerCode, array $posted, array $current): array
+    {
+        $fieldNames = array_keys($this->getProviderSpecificFields($providerCode));
+        $filtered = [];
+        foreach ($fieldNames as $name) {
+            if (array_key_exists($name, $posted)) {
+                $filtered[$name] = $posted[$name];
+            } elseif (array_key_exists($name, $current)) {
+                $filtered[$name] = $current[$name];
+            }
+        }
+        $filtered['supported_methods'] = $current['supported_methods'] ?? ($this->defaultProviderSupportedMethods()[$providerCode] ?? []);
+
+        return $filtered;
+    }
+
+    public function onTestProviderConnection()
+    {
+        $code = (string)post('code', post('Payment.code', ''));
+        $model = Payments_model::query()->where('code', $code)->first();
+        if (!$model || !in_array($code, self::PROVIDER_CODES, true)) {
+            throw new ApplicationException('Provider record not found.');
+        }
+
+        $data = (array)$model->data;
+        $result = ['success' => false, 'message' => 'Connection test not configured for this provider.'];
+
+        if ($code === 'stripe') {
+            $mode = $data['transaction_mode'] ?? 'test';
+            $secretKey = $mode === 'live' ? ($data['live_secret_key'] ?? null) : ($data['test_secret_key'] ?? null);
+            if (!$secretKey) throw new ApplicationException('Missing Stripe secret key for selected mode.');
+            $resp = Http::withBasicAuth($secretKey, '')->acceptJson()->get('https://api.stripe.com/v1/account');
+            $result = ['success' => $resp->ok(), 'message' => $resp->ok() ? 'Stripe connection successful.' : 'Stripe connection failed.', 'status' => $resp->status()];
+        } elseif ($code === 'paypal') {
+            $mode = $data['transaction_mode'] ?? 'test';
+            $clientId = $mode === 'live' ? ($data['live_client_id'] ?? null) : ($data['test_client_id'] ?? null);
+            $clientSecret = $mode === 'live' ? ($data['live_client_secret'] ?? null) : ($data['test_client_secret'] ?? null);
+            if (!$clientId || !$clientSecret) throw new ApplicationException('Missing PayPal credentials for selected mode.');
+            $base = $mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+            $resp = Http::asForm()->withBasicAuth($clientId, $clientSecret)->post($base.'/v1/oauth2/token', ['grant_type' => 'client_credentials']);
+            $result = ['success' => $resp->ok(), 'message' => $resp->ok() ? 'PayPal token request successful.' : 'PayPal authentication failed.', 'status' => $resp->status()];
+        } elseif ($code === 'square') {
+            $mode = $data['transaction_mode'] ?? 'test';
+            $token = $mode === 'live' ? ($data['live_access_token'] ?? null) : ($data['test_access_token'] ?? null);
+            if (!$token) throw new ApplicationException('Missing Square access token for selected mode.');
+            $base = $mode === 'live' ? 'https://connect.squareup.com' : 'https://connect.squareupsandbox.com';
+            $resp = Http::withHeaders(['Authorization' => 'Bearer '.$token, 'Accept' => 'application/json'])->get($base.'/v2/locations');
+            $result = ['success' => $resp->ok(), 'message' => $resp->ok() ? 'Square connection successful.' : 'Square API request failed.', 'status' => $resp->status()];
+        } elseif ($code === 'sumup') {
+            $token = $data['access_token'] ?? null;
+            $base = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
+            if (!$token) throw new ApplicationException('Missing SumUp access token.');
+            $resp = Http::withToken($token)->acceptJson()->get($base.'/v0.1/me');
+            $result = ['success' => $resp->ok(), 'message' => $resp->ok() ? 'SumUp connection successful.' : 'SumUp API request failed.', 'status' => $resp->status()];
+        } elseif ($code === 'worldline') {
+            $diagnostics = app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getConfigForDiagnostics();
+            $result = ['success' => true, 'message' => 'Worldline configuration resolved from active tenant POS mapping.', 'environment' => $diagnostics['environment'] ?? 'unknown'];
+        }
+
+        if (request()->ajax()) {
+            return response()->json($result);
+        }
+
+        flash()->{$result['success'] ? 'success' : 'danger'}($result['message']);
+    }
+
+    protected function syncProviderIntoPosConfig(string $deviceCode, array $values): void
+    {
+        $device = \Admin\Models\Pos_devices_model::query()->whereRaw('LOWER(code) = ?', [strtolower($deviceCode)])->first();
+        if (!$device) {
+            return;
+        }
+
+        $config = \Admin\Models\Pos_configs_model::withoutGlobalScopes()
+            ->where('device_id', $device->device_id)
+            ->orderByDesc('config_id')
+            ->first();
+
+        if (!$config) {
+            $config = new \Admin\Models\Pos_configs_model();
+            $config->device_id = $device->device_id;
+        }
+
+        foreach ($values as $key => $value) {
+            if ($value !== null && $value !== '') {
+                $config->{$key} = $value;
+            }
+        }
+        $config->save();
     }
 
 
