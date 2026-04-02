@@ -1858,13 +1858,19 @@ case "cod":
                           }}
                         >
                           {method.code === "card" ? (
-                            <CreditCard className="h-7 w-7 text-paydine-elegant-gray" />
+                            <CreditCard className="h-8 w-8 text-paydine-elegant-gray" />
                           ) : (
                             <img
-                              src={method.code === "paypal" ? "/images/payments/paypal.svg" : iconForPayment(method.code)}
+                              src={
+                                method.code === "paypal"
+                                  ? "/images/payments/paypal.svg"
+                                  : method.code === "google_pay"
+                                    ? "/images/payments/googlepay.svg"
+                                    : iconForPayment(method.code)
+                              }
                               alt={method.name}
-                              width={method.code === "cash" || method.code === "cod" ? 30 : (method.code === "apple_pay" || method.code === "google_pay" ? 48 : 42)}
-                              height={method.code === "cash" || method.code === "cod" ? 16 : (method.code === "apple_pay" || method.code === "google_pay" ? 24 : 22)}
+                              width={method.code === "cod" ? 30 : (method.code === "apple_pay" || method.code === "google_pay" ? 50 : 44)}
+                              height={method.code === "cod" ? 16 : (method.code === "apple_pay" || method.code === "google_pay" ? 26 : 24)}
                               className="object-contain"
                             />
                           )}

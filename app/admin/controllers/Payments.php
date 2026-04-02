@@ -66,6 +66,12 @@ class Payments extends \Admin\Classes\AdminController
 
     public function index()
     {
+        if ((string)request()->get('mode', '') === 'providers') {
+            session(['payments.form_mode' => 'providers']);
+        } else {
+            session()->forget('payments.form_mode');
+        }
+
         $this->syncMethodRecords();
 
         $this->asExtension('ListController')->index();
@@ -472,6 +478,9 @@ class Payments extends \Admin\Classes\AdminController
     {
         $mode = (string)request()->get('mode', '');
         if ($mode === 'providers') {
+            return true;
+        }
+        if ((string)session('payments.form_mode', '') === 'providers') {
             return true;
         }
         $referer = (string)request()->headers->get('referer', '');
