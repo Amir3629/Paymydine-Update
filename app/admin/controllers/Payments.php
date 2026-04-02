@@ -173,6 +173,11 @@ class Payments extends \Admin\Classes\AdminController
                 $form->removeField('description');
                 $form->removeField('code');
             }
+            if ($nameField = $form->getField('name')) {
+                $nameField->readOnly = true;
+                $nameField->disabled = true;
+                $nameField->comment = 'Provider name is fixed and managed by system defaults.';
+            }
 
             $providerFields = $this->getProviderSpecificFields((string)$model->code);
             if (!empty($providerFields)) {
@@ -644,10 +649,24 @@ class Payments extends \Admin\Classes\AdminController
     protected function filterProviderDataFromPost(string $providerCode, array $posted, array $current): array
     {
         $fieldNames = array_keys($this->getProviderSpecificFields($providerCode));
+        $secretFields = $this->providerSecretFields($providerCode);
         $filtered = [];
         foreach ($fieldNames as $name) {
             if (array_key_exists($name, $posted)) {
-                $filtered[$name] = $posted[$name];
+                $value = $posted[$name];
+                if (in_array($name, $secretFields, true)) {
+                    $isExplicitClear = is_string($value) && trim(strtolower($value)) === '__clear__';
+                    $isBlank = is_string($value) ? trim($value) === '' : ($value === null);
+                    if ($isExplicitClear) {
+                        $filtered[$name] = '';
+                        continue;
+                    }
+                    if ($isBlank && array_key_exists($name, $current)) {
+                        $filtered[$name] = $current[$name];
+                        continue;
+                    }
+                }
+                $filtered[$name] = $value;
             } elseif (array_key_exists($name, $current)) {
                 $filtered[$name] = $current[$name];
             }
@@ -679,6 +698,17 @@ class Payments extends \Admin\Classes\AdminController
         }
 
         return $payload;
+    }
+
+    protected function providerSecretFields(string $providerCode): array
+    {
+        return [
+            'stripe' => ['test_secret_key', 'live_secret_key'],
+            'paypal' => ['test_client_secret', 'live_client_secret'],
+            'square' => ['test_access_token', 'live_access_token'],
+            'sumup' => ['access_token'],
+            'worldline' => ['secret_api_key', 'webhook_secret'],
+        ][$providerCode] ?? [];
     }
 
     public function onTestProviderConnection()
