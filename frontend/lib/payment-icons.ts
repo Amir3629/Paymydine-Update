@@ -1,5 +1,6 @@
 const KNOWN = new Set([
   "cod",
+  "card",
   "paypal",
   "stripe",
   "google_pay",
@@ -44,6 +45,7 @@ function sumupThemeIcon() {
 }
 
 const CODE_ALIASES: Record<string, string> = {
+  card_payment: "card",
   paypal_express: "paypal",
   paypalexpress: "paypal",
   sum_up: "sumup",

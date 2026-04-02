@@ -104,7 +104,9 @@ export interface OrderStatusResponse {
 export interface PaymentMethod {
   code: string;
   name: string;
-  priority: number;
+  priority?: number;
+  provider_code?: string | null;
+  enabled?: boolean;
 }
 
 // Fallback data for offline mode - No default food items
@@ -298,12 +300,25 @@ export class ApiClient {
       }
       
       const data = await response.json();
-      if (!data.success || !Array.isArray(data.data)) {
+      const rawMethods = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : null);
+      if (!rawMethods) {
         return [];
       }
-      
-      // Ensure stable order (backend already orders by priority, but be defensive)
-      return [...data.data].sort((a, b) => a.priority - b.priority);
+
+      const normalized = rawMethods.map((method: any, index: number) => {
+        const legacyCode = String(method?.code || "").toLowerCase();
+        const code = legacyCode === "stripe" ? "card" : legacyCode;
+        const fallbackName = code === "card" ? "Card" : String(method?.name || code);
+        return {
+          code,
+          name: String(method?.name || fallbackName),
+          priority: Number(method?.priority ?? index + 1),
+          provider_code: method?.provider_code ?? null,
+          enabled: method?.enabled ?? true,
+        } as PaymentMethod;
+      });
+
+      return normalized.sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0));
     } catch (error) {
       console.error('Failed to fetch payment methods:', error);
       return [];
