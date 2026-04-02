@@ -1858,13 +1858,22 @@ case "cod":
                           }}
                         >
                           {method.code === "card" ? (
-                            <img
-                              src="/images/payments/card.svg"
-                              alt={method.name}
-                              width={40}
-                              height={22}
-                              className="object-contain"
-                            />
+                            <>
+                              <img
+                                src="/images/payments/card-light.svg"
+                                alt={method.name}
+                                width={40}
+                                height={22}
+                                className="object-contain dark:hidden"
+                              />
+                              <img
+                                src="/images/payments/card-dark.svg"
+                                alt={method.name}
+                                width={40}
+                                height={22}
+                                className="hidden object-contain dark:block"
+                              />
+                            </>
                           ) : (
                             <img
                               src={

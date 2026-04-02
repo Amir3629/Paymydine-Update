@@ -9,7 +9,7 @@
         $toggleHref = $isProvidersMode ? admin_url('payments?mode=methods') : admin_url('payments?mode=providers');
     @endphp
 
-    <div class="toolbar-action text-end" style="margin: 12px 0 16px 0;">
+    <div class="toolbar-action" style="margin: 12px 0 16px 0;">
         <div class="progress-indicator-container">
             <a href="{{ $toggleHref }}" class="btn btn-primary">
                 {{ $toggleLabel }}
