@@ -708,6 +708,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [isDarkTheme, setIsDarkTheme] = useState(false)
 
   // Debug (safe): expose key settings
   useEffect(() => {
@@ -729,6 +730,30 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       console.log('[PMD] selectedPaymentMethod', selectedPaymentMethod)
     } catch (e) {}
   }, [paymentMethods, selectedPaymentMethod])
+
+  useEffect(() => {
+    const detectDarkTheme = () => {
+      const themeName = document.documentElement.getAttribute('data-theme') || 'clean-light'
+      setIsDarkTheme(themeName === 'modern-dark' || themeName === 'gold-luxury')
+    }
+
+    detectDarkTheme()
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          detectDarkTheme()
+        }
+      })
+    })
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   const [loadingPayments, setLoadingPayments] = useState(true)
   const [couponCode, setCouponCode] = useState("")
@@ -1858,22 +1883,13 @@ case "cod":
                           }}
                         >
                           {method.code === "card" ? (
-                            <>
-                              <img
-                                src="/images/payments/card-light.svg"
-                                alt={method.name}
-                                width={40}
-                                height={22}
-                                className="object-contain dark:hidden"
-                              />
-                              <img
-                                src="/images/payments/card-dark.svg"
-                                alt={method.name}
-                                width={40}
-                                height={22}
-                                className="hidden object-contain dark:block"
-                              />
-                            </>
+                            <img
+                              src={isDarkTheme ? "/images/payments/card-dark.svg" : "/images/payments/card-light.svg"}
+                              alt={method.name}
+                              width={40}
+                              height={22}
+                              className="object-contain"
+                            />
                           ) : (
                             <img
                               src={
