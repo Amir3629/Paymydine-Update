@@ -311,7 +311,8 @@ class Payments extends \Admin\Classes\AdminController
         $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
             && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
         if ($isProviderRecord) {
-            $model->data = $this->filterProviderDataFromPost((string)$model->code, post('Payment', []), is_array($model->data) ? $model->data : []);
+            $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
+            $model->data = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, is_array($model->data) ? $model->data : []);
             $model->is_default = 0;
             if (!isset($model->priority) || $model->priority === null || $model->priority === '') {
                 $model->priority = $this->providerPriorityDefaults()[(string)$model->code] ?? 100;
@@ -654,6 +655,30 @@ class Payments extends \Admin\Classes\AdminController
         $filtered['supported_methods'] = $current['supported_methods'] ?? ($this->defaultProviderSupportedMethods()[$providerCode] ?? []);
 
         return $filtered;
+    }
+
+    protected function extractPostedProviderPayload(string $providerCode): array
+    {
+        $payload = [];
+        $fieldNames = array_keys($this->getProviderSpecificFields($providerCode));
+
+        foreach (['Payment', 'Payments', 'payment', 'payments'] as $root) {
+            $rootPayload = post($root);
+            if (is_array($rootPayload)) {
+                $payload = array_merge($payload, $rootPayload);
+            }
+        }
+
+        $allPost = post();
+        if (is_array($allPost)) {
+            foreach ($fieldNames as $fieldName) {
+                if (array_key_exists($fieldName, $allPost)) {
+                    $payload[$fieldName] = $allPost[$fieldName];
+                }
+            }
+        }
+
+        return $payload;
     }
 
     public function onTestProviderConnection()

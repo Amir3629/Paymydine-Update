@@ -707,11 +707,11 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => ['card', 'apple_pay', 'google_pay'], 'config' => ['publishable_key' => '', 'secret_key' => '', 'mode' => 'test']],
-        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => ['paypal'], 'config' => ['client_id' => '', 'secret' => '']],
-        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '', 'merchant_id' => '']],
-        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '']],
-        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '', 'location_id' => '']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => ['card', 'apple_pay', 'google_pay'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
+        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => ['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
+        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
+        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
+        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['transaction_mode' => 'test', 'test_access_token' => '', 'test_location_id' => '', 'live_access_token' => '', 'live_location_id' => '', 'currency' => 'EUR']],
     ];
 
     $loadJsonSetting = function (string $item, array $fallback) {
@@ -729,6 +729,11 @@ Route::group([
             ['sort' => 'paymydine', 'item' => $item],
             ['value' => json_encode($value), 'serialized' => 1]
         );
+    };
+
+    $loadProviderConfigFromPayments = function (string $providerCode): array {
+        $row = \Admin\Models\Payments_model::query()->where('code', $providerCode)->first();
+        return is_array(optional($row)->data) ? $row->data : [];
     };
 
     // === Payments (read-only) ===
@@ -803,17 +808,22 @@ Route::group([
         return response()->json(['success' => true, 'data' => $normalized]);
     });
 
-    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting) {
+    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting, $loadProviderConfigFromPayments) {
         $defaults = collect($defaultPaymentProviders)->keyBy('code');
         $stored = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
-        $data = $defaults->map(function ($base, $code) use ($stored) {
+        $data = $defaults->map(function ($base, $code) use ($stored, $loadProviderConfigFromPayments) {
             $existing = $stored->get($code, []);
+            $paymentData = $loadProviderConfigFromPayments($code);
             return [
                 'code' => $base['code'],
                 'name' => $base['name'],
                 'enabled' => (bool)($existing['enabled'] ?? $base['enabled']),
                 'supported_methods' => array_values($base['supported_methods']),
-                'config' => array_merge($base['config'], is_array($existing['config'] ?? null) ? $existing['config'] : []),
+                'config' => array_merge(
+                    $base['config'],
+                    is_array($existing['config'] ?? null) ? $existing['config'] : [],
+                    array_intersect_key($paymentData, $base['config'])
+                ),
             ];
         })->values()->all();
         return response()->json([
