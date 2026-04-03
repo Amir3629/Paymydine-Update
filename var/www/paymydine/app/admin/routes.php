@@ -2316,6 +2316,35 @@ return response()->json([
                 'is_pickup' => $isPickup,
             ]);
 
+            if (empty($request->table_id) && in_array($tableNameNormalized, ['delivery', 'cashier'], true)) {
+                $locationId = (int)($request->input('location_id') ?? 1);
+                $resolveDefaultTableId = function (string $defaultName) use ($locationId): ?int {
+                    $query = DB::table('tables as t')
+                        ->whereRaw('LOWER(TRIM(t.table_name)) = ?', [strtolower($defaultName)]);
+
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('tables', 'location_id')) {
+                        $query->where('t.location_id', $locationId);
+                    } elseif (\Illuminate\Support\Facades\Schema::hasTable('locationables')) {
+                        $query->whereExists(function ($sub) use ($locationId) {
+                            $sub->select(DB::raw(1))
+                                ->from('locationables as l')
+                                ->whereColumn('l.locationable_id', 't.table_id')
+                                ->where('l.locationable_type', 'tables')
+                                ->where('l.location_id', $locationId);
+                        });
+                    }
+
+                    $resolved = $query->value('t.table_id');
+
+                    return $resolved ? (int)$resolved : null;
+                };
+
+                $resolvedDefaultTableId = $resolveDefaultTableId($tableNameNormalized);
+                if ($resolvedDefaultTableId) {
+                    $request->merge(['table_id' => (string)$resolvedDefaultTableId]);
+                }
+            }
+
             $validationRules = [
                 'customer_name' => 'required|string|max:255',
                 'items' => 'required|array|min:1',

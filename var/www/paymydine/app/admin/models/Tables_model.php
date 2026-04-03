@@ -183,6 +183,14 @@ class Tables_model extends Model
         });
     }
 
+    protected function beforeDelete()
+    {
+        $normalizedName = strtolower(trim((string)($this->table_name ?? '')));
+        if (in_array($normalizedName, ['cashier', 'delivery'], true)) {
+            abort(403, 'Default tables cannot be deleted');
+        }
+    }
+
 
     
 
