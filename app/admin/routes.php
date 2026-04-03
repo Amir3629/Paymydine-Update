@@ -707,13 +707,13 @@ Route::group([
         'square' => ['card', 'apple_pay', 'google_pay'],
     ];
 
-    // implemented_flow_matrix (actually completed end-to-end in this codebase)
+    // proven_flow_matrix (runtime-proven only; keep unproven provider-backed methods blocked)
     $implementedFlowMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay'],
-        'paypal' => ['paypal'],
-        'worldline' => ['card'],
-        'sumup' => ['card'],
-        'square' => ['card'],
+        'stripe' => [],
+        'paypal' => [],
+        'worldline' => [],
+        'sumup' => [],
+        'square' => [],
     ];
 
     $availableProviderCodesForMethod = function (string $methodCode) use ($providerCapabilityMatrix, $implementedFlowMatrix): array {
@@ -915,7 +915,7 @@ Route::group([
             }
             $available = $resolveAvailableProviders($methodCode);
             if (!in_array((string)$providerCode, $available, true)) {
-                return response()->json(['success' => false, 'message' => "Provider {$providerCode} is not fully implemented for method {$methodCode}"], 422);
+                return response()->json(['success' => false, 'message' => "Provider {$providerCode} is not runtime-proven for method {$methodCode} in current enforcement mode"], 422);
             }
             $provider = (array)$providers->get($providerCode, []);
             $runtime = $providerRuntimeReadiness((string)$providerCode, $provider);

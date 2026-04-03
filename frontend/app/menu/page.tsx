@@ -1116,14 +1116,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       .then((methods) => {
         setPaymentMethods(methods)
         if (!methods.length) {
-          setPaymentMethodsError("Payment methods are temporarily unavailable. Please refresh or ask staff for help.")
+          setPaymentMethodsError("No runtime-proven payment methods are currently available for this location. Please use cash or ask staff for assistance.")
         } else {
           setPaymentMethodsError(null)
         }
       })
       .catch(() => {
         setPaymentMethods([])
-        setPaymentMethodsError("Payment methods are temporarily unavailable. Please refresh or ask staff for help.")
+        setPaymentMethodsError("Unable to load payment methods right now. Please refresh or ask staff for assistance.")
       })
       .finally(() => setLoadingPayments(false));
   }, [])

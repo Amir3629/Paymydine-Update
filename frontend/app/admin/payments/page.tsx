@@ -152,9 +152,14 @@ export default function PaymentMethodsPage() {
                       </SelectContent>
                     </Select>
                     {!providerIsEnabled && <p className="text-xs text-amber-600 mt-1">Selected provider is currently disabled.</p>}
+                    {method.code !== "cod" && options.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        No runtime-proven providers are currently available for this method. Run server UAT and unblock only after PASS evidence.
+                      </p>
+                    )}
                     {!assignmentIsImplemented && (
                       <p className="text-xs text-red-600 mt-1">
-                        Current assignment is no longer valid for implemented flows. Please select a supported provider.
+                        Current assignment is not allowed by runtime-proof enforcement. Please select a proven provider or disable this method.
                       </p>
                     )}
                     {method.provider_code && providers.some((provider) => provider.code === method.provider_code && !provider.runtime_ready) && (

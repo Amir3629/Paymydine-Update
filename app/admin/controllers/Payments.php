@@ -609,13 +609,14 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function implementedProviderFlows(): array
     {
-        // implemented_flow_matrix (end-to-end in current stack)
+        // proven_flow_matrix (runtime-proven only in this environment policy)
+        // Keep all provider-backed methods blocked until server-side UAT evidence is collected.
         return [
-            'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal'],
-            'worldline' => ['card'],
-            'sumup' => ['card'],
-            'square' => ['card'],
+            'stripe' => [],
+            'paypal' => [],
+            'worldline' => [],
+            'sumup' => [],
+            'square' => [],
         ];
     }
 
