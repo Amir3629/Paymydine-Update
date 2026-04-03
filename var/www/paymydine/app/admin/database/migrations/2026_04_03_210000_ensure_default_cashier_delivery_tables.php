@@ -85,22 +85,22 @@ class EnsureDefaultCashierDeliveryTables extends Migration
 
     protected function findTableIdForLocation(string $tableName, int $locationId): ?int
     {
-        $query = DB::table('tables as t')
-            ->whereRaw('LOWER(TRIM(t.table_name)) = ?', [strtolower($tableName)]);
+        $query = DB::table('tables')
+            ->whereRaw('LOWER(TRIM(table_name)) = ?', [strtolower($tableName)]);
 
         if (Schema::hasColumn('tables', 'location_id')) {
-            $query->where('t.location_id', $locationId);
+            $query->where('location_id', $locationId);
         } elseif (Schema::hasTable('locationables')) {
             $query->whereExists(function ($sub) use ($locationId) {
                 $sub->select(DB::raw(1))
-                    ->from('locationables as l')
-                    ->whereColumn('l.locationable_id', 't.table_id')
-                    ->where('l.locationable_type', 'tables')
-                    ->where('l.location_id', $locationId);
+                    ->from('locationables')
+                    ->whereColumn('locationables.locationable_id', 'tables.table_id')
+                    ->whereIn('locationables.locationable_type', ['tables', 'Admin\\Models\\Tables_model'])
+                    ->where('locationables.location_id', $locationId);
             });
         }
 
-        $id = $query->value('t.table_id');
+        $id = $query->orderBy('table_id')->value('table_id');
 
         return $id ? (int)$id : null;
     }
@@ -135,4 +135,3 @@ class EnsureDefaultCashierDeliveryTables extends Migration
         }
     }
 }
-

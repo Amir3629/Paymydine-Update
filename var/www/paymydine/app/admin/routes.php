@@ -2318,28 +2318,67 @@ return response()->json([
 
             if (empty($request->table_id) && in_array($tableNameNormalized, ['delivery', 'cashier'], true)) {
                 $locationId = (int)($request->input('location_id') ?? 1);
-                $resolveDefaultTableId = function (string $defaultName) use ($locationId): ?int {
-                    $query = DB::table('tables as t')
-                        ->whereRaw('LOWER(TRIM(t.table_name)) = ?', [strtolower($defaultName)]);
-
+                $resolvedDefaultTableId = null;
+                $resolutionSource = 'none';
+                try {
                     if (\Illuminate\Support\Facades\Schema::hasColumn('tables', 'location_id')) {
-                        $query->where('t.location_id', $locationId);
-                    } elseif (\Illuminate\Support\Facades\Schema::hasTable('locationables')) {
-                        $query->whereExists(function ($sub) use ($locationId) {
-                            $sub->select(DB::raw(1))
-                                ->from('locationables as l')
-                                ->whereColumn('l.locationable_id', 't.table_id')
-                                ->where('l.locationable_type', 'tables')
-                                ->where('l.location_id', $locationId);
-                        });
+                        $resolvedDefaultTableId = DB::table('tables')
+                            ->whereRaw('LOWER(TRIM(table_name)) = ?', [$tableNameNormalized])
+                            ->where('location_id', $locationId)
+                            ->orderBy('table_id')
+                            ->value('table_id');
+                        if ($resolvedDefaultTableId) {
+                            $resolutionSource = 'direct_location';
+                        }
                     }
 
-                    $resolved = $query->value('t.table_id');
+                    if (!$resolvedDefaultTableId && \Illuminate\Support\Facades\Schema::hasTable('locationables')) {
+                        $resolvedDefaultTableId = DB::table('tables')
+                            ->whereRaw('LOWER(TRIM(table_name)) = ?', [$tableNameNormalized])
+                            ->whereExists(function ($sub) use ($locationId) {
+                                $sub->select(DB::raw(1))
+                                    ->from('locationables')
+                                    ->whereColumn('locationables.locationable_id', 'tables.table_id')
+                                    ->whereIn('locationables.locationable_type', ['tables', 'Admin\\Models\\Tables_model'])
+                                    ->where('locationables.location_id', $locationId);
+                            })
+                            ->orderBy('table_id')
+                            ->value('table_id');
+                        if ($resolvedDefaultTableId) {
+                            $resolutionSource = 'pivot_locationable';
+                        }
+                    }
 
-                    return $resolved ? (int)$resolved : null;
-                };
+                    if (!$resolvedDefaultTableId) {
+                        $resolvedDefaultTableId = DB::table('tables')
+                            ->whereRaw('LOWER(TRIM(table_name)) = ?', [$tableNameNormalized])
+                            ->orderBy('table_id')
+                            ->value('table_id');
+                        if ($resolvedDefaultTableId) {
+                            $resolutionSource = 'global_name_fallback';
+                        }
+                    }
+                } catch (\Throwable $resolverException) {
+                    \Log::warning('PMD_DEFAULT_TABLE_RESOLUTION_FAILED', [
+                        'requested_table_name' => $tableNameNormalized,
+                        'location_id' => $locationId,
+                        'error' => $resolverException->getMessage(),
+                    ]);
 
-                $resolvedDefaultTableId = $resolveDefaultTableId($tableNameNormalized);
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Default table resolution failed',
+                        'message' => 'Unable to resolve default table for this order',
+                    ], 422);
+                }
+
+                \Log::info('PMD_DEFAULT_TABLE_RESOLUTION', [
+                    'requested_table_name' => $tableNameNormalized,
+                    'resolved_table_id' => $resolvedDefaultTableId ? (int)$resolvedDefaultTableId : null,
+                    'location_id' => $locationId,
+                    'source' => $resolutionSource,
+                ]);
+
                 if ($resolvedDefaultTableId) {
                     $request->merge(['table_id' => (string)$resolvedDefaultTableId]);
                 }
