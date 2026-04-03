@@ -3052,7 +3052,7 @@ html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface
 }
 
 /* Auto-invert payment icons for dark themes */
-.dark img[src*="/images/payments/"] {
+.dark img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
   filter: brightness(0) invert(1);
 }
 
@@ -3070,7 +3070,7 @@ html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface
 /* ========================================= */
 
 /* Dark theme: invert all except PayPal */
-html.theme-dark img[src*="/images/payments/"]:not([src*="paypal"]) {
+html.theme-dark img[src*="/images/payments/"]:not([src*="paypal"]):not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
   filter: brightness(0) invert(1) !important;
 }
 
