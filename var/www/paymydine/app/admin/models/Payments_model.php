@@ -39,15 +39,17 @@ class Payments_model extends Model
         $this->applyStorageMapping();
     }
 
-    protected $fillable = ['name', 'code', 'class_name', 'description', 'data', 'status', 'is_default', 'priority'];
+    protected $fillable = ['name', 'code', 'class_name', 'description', 'data', 'meta', 'provider_code', 'status', 'is_default', 'priority', 'sort_order'];
 
     public $timestamps = true;
 
     protected $casts = [
         'data' => 'array',
+        'meta' => 'array',
         'status' => 'boolean',
         'is_default' => 'boolean',
         'priority' => 'integer',
+        'sort_order' => 'integer',
     ];
 
     protected $jsonable = ['data'];
@@ -156,15 +158,21 @@ class Payments_model extends Model
         ] as $k) {
             unset($posted[$k]);
         }
+
+        if (array_key_exists('provider_code', $posted)) {
+            $this->provider_code = strlen((string)$posted['provider_code']) ? (string)$posted['provider_code'] : null;
+            unset($posted['provider_code']);
+        }
         
         if (!empty($posted)) {
             $current = is_array($this->data) ? $this->data : [];
             $this->data = array_merge($current, $posted);
         }
 
-        // Remove attributes that cannot be filled (prevents attempts to save non-existent columns).
+        // Keep only real DB columns for the resolved storage table.
+        $realColumns = Schema::getColumnListing($this->getTable());
         foreach (array_keys($this->attributes) as $name) {
-            if (in_array($name, $this->fillable)) continue;
+            if (in_array($name, $realColumns, true)) continue;
             unset($this->attributes[$name]);
         }
     }
@@ -361,5 +369,55 @@ class Payments_model extends Model
 
         $this->table = self::$resolvedStorage['table'];
         $this->primaryKey = self::$resolvedStorage['key'];
+    }
+
+    protected function usesPaymentMethodsStorage(): bool
+    {
+        return $this->getTable() === 'payment_methods';
+    }
+
+    public function getDataAttribute($value)
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $raw = $this->attributes['meta'] ?? null;
+            if (is_array($raw)) {
+                return $raw;
+            }
+
+            $decoded = json_decode((string)$raw, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return $value;
+    }
+
+    public function setDataAttribute($value): void
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['meta'] = json_encode(is_array($value) ? $value : []);
+            return;
+        }
+
+        $this->attributes['data'] = $value;
+    }
+
+    public function getPriorityAttribute($value)
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            return (int)($this->attributes['sort_order'] ?? 0);
+        }
+
+        return $value;
+    }
+
+    public function setPriorityAttribute($value): void
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['sort_order'] = (int)$value;
+            return;
+        }
+
+        $this->attributes['priority'] = $value;
     }
 }

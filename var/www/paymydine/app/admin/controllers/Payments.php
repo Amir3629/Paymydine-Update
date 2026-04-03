@@ -336,8 +336,13 @@ class Payments extends \Admin\Classes\AdminController
         \Log::info('PMD_PAYMENTS_FORM_BEFORE_SAVE', [
             'code' => (string)$model->code,
             'is_providers_mode' => $this->isProvidersMode(),
+            'table' => $model->getTable(),
+            'key_name' => $model->getKeyName(),
+            'current_key' => $model->getKey(),
+            'exists' => (bool)$model->exists,
             'incoming_payload' => $this->redactPaymentPayload($incomingPayload),
             'data_before' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+            'provider_code_before' => $model->provider_code ?? null,
         ]);
 
         if (in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode()) {
@@ -348,6 +353,7 @@ class Payments extends \Admin\Classes\AdminController
             $data = is_array($model->data) ? $model->data : [];
             $data['provider_code'] = $providerCode;
             $model->data = $data;
+            $model->provider_code = $providerCode;
         }
 
         $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
@@ -404,7 +410,12 @@ class Payments extends \Admin\Classes\AdminController
 
         \Log::info('PMD_PAYMENTS_FORM_READY_TO_SAVE', [
             'code' => (string)$model->code,
+            'table' => $model->getTable(),
+            'key_name' => $model->getKeyName(),
+            'current_key' => $model->getKey(),
+            'exists' => (bool)$model->exists,
             'data_after_prepare' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+            'provider_code_after_prepare' => $model->provider_code ?? null,
             'status' => (int)$model->status,
             'is_default' => (int)$model->is_default,
         ]);
@@ -432,7 +443,10 @@ class Payments extends \Admin\Classes\AdminController
         \Log::info('PMD_PAYMENTS_FORM_AFTER_SAVE', [
             'code' => (string)$model->code,
             'payment_id' => (int)$model->getKey(),
+            'table' => $model->getTable(),
+            'key_name' => $model->getKeyName(),
             'saved_data' => $this->redactPaymentPayload(is_array(optional($fresh)->data) ? $fresh->data : []),
+            'saved_provider_code' => optional($fresh)->provider_code,
             'saved_status' => (int)optional($fresh)->status,
             'saved_is_default' => (int)optional($fresh)->is_default,
         ]);
@@ -512,6 +526,7 @@ class Payments extends \Admin\Classes\AdminController
             $data = is_array($row->data) ? $row->data : [];
             $data['provider_code'] = $cfg['provider_code'];
             $row->data = $data;
+            $row->provider_code = $cfg['provider_code'];
             $row->save();
         }
     }
@@ -629,8 +644,10 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function extractProviderCode($model): ?string
     {
-        if (!is_array($model->data)) return null;
-        $code = $model->data['provider_code'] ?? null;
+        $code = $model->provider_code ?? null;
+        if (!strlen((string)$code) && is_array($model->data)) {
+            $code = $model->data['provider_code'] ?? null;
+        }
         return strlen((string)$code) ? (string)$code : null;
     }
 
