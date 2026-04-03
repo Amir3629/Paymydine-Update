@@ -934,7 +934,7 @@ Route::group([
     Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting, $loadProviderConfigFromPayments, $implementedFlowMatrix, $providerRuntimeReadiness) {
         $defaults = collect($defaultPaymentProviders)->keyBy('code');
         $stored = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
-        $data = $defaults->map(function ($base, $code) use ($stored, $loadProviderConfigFromPayments, $implementedFlowMatrix) {
+        $data = $defaults->map(function ($base, $code) use ($stored, $loadProviderConfigFromPayments, $implementedFlowMatrix, $providerRuntimeReadiness) {
             $existing = $stored->get($code, []);
             $paymentData = $loadProviderConfigFromPayments($code);
             $mergedConfig = array_merge(
