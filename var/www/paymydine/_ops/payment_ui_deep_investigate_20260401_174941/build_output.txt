@@ -1,0 +1,71 @@
+
+> my-v0-project@0.1.0 build
+> next build
+
+⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+⚠ Invalid next.config.mjs options detected: 
+⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /var/www/paymydine/frontend/package-lock.json
+
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env.production
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 11.7s
+  Skipping validation of types
+  Finished TypeScript config validation in 21ms ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/29) ...
+  Generating static pages using 3 workers (7/29) 
+  Generating static pages using 3 workers (14/29) 
+  Generating static pages using 3 workers (21/29) 
+=== TEST PAGE LOADING ===
+✓ Generating static pages using 3 workers (29/29) in 819ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ○ /admin/general
+├ ○ /admin/menu
+├ ƒ /admin/menu/[id]
+├ ○ /admin/merchant
+├ ○ /admin/payments
+├ ƒ /api/debug/client-log
+├ ƒ /api/orders/confirm
+├ ƒ /api/payment-methods
+├ ƒ /api/payments/capture-paypal-order
+├ ƒ /api/payments/create-intent
+├ ƒ /api/payments/create-paypal-order
+├ ƒ /api/payments/process-apple-pay
+├ ƒ /api/payments/process-cash
+├ ƒ /api/payments/process-google-pay
+├ ƒ /api/payments/validate-apple-pay
+├ ○ /checkout
+├ ○ /dashboard
+├ ○ /dev/theme-bg-lab
+├ ○ /menu
+├ ○ /menu/table-[table_id]
+├ ○ /order-placed
+├ ƒ /table/[table_id]
+├ ƒ /table/[table_id]/menu
+├ ƒ /table/[table_id]/valet
+├ ○ /test
+├ ○ /test-theme
+├ ○ /valet
+├ ○ /worldline-return
+└ ○ /worldline-test
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

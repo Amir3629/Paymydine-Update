@@ -1,0 +1,98 @@
+<?php
+
+namespace Admin\Controllers;
+
+use Admin\Facades\AdminMenu;
+
+class Tables extends \Admin\Classes\AdminController
+{
+    public $implement = [
+        'Admin\Actions\ListController',
+        'Admin\Actions\FormController',
+        'Admin\Actions\LocationAwareController',
+    ];
+
+    public $listConfig = [
+        'list' => [
+            'model' => 'Admin\Models\Tables_model',
+            'title' => 'lang:admin::lang.tables.text_title',
+            'configFile' => 'tables_model',
+        ],
+    ];
+
+    public $formConfig = [
+        'name' => 'Tables',
+        'model' => 'Admin\Models\Tables_model',
+        'request' => 'Admin\Requests\Table',
+        'configFile' => 'tables_model',
+    ];
+
+    protected $requiredPermissions = 'Admin.Tables';
+
+    public function __construct()
+    {
+        parent::__construct();
+        AdminMenu::setContext('tables', 'restaurant');
+    }
+
+    public function formExtendFields($form)
+    {
+        $model = $form->model;
+
+        $tableNo   = $form->getField('table_no');
+        $pos       = $form->getField('pos_table_label');
+        $priority  = $form->getField('priority');
+
+        $posValue = trim((string)($model->pos_table_label ?? ''));
+        $isPos = $posValue !== '';
+
+        // ALWAYS clean base layout
+        if ($tableNo) {
+            $tableNo->label = 'Table Number';
+            $tableNo->span = 'left';
+            $tableNo->comment = null;
+        }
+
+        if ($priority) {
+            $priority->label = 'Priority';
+        }
+
+        if ($isPos) {
+            // POS MODE
+            if ($tableNo) {
+                $tableNo->value = $posValue;
+                $tableNo->disabled = true;
+                $tableNo->span = 'left';
+            }
+
+            if ($pos) {
+                $pos->hidden = false;
+                $pos->span = 'right';
+                $pos->readOnly = true;
+                $pos->value = $posValue;
+                $pos->comment = null;
+            }
+
+            if ($priority) {
+                $priority->span = 'left';
+            }
+
+        } else {
+            // NORMAL MODE (THIS FIXES YOUR GAP)
+            if ($pos) {
+                // 🔥 IMPORTANT: remove it from layout completely
+                $pos->hidden = true;
+                $pos->span = 'full'; // prevent grid reserving space
+            }
+
+            if ($tableNo) {
+                $tableNo->disabled = false;
+                $tableNo->span = 'left';
+            }
+
+            if ($priority) {
+                $priority->span = 'right'; // 🔥 THIS FILLS THE GAP
+            }
+        }
+    }
+}

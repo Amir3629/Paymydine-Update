@@ -1,0 +1,21 @@
+     1	import { NextResponse } from "next/server"
+     2	import fs from "fs"
+     3	import path from "path"
+     4	
+     5	export async function GET() {
+     6	  try {
+     7	    const filePath = path.join(process.cwd(), "data", "payment-methods.json")
+     8	    const raw = fs.readFileSync(filePath, "utf8")
+     9	    const data = JSON.parse(raw)
+    10	    return NextResponse.json(data, { status: 200 })
+    11	  } catch (error: any) {
+    12	    return NextResponse.json(
+    13	      {
+    14	        ok: false,
+    15	        message: "Failed to load payment methods snapshot",
+    16	        error: String(error?.message || error),
+    17	      },
+    18	      { status: 500 }
+    19	    )
+    20	  }
+    21	}

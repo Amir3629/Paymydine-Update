@@ -1,0 +1,43 @@
+<?php
+
+namespace Igniter\PayRegister\Payments;
+
+use Admin\Classes\BasePaymentGateway;
+
+class SumUp extends BasePaymentGateway
+{
+    public function defineGatewayFormFields()
+    {
+        return include __DIR__.'/sumup/fields.php';
+    }
+
+    public function getConfigFields()
+    {
+        return $this->defineGatewayFormFields();
+    }
+
+    public function getConfigRules()
+    {
+        return [
+            'transaction_mode' => ['required', 'in:test,live'],
+            'test_api_key' => ['nullable', 'string'],
+            'live_api_key' => ['nullable', 'string'],
+            'test_public_key' => ['nullable', 'string'],
+            'live_public_key' => ['nullable', 'string'],
+            'merchant_code' => ['nullable', 'string'],
+            'base_url' => ['nullable', 'string'],
+            'return_url' => ['nullable', 'string'],
+            'webhook_url' => ['nullable', 'string'],
+        ];
+    }
+
+    public function getConfigValidationMessages()
+    {
+        return [];
+    }
+
+    public function getConfigValidationAttributes()
+    {
+        return [];
+    }
+}

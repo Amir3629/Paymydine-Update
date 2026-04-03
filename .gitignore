@@ -1,0 +1,15 @@
+.env
+.env.*
+node_modules/
+vendor/
+.next/
+storage/logs/
+logs/
+*.log
+*.sql
+*.sql.gz
+*.tar.gz
+*.zip
+db_dumps/
+bootstrap/cache/*.php
+.DS_Store

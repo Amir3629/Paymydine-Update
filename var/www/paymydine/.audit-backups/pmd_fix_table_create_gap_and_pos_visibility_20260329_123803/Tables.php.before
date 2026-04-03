@@ -1,0 +1,149 @@
+<?php
+
+namespace Admin\Controllers;
+
+use Admin\Facades\AdminMenu;
+
+/**
+ * Admin Controller Class Tables
+ */
+class Tables extends \Admin\Classes\AdminController
+{
+    public $implement = [
+        'Admin\Actions\ListController',
+        'Admin\Actions\FormController',
+        'Admin\Actions\LocationAwareController',
+    ];
+
+    public $listConfig = [
+        'list' => [
+            'model' => 'Admin\Models\Tables_model',
+            'title' => 'lang:admin::lang.tables.text_title',
+            'emptyMessage' => 'lang:admin::lang.tables.text_empty',
+            'defaultSort' => ['table_id', 'DESC'],
+            'configFile' => 'tables_model',
+        ],
+    ];
+
+    public $formConfig = [
+        'name' => 'lang:admin::lang.tables.text_form_name',
+        'model' => 'Admin\Models\Tables_model',
+        'request' => 'Admin\Requests\Table',
+        'create' => [
+            'title' => 'lang:admin::lang.form.create_title',
+            'redirect' => 'tables/edit/{table_id}',
+            'redirectClose' => 'tables',
+            'redirectNew' => 'tables/create',
+        ],
+        'edit' => [
+            'title' => 'lang:admin::lang.form.edit_title',
+            'redirect' => 'tables/edit/{table_id}',
+            'redirectClose' => 'tables',
+            'redirectNew' => 'tables/create',
+        ],
+        'preview' => [
+            'title' => 'lang:admin::lang.form.preview_title',
+            'redirect' => 'tables',
+        ],
+        'delete' => [
+            'redirect' => 'tables',
+        ],
+        'configFile' => 'tables_model',
+    ];
+
+    protected $requiredPermissions = 'Admin.Tables';
+
+    public function __construct()
+    {
+        parent::__construct();
+        AdminMenu::setContext('tables', 'restaurant');
+    }
+
+    public function formExtendFields($form)
+    {
+        try {
+            $model = $form->model ?? null;
+
+            $tableNoField  = $form->getField('table_no');
+            $posField      = $form->getField('pos_table_label');
+            $priorityField = $form->getField('priority');
+
+            // CREATE PAGE
+            if (!$model || !$model->exists) {
+                if ($tableNoField) {
+                    $tableNoField->label = 'Table Number';
+                    $tableNoField->comment = null;
+                    $tableNoField->disabled = false;
+                    $tableNoField->span = 'left';
+                }
+
+                if ($priorityField) {
+                    $priorityField->span = 'right';
+                }
+
+                if ($posField) {
+                    $posField->hidden = true;
+                }
+
+                return;
+            }
+
+            // EDIT PAGE
+            $posLabel = trim((string)($model->pos_table_label ?? ''));
+            $isPosRow = ($posLabel !== '');
+
+            if ($tableNoField) {
+                $tableNoField->label = 'Table Number';
+            }
+
+            if ($isPosRow) {
+                if ($tableNoField) {
+                    $tableNoField->value = $posLabel;
+                    $tableNoField->disabled = true;
+                    $tableNoField->comment = 'POS/custom table: exact visible name shown here. Internal numeric table_no remains unchanged.';
+                    $tableNoField->span = 'left';
+                }
+
+                if ($posField) {
+                    $posField->hidden = false;
+                    $posField->value = $posLabel;
+                    $posField->disabled = true;
+                    $posField->span = 'right';
+                    $posField->comment = 'Exact external POS/custom table label.';
+                }
+
+                if ($priorityField) {
+                    $priorityField->span = 'left';
+                }
+            } else {
+                if ($tableNoField) {
+                    $tableNoField->disabled = false;
+                    $tableNoField->comment = null;
+                    $tableNoField->span = 'left';
+                }
+
+                if ($posField) {
+                    $posField->hidden = true;
+                    $posField->comment = null;
+                }
+
+                if ($priorityField) {
+                    $priorityField->span = 'right';
+                }
+            }
+        } catch (\Throwable $e) {
+            // fail-safe
+        }
+    }
+
+    public function formBeforeSave($model)
+    {
+        try {
+            if (!isset($model->extra_capacity) || $model->extra_capacity === null || $model->extra_capacity === '') {
+                $model->extra_capacity = 0;
+            }
+        } catch (\Throwable $e) {
+            // fail-safe
+        }
+    }
+}

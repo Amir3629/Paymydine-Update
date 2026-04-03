@@ -1,0 +1,613 @@
+diff --git a/app/admin/routes.php b/app/admin/routes.php
+index cb84aaa..22c41c7 100755
+--- a/app/admin/routes.php
++++ b/app/admin/routes.php
+@@ -698,17 +698,155 @@ Route::group([
+     'prefix' => 'api/v1',
+     'middleware' => ['web']
+ ], function () {
++    $defaultPaymentMethods = [
++        ['code' => 'card', 'name' => 'Card', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 1],
++        ['code' => 'apple_pay', 'name' => 'Apple Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 2],
++        ['code' => 'google_pay', 'name' => 'Google Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 3],
++        ['code' => 'paypal', 'name' => 'PayPal', 'provider_code' => 'paypal', 'enabled' => true, 'priority' => 4],
++        ['code' => 'cod', 'name' => 'Cash', 'provider_code' => null, 'enabled' => true, 'priority' => 5],
++    ];
++
++    $defaultPaymentProviders = [
++        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => ['card', 'apple_pay', 'google_pay'], 'config' => ['publishable_key' => '', 'secret_key' => '', 'mode' => 'test']],
++        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => ['paypal'], 'config' => ['client_id' => '', 'secret' => '']],
++        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '', 'merchant_id' => '']],
++        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '']],
++        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_key' => '', 'location_id' => '']],
++    ];
++
++    $loadJsonSetting = function (string $item, array $fallback) {
++        $row = \Illuminate\Support\Facades\DB::table('settings')
++            ->where('sort', 'paymydine')
++            ->where('item', $item)
++            ->first();
++        if (!$row || !isset($row->value)) return $fallback;
++        $decoded = json_decode((string)$row->value, true);
++        return is_array($decoded) ? $decoded : $fallback;
++    };
++
++    $saveJsonSetting = function (string $item, array $value): void {
++        \Illuminate\Support\Facades\DB::table('settings')->updateOrInsert(
++            ['sort' => 'paymydine', 'item' => $item],
++            ['value' => json_encode($value), 'serialized' => 1]
++        );
++    };
++
+     // === Payments (read-only) ===
+-    Route::get('/payments', function () {
+-        // Only return enabled methods in priority order
+-        $payments = \Admin\Models\Payments_model::isEnabled()
+-            ->orderBy('priority')
+-            ->get(['code', 'name', 'priority']);
++    Route::get('/payments', function () use ($defaultPaymentMethods, $loadJsonSetting) {
++        $defaults = $defaultPaymentMethods;
++        $load = $loadJsonSetting;
++        $methods = collect($load('payment_methods', $defaults))
++            ->where('enabled', true)
++            ->sortBy('priority')
++            ->values()
++            ->map(fn ($m) => [
++                'code' => $m['code'],
++                'name' => $m['name'],
++                'provider_code' => $m['provider_code'] ?? null,
++                'priority' => (int)($m['priority'] ?? 0),
++            ]);
++
++        return response()->json($methods, 200);
++    });
+ 
++    Route::get('/payment-methods-admin', function () use ($defaultPaymentMethods, $loadJsonSetting) {
++        $defaults = $defaultPaymentMethods;
++        $load = $loadJsonSetting;
+         return response()->json([
+             'success' => true,
+-            'data' => $payments,
+-        ], 200);
++            'data' => array_values($load('payment_methods', $defaults)),
++        ]);
++    });
++
++    Route::post('/payment-methods-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $saveJsonSetting, $loadJsonSetting) {
++        $methods = $request->input('methods', []);
++        if (!is_array($methods)) {
++            return response()->json(['success' => false, 'message' => 'Invalid methods payload'], 422);
++        }
++        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
++        $defaults = collect($defaultPaymentMethods)->keyBy('code');
++        $normalized = collect($methods)
++            ->filter(fn ($m) => is_array($m) && isset($m['code']) && $defaults->has($m['code']))
++            ->map(function ($m, $i) use ($defaults) {
++                $base = $defaults[$m['code']];
++                return [
++                    'code' => $base['code'],
++                    'name' => (string)($m['name'] ?? $base['name']),
++                    'provider_code' => array_key_exists('provider_code', $m) ? ($m['provider_code'] ?: null) : $base['provider_code'],
++                    'enabled' => (bool)($m['enabled'] ?? $base['enabled']),
++                    'priority' => (int)($m['priority'] ?? ($i + 1)),
++                ];
++            })
++            ->values()
++            ->all();
++        if (count($normalized) !== count($defaults)) {
++            return response()->json(['success' => false, 'message' => 'All payment methods are required'], 422);
++        }
++        foreach ($normalized as $method) {
++            $methodCode = (string)$method['code'];
++            $providerCode = $method['provider_code'] ?? null;
++            if ($methodCode === 'cod') {
++                if (!is_null($providerCode)) {
++                    return response()->json(['success' => false, 'message' => 'Cash method must not have a provider'], 422);
++                }
++                continue;
++            }
++            if (!$providerCode || !$providers->has($providerCode)) {
++                return response()->json(['success' => false, 'message' => "Provider is required for method {$methodCode}"], 422);
++            }
++            $supported = collect($providers[$providerCode]['supported_methods'] ?? [])->map(fn ($m) => (string)$m);
++            if (!$supported->contains($methodCode)) {
++                return response()->json(['success' => false, 'message' => "Provider {$providerCode} does not support method {$methodCode}"], 422);
++            }
++        }
++        $saveJsonSetting('payment_methods', $normalized);
++        return response()->json(['success' => true, 'data' => $normalized]);
++    });
++
++    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting) {
++        $defaults = collect($defaultPaymentProviders)->keyBy('code');
++        $stored = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
++        $data = $defaults->map(function ($base, $code) use ($stored) {
++            $existing = $stored->get($code, []);
++            return [
++                'code' => $base['code'],
++                'name' => $base['name'],
++                'enabled' => (bool)($existing['enabled'] ?? $base['enabled']),
++                'supported_methods' => array_values($base['supported_methods']),
++                'config' => array_merge($base['config'], is_array($existing['config'] ?? null) ? $existing['config'] : []),
++            ];
++        })->values()->all();
++        return response()->json([
++            'success' => true,
++            'data' => $data,
++        ]);
++    });
++
++    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting) {
++        $providers = $request->input('providers', []);
++        if (!is_array($providers)) {
++            return response()->json(['success' => false, 'message' => 'Invalid providers payload'], 422);
++        }
++        $defaults = collect($defaultPaymentProviders)->keyBy('code');
++        $normalized = collect($providers)
++            ->filter(fn ($p) => is_array($p) && isset($p['code']) && $defaults->has($p['code']))
++            ->map(function ($p) use ($defaults) {
++                $base = $defaults[$p['code']];
++                return [
++                    'code' => $base['code'],
++                    'name' => $base['name'],
++                    'enabled' => (bool)($p['enabled'] ?? $base['enabled']),
++                    'supported_methods' => array_values($base['supported_methods']),
++                    'config' => array_merge($base['config'], is_array($p['config'] ?? null) ? $p['config'] : []),
++                ];
++            })
++            ->values()
++            ->all();
++        if (count($normalized) !== count($defaults)) {
++            return response()->json(['success' => false, 'message' => 'All payment providers are required'], 422);
++        }
++        $saveJsonSetting('payment_providers', $normalized);
++        return response()->json(['success' => true, 'data' => $normalized]);
+     });
+ 
+     // Stripe tenant config (safe for frontend: publishable key + mode only)
+@@ -3460,4 +3598,3 @@ Route::get('admin/orders/pos-bon/{id}', function ($id) {
+     }
+ });
+ /* /PMD_WORLDLINE_PHASE1_ROUTES */
+-
+diff --git a/frontend/app/admin/layout.tsx b/frontend/app/admin/layout.tsx
+index 6e98b23..57a7430 100755
+--- a/frontend/app/admin/layout.tsx
++++ b/frontend/app/admin/layout.tsx
+@@ -34,7 +34,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
+             className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+           >
+             <CreditCard className="h-5 w-5" />
+-            <span>Payment & Tips</span>
++            <span>Payment Methods</span>
++          </Link>
++          <Link
++            href="/admin/payment-providers"
++            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
++          >
++            <CreditCard className="h-5 w-5" />
++            <span>Payment Providers</span>
+           </Link>
+           <Link
+             href="/admin/merchant"
+diff --git a/frontend/app/admin/payment-providers/page.tsx b/frontend/app/admin/payment-providers/page.tsx
+new file mode 100644
+index 0000000..98da993
+--- /dev/null
++++ b/frontend/app/admin/payment-providers/page.tsx
+@@ -0,0 +1,178 @@
++"use client"
++
++import { useEffect, useState } from "react"
++import { Switch } from "@/components/ui/switch"
++import { Label } from "@/components/ui/label"
++import { Input } from "@/components/ui/input"
++import { Button } from "@/components/ui/button"
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
++import { useToast } from "@/components/ui/use-toast"
++
++type ProviderCode = "stripe" | "paypal" | "worldline" | "sumup" | "square"
++
++type PaymentProvider = {
++  code: ProviderCode
++  name: string
++  enabled: boolean
++  supported_methods: string[]
++  config: Record<string, string>
++}
++
++const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string; type?: string; options?: string[] }>> = {
++  stripe: [
++    { key: "publishable_key", label: "Publishable Key" },
++    { key: "secret_key", label: "Secret Key", type: "password" },
++    { key: "mode", label: "Mode", options: ["test", "live"] },
++  ],
++  paypal: [
++    { key: "client_id", label: "Client ID" },
++    { key: "secret", label: "Secret", type: "password" },
++  ],
++  worldline: [
++    { key: "api_key", label: "API Key", type: "password" },
++    { key: "merchant_id", label: "Merchant ID" },
++  ],
++  sumup: [{ key: "api_key", label: "API Key", type: "password" }],
++  square: [
++    { key: "api_key", label: "API Key", type: "password" },
++    { key: "location_id", label: "Location ID" },
++  ],
++}
++
++export default function PaymentProvidersPage() {
++  const { toast } = useToast()
++  const [providers, setProviders] = useState<PaymentProvider[]>([])
++  const [isLoading, setIsLoading] = useState(true)
++  const [isSaving, setIsSaving] = useState(false)
++
++  useEffect(() => {
++    let cancelled = false
++    const load = async () => {
++      setIsLoading(true)
++      try {
++        const response = await fetch("/api/v1/payment-providers-admin")
++        const json = await response.json()
++        if (!cancelled) {
++          setProviders(Array.isArray(json?.data) ? json.data : [])
++        }
++      } catch {
++        if (!cancelled) {
++          toast({ title: "Load failed", description: "Could not load providers", variant: "destructive" })
++        }
++      } finally {
++        if (!cancelled) setIsLoading(false)
++      }
++    }
++    void load()
++    return () => {
++      cancelled = true
++    }
++  }, [toast])
++
++  const updateProvider = (code: ProviderCode, patch: Partial<PaymentProvider>) => {
++    setProviders((prev) => prev.map((provider) => (provider.code === code ? { ...provider, ...patch } : provider)))
++  }
++
++  const updateConfig = (code: ProviderCode, key: string, value: string) => {
++    setProviders((prev) =>
++      prev.map((provider) =>
++        provider.code === code ? { ...provider, config: { ...(provider.config || {}), [key]: value } } : provider,
++      ),
++    )
++  }
++
++  const save = async () => {
++    setIsSaving(true)
++    try {
++      const response = await fetch("/api/v1/payment-providers-admin", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ providers }),
++      })
++      const json = await response.json()
++      if (!response.ok || !json?.success) throw new Error("save failed")
++      toast({ title: "Saved", description: "Payment providers updated" })
++    } catch {
++      toast({ title: "Save failed", description: "Could not save providers", variant: "destructive" })
++    } finally {
++      setIsSaving(false)
++    }
++  }
++
++  return (
++    <div className="space-y-6">
++      <div>
++        <h1 className="text-3xl font-bold">Payment Providers</h1>
++        <p className="text-sm text-muted-foreground mt-1">Provider integrations and credentials are managed separately from UI payment methods.</p>
++      </div>
++
++      <div className="space-y-4">
++        {isLoading ? (
++          <div className="bg-white rounded-xl p-6 shadow text-sm text-muted-foreground">Loading providers...</div>
++        ) : (
++          providers.map((provider) => {
++            const fields = providerFieldMap[provider.code] || []
++            return (
++              <div key={provider.code} className="bg-white rounded-xl p-6 shadow space-y-4">
++                <div className="flex items-center justify-between">
++                  <div>
++                    <h2 className="text-xl font-semibold">{provider.name}</h2>
++                    <p className="text-xs text-muted-foreground">code: {provider.code}</p>
++                    <p className="text-xs text-muted-foreground mt-1">
++                      Supports: {(provider.supported_methods || []).join(", ") || "—"}
++                    </p>
++                  </div>
++                  <div className="flex items-center gap-2">
++                    <Label htmlFor={`provider-enabled-${provider.code}`}>Enabled</Label>
++                    <Switch
++                      id={`provider-enabled-${provider.code}`}
++                      checked={provider.enabled}
++                      onCheckedChange={(checked) => updateProvider(provider.code, { enabled: checked })}
++                    />
++                  </div>
++                </div>
++
++                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
++                  {fields.map((field) => (
++                    <div key={`${provider.code}-${field.key}`} className="space-y-1">
++                      <Label className="text-xs">{field.label}</Label>
++                      {field.options ? (
++                        <Select
++                          value={String(provider.config?.[field.key] || field.options[0])}
++                          onValueChange={(value) => updateConfig(provider.code, field.key, value)}
++                        >
++                          <SelectTrigger>
++                            <SelectValue />
++                          </SelectTrigger>
++                          <SelectContent>
++                            {field.options.map((option) => (
++                              <SelectItem key={`${provider.code}-${field.key}-${option}`} value={option}>
++                                {option}
++                              </SelectItem>
++                            ))}
++                          </SelectContent>
++                        </Select>
++                      ) : (
++                        <Input
++                          type={field.type || "text"}
++                          value={String(provider.config?.[field.key] || "")}
++                          onChange={(e) => updateConfig(provider.code, field.key, e.target.value)}
++                        />
++                      )}
++                    </div>
++                  ))}
++                </div>
++              </div>
++            )
++          })
++        )}
++      </div>
++
++      <div className="flex justify-end">
++        <Button onClick={save} disabled={isLoading || isSaving}>
++          {isSaving ? "Saving..." : "Save Providers"}
++        </Button>
++      </div>
++    </div>
++  )
++}
+diff --git a/frontend/app/admin/payments/page.tsx b/frontend/app/admin/payments/page.tsx
+index a41a026..56271fc 100755
+--- a/frontend/app/admin/payments/page.tsx
++++ b/frontend/app/admin/payments/page.tsx
+@@ -1,80 +1,171 @@
+ "use client"
+ 
+-import type React from "react"
+-import { useCmsStore } from "@/store/cms-store"
++import { useEffect, useMemo, useState } from "react"
++import Link from "next/link"
+ import { Switch } from "@/components/ui/switch"
+ import { Label } from "@/components/ui/label"
+ import { Input } from "@/components/ui/input"
+ import { Button } from "@/components/ui/button"
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+ import { useToast } from "@/components/ui/use-toast"
+ 
+-export default function PaymentOptionsPage() {
+-  const { paymentOptions, togglePaymentOption, tipSettings, updateTipSettings } = useCmsStore()
++type PaymentMethod = {
++  code: "card" | "apple_pay" | "google_pay" | "paypal" | "cod"
++  name: string
++  provider_code: "stripe" | "paypal" | "worldline" | "sumup" | null
++  enabled: boolean
++  priority: number
++}
++
++type PaymentProvider = {
++  code: "stripe" | "paypal" | "worldline" | "sumup" | "square"
++  name: string
++  enabled: boolean
++  supported_methods: PaymentMethod["code"][]
++}
++
++export default function PaymentMethodsPage() {
+   const { toast } = useToast()
++  const [methods, setMethods] = useState<PaymentMethod[]>([])
++  const [providers, setProviders] = useState<PaymentProvider[]>([])
++  const [isLoading, setIsLoading] = useState(true)
++  const [isSaving, setIsSaving] = useState(false)
++
++  useEffect(() => {
++    let cancelled = false
++    const load = async () => {
++      setIsLoading(true)
++      try {
++        const [methodsRes, providersRes] = await Promise.all([
++          fetch("/api/v1/payment-methods-admin"),
++          fetch("/api/v1/payment-providers-admin"),
++        ])
++        const methodsJson = await methodsRes.json()
++        const providersJson = await providersRes.json()
++        if (cancelled) return
+ 
+-  const handleTipSettingsSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+-    e.preventDefault()
+-    const formData = new FormData(e.currentTarget)
+-    const percentages = (formData.get("percentages") as string)
+-      .split(",")
+-      .map((s) => Number(s.trim()))
+-      .filter(Boolean)
++        setMethods(Array.isArray(methodsJson?.data) ? methodsJson.data : [])
++        setProviders(Array.isArray(providersJson?.data) ? providersJson.data : [])
++      } catch {
++        if (!cancelled) {
++          toast({ title: "Load failed", description: "Could not load payment methods/providers", variant: "destructive" })
++        }
++      } finally {
++        if (!cancelled) setIsLoading(false)
++      }
++    }
++    void load()
++    return () => {
++      cancelled = true
++    }
++  }, [toast])
++
++  const enabledProviderCodes = useMemo(() => new Set(providers.filter((p) => p.enabled).map((p) => p.code)), [providers])
++
++  const updateMethod = (code: PaymentMethod["code"], patch: Partial<PaymentMethod>) => {
++    setMethods((prev) => prev.map((method) => (method.code === code ? { ...method, ...patch } : method)))
++  }
+ 
+-    updateTipSettings({ percentages })
+-    toast({ title: "Tip Settings Updated" })
++  const saveMethods = async () => {
++    setIsSaving(true)
++    try {
++      const res = await fetch("/api/v1/payment-methods-admin", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ methods }),
++      })
++      const data = await res.json()
++      if (!res.ok || !data?.success) throw new Error("save failed")
++      toast({ title: "Saved", description: "Payment methods updated successfully" })
++    } catch {
++      toast({ title: "Save failed", description: "Could not save payment methods", variant: "destructive" })
++    } finally {
++      setIsSaving(false)
++    }
+   }
+ 
+   return (
+-    <div>
+-      <h1 className="text-3xl font-bold mb-6">Payment & Tip Settings</h1>
+-      <div className="grid md:grid-cols-2 gap-8">
+-        <div className="bg-white p-8 rounded-xl shadow space-y-6">
+-          <h2 className="text-xl font-semibold">Payment Methods</h2>
+-          {paymentOptions.map((option) => (
+-            <div key={option.id} className="flex items-center justify-between">
+-              <Label htmlFor={option.id} className="capitalize text-lg">
+-                {option.id === "applepay" ? "Apple Pay" : option.id === "googlepay" ? "Google Pay" : option.id}
+-              </Label>
+-              <Switch
+-                id={option.id}
+-                checked={option.enabled}
+-                onCheckedChange={() => {
+-                  togglePaymentOption(option.id)
+-                  toast({ title: "Payment Option Updated" })
+-                }}
+-              />
+-            </div>
+-          ))}
++    <div className="space-y-6 mt-2">
++      <div className="flex items-start justify-between gap-4">
++        <div>
++        <h1 className="text-3xl font-bold">Payment Methods</h1>
++        <p className="text-sm text-muted-foreground mt-1">UI methods are separated from providers. Assign a provider per method.</p>
+         </div>
++        <Button asChild variant="outline" className="shrink-0">
++          <Link href="/admin/payment-providers">Manage Providers</Link>
++        </Button>
++      </div>
++
++      <div className="bg-white p-6 rounded-xl shadow space-y-4">
++        {isLoading ? (
++          <p className="text-sm text-muted-foreground">Loading payment methods...</p>
++        ) : (
++          methods
++            .sort((a, b) => a.priority - b.priority)
++            .map((method) => {
++              const options =
++                method.code === "cod"
++                  ? [{ code: null, label: "No Provider", enabled: true }]
++                  : providers
++                      .filter((provider) => provider.supported_methods?.includes(method.code))
++                      .map((provider) => ({
++                        code: provider.code as PaymentMethod["provider_code"],
++                        label: provider.name,
++                        enabled: provider.enabled,
++                      }))
++              const providerIsEnabled = method.provider_code ? enabledProviderCodes.has(method.provider_code) : true
++
++              return (
++                <div key={method.code} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center border rounded-lg p-4">
++                  <div>
++                    <Label className="text-base font-semibold">{method.name}</Label>
++                    <p className="text-xs text-muted-foreground">code: {method.code}</p>
++                  </div>
++
++                  <div>
++                    <Label className="text-xs">Display Name</Label>
++                    <Input value={method.name} onChange={(e) => updateMethod(method.code, { name: e.target.value })} />
++                  </div>
++
++                  <div>
++                    <Label className="text-xs">Provider</Label>
++                    <Select
++                      value={method.provider_code ?? "none"}
++                      onValueChange={(value) => updateMethod(method.code, { provider_code: value === "none" ? null : (value as PaymentMethod["provider_code"]) })}
++                    >
++                      <SelectTrigger>
++                        <SelectValue placeholder="Select provider" />
++                      </SelectTrigger>
++                      <SelectContent>
++                        {options.map((option) => (
++                          <SelectItem key={`${method.code}-${option.code ?? "none"}`} value={option.code ?? "none"}>
++                            {option.label}{option.enabled ? "" : " (Disabled)"}
++                          </SelectItem>
++                        ))}
++                      </SelectContent>
++                    </Select>
++                    {!providerIsEnabled && <p className="text-xs text-amber-600 mt-1">Selected provider is currently disabled.</p>}
++                  </div>
++
++                  <div className="flex items-center justify-between md:justify-end gap-3">
++                    <Label htmlFor={`enabled-${method.code}`} className="text-sm">Enabled</Label>
++                    <Switch
++                      id={`enabled-${method.code}`}
++                      checked={method.enabled}
++                      onCheckedChange={(checked) => updateMethod(method.code, { enabled: checked })}
++                    />
++                  </div>
++                </div>
++              )
++            })
++        )}
+ 
+-        <div className="bg-white p-8 rounded-xl shadow space-y-6">
+-          <h2 className="text-xl font-semibold">Tip Settings</h2>
+-          <div className="flex items-center justify-between">
+-            <Label htmlFor="enable-tips" className="text-lg">
+-              Enable Tipping
+-            </Label>
+-            <Switch
+-              id="enable-tips"
+-              checked={tipSettings.enabled}
+-              onCheckedChange={(checked) => updateTipSettings({ enabled: checked })}
+-            />
+-          </div>
+-          <form onSubmit={handleTipSettingsSubmit} className="space-y-4">
+-            <div className="space-y-2">
+-              <Label htmlFor="percentages">Tip Percentages (comma-separated)</Label>
+-              <Input
+-                id="percentages"
+-                name="percentages"
+-                defaultValue={tipSettings.percentages.join(", ")}
+-                disabled={!tipSettings.enabled}
+-              />
+-            </div>
+-            <Button type="submit" disabled={!tipSettings.enabled}>
+-              Save Tip Settings
+-            </Button>
+-          </form>
++        <div className="pt-2 flex justify-end">
++          <Button onClick={saveMethods} disabled={isLoading || isSaving}>
++            {isSaving ? "Saving..." : "Save Payment Methods"}
++          </Button>
+         </div>
+       </div>
+     </div>
+   )
+-}
+\ No newline at end of file
++}

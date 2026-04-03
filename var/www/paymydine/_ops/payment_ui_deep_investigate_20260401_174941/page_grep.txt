@@ -1,0 +1,80 @@
+231:import WorldlineHostedCheckout from "@/components/payment/worldline-hosted-checkout"
+710:  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+730:      console.log('[PMD] selectedPaymentMethod', selectedPaymentMethod)
+732:  }, [paymentMethods, selectedPaymentMethod])
+772:      selectedPaymentMethod === "stripe" ||
+773:      selectedPaymentMethod === "authorizenetaim" ||
+774:      selectedPaymentMethod === "visa" ||
+775:      selectedPaymentMethod === "mastercard" ||
+776:      selectedPaymentMethod === "apple_pay" ||
+777:      selectedPaymentMethod === "google_pay"
+808:  }, [selectedPaymentMethod])
+889:    if ((selectedPaymentMethod === 'stripe' || selectedPaymentMethod === 'authorizenetaim' || selectedPaymentMethod === 'visa' || selectedPaymentMethod === 'mastercard') && !stripePaymentIntentId) {
+958:      (selectedPaymentMethod === 'cod' ? 'cod' : (['paypal','paypalexpress'].includes(selectedPaymentMethod) ? 'paypal' : 'card'))
+1025:  const handlePaymentMethodSelect = (methodId: string) => {
+1157:  const selectedMethod = paymentMethods.find(method => method.code === selectedPaymentMethod)
+1185:            selectedPaymentMethod,
+1186:            selectedMethod: selectedMethod ? {
+1187:              code: (selectedMethod as any).code,
+1188:              name: (selectedMethod as any).name,
+1199:    if (!selectedMethod) return null
+1201:    switch (selectedMethod.code) {
+1202:      case "stripe":
+1203:      case "authorizenetaim":
+1204:      case "visa":
+1205:      case "mastercard":
+1215:              <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
+1259:                          src={iconForPayment(selectedPaymentMethod || "stripe")}
+1260:                          alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
+1275:      case "paypal":
+1276:      case "paypalexpress":
+1290:                  src={iconForPayment(selectedPaymentMethod || "stripe")}
+1291:                  alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
+1296:                <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
+1355:      case "apple_pay":
+1356:      case "google_pay":
+1357:        if (!selectedPaymentMethod) return null
+1376:                  src={iconForPayment(selectedPaymentMethod || "stripe")}
+1377:                  alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
+1382:                <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
+1391:              method={selectedPaymentMethod as "apple_pay" | "google_pay"}
+1429:      case "worldline":
+1448:                  src={iconForPayment("worldline")}
+1455:                  {selectedMethod?.name || "Worldline"}
+1466:              returnUrl={`${typeof window !== "undefined" ? window.location.origin : "https://mimoza.paymydine.com"}/worldline-return`}
+1471:case "cod":
+1514:    if (!selectedMethod) return null
+1521:    if (["stripe", "authorizenetaim", "visa", "mastercard", "paypal", "paypalexpress", "worldline"].includes(selectedMethod.code)) {
+1526:      switch (selectedMethod.code) {
+1527:        case "visa":
+1528:        case "mastercard":
+1529:        case "stripe":
+1530:        case "authorizenetaim":
+1532:        case "paypal":
+1533:      case "paypalexpress":
+1535:        case "apple_pay":
+1536:        case "google_pay":
+1538:        case "cod":
+1546:      switch (selectedMethod.code) {
+1547:        case "visa":
+1548:        case "mastercard":
+1550:        case "paypal":
+1551:      case "paypalexpress":
+1553:        case "apple_pay":
+1554:        case "google_pay":
+1555:          return `Pay with ${selectedMethod.name}`
+1556:        case "cod":
+1558:        case "worldline":
+1565:    if (selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay") {
+1852:          {selectedPaymentMethod && ["stripe","authorizenetaim","visa","mastercard","apple_pay","google_pay","paypal","paypalexpress","cod","worldline"].includes(selectedPaymentMethod) && (
+1860:            {!selectedPaymentMethod ? (
+1877:                        if (m.code === "paypal" || m.code === "paypalexpress") {
+1883:                      const withWorldline = base.some((m) => m.code === "worldline")
+1885:                        : [...base, { code: "worldline", name: "Worldline" } as PaymentMethod]
+1887:                      const has = new Set(withWorldline.map((m) => m.code))
+1900:                      return [...withWorldline, ...extra]
+1915:                                    selectedPaymentMethodBefore: selectedPaymentMethod ?? null,
+1916:                                    selectedMethodBefore: selectedMethod ? {
+1917:                                      code: (selectedMethod as any).code,
+1918:                                      name: (selectedMethod as any).name,
+1932:                            handlePaymentMethodSelect(method.code)

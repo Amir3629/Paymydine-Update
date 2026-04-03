@@ -1,0 +1,178 @@
+<?php
+
+namespace Admin\Models;
+
+use Admin\Traits\Locationable;
+use Igniter\Flame\Database\Model;
+use Igniter\Flame\Database\Traits\Sortable;
+use Illuminate\Support\Str;
+
+class Tables_model extends Model
+{
+    use Locationable;
+    use Sortable;
+
+    const LOCATIONABLE_RELATION = 'locations';
+    const SORT_ORDER = 'priority';
+
+    /**
+     * @var string
+     */
+    protected $table = 'tables';
+
+    /**
+     * @var string
+     */
+    protected $primaryKey = 'table_id';
+
+    protected $casts = [
+        'table_no' => 'string',
+        'min_capacity' => 'integer',
+        'max_capacity' => 'integer',
+        'extra_capacity' => 'integer',
+        'priority' => 'integer',
+        'is_joinable' => 'boolean',
+        'table_status' => 'boolean',
+    ];
+
+    protected $fillable = [
+        'table_no',
+        'table_name',
+        'pos_table_label',
+        'min_capacity',
+        'max_capacity',
+        'extra_capacity',
+        'priority',
+        'is_joinable',
+        'table_status',
+        'qr_code',
+    ];
+
+    public $relation = [
+        'morphToMany' => [
+            'locations' => ['Admin\Models\Locations_model', 'name' => 'locationable'],
+        ],
+    ];
+
+    public $timestamps = true;
+
+    public static function getDropdownOptions()
+    {
+        return self::selectRaw('table_id, concat(table_name, " (", min_capacity, " - ", max_capacity, ")") AS display_name')
+            ->dropdown('display_name');
+    }
+
+    public function scopeIsEnabled($query)
+    {
+        return $query->where('table_status', 1);
+    }
+
+    public function scopeWhereBetweenCapacity($query, $noOfGuests)
+    {
+        return $query->where('min_capacity', '<=', $noOfGuests)
+            ->where('max_capacity', '>=', $noOfGuests);
+    }
+
+    public function generateUniqueId()
+    {
+        $prefix = 'ms';
+        $sequentialNumber = $this->getNextSequentialNumber();
+        $randomString = Str::random(6);
+
+        return $prefix.$sequentialNumber.$randomString;
+    }
+
+    public function getNextSequentialNumber()
+    {
+        $latestRecord = self::latest('table_id')->first();
+
+        return $latestRecord ? ((int)$latestRecord->table_id + 1) : 1;
+    }
+
+    /**
+     * Normal PayMyDine logic:
+     * - cashier => Cashier
+     * - pure digits => Table X
+     * - any other text => keep as-is
+     */
+    public function setTableNameAttribute($value)
+    {
+        $trimmed = trim((string)$value);
+
+        if ($trimmed === '') {
+            $this->attributes['table_name'] = $trimmed;
+            return;
+        }
+
+        if (strtolower($trimmed) === 'cashier') {
+            $this->attributes['table_name'] = 'Cashier';
+            return;
+        }
+
+        if (ctype_digit($trimmed)) {
+            $this->attributes['table_name'] = 'Table '.((int)$trimmed);
+            return;
+        }
+
+        $this->attributes['table_name'] = $trimmed;
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            $posLabel = trim((string)($model->pos_table_label ?? ''));
+
+            // POS synced tables:
+            // keep table_name as received from POS
+            // and store same label into table_no
+            if ($posLabel !== '') {
+                $model->table_no = $posLabel;
+
+                if (trim((string)($model->table_name ?? '')) === '') {
+                    $model->table_name = $posLabel;
+                }
+
+                if (empty($model->qr_code)) {
+                    $model->qr_code = $model->generateUniqueId();
+                }
+
+                return;
+            }
+
+            // Normal PayMyDine logic
+            $model->table_no = (int)($model->table_no ?? 0);
+
+            $isCashier = is_string($model->table_name)
+                && trim(strtolower($model->table_name)) === 'cashier';
+
+            if (!$isCashier && $model->table_no > 0) {
+                $model->table_name = 'Table '.$model->table_no;
+            }
+
+            if (empty($model->qr_code)) {
+                $model->qr_code = $model->generateUniqueId();
+            }
+        });
+
+        static::created(function ($model) {
+            $posLabel = trim((string)($model->pos_table_label ?? ''));
+
+            // POS synced tables: do not auto-generate numeric fallback
+            if ($posLabel !== '') {
+                return;
+            }
+
+            if ((int)$model->table_no <= 0) {
+                $model->table_no = (int)$model->table_id;
+
+                if (trim(strtolower((string)$model->table_name)) !== 'cashier') {
+                    $model->table_name = 'Table '.$model->table_no;
+                }
+
+                $model->saveQuietly();
+            }
+        });
+    }
+}

@@ -1,0 +1,6 @@
+<svg width="160" height="56" viewBox="0 0 160 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="158" height="54" rx="27" stroke="#2A3B52" stroke-width="2" fill="transparent"/>
+  <path d="M32 33.5L39.5 22L47 33.5" stroke="#2DD4BF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M47 22L54.5 33.5L62 22" stroke="#60A5FA" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="103" y="34" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#F8FAFC">Worldline</text>
+</svg>
