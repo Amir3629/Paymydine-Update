@@ -1225,10 +1225,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     if (!selectedMethod || selectedMethod.code !== "card") return
     setIsLoading(true)
     try {
+      const providerCode = selectedProviderCode || "unknown"
       const returnUrl =
         typeof window !== "undefined"
-          ? `${window.location.origin}/order-placed`
-          : "/order-placed"
+          ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerCode)}`
+          : "/menu"
       const cancelUrl =
         typeof window !== "undefined"
           ? window.location.href
@@ -1257,6 +1258,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         throw new Error(json?.error || "Unable to start hosted checkout")
       }
 
+      if (typeof window !== "undefined" && providerCode === "worldline" && json?.hosted_checkout_id) {
+        localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
+          hosted_checkout_id: String(json.hosted_checkout_id),
+          created_at: Date.now(),
+        }))
+      }
+
       if (typeof window !== "undefined") {
         window.location.href = json.redirect_url
       }
@@ -1269,6 +1277,59 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       })
     }
   }
+
+  useEffect(() => {
+    const run = async () => {
+      if (typeof window === "undefined") return
+      const params = new URLSearchParams(window.location.search)
+      const provider = params.get("payment_return_provider")
+      if (provider !== "worldline") return
+
+      const pendingRaw = localStorage.getItem("pmd_worldline_pending_checkout")
+      if (!pendingRaw) return
+      let pending: any = null
+      try {
+        pending = JSON.parse(pendingRaw)
+      } catch {
+        return
+      }
+
+      const hostedCheckoutId = String(pending?.hosted_checkout_id || "")
+      if (!hostedCheckoutId) return
+
+      try {
+        const res = await fetch("/api/v1/payments/worldline/checkout-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hosted_checkout_id: hostedCheckoutId }),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (res.ok && json?.success && json?.is_paid) {
+          localStorage.removeItem("pmd_worldline_pending_checkout")
+          await handlePayment(String(json?.payment_id || hostedCheckoutId))
+          params.delete("payment_return_provider")
+          const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`
+          window.history.replaceState({}, "", next)
+          return
+        }
+
+        toast({
+          title: "Payment Not Confirmed",
+          description: "Worldline payment is not confirmed yet. Please check your payment status and retry.",
+          variant: "destructive",
+        })
+      } catch {
+        toast({
+          title: "Payment Verification Failed",
+          description: "Could not verify Worldline payment status.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    void run()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const renderPaymentForm = () => {
     try {

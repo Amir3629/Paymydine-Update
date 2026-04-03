@@ -711,7 +711,7 @@ Route::group([
     $implementedFlowMatrix = [
         'stripe' => ['card', 'apple_pay', 'google_pay'],
         'paypal' => ['paypal'],
-        'worldline' => [],
+        'worldline' => ['card'],
         'sumup' => [],
         'square' => [],
     ];
@@ -1039,6 +1039,7 @@ Route::group([
                     'success' => true,
                     'provider' => 'worldline',
                     'redirect_url' => $result['redirect_url'] ?? null,
+                    'hosted_checkout_id' => $result['hosted_checkout_id'] ?? null,
                 ]);
             }
 
@@ -1125,6 +1126,47 @@ Route::group([
                 'message' => $e->getMessage(),
             ]);
             return response()->json(['success' => false, 'error' => $e->getMessage() ?: 'Failed to create card session'], 500);
+        }
+    });
+
+    Route::post('/payments/worldline/checkout-status', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'hosted_checkout_id' => 'required|string',
+        ]);
+
+        try {
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $status = $service->getHostedCheckoutStatus((string)$payload['hosted_checkout_id']);
+
+            $hostedStatus = strtoupper((string)($status['hosted_checkout_status'] ?? ''));
+            $paymentStatusRaw = $status['payment_status'] ?? null;
+            $paymentStatus = strtoupper((string)$paymentStatusRaw);
+
+            $paidHostedStatuses = ['PAYMENT_CREATED', 'COMPLETED'];
+            $paidPaymentStatuses = ['PAID', 'CAPTURED', '9'];
+
+            $isPaid = in_array($hostedStatus, $paidHostedStatuses, true)
+                || in_array($paymentStatus, $paidPaymentStatuses, true);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'hosted_checkout_id' => (string)$payload['hosted_checkout_id'],
+                'is_paid' => $isPaid,
+                'hosted_checkout_status' => $status['hosted_checkout_status'] ?? null,
+                'payment_status' => $status['payment_status'] ?? null,
+                'payment_id' => $status['payment_id'] ?? null,
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('Worldline checkout-status failed', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     });
 

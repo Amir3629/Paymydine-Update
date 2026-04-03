@@ -24,7 +24,7 @@ This file audits **real runtime status in this repo**, not theoretical capabilit
 | paypal | google_pay | capability_only_not_implemented | none end-to-end | no PayPal Google Pay frontend component flow wired; no method-specific orchestration | PayPal Google Pay eligibility and setup | no | yes | no |
 | paypal | paypal | fully_implemented_and_runtime_wired | `frontend/app/menu/page.tsx` PayPal method render; `frontend/components/payment/secure-payment-form.tsx` PayPalForm; `/api/v1/payments/paypal/create-order` + `/capture-order` in `app/admin/routes.php` | none critical in app flow | PayPal app credentials + checkout enabled | yes | live/sandbox app setup required | yes |
 | paypal | cod | unsupported_by_provider | none | COD is provider-less | n/a | n/a | n/a | no |
-| worldline | card | partially_implemented_but_not_safe_for_admin_assignment | `/api/v1/payments/card/create-session` has worldline branch | no complete callback/finalize path bound into order lifecycle; no implemented matrix enablement | worldline contract/product + API creds | partially | merchant product enablement + contract settings | no |
+| worldline | card | fully_implemented_and_runtime_wired | `/api/v1/payments/card/create-session` worldline branch + `/api/v1/payments/worldline/checkout-status` verification + frontend return handler in `frontend/app/menu/page.tsx` | none critical in current redirect-verify-submit flow | worldline contract/product + API creds + valid hosted checkout config | yes | merchant product enablement + contract settings | yes |
 | worldline | apple_pay | capability_only_not_implemented | none | no worldline wallet path in frontend/backend orchestration | wallet product enablement in worldline | no | yes | no |
 | worldline | google_pay | capability_only_not_implemented | none | no worldline wallet path in frontend/backend orchestration | wallet product enablement in worldline | no | yes | no |
 | worldline | paypal | capability_only_not_implemented | none in this checkout path | worldline PayPal product not wired in checkout runtime | worldline PayPal product activation | no | yes | no |
@@ -41,7 +41,7 @@ This file audits **real runtime status in this repo**, not theoretical capabilit
 | square | cod | unsupported_by_provider | none | COD is provider-less | n/a | n/a | n/a | no |
 
 ## Current enforced dropdown matrix (should be live now)
-- `card` -> `stripe`
+- `card` -> `stripe`, `worldline`
 - `apple_pay` -> `stripe`
 - `google_pay` -> `stripe`
 - `paypal` -> `paypal`
@@ -55,4 +55,3 @@ This file audits **real runtime status in this repo**, not theoretical capabilit
 - Stripe wallets require wallet/domain setup and supported device/browser.
 - PayPal requires product eligibility (especially cards/APMs) and account/app approvals.
 - Square/Worldline/SumUp typically require account-level product/location/channel enablement and sometimes merchant/domain verification for wallets.
-
