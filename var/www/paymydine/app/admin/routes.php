@@ -740,7 +740,7 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_publishable_key' => '', 'live_publishable_key' => '', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR', 'apple_pay_enabled' => '0', 'google_pay_enabled' => '0']],
         ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
         ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
         ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
@@ -767,6 +767,35 @@ Route::group([
     $loadProviderConfigFromPayments = function (string $providerCode): array {
         $row = \Admin\Models\Payments_model::query()->where('code', $providerCode)->first();
         return is_array(optional($row)->data) ? $row->data : [];
+    };
+
+    $syncStripeProviderConfigToPayments = function (array $provider): void {
+        if ((string)($provider['code'] ?? '') !== 'stripe') {
+            return;
+        }
+
+        $config = is_array($provider['config'] ?? null) ? (array)$provider['config'] : [];
+        $allowedKeys = [
+            'transaction_mode',
+            'test_publishable_key',
+            'live_publishable_key',
+            'test_secret_key',
+            'live_secret_key',
+            'currency',
+            'apple_pay_enabled',
+            'google_pay_enabled',
+        ];
+        $normalizedConfig = array_intersect_key($config, array_flip($allowedKeys));
+
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'stripe')->first();
+        if (!$payment) {
+            return;
+        }
+
+        $existing = is_array($payment->data ?? null) ? (array)$payment->data : [];
+        $payment->data = array_merge($existing, $normalizedConfig);
+        $payment->status = !empty($provider['enabled']) ? 1 : 0;
+        $payment->save();
     };
 
     $resolveStripeRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentMethods, $defaultPaymentProviders): array {
@@ -936,7 +965,7 @@ Route::group([
         ]);
     });
 
-    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting) {
+    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting, $syncStripeProviderConfigToPayments) {
         $providers = $request->input('providers', []);
         if (!is_array($providers)) {
             return response()->json(['success' => false, 'message' => 'Invalid providers payload'], 422);
@@ -960,6 +989,9 @@ Route::group([
             return response()->json(['success' => false, 'message' => 'All payment providers are required'], 422);
         }
         $saveJsonSetting('payment_providers', $normalized);
+        foreach ($normalized as $provider) {
+            $syncStripeProviderConfigToPayments($provider);
+        }
         return response()->json(['success' => true, 'data' => $normalized]);
     });
 
