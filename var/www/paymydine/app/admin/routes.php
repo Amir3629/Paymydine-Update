@@ -2269,7 +2269,31 @@ return response()->json([
             'raw' => $request->getContent(),
         ]);
 
+        $normalizedPaymentMethod = strtolower((string)$request->input('payment_method', ''));
+        $normalizedPaymentMethodRaw = strtolower(trim((string)$request->input('payment_method_raw', $normalizedPaymentMethod)));
+        if ($normalizedPaymentMethodRaw === '') {
+            $normalizedPaymentMethodRaw = $normalizedPaymentMethod;
+        }
+        $normalizedPaymentProvider = strtolower(trim((string)$request->input('payment_provider', '')));
+        $normalizedPaymentReference = trim((string)$request->input('payment_reference', ''));
+        $hasStripePaymentIntentId = trim((string)$request->input('stripe_payment_intent_id', '')) !== '';
+
         try {
+            $methodConfigByCode = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+            if ($normalizedPaymentProvider === '') {
+                $normalizedPaymentProvider = strtolower((string)($methodConfigByCode->get($normalizedPaymentMethodRaw)['provider_code']
+                    ?? $methodConfigByCode->get($normalizedPaymentMethod)['provider_code']
+                    ?? ''));
+            }
+            if ($normalizedPaymentReference === '' && $hasStripePaymentIntentId) {
+                $normalizedPaymentReference = trim((string)$request->input('stripe_payment_intent_id', ''));
+            }
+            $request->merge([
+                'payment_method_raw' => $normalizedPaymentMethodRaw !== '' ? $normalizedPaymentMethodRaw : null,
+                'payment_provider' => $normalizedPaymentProvider !== '' ? $normalizedPaymentProvider : null,
+                'payment_reference' => $normalizedPaymentReference !== '' ? $normalizedPaymentReference : null,
+            ]);
+
             $isCashier = (bool)($request->get('is_cashier') ?? $request->get('is_codier') ?? false);
 
             $tableNameNormalized = strtolower(trim((string)($request->table_name ?? '')));
@@ -2320,8 +2344,6 @@ return response()->json([
             $validationRules['payment_reference'] = 'nullable|string|max:255';
 
             $request->validate($validationRules);
-
-            $methodConfigByCode = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
 
             $frontendPaymentMethod = (string)($request->payment_method ?? '');
             $frontendPaymentMethodRaw = (string)($request->payment_method_raw ?? $frontendPaymentMethod);
@@ -3020,6 +3042,13 @@ return response()->json([
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('PMD_ORDER_VALIDATION_REJECTED', [
+                'payment_method' => $normalizedPaymentMethod,
+                'payment_method_raw' => $normalizedPaymentMethodRaw,
+                'payment_provider' => $normalizedPaymentProvider,
+                'has_stripe_payment_intent_id' => $hasStripePaymentIntentId,
+                'errors' => $e->errors(),
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => 'Validation failed',
