@@ -698,6 +698,14 @@ Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web']
 ], function () {
+    $providerMethodMatrix = [
+        'stripe' => ['card', 'apple_pay', 'google_pay'],
+        'paypal' => ['paypal'],
+        'worldline' => ['card'],
+        'sumup' => ['card'],
+        'square' => ['card'],
+    ];
+
     $defaultPaymentMethods = [
         ['code' => 'card', 'name' => 'Card', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 1],
         ['code' => 'apple_pay', 'name' => 'Apple Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 2],
@@ -707,11 +715,11 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => ['card', 'apple_pay', 'google_pay'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
-        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => ['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
-        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
-        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
-        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => ['card'], 'config' => ['transaction_mode' => 'test', 'test_access_token' => '', 'test_location_id' => '', 'live_access_token' => '', 'live_location_id' => '', 'currency' => 'EUR']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerMethodMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
+        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerMethodMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
+        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerMethodMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
+        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerMethodMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
+        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => $providerMethodMatrix['square'], 'config' => ['transaction_mode' => 'test', 'test_access_token' => '', 'test_location_id' => '', 'live_access_token' => '', 'live_location_id' => '', 'currency' => 'EUR']],
     ];
 
     $loadJsonSetting = function (string $item, array $fallback) {
@@ -737,11 +745,28 @@ Route::group([
     };
 
     // === Payments (read-only) ===
-    Route::get('/payments', function () use ($defaultPaymentMethods, $loadJsonSetting) {
+    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting) {
         $defaults = $defaultPaymentMethods;
         $load = $loadJsonSetting;
+        $providersByCode = collect($load('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $methods = collect($load('payment_methods', $defaults))
             ->where('enabled', true)
+            ->filter(function ($m) use ($providersByCode) {
+                $methodCode = (string)($m['code'] ?? '');
+                $providerCode = $m['provider_code'] ?? null;
+                if ($methodCode === 'cod') {
+                    return empty($providerCode);
+                }
+                if (!$providerCode || !$providersByCode->has($providerCode)) {
+                    return false;
+                }
+                $provider = (array)$providersByCode->get($providerCode, []);
+                if (!($provider['enabled'] ?? false)) {
+                    return false;
+                }
+                $supported = collect($provider['supported_methods'] ?? [])->map(fn ($item) => (string)$item);
+                return $supported->contains($methodCode);
+            })
             ->sortBy('priority')
             ->values()
             ->map(fn ($m) => [
@@ -860,7 +885,33 @@ Route::group([
     });
 
     // Stripe tenant config (safe for frontend: publishable key + mode only)
-    Route::get('/payments/stripe/config', function () {
+    Route::get('/payments/stripe/config', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting) {
+        $methods = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $stripeMethodCodes = ['card', 'apple_pay', 'google_pay'];
+        $hasActiveStripeMethod = collect($stripeMethodCodes)->contains(function ($methodCode) use ($methods, $providers) {
+            if (!$methods->has($methodCode)) {
+                return false;
+            }
+            $method = (array)$methods->get($methodCode, []);
+            if (!($method['enabled'] ?? false)) {
+                return false;
+            }
+            $providerCode = $method['provider_code'] ?? null;
+            if ($providerCode !== 'stripe') {
+                return false;
+            }
+            $provider = (array)$providers->get('stripe', []);
+            if (!($provider['enabled'] ?? false)) {
+                return false;
+            }
+            $supported = collect($provider['supported_methods'] ?? [])->map(fn ($item) => (string)$item);
+            return $supported->contains((string)$methodCode);
+        });
+        if (!$hasActiveStripeMethod) {
+            return response()->json(['success' => false, 'error' => 'Stripe is not active for any enabled method'], 404);
+        }
+
         $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
         if (!$payment) {
             return response()->json(['success' => false, 'error' => 'Stripe not configured'], 404);
@@ -900,6 +951,149 @@ Route::group([
             'googlePayEnabled' => $googlePayEnabled,
             'paypalEnabled' => $paypalEnabled,
         ], 200);
+    });
+
+    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting) {
+        $methodsByCode = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+        $providersByCode = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $cardMethod = (array)$methodsByCode->get('card', []);
+        if (empty($cardMethod) || !($cardMethod['enabled'] ?? false)) {
+            return response()->json(['success' => false, 'error' => 'Card method is disabled'], 422);
+        }
+
+        $providerCode = (string)($cardMethod['provider_code'] ?? '');
+        if ($providerCode === '' || !$providersByCode->has($providerCode)) {
+            return response()->json(['success' => false, 'error' => 'Card provider is not configured'], 422);
+        }
+
+        $provider = (array)$providersByCode->get($providerCode, []);
+        if (!($provider['enabled'] ?? false)) {
+            return response()->json(['success' => false, 'error' => "Provider {$providerCode} is disabled"], 422);
+        }
+
+        $supported = collect($provider['supported_methods'] ?? [])->map(fn ($m) => (string)$m);
+        if (!$supported->contains('card')) {
+            return response()->json(['success' => false, 'error' => "Provider {$providerCode} does not support card"], 422);
+        }
+
+        $payload = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|string|size:3',
+            'return_url' => 'nullable|url',
+            'cancel_url' => 'nullable|url',
+            'locale' => 'nullable|string|max:10',
+            'items' => 'nullable|array',
+        ]);
+
+        $amountMajor = (float)$payload['amount'];
+        $currency = strtoupper((string)$payload['currency']);
+        $amountMinor = (int)round($amountMajor * 100);
+        $returnUrl = (string)($payload['return_url'] ?? url('/order-placed'));
+        $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
+
+        $paymentRow = \Admin\Models\Payments_model::query()->where('code', $providerCode)->first();
+        $paymentData = is_array(optional($paymentRow)->data) ? (array)$paymentRow->data : [];
+
+        try {
+            if ($providerCode === 'worldline') {
+                $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+                $result = $svc->createHostedCheckout([
+                    'amount_minor' => $amountMinor,
+                    'currency' => $currency,
+                    'return_url' => $returnUrl,
+                    'locale' => (string)($payload['locale'] ?? 'en_GB'),
+                ]);
+                return response()->json([
+                    'success' => true,
+                    'provider' => 'worldline',
+                    'redirect_url' => $result['redirect_url'] ?? null,
+                ]);
+            }
+
+            if ($providerCode === 'sumup') {
+                $token = (string)($paymentData['access_token'] ?? '');
+                $baseUrl = rtrim((string)($paymentData['url'] ?? 'https://api.sumup.com'), '/');
+                $merchantCode = (string)($paymentData['id_application'] ?? '');
+                if ($token === '' || $merchantCode === '') {
+                    return response()->json(['success' => false, 'error' => 'SumUp credentials are incomplete'], 503);
+                }
+                $sumupResponse = \Illuminate\Support\Facades\Http::withToken($token)
+                    ->acceptJson()
+                    ->post($baseUrl.'/v0.1/checkouts', [
+                        'checkout_reference' => 'PMD-'.uniqid('', true),
+                        'amount' => number_format($amountMajor, 2, '.', ''),
+                        'currency' => $currency,
+                        'merchant_code' => $merchantCode,
+                        'description' => 'Paymydine order',
+                        'return_url' => $returnUrl,
+                    ]);
+                if (!$sumupResponse->ok()) {
+                    return response()->json(['success' => false, 'error' => 'Failed to create SumUp checkout', 'details' => $sumupResponse->json()], 502);
+                }
+                $body = (array)$sumupResponse->json();
+                $redirectUrl = (string)($body['checkout_url'] ?? $body['hosted_checkout_url'] ?? '');
+                if ($redirectUrl === '') {
+                    return response()->json(['success' => false, 'error' => 'SumUp checkout URL missing'], 502);
+                }
+                return response()->json(['success' => true, 'provider' => 'sumup', 'redirect_url' => $redirectUrl]);
+            }
+
+            if ($providerCode === 'square') {
+                $mode = (string)($paymentData['transaction_mode'] ?? 'test');
+                $accessToken = $mode === 'live'
+                    ? (string)($paymentData['live_access_token'] ?? '')
+                    : (string)($paymentData['test_access_token'] ?? '');
+                $locationId = $mode === 'live'
+                    ? (string)($paymentData['live_location_id'] ?? '')
+                    : (string)($paymentData['test_location_id'] ?? '');
+                if ($accessToken === '' || $locationId === '') {
+                    return response()->json(['success' => false, 'error' => 'Square credentials are incomplete'], 503);
+                }
+                $squareBase = $mode === 'live' ? 'https://connect.squareup.com' : 'https://connect.squareupsandbox.com';
+                $squareResponse = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => 'Bearer '.$accessToken,
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])->post($squareBase.'/v2/online-checkout/payment-links', [
+                    'idempotency_key' => 'PMD-'.uniqid('', true),
+                    'quick_pay' => [
+                        'name' => 'Paymydine order',
+                        'price_money' => [
+                            'amount' => $amountMinor,
+                            'currency' => $currency,
+                        ],
+                        'location_id' => $locationId,
+                    ],
+                    'checkout_options' => [
+                        'redirect_url' => $returnUrl,
+                    ],
+                    'pre_populated_data' => [
+                        'buyer_email' => (string)($request->input('customer_email', '')),
+                    ],
+                ]);
+                if (!$squareResponse->ok()) {
+                    return response()->json(['success' => false, 'error' => 'Failed to create Square payment link', 'details' => $squareResponse->json()], 502);
+                }
+                $body = (array)$squareResponse->json();
+                $redirectUrl = (string)($body['payment_link']['url'] ?? '');
+                if ($redirectUrl === '') {
+                    return response()->json(['success' => false, 'error' => 'Square payment link missing'], 502);
+                }
+                return response()->json(['success' => true, 'provider' => 'square', 'redirect_url' => $redirectUrl]);
+            }
+
+            if ($providerCode === 'stripe') {
+                return response()->json(['success' => false, 'error' => 'Stripe card flow uses PaymentIntent endpoint'], 409);
+            }
+
+            return response()->json(['success' => false, 'error' => "Unsupported card provider {$providerCode}"], 422);
+        } catch (\Throwable $e) {
+            \Log::error('Card create-session failed', [
+                'provider' => $providerCode,
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json(['success' => false, 'error' => $e->getMessage() ?: 'Failed to create card session'], 500);
+        }
     });
 
     // Create Stripe PaymentIntent using tenant secret from DB

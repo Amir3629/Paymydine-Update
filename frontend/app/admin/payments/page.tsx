@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast"
 type PaymentMethod = {
   code: "card" | "apple_pay" | "google_pay" | "paypal" | "cod"
   name: string
-  provider_code: "stripe" | "paypal" | "worldline" | "sumup" | null
+  provider_code: "stripe" | "paypal" | "worldline" | "sumup" | "square" | null
   enabled: boolean
   priority: number
 }

@@ -20,22 +20,39 @@ type PaymentProvider = {
 
 const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string; type?: string; options?: string[] }>> = {
   stripe: [
-    { key: "publishable_key", label: "Publishable Key" },
-    { key: "secret_key", label: "Secret Key", type: "password" },
-    { key: "mode", label: "Mode", options: ["test", "live"] },
+    { key: "transaction_mode", label: "Mode", options: ["test", "live"] },
+    { key: "test_secret_key", label: "Test Secret Key", type: "password" },
+    { key: "live_secret_key", label: "Live Secret Key", type: "password" },
+    { key: "currency", label: "Currency" },
   ],
   paypal: [
-    { key: "client_id", label: "Client ID" },
-    { key: "secret", label: "Secret", type: "password" },
+    { key: "transaction_mode", label: "Mode", options: ["test", "live"] },
+    { key: "test_client_id", label: "Sandbox Client ID" },
+    { key: "test_client_secret", label: "Sandbox Client Secret", type: "password" },
+    { key: "live_client_id", label: "Live Client ID" },
+    { key: "live_client_secret", label: "Live Client Secret", type: "password" },
+    { key: "brand_name", label: "Brand Name" },
+    { key: "currency", label: "Currency" },
   ],
   worldline: [
-    { key: "api_key", label: "API Key", type: "password" },
+    { key: "api_endpoint", label: "API Endpoint" },
     { key: "merchant_id", label: "Merchant ID" },
+    { key: "api_key_id", label: "API Key ID" },
+    { key: "secret_api_key", label: "Secret API Key", type: "password" },
+    { key: "webhook_secret", label: "Webhook Secret", type: "password" },
   ],
-  sumup: [{ key: "api_key", label: "API Key", type: "password" }],
+  sumup: [
+    { key: "access_token", label: "Access Token", type: "password" },
+    { key: "url", label: "API Base URL" },
+    { key: "id_application", label: "Merchant Code" },
+  ],
   square: [
-    { key: "api_key", label: "API Key", type: "password" },
-    { key: "location_id", label: "Location ID" },
+    { key: "transaction_mode", label: "Mode", options: ["test", "live"] },
+    { key: "test_access_token", label: "Sandbox Access Token", type: "password" },
+    { key: "test_location_id", label: "Sandbox Location ID" },
+    { key: "live_access_token", label: "Live Access Token", type: "password" },
+    { key: "live_location_id", label: "Live Location ID" },
+    { key: "currency", label: "Currency" },
   ],
 }
 

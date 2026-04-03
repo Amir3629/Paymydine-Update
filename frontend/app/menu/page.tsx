@@ -796,6 +796,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return (paymentMethods || []).filter((method) => allowed.has(method.code))
   }, [paymentMethods])
 
+  const methodByCode = useMemo(() => {
+    return new Map((visiblePaymentMethods || []).map((method) => [method.code, method]))
+  }, [visiblePaymentMethods])
+
   useEffect(() => {
     if (!selectedPaymentMethod) return
     const exists = visiblePaymentMethods.some((method) => method.code === selectedPaymentMethod)
@@ -805,10 +809,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [selectedPaymentMethod, visiblePaymentMethods])
 
   useEffect(() => {
+    const selected = selectedPaymentMethod ? methodByCode.get(selectedPaymentMethod) : null
     const isStripe =
-      selectedPaymentMethod === "card" ||
-      selectedPaymentMethod === "apple_pay" ||
-      selectedPaymentMethod === "google_pay"
+      !!selected &&
+      (
+        selected.code === "apple_pay" ||
+        selected.code === "google_pay" ||
+        (selected.code === "card" && selected.provider_code === "stripe")
+      )
 
     if (!isStripe) return
 
@@ -839,7 +847,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return () => {
       cancelled = true
     }
-  }, [selectedPaymentMethod])
+  }, [selectedPaymentMethod, methodByCode])
 
   // Handle option changes from OrderItemWithOptions
   const handleOptionsChange = (itemId: number, options: Record<string, string>) => {
@@ -1192,6 +1200,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   )
 
   const selectedMethod = visiblePaymentMethods.find(method => method.code === selectedPaymentMethod)
+  const selectedProviderCode = (selectedMethod as any)?.provider_code || null
 
   const stripePaymentData = {
     amount: finalTotal,
@@ -1210,6 +1219,55 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     },
     restaurantId: stripeResolvedRestaurantId,
     tableNumber: stripeResolvedTableNumber || 0,
+  }
+
+  const startHostedCardCheckout = async () => {
+    if (!selectedMethod || selectedMethod.code !== "card") return
+    setIsLoading(true)
+    try {
+      const returnUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/order-placed`
+          : "/order-placed"
+      const cancelUrl =
+        typeof window !== "undefined"
+          ? window.location.href
+          : "/menu"
+
+      const res = await fetch('/api/v1/payments/card/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: finalTotal,
+          currency: (merchantSettings?.currency || "EUR"),
+          return_url: returnUrl,
+          cancel_url: cancelUrl,
+          customer_email: paymentFormData.email || "",
+          items: itemsToPay.map((item: any) => ({
+            id: String(item.item.id),
+            name: item.item.name,
+            quantity: Number(item.quantity || 1),
+            price: Number(item.price || 0),
+          })),
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok || !json?.success || !json?.redirect_url) {
+        throw new Error(json?.error || "Unable to start hosted checkout")
+      }
+
+      if (typeof window !== "undefined") {
+        window.location.href = json.redirect_url
+      }
+    } catch (error) {
+      setIsLoading(false)
+      toast({
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "Unable to start checkout",
+        variant: "destructive",
+      })
+    }
   }
 
   const renderPaymentForm = () => {
@@ -1237,6 +1295,32 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     switch (selectedMethod.code) {
       case "card":
+        if (selectedProviderCode && selectedProviderCode !== "stripe") {
+          return (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3 overflow-hidden"
+            >
+              <div className="mb-2">
+                <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
+              </div>
+              <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
+                You will be redirected to {selectedProviderCode.toUpperCase()} to complete your payment securely.
+              </div>
+              <Button
+                type="button"
+                onClick={startHostedCardCheckout}
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
+              >
+                {isLoading ? "Redirecting..." : `Pay with ${selectedProviderCode.toUpperCase()}`}
+              </Button>
+            </motion.div>
+          )
+        }
+
         return (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
