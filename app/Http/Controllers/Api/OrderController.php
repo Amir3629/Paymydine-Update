@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Helpers\NotificationHelper;
+use App\Support\Payments\PaymentMethodNormalizer;
+use App\Support\Payments\PaymentVerificationService;
 
 class OrderController extends Controller
 {
@@ -39,7 +41,10 @@ class OrderController extends Controller
             'tax_amount' => 'nullable|numeric|min:0',
             'coupon_code' => 'nullable|string|max:255',
             'coupon_discount' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,card,paypal',
+            'payment_method' => 'required|string|max:32',
+            'stripe_payment_intent_id' => 'nullable|string|max:255',
+            'paypal_order_id' => 'nullable|string|max:255',
+            'paypal_capture_id' => 'nullable|string|max:255',
             'special_instructions' => 'nullable|string|max:500'
         ]);
 
@@ -56,6 +61,29 @@ class OrderController extends Controller
         }
 
         try {
+            $normalizedPaymentMethod = PaymentMethodNormalizer::normalizeMethod((string)$request->payment_method);
+            if (!in_array($normalizedPaymentMethod, ['cash', 'card', 'paypal'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unsupported payment method.',
+                    'allowed' => ['cash', 'card', 'paypal'],
+                ], 422);
+            }
+
+            if (in_array($normalizedPaymentMethod, ['card', 'paypal'], true)) {
+                $verificationService = new PaymentVerificationService();
+                $verification = $verificationService->verify($normalizedPaymentMethod, $request->all());
+
+                if (!($verification['verified'] ?? false)) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Payment verification failed.',
+                        'reason' => (string)($verification['error'] ?? 'verification_not_confirmed'),
+                        'payment_method' => $normalizedPaymentMethod,
+                    ], 422);
+                }
+            }
+
             DB::beginTransaction();
 
             $orderNumber = $this->generateOrderNumber();
@@ -298,7 +326,7 @@ class OrderController extends Controller
                 'order_id' => $orderId,
                 'code' => 'payment_method',
                 'title' => 'Payment Method',
-                'value' => $request->payment_method,
+                    'value' => $normalizedPaymentMethod,
                 'priority' => 98,
                 'created_at' => now(),
                 'updated_at' => now(),
