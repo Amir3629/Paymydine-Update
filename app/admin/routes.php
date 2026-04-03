@@ -700,31 +700,8 @@ Route::group([
 ], function () {
     // === Payments (read-only) ===
     Route::get('/payments', function () {
-        // Only return enabled methods in priority order
-        $payments = \Admin\Models\Payments_model::isEnabled()
-            ->orderBy('priority')
-            ->get(['code', 'name', 'priority', 'data'])
-            ->map(function ($payment) {
-                $data = (array)($payment->data ?? []);
-
-                $providerCode = $data['provider_code'] ?? null;
-                if (!$providerCode) {
-                    $providerCode = match ($payment->code) {
-                        'stripe', 'apple_pay', 'google_pay' => 'stripe',
-                        'paypal' => 'paypal',
-                        'cod' => null,
-                        default => null,
-                    };
-                }
-
-                return [
-                    'code' => $payment->code,
-                    'name' => $payment->name,
-                    'priority' => $payment->priority,
-                    'provider_code' => $providerCode,
-                ];
-            })
-            ->values();
+        $truth = new \App\Support\Payments\PaymentTruthService();
+        $payments = $truth->listPubliclyAllowedMethods();
 
         return response()->json([
             'success' => true,
@@ -1700,8 +1677,10 @@ return response()->json([
                 'total_amount' => 'required|numeric|min:0',
                 'tip_amount' => 'nullable|numeric|min:0',
                 'coupon_discount' => 'nullable|numeric|min:0',
-                'payment_method' => 'required|in:cash,card,paypal,stripe,apple_pay,google_pay',
+                'payment_method' => 'required|string|max:32',
                 'stripe_payment_intent_id' => 'nullable|string|max:255',
+                'paypal_order_id' => 'nullable|string|max:255',
+                'paypal_capture_id' => 'nullable|string|max:255',
             ];
 
             if (!$isCashier && !$isDelivery && !$isPickup) {
@@ -1715,19 +1694,34 @@ return response()->json([
             $request->validate($validationRules);
 
             $frontendPaymentMethod = (string)($request->payment_method ?? '');
-
-            $normalizedPaymentMethod = match ($frontendPaymentMethod) {
-                'stripe', 'apple_pay', 'google_pay' => 'card',
-                'paypal' => 'paypal',
-                'cash' => 'cash',
-                'card' => 'card',
-                default => 'card',
-            };
+            $normalizedPaymentMethod = \App\Support\Payments\PaymentMethodNormalizer::normalizeMethod($frontendPaymentMethod);
+            if (!in_array($normalizedPaymentMethod, ['cash', 'card', 'paypal'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unsupported payment method.',
+                    'allowed' => ['cash', 'card', 'paypal'],
+                ], 422);
+            }
 
             \Log::info('PMD_ACTIVE_ORDER_ROUTE_PAYMENT_MAPPING', [
                 'frontend_payment_method' => $frontendPaymentMethod,
                 'normalized_payment_method' => $normalizedPaymentMethod,
             ]);
+
+            $paymentVerification = null;
+            if (in_array($normalizedPaymentMethod, ['card', 'paypal'], true)) {
+                $verificationService = new \App\Support\Payments\PaymentVerificationService();
+                $paymentVerification = $verificationService->verify($normalizedPaymentMethod, $request->all());
+
+                if (!($paymentVerification['verified'] ?? false)) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Payment verification failed.',
+                        'reason' => (string)($paymentVerification['error'] ?? 'verification_not_confirmed'),
+                        'payment_method' => $normalizedPaymentMethod,
+                    ], 422);
+                }
+            }
 
             DB::beginTransaction();
 
@@ -2205,6 +2199,8 @@ return response()->json([
                         'order_id' => $orderId ?? null,
                         'payment_method' => $frontendPaymentMethod,
                         'normalized_payment_method' => $normalizedForFiskaly,
+                        'verification_provider' => $paymentVerification['provider'] ?? null,
+                        'verification_reference' => $paymentVerification['reference'] ?? null,
                     ]);
                 }
             } catch (\Throwable $e) {
