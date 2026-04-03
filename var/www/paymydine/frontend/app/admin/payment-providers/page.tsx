@@ -27,8 +27,6 @@ const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string;
     { key: "test_secret_key", label: "Test Secret Key", type: "password" },
     { key: "live_secret_key", label: "Live Secret Key", type: "password" },
     { key: "currency", label: "Currency" },
-    { key: "apple_pay_enabled", label: "Apple Pay Enabled", options: ["0", "1"] },
-    { key: "google_pay_enabled", label: "Google Pay Enabled", options: ["0", "1"] },
   ],
   paypal: [
     { key: "transaction_mode", label: "Mode", options: ["test", "live"] },

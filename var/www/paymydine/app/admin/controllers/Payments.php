@@ -670,8 +670,6 @@ class Payments extends \Admin\Classes\AdminController
                 'test_secret_key' => ['label' => 'Test Secret Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Starts with sk_test_. Saved value is shown; replace to update.'],
                 'live_secret_key' => ['label' => 'Live Secret Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Starts with sk_live_. Saved value is shown; replace to update.'],
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
-                'apple_pay_enabled' => ['label' => 'Apple Pay Enabled', 'type' => 'switch', 'default' => 0, 'span' => 'right', 'comment' => 'Enable Apple Pay button for Stripe checkout.'],
-                'google_pay_enabled' => ['label' => 'Google Pay Enabled', 'type' => 'switch', 'default' => 0, 'span' => 'left', 'comment' => 'Enable Google Pay button for Stripe checkout.'],
             ]),
             'paypal' => array_merge($commonModeField, [
                 'test_client_id' => ['label' => 'Sandbox Client ID', 'type' => 'text', 'span' => 'left', 'comment' => 'From PayPal Developer dashboard (sandbox app).'],
@@ -709,14 +707,10 @@ class Payments extends \Admin\Classes\AdminController
     {
         $fieldNames = array_keys($this->getProviderSpecificFields($providerCode));
         $secretFields = $this->providerSecretFields($providerCode);
-        $booleanFields = $this->providerBooleanFields($providerCode);
         $filtered = [];
         foreach ($fieldNames as $name) {
             if (array_key_exists($name, $posted)) {
                 $value = $posted[$name];
-                if (in_array($name, $booleanFields, true)) {
-                    $value = $value ? '1' : '0';
-                }
                 if (in_array($name, $secretFields, true)) {
                     $isExplicitClear = is_string($value) && trim(strtolower($value)) === '__clear__';
                     $isBlank = is_string($value) ? trim($value) === '' : ($value === null);
@@ -730,8 +724,6 @@ class Payments extends \Admin\Classes\AdminController
                     }
                 }
                 $filtered[$name] = $value;
-            } elseif (in_array($name, $booleanFields, true)) {
-                $filtered[$name] = '0';
             } elseif (array_key_exists($name, $current)) {
                 $filtered[$name] = $current[$name];
             }
@@ -780,13 +772,6 @@ class Payments extends \Admin\Classes\AdminController
             'square' => ['test_access_token', 'live_access_token'],
             'sumup' => ['access_token'],
             'worldline' => ['secret_api_key', 'webhook_secret'],
-        ][$providerCode] ?? [];
-    }
-
-    protected function providerBooleanFields(string $providerCode): array
-    {
-        return [
-            'stripe' => ['apple_pay_enabled', 'google_pay_enabled'],
         ][$providerCode] ?? [];
     }
 

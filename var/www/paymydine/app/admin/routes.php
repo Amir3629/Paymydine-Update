@@ -740,7 +740,7 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_publishable_key' => '', 'live_publishable_key' => '', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR', 'apple_pay_enabled' => '0', 'google_pay_enabled' => '0']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_publishable_key' => '', 'live_publishable_key' => '', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
         ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
         ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
         ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
@@ -782,8 +782,6 @@ Route::group([
             'test_secret_key',
             'live_secret_key',
             'currency',
-            'apple_pay_enabled',
-            'google_pay_enabled',
         ];
         $normalizedConfig = array_intersect_key($config, array_flip($allowedKeys));
 
@@ -815,12 +813,9 @@ Route::group([
         $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
         $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
 
-        $applePayFlag = !empty($data['apple_pay_enabled']) && (string)$data['apple_pay_enabled'] !== '0';
-        $googlePayFlag = !empty($data['google_pay_enabled']) && (string)$data['google_pay_enabled'] !== '0';
-
         $cardReady = $baseReady && $cardMethodConfigured;
-        $appleReady = $baseReady && $appleMethodConfigured && $applePayFlag;
-        $googleReady = $baseReady && $googleMethodConfigured && $googlePayFlag;
+        $appleReady = $baseReady && $appleMethodConfigured;
+        $googleReady = $baseReady && $googleMethodConfigured;
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -1971,6 +1966,23 @@ Route::group([
             'path' => request()->getPathInfo(),
         ]);
 
+        $itemsSummary = collect(is_array($body['items'] ?? null) ? $body['items'] : [])
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+                $name = trim((string) ($item['name'] ?? ($item['item']['name'] ?? '')));
+                $qty = (int) ($item['quantity'] ?? 1);
+                if ($qty < 1) {
+                    $qty = 1;
+                }
+
+                return $name !== '' ? ($name . ' x' . $qty) : null;
+            })
+            ->filter()
+            ->take(8)
+            ->implode(', ');
+
 try {
             \Illuminate\Support\Facades\Log::info("[Stripe create-intent] resolved-keys", ["mode"=>$mode, "has_secret"=>(bool)$secretKey, "has_payment"=>(bool)$payment]);
             \Stripe\Stripe::setApiKey($secretKey);
@@ -2023,23 +2035,7 @@ if (!$raw) {
                     'customer_email' => (string)($body['customerInfo']['email'] ?? ''),
                     'customer_name' => (string)($body['customerInfo']['name'] ?? ''),
                     'item_count' => isset($body['items']) && is_array($body['items']) ? (string)count($body['items']) : '0',
-                    'items_summary' => (
-                        !empty($itemsSummary)
-                            ? $itemsSummary
-                            : (
-                                collect(is_array($body['items'] ?? null) ? $body['items'] : [])
-                                    ->map(function ($item) {
-                                        if (!is_array($item)) { return null; }
-                                        $name = trim((string) ($item['name'] ?? ($item['item']['name'] ?? '')));
-                                        $qty = (int) ($item['quantity'] ?? 1);
-                                        if ($qty < 1) { $qty = 1; }
-                                        return $name !== '' ? ($name . ' x' . $qty) : null;
-                                    })
-                                    ->filter()
-                                    ->take(8)
-                                    ->implode(', ')
-                            )
-                    ) ?: 'No items',
+                    'items_summary' => $itemsSummary !== '' ? $itemsSummary : 'No items',
                 ],
             ];
 
@@ -2263,7 +2259,7 @@ return response()->json([
 
 
     // Order submission endpoint
-    Route::post('/orders', function (Request $request) {
+    Route::post('/orders', function (Request $request) use ($loadJsonSetting, $defaultPaymentMethods) {
         \Log::info('PMD_ACTIVE_ORDER_ROUTE_ENTER', [
             'host' => $request->getHost(),
             'path' => $request->path(),
@@ -2325,9 +2321,14 @@ return response()->json([
 
             $request->validate($validationRules);
 
+            $methodConfigByCode = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+
             $frontendPaymentMethod = (string)($request->payment_method ?? '');
             $frontendPaymentMethodRaw = (string)($request->payment_method_raw ?? $frontendPaymentMethod);
             $frontendPaymentProvider = strtolower((string)($request->payment_provider ?? ''));
+            if ($frontendPaymentProvider === '') {
+                $frontendPaymentProvider = strtolower((string)($methodConfigByCode->get($frontendPaymentMethodRaw)['provider_code'] ?? ''));
+            }
 
             $normalizedPaymentMethod = match ($frontendPaymentMethod) {
                 'stripe', 'apple_pay', 'google_pay' => 'card',
@@ -3018,8 +3019,17 @@ return response()->json([
                 'message' => 'Order placed successfully',
             ]);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'message' => 'Order payload validation failed',
+                'details' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
 
             \Log::error('PMD_ACTIVE_ORDER_ROUTE_EXCEPTION', [
                 'message' => $e->getMessage(),
