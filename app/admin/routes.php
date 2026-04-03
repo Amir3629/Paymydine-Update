@@ -773,10 +773,13 @@ Route::group([
     Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod) {
         $defaults = $defaultPaymentMethods;
         $load = $loadJsonSetting;
+        $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
+            ? $availableProviderCodesForMethod
+            : fn (string $methodCode): array => [];
         $providersByCode = collect($load('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $methods = collect($load('payment_methods', $defaults))
             ->where('enabled', true)
-            ->filter(function ($m) use ($providersByCode) {
+            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders) {
                 $methodCode = (string)($m['code'] ?? '');
                 $providerCode = $m['provider_code'] ?? null;
                 if ($methodCode === 'cod') {
@@ -789,7 +792,7 @@ Route::group([
                 if (!($provider['enabled'] ?? false)) {
                     return false;
                 }
-                return in_array((string)$providerCode, $availableProviderCodesForMethod($methodCode), true);
+                return in_array((string)$providerCode, $resolveAvailableProviders($methodCode), true);
             })
             ->sortBy('priority')
             ->values()
@@ -817,6 +820,9 @@ Route::group([
         if (!is_array($methods)) {
             return response()->json(['success' => false, 'message' => 'Invalid methods payload'], 422);
         }
+        $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
+            ? $availableProviderCodesForMethod
+            : fn (string $methodCode): array => [];
         $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $defaults = collect($defaultPaymentMethods)->keyBy('code');
         $normalized = collect($methods)
@@ -848,7 +854,7 @@ Route::group([
             if (!$providerCode || !$providers->has($providerCode)) {
                 return response()->json(['success' => false, 'message' => "Provider is required for method {$methodCode}"], 422);
             }
-            $available = $availableProviderCodesForMethod($methodCode);
+            $available = $resolveAvailableProviders($methodCode);
             if (!in_array((string)$providerCode, $available, true)) {
                 return response()->json(['success' => false, 'message' => "Provider {$providerCode} is not fully implemented for method {$methodCode}"], 422);
             }
@@ -913,8 +919,11 @@ Route::group([
     Route::get('/payments/stripe/config', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod) {
         $methods = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
         $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
+            ? $availableProviderCodesForMethod
+            : fn (string $methodCode): array => [];
         $stripeMethodCodes = ['card', 'apple_pay', 'google_pay'];
-        $hasActiveStripeMethod = collect($stripeMethodCodes)->contains(function ($methodCode) use ($methods, $providers) {
+        $hasActiveStripeMethod = collect($stripeMethodCodes)->contains(function ($methodCode) use ($methods, $providers, $resolveAvailableProviders) {
             if (!$methods->has($methodCode)) {
                 return false;
             }
@@ -930,7 +939,7 @@ Route::group([
             if (!($provider['enabled'] ?? false)) {
                 return false;
             }
-            return in_array('stripe', $availableProviderCodesForMethod((string)$methodCode), true);
+            return in_array('stripe', $resolveAvailableProviders((string)$methodCode), true);
         });
         if (!$hasActiveStripeMethod) {
             return response()->json(['success' => false, 'error' => 'Stripe is not active for any enabled method'], 404);
