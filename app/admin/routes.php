@@ -740,7 +740,7 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'test_publishable_key' => '', 'live_publishable_key' => '', 'apple_pay_enabled' => '0', 'google_pay_enabled' => '0', 'currency' => 'EUR']],
         ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
         ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
         ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
@@ -769,8 +769,63 @@ Route::group([
         return is_array(optional($row)->data) ? $row->data : [];
     };
 
+    $providerRuntimeReadiness = function (string $providerCode, array $providerSettings) use ($loadProviderConfigFromPayments): array {
+        $settingsConfig = is_array($providerSettings['config'] ?? null) ? (array)$providerSettings['config'] : [];
+        $paymentData = $loadProviderConfigFromPayments($providerCode);
+        $effective = array_merge($settingsConfig, $paymentData);
+        $missing = [];
+
+        if ($providerCode === 'stripe') {
+            $mode = (string)($effective['transaction_mode'] ?? 'test');
+            $mode = $mode === 'live' ? 'live' : 'test';
+            $secretKey = trim((string)($mode === 'live' ? ($effective['live_secret_key'] ?? '') : ($effective['test_secret_key'] ?? '')));
+            $publishableKey = trim((string)($mode === 'live' ? ($effective['live_publishable_key'] ?? '') : ($effective['test_publishable_key'] ?? '')));
+            if ($secretKey === '') $missing[] = $mode.'_secret_key';
+            if ($publishableKey === '') $missing[] = $mode.'_publishable_key';
+        } elseif ($providerCode === 'paypal') {
+            $mode = (string)($effective['transaction_mode'] ?? ($effective['api_mode'] ?? 'test'));
+            if ($mode === 'sandbox') $mode = 'test';
+            $mode = $mode === 'live' ? 'live' : 'test';
+            $clientId = trim((string)($mode === 'live' ? ($effective['live_client_id'] ?? '') : ($effective['test_client_id'] ?? '')));
+            $clientSecret = trim((string)($mode === 'live' ? ($effective['live_client_secret'] ?? '') : ($effective['test_client_secret'] ?? '')));
+            if ($clientId === '') $missing[] = $mode.'_client_id';
+            if ($clientSecret === '') $missing[] = $mode.'_client_secret';
+        } elseif ($providerCode === 'worldline') {
+            foreach (['api_endpoint', 'merchant_id', 'api_key_id', 'secret_api_key'] as $key) {
+                if (trim((string)($effective[$key] ?? '')) === '') $missing[] = $key;
+            }
+        } elseif ($providerCode === 'sumup') {
+            foreach (['access_token', 'id_application'] as $key) {
+                if (trim((string)($effective[$key] ?? '')) === '') $missing[] = $key;
+            }
+        } elseif ($providerCode === 'square') {
+            $mode = (string)($effective['transaction_mode'] ?? 'test');
+            $mode = $mode === 'live' ? 'live' : 'test';
+            $accessToken = trim((string)($mode === 'live' ? ($effective['live_access_token'] ?? '') : ($effective['test_access_token'] ?? '')));
+            $locationId = trim((string)($mode === 'live' ? ($effective['live_location_id'] ?? '') : ($effective['test_location_id'] ?? '')));
+            if ($accessToken === '') $missing[] = $mode.'_access_token';
+            if ($locationId === '') $missing[] = $mode.'_location_id';
+        }
+
+        return [
+            'ready' => count($missing) === 0,
+            'missing_required_keys' => array_values(array_unique($missing)),
+            'effective_config' => $effective,
+        ];
+    };
+
+    $syncProviderConfigToPaymentsModel = function (string $providerCode, array $providerConfig): void {
+        $row = \Admin\Models\Payments_model::query()->where('code', $providerCode)->first();
+        if (!$row) {
+            return;
+        }
+        $existing = is_array(optional($row)->data) ? (array)$row->data : [];
+        $row->data = array_merge($existing, $providerConfig);
+        $row->save();
+    };
+
     // === Payments (read-only) ===
-    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod) {
+    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $providerRuntimeReadiness) {
         $defaults = $defaultPaymentMethods;
         $load = $loadJsonSetting;
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
@@ -790,6 +845,10 @@ Route::group([
                 }
                 $provider = (array)$providersByCode->get($providerCode, []);
                 if (!($provider['enabled'] ?? false)) {
+                    return false;
+                }
+                $runtime = $providerRuntimeReadiness((string)$providerCode, $provider);
+                if (!($runtime['ready'] ?? false)) {
                     return false;
                 }
                 return in_array((string)$providerCode, $resolveAvailableProviders($methodCode), true);
@@ -815,7 +874,7 @@ Route::group([
         ]);
     });
 
-    Route::post('/payment-methods-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $saveJsonSetting, $loadJsonSetting, $availableProviderCodesForMethod) {
+    Route::post('/payment-methods-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $saveJsonSetting, $loadJsonSetting, $availableProviderCodesForMethod, $providerRuntimeReadiness) {
         $methods = $request->input('methods', []);
         if (!is_array($methods)) {
             return response()->json(['success' => false, 'message' => 'Invalid methods payload'], 422);
@@ -858,28 +917,41 @@ Route::group([
             if (!in_array((string)$providerCode, $available, true)) {
                 return response()->json(['success' => false, 'message' => "Provider {$providerCode} is not fully implemented for method {$methodCode}"], 422);
             }
+            $provider = (array)$providers->get($providerCode, []);
+            $runtime = $providerRuntimeReadiness((string)$providerCode, $provider);
+            if (!($runtime['ready'] ?? false)) {
+                $missing = implode(', ', (array)($runtime['missing_required_keys'] ?? []));
+                return response()->json([
+                    'success' => false,
+                    'message' => "Provider {$providerCode} is missing required config for method {$methodCode}".($missing ? ": {$missing}" : ''),
+                ], 422);
+            }
         }
         $saveJsonSetting('payment_methods', $normalized);
         return response()->json(['success' => true, 'data' => $normalized]);
     });
 
-    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting, $loadProviderConfigFromPayments, $implementedFlowMatrix) {
+    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting, $loadProviderConfigFromPayments, $implementedFlowMatrix, $providerRuntimeReadiness) {
         $defaults = collect($defaultPaymentProviders)->keyBy('code');
         $stored = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $data = $defaults->map(function ($base, $code) use ($stored, $loadProviderConfigFromPayments, $implementedFlowMatrix) {
             $existing = $stored->get($code, []);
             $paymentData = $loadProviderConfigFromPayments($code);
+            $mergedConfig = array_merge(
+                $base['config'],
+                is_array($existing['config'] ?? null) ? $existing['config'] : [],
+                array_intersect_key($paymentData, $base['config'])
+            );
+            $runtime = $providerRuntimeReadiness((string)$code, ['config' => $mergedConfig]);
             return [
                 'code' => $base['code'],
                 'name' => $base['name'],
                 'enabled' => (bool)($existing['enabled'] ?? $base['enabled']),
                 'supported_methods' => array_values($base['supported_methods']),
                 'implemented_methods' => array_values($implementedFlowMatrix[$code] ?? []),
-                'config' => array_merge(
-                    $base['config'],
-                    is_array($existing['config'] ?? null) ? $existing['config'] : [],
-                    array_intersect_key($paymentData, $base['config'])
-                ),
+                'config' => $mergedConfig,
+                'runtime_ready' => (bool)($runtime['ready'] ?? false),
+                'missing_required_keys' => array_values($runtime['missing_required_keys'] ?? []),
             ];
         })->values()->all();
         return response()->json([
@@ -888,7 +960,7 @@ Route::group([
         ]);
     });
 
-    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting) {
+    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting, $providerRuntimeReadiness, $syncProviderConfigToPaymentsModel) {
         $providers = $request->input('providers', []);
         if (!is_array($providers)) {
             return response()->json(['success' => false, 'message' => 'Invalid providers payload'], 422);
@@ -911,7 +983,23 @@ Route::group([
         if (count($normalized) !== count($defaults)) {
             return response()->json(['success' => false, 'message' => 'All payment providers are required'], 422);
         }
+        foreach ($normalized as $provider) {
+            if (!($provider['enabled'] ?? false)) {
+                continue;
+            }
+            $runtime = $providerRuntimeReadiness((string)$provider['code'], $provider);
+            if (!($runtime['ready'] ?? false)) {
+                $missing = implode(', ', (array)($runtime['missing_required_keys'] ?? []));
+                return response()->json([
+                    'success' => false,
+                    'message' => "Provider {$provider['code']} is enabled but missing required config".($missing ? ": {$missing}" : ''),
+                ], 422);
+            }
+        }
         $saveJsonSetting('payment_providers', $normalized);
+        foreach ($normalized as $provider) {
+            $syncProviderConfigToPaymentsModel((string)$provider['code'], (array)($provider['config'] ?? []));
+        }
         return response()->json(['success' => true, 'data' => $normalized]);
     });
 

@@ -16,6 +16,8 @@ type PaymentProvider = {
   enabled: boolean
   supported_methods: string[]
   implemented_methods?: string[]
+  runtime_ready?: boolean
+  missing_required_keys?: string[]
   config: Record<string, string>
 }
 
@@ -23,7 +25,11 @@ const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string;
   stripe: [
     { key: "transaction_mode", label: "Mode", options: ["test", "live"] },
     { key: "test_secret_key", label: "Test Secret Key", type: "password" },
+    { key: "test_publishable_key", label: "Test Publishable Key" },
     { key: "live_secret_key", label: "Live Secret Key", type: "password" },
+    { key: "live_publishable_key", label: "Live Publishable Key" },
+    { key: "apple_pay_enabled", label: "Apple Pay Enabled", options: ["0", "1"] },
+    { key: "google_pay_enabled", label: "Google Pay Enabled", options: ["0", "1"] },
     { key: "currency", label: "Currency" },
   ],
   paypal: [
@@ -142,6 +148,14 @@ export default function PaymentProvidersPage() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Implemented: {(provider.implemented_methods || []).join(", ") || "—"}
                     </p>
+                    <p className={`text-xs mt-1 ${provider.runtime_ready ? "text-emerald-600" : "text-amber-600"}`}>
+                      Runtime readiness: {provider.runtime_ready ? "Ready" : "Missing required config"}
+                    </p>
+                    {!provider.runtime_ready && (provider.missing_required_keys || []).length > 0 && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Missing keys: {(provider.missing_required_keys || []).join(", ")}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor={`provider-enabled-${provider.code}`}>Enabled</Label>

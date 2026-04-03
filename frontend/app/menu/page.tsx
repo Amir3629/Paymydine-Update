@@ -708,6 +708,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [paymentMethodsError, setPaymentMethodsError] = useState<string | null>(null)
   const [isDarkTheme, setIsDarkTheme] = useState(false)
 
   // Debug (safe): expose key settings
@@ -1112,7 +1113,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   useEffect(() => {
     const api = new ApiClient();
     api.getPaymentMethods()
-      .then(setPaymentMethods)
+      .then((methods) => {
+        setPaymentMethods(methods)
+        if (!methods.length) {
+          setPaymentMethodsError("Payment methods are temporarily unavailable. Please refresh or ask staff for help.")
+        } else {
+          setPaymentMethodsError(null)
+        }
+      })
+      .catch(() => {
+        setPaymentMethods([])
+        setPaymentMethodsError("Payment methods are temporarily unavailable. Please refresh or ask staff for help.")
+      })
       .finally(() => setLoadingPayments(false));
   }, [])
 
@@ -2099,7 +2111,7 @@ case "cod":
                   {loadingPayments ? (
                     <div className="text-sm muted">Loading payment methods...</div>
                   ) : visiblePaymentMethods.length === 0 ? (
-                    <div className="text-sm muted">No payment methods available</div>
+                    <div className="text-sm muted">{paymentMethodsError || "No payment methods are currently enabled for this location."}</div>
                   ) : (
                     visiblePaymentMethods.map((method) => (
                       <motion.div key={method.code} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

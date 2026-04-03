@@ -23,6 +23,8 @@ type PaymentProvider = {
   enabled: boolean
   supported_methods: PaymentMethod["code"][]
   implemented_methods?: PaymentMethod["code"][]
+  runtime_ready?: boolean
+  missing_required_keys?: string[]
 }
 
 export default function PaymentMethodsPage() {
@@ -108,7 +110,7 @@ export default function PaymentMethodsPage() {
                 method.code === "cod"
                   ? [{ code: null, label: "No Provider", enabled: true }]
                   : providers
-                      .filter((provider) => (provider.implemented_methods || []).includes(method.code))
+                      .filter((provider) => (provider.implemented_methods || []).includes(method.code) && !!provider.runtime_ready)
                       .map((provider) => ({
                         code: provider.code as PaymentMethod["provider_code"],
                         label: provider.name,
@@ -153,6 +155,11 @@ export default function PaymentMethodsPage() {
                     {!assignmentIsImplemented && (
                       <p className="text-xs text-red-600 mt-1">
                         Current assignment is no longer valid for implemented flows. Please select a supported provider.
+                      </p>
+                    )}
+                    {method.provider_code && providers.some((provider) => provider.code === method.provider_code && !provider.runtime_ready) && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Selected provider is missing required credentials/config and cannot be used safely yet.
                       </p>
                     )}
                   </div>

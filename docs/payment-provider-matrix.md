@@ -40,7 +40,16 @@ This file audits **real runtime status in this repo**, not theoretical capabilit
 | square | paypal | unsupported_by_provider | none | not supported by square in this app model | n/a | n/a | n/a | no |
 | square | cod | unsupported_by_provider | none | COD is provider-less | n/a | n/a | n/a | no |
 
-## Current enforced dropdown matrix (should be live now)
+## Enforcement notes (runtime safety)
+- Admin dropdown options are now constrained by:
+  1) provider capability matrix
+  2) implemented flow matrix
+  3) provider runtime readiness (required credential/config presence for active mode)
+- `/api/v1/payments` also suppresses methods whose assigned provider is disabled or missing required runtime credentials.
+- `/api/v1/payment-methods-admin` save now rejects assignments to providers that are not runtime-ready.
+- `/api/v1/payment-providers-admin` save now rejects enabling providers with missing required credentials and syncs provider config into `payments` table runtime data.
+
+## FINAL ENFORCED ADMIN DROPDOWN MATRIX
 - `card` -> `stripe`, `worldline`, `sumup`, `square`
 - `apple_pay` -> `stripe`
 - `google_pay` -> `stripe`

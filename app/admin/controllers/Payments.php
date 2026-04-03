@@ -666,7 +666,11 @@ class Payments extends \Admin\Classes\AdminController
         $fields = [
             'stripe' => array_merge($commonModeField, [
                 'test_secret_key' => ['label' => 'Test Secret Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Starts with sk_test_. Saved value is shown; replace to update.'],
+                'test_publishable_key' => ['label' => 'Test Publishable Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Starts with pk_test_. Required by frontend Stripe Elements.'],
                 'live_secret_key' => ['label' => 'Live Secret Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Starts with sk_live_. Saved value is shown; replace to update.'],
+                'live_publishable_key' => ['label' => 'Live Publishable Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Starts with pk_live_. Required by frontend Stripe Elements.'],
+                'apple_pay_enabled' => ['label' => 'Apple Pay Enabled', 'type' => 'switch', 'span' => 'left', 'default' => 0, 'comment' => 'Enable only after Apple Pay is activated and domain is verified in Stripe.'],
+                'google_pay_enabled' => ['label' => 'Google Pay Enabled', 'type' => 'switch', 'span' => 'right', 'default' => 0, 'comment' => 'Enable only after Google Pay is activated in Stripe and supported on target browsers/devices.'],
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
             ]),
             'paypal' => array_merge($commonModeField, [
