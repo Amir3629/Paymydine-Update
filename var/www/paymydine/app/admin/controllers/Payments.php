@@ -290,7 +290,15 @@ class Payments extends \Admin\Classes\AdminController
             }
         }
 
-        return $this->validatePasses($form->getSaveData(), $rules, $messages, $attributes);
+        try {
+            return $this->validatePasses($form->getSaveData(), $rules, $messages, $attributes);
+        } catch (\Throwable $e) {
+            \Log::warning('PMD_PAYMENTS_FORM_VALIDATE_FAILED', [
+                'code' => (string)optional($model)->code,
+                'message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 
     public function create()
@@ -319,6 +327,19 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formBeforeSave($model)
     {
+        $incomingPayload = array_merge(
+            (array)post('Payment', []),
+            (array)post('Payments', []),
+            (array)post('payment', []),
+            (array)post('payments', [])
+        );
+        \Log::info('PMD_PAYMENTS_FORM_BEFORE_SAVE', [
+            'code' => (string)$model->code,
+            'is_providers_mode' => $this->isProvidersMode(),
+            'incoming_payload' => $this->redactPaymentPayload($incomingPayload),
+            'data_before' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+        ]);
+
         if (in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode()) {
             $providerCode = post('provider_code', post('Payment.provider_code'));
             $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
@@ -380,6 +401,13 @@ class Payments extends \Admin\Classes\AdminController
         if ((int)$postedDefault === 1) {
             $model->status = 1;
         }
+
+        \Log::info('PMD_PAYMENTS_FORM_READY_TO_SAVE', [
+            'code' => (string)$model->code,
+            'data_after_prepare' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+            'status' => (int)$model->status,
+            'is_default' => (int)$model->is_default,
+        ]);
     }
 
     public function listExtendQuery($query)
@@ -400,6 +428,15 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formAfterSave($model)
     {
+        $fresh = Payments_model::query()->where('payment_id', $model->payment_id)->first();
+        \Log::info('PMD_PAYMENTS_FORM_AFTER_SAVE', [
+            'code' => (string)$model->code,
+            'payment_id' => (int)$model->payment_id,
+            'saved_data' => $this->redactPaymentPayload(is_array(optional($fresh)->data) ? $fresh->data : []),
+            'saved_status' => (int)optional($fresh)->status,
+            'saved_is_default' => (int)optional($fresh)->is_default,
+        ]);
+
         $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
             && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
         if (!$isProviderRecord) {
@@ -422,6 +459,21 @@ class Payments extends \Admin\Classes\AdminController
                 'id_application' => $data['id_application'] ?? null,
             ]);
         }
+    }
+
+    protected function redactPaymentPayload(array $payload): array
+    {
+        $redacted = [];
+        foreach ($payload as $key => $value) {
+            $k = (string)$key;
+            if (preg_match('/secret|token|password|api_key/i', $k)) {
+                $redacted[$k] = is_string($value) && $value !== '' ? '***redacted***' : $value;
+                continue;
+            }
+            $redacted[$k] = $value;
+        }
+
+        return $redacted;
     }
 
     protected function syncMethodRecords(): void

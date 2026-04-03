@@ -115,8 +115,14 @@ class Payments_model extends Model
             $this->makeDefault();
         }
 
-        // Everything that came from the form is in Payment[...]
-        $posted = (array) post('Payment', []);
+        // Collect form payload from all known roots used by admin forms.
+        $posted = [];
+        foreach (['Payment', 'Payments', 'payment', 'payments'] as $root) {
+            $rootPayload = post($root);
+            if (is_array($rootPayload)) {
+                $posted = array_merge($posted, $rootPayload);
+            }
+        }
 
         // Remove fields that do NOT belong to the JSON data (they are form columns/controls).
         foreach ([
