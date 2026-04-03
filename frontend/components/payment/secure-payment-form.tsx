@@ -17,6 +17,7 @@ interface SecurePaymentFormProps {
   onPaymentError: (error: string) => void
   className?: string
   footerSlot?: React.ReactNode
+  paypalFundingSource?: "paypal" | "card"
 }
 
 // Stripe Card Form Component
@@ -593,7 +594,8 @@ export function PayPalForm({
   paymentData, 
   onPaymentComplete, 
   onPaymentError,
-  className 
+  className,
+  paypalFundingSource = "paypal",
 }: SecurePaymentFormProps) {
   const [{ isPending }] = usePayPalScriptReducer()
   const [isProcessing, setIsProcessing] = useState(false)
@@ -678,7 +680,7 @@ export function PayPalForm({
 
       <div className="paypal-clean-wrap">
         <PayPalButtons
-        fundingSource="paypal"
+        fundingSource={paypalFundingSource}
         createOrder={createOrder}
         onApprove={onApprove}
         onError={onError}

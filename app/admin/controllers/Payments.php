@@ -600,10 +600,10 @@ class Payments extends \Admin\Classes\AdminController
         // provider_capability_matrix
         return [
             'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal'],
+            'paypal' => ['paypal', 'card'],
             'worldline' => ['card'],
             'sumup' => ['card'],
-            'square' => ['card'],
+            'square' => ['card', 'apple_pay', 'google_pay'],
         ];
     }
 
@@ -612,7 +612,7 @@ class Payments extends \Admin\Classes\AdminController
         // implemented_flow_matrix (end-to-end in current stack)
         return [
             'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal'],
+            'paypal' => ['paypal', 'card'],
             'worldline' => [],
             'sumup' => [],
             'square' => [],

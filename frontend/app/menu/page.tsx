@@ -1295,6 +1295,82 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     switch (selectedMethod.code) {
       case "card":
+        if (selectedProviderCode === "paypal") {
+          return (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3 overflow-hidden"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-paydine-elegant-gray" />
+                  <span className="font-semibold text-paydine-elegant-gray">Card (via PayPal)</span>
+                </div>
+              </div>
+
+              {paypalConfigLoading ? (
+                <div className="rounded-xl p-4 border text-sm text-gray-600">
+                  Loading PayPal...
+                </div>
+              ) : !effectivePayPalClientId ? (
+                <div className="rounded-xl p-4 border text-sm text-gray-600">
+                  PayPal card checkout is not configured for this restaurant.
+                </div>
+              ) : (
+                <PayPalScriptProvider
+                  options={{
+                    clientId: effectivePayPalClientId,
+                    currency: effectivePayPalCurrency,
+                    intent: "capture",
+                    components: "buttons",
+                    disableFunding: "sepa",
+                  }}
+                >
+                  <PayPalForm
+                    paypalFundingSource="card"
+                    paymentData={{
+                      amount: finalTotal,
+                      payment_method: "card",
+                      currency: effectivePayPalCurrency.toLowerCase(),
+                      items: itemsToPay.map((item: any) => ({
+                        id: String(item.item.id),
+                        name: item.item.name,
+                        price: item.price,
+                        quantity: item.quantity || 1,
+                        restaurantId: stripeResolvedRestaurantId,
+                      })),
+                      customerInfo: {
+                        name: (paymentFormData as any)?.cardholderName || "",
+                        email: (paymentFormData as any)?.email || "",
+                        phone: (paymentFormData as any)?.phone || "",
+                      },
+                      restaurantId: stripeResolvedRestaurantId,
+                      tableNumber: stripeResolvedTableNumber,
+                    } as any}
+                    onPaymentComplete={(result: any) => {
+                      if (result?.success && result?.transactionId) {
+                        handlePayment(result.transactionId)
+                      }
+                    }}
+                    onPaymentError={(message: string) => {
+                      toast({
+                        title: "Payment Failed",
+                        description: message,
+                        variant: "destructive",
+                      })
+                    }}
+                  />
+                </PayPalScriptProvider>
+              )}
+            </motion.div>
+          )
+        }
+
         if (selectedProviderCode && selectedProviderCode !== "stripe") {
           return (
             <motion.div
@@ -1417,19 +1493,21 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 PayPal is not configured for this restaurant.
               </div>
             ) : (
-              <PayPalScriptProvider
-                options={{
-                  clientId: effectivePayPalClientId,
-                  currency: effectivePayPalCurrency,
-                  intent: "capture",
-                  components: "buttons",
-                  disableFunding: "card,sepa",
-                }}
-              >
-                <PayPalForm
-                  paymentData={{
-                    amount: finalTotal,
-                    currency: effectivePayPalCurrency.toLowerCase(),
+                <PayPalScriptProvider
+                  options={{
+                    clientId: effectivePayPalClientId,
+                    currency: effectivePayPalCurrency,
+                    intent: "capture",
+                    components: "buttons",
+                    disableFunding: "card,sepa",
+                  }}
+                >
+                  <PayPalForm
+                    paypalFundingSource="paypal"
+                    paymentData={{
+                      amount: finalTotal,
+                      payment_method: "paypal",
+                      currency: effectivePayPalCurrency.toLowerCase(),
                     items: itemsToPay.map((item: any) => ({
                       id: String(item.item.id),
                       name: item.item.name,

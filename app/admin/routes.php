@@ -701,16 +701,16 @@ Route::group([
     // provider_capability_matrix (research-level capabilities)
     $providerCapabilityMatrix = [
         'stripe' => ['card', 'apple_pay', 'google_pay'],
-        'paypal' => ['paypal'],
+        'paypal' => ['paypal', 'card', 'apple_pay', 'google_pay'],
         'worldline' => ['card'],
         'sumup' => ['card'],
-        'square' => ['card'],
+        'square' => ['card', 'apple_pay', 'google_pay'],
     ];
 
     // implemented_flow_matrix (actually completed end-to-end in this codebase)
     $implementedFlowMatrix = [
         'stripe' => ['card', 'apple_pay', 'google_pay'],
-        'paypal' => ['paypal'],
+        'paypal' => ['paypal', 'card'],
         'worldline' => [],
         'sumup' => [],
         'square' => [],
@@ -1122,11 +1122,57 @@ Route::group([
     // Create Stripe PaymentIntent using tenant secret from DB
     
 
+    $resolvePaypalRuntimeConfig = function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting): array {
+        $methods = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $paypalProvider = (array)$providers->get('paypal', []);
+        $providerEnabled = (bool)($paypalProvider['enabled'] ?? false);
+
+        $paypalMethodEnabled = (bool)(($methods->get('paypal')['enabled'] ?? false) && (($methods->get('paypal')['provider_code'] ?? null) === 'paypal'));
+        $cardMethodEnabled = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'paypal'));
+        $applePayMethodEnabled = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'paypal'));
+        $googlePayMethodEnabled = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'paypal'));
+
+        $row = \Admin\Models\Payments_model::query()
+            ->whereIn('code', ['paypal', 'paypalexpress'])
+            ->where('status', 1)
+            ->orderByRaw("CASE WHEN code = 'paypal' THEN 0 ELSE 1 END")
+            ->orderByDesc('payment_id')
+            ->first();
+
+        $paymentData = is_array(optional($row)->data) ? (array)$row->data : [];
+        $providerConfig = is_array($paypalProvider['config'] ?? null) ? (array)$paypalProvider['config'] : [];
+        $pdata = array_merge($providerConfig, $paymentData);
+
+        $mode = (string)($pdata['transaction_mode'] ?? ($pdata['api_mode'] ?? 'test'));
+        if ($mode === 'sandbox') {
+            $mode = 'test';
+        }
+        $clientId = $mode === 'live'
+            ? (string)($pdata['live_client_id'] ?? '')
+            : (string)($pdata['test_client_id'] ?? '');
+        $clientSecret = $mode === 'live'
+            ? (string)($pdata['live_client_secret'] ?? '')
+            : (string)($pdata['test_client_secret'] ?? '');
+
+        return [
+            'provider_enabled' => $providerEnabled,
+            'paypal_enabled' => $paypalMethodEnabled,
+            'card_enabled' => $cardMethodEnabled,
+            'apple_pay_enabled' => $applePayMethodEnabled,
+            'google_pay_enabled' => $googlePayMethodEnabled,
+            'mode' => $mode,
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'brand_name' => (string)($pdata['brand_name'] ?? ''),
+        ];
+    };
+
     // ================================
     // PMD_PUBLIC_PAYPAL_ROUTES_V1
     // Public frontend config for PayPal (NO secret exposed)
     // ================================
-    Route::get('/payments/config-public', function () {
+    Route::get('/payments/config-public', function () use ($resolvePaypalRuntimeConfig) {
         $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
         $rawCurrency = $settings['default_currency_code']->value ?? ($settings['default_currency']->value ?? null);
 
@@ -1144,40 +1190,23 @@ Route::group([
 
         $countryCode = strtoupper((string)($settings['country_code']->value ?? 'DE'));
 
-        $paypalPayment = \Illuminate\Support\Facades\DB::table('payments')
-            ->where('code', 'paypalexpress')
-            ->where('status', 1)
-            ->orderByDesc('payment_id')
-            ->first();
-
-        if (!$paypalPayment) {
-            return response()->json([
-                'success' => true,
-                'paypalEnabled' => false,
-                'paypalClientId' => '',
-                'paypalMode' => 'test',
-                'currency' => $resolvedCurrency,
-                'countryCode' => $countryCode,
-            ], 200);
-        }
-
-        $pdata = json_decode((string)($paypalPayment->data ?? '{}'), true);
-        if (!is_array($pdata)) {
-            $pdata = [];
-        }
-
-        $pmode = (string)($pdata['transaction_mode'] ?? ($pdata['api_mode'] ?? 'test'));
-        if ($pmode === 'sandbox') {
-            $pmode = 'test';
-        }
-
-        $paypalClientId = $pmode === 'live'
-            ? (string)($pdata['live_client_id'] ?? '')
-            : (string)($pdata['test_client_id'] ?? '');
+        $runtime = $resolvePaypalRuntimeConfig();
+        $paypalEnabled = (bool)$runtime['provider_enabled'] && (
+            (bool)$runtime['paypal_enabled']
+            || (bool)$runtime['card_enabled']
+            || (bool)$runtime['apple_pay_enabled']
+            || (bool)$runtime['google_pay_enabled']
+        );
+        $paypalClientId = (string)($runtime['client_id'] ?? '');
+        $pmode = (string)($runtime['mode'] ?? 'test');
 
         return response()->json([
             'success' => true,
-            'paypalEnabled' => !empty($paypalClientId),
+            'paypalEnabled' => $paypalEnabled && !empty($paypalClientId),
+            'paypalMethodEnabled' => (bool)$runtime['paypal_enabled'],
+            'paypalCardEnabled' => (bool)$runtime['card_enabled'],
+            'paypalApplePayEnabled' => (bool)$runtime['apple_pay_enabled'],
+            'paypalGooglePayEnabled' => (bool)$runtime['google_pay_enabled'],
             'paypalClientId' => $paypalClientId,
             'paypalMode' => $pmode,
             'currency' => $resolvedCurrency,
@@ -1341,7 +1370,7 @@ Route::group([
 
 
     // Create PayPal order using Laravel tenant/admin config only
-    Route::post('/payments/paypal/create-order', function (\Illuminate\Http\Request $request) {
+    Route::post('/payments/paypal/create-order', function (\Illuminate\Http\Request $request) use ($resolvePaypalRuntimeConfig) {
         \Log::info('PMD PAYPAL create-order HIT', [
             'host' => $request->getHost(),
             'db' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
@@ -1350,14 +1379,9 @@ Route::group([
             'raw' => $request->getContent(),
         ]);
         try {
-            $payment = \Illuminate\Support\Facades\DB::table('payments')
-                ->where('code', 'paypalexpress')
-                ->where('status', 1)
-                ->orderByDesc('payment_id')
-                ->first();
-
-            if (!$payment) {
-                \Log::warning('PayPal create-order: paypalexpress row missing or disabled', [
+            $runtime = $resolvePaypalRuntimeConfig();
+            if (!(bool)$runtime['provider_enabled']) {
+                \Log::warning('PayPal create-order: provider disabled', [
                     'host' => $request->getHost(),
                     'db' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
                 ]);
@@ -1365,27 +1389,28 @@ Route::group([
                 return response()->json([
                     'success' => false,
                     'error' => 'PayPal credentials not configured',
-                    'reason' => 'paypalexpress_missing_or_disabled',
+                    'reason' => 'provider_disabled',
                 ], 503);
             }
 
-            $pdata = json_decode((string)($payment->data ?? '{}'), true);
-            if (!is_array($pdata)) {
-                $pdata = [];
+            $pmode = (string)($runtime['mode'] ?? 'test');
+            $clientId = (string)($runtime['client_id'] ?? '');
+            $clientSecret = (string)($runtime['client_secret'] ?? '');
+            $requestedMethod = strtolower((string)$request->input('payment_method', 'paypal'));
+            $methodEnabled = match ($requestedMethod) {
+                'card' => (bool)$runtime['card_enabled'],
+                'apple_pay' => (bool)$runtime['apple_pay_enabled'],
+                'google_pay' => (bool)$runtime['google_pay_enabled'],
+                default => (bool)$runtime['paypal_enabled'],
+            };
+
+            if (!$methodEnabled) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "PayPal method '{$requestedMethod}' is not enabled for this restaurant",
+                    'reason' => 'method_not_enabled',
+                ], 422);
             }
-
-            $pmode = (string)($pdata['transaction_mode'] ?? ($pdata['api_mode'] ?? 'test'));
-            if ($pmode === 'sandbox') {
-                $pmode = 'test';
-            }
-
-            $clientId = $pmode === 'live'
-                ? (string)($pdata['live_client_id'] ?? '')
-                : (string)($pdata['test_client_id'] ?? '');
-
-            $clientSecret = $pmode === 'live'
-                ? (string)($pdata['live_client_secret'] ?? '')
-                : (string)($pdata['test_client_secret'] ?? '');
 
             if (!$clientId || !$clientSecret) {
                 \Log::warning('PayPal create-order: credentials missing after decode', [
@@ -1394,8 +1419,7 @@ Route::group([
                     'mode' => $pmode,
                     'has_client_id' => !empty($clientId),
                     'has_client_secret' => !empty($clientSecret),
-                    'payment_id' => $payment->payment_id ?? null,
-                    'code' => $payment->code ?? null,
+                    'provider_enabled' => (bool)$runtime['provider_enabled'],
                 ]);
 
                 return response()->json([
@@ -1557,7 +1581,7 @@ Route::group([
     });
 
     // Capture PayPal order using Laravel tenant/admin config only
-    Route::post('/payments/paypal/capture-order', function (\Illuminate\Http\Request $request) {
+    Route::post('/payments/paypal/capture-order', function (\Illuminate\Http\Request $request) use ($resolvePaypalRuntimeConfig) {
         \Log::info('PMD PAYPAL capture-order HIT', [
             'host' => $request->getHost(),
             'db' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
@@ -1566,37 +1590,17 @@ Route::group([
             'raw' => $request->getContent(),
         ]);
         try {
-            $payment = \Illuminate\Support\Facades\DB::table('payments')
-                ->where('code', 'paypalexpress')
-                ->where('status', 1)
-                ->orderByDesc('payment_id')
-                ->first();
-
-            if (!$payment) {
+            $runtime = $resolvePaypalRuntimeConfig();
+            if (!(bool)$runtime['provider_enabled']) {
                 return response()->json([
                     'success' => false,
                     'error' => 'PayPal credentials not configured',
-                    'reason' => 'paypalexpress_missing_or_disabled',
+                    'reason' => 'provider_disabled',
                 ], 503);
             }
-
-            $pdata = json_decode((string)($payment->data ?? '{}'), true);
-            if (!is_array($pdata)) {
-                $pdata = [];
-            }
-
-            $pmode = (string)($pdata['transaction_mode'] ?? ($pdata['api_mode'] ?? 'test'));
-            if ($pmode === 'sandbox') {
-                $pmode = 'test';
-            }
-
-            $clientId = $pmode === 'live'
-                ? (string)($pdata['live_client_id'] ?? '')
-                : (string)($pdata['test_client_id'] ?? '');
-
-            $clientSecret = $pmode === 'live'
-                ? (string)($pdata['live_client_secret'] ?? '')
-                : (string)($pdata['test_client_secret'] ?? '');
+            $pmode = (string)($runtime['mode'] ?? 'test');
+            $clientId = (string)($runtime['client_id'] ?? '');
+            $clientSecret = (string)($runtime['client_secret'] ?? '');
 
             if (!$clientId || !$clientSecret) {
                 return response()->json([
