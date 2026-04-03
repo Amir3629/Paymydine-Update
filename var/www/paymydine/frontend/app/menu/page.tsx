@@ -989,23 +989,32 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
       const resolvedLocationId = Number(tableInfo?.location_id || 1)
 
+      const normalizedItemsForOrder = itemsToPay.map((item, index) => {
+        const menuIdCandidate = Number((item as any)?.item?.id ?? (item as any)?.item?.menu_id ?? 0)
+        const quantityCandidate = Number((item as any)?.quantity || 1)
+        const priceCandidate = Number((item as any)?.price ?? (item as any)?.item?.price ?? 0)
+        const nameCandidate = String((item as any)?.item?.name ?? (item as any)?.item?.title ?? "").trim()
+
+        return {
+          menu_id: Number.isFinite(menuIdCandidate) ? menuIdCandidate : 0,
+          name: nameCandidate !== "" ? nameCandidate : `Item ${index + 1}`,
+          quantity: Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1,
+          price: Number.isFinite(priceCandidate) && priceCandidate >= 0 ? priceCandidate : 0,
+          special_instructions: "",
+          options: Object.fromEntries(
+            Object.entries(selectedOptions[(item as any)?.item?.id] || {})
+              .map(([key, value]) => [String(key), String(value ?? "")])
+              .filter(([, value]) => value !== "")
+          ),
+        }
+      })
+
       const orderData = {
         table_id: isCashier ? "cashier" : (numericResolvedTableId != null ? String(numericResolvedTableId) : null),
         table_name: String(isCashier ? "Cashier" : resolvedTableName),
         location_id: resolvedLocationId,
         is_codier: Boolean(isCashier),
-        items: itemsToPay.map(item => ({
-          menu_id: Number(item.item.id),
-          name: String(item.item.name ?? ""),
-          quantity: Number(item.quantity || 1),
-          price: Number((item as any)?.price ?? (item as any)?.item?.price ?? 0),
-          special_instructions: "",
-          options: Object.fromEntries(
-            Object.entries(selectedOptions[item.item.id] || {})
-              .map(([key, value]) => [String(key), String(value ?? "")])
-              .filter(([, value]) => value !== "")
-          ),
-        })),
+        items: normalizedItemsForOrder,
         customer_name: String(
           isCashier
             ? "Cashier Customer"
@@ -1031,7 +1040,19 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         special_instructions: "",
       }
 
-      console.log("[PMD submitOrder payload]", orderData)
+      console.log("[PMD submitOrder payload]", {
+        table_id: orderData.table_id,
+        table_name: orderData.table_name,
+        location_id: orderData.location_id,
+        payment_method: orderData.payment_method,
+        payment_method_raw: orderData.payment_method_raw,
+        payment_provider: orderData.payment_provider,
+        has_stripe_payment_intent_id: !!orderData.stripe_payment_intent_id,
+        total_amount: orderData.total_amount,
+        customer_name: orderData.customer_name,
+        items_count: orderData.items.length,
+        first_item: orderData.items[0] || null,
+      })
       const response = await apiClient.submitOrder(orderData)
       
       if (response.success) {
@@ -1067,9 +1088,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     } catch (error) {
     setIsLoading(false)
       console.error('Order submission error:', error)
+      const validationDetails = (error as any)?.details as Record<string, string[]> | undefined
+      const firstValidationMessage = validationDetails
+        ? Object.values(validationDetails).flat().find(Boolean)
+        : null
       toast({ 
         title: "Order Failed", 
-        description: error instanceof Error ? error.message : "Failed to submit order. Please try again.",
+        description: firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
         variant: "destructive"
       })
     }

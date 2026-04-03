@@ -56,18 +56,27 @@ export interface MenuResponse {
 
 export interface OrderRequest {
   table_id: string | null;
+  table_name?: string;
+  location_id?: number;
+  is_codier?: boolean;
   items: {
     menu_id: number;
     name: string;
     quantity: number;
     price: number;
     special_instructions?: string;
+    options?: Record<string, string>;
   }[];
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
   payment_method: 'cod' | 'card' | 'paypal';
+  payment_method_raw?: string;
+  payment_provider?: string;
+  payment_reference?: string;
   total_amount: number;
+  coupon_code?: string | null;
+  coupon_discount?: number;
   tip_amount?: number;
   special_instructions?: string;
   stripe_payment_intent_id?: string;
@@ -338,7 +347,24 @@ export class ApiClient {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const responseText = await response.text().catch(() => '');
+        let parsedBody: any = null;
+        try {
+          parsedBody = responseText ? JSON.parse(responseText) : null;
+        } catch {
+          parsedBody = null;
+        }
+
+        console.error('[PMD submitOrder non-200]', {
+          status: response.status,
+          body: parsedBody ?? responseText,
+        });
+
+        const apiMessage = parsedBody?.message || parsedBody?.error || `HTTP error! status: ${response.status}`;
+        const error = new Error(apiMessage) as Error & { status?: number; details?: Record<string, string[]> };
+        error.status = response.status;
+        error.details = parsedBody?.details;
+        throw error;
       }
       
       const data = await response.json();
