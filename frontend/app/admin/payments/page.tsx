@@ -22,6 +22,7 @@ type PaymentProvider = {
   name: string
   enabled: boolean
   supported_methods: PaymentMethod["code"][]
+  implemented_methods?: PaymentMethod["code"][]
 }
 
 export default function PaymentMethodsPage() {
@@ -107,13 +108,17 @@ export default function PaymentMethodsPage() {
                 method.code === "cod"
                   ? [{ code: null, label: "No Provider", enabled: true }]
                   : providers
-                      .filter((provider) => provider.supported_methods?.includes(method.code))
+                      .filter((provider) => (provider.implemented_methods || []).includes(method.code))
                       .map((provider) => ({
                         code: provider.code as PaymentMethod["provider_code"],
                         label: provider.name,
                         enabled: provider.enabled,
                       }))
               const providerIsEnabled = method.provider_code ? enabledProviderCodes.has(method.provider_code) : true
+              const assignmentIsImplemented =
+                method.code === "cod"
+                  ? method.provider_code === null
+                  : !!(method.provider_code && options.some((option) => option.code === method.provider_code))
 
               return (
                 <div key={method.code} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center border rounded-lg p-4">
@@ -145,6 +150,11 @@ export default function PaymentMethodsPage() {
                       </SelectContent>
                     </Select>
                     {!providerIsEnabled && <p className="text-xs text-amber-600 mt-1">Selected provider is currently disabled.</p>}
+                    {!assignmentIsImplemented && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Current assignment is no longer valid for implemented flows. Please select a supported provider.
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between md:justify-end gap-3">

@@ -15,6 +15,7 @@ type PaymentProvider = {
   name: string
   enabled: boolean
   supported_methods: string[]
+  implemented_methods?: string[]
   config: Record<string, string>
 }
 
@@ -137,6 +138,9 @@ export default function PaymentProvidersPage() {
                     <p className="text-xs text-muted-foreground">code: {provider.code}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Supports: {(provider.supported_methods || []).join(", ") || "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Implemented: {(provider.implemented_methods || []).join(", ") || "—"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

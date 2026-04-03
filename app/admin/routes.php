@@ -698,13 +698,38 @@ Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web']
 ], function () {
-    $providerMethodMatrix = [
+    // provider_capability_matrix (research-level capabilities)
+    $providerCapabilityMatrix = [
         'stripe' => ['card', 'apple_pay', 'google_pay'],
         'paypal' => ['paypal'],
         'worldline' => ['card'],
         'sumup' => ['card'],
         'square' => ['card'],
     ];
+
+    // implemented_flow_matrix (actually completed end-to-end in this codebase)
+    $implementedFlowMatrix = [
+        'stripe' => ['card', 'apple_pay', 'google_pay'],
+        'paypal' => ['paypal'],
+        'worldline' => [],
+        'sumup' => [],
+        'square' => [],
+    ];
+
+    $availableProviderCodesForMethod = function (string $methodCode) use ($providerCapabilityMatrix, $implementedFlowMatrix): array {
+        if ($methodCode === 'cod') {
+            return [];
+        }
+        $available = [];
+        foreach ($providerCapabilityMatrix as $providerCode => $capabilities) {
+            $capable = in_array($methodCode, $capabilities, true);
+            $implemented = in_array($methodCode, $implementedFlowMatrix[$providerCode] ?? [], true);
+            if ($capable && $implemented) {
+                $available[] = $providerCode;
+            }
+        }
+        return $available;
+    };
 
     $defaultPaymentMethods = [
         ['code' => 'card', 'name' => 'Card', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 1],
@@ -715,11 +740,11 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerMethodMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
-        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerMethodMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
-        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerMethodMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
-        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerMethodMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
-        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => $providerMethodMatrix['square'], 'config' => ['transaction_mode' => 'test', 'test_access_token' => '', 'test_location_id' => '', 'live_access_token' => '', 'live_location_id' => '', 'currency' => 'EUR']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
+        ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
+        ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
+        ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
+        ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['square'], 'config' => ['transaction_mode' => 'test', 'test_access_token' => '', 'test_location_id' => '', 'live_access_token' => '', 'live_location_id' => '', 'currency' => 'EUR']],
     ];
 
     $loadJsonSetting = function (string $item, array $fallback) {
@@ -745,7 +770,7 @@ Route::group([
     };
 
     // === Payments (read-only) ===
-    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting) {
+    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod) {
         $defaults = $defaultPaymentMethods;
         $load = $loadJsonSetting;
         $providersByCode = collect($load('payment_providers', $defaultPaymentProviders))->keyBy('code');
@@ -764,8 +789,7 @@ Route::group([
                 if (!($provider['enabled'] ?? false)) {
                     return false;
                 }
-                $supported = collect($provider['supported_methods'] ?? [])->map(fn ($item) => (string)$item);
-                return $supported->contains($methodCode);
+                return in_array((string)$providerCode, $availableProviderCodesForMethod($methodCode), true);
             })
             ->sortBy('priority')
             ->values()
@@ -788,7 +812,7 @@ Route::group([
         ]);
     });
 
-    Route::post('/payment-methods-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $saveJsonSetting, $loadJsonSetting) {
+    Route::post('/payment-methods-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $saveJsonSetting, $loadJsonSetting, $availableProviderCodesForMethod) {
         $methods = $request->input('methods', []);
         if (!is_array($methods)) {
             return response()->json(['success' => false, 'message' => 'Invalid methods payload'], 422);
@@ -824,19 +848,19 @@ Route::group([
             if (!$providerCode || !$providers->has($providerCode)) {
                 return response()->json(['success' => false, 'message' => "Provider is required for method {$methodCode}"], 422);
             }
-            $supported = collect($providers[$providerCode]['supported_methods'] ?? [])->map(fn ($m) => (string)$m);
-            if (!$supported->contains($methodCode)) {
-                return response()->json(['success' => false, 'message' => "Provider {$providerCode} does not support method {$methodCode}"], 422);
+            $available = $availableProviderCodesForMethod($methodCode);
+            if (!in_array((string)$providerCode, $available, true)) {
+                return response()->json(['success' => false, 'message' => "Provider {$providerCode} is not fully implemented for method {$methodCode}"], 422);
             }
         }
         $saveJsonSetting('payment_methods', $normalized);
         return response()->json(['success' => true, 'data' => $normalized]);
     });
 
-    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting, $loadProviderConfigFromPayments) {
+    Route::get('/payment-providers-admin', function () use ($defaultPaymentProviders, $loadJsonSetting, $loadProviderConfigFromPayments, $implementedFlowMatrix) {
         $defaults = collect($defaultPaymentProviders)->keyBy('code');
         $stored = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
-        $data = $defaults->map(function ($base, $code) use ($stored, $loadProviderConfigFromPayments) {
+        $data = $defaults->map(function ($base, $code) use ($stored, $loadProviderConfigFromPayments, $implementedFlowMatrix) {
             $existing = $stored->get($code, []);
             $paymentData = $loadProviderConfigFromPayments($code);
             return [
@@ -844,6 +868,7 @@ Route::group([
                 'name' => $base['name'],
                 'enabled' => (bool)($existing['enabled'] ?? $base['enabled']),
                 'supported_methods' => array_values($base['supported_methods']),
+                'implemented_methods' => array_values($implementedFlowMatrix[$code] ?? []),
                 'config' => array_merge(
                     $base['config'],
                     is_array($existing['config'] ?? null) ? $existing['config'] : [],
@@ -885,7 +910,7 @@ Route::group([
     });
 
     // Stripe tenant config (safe for frontend: publishable key + mode only)
-    Route::get('/payments/stripe/config', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting) {
+    Route::get('/payments/stripe/config', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod) {
         $methods = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
         $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $stripeMethodCodes = ['card', 'apple_pay', 'google_pay'];
@@ -905,8 +930,7 @@ Route::group([
             if (!($provider['enabled'] ?? false)) {
                 return false;
             }
-            $supported = collect($provider['supported_methods'] ?? [])->map(fn ($item) => (string)$item);
-            return $supported->contains((string)$methodCode);
+            return in_array('stripe', $availableProviderCodesForMethod((string)$methodCode), true);
         });
         if (!$hasActiveStripeMethod) {
             return response()->json(['success' => false, 'error' => 'Stripe is not active for any enabled method'], 404);
@@ -989,7 +1013,6 @@ Route::group([
         $currency = strtoupper((string)$payload['currency']);
         $amountMinor = (int)round($amountMajor * 100);
         $returnUrl = (string)($payload['return_url'] ?? url('/order-placed'));
-        $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
 
         $paymentRow = \Admin\Models\Payments_model::query()->where('code', $providerCode)->first();
         $paymentData = is_array(optional($paymentRow)->data) ? (array)$paymentRow->data : [];

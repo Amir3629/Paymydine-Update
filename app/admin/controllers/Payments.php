@@ -15,6 +15,14 @@ use System\Helpers\ValidationHelper;
 
 class Payments extends \Admin\Classes\AdminController
 {
+    /**
+     * provider_capability_matrix (research/docs level):
+     * - What providers can support in general.
+     *
+     * implemented_flow_matrix:
+     * - What is actually implemented end-to-end in this codebase today.
+     * - This must be used for assignable dropdown/validation.
+     */
     protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'paypal', 'cod'];
     protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square'];
 
@@ -153,14 +161,22 @@ class Payments extends \Admin\Classes\AdminController
             && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
 
         if ($isMethodRecord && (string)$model->code !== 'cod') {
+            $currentProvider = $this->extractProviderCode($model);
+            $compatibleOptions = $this->getCompatibleProviders($model->code);
+            $assignmentWarning = null;
+            if ($currentProvider && !array_key_exists($currentProvider, $compatibleOptions)) {
+                $assignmentWarning = "Current provider '{$currentProvider}' is no longer selectable because this flow is not fully implemented. Please select a supported provider.";
+            }
+
             $form->addFields([
                 'provider_code' => [
                     'label' => 'Provider',
                     'type' => 'select',
                     'span' => 'left',
-                    'options' => $this->getCompatibleProviders($model->code),
+                    'options' => $compatibleOptions,
                     'placeholder' => 'Select provider',
-                    'comment' => 'Only providers compatible with this method are shown.',
+                    'comment' => $assignmentWarning
+                        ?: 'Only providers with both capability and implemented flow are shown.',
                     'default' => $this->extractProviderCode($model),
                 ],
             ]);
@@ -534,9 +550,10 @@ class Payments extends \Admin\Classes\AdminController
         }
 
         $options = [];
+        $availableCodes = $this->availableProviderCodesForMethod($methodCode);
         foreach ($this->getPaymentProviderSettings() as $provider) {
-            $supported = (array)($provider['supported_methods'] ?? []);
-            if (in_array($methodCode, $supported, true)) {
+            $providerCode = (string)($provider['code'] ?? '');
+            if (in_array($providerCode, $availableCodes, true)) {
                 $options[(string)$provider['code']] = (string)($provider['name'] ?? strtoupper((string)$provider['code']));
             }
         }
@@ -580,6 +597,7 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function defaultProviderSupportedMethods(): array
     {
+        // provider_capability_matrix
         return [
             'stripe' => ['card', 'apple_pay', 'google_pay'],
             'paypal' => ['paypal'],
@@ -587,6 +605,38 @@ class Payments extends \Admin\Classes\AdminController
             'sumup' => ['card'],
             'square' => ['card'],
         ];
+    }
+
+    protected function implementedProviderFlows(): array
+    {
+        // implemented_flow_matrix (end-to-end in current stack)
+        return [
+            'stripe' => ['card', 'apple_pay', 'google_pay'],
+            'paypal' => ['paypal'],
+            'worldline' => [],
+            'sumup' => [],
+            'square' => [],
+        ];
+    }
+
+    protected function availableProviderCodesForMethod(string $methodCode): array
+    {
+        if ($methodCode === 'cod') {
+            return [];
+        }
+
+        $capability = $this->defaultProviderSupportedMethods();
+        $implemented = $this->implementedProviderFlows();
+        $codes = [];
+        foreach (self::PROVIDER_CODES as $providerCode) {
+            $capable = in_array($methodCode, $capability[$providerCode] ?? [], true);
+            $hasFlow = in_array($methodCode, $implemented[$providerCode] ?? [], true);
+            if ($capable && $hasFlow) {
+                $codes[] = $providerCode;
+            }
+        }
+
+        return $codes;
     }
 
     protected function providerPriorityDefaults(): array
