@@ -356,6 +356,7 @@ function WalletStripePay(props: {
               body: JSON.stringify({
                 amount: props.amount,
                 currency: (props.currency || "eur").toLowerCase(),
+                preferredMethod: props.method,
                 restaurantId: String(props.restaurantId),
                 cartId: props.cartId ? String(props.cartId) : null,
                 userId: props.userId ? String(props.userId) : null,
@@ -384,7 +385,7 @@ function WalletStripePay(props: {
 
             ev.complete('success');
 
-            if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing' || paymentIntent?.status === 'requires_capture') {
+            if (paymentIntent?.status === 'succeeded') {
               props.onSuccess(paymentIntent.id);
             } else {
               throw new Error("Unexpected PI status: " + (paymentIntent?.status || "unknown"));
@@ -769,8 +770,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     mode: string
     currency?: string
     countryCode?: string
-    applePayEnabled?: boolean
-    googlePayEnabled?: boolean
+    methods?: {
+      card?: boolean
+      apple_pay?: boolean
+      google_pay?: boolean
+    }
   } | null>(null)
   const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
 
@@ -831,8 +835,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             mode: data.mode || "test",
             currency: data.currency || "EUR",
             countryCode: data.countryCode || "DE",
-            applePayEnabled: !!data.applePayEnabled,
-            googlePayEnabled: !!data.googlePayEnabled,
+            methods: {
+              card: !!data?.methods?.card,
+              apple_pay: !!data?.methods?.apple_pay,
+              google_pay: !!data?.methods?.google_pay,
+            },
           })
           setStripeConfigError(null)
         } else {
@@ -928,7 +935,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
   const handlePayment = async (stripePaymentIntentId?: string) => {
-    if ((selectedPaymentMethod === 'card') && !stripePaymentIntentId) {
+    const selectedMethodForSubmit = visiblePaymentMethods.find(method => method.code === selectedPaymentMethod)
+    const selectedProviderCodeForSubmit = (selectedMethodForSubmit as any)?.provider_code || null
+    const isStripeMethodForSubmit =
+      selectedProviderCodeForSubmit === "stripe" &&
+      (selectedPaymentMethod === "card" || selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay")
+
+    if (isStripeMethodForSubmit && !stripePaymentIntentId) {
+      toast({
+        title: "Payment Failed",
+        description: "Stripe payment confirmation is missing. Please try again.",
+        variant: "destructive",
+      })
       return
     }
     setIsLoading(true)
@@ -1002,7 +1020,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               ? "paypal"
               : "card"
         ) as 'cod' | 'paypal' | 'card',
-        stripe_payment_intent_id: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
+        payment_method_raw: selectedPaymentMethod || undefined,
+        payment_provider: selectedProviderCodeForSubmit || undefined,
+        payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
+        stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
         total_amount: Number(finalTotal || 0),
         tip_amount: Number(tipAmount || 0),
         coupon_code: appliedCoupon?.code ? String(appliedCoupon.code) : null,
@@ -1515,7 +1536,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             )}
 
             
-            {stripePromise && (
+            {stripeConfig?.methods?.card !== false && stripePromise && (
               <Elements stripe={stripePromise}>
                 <StripeCardForm
                   paymentData={stripePaymentData as any}
@@ -1548,6 +1569,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   }
                 />
               </Elements>
+            )}
+
+            {stripeConfig?.methods?.card === false && (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
+                Stripe card checkout is not enabled for this restaurant.
+              </div>
             )}
 
           </motion.div>
@@ -1665,42 +1692,43 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </div>
             </div>
 
-            {stripePromise ? (
-
-              <Elements stripe={stripePromise}>
-
-                <WalletStripePay
-              method={selectedPaymentMethod as "apple_pay" | "google_pay"}
-              amount={finalTotal}
-              currency={(stripeConfig?.currency || merchantSettings?.currency || "EUR")}
-              
-              countryCode={(stripeConfig?.countryCode || "DE")}
-restaurantId={stripeResolvedRestaurantId || "1"}
-              cartId={(stripePaymentData as any)?.cartId || null}
-              userId={(stripePaymentData as any)?.userId || null}
-              items={(stripePaymentData as any)?.items || []}
-              customerInfo={(stripePaymentData as any)?.customerInfo || {}}
-              tableNumber={(stripePaymentData as any)?.tableNumber || null}
-              onSuccess={(piId: string) => {
-                handlePayment(piId)
-              }}
-              onError={(message: string) => {
-                toast({
-                  title: "Payment Failed",
-                  description: message,
-                  variant: "destructive",
-                })
-              }}
-            />
-
-              </Elements>
-
+            {stripeConfig?.methods?.[selectedPaymentMethod as "apple_pay" | "google_pay"] ? (
+              stripePromise ? (
+                <Elements stripe={stripePromise}>
+                  <WalletStripePay
+                    method={selectedPaymentMethod as "apple_pay" | "google_pay"}
+                    amount={finalTotal}
+                    currency={(stripeConfig?.currency || merchantSettings?.currency || "EUR")}
+                    countryCode={(stripeConfig?.countryCode || "DE")}
+                    restaurantId={stripeResolvedRestaurantId || "1"}
+                    cartId={(stripePaymentData as any)?.cartId || null}
+                    userId={(stripePaymentData as any)?.userId || null}
+                    items={(stripePaymentData as any)?.items || []}
+                    customerInfo={(stripePaymentData as any)?.customerInfo || {}}
+                    tableNumber={(stripePaymentData as any)?.tableNumber || null}
+                    onSuccess={(piId: string) => {
+                      handlePayment(piId)
+                    }}
+                    onError={(message: string) => {
+                      toast({
+                        title: "Payment Failed",
+                        description: message,
+                        variant: "destructive",
+                      })
+                    }}
+                  />
+                </Elements>
+              ) : (
+                <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
+                  Stripe is still loading. Please wait a few seconds and try again.
+                </div>
+              )
             ) : (
-
               <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
-                Stripe is still loading. Please wait a few seconds and try again.
+                {selectedPaymentMethod === "apple_pay"
+                  ? "Apple Pay is not enabled for this restaurant."
+                  : "Google Pay is not enabled for this restaurant."}
               </div>
-
             )}
           </motion.div>
         )
