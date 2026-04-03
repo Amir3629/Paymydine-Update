@@ -597,14 +597,22 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function defaultProviderSupportedMethods(): array
     {
-        // provider_capability_matrix
-        return [
-            'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal', 'card'],
-            'worldline' => ['card'],
-            'sumup' => ['card'],
-            'square' => ['card', 'apple_pay', 'google_pay'],
-        ];
+        // Build capability matrix from provider settings schema to keep admin form options in sync
+        // with /payment-providers-admin storage.
+        $byCode = [];
+        foreach ($this->getPaymentProviderSettings() as $provider) {
+            $providerCode = (string)($provider['code'] ?? '');
+            if ($providerCode === '') {
+                continue;
+            }
+            $supportedMethods = array_values(array_filter(
+                array_map(fn ($methodCode) => (string)$methodCode, (array)($provider['supported_methods'] ?? [])),
+                fn (string $methodCode) => $methodCode !== ''
+            ));
+            $byCode[$providerCode] = $supportedMethods;
+        }
+
+        return $byCode;
     }
 
     protected function implementedProviderFlows(): array

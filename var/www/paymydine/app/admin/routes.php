@@ -701,10 +701,10 @@ Route::group([
     // provider_capability_matrix (research-level capabilities)
     $providerCapabilityMatrix = [
         'stripe' => ['card', 'apple_pay', 'google_pay'],
-        'paypal' => ['paypal', 'card', 'apple_pay', 'google_pay'],
+        'paypal' => ['paypal'],
         'worldline' => ['card'],
         'sumup' => ['card'],
-        'square' => ['card', 'apple_pay', 'google_pay'],
+        'square' => ['card'],
     ];
 
     // implemented_flow_matrix (actually completed end-to-end in this codebase)
