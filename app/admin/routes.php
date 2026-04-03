@@ -710,7 +710,7 @@ Route::group([
     // implemented_flow_matrix (actually completed end-to-end in this codebase)
     $implementedFlowMatrix = [
         'stripe' => ['card', 'apple_pay', 'google_pay'],
-        'paypal' => ['paypal', 'card'],
+        'paypal' => ['paypal'],
         'worldline' => [],
         'sumup' => [],
         'square' => [],

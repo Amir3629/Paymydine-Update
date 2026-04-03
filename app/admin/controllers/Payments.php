@@ -612,7 +612,7 @@ class Payments extends \Admin\Classes\AdminController
         // implemented_flow_matrix (end-to-end in current stack)
         return [
             'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal', 'card'],
+            'paypal' => ['paypal'],
             'worldline' => [],
             'sumup' => [],
             'square' => [],
