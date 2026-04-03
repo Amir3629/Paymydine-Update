@@ -712,8 +712,8 @@ Route::group([
         'stripe' => ['card', 'apple_pay', 'google_pay'],
         'paypal' => ['paypal'],
         'worldline' => ['card'],
-        'sumup' => [],
-        'square' => [],
+        'sumup' => ['card'],
+        'square' => ['card'],
     ];
 
     $availableProviderCodesForMethod = function (string $methodCode) use ($providerCapabilityMatrix, $implementedFlowMatrix): array {
@@ -1068,7 +1068,12 @@ Route::group([
                 if ($redirectUrl === '') {
                     return response()->json(['success' => false, 'error' => 'SumUp checkout URL missing'], 502);
                 }
-                return response()->json(['success' => true, 'provider' => 'sumup', 'redirect_url' => $redirectUrl]);
+                return response()->json([
+                    'success' => true,
+                    'provider' => 'sumup',
+                    'redirect_url' => $redirectUrl,
+                    'checkout_id' => $body['id'] ?? null,
+                ]);
             }
 
             if ($providerCode === 'square') {
@@ -1112,7 +1117,13 @@ Route::group([
                 if ($redirectUrl === '') {
                     return response()->json(['success' => false, 'error' => 'Square payment link missing'], 502);
                 }
-                return response()->json(['success' => true, 'provider' => 'square', 'redirect_url' => $redirectUrl]);
+                return response()->json([
+                    'success' => true,
+                    'provider' => 'square',
+                    'redirect_url' => $redirectUrl,
+                    'payment_link_id' => $body['payment_link']['id'] ?? null,
+                    'order_id' => $body['payment_link']['order_id'] ?? null,
+                ]);
             }
 
             if ($providerCode === 'stripe') {
@@ -1167,6 +1178,108 @@ Route::group([
                 'provider' => 'worldline',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    });
+
+    Route::post('/payments/sumup/checkout-status', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'checkout_id' => 'required|string',
+        ]);
+
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
+        $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        $token = (string)($data['access_token'] ?? '');
+        $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
+
+        if ($token === '') {
+            return response()->json(['success' => false, 'provider' => 'sumup', 'error' => 'SumUp credentials are incomplete'], 503);
+        }
+
+        try {
+            $res = \Illuminate\Support\Facades\Http::withToken($token)
+                ->acceptJson()
+                ->get($baseUrl.'/v0.1/checkouts/'.urlencode((string)$payload['checkout_id']));
+
+            if (!$res->ok()) {
+                return response()->json(['success' => false, 'provider' => 'sumup', 'error' => 'Failed to fetch SumUp checkout status', 'details' => $res->json()], 502);
+            }
+
+            $body = (array)$res->json();
+            $status = strtoupper((string)($body['status'] ?? ''));
+            $isPaid = in_array($status, ['PAID', 'SUCCESSFUL'], true);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'sumup',
+                'checkout_id' => (string)$payload['checkout_id'],
+                'status' => $body['status'] ?? null,
+                'transaction_code' => $body['transaction_code'] ?? null,
+                'is_paid' => $isPaid,
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'provider' => 'sumup', 'error' => $e->getMessage()], 500);
+        }
+    });
+
+    Route::post('/payments/square/checkout-status', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'payment_link_id' => 'required|string',
+        ]);
+
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'square')->first();
+        $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        $mode = (string)($data['transaction_mode'] ?? 'test');
+        $accessToken = $mode === 'live'
+            ? (string)($data['live_access_token'] ?? '')
+            : (string)($data['test_access_token'] ?? '');
+
+        if ($accessToken === '') {
+            return response()->json(['success' => false, 'provider' => 'square', 'error' => 'Square credentials are incomplete'], 503);
+        }
+
+        $base = $mode === 'live' ? 'https://connect.squareup.com' : 'https://connect.squareupsandbox.com';
+        $headers = [
+            'Authorization' => 'Bearer '.$accessToken,
+            'Accept' => 'application/json',
+        ];
+
+        try {
+            $linkRes = \Illuminate\Support\Facades\Http::withHeaders($headers)->get($base.'/v2/online-checkout/payment-links/'.urlencode((string)$payload['payment_link_id']));
+            if (!$linkRes->ok()) {
+                return response()->json(['success' => false, 'provider' => 'square', 'error' => 'Failed to fetch Square payment link status', 'details' => $linkRes->json()], 502);
+            }
+
+            $linkBody = (array)$linkRes->json();
+            $orderId = (string)($linkBody['payment_link']['order_id'] ?? '');
+            if ($orderId === '') {
+                return response()->json([
+                    'success' => true,
+                    'provider' => 'square',
+                    'payment_link_id' => (string)$payload['payment_link_id'],
+                    'is_paid' => false,
+                    'status' => 'ORDER_ID_MISSING',
+                ], 200);
+            }
+
+            $orderRes = \Illuminate\Support\Facades\Http::withHeaders($headers)->get($base.'/v2/orders/'.urlencode($orderId));
+            if (!$orderRes->ok()) {
+                return response()->json(['success' => false, 'provider' => 'square', 'error' => 'Failed to fetch Square order status', 'details' => $orderRes->json()], 502);
+            }
+
+            $orderBody = (array)$orderRes->json();
+            $state = strtoupper((string)($orderBody['order']['state'] ?? ''));
+            $isPaid = in_array($state, ['COMPLETED'], true);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'square',
+                'payment_link_id' => (string)$payload['payment_link_id'],
+                'order_id' => $orderId,
+                'status' => $state,
+                'is_paid' => $isPaid,
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'provider' => 'square', 'error' => $e->getMessage()], 500);
         }
     });
 

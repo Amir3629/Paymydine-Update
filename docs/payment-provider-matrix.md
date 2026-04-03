@@ -29,19 +29,19 @@ This file audits **real runtime status in this repo**, not theoretical capabilit
 | worldline | google_pay | capability_only_not_implemented | none | no worldline wallet path in frontend/backend orchestration | wallet product enablement in worldline | no | yes | no |
 | worldline | paypal | capability_only_not_implemented | none in this checkout path | worldline PayPal product not wired in checkout runtime | worldline PayPal product activation | no | yes | no |
 | worldline | cod | unsupported_by_provider | none | COD is provider-less | n/a | n/a | n/a | no |
-| sumup | card | partially_implemented_but_not_safe_for_admin_assignment | `/api/v1/payments/card/create-session` sumup branch exists | no complete return/finalization linkage for order state in checkout flow; not in implemented matrix | SumUp merchant code + token + online checkout enabled | partially | merchant profile/config required | no |
+| sumup | card | fully_implemented_and_runtime_wired | `/api/v1/payments/card/create-session` sumup branch + `/api/v1/payments/sumup/checkout-status` verification + frontend return handler in `frontend/app/menu/page.tsx` | none critical in current redirect-verify-submit flow | SumUp merchant code + token + online checkout enabled | yes | merchant profile/config required | yes |
 | sumup | apple_pay | capability_only_not_implemented | none | no wallet-specific sumup web flow wired | depends on SumUp product/channel | no | yes | no |
 | sumup | google_pay | capability_only_not_implemented | none | no wallet-specific sumup web flow wired | depends on SumUp product/channel | no | yes | no |
 | sumup | paypal | unsupported_by_provider | none | not supported in this app/provider model | n/a | n/a | n/a | no |
 | sumup | cod | unsupported_by_provider | none | COD is provider-less | n/a | n/a | n/a | no |
-| square | card | partially_implemented_but_not_safe_for_admin_assignment | `/api/v1/payments/card/create-session` square branch exists | no full callback/finalization + order status reconciliation in checkout lifecycle; not in implemented matrix | square app token + location + checkout setup | partially | location/app enablement required | no |
+| square | card | fully_implemented_and_runtime_wired | `/api/v1/payments/card/create-session` square branch + `/api/v1/payments/square/checkout-status` verification + frontend return handler in `frontend/app/menu/page.tsx` | none critical in current redirect-verify-submit flow | square app token + location + checkout setup | yes | location/app enablement required | yes |
 | square | apple_pay | capability_only_not_implemented | none end-to-end | no Square Web Payments SDK Apple Pay integration in current frontend | apple pay verification + square wallet setup | no | yes | no |
 | square | google_pay | capability_only_not_implemented | none end-to-end | no Square Web Payments SDK Google Pay integration in current frontend | google pay + square wallet setup | no | yes | no |
 | square | paypal | unsupported_by_provider | none | not supported by square in this app model | n/a | n/a | n/a | no |
 | square | cod | unsupported_by_provider | none | COD is provider-less | n/a | n/a | n/a | no |
 
 ## Current enforced dropdown matrix (should be live now)
-- `card` -> `stripe`, `worldline`
+- `card` -> `stripe`, `worldline`, `sumup`, `square`
 - `apple_pay` -> `stripe`
 - `google_pay` -> `stripe`
 - `paypal` -> `paypal`

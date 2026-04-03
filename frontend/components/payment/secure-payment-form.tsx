@@ -194,7 +194,7 @@ export function StripeCardForm({
       const hasArrow = !!div.querySelector("svg.lucide-arrow-left")
       const hasStripeImg = !!div.querySelector('img[src*="stripe"]')
 
-      // duplicate پایین: back + logo
+      // duplicate lower row: back + logo
       if (hasArrow && hasStripeImg) {
         div.style.setProperty("display", "none", "important")
         div.style.setProperty("height", "0", "important")
@@ -204,7 +204,7 @@ export function StripeCardForm({
         continue
       }
 
-      // wrapper خالی
+      // empty wrapper
       const onlyWhitespace = txt == ""
       const hasNoUsefulChildren = !div.querySelector("input,button,img,svg,.StripeElement")
 

@@ -325,8 +325,8 @@ function WalletStripePay(props: {
           } catch {}
           setMsg(
             props.method === "apple_pay"
-              ? "Apple Pay در این مرورگر/دستگاه در دسترس نیست (یا Wallet تنظیم نشده). لطفاً Safari روی iPhone + Apple Pay فعال را امتحان کن."
-              : "Google Pay در این مرورگر/دستگاه در دسترس نیست (یا Google Pay تنظیم نشده). لطفاً Chrome + Google Pay فعال را امتحان کن."
+              ? "Apple Pay is not available on this browser/device (or wallet is not configured). Please try Safari on iPhone with Apple Pay enabled."
+              : "Google Pay is not available on this browser/device (or wallet is not configured). Please try Chrome with Google Pay enabled."
           );
           return;
         }
@@ -1258,11 +1258,26 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         throw new Error(json?.error || "Unable to start hosted checkout")
       }
 
-      if (typeof window !== "undefined" && providerCode === "worldline" && json?.hosted_checkout_id) {
-        localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
-          hosted_checkout_id: String(json.hosted_checkout_id),
-          created_at: Date.now(),
-        }))
+      if (typeof window !== "undefined") {
+        if (providerCode === "worldline" && json?.hosted_checkout_id) {
+          localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
+            hosted_checkout_id: String(json.hosted_checkout_id),
+            created_at: Date.now(),
+          }))
+        }
+        if (providerCode === "sumup" && json?.checkout_id) {
+          localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
+            checkout_id: String(json.checkout_id),
+            created_at: Date.now(),
+          }))
+        }
+        if (providerCode === "square" && json?.payment_link_id) {
+          localStorage.setItem("pmd_square_pending_checkout", JSON.stringify({
+            payment_link_id: String(json.payment_link_id),
+            order_id: json?.order_id ? String(json.order_id) : null,
+            created_at: Date.now(),
+          }))
+        }
       }
 
       if (typeof window !== "undefined") {
@@ -1283,9 +1298,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (typeof window === "undefined") return
       const params = new URLSearchParams(window.location.search)
       const provider = params.get("payment_return_provider")
-      if (provider !== "worldline") return
+      if (!["worldline", "sumup", "square"].includes(provider || "")) return
 
-      const pendingRaw = localStorage.getItem("pmd_worldline_pending_checkout")
+      const pendingKey = provider === "worldline"
+        ? "pmd_worldline_pending_checkout"
+        : provider === "sumup"
+          ? "pmd_sumup_pending_checkout"
+          : "pmd_square_pending_checkout"
+      const pendingRaw = localStorage.getItem(pendingKey)
       if (!pendingRaw) return
       let pending: any = null
       try {
@@ -1294,19 +1314,31 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         return
       }
 
-      const hostedCheckoutId = String(pending?.hosted_checkout_id || "")
-      if (!hostedCheckoutId) return
+      const verificationPayload = provider === "worldline"
+        ? { hosted_checkout_id: String(pending?.hosted_checkout_id || "") }
+        : provider === "sumup"
+          ? { checkout_id: String(pending?.checkout_id || "") }
+          : { payment_link_id: String(pending?.payment_link_id || "") }
+      const verificationUrl = provider === "worldline"
+        ? "/api/v1/payments/worldline/checkout-status"
+        : provider === "sumup"
+          ? "/api/v1/payments/sumup/checkout-status"
+          : "/api/v1/payments/square/checkout-status"
+
+      const requiredValue = Object.values(verificationPayload)[0]
+      if (!requiredValue) return
 
       try {
-        const res = await fetch("/api/v1/payments/worldline/checkout-status", {
+        const res = await fetch(verificationUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ hosted_checkout_id: hostedCheckoutId }),
+          body: JSON.stringify(verificationPayload),
         })
         const json = await res.json().catch(() => ({}))
         if (res.ok && json?.success && json?.is_paid) {
-          localStorage.removeItem("pmd_worldline_pending_checkout")
-          await handlePayment(String(json?.payment_id || hostedCheckoutId))
+          localStorage.removeItem(pendingKey)
+          const txId = String(json?.payment_id || json?.transaction_code || json?.order_id || requiredValue)
+          await handlePayment(txId)
           params.delete("payment_return_provider")
           const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`
           window.history.replaceState({}, "", next)
@@ -1315,13 +1347,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
         toast({
           title: "Payment Not Confirmed",
-          description: "Worldline payment is not confirmed yet. Please check your payment status and retry.",
+          description: `${provider} payment is not confirmed yet. Please check your payment status and retry.`,
           variant: "destructive",
         })
       } catch {
         toast({
           title: "Payment Verification Failed",
-          description: "Could not verify Worldline payment status.",
+          description: `Could not verify ${provider} payment status.`,
           variant: "destructive",
         })
       }
@@ -1666,9 +1698,7 @@ restaurantId={stripeResolvedRestaurantId || "1"}
             ) : (
 
               <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
-
-                Stripe هنوز لود نشده. لطفاً چند ثانیه صبر کن و دوباره امتحان کن.
-
+                Stripe is still loading. Please wait a few seconds and try again.
               </div>
 
             )}

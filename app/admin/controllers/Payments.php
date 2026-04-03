@@ -614,8 +614,8 @@ class Payments extends \Admin\Classes\AdminController
             'stripe' => ['card', 'apple_pay', 'google_pay'],
             'paypal' => ['paypal'],
             'worldline' => ['card'],
-            'sumup' => [],
-            'square' => [],
+            'sumup' => ['card'],
+            'square' => ['card'],
         ];
     }
 
