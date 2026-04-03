@@ -250,7 +250,7 @@ class Payments extends \Admin\Classes\AdminController
                 'sometimes',
                 'required',
                 'alpha_dash',
-                Rule::unique('payments', 'code')->ignore(optional($model)->payment_id, 'payment_id'),
+                Rule::unique($model->getTable(), 'code')->ignore($model->getKey(), $model->getKeyName()),
             ],
             'priority'    => $isProviderRecord ? ['sometimes', 'nullable', 'integer'] : ['required', 'integer'],
             'description' => ['max:255'],
@@ -428,10 +428,10 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formAfterSave($model)
     {
-        $fresh = Payments_model::query()->where('payment_id', $model->payment_id)->first();
+        $fresh = Payments_model::query()->where($model->getKeyName(), $model->getKey())->first();
         \Log::info('PMD_PAYMENTS_FORM_AFTER_SAVE', [
             'code' => (string)$model->code,
-            'payment_id' => (int)$model->payment_id,
+            'payment_id' => (int)$model->getKey(),
             'saved_data' => $this->redactPaymentPayload(is_array(optional($fresh)->data) ? $fresh->data : []),
             'saved_status' => (int)optional($fresh)->status,
             'saved_is_default' => (int)optional($fresh)->is_default,

@@ -9,6 +9,7 @@ use Igniter\Flame\Database\Traits\Sortable;
 use Igniter\Flame\Exception\ApplicationException;
 use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Payments Model Class
@@ -29,6 +30,14 @@ class Payments_model extends Model
      * @var string The database table primary key
      */
     protected $primaryKey = 'payment_id';
+
+    protected static ?array $resolvedStorage = null;
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->applyStorageMapping();
+    }
 
     protected $fillable = ['name', 'code', 'class_name', 'description', 'data', 'status', 'is_default', 'priority'];
 
@@ -106,6 +115,16 @@ class Payments_model extends Model
 
     protected function beforeSave()
     {
+        $this->applyStorageMapping();
+
+        if (strlen((string)$this->code)) {
+            $existing = self::query()->where('code', (string)$this->code)->first();
+            if ($existing && ((string)$this->getKey() === '' || (int)$this->getKey() === 0 || !$this->exists)) {
+                $this->setAttribute($this->getKeyName(), $existing->getKey());
+                $this->exists = true;
+            }
+        }
+
         // This only happens during updates (edits) — it maintains its current behavior.
         if (!$this->exists) {
             return;
@@ -217,7 +236,7 @@ class Payments_model extends Model
 
         $this->timestamps = false;
         $this->newQuery()->where('is_default', '!=', 0)->update(['is_default' => 0]);
-        $this->newQuery()->where('payment_id', $this->payment_id)->update(['is_default' => 1]);
+        $this->newQuery()->where($this->getKeyName(), $this->getKey())->update(['is_default' => 1]);
         $this->timestamps = true;
     }
 
@@ -291,7 +310,7 @@ class Payments_model extends Model
         $query = Payment_profiles_model::query();
 
         return $query->where('customer_id', $customer->customer_id)
-            ->where('payment_id', $this->payment_id)
+            ->where('payment_id', $this->getKey())
             ->first();
     }
 
@@ -305,7 +324,7 @@ class Payments_model extends Model
     {
         $profile = new Payment_profiles_model();
         $profile->customer_id = $customer->customer_id;
-        $profile->payment_id = $this->payment_id;
+        $profile->payment_id = $this->getKey();
 
         return $profile;
     }
@@ -328,5 +347,19 @@ class Payments_model extends Model
         $gatewayObj->deletePaymentProfile($customer, $profile);
 
         $profile->delete();
+    }
+
+    protected function applyStorageMapping(): void
+    {
+        if (self::$resolvedStorage === null) {
+            if (Schema::hasTable('payment_methods')) {
+                self::$resolvedStorage = ['table' => 'payment_methods', 'key' => 'id'];
+            } else {
+                self::$resolvedStorage = ['table' => 'payments', 'key' => 'payment_id'];
+            }
+        }
+
+        $this->table = self::$resolvedStorage['table'];
+        $this->primaryKey = self::$resolvedStorage['key'];
     }
 }
