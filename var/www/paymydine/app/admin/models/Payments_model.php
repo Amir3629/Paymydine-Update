@@ -31,8 +31,6 @@ class Payments_model extends Model
      */
     protected $primaryKey = 'payment_id';
 
-    protected static ?array $resolvedStorage = null;
-
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
@@ -45,6 +43,7 @@ class Payments_model extends Model
 
     protected $casts = [
         'meta' => 'array',
+        'data' => 'array',
     ];
 
     protected $jsonable = [];
@@ -106,8 +105,9 @@ class Payments_model extends Model
     {
         $this->applyGatewayClass();
 
-        if (is_array($this->meta))
-            $this->attributes = array_merge($this->meta, $this->attributes);
+        $payload = $this->getConfigPayload();
+        if (is_array($payload))
+            $this->attributes = array_merge($payload, $this->attributes);
     }
 
     protected function beforeSave()
@@ -160,12 +160,8 @@ class Payments_model extends Model
         }
         
         if (!empty($posted)) {
-            $current = is_array($this->meta) ? $this->meta : [];
-            $this->meta = array_merge($current, $posted);
-        }
-
-        if (is_array($this->meta)) {
-            $this->meta = json_encode($this->meta);
+            $current = $this->getConfigPayload();
+            $this->setConfigPayload(array_merge($current, $posted));
         }
 
         // Keep only real DB columns for the resolved storage table.
@@ -358,18 +354,15 @@ class Payments_model extends Model
 
     protected function applyStorageMapping(): void
     {
-        if (self::$resolvedStorage === null) {
-            if (Schema::hasTable('payment_methods')) {
-                self::$resolvedStorage = ['table' => 'payment_methods', 'key' => 'id'];
-            } else {
-                self::$resolvedStorage = ['table' => 'payments', 'key' => 'payment_id'];
-            }
+        if (Schema::hasTable('payment_methods')) {
+            $this->table = 'payment_methods';
+            $this->primaryKey = 'id';
+        } else {
+            $this->table = 'payments';
+            $this->primaryKey = 'payment_id';
         }
 
-        $this->table = self::$resolvedStorage['table'];
-        $this->primaryKey = self::$resolvedStorage['key'];
-
-        $this->casts = ['meta' => 'array'];
+        $this->casts = ['meta' => 'array', 'data' => 'array'];
         $this->jsonable = [];
     }
 
@@ -395,5 +388,45 @@ class Payments_model extends Model
         }
 
         $this->attributes['priority'] = $value;
+    }
+
+    public function getDataAttribute($value)
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $meta = $this->attributes['meta'] ?? $this->meta ?? [];
+            return is_array($meta) ? $meta : (is_string($meta) ? (json_decode($meta, true) ?: []) : []);
+        }
+
+        return is_array($value) ? $value : (is_string($value) ? (json_decode($value, true) ?: []) : []);
+    }
+
+    public function setDataAttribute($value): void
+    {
+        $normalized = is_array($value) ? $value : (is_string($value) ? (json_decode($value, true) ?: []) : []);
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['meta'] = $normalized;
+            return;
+        }
+
+        $this->attributes['data'] = $normalized;
+    }
+
+    protected function getConfigPayload(): array
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            return (array)$this->getDataAttribute($this->attributes['meta'] ?? null);
+        }
+
+        return (array)$this->getDataAttribute($this->attributes['data'] ?? null);
+    }
+
+    protected function setConfigPayload(array $payload): void
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['meta'] = $payload;
+            return;
+        }
+
+        $this->attributes['data'] = $payload;
     }
 }
