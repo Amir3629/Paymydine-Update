@@ -39,20 +39,15 @@ class Payments_model extends Model
         $this->applyStorageMapping();
     }
 
-    protected $fillable = ['name', 'code', 'class_name', 'description', 'data', 'meta', 'provider_code', 'status', 'is_default', 'priority', 'sort_order'];
+    protected $fillable = ['name', 'code', 'class_name', 'description', 'meta', 'provider_code', 'status', 'is_default', 'priority', 'sort_order'];
 
     public $timestamps = true;
 
     protected $casts = [
-        'data' => 'array',
         'meta' => 'array',
-        'status' => 'boolean',
-        'is_default' => 'boolean',
-        'priority' => 'integer',
-        'sort_order' => 'integer',
     ];
 
-    protected $jsonable = ['data'];
+    protected $jsonable = [];
 
     protected $purgeable = ['payment'];
 
@@ -111,8 +106,8 @@ class Payments_model extends Model
     {
         $this->applyGatewayClass();
 
-        if (is_array($this->data))
-            $this->attributes = array_merge($this->data, $this->attributes);
+        if (is_array($this->meta))
+            $this->attributes = array_merge($this->meta, $this->attributes);
     }
 
     protected function beforeSave()
@@ -165,8 +160,12 @@ class Payments_model extends Model
         }
         
         if (!empty($posted)) {
-            $current = is_array($this->data) ? $this->data : [];
-            $this->data = array_merge($current, $posted);
+            $current = is_array($this->meta) ? $this->meta : [];
+            $this->meta = array_merge($current, $posted);
+        }
+
+        if (is_array($this->meta)) {
+            $this->meta = json_encode($this->meta);
         }
 
         // Keep only real DB columns for the resolved storage table.
@@ -370,39 +369,13 @@ class Payments_model extends Model
         $this->table = self::$resolvedStorage['table'];
         $this->primaryKey = self::$resolvedStorage['key'];
 
-        if ($this->usesPaymentMethodsStorage()) {
-            unset($this->casts['data']);
-            $this->casts['meta'] = 'array';
-            $this->jsonable = [];
-        } else {
-            $this->casts['data'] = 'array';
-            $this->jsonable = ['data'];
-        }
+        $this->casts = ['meta' => 'array'];
+        $this->jsonable = [];
     }
 
     protected function usesPaymentMethodsStorage(): bool
     {
         return $this->getTable() === 'payment_methods';
-    }
-
-    public function getDataAttribute($value)
-    {
-        if ($this->usesPaymentMethodsStorage()) {
-            $meta = $this->meta;
-            return is_array($meta) ? $meta : [];
-        }
-
-        return $value;
-    }
-
-    public function setDataAttribute($value): void
-    {
-        if ($this->usesPaymentMethodsStorage()) {
-            $this->meta = is_array($value) ? $value : [];
-            return;
-        }
-
-        $this->attributes['data'] = $value;
     }
 
     public function getPriorityAttribute($value)
