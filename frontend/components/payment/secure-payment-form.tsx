@@ -685,6 +685,13 @@ export function WorldlineInlineCardForm({
       paymentRequest.setValue("cardNumber", (formData.cardNumber || "").trim())
       paymentRequest.setValue("expiryDate", (formData.expiryDate || "").trim())
       paymentRequest.setValue("cvv", (formData.cvv || "").trim())
+      const validationResult = paymentRequest.validate?.()
+      if (Array.isArray(validationResult) && validationResult.length > 0) {
+        throw new Error("Please check your card details")
+      }
+      if (validationResult && typeof validationResult === "object" && "isValid" in validationResult && (validationResult as any).isValid === false) {
+        throw new Error("Please check your card details")
+      }
 
       const encryptedRequest = await sdk.encryptPaymentRequest(paymentRequest)
       if (!encryptedRequest?.encryptedCustomerInput) {
