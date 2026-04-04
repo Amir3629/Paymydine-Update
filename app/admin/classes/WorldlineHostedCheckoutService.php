@@ -255,10 +255,44 @@ class WorldlineHostedCheckoutService
         $body->order = $order;
         $body->hostedCheckoutSpecificInput = $specific;
 
-        $response = $merchantClient->hostedcheckouts()->create($body);
+        $requestMeta = [
+            'amount_minor' => $amountMinor,
+            'currency' => $currency,
+            'return_url' => $returnUrl,
+            'locale' => $locale,
+            'country_code' => $countryCode,
+            'merchant_customer_id' => $merchantCustomerId,
+        ];
+
+        try {
+            $response = $merchantClient->hostedcheckouts()->create($body);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE HOSTED CHECKOUT CREATE FAILED', [
+                'host' => $cfg['host'] ?? null,
+                'tenant_database' => $cfg['tenant_database'] ?? null,
+                'config_id' => $cfg['config_id'] ?? null,
+                'merchant_id' => $cfg['merchant_id'] ?? null,
+                'environment' => $this->getEnvironment($cfg),
+                'request_meta' => $requestMeta,
+                'exception_class' => get_class($e),
+                'message' => $e->getMessage(),
+                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+                'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
+                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+            ]);
+            throw $e;
+        }
 
         $partial = $response->partialRedirectUrl ?? null;
-        $redirect = $partial ? 'https://' . ltrim($partial, '/') : null;
+        if (is_string($partial) && preg_match('#^https?://#i', $partial)) {
+            $redirect = $partial;
+        } elseif (is_string($partial) && str_starts_with($partial, '//')) {
+            $redirect = 'https:'.$partial;
+        } elseif (is_string($partial) && $partial !== '') {
+            $redirect = 'https://' . ltrim($partial, '/');
+        } else {
+            $redirect = null;
+        }
 
         $result = [
             'environment' => $this->getEnvironment($cfg),
@@ -271,12 +305,12 @@ class WorldlineHostedCheckoutService
             'hosted_checkout_id' => $response->hostedCheckoutId ?? null,
             'return_mac' => $response->RETURNMAC ?? null,
             'request_meta' => [
-                'amount_minor' => $amountMinor,
-                'currency' => $currency,
-                'return_url' => $returnUrl,
-                'locale' => $locale,
-                'country_code' => $countryCode,
-                'merchant_customer_id' => $merchantCustomerId,
+                'amount_minor' => $requestMeta['amount_minor'],
+                'currency' => $requestMeta['currency'],
+                'return_url' => $requestMeta['return_url'],
+                'locale' => $requestMeta['locale'],
+                'country_code' => $requestMeta['country_code'],
+                'merchant_customer_id' => $requestMeta['merchant_customer_id'],
                 'trace_id' => (string) Str::uuid(),
             ],
             'created_at_utc' => gmdate('c'),

@@ -1147,20 +1147,27 @@ Route::group([
 
         try {
             if ($providerCode === 'worldline') {
+                $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
+                $language = strtolower((string)($settings['default_language']->value ?? 'en'));
+                $defaultLocale = str_starts_with($language, 'de') ? 'de_DE' : 'en_US';
+                $countryCode = strtoupper((string)($settings['country_code']->value ?? 'DE'));
+                $merchantCustomerId = (string)($request->input('merchant_customer_id')
+                    ?: ('PMD-' . strtoupper(substr(sha1(request()->getHost().'-'.microtime(true)), 0, 12))));
+                $worldlinePayload = [
+                    'amount_minor' => $amountMinor,
+                    'currency' => $currency,
+                    'return_url' => $returnUrl,
+                    'locale' => (string)($payload['locale'] ?? $defaultLocale),
+                    'country_code' => $countryCode,
+                    'merchant_customer_id' => $merchantCustomerId,
+                ];
                 \Log::info('PMD_CARD_CREATE_SESSION_WORLDLINE_TRIGGERED', [
                     'provider' => $providerCode,
                     'host' => request()->getHost(),
-                    'amount_minor' => $amountMinor,
-                    'currency' => $currency,
-                    'return_url' => $returnUrl,
+                    'worldline_payload' => $worldlinePayload,
                 ]);
                 $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
-                $result = $svc->createHostedCheckout([
-                    'amount_minor' => $amountMinor,
-                    'currency' => $currency,
-                    'return_url' => $returnUrl,
-                    'locale' => (string)($payload['locale'] ?? 'en_GB'),
-                ]);
+                $result = $svc->createHostedCheckout($worldlinePayload);
                 \Log::info('PMD_CARD_CREATE_SESSION_WORLDLINE_RESPONSE', [
                     'provider' => $providerCode,
                     'hosted_checkout_id' => $result['hosted_checkout_id'] ?? null,
@@ -1267,6 +1274,10 @@ Route::group([
             \Log::error('Card create-session failed', [
                 'provider' => $providerCode,
                 'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+                'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
+                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
             ]);
             return response()->json(['success' => false, 'error' => $e->getMessage() ?: 'Failed to create card session'], 500);
         }
