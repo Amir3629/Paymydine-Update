@@ -1147,24 +1147,26 @@ Route::group([
 
         try {
             if ($providerCode === 'worldline') {
-                $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
-                $language = strtolower((string)($settings['default_language']->value ?? 'en'));
-                $defaultLocale = str_starts_with($language, 'de') ? 'de_DE' : 'en_US';
-                $countryCode = strtoupper((string)($settings['country_code']->value ?? 'DE'));
-                $merchantCustomerId = (string)($request->input('merchant_customer_id')
-                    ?: ('PMD-' . strtoupper(substr(sha1(request()->getHost().'-'.microtime(true)), 0, 12))));
                 $worldlinePayload = [
                     'amount_minor' => $amountMinor,
                     'currency' => $currency,
                     'return_url' => $returnUrl,
-                    'locale' => (string)($payload['locale'] ?? $defaultLocale),
-                    'country_code' => $countryCode,
-                    'merchant_customer_id' => $merchantCustomerId,
+                    'locale' => (string)$request->input('locale', 'en_GB'),
+                    'country_code' => (string)$request->input('country_code', 'DE'),
+                    'merchant_customer_id' => (string)$request->input('merchant_customer_id', 'PMD-MIMOZA-TEST'),
                 ];
                 \Log::info('PMD_CARD_CREATE_SESSION_WORLDLINE_TRIGGERED', [
                     'provider' => $providerCode,
                     'host' => request()->getHost(),
                     'worldline_payload' => $worldlinePayload,
+                    'worldline_payload_checks' => [
+                        'has_amount_minor' => isset($worldlinePayload['amount_minor']) && (int)$worldlinePayload['amount_minor'] > 0,
+                        'has_currency' => !empty($worldlinePayload['currency']),
+                        'has_return_url' => !empty($worldlinePayload['return_url']),
+                        'has_locale' => !empty($worldlinePayload['locale']),
+                        'has_country_code' => !empty($worldlinePayload['country_code']),
+                        'has_merchant_customer_id' => !empty($worldlinePayload['merchant_customer_id']),
+                    ],
                 ]);
                 $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
                 $result = $svc->createHostedCheckout($worldlinePayload);

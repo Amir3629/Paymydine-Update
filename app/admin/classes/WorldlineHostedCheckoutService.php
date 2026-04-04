@@ -263,6 +263,40 @@ class WorldlineHostedCheckoutService
             'country_code' => $countryCode,
             'merchant_customer_id' => $merchantCustomerId,
         ];
+        $sdkPayloadDebug = [
+            'order' => [
+                'amountOfMoney' => [
+                    'amount' => $amountMinor,
+                    'currencyCode' => $currency,
+                ],
+                'customer' => [
+                    'merchantCustomerId' => $merchantCustomerId,
+                    'billingAddress' => [
+                        'countryCode' => $countryCode,
+                    ],
+                ],
+            ],
+            'hostedCheckoutSpecificInput' => [
+                'returnUrl' => $returnUrl,
+                'locale' => $locale,
+            ],
+        ];
+        \Log::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
+            'host' => $cfg['host'] ?? null,
+            'tenant_database' => $cfg['tenant_database'] ?? null,
+            'config_id' => $cfg['config_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+            'request_meta' => $requestMeta,
+            'sdk_payload' => $sdkPayloadDebug,
+            'field_presence' => [
+                'amount_minor' => $amountMinor > 0,
+                'currency' => $currency !== '',
+                'return_url' => $returnUrl !== '',
+                'locale' => $locale !== '',
+                'country_code' => $countryCode !== '',
+                'merchant_customer_id' => $merchantCustomerId !== '',
+            ],
+        ]);
 
         try {
             $response = $merchantClient->hostedcheckouts()->create($body);
@@ -279,6 +313,7 @@ class WorldlineHostedCheckoutService
                 'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
                 'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
                 'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+                'origin' => $e->getFile().':'.$e->getLine(),
             ]);
             throw $e;
         }
