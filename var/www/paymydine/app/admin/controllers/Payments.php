@@ -614,22 +614,21 @@ class Payments extends \Admin\Classes\AdminController
     protected function getCompatibleProviders(string $methodCode): array
     {
         if (in_array($methodCode, ['cod', 'cash'], true)) {
-            return ['' => 'No provider (Cash)'];
+            return [];
         }
+
+        $availableCodes = Payments_model::supportedProvidersForMethod($methodCode);
+        $providerLabelByCode = collect($this->getPaymentProviderSettings())
+            ->filter(fn ($provider) => is_array($provider) && !empty($provider['code']))
+            ->mapWithKeys(fn ($provider) => [
+                (string)$provider['code'] => (string)($provider['name'] ?? strtoupper((string)$provider['code'])),
+            ])
+            ->all();
 
         $options = [];
-        $availableCodes = Payments_model::supportedProvidersForMethod($methodCode);
-        foreach ($this->getPaymentProviderSettings() as $provider) {
-            $providerCode = (string)($provider['code'] ?? '');
-            if (in_array($providerCode, $availableCodes, true)) {
-                $options[(string)$provider['code']] = (string)($provider['name'] ?? strtoupper((string)$provider['code']));
-            }
-        }
-
         foreach ($availableCodes as $providerCode) {
-            if (!array_key_exists($providerCode, $options)) {
-                $options[$providerCode] = ucfirst(str_replace('_', ' ', $providerCode));
-            }
+            $options[$providerCode] = $providerLabelByCode[$providerCode]
+                ?? ucfirst(str_replace('_', ' ', $providerCode));
         }
 
         return $options;
