@@ -41,10 +41,7 @@ class Payments_model extends Model
 
     public $timestamps = true;
 
-    protected $casts = [
-        'meta' => 'array',
-        'data' => 'array',
-    ];
+    protected $casts = [];
 
     protected $jsonable = [];
 
@@ -367,15 +364,34 @@ class Payments_model extends Model
 
     protected function applyStorageMapping(): void
     {
-        if (Schema::hasTable('payment_methods')) {
-            $this->table = 'payment_methods';
-            $this->primaryKey = 'id';
-        } else {
-            $this->table = 'payments';
-            $this->primaryKey = 'payment_id';
+        $schema = $this->getConnection()->getSchemaBuilder();
+
+        $methodTables = ['payment_methods', 'ti_payment_methods'];
+        $legacyTables = ['payments', 'ti_payments'];
+
+        foreach ($methodTables as $tableName) {
+            if ($schema->hasTable($tableName)) {
+                $this->table = $tableName;
+                $this->primaryKey = 'id';
+                $this->casts = ['meta' => 'array'];
+                $this->jsonable = [];
+                return;
+            }
         }
 
-        $this->casts = ['meta' => 'array', 'data' => 'array'];
+        foreach ($legacyTables as $tableName) {
+            if ($schema->hasTable($tableName)) {
+                $this->table = $tableName;
+                $this->primaryKey = 'payment_id';
+                $this->casts = ['data' => 'array'];
+                $this->jsonable = [];
+                return;
+            }
+        }
+
+        $this->table = 'payments';
+        $this->primaryKey = 'payment_id';
+        $this->casts = ['data' => 'array'];
         $this->jsonable = [];
     }
 
@@ -421,7 +437,7 @@ class Payments_model extends Model
             return;
         }
 
-        $this->attributes['data'] = $normalized;
+        $this->attributes['data'] = json_encode($normalized);
     }
 
     protected function getConfigPayload(): array
@@ -444,7 +460,23 @@ class Payments_model extends Model
             return;
         }
 
-        $this->attributes['data'] = $payload;
+        $this->attributes['data'] = json_encode($payload);
+    }
+
+    public function getConfigData(): array
+    {
+        return $this->getConfigPayload();
+    }
+
+    public function setConfigData(array $payload): void
+    {
+        $this->setConfigPayload($payload);
+    }
+
+    public function isMethodStorageResolved(): bool
+    {
+        $this->applyStorageMapping();
+        return $this->usesPaymentMethodsStorage();
     }
 
     public static function supportedProviderMatrix(): array

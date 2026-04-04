@@ -350,9 +350,9 @@ class Payments extends \Admin\Classes\AdminController
             $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
             $this->validateProviderCompatibility((string)$model->code, $providerCode);
 
-            $data = is_array($model->data) ? $model->data : [];
+            $data = $model->getConfigData();
             $data['provider_code'] = $providerCode;
-            $model->data = $data;
+            $model->setConfigData($data);
             $model->provider_code = $providerCode;
         }
 
@@ -363,8 +363,8 @@ class Payments extends \Admin\Classes\AdminController
                 $model->name = (string)($model->getOriginal('name') ?: $model->name);
             }
             $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
-            $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, is_array($model->data) ? $model->data : []);
-            $model->data = $normalizedProviderData;
+            $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, $model->getConfigData());
+            $model->setConfigData($normalizedProviderData);
             $this->applyNormalizedProviderDataToPost((array)post('Payment', []), $normalizedProviderData);
             $model->is_default = 0;
             if (!isset($model->priority) || $model->priority === null || $model->priority === '') {
@@ -457,7 +457,7 @@ class Payments extends \Admin\Classes\AdminController
             return;
         }
 
-        $data = is_array($model->data) ? $model->data : [];
+        $data = $model->getConfigData();
         if ((string)$model->code === 'worldline') {
             $this->syncProviderIntoPosConfig('worldline', [
                 'url' => $data['api_endpoint'] ?? null,
