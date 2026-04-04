@@ -865,18 +865,33 @@ Route::group([
         ];
     };
 
+    $resolveWorldlineInlineReadiness = function (): array {
+        try {
+            $cfg = app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getConfig();
+            $ready = !empty($cfg['api_endpoint']) && !empty($cfg['api_key_id']) && !empty($cfg['secret_api_key']) && !empty($cfg['merchant_id']);
+            return [
+                'ready' => $ready,
+                'environment' => app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getEnvironment($cfg),
+            ];
+        } catch (\Throwable $e) {
+            return ['ready' => false, 'error' => $e->getMessage()];
+        }
+    };
+
     $resolveRuntimeMethodCollection = function () use (
         $defaultPaymentMethods,
         $defaultPaymentProviders,
         $loadJsonSetting,
         $availableProviderCodesForMethod,
         $resolveStripeRuntimeReadiness,
+        $resolveWorldlineInlineReadiness,
         $loadMethodRecordsFromPayments,
         $loadProviderRecordsFromPayments
     ) {
         $methodsFromDb = $loadMethodRecordsFromPayments();
         $providersFromDb = $loadProviderRecordsFromPayments();
         $stripeReadiness = $resolveStripeRuntimeReadiness();
+        $worldlineReadiness = $resolveWorldlineInlineReadiness();
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
             ? $availableProviderCodesForMethod
             : fn (string $methodCode): array => [];
@@ -889,7 +904,7 @@ Route::group([
 
         return collect($sourceMethods)
             ->where('enabled', true)
-            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders, $stripeReadiness) {
+            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders, $stripeReadiness, $worldlineReadiness) {
                 $methodCode = (string)($m['code'] ?? '');
                 $providerCode = $m['provider_code'] ?? null;
                 if ($methodCode === 'cod') {
@@ -912,6 +927,9 @@ Route::group([
                     if ($methodCode === 'google_pay' && !($stripeReadiness['google_pay_ready'] ?? false)) {
                         return false;
                     }
+                }
+                if ((string)$providerCode === 'worldline' && $methodCode === 'card' && !($worldlineReadiness['ready'] ?? false)) {
+                    return false;
                 }
                 return in_array((string)$providerCode, $resolveAvailableProviders($methodCode), true);
             })
@@ -1323,6 +1341,85 @@ Route::group([
                 'provider' => 'worldline',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    });
+
+    Route::post('/payments/worldline/inline/session', function (\Illuminate\Http\Request $request) {
+        try {
+            $payload = $request->validate([
+                'amount' => 'required|numeric|min:0.01',
+                'currency' => 'required|string|size:3',
+            ]);
+            $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $session = $svc->createInlineClientSession([
+                'amount_minor' => (int)round(((float)$payload['amount']) * 100),
+                'currency' => strtoupper((string)$payload['currency']),
+            ]);
+            if (empty($session['clientSessionId']) || empty($session['customerId']) || empty($session['clientApiUrl']) || empty($session['assetUrl'])) {
+                return response()->json(['success' => false, 'error' => 'Worldline inline session response is incomplete'], 502);
+            }
+            return response()->json(['success' => true, 'session' => $session]);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE INLINE SESSION ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    });
+
+    Route::post('/payments/worldline/inline/create-payment', function (\Illuminate\Http\Request $request) {
+        try {
+            $payload = $request->validate([
+                'amount' => 'required|numeric|min:0.01',
+                'currency' => 'required|string|size:3',
+                'paymentProductId' => 'required|integer|min:1',
+                'encryptedCustomerInput' => 'required|string|min:10',
+                'encodedClientMetaInfo' => 'nullable|string',
+                'cardholderName' => 'nullable|string|max:255',
+                'email' => 'nullable|email',
+                'phone' => 'nullable|string|max:64',
+            ]);
+            $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $res = $svc->createInlinePayment([
+                'amount_minor' => (int)round(((float)$payload['amount']) * 100),
+                'currency' => strtoupper((string)$payload['currency']),
+                'paymentProductId' => (int)$payload['paymentProductId'],
+                'encryptedCustomerInput' => (string)$payload['encryptedCustomerInput'],
+                'encodedClientMetaInfo' => (string)($payload['encodedClientMetaInfo'] ?? ''),
+                'merchantCustomerId' => 'PMD-'.substr(sha1((string)($payload['email'] ?? $payload['phone'] ?? microtime(true))), 0, 12),
+            ]);
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'payment_id' => $res['payment_id'] ?? null,
+                'status' => $res['status'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE INLINE CREATE PAYMENT ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+            ]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    });
+
+    Route::post('/payments/worldline/inline/verify', function (\Illuminate\Http\Request $request) {
+        try {
+            $payload = $request->validate([
+                'payment_id' => 'required|string',
+            ]);
+            $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $res = $svc->verifyInlinePayment((string)$payload['payment_id']);
+            return response()->json(['success' => true, 'provider' => 'worldline'] + $res);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE INLINE VERIFY ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     });
 

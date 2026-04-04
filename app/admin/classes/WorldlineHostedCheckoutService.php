@@ -14,6 +14,7 @@ use Worldline\Connect\Sdk\V1\Domain\HostedCheckoutSpecificInput;
 use Worldline\Connect\Sdk\V1\Domain\Order;
 use Worldline\Connect\Sdk\V1\Domain\Customer;
 use Worldline\Connect\Sdk\V1\Domain\Address;
+use Worldline\Connect\Sdk\V1\Domain\CreateSessionRequest;
 
 class WorldlineHostedCheckoutService
 {
@@ -428,5 +429,127 @@ class WorldlineHostedCheckoutService
         $this->saveCheckoutSession($result);
 
         return $result;
+    }
+
+    public function createInlineClientSession(array $payload = []): array
+    {
+        $cfg = $this->getConfig();
+        $merchantClient = $this->makeMerchantClient($cfg);
+
+        $sessionRequest = class_exists(CreateSessionRequest::class)
+            ? new CreateSessionRequest()
+            : new \stdClass();
+
+        \Log::info('WORLDLINE INLINE CLIENT SESSION REQUEST', [
+            'host' => $cfg['host'] ?? null,
+            'tenant_database' => $cfg['tenant_database'] ?? null,
+            'config_id' => $cfg['config_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+        ]);
+
+        $response = $merchantClient->sessions()->create($sessionRequest);
+        $raw = json_decode(json_encode($response), true);
+        $raw = is_array($raw) ? $raw : [];
+
+        \Log::info('WORLDLINE INLINE CLIENT SESSION RESPONSE', [
+            'host' => $cfg['host'] ?? null,
+            'tenant_database' => $cfg['tenant_database'] ?? null,
+            'config_id' => $cfg['config_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+            'response' => $this->sanitizeForLogs($raw),
+        ]);
+
+        return [
+            'clientSessionId' => $response->clientSessionId ?? ($raw['clientSessionId'] ?? null),
+            'customerId' => $response->customerId ?? ($raw['customerId'] ?? null),
+            'clientApiUrl' => $response->clientApiUrl ?? ($raw['clientApiUrl'] ?? null),
+            'assetUrl' => $response->assetUrl ?? ($raw['assetUrl'] ?? null),
+            'environment' => $this->getEnvironment($cfg),
+        ];
+    }
+
+    public function createInlinePayment(array $payload): array
+    {
+        $cfg = $this->getConfig();
+        $merchantClient = $this->makeMerchantClient($cfg);
+
+        $amountMinor = (int)($payload['amount_minor'] ?? 0);
+        $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
+        $encryptedCustomerInput = (string)($payload['encryptedCustomerInput'] ?? '');
+        $encodedClientMetaInfo = (string)($payload['encodedClientMetaInfo'] ?? '');
+        $paymentProductId = (int)($payload['paymentProductId'] ?? 1);
+
+        if ($amountMinor <= 0 || $encryptedCustomerInput === '') {
+            throw new \RuntimeException('Inline Worldline payment requires amount_minor > 0 and encryptedCustomerInput');
+        }
+
+        $request = new \stdClass();
+        $request->order = new \stdClass();
+        $request->order->amountOfMoney = new \stdClass();
+        $request->order->amountOfMoney->amount = $amountMinor;
+        $request->order->amountOfMoney->currencyCode = $currency;
+        $request->order->customer = new \stdClass();
+        $request->order->customer->merchantCustomerId = (string)($payload['merchantCustomerId'] ?? ('PMD-'.substr((string)Str::uuid(), 0, 12)));
+        $request->encryptedCustomerInput = $encryptedCustomerInput;
+        $request->cardPaymentMethodSpecificInput = new \stdClass();
+        $request->cardPaymentMethodSpecificInput->paymentProductId = $paymentProductId;
+        if ($encodedClientMetaInfo !== '') {
+            $request->cardPaymentMethodSpecificInput->encodedClientMetaInfo = $encodedClientMetaInfo;
+        }
+
+        \Log::info('WORLDLINE INLINE CREATE PAYMENT REQUEST', [
+            'host' => $cfg['host'] ?? null,
+            'tenant_database' => $cfg['tenant_database'] ?? null,
+            'config_id' => $cfg['config_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+            'request' => $this->sanitizeForLogs(json_decode(json_encode($request), true) ?: []),
+        ]);
+
+        $response = $merchantClient->payments()->create($request);
+        $raw = json_decode(json_encode($response), true);
+        $raw = is_array($raw) ? $raw : [];
+
+        \Log::info('WORLDLINE INLINE CREATE PAYMENT RESPONSE', [
+            'host' => $cfg['host'] ?? null,
+            'tenant_database' => $cfg['tenant_database'] ?? null,
+            'config_id' => $cfg['config_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+            'response' => $this->sanitizeForLogs($raw),
+        ]);
+
+        $status = $response->payment->status ?? ($raw['payment']['status'] ?? null);
+        $id = $response->payment->id ?? ($raw['payment']['id'] ?? null);
+
+        return [
+            'payment_id' => $id,
+            'status' => $status,
+            'raw' => $raw,
+        ];
+    }
+
+    public function verifyInlinePayment(string $paymentId): array
+    {
+        $cfg = $this->getConfig();
+        $merchantClient = $this->makeMerchantClient($cfg);
+        $response = $merchantClient->payments()->get($paymentId);
+        $raw = json_decode(json_encode($response), true);
+        $raw = is_array($raw) ? $raw : [];
+        $status = $response->status ?? ($raw['status'] ?? null);
+        $statusStr = strtoupper((string)$status);
+        $isPaid = in_array($statusStr, ['9', 'PAID', 'CAPTURED'], true);
+
+        \Log::info('WORLDLINE INLINE VERIFY PAYMENT RESPONSE', [
+            'payment_id' => $paymentId,
+            'status' => $status,
+            'is_paid' => $isPaid,
+            'response' => $this->sanitizeForLogs($raw),
+        ]);
+
+        return [
+            'payment_id' => $paymentId,
+            'status' => $status,
+            'is_paid' => $isPaid,
+            'raw' => $raw,
+        ];
     }
 }

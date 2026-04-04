@@ -118,6 +118,18 @@ export interface PaymentMethod {
   enabled?: boolean;
 }
 
+export interface WorldlineInlineSessionResponse {
+  success: boolean;
+  session?: {
+    clientSessionId: string;
+    customerId: string;
+    clientApiUrl: string;
+    assetUrl: string;
+    environment?: string;
+  };
+  error?: string;
+}
+
 // Fallback data for offline mode - No default food items
 const fallbackMenuData: MenuResponse = {
   success: true,
@@ -373,6 +385,45 @@ export class ApiClient {
       console.error('Order submission failed:', error);
       throw error; // Force the error instead of using mock response
     }
+  }
+
+  async createWorldlineInlineSession(amount: number, currency: string): Promise<WorldlineInlineSessionResponse> {
+    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/session');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, currency }),
+    });
+    return response.json();
+  }
+
+  async createWorldlineInlinePayment(payload: {
+    amount: number;
+    currency: string;
+    paymentProductId: number;
+    encryptedCustomerInput: string;
+    encodedClientMetaInfo?: string;
+    cardholderName?: string;
+    email?: string;
+    phone?: string;
+  }): Promise<any> {
+    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/create-payment');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return response.json();
+  }
+
+  async verifyWorldlineInlinePayment(paymentId: string): Promise<any> {
+    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/verify');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_id: paymentId }),
+    });
+    return response.json();
   }
 
   // Removed duplicate method - using the one below instead

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react"
 import type { ReactNode } from "react"
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js"
+import * as OnlinePaymentsSdk from "onlinepayments-sdk-client-js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +19,11 @@ interface SecurePaymentFormProps {
   className?: string
   footerSlot?: React.ReactNode
   paypalFundingSource?: "paypal" | "card"
+}
+
+interface WorldlineInlineCardFormProps extends SecurePaymentFormProps {
+  countryCode?: string
+  currency?: string
 }
 
 // Stripe Card Form Component
@@ -586,6 +592,187 @@ export function StripeCardForm({
           </span>
         )}
       </button>
+    </form>
+  )
+}
+
+export function WorldlineInlineCardForm({
+  paymentData,
+  onPaymentComplete,
+  onPaymentError,
+  className,
+  countryCode = "DE",
+  currency = "EUR",
+}: WorldlineInlineCardFormProps) {
+  const [isLoadingSession, setIsLoadingSession] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [sdk, setSdk] = useState<any>(null)
+  const [paymentProduct, setPaymentProduct] = useState<any>(null)
+  const [formData, setFormData] = useState({
+    cardholderName: "",
+    email: "",
+    phone: "",
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+  })
+  const amountMinor = Math.round(Number(paymentData?.amount || 0) * 100)
+  const paymentContext = useMemo(() => ({
+    countryCode,
+    amountOfMoney: {
+      amount: amountMinor,
+      currencyCode: String(currency || "EUR").toUpperCase(),
+    },
+    isRecurring: false,
+  }), [amountMinor, countryCode, currency])
+
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        setIsLoadingSession(true)
+        const res = await fetch("/api/v1/payments/worldline/inline/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: Number(paymentData?.amount || 0),
+            currency: String(currency || "EUR").toUpperCase(),
+          }),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || !json?.success || !json?.session) {
+          throw new Error(json?.error || "Failed to initialize Worldline inline session")
+        }
+        const worldlineSdk = (OnlinePaymentsSdk as any).init(
+          {
+            clientSessionId: json.session.clientSessionId,
+            customerId: json.session.customerId,
+            clientApiUrl: json.session.clientApiUrl,
+            assetUrl: json.session.assetUrl,
+          },
+          { appIdentifier: "PayMyDine-Checkout" }
+        )
+        const product = await worldlineSdk.getPaymentProduct(1, paymentContext)
+        if (!active) return
+        setSdk(worldlineSdk)
+        setPaymentProduct(product)
+      } catch (e: any) {
+        if (!active) return
+        const msg = e?.message || "Worldline inline session failed"
+        setError(msg)
+        onPaymentError(msg)
+      } finally {
+        if (active) setIsLoadingSession(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [currency, onPaymentError, paymentContext, paymentData?.amount])
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!sdk || !paymentProduct) {
+      onPaymentError("Worldline SDK not ready")
+      return
+    }
+    try {
+      setIsProcessing(true)
+      setError(null)
+      const paymentRequest = new (OnlinePaymentsSdk as any).PaymentRequest(paymentProduct)
+      paymentRequest.setValue("cardholderName", (formData.cardholderName || "").trim())
+      paymentRequest.setValue("cardNumber", (formData.cardNumber || "").trim())
+      paymentRequest.setValue("expiryDate", (formData.expiryDate || "").trim())
+      paymentRequest.setValue("cvv", (formData.cvv || "").trim())
+
+      const encryptedRequest = await sdk.encryptPaymentRequest(paymentRequest)
+      if (!encryptedRequest?.encryptedCustomerInput) {
+        throw new Error("Worldline encryption returned empty payload")
+      }
+
+      const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Number(paymentData?.amount || 0),
+          currency: String(currency || "EUR").toUpperCase(),
+          paymentProductId: Number(paymentProduct?.id || 1),
+          encryptedCustomerInput: encryptedRequest.encryptedCustomerInput,
+          encodedClientMetaInfo: encryptedRequest.encodedClientMetaInfo || "",
+          cardholderName: formData.cardholderName,
+          email: formData.email,
+          phone: formData.phone,
+        }),
+      })
+      const payJson = await payRes.json().catch(() => ({}))
+      if (!payRes.ok || !payJson?.success || !payJson?.payment_id) {
+        throw new Error(payJson?.error || "Worldline inline payment failed")
+      }
+
+      const verifyRes = await fetch("/api/v1/payments/worldline/inline/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_id: String(payJson.payment_id) }),
+      })
+      const verifyJson = await verifyRes.json().catch(() => ({}))
+      if (!verifyRes.ok || !verifyJson?.success || !verifyJson?.is_paid) {
+        throw new Error("Worldline payment is not finalized yet")
+      }
+
+      onPaymentComplete({
+        success: true,
+        transactionId: String(verifyJson.payment_id),
+        paymentMethod: "worldline",
+      } as any)
+    } catch (e: any) {
+      const msg = e?.message || "Worldline payment failed"
+      setError(msg)
+      onPaymentError(msg)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={cn("space-y-4", className)}>
+      <div className="rounded-xl border p-3 bg-[#0b1f4f]/5 border-[#0b1f4f]/20 text-xs">
+        Secure card payment by Worldline
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="wlCardholder">Cardholder name</Label>
+        <Input id="wlCardholder" value={formData.cardholderName} onChange={(e) => setFormData((p) => ({ ...p, cardholderName: e.target.value }))} required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="wlEmail">Email</Label>
+        <Input id="wlEmail" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="wlPhone">Phone (optional)</Label>
+        <Input id="wlPhone" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="wlCardNumber">Card number</Label>
+        <Input id="wlCardNumber" value={formData.cardNumber} onChange={(e) => setFormData((p) => ({ ...p, cardNumber: e.target.value }))} required autoComplete="cc-number" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="wlExpiry">Expiry (MM/YY)</Label>
+          <Input id="wlExpiry" value={formData.expiryDate} onChange={(e) => setFormData((p) => ({ ...p, expiryDate: e.target.value }))} required autoComplete="cc-exp" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="wlCvv">CVV</Label>
+          <Input id="wlCvv" value={formData.cvv} onChange={(e) => setFormData((p) => ({ ...p, cvv: e.target.value }))} required autoComplete="cc-csc" />
+        </div>
+      </div>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <Button
+        type="submit"
+        disabled={isLoadingSession || isProcessing || !sdk || !paymentProduct}
+        className="w-full bg-[#0b1f4f] hover:bg-[#132d6a] text-white"
+      >
+        {isProcessing ? "Processing..." : isLoadingSession ? "Initializing..." : "Pay with Worldline"}
+      </Button>
     </form>
   )
 }

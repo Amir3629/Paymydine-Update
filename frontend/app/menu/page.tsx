@@ -28,7 +28,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
-import { StripeCardForm, PayPalForm } from "@/components/payment/secure-payment-form";
+import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
 import {
@@ -777,8 +777,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
   } | null>(null)
   const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
-  const [worldlineIframeUrl, setWorldlineIframeUrl] = useState<string | null>(null)
-  const [worldlineHostedCheckoutId, setWorldlineHostedCheckoutId] = useState<string | null>(null)
 
   const effectivePayPalClientId =
     paypalPublicConfig?.enabled && paypalPublicConfig?.clientId
@@ -1307,15 +1305,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
 
       if (typeof window !== "undefined") {
-        if (providerCode === "worldline" && json?.hosted_checkout_id) {
-          localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
-            hosted_checkout_id: String(json.hosted_checkout_id),
-            created_at: Date.now(),
-          }))
-          setWorldlineHostedCheckoutId(String(json.hosted_checkout_id))
-          setWorldlineIframeUrl(String(json.redirect_url))
-          setIsLoading(false)
-          return
+        if (providerCode === "worldline") {
+          throw new Error("Worldline card payments use inline encrypted flow from the checkout form")
         }
         if (providerCode === "sumup" && json?.checkout_id) {
           localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
@@ -1415,39 +1406,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
-    if (!worldlineIframeUrl || !worldlineHostedCheckoutId) return
-    let stopped = false
-    const interval = setInterval(async () => {
-      if (stopped) return
-      try {
-        const res = await fetch('/api/v1/payments/worldline/checkout-status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hosted_checkout_id: worldlineHostedCheckoutId }),
-        })
-        const json = await res.json()
-        if (json?.success && json?.is_paid) {
-          stopped = true
-          clearInterval(interval)
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("pmd_worldline_pending_checkout")
-          }
-          setWorldlineIframeUrl(null)
-          setWorldlineHostedCheckoutId(null)
-          await handlePayment(String(json?.payment_id || worldlineHostedCheckoutId))
-        }
-      } catch {
-        // keep polling quietly
-      }
-    }, 5000)
-
-    return () => {
-      stopped = true
-      clearInterval(interval)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldlineIframeUrl, worldlineHostedCheckoutId])
 
   const renderPaymentForm = () => {
     try {
@@ -1551,6 +1509,55 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         }
 
         if (selectedProviderCode && selectedProviderCode !== "stripe") {
+          if (selectedProviderCode === "worldline") {
+            return (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-3 overflow-hidden"
+              >
+                <div className="mb-2">
+                  <span className="font-semibold text-paydine-elegant-gray">Worldline card payment</span>
+                </div>
+                <WorldlineInlineCardForm
+                  paymentData={{
+                    amount: finalTotal,
+                    payment_method: "card",
+                    currency: (merchantSettings?.currency || "EUR"),
+                    items: itemsToPay.map((item: any) => ({
+                      id: String(item.item.id),
+                      name: item.item.name,
+                      price: item.price,
+                      quantity: item.quantity || 1,
+                      restaurantId: stripeResolvedRestaurantId,
+                    })),
+                    customerInfo: {
+                      name: (paymentFormData as any)?.cardholderName || "",
+                      email: (paymentFormData as any)?.email || "",
+                      phone: (paymentFormData as any)?.phone || "",
+                    },
+                    restaurantId: stripeResolvedRestaurantId,
+                    tableNumber: stripeResolvedTableNumber,
+                  } as any}
+                  currency={(merchantSettings?.currency || "EUR")}
+                  countryCode="DE"
+                  onPaymentComplete={(result: any) => {
+                    if (result?.success && result?.transactionId) {
+                      handlePayment(result.transactionId)
+                    }
+                  }}
+                  onPaymentError={(message: string) => {
+                    toast({
+                      title: "Worldline Payment Failed",
+                      description: message,
+                      variant: "destructive",
+                    })
+                  }}
+                />
+              </motion.div>
+            )
+          }
           return (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -2174,42 +2181,6 @@ case "cod":
           {selectedPaymentMethod && ["card","apple_pay","google_pay","paypal","cod"].includes(selectedPaymentMethod) && (
             <div className="pt-3">
               {renderPaymentForm()}
-            </div>
-          )}
-
-          {worldlineIframeUrl && (
-            <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3">
-              <div className="w-full max-w-3xl h-[85vh] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl overflow-hidden border border-white/20">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-black/10 dark:border-white/10">
-                  <div className="text-sm font-semibold">Secure card payment (Worldline)</div>
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={worldlineIframeUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs underline opacity-80 hover:opacity-100"
-                    >
-                      Open in new tab
-                    </a>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setWorldlineIframeUrl(null)
-                        setWorldlineHostedCheckoutId(null)
-                      }}
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </div>
-                <iframe
-                  src={worldlineIframeUrl}
-                  className="w-full h-[calc(85vh-52px)] bg-white"
-                  title="Worldline secure payment"
-                  allow="payment *"
-                />
-              </div>
             </div>
           )}
 
