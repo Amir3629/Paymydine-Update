@@ -618,6 +618,15 @@ export function WorldlineInlineCardForm({
     cvv: "",
   })
   const amountMinor = Math.round(Number(paymentData?.amount || 0) * 100)
+  const formIsValid = useMemo(() => {
+    return Boolean(
+      formData.cardholderName.trim() &&
+      formData.email.trim() &&
+      formData.cardNumber.replace(/\s+/g, "").length >= 12 &&
+      formData.expiryDate.trim().length >= 4 &&
+      formData.cvv.trim().length >= 3
+    )
+  }, [formData])
   const paymentContext = useMemo(() => ({
     countryCode,
     amountOfMoney: {
@@ -644,7 +653,12 @@ export function WorldlineInlineCardForm({
         if (!res.ok || !json?.success || !json?.session) {
           throw new Error(json?.error || "Failed to initialize Worldline inline session")
         }
-        const worldlineSdk = (OnlinePaymentsSdk as any).init(
+        const sdkModule: any = OnlinePaymentsSdk as any
+        const initFn = sdkModule?.init || sdkModule?.default?.init
+        if (typeof initFn !== "function") {
+          throw new Error("Worldline SDK initialization is unavailable in this runtime")
+        }
+        const worldlineSdk = initFn(
           {
             clientSessionId: json.session.clientSessionId,
             customerId: json.session.customerId,
@@ -658,8 +672,9 @@ export function WorldlineInlineCardForm({
         setSdk(worldlineSdk)
         setPaymentProduct(product)
       } catch (e: any) {
+        console.error("[WorldlineInlineCardForm][session-init]", e)
         if (!active) return
-        const msg = e?.message || "Worldline inline session failed"
+        const msg = "Could not initialize secure card payment."
         setError(msg)
         onPaymentError(msg)
       } finally {
@@ -680,7 +695,12 @@ export function WorldlineInlineCardForm({
     try {
       setIsProcessing(true)
       setError(null)
-      const paymentRequest = new (OnlinePaymentsSdk as any).PaymentRequest(paymentProduct)
+      const sdkModule: any = OnlinePaymentsSdk as any
+      const PaymentRequestCtor = sdkModule?.PaymentRequest || sdkModule?.default?.PaymentRequest
+      if (typeof PaymentRequestCtor !== "function") {
+        throw new Error("Worldline PaymentRequest is unavailable in this runtime")
+      }
+      const paymentRequest = new PaymentRequestCtor(paymentProduct)
       paymentRequest.setValue("cardholderName", (formData.cardholderName || "").trim())
       paymentRequest.setValue("cardNumber", (formData.cardNumber || "").trim())
       paymentRequest.setValue("expiryDate", (formData.expiryDate || "").trim())
@@ -733,7 +753,8 @@ export function WorldlineInlineCardForm({
         paymentMethod: "worldline",
       } as any)
     } catch (e: any) {
-      const msg = e?.message || "Worldline payment failed"
+      console.error("[WorldlineInlineCardForm][submit]", e)
+      const msg = "Payment could not be completed. Please check your details and try again."
       setError(msg)
       onPaymentError(msg)
     } finally {
@@ -743,43 +764,133 @@ export function WorldlineInlineCardForm({
 
   return (
     <form onSubmit={handleSubmit} className={cn("space-y-4", className)}>
-      <div className="rounded-xl border p-3 bg-[#0b1f4f]/5 border-[#0b1f4f]/20 text-xs">
-        Secure card payment by Worldline
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="wlCardholder">Cardholder name</Label>
-        <Input id="wlCardholder" value={formData.cardholderName} onChange={(e) => setFormData((p) => ({ ...p, cardholderName: e.target.value }))} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="wlEmail">Email</Label>
-        <Input id="wlEmail" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="wlPhone">Phone (optional)</Label>
-        <Input id="wlPhone" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="wlCardholder">Cardholder name</Label>
+          <Input
+            id="wlCardholder"
+            value={formData.cardholderName}
+            onChange={(e) => setFormData((p) => ({ ...p, cardholderName: e.target.value }))}
+            required
+            className="h-11 rounded-xl"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="wlEmail">Email</Label>
+          <Input
+            id="wlEmail"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+            required
+            className="h-11 rounded-xl"
+          />
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="wlCardNumber">Card number</Label>
-        <Input id="wlCardNumber" value={formData.cardNumber} onChange={(e) => setFormData((p) => ({ ...p, cardNumber: e.target.value }))} required autoComplete="cc-number" />
+        <Input
+          id="wlCardNumber"
+          value={formData.cardNumber}
+          onChange={(e) => setFormData((p) => ({ ...p, cardNumber: e.target.value }))}
+          required
+          autoComplete="cc-number"
+          className="h-11 rounded-xl text-[15px]"
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="wlExpiry">Expiry (MM/YY)</Label>
-          <Input id="wlExpiry" value={formData.expiryDate} onChange={(e) => setFormData((p) => ({ ...p, expiryDate: e.target.value }))} required autoComplete="cc-exp" />
+          <Input
+            id="wlExpiry"
+            value={formData.expiryDate}
+            onChange={(e) => setFormData((p) => ({ ...p, expiryDate: e.target.value }))}
+            required
+            autoComplete="cc-exp"
+            className="h-11 rounded-xl"
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="wlCvv">CVV</Label>
-          <Input id="wlCvv" value={formData.cvv} onChange={(e) => setFormData((p) => ({ ...p, cvv: e.target.value }))} required autoComplete="cc-csc" />
+          <Input
+            id="wlCvv"
+            value={formData.cvv}
+            onChange={(e) => setFormData((p) => ({ ...p, cvv: e.target.value }))}
+            required
+            autoComplete="cc-csc"
+            className="h-11 rounded-xl"
+          />
         </div>
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="wlPhone">Phone (optional)</Label>
+        <Input
+          id="wlPhone"
+          value={formData.phone}
+          onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+          className="h-11 rounded-xl"
+        />
+      </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
-      <Button
+      <button
         type="submit"
-        disabled={isLoadingSession || isProcessing || !sdk || !paymentProduct}
-        className="w-full bg-[#0b1f4f] hover:bg-[#132d6a] text-white"
+        disabled={isLoadingSession || isProcessing || !sdk || !paymentProduct || !formIsValid}
+        className="relative w-full min-w-full max-w-full h-[54px] rounded-2xl border-0 overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{
+          background: "transparent",
+          boxShadow: "none",
+        }}
       >
-        {isProcessing ? "Processing..." : isLoadingSession ? "Initializing..." : "Pay with Worldline"}
-      </Button>
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            borderRadius: "16px",
+            background: "linear-gradient(135deg, #635BFF 0%, #4F46E5 100%)",
+            boxShadow: "0 8px 22px rgba(99, 91, 255, 0.35)",
+            pointerEvents: "none",
+          }}
+        />
+        <span
+          style={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            color: "#FFFFFF",
+            fontSize: "16px",
+            fontWeight: 700,
+            width: "100%",
+          }}
+        >
+          {isProcessing ? (
+            <>
+              <span
+                className="animate-spin"
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid rgba(255,255,255,0.35)",
+                  borderTopColor: "#FFFFFF",
+                  borderRadius: "9999px",
+                }}
+              />
+              <span>Processing...</span>
+            </>
+          ) : isLoadingSession ? (
+            <span>Initializing...</span>
+          ) : (
+            <>
+              <Lock className="h-4 w-4" />
+              <span>Pay</span>
+            </>
+          )}
+        </span>
+      </button>
     </form>
   )
 }
