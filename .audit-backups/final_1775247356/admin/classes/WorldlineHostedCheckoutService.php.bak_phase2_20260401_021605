@@ -1,0 +1,201 @@
+<?php
+
+namespace Admin\Classes;
+
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Worldline\Connect\Sdk\Client;
+use Worldline\Connect\Sdk\Communicator;
+use Worldline\Connect\Sdk\CommunicatorConfiguration;
+use Worldline\Connect\Sdk\V1\Domain\AmountOfMoney;
+use Worldline\Connect\Sdk\V1\Domain\CreateHostedCheckoutRequest;
+use Worldline\Connect\Sdk\V1\Domain\HostedCheckoutSpecificInput;
+use Worldline\Connect\Sdk\V1\Domain\Order;
+use Worldline\Connect\Sdk\V1\Domain\Customer;
+use Worldline\Connect\Sdk\V1\Domain\Address;
+
+class WorldlineHostedCheckoutService
+{
+    protected function centralConnection()
+    {
+        return DB::connection('mysql');
+    }
+
+    protected function resolveTenantFromHost(string $host)
+    {
+        $central = $this->centralConnection();
+        return $central->table('tenants')->where('domain', $host)->first();
+    }
+
+    protected function tenantConnectionForHost(string $host)
+    {
+        $tenant = $this->resolveTenantFromHost($host);
+
+        if (!$tenant || empty($tenant->database)) {
+            throw new \RuntimeException("Tenant not found for host: {$host}");
+        }
+
+        $base = config('database.connections.mysql');
+        $base['database'] = $tenant->database;
+
+        Config::set('database.connections.worldline_runtime', $base);
+        DB::purge('worldline_runtime');
+        DB::reconnect('worldline_runtime');
+
+        return DB::connection('worldline_runtime');
+    }
+
+    public function getConfig(): array
+    {
+        $host = request()->getHost();
+        $conn = $this->tenantConnectionForHost($host);
+
+        $row = $conn->table('pos_configs as pc')
+            ->join('pos_devices as pd', 'pd.device_id', '=', 'pc.device_id')
+            ->where('pd.code', 'worldline')
+            ->select(
+                'pc.config_id',
+                'pc.url',
+                'pc.username',
+                'pc.access_token',
+                'pc.id_application',
+                'pc.password'
+            )
+            ->orderByDesc('pc.config_id')
+            ->first();
+
+        if (!$row) {
+            throw new \RuntimeException("Worldline config not found in current tenant DB for host {$host}");
+        }
+
+        return [
+            'host'            => $host,
+            'tenant_database' => $conn->getDatabaseName(),
+            'config_id'       => $row->config_id,
+            'api_endpoint'    => rtrim((string)$row->url, '/'),
+            'api_key_id'      => (string)$row->username,
+            'secret_api_key'  => (string)$row->access_token,
+            'merchant_id'     => (string)$row->id_application,
+            'webhook_secret'  => (string)$row->password,
+        ];
+    }
+
+    public function getEnvironment(array $cfg): string
+    {
+        $base = $cfg['api_endpoint'] ?? '';
+
+        if (str_contains($base, 'api.preprod.connect.worldline-solutions.com')) {
+            return 'preprod';
+        }
+
+        if (str_contains($base, 'api.connect.worldline-solutions.com')) {
+            return 'live';
+        }
+
+        return 'custom';
+    }
+
+    protected function makeMerchantClient(array $cfg)
+    {
+        $communicatorConfiguration = new CommunicatorConfiguration(
+            $cfg['api_key_id'],
+            $cfg['secret_api_key'],
+            $cfg['api_endpoint'],
+            'PayMyDine'
+        );
+
+        $communicator = new Communicator($communicatorConfiguration);
+        $client = new Client($communicator);
+
+        return $client->v1()->merchant($cfg['merchant_id']);
+    }
+
+    public function getConfigForDiagnostics(): array
+    {
+        $cfg = $this->getConfig();
+
+        return [
+            'host' => $cfg['host'],
+            'tenant_database' => $cfg['tenant_database'],
+            'config_id' => $cfg['config_id'],
+            'environment' => $this->getEnvironment($cfg),
+            'api_endpoint' => $cfg['api_endpoint'],
+            'merchant_id' => $cfg['merchant_id'],
+            'merchant_id_length' => strlen((string)$cfg['merchant_id']),
+            'api_key_id_prefix' => substr((string)$cfg['api_key_id'], 0, 8),
+            'api_key_id_length' => strlen((string)$cfg['api_key_id']),
+            'secret_api_key_prefix' => substr((string)$cfg['secret_api_key'], 0, 6),
+            'secret_api_key_length' => strlen((string)$cfg['secret_api_key']),
+            'webhook_secret_prefix' => substr((string)$cfg['webhook_secret'], 0, 6),
+            'webhook_secret_length' => strlen((string)$cfg['webhook_secret']),
+            'sdk_mode' => 'connect',
+        ];
+    }
+
+    public function createHostedCheckout(array $payload): array
+    {
+        $cfg = $this->getConfig();
+        $merchantClient = $this->makeMerchantClient($cfg);
+
+        $amountMinor = (int)($payload['amount_minor'] ?? 0);
+        $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
+        $returnUrl = (string)($payload['return_url'] ?? url('/order-placed'));
+        $locale = (string)($payload['locale'] ?? 'en_GB');
+        $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
+        $merchantCustomerId = (string)($payload['merchant_customer_id'] ?? ('PMD-' . substr((string) Str::uuid(), 0, 12)));
+
+        if ($amountMinor <= 0) {
+            throw new \RuntimeException('amount_minor must be > 0');
+        }
+
+        $amount = new AmountOfMoney();
+        $amount->amount = $amountMinor;
+        $amount->currencyCode = $currency;
+
+        $address = new Address();
+        $address->countryCode = $countryCode;
+
+        $customer = new Customer();
+        $customer->billingAddress = $address;
+        $customer->merchantCustomerId = $merchantCustomerId;
+
+        $order = new Order();
+        $order->amountOfMoney = $amount;
+        $order->customer = $customer;
+
+        $specific = new HostedCheckoutSpecificInput();
+        $specific->returnUrl = $returnUrl;
+        $specific->locale = $locale;
+
+        $body = new CreateHostedCheckoutRequest();
+        $body->order = $order;
+        $body->hostedCheckoutSpecificInput = $specific;
+
+        $response = $merchantClient->hostedcheckouts()->create($body);
+
+        $partial = $response->partialRedirectUrl ?? null;
+        $redirect = $partial ? 'https://' . ltrim($partial, '/') : null;
+
+        return [
+            'environment' => $this->getEnvironment($cfg),
+            'tenant_database' => $cfg['tenant_database'],
+            'host' => $cfg['host'],
+            'config_id' => $cfg['config_id'],
+            'merchant_id' => $cfg['merchant_id'],
+            'redirect_url' => $redirect,
+            'partial_redirect_url' => $partial,
+            'hosted_checkout_id' => $response->hostedCheckoutId ?? null,
+            'return_mac' => $response->RETURNMAC ?? null,
+            'request_meta' => [
+                'amount_minor' => $amountMinor,
+                'currency' => $currency,
+                'return_url' => $returnUrl,
+                'locale' => $locale,
+                'country_code' => $countryCode,
+                'merchant_customer_id' => $merchantCustomerId,
+                'trace_id' => (string) Str::uuid(),
+            ],
+        ];
+    }
+}

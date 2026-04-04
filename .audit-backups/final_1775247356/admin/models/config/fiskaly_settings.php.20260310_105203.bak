@@ -1,0 +1,111 @@
+<?php
+
+return [
+    'form' => [
+        'toolbar' => [
+            'buttons' => [
+                'save' => [
+                    'label' => 'Save',
+                    'class' => 'btn btn-primary',
+                ],
+                'back' => [
+                    'label' => 'Back',
+                    'href' => 'settings',
+                    'class' => 'btn btn-light',
+                ],
+            ],
+        ],
+
+        'fields' => [
+            'fiskaly_is_enabled' => [
+                'label' => 'Enable Fiskaly / TSE',
+                'type' => 'switch',
+                'default' => 0,
+                'comment' => 'Enable SIGN DE / TSE signing for this restaurant tenant.',
+                'span' => 'left',
+            ],
+
+            'fiskaly_environment' => [
+                'label' => 'Environment',
+                'type' => 'select',
+                'default' => 'test',
+                'options' => [
+                    'test' => 'Test',
+                    'live' => 'Live',
+                ],
+                'comment' => 'Use test while onboarding. Switch to live only with real production credentials.',
+                'span' => 'right',
+            ],
+
+            'fiskaly_api_key' => [
+                'label' => 'API Key',
+                'type' => 'text',
+                'comment' => 'Fiskaly API key',
+                'span' => 'left',
+            ],
+
+            'fiskaly_api_secret' => [
+                'label' => 'API Secret',
+                'type' => 'password',
+                'comment' => 'Fiskaly API secret',
+                'span' => 'right',
+            ],
+
+            'fiskaly_organization_id' => [
+                'label' => 'Organization ID',
+                'type' => 'text',
+                'comment' => 'Optional, depending on your Fiskaly setup',
+                'span' => 'left',
+            ],
+
+            'fiskaly_managed_organization_id' => [
+                'label' => 'Managed Organization ID',
+                'type' => 'text',
+                'comment' => 'Optional',
+                'span' => 'right',
+            ],
+
+            'fiskaly_tss_id' => [
+                'label' => 'TSS ID',
+                'type' => 'text',
+                'comment' => 'Required for transaction signing',
+                'span' => 'left',
+            ],
+
+            'fiskaly_client_id' => [
+                'label' => 'Client ID',
+                'type' => 'text',
+                'comment' => 'Required for transaction signing',
+                'span' => 'right',
+            ],
+
+            'fiskaly_cash_register_id' => [
+                'label' => 'Cash Register ID',
+                'type' => 'text',
+                'comment' => 'Your internal POS/cash register identifier',
+                'span' => 'left',
+            ],
+
+            'fiskaly_taxpayer_id' => [
+                'label' => 'Taxpayer ID',
+                'type' => 'text',
+                'comment' => 'Optional field if you want to keep the restaurant tax identifier here',
+                'span' => 'right',
+            ],
+
+            'fiskaly_establishment_id' => [
+                'label' => 'Establishment ID',
+                'type' => 'text',
+                'comment' => 'Optional',
+                'span' => 'left',
+            ],
+
+            'fiskaly_submission_id' => [
+                'label' => 'Submission ID',
+                'type' => 'text',
+                'comment' => 'Optional',
+                'span' => 'right',
+            ],
+        ],
+    ],
+];

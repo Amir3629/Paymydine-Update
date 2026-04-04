@@ -1,0 +1,125 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Illuminate\Support\Facades\DB;
+
+class FiskalyReceiptPresenter
+{
+    public function presentForOrder(int $orderId): array
+    {
+        if ($orderId < 1) {
+            return $this->empty();
+        }
+
+        $order = DB::table('orders')->where('order_id', $orderId)->first();
+        $tx = DB::table('fiskaly_transactions')
+            ->where('order_id', $orderId)
+            ->orderByDesc('fiskaly_transaction_id')
+            ->first();
+
+        if (!$order && !$tx) {
+            return $this->empty();
+        }
+
+        $responsePayload = $this->decodeJson($tx->response_payload ?? null);
+        $meta = $this->decodeJson($tx->meta ?? null);
+        $finish = is_array($meta['finish'] ?? null) ? $meta['finish'] : [];
+
+        $serialNumber =
+            $tx->serial_number
+            ?? ($responsePayload['serial_number'] ?? null)
+            ?? ($responsePayload['tss_serial_number'] ?? null)
+            ?? ($finish['serial_number'] ?? null)
+            ?? ($finish['tss_serial_number'] ?? null);
+
+        $signatureAlgorithm =
+            $tx->signature_algorithm
+            ?? ($responsePayload['signature']['algorithm'] ?? null)
+            ?? ($finish['signature']['algorithm'] ?? null);
+
+        $signatureValue =
+            $tx->signature_value
+            ?? ($responsePayload['signature']['value'] ?? null)
+            ?? ($finish['signature']['value'] ?? null);
+
+        $signatureCounter =
+            $tx->signature_counter
+            ?? ($responsePayload['signature']['counter'] ?? null)
+            ?? ($finish['signature']['counter'] ?? null);
+
+        $txNumber =
+            $tx->tx_number
+            ?? ($responsePayload['transaction_number'] ?? null)
+            ?? ($responsePayload['number'] ?? null)
+            ?? ($finish['transaction_number'] ?? null)
+            ?? ($finish['number'] ?? null);
+
+        $qrCodeData =
+            $order->fiskaly_qr_code_data
+            ?? $tx->qr_code_data
+            ?? ($responsePayload['qr_code_data'] ?? null)
+            ?? ($finish['qr_code_data'] ?? null)
+            ?? ($finish['qrCodeData'] ?? null);
+
+        return [
+            'enabled' => true,
+            'status' => (string)($order->fiskaly_status ?? $tx->status ?? ''),
+            'is_finished' => in_array((string)($order->fiskaly_status ?? $tx->status ?? ''), ['finished', 'FINISHED'], true),
+
+            'order_id' => (int)($order->order_id ?? $tx->order_id ?? 0),
+            'tx_db_id' => $tx->fiskaly_transaction_id ?? null,
+            'tx_id' => $tx->tx_id ?? ($responsePayload['_id'] ?? null),
+            'tx_number' => $txNumber,
+
+            'client_id' => $tx->client_id ?? ($responsePayload['client_id'] ?? null),
+            'tss_id' => $tx->tss_id ?? ($responsePayload['tss_id'] ?? null),
+
+            'serial_number' => $serialNumber,
+            'signature_counter' => $signatureCounter,
+            'signature_algorithm' => $signatureAlgorithm,
+            'signature_value' => $signatureValue,
+
+            'qr_code_data' => $qrCodeData,
+
+            'time_start' => $responsePayload['time_start'] ?? ($finish['time_start'] ?? null),
+            'time_end' => $responsePayload['time_end'] ?? ($finish['time_end'] ?? null),
+        ];
+    }
+
+    protected function decodeJson($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (!is_string($value) || $value === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    protected function empty(): array
+    {
+        return [
+            'enabled' => false,
+            'status' => '',
+            'is_finished' => false,
+            'order_id' => 0,
+            'tx_db_id' => null,
+            'tx_id' => null,
+            'tx_number' => null,
+            'client_id' => null,
+            'tss_id' => null,
+            'serial_number' => null,
+            'signature_counter' => null,
+            'signature_algorithm' => null,
+            'signature_value' => null,
+            'qr_code_data' => null,
+            'time_start' => null,
+            'time_end' => null,
+        ];
+    }
+}

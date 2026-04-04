@@ -1,0 +1,47 @@
+<?php
+
+namespace Admin\Models;
+
+use Igniter\Flame\Database\Model;
+
+class Fiskaly_transactions_model extends Model
+{
+
+        protected $fillable = [
+        'order_id',
+        'location_id',
+        'payment_method',
+        'payment_reference',
+        'tss_id',
+        'client_id',
+        'status',
+        'started_at',
+        'finished_at',
+        'tx_id',
+        'tx_state',
+        'tx_revision',
+        'tx_number',
+        'signature_counter',
+        'signature_algorithm',
+        'signature_value',
+        'serial_number',
+        'qr_code_data',
+        'request_payload',
+        'response_payload',
+        'error_message',
+        'meta',
+        'amount_total',
+    ];
+
+protected $table = 'fiskaly_transactions';
+    protected $primaryKey = 'fiskaly_transaction_id';
+
+    protected $casts = [
+        'request_payload' => 'array',
+        'response_payload' => 'array',
+        'meta' => 'array',
+        'amount_total' => 'float',
+    ];
+
+    public $timestamps = true;
+}

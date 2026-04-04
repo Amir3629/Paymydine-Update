@@ -1,0 +1,258 @@
+/* ============================================
+   UNIFIED SHELL - SMOOTH CURVE SOLUTION (FINAL)
+   Based on ChatGPT analysis - uses body::before with mask
+   Targets REAL DOM elements: .sidebar and .navbar.navbar-top
+   ============================================ */
+
+/* ================================
+   1. Unified Background Shell
+   Creates visual unified element using body::before
+   ================================ */
+body::before {
+  content: "" !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999 !important;
+  pointer-events: none !important;
+
+  /* COMBINED GRADIENTS */
+  background:
+    /* Sidebar gradient */
+    linear-gradient(
+      180deg,
+      #516584 0%,
+      #516584 20%,
+      #475c75 25%,
+      #475c75 35%,
+      #455a73 50%,
+      #455a73 70%,
+      #364a63 85%,
+      #364a63 100%
+    ) left / 230px 100% no-repeat,
+
+    /* Header gradient */
+    linear-gradient(
+      90deg,
+      #516584 0%,
+      #516584 30%,
+      #2a3447 70%,
+      #2a3447 100%
+    ) top / 100% 64px no-repeat;
+
+  /* CUT THE INWARD CURVE using mask */
+  -webkit-mask:
+    radial-gradient(
+      circle 36px at 230px 64px,
+      transparent 0 35px,
+      black 36px
+    ),
+    linear-gradient(black, black);
+
+  mask:
+    radial-gradient(
+      circle 36px at 230px 64px,
+      transparent 0 35px,
+      black 36px
+    ),
+    linear-gradient(black, black);
+
+  mask-composite: exclude !important;
+  -webkit-mask-composite: destination-out !important;
+}
+
+/* ================================
+   2. Sidebar (REAL ELEMENT)
+   Make sidebar transparent so body::before shows through
+   ================================ */
+.sidebar,
+div.sidebar,
+[role="navigation"].sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 230px !important;
+  height: 100vh !important;
+  z-index: 1001 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Sidebar logo area - preserve gradient */
+.sidebar .sidebar-header,
+.sidebar .brand,
+.sidebar .logo,
+.sidebar-header,
+.brand,
+.logo {
+  background: linear-gradient(
+    180deg,
+    #516584 0%,
+    #4e6381 40%,
+    #516584 100%
+  ) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(
+    180deg,
+    #516584 0%,
+    #4e6381 40%,
+    #516584 100%
+  ) !important;
+}
+
+/* ================================
+   3. Header (REAL ELEMENT)
+   Make header transparent so body::before shows through
+   ================================ */
+.navbar.navbar-top,
+nav.navbar-top,
+.navbar.navbar-fixed-top,
+.navbar-top.navbar-fixed-top {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 64px !important;
+  width: 100% !important;
+  z-index: 1002 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Push header content after sidebar */
+.navbar.navbar-top .container,
+.navbar.navbar-top .container-fluid,
+nav.navbar-top .container,
+nav.navbar-top .container-fluid {
+  margin-left: 230px !important;
+}
+
+/* ================================
+   4. Content Offset
+   Ensure content starts after sidebar
+   ================================ */
+.page-wrapper,
+.nk-content,
+.nk-main {
+  margin-left: 230px !important;
+  padding-top: 64px !important;
+}
+
+/* ================================
+   5. REMOVE STAR ICON (NUCLEAR)
+   ================================ */
+#sidebar-star-icon,
+body > #sidebar-star-icon,
+div#sidebar-star-icon {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ================================
+   6. Responsive Behavior
+   ================================ */
+@media (max-width: 991px) {
+  /* Remove curve on mobile */
+  body::before {
+    -webkit-mask: none !important;
+    mask: none !important;
+    background:
+      linear-gradient(
+        90deg,
+        #516584 0%,
+        #516584 30%,
+        #2a3447 70%,
+        #2a3447 100%
+      ) top / 100% 64px no-repeat !important;
+  }
+
+  /* Hide sidebar on mobile */
+  .sidebar,
+  div.sidebar,
+  [role="navigation"].sidebar {
+    transform: translateX(-100%) !important;
+  }
+
+  /* Reset content offset */
+  .page-wrapper,
+  .nk-content,
+  .nk-main {
+    margin-left: 0 !important;
+  }
+
+  /* Reset header content offset */
+  .navbar.navbar-top .container,
+  .navbar.navbar-top .container-fluid,
+  nav.navbar-top .container,
+  nav.navbar-top .container-fluid {
+    margin-left: 0 !important;
+  }
+}
+
+/* ================================
+   7. SuperAdmin Panel Support
+   Also target .nk-sidebar and .nk-header if they exist
+   ================================ */
+.nk-sidebar,
+.nk-sidebar.nk-sidebar-fixed {
+  background: transparent !important;
+  background-color: transparent !important;
+  z-index: 1001 !important;
+}
+
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  background: transparent !important;
+  background-color: transparent !important;
+  left: 0 !important;
+  width: 100% !important;
+  z-index: 1002 !important;
+}
+
+.nk-header .container-fluid {
+  margin-left: 230px !important;
+}
+
+/* ================================
+   8. Safari Fallback
+   For older Safari versions that don't support mask-composite
+   ================================ */
+@supports not (mask-composite: exclude) {
+  body::before {
+    background:
+      /* Sidebar gradient */
+      linear-gradient(
+        180deg,
+        #516584 0%,
+        #516584 20%,
+        #475c75 25%,
+        #475c75 35%,
+        #455a73 50%,
+        #455a73 70%,
+        #364a63 85%,
+        #364a63 100%
+      ) left / 230px 100% no-repeat,
+
+      /* Header gradient */
+      linear-gradient(
+        90deg,
+        #516584 0%,
+        #516584 30%,
+        #2a3447 70%,
+        #2a3447 100%
+      ) top / 100% 64px no-repeat,
+
+      /* Curve cutout using radial gradient */
+      radial-gradient(
+        circle 36px at 230px 64px,
+        transparent 0 35px,
+        rgba(0,0,0,0) 36px
+      );
+  }
+}

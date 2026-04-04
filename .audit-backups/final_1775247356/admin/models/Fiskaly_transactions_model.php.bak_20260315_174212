@@ -1,0 +1,20 @@
+<?php
+
+namespace Admin\Models;
+
+use Igniter\Flame\Database\Model;
+
+class Fiskaly_transactions_model extends Model
+{
+    protected $table = 'fiskaly_transactions';
+    protected $primaryKey = 'fiskaly_transaction_id';
+
+    protected $casts = [
+        'request_payload' => 'array',
+        'response_payload' => 'array',
+        'meta' => 'array',
+        'amount_total' => 'float',
+    ];
+
+    public $timestamps = true;
+}

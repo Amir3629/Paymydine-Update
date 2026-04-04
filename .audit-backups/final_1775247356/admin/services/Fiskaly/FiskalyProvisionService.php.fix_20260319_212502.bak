@@ -1,0 +1,166 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Admin\Models\Fiskaly_configs_model;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+class FiskalyProvisionService
+{
+    public function ensureClientExists(Fiskaly_configs_model $cfg, bool $force = false): array
+    {
+        if (!$cfg->is_enabled) {
+            return ['ok' => false, 'skipped' => true, 'reason' => 'disabled'];
+        }
+
+        if (empty($cfg->api_key) || empty($cfg->api_secret) || empty($cfg->cash_register_id)) {
+            return ['ok' => false, 'skipped' => true, 'reason' => 'missing_required_config'];
+        }
+
+        require_once __DIR__.'/FiskalyApiClient.php';
+
+        $meta = is_array($cfg->meta) ? $cfg->meta : [];
+        $adminPin = (string)($meta['admin_pin'] ?? '12345');
+        $timeAdminPin = (string)($meta['time_admin_pin'] ?? '67890');
+
+        $cfg->meta = array_merge($meta, [
+            'admin_pin' => $adminPin,
+            'time_admin_pin' => $timeAdminPin,
+            'provisioning_status' => 'started',
+            'last_error' => null,
+        ]);
+        $cfg->saveQuietly();
+
+        $api = new FiskalyApiClient($cfg);
+
+        try {
+            if (empty($cfg->tss_id)) {
+                $tss = $api->createTss([
+                    'description' => 'paymydine loc-'.$cfg->location_id.' '.$cfg->cash_register_id,
+                    'admin_pin' => $adminPin,
+                    'time_admin_pin' => $timeAdminPin,
+                ]);
+
+                $cfg->tss_id = $tss['_id'] ?? $tss['id'] ?? $tss['tss_id'] ?? $cfg->tss_id;
+                $cfg->meta = array_merge((array)$cfg->meta, [
+                    'create_tss_response' => $tss,
+                    'provisioning_status' => 'tss_created',
+                ]);
+                $cfg->saveQuietly();
+            }
+
+            if (empty($cfg->tss_id)) {
+                throw new \RuntimeException('Missing tss_id after createTss');
+            }
+
+            $tss = $api->getTss((string)$cfg->tss_id);
+            $state = (string)($tss['state'] ?? '');
+
+            $cfg->meta = array_merge((array)$cfg->meta, [
+                'tss_state' => $state,
+                'get_tss_response' => $tss,
+            ]);
+            $cfg->saveQuietly();
+
+            if ($state === 'CREATED') {
+                $tss = $api->updateTssState((string)$cfg->tss_id, 'UNINITIALIZED');
+                $state = (string)($tss['state'] ?? 'UNINITIALIZED');
+
+                $cfg->meta = array_merge((array)$cfg->meta, [
+                    'set_uninitialized_response' => $tss,
+                    'tss_state' => $state,
+                ]);
+                $cfg->saveQuietly();
+            }
+
+            if ($state === 'UNINITIALIZED') {
+                try {
+                    $pinResult = $api->changeAdminPin((string)$cfg->tss_id, $adminPin, $timeAdminPin);
+                    $cfg->meta = array_merge((array)$cfg->meta, [
+                        'change_admin_pin_response' => $pinResult,
+                    ]);
+                    $cfg->saveQuietly();
+                } catch (\Throwable $e) {
+                    $cfg->meta = array_merge((array)$cfg->meta, [
+                        'change_admin_pin_error' => $e->getMessage(),
+                    ]);
+                    $cfg->saveQuietly();
+                }
+            }
+
+            $adminAuth = $api->adminAuth((string)$cfg->tss_id, $adminPin, $timeAdminPin);
+            $adminToken = $adminAuth['access_token'] ?? null;
+
+            $cfg->meta = array_merge((array)$cfg->meta, [
+                'admin_auth_response' => $adminAuth,
+            ]);
+            $cfg->saveQuietly();
+
+            $tss = $api->getTss((string)$cfg->tss_id);
+            $state = (string)($tss['state'] ?? '');
+
+            if ($state === 'UNINITIALIZED') {
+                $tss = $api->updateTssState((string)$cfg->tss_id, 'INITIALIZED');
+                $state = (string)($tss['state'] ?? 'INITIALIZED');
+
+                $cfg->meta = array_merge((array)$cfg->meta, [
+                    'set_initialized_response' => $tss,
+                    'tss_state' => $state,
+                ]);
+                $cfg->saveQuietly();
+            }
+
+            if (!$force && !empty($cfg->client_id)) {
+                return [
+                    'ok' => true,
+                    'skipped' => true,
+                    'reason' => 'already_exists',
+                    'tss_id' => $cfg->tss_id,
+                    'client_id' => $cfg->client_id,
+                ];
+            }
+
+            $clientId = (string) Str::uuid();
+            $serialNumber = 'paymydine-loc'.$cfg->location_id.'-'.preg_replace('/[^A-Za-z0-9\-_]/', '-', (string)$cfg->cash_register_id).'-'.date('YmdHis');
+
+            $client = $api->createClient((string)$cfg->tss_id, $clientId, [
+                'serial_number' => $serialNumber,
+                'cash_register_id' => (string)$cfg->cash_register_id,
+                'admin_pin' => $adminPin,
+                'time_admin_pin' => $timeAdminPin,
+            ], $adminToken);
+
+            $cfg->client_id = $client['_id'] ?? $client['id'] ?? $clientId;
+            $cfg->meta = array_merge((array)$cfg->meta, [
+                'client_serial_number' => $serialNumber,
+                'create_client_response' => $client,
+                'provisioning_status' => 'active',
+                'provisioned_at' => now()->toDateTimeString(),
+                'last_error' => null,
+            ]);
+            $cfg->saveQuietly();
+
+            return [
+                'ok' => true,
+                'tss_id' => $cfg->tss_id,
+                'client_id' => $cfg->client_id,
+                'tss_state' => $state,
+            ];
+        } catch (\Throwable $e) {
+            $cfg->last_error = $e->getMessage();
+            $cfg->meta = array_merge((array)$cfg->meta, [
+                'provisioning_status' => 'failed',
+                'last_error' => $e->getMessage(),
+            ]);
+            $cfg->saveQuietly();
+
+            Log::error('[Fiskaly] provisioning failed', [
+                'location_id' => $cfg->location_id,
+                'message' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+}

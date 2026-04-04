@@ -1,0 +1,62 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Illuminate\Support\Facades\DB;
+
+class FiskalyReceiptDataBuilder
+{
+    public function buildForOrder(int $orderId): array
+    {
+        $order = DB::table('orders')->where('order_id', $orderId)->first();
+        $items = DB::table('order_menus')->where('order_id', $orderId)->get();
+
+        $paymentRaw = strtolower((string)($order->payment ?? 'cash'));
+        $paymentType = in_array($paymentRaw, ['cash', 'cod', 'bar', 'cash_on_delivery'], true) ? 'CASH' : 'NON_CASH';
+
+        $lineItems = [];
+        foreach ($items as $item) {
+            $qty = (float)($item->quantity ?? 0);
+            $price = (float)($item->price ?? 0);
+            $subtotal = (float)($item->subtotal ?? ($qty * $price));
+
+            $lineItems[] = [
+                'text' => (string)($item->name ?? 'Item'),
+                'quantity' => (string)round($qty > 0 ? $qty : 1, 2),
+                'price_per_unit' => (string)number_format($price, 2, '.', ''),
+                'amount' => (string)number_format($subtotal, 2, '.', ''),
+                'vat_rate' => '0',
+            ];
+        }
+
+        $total = (float)($order->order_total ?? 0);
+
+        return [
+            'receipt_type' => 'RECEIPT',
+            'schema' => [
+                'standard_v1' => [
+                    'receipt' => [
+                        'type' => 'RECEIPT',
+                        'currency_code' => 'EUR',
+                        'buyer' => [],
+                        'line_items' => $lineItems,
+                        'payments' => [[
+                            'type' => $paymentType,
+                            'amount_per_payment_type' => (string)number_format($total, 2, '.', ''),
+                        ]],
+                        'amounts_per_vat_rate' => [[
+                            'vat_rate' => '0',
+                            'amount' => (string)number_format($total, 2, '.', ''),
+                        ]],
+                    ],
+                ],
+            ],
+            'meta' => [
+                'order_id' => $orderId,
+                'order_total' => (string)number_format($total, 2, '.', ''),
+                'payment' => (string)($order->payment ?? ''),
+                'items_count' => $items->count(),
+            ],
+        ];
+    }
+}

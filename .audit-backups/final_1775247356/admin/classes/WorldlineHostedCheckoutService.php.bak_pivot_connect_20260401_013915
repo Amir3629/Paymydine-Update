@@ -1,0 +1,232 @@
+<?php
+
+namespace Admin\Classes;
+
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use OnlinePayments\Sdk\Client;
+use OnlinePayments\Sdk\Communicator;
+use OnlinePayments\Sdk\CommunicatorConfiguration;
+use OnlinePayments\Sdk\Domain\AmountOfMoney;
+use OnlinePayments\Sdk\Domain\CreateHostedCheckoutRequest;
+use OnlinePayments\Sdk\Domain\HostedCheckoutSpecificInput;
+use OnlinePayments\Sdk\Domain\Order;
+
+class WorldlineHostedCheckoutService
+{
+
+    public function getConfigForDiagnostics(): array
+    {
+        $cfg = $this->getConfig();
+
+        return [
+            'host' => $cfg['host'] ?? null,
+            'tenant_database' => $cfg['tenant_database'] ?? null,
+            'config_id' => $cfg['config_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+            'api_endpoint' => $cfg['api_endpoint'] ?? null,
+            'merchant_id' => $cfg['merchant_id'] ?? null,
+            'merchant_id_length' => strlen((string)($cfg['merchant_id'] ?? '')),
+            'api_key_id_prefix' => substr((string)($cfg['api_key_id'] ?? ''), 0, 8),
+            'api_key_id_length' => strlen((string)($cfg['api_key_id'] ?? '')),
+            'secret_api_key_prefix' => substr((string)($cfg['secret_api_key'] ?? ''), 0, 6),
+            'secret_api_key_length' => strlen((string)($cfg['secret_api_key'] ?? '')),
+            'webhook_secret_prefix' => substr((string)($cfg['webhook_secret'] ?? ''), 0, 6),
+            'webhook_secret_length' => strlen((string)($cfg['webhook_secret'] ?? '')),
+            'authenticator_class' => $this->findAuthenticatorClass(),
+        ];
+    }
+
+    protected function centralConnection()
+    {
+        return DB::connection('mysql');
+    }
+
+    protected function resolveTenantFromHost(string $host)
+    {
+        $central = $this->centralConnection();
+        return $central->table('tenants')->where('domain', $host)->first();
+    }
+
+    protected function tenantConnectionForHost(string $host)
+    {
+        $tenant = $this->resolveTenantFromHost($host);
+
+        if (!$tenant || empty($tenant->database)) {
+            throw new \RuntimeException("Tenant not found for host: {$host}");
+        }
+
+        $base = config('database.connections.mysql');
+        $base['database'] = $tenant->database;
+
+        Config::set('database.connections.worldline_runtime', $base);
+        DB::purge('worldline_runtime');
+        DB::reconnect('worldline_runtime');
+
+        return DB::connection('worldline_runtime');
+    }
+
+    protected function findAuthenticatorClass(): string
+    {
+        $candidates = [
+            'OnlinePayments\\Sdk\\V1HmacAuthenticator',
+            'OnlinePayments\\Sdk\\Webhooks\\V1HmacAuthenticator',
+            'OnlinePayments\\Sdk\\Communicator\\V1HmacAuthenticator',
+            'OnlinePayments\\Sdk\\DefaultImpl\\V1HmacAuthenticator',
+            'OnlinePayments\\Sdk\\Authenticator\\V1HmacAuthenticator',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (class_exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        $vendorRoot = '/var/www/paymydine/vendor';
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($vendorRoot, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->getFilename() === 'V1HmacAuthenticator.php') {
+                $content = file_get_contents($file->getPathname());
+                if (preg_match('/namespace\s+([^;]+);/', $content, $m)) {
+                    $fqcn = trim($m[1]).'\\V1HmacAuthenticator';
+                    if (class_exists($fqcn)) {
+                        return $fqcn;
+                    }
+                }
+            }
+        }
+
+        throw new \RuntimeException('V1HmacAuthenticator class not found in installed Worldline SDK');
+    }
+
+    public function getConfig(): array
+    {
+        $host = request()->getHost();
+        $conn = $this->tenantConnectionForHost($host);
+
+        $row = $conn->table('pos_configs as pc')
+            ->join('pos_devices as pd', 'pd.device_id', '=', 'pc.device_id')
+            ->where('pd.code', 'worldline')
+            ->select(
+                'pc.config_id',
+                'pc.url',
+                'pc.username',
+                'pc.access_token',
+                'pc.id_application',
+                'pc.password'
+            )
+            ->orderByDesc('pc.config_id')
+            ->first();
+
+        if (!$row) {
+            throw new \RuntimeException("Worldline config not found in current tenant DB for host {$host}");
+        }
+
+        return [
+            'host'            => $host,
+            'tenant_database' => $conn->getDatabaseName(),
+            'config_id'       => $row->config_id,
+            'api_endpoint'    => rtrim((string)$row->url, '/').'/',
+            'api_key_id'      => (string)$row->username,
+            'secret_api_key'  => (string)$row->access_token,
+            'merchant_id'     => (string)$row->id_application,
+            'webhook_secret'  => (string)$row->password,
+        ];
+    }
+
+    public function getEnvironment(array $cfg): string
+    {
+        $base = $cfg['api_endpoint'] ?? '';
+
+        if (str_contains($base, 'payment.preprod.direct.worldline-solutions.com')) {
+            return 'preprod';
+        }
+
+        if (str_contains($base, 'payment.direct.worldline-solutions.com')) {
+            return 'live';
+        }
+
+        return 'custom';
+    }
+
+    protected function makeMerchantClient(array $cfg)
+    {
+        $integrator = 'PayMyDine';
+
+        $communicatorConfiguration = new CommunicatorConfiguration(
+            $cfg['api_key_id'],
+            $cfg['secret_api_key'],
+            $cfg['api_endpoint'],
+            $integrator,
+            null
+        );
+
+        $authenticatorClass = $this->findAuthenticatorClass();
+        $authenticator = new $authenticatorClass($communicatorConfiguration);
+
+        $communicator = new Communicator($communicatorConfiguration, $authenticator);
+        $client = new Client($communicator);
+
+        return $client->merchant($cfg['merchant_id']);
+    }
+
+    public function createHostedCheckout(array $payload): array
+    {
+        $cfg = $this->getConfig();
+        $merchantClient = $this->makeMerchantClient($cfg);
+        $hostedCheckoutClient = $merchantClient->hostedCheckout();
+
+        $amountMinor = (int)($payload['amount_minor'] ?? 0);
+        $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
+        $returnUrl = (string)($payload['return_url'] ?? url('/order-placed'));
+        $locale = (string)($payload['locale'] ?? 'en_GB');
+
+        if ($amountMinor <= 0) {
+            throw new \RuntimeException('amount_minor must be > 0');
+        }
+
+        $request = new CreateHostedCheckoutRequest();
+
+        $order = new Order();
+        $amount = new AmountOfMoney();
+        $amount->setCurrencyCode($currency);
+        $amount->setAmount($amountMinor);
+        $order->setAmountOfMoney($amount);
+        $request->setOrder($order);
+
+        $specific = new HostedCheckoutSpecificInput();
+        $specific->setReturnUrl($returnUrl);
+        $specific->setLocale($locale);
+        $request->setHostedCheckoutSpecificInput($specific);
+
+        $response = $hostedCheckoutClient->createHostedCheckout($request);
+
+        $redirectUrl = method_exists($response, 'getRedirectUrl') ? $response->getRedirectUrl() : null;
+        $partialRedirectUrl = method_exists($response, 'getPartialRedirectUrl') ? $response->getPartialRedirectUrl() : null;
+        $hostedCheckoutId = method_exists($response, 'getHostedCheckoutId') ? $response->getHostedCheckoutId() : null;
+        $returnMac = method_exists($response, 'getRETURNMAC') ? $response->getRETURNMAC() : null;
+
+        return [
+            'environment' => $this->getEnvironment($cfg),
+            'tenant_database' => $cfg['tenant_database'],
+            'host' => $cfg['host'],
+            'config_id' => $cfg['config_id'],
+            'merchant_id' => $cfg['merchant_id'],
+            'redirect_url' => $redirectUrl,
+            'partial_redirect_url' => $partialRedirectUrl,
+            'hosted_checkout_id' => $hostedCheckoutId,
+            'return_mac' => $returnMac,
+            'request_meta' => [
+                'amount_minor' => $amountMinor,
+                'currency' => $currency,
+                'return_url' => $returnUrl,
+                'locale' => $locale,
+                'trace_id' => (string) Str::uuid(),
+            ],
+        ];
+    }
+}

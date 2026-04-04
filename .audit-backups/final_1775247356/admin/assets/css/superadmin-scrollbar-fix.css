@@ -1,0 +1,267 @@
+/* ============================================
+   SUPERADMIN SIDEBAR FIXES
+   1. Remove scrollbar (only 3 items, no need)
+   2. Remove ALL hover effects (no effects on menu/logo)
+   3. Move menu items higher
+   ============================================ */
+
+/* ============================================
+   1. HIDE ALL SCROLLBARS IN SIDEBAR
+   ============================================ */
+
+/* Hide scrollbar completely */
+.nk-sidebar,
+.sidebar,
+div.sidebar,
+.nk-sidebar-element.nk-sidebar-body,
+.nk-sidebar-content,
+.nk-sidebar-menu,
+.nav-sidebar {
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.nk-sidebar::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+div.sidebar::-webkit-scrollbar,
+.nk-sidebar-element.nk-sidebar-body::-webkit-scrollbar,
+.nk-sidebar-content::-webkit-scrollbar,
+.nk-sidebar-menu::-webkit-scrollbar,
+.nav-sidebar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ============================================
+   2. REMOVE ALL HOVER EFFECTS
+   ============================================ */
+
+/* Menu link hover - EXACT same as admin panel */
+.nk-sidebar .nk-menu-link:hover,
+.nk-sidebar-menu .nk-menu-link:hover,
+.nav-sidebar .nav-link:hover,
+#side-nav-menu .nav-link:hover,
+.sidebar .nav-link:hover,
+.nk-sidebar-menu .nk-menu-sub .nk-menu-link:hover,
+.nav-sidebar .nav.collapse .nav-link:hover,
+#side-nav-menu .nav.collapse .nav-link:hover {
+  background-color: rgba(81, 101, 132, 0.65) !important; /* EXACT same as admin panel hover (65% opacity) */
+  background: rgba(81, 101, 132, 0.65) !important;
+  color: #FFFFFF !important;
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+/* Active menu link - EXACT same as admin panel */
+.nk-sidebar .nk-menu-link.active,
+.nk-sidebar .nk-menu-item.active > .nk-menu-link,
+.nk-sidebar-menu .active,
+.nav-sidebar .active,
+#side-nav-menu .active,
+.sidebar .nav-link.active {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* EXACT same as admin panel active (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #ffffff !important; /* Pure white text - brighter */
+  border-left: none !important; /* NO border, use background like admin */
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  font-weight: 600 !important; /* Bolder */
+  opacity: 1 !important;
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow like admin */
+}
+
+/* Remove green from active menu item container */
+.nk-sidebar .nk-menu-item.active,
+.nk-sidebar .nk-menu-item.current-page {
+  background-color: transparent !important;
+  border-left: none !important;
+}
+
+/* NUCLEAR: Remove ALL green colors from sidebar completely */
+.nk-sidebar .nk-menu-item.active > .nav-link,
+#side-nav-menu .nav-item.active > .nav-link,
+.nk-sidebar-menu .nav-item.active,
+.nk-sidebar .active {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* EXACT same as admin panel active (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #ffffff !important;
+  border-left: none !important; /* NO border, use background like admin */
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow like admin */
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+}
+
+/* Remove green text color from active links */
+.nk-sidebar a.active,
+.nk-sidebar .nk-menu-link.active,
+#side-nav-menu .active {
+  color: #ffffff !important;
+}
+
+/* Menu icons - WHITE/GRAY only, NO green! */
+.nk-sidebar .nk-menu-icon,
+.nk-sidebar-menu .icon,
+.nav-sidebar i,
+#side-nav-menu i {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Icon on hover - NO CHANGE */
+.nk-sidebar .nk-menu-link:hover .nk-menu-icon,
+.nk-sidebar-menu .nk-menu-link:hover i,
+.nav-sidebar .nav-link:hover i,
+#side-nav-menu .nav-link:hover i {
+  color: rgba(255, 255, 255, 0.7) !important; /* Same as default - NO CHANGE */
+}
+
+/* Icon when active - PURE WHITE (NOT green) */
+.nk-sidebar .nk-menu-link.active .nk-menu-icon,
+.nk-sidebar .nk-menu-item.active .nk-menu-icon,
+.nk-sidebar-menu .active i,
+.nav-sidebar .active i,
+#side-nav-menu .active i {
+  color: #ffffff !important; /* Pure white */
+}
+
+/* ============================================
+   3. REMOVE ALL HOVER EFFECTS GLOBALLY
+   ============================================ */
+
+/* NO hover effects on sidebar brand/logo, but allow scale on menu items */
+.nk-sidebar-brand:hover,
+.nk-sidebar-brand img:hover,
+.logo-link:hover {
+  background-color: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* Menu links get scale effect (defined above) */
+
+/* Remove any pseudo-elements that might duplicate logo */
+.nk-sidebar-brand::before,
+.nk-sidebar-brand::after,
+.logo-link::before,
+.logo-link::after,
+.nk-sidebar-brand img::before,
+.nk-sidebar-brand img::after {
+  display: none !important;
+  content: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide duplicate/extra images */
+.nk-sidebar-brand img + img,
+.logo-link img + img {
+  display: none !important;
+}
+
+/* Only show first logo image */
+.nk-sidebar-brand img:first-of-type,
+.logo-link img:first-of-type {
+  display: block !important;
+}
+
+.nk-sidebar-brand img:not(:first-of-type),
+.logo-link img:not(:first-of-type) {
+  display: none !important;
+}
+
+/* ============================================
+   4. MOVE MENU ITEMS HIGHER
+   ============================================ */
+
+/* Sidebar menu - START BELOW LOGO (170px) */
+.nk-sidebar .nk-menu,
+.nk-sidebar-menu,
+.nav-sidebar,
+#side-nav-menu {
+  padding-top: 0px !important; /* Keep padding-top 0, sidebar itself has padding-top: 170px */
+  margin-top: 0px !important; /* No top margin */
+}
+
+/* Sidebar body - start right after logo (170px) */
+.nk-sidebar-element.nk-sidebar-body,
+.nk-sidebar-content {
+  padding-top: 0px !important; /* No top padding - sidebar already has 170px padding-top */
+  margin-top: 0px !important; /* No top margin */
+}
+
+/* First menu item - no extra spacing, but ensure it's below logo */
+.nk-sidebar .nk-menu-item:first-child,
+.nk-menu .nk-menu-item:first-child {
+  margin-top: 0px !important;
+  padding-top: 0px !important;
+}
+
+/* ============================================
+   5. DISABLE ALL TRANSITIONS & EFFECTS
+   ============================================ */
+
+/* NO transitions on sidebar elements */
+.nk-sidebar,
+.nk-sidebar *,
+.nk-sidebar-brand,
+.nk-sidebar-brand * {
+  transition: none !important; /* NO transitions */
+  transform: none !important; /* NO transforms */
+}
+
+/* Sidebar menu links - EXACT same transitions as admin panel */
+.nk-sidebar .nk-menu-link,
+.nk-sidebar-menu .nk-menu-link,
+.nav-sidebar .nav-link,
+#side-nav-menu .nav-link {
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease, color 0.2s ease !important; /* Smooth transitions like admin */
+}
+
+/* ============================================
+   FINAL NUCLEAR OVERRIDE - REMOVE ALL GREEN
+   ============================================ */
+
+/* Kill ALL green colors in sidebar - MAXIMUM SPECIFICITY */
+html body .nk-sidebar .nk-menu-item.active > .nk-menu-link,
+html body .nk-sidebar .nk-menu-item.active .nk-menu-link,
+html body .nk-sidebar .active,
+html body #side-nav-menu .nav-item.active > .nav-link,
+html body .nk-sidebar-menu .nav-item.active {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* EXACT same as admin panel active (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #ffffff !important;
+  border-left: none !important; /* NO border, use background like admin */
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  font-weight: 600 !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow like admin */
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+}
+
+/* Remove green background */
+html body .nk-sidebar .nk-menu-item.active,
+html body .nk-sidebar .current-page {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Force white color on active menu text */
+html body .nk-sidebar .nk-menu-item.active .nk-menu-text,
+html body .nk-sidebar .active .nk-menu-text,
+html body .nk-sidebar .nk-menu-link.active span {
+  color: #ffffff !important;
+}
+
+/* Force white color on active icons */
+html body .nk-sidebar .nk-menu-item.active .nk-menu-icon,
+html body .nk-sidebar .active .icon,
+html body .nk-sidebar .nk-menu-link.active em {
+  color: #ffffff !important;
+}
+

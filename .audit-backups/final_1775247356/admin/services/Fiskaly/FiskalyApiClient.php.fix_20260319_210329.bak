@@ -1,0 +1,254 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Admin\Models\Fiskaly_configs_model;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class FiskalyApiClient
+{
+    protected Fiskaly_configs_model $config;
+    protected string $baseUrl = 'https://kassensichv-middleware.fiskaly.com/api/v2';
+
+    public function __construct(Fiskaly_configs_model $config)
+    {
+        $this->config = $config;
+    }
+
+    public function authenticate(): array
+    {
+        $authUrl = 'https://kassensichv-middleware.fiskaly.com/api/v2/auth';
+
+        $res = Http::timeout(30)
+            ->acceptJson()
+            ->post($authUrl, [
+                'api_key' => (string)$this->config->api_key,
+                'api_secret' => (string)$this->config->api_secret,
+            ]);
+
+        if (!$res->successful()) {
+            Log::error('[Fiskaly] auth failed', [
+                'location_id' => $this->config->location_id,
+                'status' => $res->status(),
+                'body' => $res->body(),
+            ]);
+
+            throw new \RuntimeException('Fiskaly auth failed: HTTP '.$res->status());
+        }
+
+        $json = $res->json() ?: [];
+        $token = $json['access_token'] ?? null;
+
+        if (!$token) {
+            throw new \RuntimeException('Fiskaly auth failed: missing access_token');
+        }
+
+        return $json;
+    }
+
+    public function upsertTransaction(string $txId, array $payload): array
+    {
+        $txRevision = (int)($payload['tx_revision'] ?? 1);
+        unset($payload['tx_revision']);
+
+        if (empty($payload['receipt_type'])) {
+            $payload['receipt_type'] = 'RECEIPT';
+        }
+
+        $auth = $this->authenticate();
+        $token = $auth['access_token'] ?? null;
+
+        if (!$token) {
+            throw new \RuntimeException('Fiskaly auth failed: missing access_token after auth');
+        }
+
+        $url = $this->baseUrl.'/tss/'.$this->config->tss_id.'/tx/'.$txId.'?tx_revision='.$txRevision;
+        $jsonBody = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if ($jsonBody === false) {
+            throw new \RuntimeException('Fiskaly payload json_encode failed');
+        }
+
+        Log::info('[Fiskaly] outgoing payload', [
+            'location_id' => $this->config->location_id,
+            'tx_id' => $txId,
+            'tx_revision' => $txRevision,
+            'url' => $url,
+            'payload' => $payload,
+            'json_body' => $jsonBody,
+        ]);
+
+        $ch = curl_init($url);
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => $jsonBody,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer '.$token,
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Content-Length: '.strlen($jsonBody),
+            ],
+            CURLOPT_TIMEOUT => 45,
+            CURLOPT_CONNECTTIMEOUT => 20,
+            CURLOPT_HEADER => true,
+        ]);
+
+        $raw = curl_exec($ch);
+
+        if ($raw === false) {
+            $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
+            curl_close($ch);
+
+            Log::error('[Fiskaly] curl transport failed', [
+                'location_id' => $this->config->location_id,
+                'tx_id' => $txId,
+                'tx_revision' => $txRevision,
+                'curl_errno' => $curlErrno,
+                'curl_error' => $curlError,
+                'json_body' => $jsonBody,
+            ]);
+
+            throw new \RuntimeException('Fiskaly curl transport failed: '.$curlError);
+        }
+
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $responseHeaders = substr($raw, 0, $headerSize);
+        $responseBody = substr($raw, $headerSize);
+
+        curl_close($ch);
+
+        Log::info('[Fiskaly] curl response', [
+            'location_id' => $this->config->location_id,
+            'tx_id' => $txId,
+            'tx_revision' => $txRevision,
+            'status' => $status,
+            'response_headers' => $responseHeaders,
+            'response_body' => $responseBody,
+        ]);
+
+        if ((int)$status < 200 || (int)$status >= 300) {
+            Log::error('[Fiskaly] upsertTransaction failed', [
+                'location_id' => $this->config->location_id,
+                'tx_id' => $txId,
+                'tx_revision' => $txRevision,
+                'status' => $status,
+                'body' => $responseBody,
+                'headers' => $responseHeaders,
+                'json_body' => $jsonBody,
+            ]);
+
+            throw new \RuntimeException('Fiskaly upsertTransaction failed: HTTP '.$status);
+        }
+
+        $decoded = json_decode($responseBody, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+    public function createClient(array $data): array
+    {
+        $auth = $this->authenticate();
+        $token = $auth['access_token'] ?? null;
+
+        if (!$token) {
+            throw new \RuntimeException('Fiskaly auth failed: missing access_token after auth');
+        }
+
+        $payload = [
+            'cash_register_id' => (string)($data['cash_register_id'] ?? ''),
+        ];
+
+        if (!empty($data['admin_pin'])) {
+            $payload['admin_pin'] = (string)$data['admin_pin'];
+        }
+
+        if (!empty($data['time_admin_pin'])) {
+            $payload['time_admin_pin'] = (string)$data['time_admin_pin'];
+        }
+
+        $url = $this->baseUrl.'/tss/'.$this->config->tss_id.'/client';
+        $jsonBody = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if ($jsonBody === false) {
+            throw new \RuntimeException('Fiskaly createClient payload json_encode failed');
+        }
+
+        Log::info('[Fiskaly] createClient outgoing payload', [
+            'location_id' => $this->config->location_id,
+            'tss_id' => $this->config->tss_id,
+            'url' => $url,
+            'payload' => $payload,
+            'json_body' => $jsonBody,
+        ]);
+
+        $ch = curl_init($url);
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => $jsonBody,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer '.$token,
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Content-Length: '.strlen($jsonBody),
+            ],
+            CURLOPT_TIMEOUT => 45,
+            CURLOPT_CONNECTTIMEOUT => 20,
+            CURLOPT_HEADER => true,
+        ]);
+
+        $raw = curl_exec($ch);
+
+        if ($raw === false) {
+            $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
+            curl_close($ch);
+
+            Log::error('[Fiskaly] createClient curl transport failed', [
+                'location_id' => $this->config->location_id,
+                'tss_id' => $this->config->tss_id,
+                'curl_errno' => $curlErrno,
+                'curl_error' => $curlError,
+                'json_body' => $jsonBody,
+            ]);
+
+            throw new \RuntimeException('Fiskaly createClient curl transport failed: '.$curlError);
+        }
+
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $responseHeaders = substr($raw, 0, $headerSize);
+        $responseBody = substr($raw, $headerSize);
+
+        curl_close($ch);
+
+        Log::info('[Fiskaly] createClient response', [
+            'location_id' => $this->config->location_id,
+            'tss_id' => $this->config->tss_id,
+            'status' => $status,
+            'response_headers' => $responseHeaders,
+            'response_body' => $responseBody,
+        ]);
+
+        if ((int)$status < 200 || (int)$status >= 300) {
+            Log::error('[Fiskaly] createClient failed', [
+                'location_id' => $this->config->location_id,
+                'tss_id' => $this->config->tss_id,
+                'status' => $status,
+                'body' => $responseBody,
+                'headers' => $responseHeaders,
+                'json_body' => $jsonBody,
+            ]);
+
+            throw new \RuntimeException('Fiskaly createClient failed: HTTP '.$status);
+        }
+
+        $decoded = json_decode($responseBody, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+}

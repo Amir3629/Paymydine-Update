@@ -1,0 +1,68 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Illuminate\Support\Facades\DB;
+
+class FiskalyLineBuilder
+{
+    protected static function getValue($src, string $key, $default = null)
+    {
+        if (is_array($src)) {
+            return array_key_exists($key, $src) ? $src[$key] : $default;
+        }
+
+        return $src->$key ?? $default;
+    }
+
+    public static function buildFromOrderMenu($orderMenu, float $vatRate = 19.0): array
+    {
+        $qty = (float) self::getValue($orderMenu, 'quantity', 1);
+        if ($qty <= 0) {
+            $qty = 1.0;
+        }
+
+        $name = (string) (
+            self::getValue($orderMenu, 'name',
+                self::getValue($orderMenu, 'menu_name', 'Item')
+            )
+        );
+
+        $orderMenuId   = self::getValue($orderMenu, 'order_menu_id');
+        $baseSubtotal  = (float) self::getValue($orderMenu, 'subtotal', 0);
+        $baseUnitPrice = (float) self::getValue($orderMenu, 'price', 0);
+
+        $baseCalculated = $qty * $baseUnitPrice;
+        $optionsTotal = 0.0;
+
+        if (!empty($orderMenuId)) {
+            try {
+                $optionsTotal = (float) DB::table('order_menu_options')
+                    ->where('order_menu_id', $orderMenuId)
+                    ->sum('price');
+            } catch (\Throwable $e) {
+                $optionsTotal = 0.0;
+            }
+        }
+
+        $finalSubtotal = $baseSubtotal;
+
+        if ($finalSubtotal <= 0.0) {
+            $finalSubtotal = $baseCalculated;
+        }
+
+        if ($optionsTotal > 0 && abs($finalSubtotal - $baseCalculated) < 0.009) {
+            $finalSubtotal = $baseCalculated + $optionsTotal;
+        }
+
+        $unitPrice = $qty > 0 ? ($finalSubtotal / $qty) : $finalSubtotal;
+
+        return [
+            'name'       => $name,
+            'quantity'   => number_format($qty, 2, '.', ''),
+            'unit_price' => number_format((float) $unitPrice, 2, '.', ''),
+            'total_price'=> number_format((float) $finalSubtotal, 2, '.', ''),
+            'vat_rate'   => number_format((float) $vatRate, 2, '.', ''),
+        ];
+    }
+}

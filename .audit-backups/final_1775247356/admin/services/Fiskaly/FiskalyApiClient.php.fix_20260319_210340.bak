@@ -1,0 +1,349 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Admin\Models\Fiskaly_configs_model;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+class FiskalyApiClient
+{
+    protected Fiskaly_configs_model $config;
+    protected string $baseUrl = 'https://kassensichv-middleware.fiskaly.com/api/v2';
+
+    public function __construct(Fiskaly_configs_model $config)
+    {
+        $this->config = $config;
+    }
+
+    public function authenticate(): array
+    {
+        $authUrl = $this->baseUrl.'/auth';
+
+        $res = Http::timeout(30)
+            ->acceptJson()
+            ->post($authUrl, [
+                'api_key' => (string)$this->config->api_key,
+                'api_secret' => (string)$this->config->api_secret,
+            ]);
+
+        if (!$res->successful()) {
+            Log::error('[Fiskaly] auth failed', [
+                'location_id' => $this->config->location_id,
+                'status' => $res->status(),
+                'body' => $res->body(),
+            ]);
+
+            throw new \RuntimeException('Fiskaly auth failed: HTTP '.$res->status().' BODY: '.$res->body());
+        }
+
+        $json = $res->json() ?: [];
+        $token = $json['access_token'] ?? null;
+
+        if (!$token) {
+            throw new \RuntimeException('Fiskaly auth failed: missing access_token');
+        }
+
+        return $json;
+    }
+
+    protected function parseResponse($res): array
+    {
+        $json = $res->json();
+        return is_array($json) ? $json : [];
+    }
+
+    protected function doRequest(string $method, string $url, ?string $bearerToken = null, array $payload = [], int $timeout = 45)
+    {
+        $http = Http::timeout($timeout)->acceptJson();
+
+        if ($bearerToken) {
+            $http = $http->withToken($bearerToken);
+        }
+
+        if (strtoupper($method) === 'GET') {
+            return $http->get($url, $payload);
+        }
+
+        if (strtoupper($method) === 'POST') {
+            return $http->post($url, $payload);
+        }
+
+        if (strtoupper($method) === 'PUT') {
+            return $http->put($url, $payload);
+        }
+
+        if (strtoupper($method) === 'PATCH') {
+            return $http->patch($url, $payload);
+        }
+
+        if (strtoupper($method) === 'DELETE') {
+            return $http->delete($url, $payload);
+        }
+
+        throw new \InvalidArgumentException('Unsupported method: '.$method);
+    }
+
+    protected function requestOrThrow(string $method, string $url, ?string $bearerToken = null, array $payload = [], int $timeout = 45): array
+    {
+        Log::info('[Fiskaly] request', [
+            'method' => $method,
+            'url' => $url,
+            'payload' => $payload,
+        ]);
+
+        $res = $this->doRequest($method, $url, $bearerToken, $payload, $timeout);
+
+        Log::info('[Fiskaly] response', [
+            'method' => $method,
+            'url' => $url,
+            'status' => $res->status(),
+            'body' => $res->body(),
+        ]);
+
+        if (!$res->successful()) {
+            throw new \RuntimeException("Fiskaly request failed: {$method} {$url} HTTP {$res->status()} BODY: ".$res->body());
+        }
+
+        return $this->parseResponse($res);
+    }
+
+    public function getTss(string $tssId): array
+    {
+        $auth = $this->authenticate();
+        return $this->requestOrThrow('GET', $this->baseUrl.'/tss/'.$tssId, $auth['access_token']);
+    }
+
+    public function listClientsOfTss(string $tssId): array
+    {
+        $auth = $this->authenticate();
+        return $this->requestOrThrow('GET', $this->baseUrl.'/tss/'.$tssId.'/client', $auth['access_token']);
+    }
+
+    public function createTss(array $payload): array
+    {
+        $auth = $this->authenticate();
+        $token = $auth['access_token'];
+
+        $variants = [
+            ['POST', $this->baseUrl.'/tss'],
+            ['PUT',  $this->baseUrl.'/tss/'.(string) Str::uuid()],
+        ];
+
+        $lastError = null;
+
+        foreach ($variants as [$method, $url]) {
+            try {
+                return $this->requestOrThrow($method, $url, $token, $payload, 60);
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+                Log::warning('[Fiskaly] createTss variant failed', [
+                    'method' => $method,
+                    'url' => $url,
+                    'message' => $lastError,
+                ]);
+            }
+        }
+
+        throw new \RuntimeException('Fiskaly createTss failed on all variants: '.$lastError);
+    }
+
+    public function updateTssState(string $tssId, string $state): array
+    {
+        $auth = $this->authenticate();
+        $token = $auth['access_token'];
+
+        $payloads = [
+            ['state' => $state],
+            ['admin' => ['state' => $state]],
+        ];
+
+        $variants = [
+            ['PUT', $this->baseUrl.'/tss/'.$tssId],
+            ['PATCH', $this->baseUrl.'/tss/'.$tssId],
+        ];
+
+        $lastError = null;
+
+        foreach ($variants as [$method, $url]) {
+            foreach ($payloads as $payload) {
+                try {
+                    return $this->requestOrThrow($method, $url, $token, $payload, 45);
+                } catch (\Throwable $e) {
+                    $lastError = $e->getMessage();
+                    Log::warning('[Fiskaly] updateTssState variant failed', [
+                        'method' => $method,
+                        'url' => $url,
+                        'payload' => $payload,
+                        'message' => $lastError,
+                    ]);
+                }
+            }
+        }
+
+        throw new \RuntimeException('Fiskaly updateTssState('.$state.') failed on all variants: '.$lastError);
+    }
+
+    public function changeAdminPin(string $tssId, string $adminPin, string $timeAdminPin): array
+    {
+        $auth = $this->authenticate();
+        $token = $auth['access_token'];
+
+        $payloads = [
+            ['admin_pin' => $adminPin, 'time_admin_pin' => $timeAdminPin],
+            ['new_admin_pin' => $adminPin, 'new_time_admin_pin' => $timeAdminPin],
+            ['pin' => $adminPin, 'time_pin' => $timeAdminPin],
+        ];
+
+        $variants = [
+            ['POST',  $this->baseUrl.'/tss/'.$tssId.'/admin/pin'],
+            ['PUT',   $this->baseUrl.'/tss/'.$tssId.'/admin/pin'],
+            ['PATCH', $this->baseUrl.'/tss/'.$tssId.'/admin/pin'],
+            ['POST',  $this->baseUrl.'/tss/'.$tssId.'/admin'],
+            ['PUT',   $this->baseUrl.'/tss/'.$tssId.'/admin'],
+        ];
+
+        $lastError = null;
+
+        foreach ($variants as [$method, $url]) {
+            foreach ($payloads as $payload) {
+                try {
+                    return $this->requestOrThrow($method, $url, $token, $payload, 45);
+                } catch (\Throwable $e) {
+                    $lastError = $e->getMessage();
+                    Log::warning('[Fiskaly] changeAdminPin variant failed', [
+                        'method' => $method,
+                        'url' => $url,
+                        'payload' => $payload,
+                        'message' => $lastError,
+                    ]);
+                }
+            }
+        }
+
+        throw new \RuntimeException('Fiskaly changeAdminPin failed on all variants: '.$lastError);
+    }
+
+    public function adminAuth(string $tssId, string $adminPin, ?string $timeAdminPin = null): array
+    {
+        $auth = $this->authenticate();
+        $token = $auth['access_token'];
+
+        $payloads = [
+            array_filter([
+                'admin_pin' => $adminPin,
+                'time_admin_pin' => $timeAdminPin,
+            ]),
+            ['pin' => $adminPin],
+            ['admin_pin' => $adminPin],
+        ];
+
+        $variants = [
+            ['POST', $this->baseUrl.'/tss/'.$tssId.'/admin/auth'],
+            ['POST', $this->baseUrl.'/tss/'.$tssId.'/admin_auth'],
+            ['POST', $this->baseUrl.'/tss/'.$tssId.'/admin'],
+            ['POST', $this->baseUrl.'/tss/'.$tssId.'/authenticate-admin'],
+        ];
+
+        $lastError = null;
+
+        foreach ($variants as [$method, $url]) {
+            foreach ($payloads as $payload) {
+                try {
+                    $result = $this->requestOrThrow($method, $url, $token, $payload, 45);
+
+                    // normalize token field
+                    if (!isset($result['access_token']) && isset($result['token'])) {
+                        $result['access_token'] = $result['token'];
+                    }
+
+                    return $result;
+                } catch (\Throwable $e) {
+                    $lastError = $e->getMessage();
+                    Log::warning('[Fiskaly] adminAuth variant failed', [
+                        'method' => $method,
+                        'url' => $url,
+                        'payload' => $payload,
+                        'message' => $lastError,
+                    ]);
+                }
+            }
+        }
+
+        throw new \RuntimeException('Fiskaly adminAuth failed on all variants: '.$lastError);
+    }
+
+    public function createClient(string $tssId, string $clientId, array $payload, ?string $adminToken = null): array
+    {
+        $apiAuth = $this->authenticate();
+        $fallbackToken = $apiAuth['access_token'] ?? null;
+        $token = $adminToken ?: $fallbackToken;
+
+        $variants = [
+            ['PUT', $this->baseUrl.'/tss/'.$tssId.'/client/'.$clientId],
+            ['PUT', $this->baseUrl.'/tss/'.$tssId.'/clients/'.$clientId],
+            ['POST', $this->baseUrl.'/tss/'.$tssId.'/client'],
+            ['POST', $this->baseUrl.'/tss/'.$tssId.'/clients'],
+        ];
+
+        $lastError = null;
+
+        foreach ($variants as [$method, $url]) {
+            try {
+                return $this->requestOrThrow($method, $url, $token, $payload, 45);
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+                Log::warning('[Fiskaly] createClient variant failed', [
+                    'method' => $method,
+                    'url' => $url,
+                    'payload' => $payload,
+                    'message' => $lastError,
+                ]);
+            }
+        }
+
+        throw new \RuntimeException('Fiskaly createClient failed on all variants: '.$lastError);
+    }
+
+    public function upsertTransaction(string $txId, array $payload): array
+    {
+        $txRevision = (int)($payload['tx_revision'] ?? 1);
+        unset($payload['tx_revision']);
+
+        if (empty($payload['receipt_type'])) {
+            $payload['receipt_type'] = 'RECEIPT';
+        }
+
+        $auth = $this->authenticate();
+        $token = $auth['access_token'] ?? null;
+
+        if (!$token) {
+            throw new \RuntimeException('Fiskaly auth failed: missing access_token after auth');
+        }
+
+        $url = $this->baseUrl.'/tss/'.$this->config->tss_id.'/tx/'.$txId.'?tx_revision='.$txRevision;
+
+        Log::info('[Fiskaly] upsertTransaction request', [
+            'url' => $url,
+            'payload' => $payload,
+        ]);
+
+        $res = Http::timeout(45)
+            ->acceptJson()
+            ->withToken($token)
+            ->put($url, $payload);
+
+        Log::info('[Fiskaly] upsertTransaction response', [
+            'status' => $res->status(),
+            'body' => $res->body(),
+        ]);
+
+        if (!$res->successful()) {
+            throw new \RuntimeException('Fiskaly upsertTransaction failed: HTTP '.$res->status().' BODY: '.$res->body());
+        }
+
+        $decoded = $res->json();
+        return is_array($decoded) ? $decoded : [];
+    }
+}

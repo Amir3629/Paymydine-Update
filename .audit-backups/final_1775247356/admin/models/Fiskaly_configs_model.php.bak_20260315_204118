@@ -1,0 +1,159 @@
+<?php
+
+namespace Admin\Models;
+
+use Igniter\Flame\Database\Model;
+use Admin\Services\Fiskaly\FiskalyProvisionService;
+
+class Fiskaly_configs_model extends Model
+{
+    protected $table = 'fiskaly_configs';
+    protected $primaryKey = 'fiskaly_config_id';
+
+    protected $casts = [
+        'is_enabled' => 'boolean',
+        'meta' => 'array',
+    ];
+
+    public $timestamps = true;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Form field aliases used by admin/settings/edit/fiskaly
+    |--------------------------------------------------------------------------
+    */
+
+    public function getFiskalyIsEnabledAttribute()
+    {
+        return (bool) $this->is_enabled;
+    }
+
+    public function setFiskalyIsEnabledAttribute($value)
+    {
+        $this->attributes['is_enabled'] = (int) !!$value;
+    }
+
+    public function getFiskalyEnvironmentAttribute()
+    {
+        return $this->environment;
+    }
+
+    public function setFiskalyEnvironmentAttribute($value)
+    {
+        $this->attributes['environment'] = $value !== null ? (string) $value : null;
+    }
+
+    public function getFiskalyApiKeyAttribute()
+    {
+        return $this->api_key;
+    }
+
+    public function setFiskalyApiKeyAttribute($value)
+    {
+        $this->attributes['api_key'] = $value !== null ? (string) $value : null;
+    }
+
+    public function getFiskalyApiSecretAttribute()
+    {
+        return $this->api_secret;
+    }
+
+    public function setFiskalyApiSecretAttribute($value)
+    {
+        $this->attributes['api_secret'] = $value !== null ? (string) $value : null;
+    }
+
+    public function getFiskalyOrganizationIdAttribute()
+    {
+        return $this->organization_id;
+    }
+
+    public function setFiskalyOrganizationIdAttribute($value)
+    {
+        $this->attributes['organization_id'] = $value !== null ? (string) $value : null;
+    }
+
+    public function getFiskalyTssIdAttribute()
+    {
+        return $this->tss_id;
+    }
+
+    public function setFiskalyTssIdAttribute($value)
+    {
+        $this->attributes['tss_id'] = $value !== null ? (string) $value : null;
+    }
+
+    public function getFiskalyClientIdAttribute()
+    {
+        return $this->client_id;
+    }
+
+    public function setFiskalyClientIdAttribute($value)
+    {
+        $this->attributes['client_id'] = $value !== null ? (string) $value : null;
+    }
+
+    public function getFiskalyCashRegisterIdAttribute()
+    {
+        return $this->cash_register_id;
+    }
+
+    public function setFiskalyCashRegisterIdAttribute($value)
+    {
+        $this->attributes['cash_register_id'] = $value !== null ? (string) $value : null;
+    }
+
+    public function getFiskalyAdminPinAttribute()
+    {
+        return $this->meta['admin_pin'] ?? null;
+    }
+
+    public function setFiskalyAdminPinAttribute($value)
+    {
+        $meta = is_array($this->meta) ? $this->meta : [];
+        if ($value !== null && $value !== '') {
+            $meta['admin_pin'] = (string) $value;
+        } else {
+            unset($meta['admin_pin']);
+        }
+        $this->meta = $meta;
+    }
+
+    public function getFiskalyTimeAdminPinAttribute()
+    {
+        return $this->meta['time_admin_pin'] ?? null;
+    }
+
+    public function setFiskalyTimeAdminPinAttribute($value)
+    {
+        $meta = is_array($this->meta) ? $this->meta : [];
+        if ($value !== null && $value !== '') {
+            $meta['time_admin_pin'] = (string) $value;
+        } else {
+            unset($meta['time_admin_pin']);
+        }
+        $this->meta = $meta;
+    }
+
+    public function afterSave()
+    {
+        try {
+            if (
+                $this->is_enabled &&
+                !empty($this->api_key) &&
+                !empty($this->api_secret) &&
+                !empty($this->tss_id) &&
+                !empty($this->cash_register_id) &&
+                empty($this->client_id)
+            ) {
+                app(FiskalyProvisionService::class)->ensureClientExists($this);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('[Fiskaly] afterSave auto-create client failed', [
+                'fiskaly_config_id' => $this->fiskaly_config_id ?? null,
+                'location_id' => $this->location_id ?? null,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+}

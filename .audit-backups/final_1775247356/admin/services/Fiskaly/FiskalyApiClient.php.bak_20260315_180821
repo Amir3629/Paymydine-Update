@@ -1,0 +1,96 @@
+<?php
+
+namespace Admin\Services\Fiskaly;
+
+use Admin\Models\Fiskaly_configs_model;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class FiskalyApiClient
+{
+    protected Fiskaly_configs_model $config;
+    protected string $baseUrl = 'https://kassensichv-middleware.fiskaly.com/api/v2';
+
+    public function __construct(Fiskaly_configs_model $config)
+    {
+        $this->config = $config;
+    }
+
+    public function authenticate(): array
+    {
+        $authUrl = 'https://kassensichv-middleware.fiskaly.com/api/v2/auth';
+
+        $res = Http::timeout(30)
+            ->acceptJson()
+            ->post($authUrl, [
+                'api_key' => (string)$this->config->api_key,
+                'api_secret' => (string)$this->config->api_secret,
+            ]);
+
+        if (!$res->successful()) {
+            Log::error('[Fiskaly] auth failed', [
+                'location_id' => $this->config->location_id,
+                'status' => $res->status(),
+                'body' => $res->body(),
+            ]);
+
+            throw new \RuntimeException('Fiskaly auth failed: HTTP '.$res->status());
+        }
+
+        $json = $res->json() ?: [];
+        $token = $json['access_token'] ?? null;
+
+        if (!$token) {
+            throw new \RuntimeException('Fiskaly auth failed: missing access_token');
+        }
+
+        return $json;
+    }
+
+    protected function bearer()
+    {
+        $auth = $this->authenticate();
+        return Http::timeout(45)
+            ->acceptJson()
+            ->withToken($auth['access_token']);
+    }
+
+    public function upsertTransaction(string $txId, array $payload): array
+    {
+        if (!isset($payload['receipt_type']) || !$payload['receipt_type']) {
+            $payload['receipt_type'] = 'RECEIPT';
+        }
+
+        $url = $this->baseUrl.'/tss/'.$this->config->tss_id.'/tx/'.$txId;
+        $jsonBody = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        Log::info('[Fiskaly] outgoing payload', [
+            'location_id' => $this->config->location_id,
+            'tx_id' => $txId,
+            'payload' => $payload,
+            'json_body' => $jsonBody,
+        ]);
+
+        $res = $this->bearer()
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+            ])
+            ->send('PUT', $url, [
+                'body' => $jsonBody,
+            ]);
+
+        if (!$res->successful()) {
+            Log::error('[Fiskaly] upsertTransaction failed', [
+                'location_id' => $this->config->location_id,
+                'tx_id' => $txId,
+                'status' => $res->status(),
+                'body' => $res->body(),
+                'json_body' => $jsonBody,
+            ]);
+
+            throw new \RuntimeException('Fiskaly upsertTransaction failed: HTTP '.$res->status());
+        }
+
+        return $res->json() ?: [];
+    }
+}
