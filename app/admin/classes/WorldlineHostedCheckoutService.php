@@ -14,7 +14,7 @@ use Worldline\Connect\Sdk\V1\Domain\HostedCheckoutSpecificInput;
 use Worldline\Connect\Sdk\V1\Domain\Order;
 use Worldline\Connect\Sdk\V1\Domain\Customer;
 use Worldline\Connect\Sdk\V1\Domain\Address;
-use Worldline\Connect\Sdk\V1\Domain\CreateSessionRequest;
+use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 
 class WorldlineHostedCheckoutService
 {
@@ -436,9 +436,7 @@ class WorldlineHostedCheckoutService
         $cfg = $this->getConfig();
         $merchantClient = $this->makeMerchantClient($cfg);
 
-        $sessionRequest = class_exists(CreateSessionRequest::class)
-            ? new CreateSessionRequest()
-            : new \stdClass();
+        $sessionRequest = new SessionRequest();
 
         \Log::info('WORLDLINE INLINE CLIENT SESSION REQUEST', [
             'host' => $cfg['host'] ?? null,
