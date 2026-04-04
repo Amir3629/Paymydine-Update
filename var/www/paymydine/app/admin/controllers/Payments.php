@@ -525,6 +525,7 @@ class Payments extends \Admin\Classes\AdminController
             }
             $meta = is_array($row->meta) ? $row->meta : [];
             $meta['provider_code'] = $cfg['provider_code'];
+            $meta['supported_providers'] = $meta['supported_providers'] ?? Payments_model::supportedProvidersForMethod($code);
             $row->meta = $meta;
             $row->provider_code = $cfg['provider_code'];
             $row->save();
@@ -612,24 +613,31 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function getCompatibleProviders(string $methodCode): array
     {
-        if ($methodCode === 'cod') {
+        if (in_array($methodCode, ['cod', 'cash'], true)) {
             return ['' => 'No provider (Cash)'];
         }
 
         $options = [];
-        $availableCodes = $this->availableProviderCodesForMethod($methodCode);
+        $availableCodes = Payments_model::supportedProvidersForMethod($methodCode);
         foreach ($this->getPaymentProviderSettings() as $provider) {
             $providerCode = (string)($provider['code'] ?? '');
             if (in_array($providerCode, $availableCodes, true)) {
                 $options[(string)$provider['code']] = (string)($provider['name'] ?? strtoupper((string)$provider['code']));
             }
         }
+
+        foreach ($availableCodes as $providerCode) {
+            if (!array_key_exists($providerCode, $options)) {
+                $options[$providerCode] = ucfirst(str_replace('_', ' ', $providerCode));
+            }
+        }
+
         return $options;
     }
 
     protected function validateProviderCompatibility(string $methodCode, ?string $providerCode): void
     {
-        if ($methodCode === 'cod') {
+        if (in_array($methodCode, ['cod', 'cash'], true)) {
             if ($providerCode !== null && $providerCode !== '') {
                 throw new ApplicationException('Cash method must not have a provider.');
             }
@@ -684,36 +692,9 @@ class Payments extends \Admin\Classes\AdminController
         return $byCode;
     }
 
-    protected function implementedProviderFlows(): array
-    {
-        // implemented_flow_matrix (end-to-end in current stack)
-        return [
-            'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal'],
-            'worldline' => ['card'],
-            'sumup' => ['card'],
-            'square' => ['card'],
-        ];
-    }
-
     protected function availableProviderCodesForMethod(string $methodCode): array
     {
-        if ($methodCode === 'cod') {
-            return [];
-        }
-
-        $capability = $this->defaultProviderSupportedMethods();
-        $implemented = $this->implementedProviderFlows();
-        $codes = [];
-        foreach (self::PROVIDER_CODES as $providerCode) {
-            $capable = in_array($methodCode, $capability[$providerCode] ?? [], true);
-            $hasFlow = in_array($methodCode, $implemented[$providerCode] ?? [], true);
-            if ($capable && $hasFlow) {
-                $codes[] = $providerCode;
-            }
-        }
-
-        return $codes;
+        return Payments_model::supportedProvidersForMethod($methodCode);
     }
 
     protected function providerPriorityDefaults(): array

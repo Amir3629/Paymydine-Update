@@ -52,6 +52,15 @@ class Payments_model extends Model
 
     protected static $defaultPayment;
 
+    protected const METHOD_PROVIDER_MATRIX = [
+        'card' => ['stripe', 'worldline'],
+        'apple_pay' => ['stripe'],
+        'google_pay' => ['stripe'],
+        'paypal' => ['paypal', 'stripe'],
+        'cod' => [],
+        'cash' => [],
+    ];
+
     public function getDropdownOptions()
     {
         return $this->isEnabled()->dropdown('name', 'code');
@@ -162,6 +171,10 @@ class Payments_model extends Model
         if (!empty($posted)) {
             $current = $this->getConfigPayload();
             $this->setConfigPayload(array_merge($current, $posted));
+        }
+
+        if (!$this->provider_code && in_array((string)$this->code, ['cod', 'cash'], true)) {
+            $this->provider_code = null;
         }
 
         // Keep only real DB columns for the resolved storage table.
@@ -422,11 +435,52 @@ class Payments_model extends Model
 
     protected function setConfigPayload(array $payload): void
     {
+        if (array_key_exists('supported_providers', $payload)) {
+            $payload['supported_providers'] = $this->normalizeSupportedProviders($payload['supported_providers']);
+        }
+
         if ($this->usesPaymentMethodsStorage()) {
             $this->attributes['meta'] = $payload;
             return;
         }
 
         $this->attributes['data'] = $payload;
+    }
+
+    public static function supportedProviderMatrix(): array
+    {
+        return self::METHOD_PROVIDER_MATRIX;
+    }
+
+    public static function supportedProvidersForMethod(string $methodCode): array
+    {
+        return self::METHOD_PROVIDER_MATRIX[strtolower($methodCode)] ?? [];
+    }
+
+    public function getSupportedProvidersAttribute($value): array
+    {
+        $payload = $this->getConfigPayload();
+        if (array_key_exists('supported_providers', $payload)) {
+            return $this->normalizeSupportedProviders($payload['supported_providers']);
+        }
+
+        return self::supportedProvidersForMethod((string)$this->code);
+    }
+
+    public function setSupportedProvidersAttribute($value): void
+    {
+        $payload = $this->getConfigPayload();
+        $payload['supported_providers'] = $this->normalizeSupportedProviders($value);
+        $this->setConfigPayload($payload);
+    }
+
+    protected function normalizeSupportedProviders($value): array
+    {
+        $items = array_values(array_filter(array_map(
+            fn ($v) => strtolower(trim((string)$v)),
+            is_array($value) ? $value : []
+        ), fn (string $v) => $v !== ''));
+
+        return array_values(array_unique($items));
     }
 }

@@ -698,37 +698,24 @@ Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web']
 ], function () {
-    // provider_capability_matrix (research-level capabilities)
+    // Central method->provider support matrix (single source of truth)
+    $methodProviderMatrix = \Admin\Models\Payments_model::supportedProviderMatrix();
+
     $providerCapabilityMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay'],
+        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
         'paypal' => ['paypal'],
         'worldline' => ['card'],
         'sumup' => ['card'],
         'square' => ['card'],
     ];
 
-    // implemented_flow_matrix (actually completed end-to-end in this codebase)
-    $implementedFlowMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay'],
-        'paypal' => ['paypal'],
-        'worldline' => ['card'],
-        'sumup' => ['card'],
-        'square' => ['card'],
-    ];
+    $implementedFlowMatrix = $providerCapabilityMatrix;
 
     $availableProviderCodesForMethod = function (string $methodCode) use ($providerCapabilityMatrix, $implementedFlowMatrix): array {
-        if ($methodCode === 'cod') {
+        if (in_array($methodCode, ['cod', 'cash'], true)) {
             return [];
         }
-        $available = [];
-        foreach ($providerCapabilityMatrix as $providerCode => $capabilities) {
-            $capable = in_array($methodCode, $capabilities, true);
-            $implemented = in_array($methodCode, $implementedFlowMatrix[$providerCode] ?? [], true);
-            if ($capable && $implemented) {
-                $available[] = $providerCode;
-            }
-        }
-        return $available;
+        return \Admin\Models\Payments_model::supportedProvidersForMethod($methodCode);
     };
 
     $defaultPaymentMethods = [
