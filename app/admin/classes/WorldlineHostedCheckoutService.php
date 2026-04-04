@@ -17,6 +17,51 @@ use Worldline\Connect\Sdk\V1\Domain\Address;
 
 class WorldlineHostedCheckoutService
 {
+    protected function sanitizeForLogs(array $payload): array
+    {
+        $sanitized = [];
+        foreach ($payload as $key => $value) {
+            $k = (string)$key;
+            if (is_array($value)) {
+                $sanitized[$k] = $this->sanitizeForLogs($value);
+                continue;
+            }
+            if (preg_match('/secret|token|password|api_key|authorization/i', $k)) {
+                $sanitized[$k] = is_string($value) && $value !== '' ? '***redacted***' : $value;
+                continue;
+            }
+            $sanitized[$k] = $value;
+        }
+
+        return $sanitized;
+    }
+
+    protected function normalizeRedirectUrl(?string $candidate): ?string
+    {
+        $candidate = is_string($candidate) ? trim($candidate) : '';
+        if ($candidate === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $candidate)) {
+            return $candidate;
+        }
+
+        if (str_starts_with($candidate, '//')) {
+            return 'https:'.$candidate;
+        }
+
+        return 'https://' . ltrim($candidate, '/');
+    }
+
+    protected function collectRedirectCandidates($response, array $rawResponse): array
+    {
+        return array_filter([
+            'redirectUrl' => $response->redirectUrl ?? ($rawResponse['redirectUrl'] ?? null),
+            'hostedCheckoutUrl' => $response->hostedCheckoutUrl ?? ($rawResponse['hostedCheckoutUrl'] ?? null),
+            'partialRedirectUrl' => $response->partialRedirectUrl ?? ($rawResponse['partialRedirectUrl'] ?? null),
+        ], fn ($value) => is_string($value) && trim($value) !== '');
+    }
 
     protected function sessionsBaseDir(): string
     {
@@ -318,16 +363,42 @@ class WorldlineHostedCheckoutService
             throw $e;
         }
 
-        $partial = $response->partialRedirectUrl ?? null;
-        if (is_string($partial) && preg_match('#^https?://#i', $partial)) {
-            $redirect = $partial;
-        } elseif (is_string($partial) && str_starts_with($partial, '//')) {
-            $redirect = 'https:'.$partial;
-        } elseif (is_string($partial) && $partial !== '') {
-            $redirect = 'https://' . ltrim($partial, '/');
-        } else {
-            $redirect = null;
+        $rawResponse = json_decode(json_encode($response), true);
+        $rawResponse = is_array($rawResponse) ? $rawResponse : [];
+
+        \Log::info('WORLDLINE HOSTED CHECKOUT RAW RESPONSE', [
+            'host' => $cfg['host'] ?? null,
+            'tenant_database' => $cfg['tenant_database'] ?? null,
+            'config_id' => $cfg['config_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+            'merchant_id' => $cfg['merchant_id'] ?? null,
+            'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
+            'raw_response' => $this->sanitizeForLogs($rawResponse),
+        ]);
+
+        $redirectCandidates = $this->collectRedirectCandidates($response, $rawResponse);
+        \Log::info('WORLDLINE HOSTED CHECKOUT REDIRECT FIELD CANDIDATES', [
+            'host' => $cfg['host'] ?? null,
+            'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
+            'candidates' => $this->sanitizeForLogs($redirectCandidates),
+        ]);
+
+        $redirect = null;
+        $redirectSource = null;
+        foreach ($redirectCandidates as $source => $candidate) {
+            $normalized = $this->normalizeRedirectUrl((string)$candidate);
+            if ($normalized !== null) {
+                $redirect = $normalized;
+                $redirectSource = $source;
+                break;
+            }
         }
+        \Log::info('WORLDLINE HOSTED CHECKOUT FINAL REDIRECT DECISION', [
+            'host' => $cfg['host'] ?? null,
+            'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
+            'selected_source' => $redirectSource,
+            'redirect_url' => $redirect,
+        ]);
 
         $result = [
             'environment' => $this->getEnvironment($cfg),
@@ -336,9 +407,12 @@ class WorldlineHostedCheckoutService
             'config_id' => $cfg['config_id'],
             'merchant_id' => $cfg['merchant_id'],
             'redirect_url' => $redirect,
-            'partial_redirect_url' => $partial,
+            'partial_redirect_url' => $response->partialRedirectUrl ?? ($rawResponse['partialRedirectUrl'] ?? null),
             'hosted_checkout_id' => $response->hostedCheckoutId ?? null,
             'return_mac' => $response->RETURNMAC ?? null,
+            'redirect_source' => $redirectSource,
+            'redirect_candidates' => $redirectCandidates,
+            'raw_response' => $rawResponse,
             'request_meta' => [
                 'amount_minor' => $requestMeta['amount_minor'],
                 'currency' => $requestMeta['currency'],

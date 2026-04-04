@@ -1326,6 +1326,41 @@ Route::group([
         }
     });
 
+    Route::get('/payments/worldline/create-debug/{hostedCheckoutId}', function (string $hostedCheckoutId) {
+        try {
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $host = request()->getHost();
+            $session = $service->getCheckoutSession($host, $hostedCheckoutId);
+            if (!$session) {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'worldline',
+                    'error' => 'Hosted checkout session not found',
+                    'hosted_checkout_id' => $hostedCheckoutId,
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'hosted_checkout_id' => $hostedCheckoutId,
+                'environment' => $session['environment'] ?? null,
+                'merchant_id' => $session['merchant_id'] ?? null,
+                'return_mac' => $session['return_mac'] ?? null,
+                'redirect_url' => $session['redirect_url'] ?? null,
+                'redirect_source' => $session['redirect_source'] ?? null,
+                'redirect_candidates' => $session['redirect_candidates'] ?? [],
+                'raw_response' => $session['raw_response'] ?? [],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
     Route::post('/payments/sumup/checkout-status', function (\Illuminate\Http\Request $request) {
         $payload = $request->validate([
             'checkout_id' => 'required|string',
