@@ -523,9 +523,9 @@ class Payments extends \Admin\Classes\AdminController
             foreach ($payload as $k => $v) {
                 $row->{$k} = $v;
             }
-            $data = is_array($row->data) ? $row->data : [];
-            $data['provider_code'] = $cfg['provider_code'];
-            $row->data = $data;
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $meta['provider_code'] = $cfg['provider_code'];
+            $row->meta = $meta;
             $row->provider_code = $cfg['provider_code'];
             $row->save();
         }
@@ -572,9 +572,9 @@ class Payments extends \Admin\Classes\AdminController
             if (!empty($classMap[$code])) {
                 $row->class_name = $row->class_name ?: $classMap[$code];
             }
-            $data = is_array($row->data) ? $row->data : [];
-            $data['supported_methods'] = $data['supported_methods'] ?? $this->defaultProviderSupportedMethods()[$code] ?? [];
-            $row->data = $data;
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $meta['supported_methods'] = $meta['supported_methods'] ?? $this->defaultProviderSupportedMethods()[$code] ?? [];
+            $row->meta = $meta;
             if ($row->status === null) {
                 $row->status = false;
             }
