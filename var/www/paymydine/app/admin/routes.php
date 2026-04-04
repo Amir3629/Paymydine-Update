@@ -795,8 +795,8 @@ Route::group([
             return;
         }
 
-        $existing = is_array($payment->data ?? null) ? (array)$payment->data : [];
-        $payment->data = array_merge($existing, $normalizedConfig);
+        $existing = method_exists($payment, 'getConfigData') ? $payment->getConfigData() : [];
+        $payment->setConfigData(array_merge($existing, $normalizedConfig));
         $payment->status = !empty($provider['enabled']) ? 1 : 0;
         $payment->save();
     };
