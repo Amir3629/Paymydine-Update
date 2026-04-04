@@ -865,8 +865,15 @@ Route::group([
         ];
     };
 
-    // === Payments (read-only) ===
-    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $loadMethodRecordsFromPayments, $loadProviderRecordsFromPayments) {
+    $resolveRuntimeMethodCollection = function () use (
+        $defaultPaymentMethods,
+        $defaultPaymentProviders,
+        $loadJsonSetting,
+        $availableProviderCodesForMethod,
+        $resolveStripeRuntimeReadiness,
+        $loadMethodRecordsFromPayments,
+        $loadProviderRecordsFromPayments
+    ) {
         $methodsFromDb = $loadMethodRecordsFromPayments();
         $providersFromDb = $loadProviderRecordsFromPayments();
         $stripeReadiness = $resolveStripeRuntimeReadiness();
@@ -879,7 +886,8 @@ Route::group([
         $sourceMethods = $methodsFromDb->count() > 0
             ? $methodsFromDb->values()
             : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods));
-        $methods = collect($sourceMethods)
+
+        return collect($sourceMethods)
             ->where('enabled', true)
             ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders, $stripeReadiness) {
                 $methodCode = (string)($m['code'] ?? '');
@@ -915,7 +923,11 @@ Route::group([
                 'provider_code' => $m['provider_code'] ?? null,
                 'priority' => (int)($m['priority'] ?? 0),
             ]);
+    };
 
+    // === Payments (read-only) ===
+    Route::get('/payments', function () use ($resolveRuntimeMethodCollection) {
+        $methods = $resolveRuntimeMethodCollection();
         return response()->json($methods, 200);
     });
 
@@ -1104,33 +1116,16 @@ Route::group([
         ], 200);
     });
 
-    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $loadMethodRecordsFromPayments, $loadProviderRecordsFromPayments) {
-        $methodsFromDb = $loadMethodRecordsFromPayments();
-        $providersFromDb = $loadProviderRecordsFromPayments();
-        $methodsByCode = $methodsFromDb->count() > 0
-            ? $methodsFromDb
-            : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
-        $providersByCode = $providersFromDb->count() > 0
-            ? $providersFromDb
-            : collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
-        $cardMethod = (array)$methodsByCode->get('card', []);
-        if (empty($cardMethod) || !($cardMethod['enabled'] ?? false)) {
+    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection) {
+        $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
+        $cardMethod = (array)$runtimeMethods->get('card', []);
+        if (empty($cardMethod)) {
             return response()->json(['success' => false, 'error' => 'Card method is disabled'], 422);
         }
 
         $providerCode = (string)($cardMethod['provider_code'] ?? '');
-        if ($providerCode === '' || !$providersByCode->has($providerCode)) {
+        if ($providerCode === '') {
             return response()->json(['success' => false, 'error' => 'Card provider is not configured'], 422);
-        }
-
-        $provider = (array)$providersByCode->get($providerCode, []);
-        if (!($provider['enabled'] ?? false)) {
-            return response()->json(['success' => false, 'error' => "Provider {$providerCode} is disabled"], 422);
-        }
-
-        $supported = collect($provider['supported_methods'] ?? [])->map(fn ($m) => (string)$m);
-        if (!$supported->contains('card')) {
-            return response()->json(['success' => false, 'error' => "Provider {$providerCode} does not support card"], 422);
         }
 
         $payload = $request->validate([
@@ -1152,12 +1147,25 @@ Route::group([
 
         try {
             if ($providerCode === 'worldline') {
+                \Log::info('PMD_CARD_CREATE_SESSION_WORLDLINE_TRIGGERED', [
+                    'provider' => $providerCode,
+                    'host' => request()->getHost(),
+                    'amount_minor' => $amountMinor,
+                    'currency' => $currency,
+                    'return_url' => $returnUrl,
+                ]);
                 $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
                 $result = $svc->createHostedCheckout([
                     'amount_minor' => $amountMinor,
                     'currency' => $currency,
                     'return_url' => $returnUrl,
                     'locale' => (string)($payload['locale'] ?? 'en_GB'),
+                ]);
+                \Log::info('PMD_CARD_CREATE_SESSION_WORLDLINE_RESPONSE', [
+                    'provider' => $providerCode,
+                    'hosted_checkout_id' => $result['hosted_checkout_id'] ?? null,
+                    'redirect_url_present' => !empty($result['redirect_url']),
+                    'environment' => $result['environment'] ?? null,
                 ]);
                 return response()->json([
                     'success' => true,
