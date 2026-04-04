@@ -777,6 +777,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
   } | null>(null)
   const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
+  const [worldlineIframeUrl, setWorldlineIframeUrl] = useState<string | null>(null)
+  const [worldlineHostedCheckoutId, setWorldlineHostedCheckoutId] = useState<string | null>(null)
 
   const effectivePayPalClientId =
     paypalPublicConfig?.enabled && paypalPublicConfig?.clientId
@@ -1310,6 +1312,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             hosted_checkout_id: String(json.hosted_checkout_id),
             created_at: Date.now(),
           }))
+          setWorldlineHostedCheckoutId(String(json.hosted_checkout_id))
+          setWorldlineIframeUrl(String(json.redirect_url))
+          setIsLoading(false)
+          return
         }
         if (providerCode === "sumup" && json?.checkout_id) {
           localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
@@ -1408,6 +1414,40 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     void run()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!worldlineIframeUrl || !worldlineHostedCheckoutId) return
+    let stopped = false
+    const interval = setInterval(async () => {
+      if (stopped) return
+      try {
+        const res = await fetch('/api/v1/payments/worldline/checkout-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hosted_checkout_id: worldlineHostedCheckoutId }),
+        })
+        const json = await res.json()
+        if (json?.success && json?.is_paid) {
+          stopped = true
+          clearInterval(interval)
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("pmd_worldline_pending_checkout")
+          }
+          setWorldlineIframeUrl(null)
+          setWorldlineHostedCheckoutId(null)
+          await handlePayment(String(json?.payment_id || worldlineHostedCheckoutId))
+        }
+      } catch {
+        // keep polling quietly
+      }
+    }, 5000)
+
+    return () => {
+      stopped = true
+      clearInterval(interval)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worldlineIframeUrl, worldlineHostedCheckoutId])
 
   const renderPaymentForm = () => {
     try {
@@ -1522,7 +1562,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
               </div>
               <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-                You will be redirected to {selectedProviderCode.toUpperCase()} to complete your payment securely.
+                Your card details will be completed in a secure embedded {selectedProviderCode.toUpperCase()} frame.
               </div>
               <Button
                 type="button"
@@ -1530,7 +1570,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
               >
-                {isLoading ? "Redirecting..." : `Pay with ${selectedProviderCode.toUpperCase()}`}
+                {isLoading ? "Opening secure form..." : `Pay with ${selectedProviderCode.toUpperCase()}`}
               </Button>
             </motion.div>
           )
@@ -2134,6 +2174,42 @@ case "cod":
           {selectedPaymentMethod && ["card","apple_pay","google_pay","paypal","cod"].includes(selectedPaymentMethod) && (
             <div className="pt-3">
               {renderPaymentForm()}
+            </div>
+          )}
+
+          {worldlineIframeUrl && (
+            <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3">
+              <div className="w-full max-w-3xl h-[85vh] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-black/10 dark:border-white/10">
+                  <div className="text-sm font-semibold">Secure card payment (Worldline)</div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={worldlineIframeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs underline opacity-80 hover:opacity-100"
+                    >
+                      Open in new tab
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setWorldlineIframeUrl(null)
+                        setWorldlineHostedCheckoutId(null)
+                      }}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+                <iframe
+                  src={worldlineIframeUrl}
+                  className="w-full h-[calc(85vh-52px)] bg-white"
+                  title="Worldline secure payment"
+                  allow="payment *"
+                />
+              </div>
             </div>
           )}
 

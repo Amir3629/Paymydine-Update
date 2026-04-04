@@ -23,6 +23,7 @@ export default function WorldlineHostedCheckout({
 }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [iframeUrl, setIframeUrl] = useState<string | null>(null)
 
   async function handlePay() {
     try {
@@ -63,7 +64,7 @@ export default function WorldlineHostedCheckout({
         throw new Error(data?.error || "Worldline checkout creation failed")
       }
 
-      window.location.href = data.redirect_url
+      setIframeUrl(String(data.redirect_url))
     } catch (e: any) {
       setError(e?.message || "Worldline payment failed")
     } finally {
@@ -82,11 +83,32 @@ export default function WorldlineHostedCheckout({
           "w-full rounded-xl px-4 py-3 font-semibold border border-white/10 bg-white text-black hover:opacity-90 disabled:opacity-60"
         }
       >
-        {loading ? "Redirecting to Worldline..." : buttonLabel}
+        {loading ? "Opening secure payment..." : buttonLabel}
       </button>
 
       {error ? (
         <p className="mt-2 text-sm text-red-400">{error}</p>
+      ) : null}
+
+      {iframeUrl ? (
+        <div className="mt-3 rounded-xl border border-white/10 overflow-hidden">
+          <div className="px-3 py-2 text-xs flex items-center justify-between bg-white/5">
+            <span>Secure Worldline checkout</span>
+            <button
+              type="button"
+              className="underline"
+              onClick={() => setIframeUrl(null)}
+            >
+              Close
+            </button>
+          </div>
+          <iframe
+            src={iframeUrl}
+            title="Worldline secure checkout"
+            className="w-full h-[560px] bg-white"
+            allow="payment *"
+          />
+        </div>
       ) : null}
     </div>
   )
