@@ -369,6 +369,15 @@ class Payments_model extends Model
 
         $this->table = self::$resolvedStorage['table'];
         $this->primaryKey = self::$resolvedStorage['key'];
+
+        if ($this->usesPaymentMethodsStorage()) {
+            unset($this->casts['data']);
+            $this->casts['meta'] = 'array';
+            $this->jsonable = [];
+        } else {
+            $this->casts['data'] = 'array';
+            $this->jsonable = ['data'];
+        }
     }
 
     protected function usesPaymentMethodsStorage(): bool
@@ -379,14 +388,8 @@ class Payments_model extends Model
     public function getDataAttribute($value)
     {
         if ($this->usesPaymentMethodsStorage()) {
-            $raw = $this->attributes['meta'] ?? null;
-            if (is_array($raw)) {
-                return $raw;
-            }
-
-            $decoded = json_decode((string)$raw, true);
-
-            return is_array($decoded) ? $decoded : [];
+            $meta = $this->meta;
+            return is_array($meta) ? $meta : [];
         }
 
         return $value;
@@ -395,7 +398,7 @@ class Payments_model extends Model
     public function setDataAttribute($value): void
     {
         if ($this->usesPaymentMethodsStorage()) {
-            $this->attributes['meta'] = json_encode(is_array($value) ? $value : []);
+            $this->meta = is_array($value) ? $value : [];
             return;
         }
 
