@@ -756,6 +756,34 @@ Route::group([
         return is_array(optional($row)->data) ? $row->data : [];
     };
 
+    $loadProviderRecordsFromPayments = function () {
+        $providerCodes = ['stripe', 'paypal', 'worldline', 'sumup', 'square'];
+        return \Admin\Models\Payments_model::query()
+            ->whereIn('code', $providerCodes)
+            ->get()
+            ->map(function ($row) {
+                $meta = is_array($row->data ?? null) ? (array)$row->data : [];
+                $supportedMethods = $meta['supported_methods'] ?? null;
+                if (!is_array($supportedMethods) || empty($supportedMethods)) {
+                    $supportedMethods = [
+                        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
+                        'paypal' => ['paypal'],
+                        'worldline' => ['card'],
+                        'sumup' => ['card'],
+                        'square' => ['card'],
+                    ][(string)$row->code] ?? [];
+                }
+
+                return [
+                    'code' => (string)$row->code,
+                    'name' => (string)($row->name ?: ucfirst((string)$row->code)),
+                    'enabled' => (bool)$row->status,
+                    'supported_methods' => array_values(array_map(fn ($method) => (string)$method, (array)$supportedMethods)),
+                ];
+            })
+            ->keyBy('code');
+    };
+
     $loadMethodRecordsFromPayments = function () {
         $methodCodes = ['card', 'apple_pay', 'google_pay', 'paypal', 'cod'];
         return \Admin\Models\Payments_model::query()
@@ -838,13 +866,16 @@ Route::group([
     };
 
     // === Payments (read-only) ===
-    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $loadMethodRecordsFromPayments) {
+    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $loadMethodRecordsFromPayments, $loadProviderRecordsFromPayments) {
         $methodsFromDb = $loadMethodRecordsFromPayments();
+        $providersFromDb = $loadProviderRecordsFromPayments();
         $stripeReadiness = $resolveStripeRuntimeReadiness();
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
             ? $availableProviderCodesForMethod
             : fn (string $methodCode): array => [];
-        $providersByCode = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $providersByCode = $providersFromDb->count() > 0
+            ? $providersFromDb
+            : collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $sourceMethods = $methodsFromDb->count() > 0
             ? $methodsFromDb->values()
             : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods));
@@ -1073,12 +1104,15 @@ Route::group([
         ], 200);
     });
 
-    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $loadMethodRecordsFromPayments) {
+    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $loadMethodRecordsFromPayments, $loadProviderRecordsFromPayments) {
         $methodsFromDb = $loadMethodRecordsFromPayments();
+        $providersFromDb = $loadProviderRecordsFromPayments();
         $methodsByCode = $methodsFromDb->count() > 0
             ? $methodsFromDb
             : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
-        $providersByCode = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $providersByCode = $providersFromDb->count() > 0
+            ? $providersFromDb
+            : collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $cardMethod = (array)$methodsByCode->get('card', []);
         if (empty($cardMethod) || !($cardMethod['enabled'] ?? false)) {
             return response()->json(['success' => false, 'error' => 'Card method is disabled'], 422);

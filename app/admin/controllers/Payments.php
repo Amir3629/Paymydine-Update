@@ -536,10 +536,13 @@ class Payments extends \Admin\Classes\AdminController
                 $row->{$k} = $v;
             }
             $meta = is_array($row->meta) ? $row->meta : [];
-            $meta['provider_code'] = $cfg['provider_code'];
+            $currentProviderCode = $row->provider_code
+                ?? ($meta['provider_code'] ?? null)
+                ?? $cfg['provider_code'];
+            $meta['provider_code'] = $currentProviderCode;
             $meta['supported_providers'] = $meta['supported_providers'] ?? Payments_model::supportedProvidersForMethod($code);
             $row->meta = $meta;
-            $row->provider_code = $cfg['provider_code'];
+            $row->provider_code = $currentProviderCode;
             $row->save();
         }
     }
