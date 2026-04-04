@@ -397,7 +397,7 @@ class Payments_model extends Model
 
     protected function usesPaymentMethodsStorage(): bool
     {
-        return $this->getTable() === 'payment_methods';
+        return in_array($this->getTable(), ['payment_methods', 'ti_payment_methods'], true);
     }
 
     public function getPriorityAttribute($value)
