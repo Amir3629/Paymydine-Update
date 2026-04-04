@@ -837,10 +837,45 @@ Route::group([
         ];
     };
 
+    $resolveWorldlineRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentMethods, $defaultPaymentProviders, $loadMethodRecordsFromPayments): array {
+        $methodsFromDb = $loadMethodRecordsFromPayments();
+        $methods = $methodsFromDb->count() > 0
+            ? $methodsFromDb
+            : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $worldlineProvider = (array)$providers->get('worldline', []);
+        $providerEnabled = (bool)($worldlineProvider['enabled'] ?? false);
+
+        $cardMethod = (array)$methods->get('card', []);
+        $cardMethodEnabled = (bool)($cardMethod['enabled'] ?? false);
+        $cardMappedToWorldline = (($cardMethod['provider_code'] ?? null) === 'worldline');
+
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'worldline')->first();
+        $config = method_exists($payment, 'getConfigData') ? $payment->getConfigData() : [];
+
+        $apiEndpoint = trim((string)($config['api_endpoint'] ?? ''));
+        $merchantId = trim((string)($config['merchant_id'] ?? ''));
+        $apiKeyId = trim((string)($config['api_key_id'] ?? ''));
+        $secretApiKey = trim((string)($config['secret_api_key'] ?? ''));
+
+        $credentialsReady = $apiEndpoint !== '' && $merchantId !== '' && $apiKeyId !== '' && $secretApiKey !== '';
+
+        $cardReady = $providerEnabled && $cardMethodEnabled && $cardMappedToWorldline && $credentialsReady;
+
+        return [
+            'provider_enabled' => $providerEnabled,
+            'card_method_enabled' => $cardMethodEnabled,
+            'card_mapped_to_worldline' => $cardMappedToWorldline,
+            'credentials_ready' => $credentialsReady,
+            'card_ready' => $cardReady,
+        ];
+    };
+
     // === Payments (read-only) ===
-    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $loadMethodRecordsFromPayments) {
+    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $resolveWorldlineRuntimeReadiness, $loadMethodRecordsFromPayments) {
         $methodsFromDb = $loadMethodRecordsFromPayments();
         $stripeReadiness = $resolveStripeRuntimeReadiness();
+        $worldlineReadiness = $resolveWorldlineRuntimeReadiness();
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
             ? $availableProviderCodesForMethod
             : fn (string $methodCode): array => [];
@@ -850,7 +885,7 @@ Route::group([
             : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods));
         $methods = collect($sourceMethods)
             ->where('enabled', true)
-            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders, $stripeReadiness) {
+            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders, $stripeReadiness, $worldlineReadiness) {
                 $methodCode = (string)($m['code'] ?? '');
                 $providerCode = $m['provider_code'] ?? null;
                 if ($methodCode === 'cod') {
@@ -871,6 +906,11 @@ Route::group([
                         return false;
                     }
                     if ($methodCode === 'google_pay' && !($stripeReadiness['google_pay_ready'] ?? false)) {
+                        return false;
+                    }
+                }
+                if ((string)$providerCode === 'worldline' && $methodCode === 'card') {
+                    if (!($worldlineReadiness['card_ready'] ?? false)) {
                         return false;
                     }
                 }
@@ -1073,7 +1113,7 @@ Route::group([
         ], 200);
     });
 
-    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $loadMethodRecordsFromPayments) {
+    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $loadMethodRecordsFromPayments, $resolveWorldlineRuntimeReadiness) {
         $methodsFromDb = $loadMethodRecordsFromPayments();
         $methodsByCode = $methodsFromDb->count() > 0
             ? $methodsFromDb
@@ -1118,6 +1158,15 @@ Route::group([
 
         try {
             if ($providerCode === 'worldline') {
+                $worldlineReadiness = $resolveWorldlineRuntimeReadiness();
+                if (!($worldlineReadiness['card_ready'] ?? false)) {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'worldline',
+                        'error' => 'Worldline card flow is not ready',
+                        'details' => $worldlineReadiness,
+                    ], 503);
+                }
                 $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
                 $result = $svc->createHostedCheckout([
                     'amount_minor' => $amountMinor,
@@ -2455,6 +2504,7 @@ return response()->json([
             $isStripeWalletMethod = in_array($frontendPaymentMethodRaw, ['stripe', 'apple_pay', 'google_pay'], true);
             $isStripeCardMethod = $frontendPaymentMethodRaw === 'card' && $frontendPaymentProvider === 'stripe';
             $mustVerifyStripe = $isStripeWalletMethod || $isStripeCardMethod;
+            $mustVerifyWorldline = $frontendPaymentMethodRaw === 'card' && $frontendPaymentProvider === 'worldline';
             if ($isStripeWalletMethod && $frontendPaymentProvider !== 'stripe') {
                 return response()->json([
                     'success' => false,
@@ -2553,6 +2603,43 @@ return response()->json([
                     return response()->json([
                         'success' => false,
                         'message' => 'Stripe payment verification failed',
+                    ], 422);
+                }
+            }
+
+            if ($mustVerifyWorldline) {
+                $worldlineHostedCheckoutId = (string)$request->input('payment_reference');
+                if ($worldlineHostedCheckoutId === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Worldline payment verification failed: missing hosted_checkout_id',
+                    ], 422);
+                }
+
+                try {
+                    $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+                    $status = $service->getHostedCheckoutStatus($worldlineHostedCheckoutId);
+                    $hostedStatus = strtoupper((string)($status['hosted_checkout_status'] ?? ''));
+                    $paymentStatus = strtoupper((string)($status['payment_status'] ?? ''));
+                    $paidHostedStatuses = ['PAYMENT_CREATED', 'COMPLETED'];
+                    $paidPaymentStatuses = ['PAID', 'CAPTURED', '9'];
+                    $isPaid = in_array($hostedStatus, $paidHostedStatuses, true)
+                        || in_array($paymentStatus, $paidPaymentStatuses, true);
+
+                    if (!$isPaid) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Worldline payment verification failed: payment not completed',
+                        ], 422);
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('PMD_WORLDLINE_ORDER_VERIFICATION_FAILED', [
+                        'message' => $e->getMessage(),
+                        'hosted_checkout_id' => $worldlineHostedCheckoutId,
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Worldline payment verification failed',
                     ], 422);
                 }
             }
