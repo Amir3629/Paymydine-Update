@@ -250,7 +250,7 @@ class Payments extends \Admin\Classes\AdminController
                 'sometimes',
                 'required',
                 'alpha_dash',
-                Rule::unique('payments', 'code')->ignore(optional($model)->payment_id, 'payment_id'),
+                Rule::unique($model->getTable(), 'code')->ignore($model->getKey(), $model->getKeyName()),
             ],
             'priority'    => $isProviderRecord ? ['sometimes', 'nullable', 'integer'] : ['required', 'integer'],
             'description' => ['max:255'],
@@ -290,7 +290,15 @@ class Payments extends \Admin\Classes\AdminController
             }
         }
 
-        return $this->validatePasses($form->getSaveData(), $rules, $messages, $attributes);
+        try {
+            return $this->validatePasses($form->getSaveData(), $rules, $messages, $attributes);
+        } catch (\Throwable $e) {
+            \Log::warning('PMD_PAYMENTS_FORM_VALIDATE_FAILED', [
+                'code' => (string)optional($model)->code,
+                'message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 
     public function create()
@@ -319,14 +327,37 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formBeforeSave($model)
     {
+        $incomingPayload = array_merge(
+            (array)post('Payment', []),
+            (array)post('Payments', []),
+            (array)post('payment', []),
+            (array)post('payments', [])
+        );
+        \Log::info('PMD_PAYMENTS_FORM_BEFORE_SAVE', [
+            'code' => (string)$model->code,
+            'is_providers_mode' => $this->isProvidersMode(),
+            'table' => $model->getTable(),
+            'key_name' => $model->getKeyName(),
+            'current_key' => $model->getKey(),
+            'exists' => (bool)$model->exists,
+            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+            'meta_type' => gettype($model->getAttribute('meta')),
+            'data_attr_type' => gettype($model->getAttributes()['data'] ?? null),
+            'data_accessor_type' => gettype($model->data),
+            'incoming_payload' => $this->redactPaymentPayload($incomingPayload),
+            'data_before' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+            'provider_code_before' => $model->provider_code ?? null,
+        ]);
+
         if (in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode()) {
             $providerCode = post('provider_code', post('Payment.provider_code'));
             $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
             $this->validateProviderCompatibility((string)$model->code, $providerCode);
 
-            $data = is_array($model->data) ? $model->data : [];
+            $data = $model->getConfigData();
             $data['provider_code'] = $providerCode;
-            $model->data = $data;
+            $model->setConfigData($data);
+            $model->provider_code = $providerCode;
         }
 
         $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
@@ -336,8 +367,8 @@ class Payments extends \Admin\Classes\AdminController
                 $model->name = (string)($model->getOriginal('name') ?: $model->name);
             }
             $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
-            $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, is_array($model->data) ? $model->data : []);
-            $model->data = $normalizedProviderData;
+            $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, $model->getConfigData());
+            $model->setConfigData($normalizedProviderData);
             $this->applyNormalizedProviderDataToPost((array)post('Payment', []), $normalizedProviderData);
             $model->is_default = 0;
             if (!isset($model->priority) || $model->priority === null || $model->priority === '') {
@@ -380,6 +411,22 @@ class Payments extends \Admin\Classes\AdminController
         if ((int)$postedDefault === 1) {
             $model->status = 1;
         }
+
+        \Log::info('PMD_PAYMENTS_FORM_READY_TO_SAVE', [
+            'code' => (string)$model->code,
+            'table' => $model->getTable(),
+            'key_name' => $model->getKeyName(),
+            'current_key' => $model->getKey(),
+            'exists' => (bool)$model->exists,
+            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+            'meta_type' => gettype($model->getAttribute('meta')),
+            'data_attr_type' => gettype($model->getAttributes()['data'] ?? null),
+            'data_accessor_type' => gettype($model->data),
+            'data_after_prepare' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+            'provider_code_after_prepare' => $model->provider_code ?? null,
+            'status' => (int)$model->status,
+            'is_default' => (int)$model->is_default,
+        ]);
     }
 
     public function listExtendQuery($query)
@@ -400,13 +447,29 @@ class Payments extends \Admin\Classes\AdminController
 
     public function formAfterSave($model)
     {
+        $fresh = Payments_model::query()->where($model->getKeyName(), $model->getKey())->first();
+        \Log::info('PMD_PAYMENTS_FORM_AFTER_SAVE', [
+            'code' => (string)$model->code,
+            'payment_id' => (int)$model->getKey(),
+            'table' => $model->getTable(),
+            'key_name' => $model->getKeyName(),
+            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+            'reloaded_table' => optional($fresh)->getTable(),
+            'reloaded_key_name' => optional($fresh)->getKeyName(),
+            'reloaded_key' => optional($fresh)->getKey(),
+            'saved_data' => $this->redactPaymentPayload(is_array(optional($fresh)->data) ? $fresh->data : []),
+            'saved_provider_code' => optional($fresh)->provider_code,
+            'saved_status' => (int)optional($fresh)->status,
+            'saved_is_default' => (int)optional($fresh)->is_default,
+        ]);
+
         $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
             && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
         if (!$isProviderRecord) {
             return;
         }
 
-        $data = is_array($model->data) ? $model->data : [];
+        $data = $model->getConfigData();
         if ((string)$model->code === 'worldline') {
             $this->syncProviderIntoPosConfig('worldline', [
                 'url' => $data['api_endpoint'] ?? null,
@@ -422,6 +485,21 @@ class Payments extends \Admin\Classes\AdminController
                 'id_application' => $data['id_application'] ?? null,
             ]);
         }
+    }
+
+    protected function redactPaymentPayload(array $payload): array
+    {
+        $redacted = [];
+        foreach ($payload as $key => $value) {
+            $k = (string)$key;
+            if (preg_match('/secret|token|password|api_key/i', $k)) {
+                $redacted[$k] = is_string($value) && $value !== '' ? '***redacted***' : $value;
+                continue;
+            }
+            $redacted[$k] = $value;
+        }
+
+        return $redacted;
     }
 
     protected function syncMethodRecords(): void
@@ -457,9 +535,11 @@ class Payments extends \Admin\Classes\AdminController
             foreach ($payload as $k => $v) {
                 $row->{$k} = $v;
             }
-            $data = is_array($row->data) ? $row->data : [];
-            $data['provider_code'] = $cfg['provider_code'];
-            $row->data = $data;
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $meta['provider_code'] = $cfg['provider_code'];
+            $meta['supported_providers'] = $meta['supported_providers'] ?? Payments_model::supportedProvidersForMethod($code);
+            $row->meta = $meta;
+            $row->provider_code = $cfg['provider_code'];
             $row->save();
         }
     }
@@ -505,9 +585,9 @@ class Payments extends \Admin\Classes\AdminController
             if (!empty($classMap[$code])) {
                 $row->class_name = $row->class_name ?: $classMap[$code];
             }
-            $data = is_array($row->data) ? $row->data : [];
-            $data['supported_methods'] = $data['supported_methods'] ?? $this->defaultProviderSupportedMethods()[$code] ?? [];
-            $row->data = $data;
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $meta['supported_methods'] = $meta['supported_methods'] ?? $this->defaultProviderSupportedMethods()[$code] ?? [];
+            $row->meta = $meta;
             if ($row->status === null) {
                 $row->status = false;
             }
@@ -545,24 +625,30 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function getCompatibleProviders(string $methodCode): array
     {
-        if ($methodCode === 'cod') {
-            return ['' => 'No provider (Cash)'];
+        if (in_array($methodCode, ['cod', 'cash'], true)) {
+            return [];
         }
 
+        $availableCodes = Payments_model::supportedProvidersForMethod($methodCode);
+        $providerLabelByCode = collect($this->getPaymentProviderSettings())
+            ->filter(fn ($provider) => is_array($provider) && !empty($provider['code']))
+            ->mapWithKeys(fn ($provider) => [
+                (string)$provider['code'] => (string)($provider['name'] ?? strtoupper((string)$provider['code'])),
+            ])
+            ->all();
+
         $options = [];
-        $availableCodes = $this->availableProviderCodesForMethod($methodCode);
-        foreach ($this->getPaymentProviderSettings() as $provider) {
-            $providerCode = (string)($provider['code'] ?? '');
-            if (in_array($providerCode, $availableCodes, true)) {
-                $options[(string)$provider['code']] = (string)($provider['name'] ?? strtoupper((string)$provider['code']));
-            }
+        foreach ($availableCodes as $providerCode) {
+            $options[$providerCode] = $providerLabelByCode[$providerCode]
+                ?? ucfirst(str_replace('_', ' ', $providerCode));
         }
+
         return $options;
     }
 
     protected function validateProviderCompatibility(string $methodCode, ?string $providerCode): void
     {
-        if ($methodCode === 'cod') {
+        if (in_array($methodCode, ['cod', 'cash'], true)) {
             if ($providerCode !== null && $providerCode !== '') {
                 throw new ApplicationException('Cash method must not have a provider.');
             }
@@ -577,8 +663,10 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function extractProviderCode($model): ?string
     {
-        if (!is_array($model->data)) return null;
-        $code = $model->data['provider_code'] ?? null;
+        $code = $model->provider_code ?? null;
+        if (!strlen((string)$code) && is_array($model->data)) {
+            $code = $model->data['provider_code'] ?? null;
+        }
         return strlen((string)$code) ? (string)$code : null;
     }
 
@@ -597,46 +685,27 @@ class Payments extends \Admin\Classes\AdminController
 
     protected function defaultProviderSupportedMethods(): array
     {
-        // provider_capability_matrix
-        return [
-            'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal', 'card'],
-            'worldline' => ['card'],
-            'sumup' => ['card'],
-            'square' => ['card', 'apple_pay', 'google_pay'],
-        ];
-    }
+        // Build capability matrix from provider settings schema to keep admin form options in sync
+        // with /payment-providers-admin storage.
+        $byCode = [];
+        foreach ($this->getPaymentProviderSettings() as $provider) {
+            $providerCode = (string)($provider['code'] ?? '');
+            if ($providerCode === '') {
+                continue;
+            }
+            $supportedMethods = array_values(array_filter(
+                array_map(fn ($methodCode) => (string)$methodCode, (array)($provider['supported_methods'] ?? [])),
+                fn (string $methodCode) => $methodCode !== ''
+            ));
+            $byCode[$providerCode] = $supportedMethods;
+        }
 
-    protected function implementedProviderFlows(): array
-    {
-        // implemented_flow_matrix (end-to-end in current stack)
-        return [
-            'stripe' => ['card', 'apple_pay', 'google_pay'],
-            'paypal' => ['paypal'],
-            'worldline' => ['card'],
-            'sumup' => ['card'],
-            'square' => ['card'],
-        ];
+        return $byCode;
     }
 
     protected function availableProviderCodesForMethod(string $methodCode): array
     {
-        if ($methodCode === 'cod') {
-            return [];
-        }
-
-        $capability = $this->defaultProviderSupportedMethods();
-        $implemented = $this->implementedProviderFlows();
-        $codes = [];
-        foreach (self::PROVIDER_CODES as $providerCode) {
-            $capable = in_array($methodCode, $capability[$providerCode] ?? [], true);
-            $hasFlow = in_array($methodCode, $implemented[$providerCode] ?? [], true);
-            if ($capable && $hasFlow) {
-                $codes[] = $providerCode;
-            }
-        }
-
-        return $codes;
+        return Payments_model::supportedProvidersForMethod($methodCode);
     }
 
     protected function providerPriorityDefaults(): array
@@ -665,6 +734,8 @@ class Payments extends \Admin\Classes\AdminController
 
         $fields = [
             'stripe' => array_merge($commonModeField, [
+                'test_publishable_key' => ['label' => 'Test Publishable Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Starts with pk_test_. Used by storefront/client checkout.'],
+                'live_publishable_key' => ['label' => 'Live Publishable Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Starts with pk_live_. Used by storefront/client checkout.'],
                 'test_secret_key' => ['label' => 'Test Secret Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Starts with sk_test_. Saved value is shown; replace to update.'],
                 'live_secret_key' => ['label' => 'Live Secret Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Starts with sk_live_. Saved value is shown; replace to update.'],
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],

@@ -698,37 +698,24 @@ Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web']
 ], function () {
-    // provider_capability_matrix (research-level capabilities)
-    $providerCapabilityMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay'],
-        'paypal' => ['paypal', 'card', 'apple_pay', 'google_pay'],
-        'worldline' => ['card'],
-        'sumup' => ['card'],
-        'square' => ['card', 'apple_pay', 'google_pay'],
-    ];
+    // Central method->provider support matrix (single source of truth)
+    $methodProviderMatrix = \Admin\Models\Payments_model::supportedProviderMatrix();
 
-    // implemented_flow_matrix (actually completed end-to-end in this codebase)
-    $implementedFlowMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay'],
+    $providerCapabilityMatrix = [
+        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
         'paypal' => ['paypal'],
         'worldline' => ['card'],
         'sumup' => ['card'],
         'square' => ['card'],
     ];
 
+    $implementedFlowMatrix = $providerCapabilityMatrix;
+
     $availableProviderCodesForMethod = function (string $methodCode) use ($providerCapabilityMatrix, $implementedFlowMatrix): array {
-        if ($methodCode === 'cod') {
+        if (in_array($methodCode, ['cod', 'cash'], true)) {
             return [];
         }
-        $available = [];
-        foreach ($providerCapabilityMatrix as $providerCode => $capabilities) {
-            $capable = in_array($methodCode, $capabilities, true);
-            $implemented = in_array($methodCode, $implementedFlowMatrix[$providerCode] ?? [], true);
-            if ($capable && $implemented) {
-                $available[] = $providerCode;
-            }
-        }
-        return $available;
+        return \Admin\Models\Payments_model::supportedProvidersForMethod($methodCode);
     };
 
     $defaultPaymentMethods = [
@@ -740,7 +727,7 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_publishable_key' => '', 'live_publishable_key' => '', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
         ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
         ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
         ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
@@ -769,17 +756,136 @@ Route::group([
         return is_array(optional($row)->data) ? $row->data : [];
     };
 
+    $loadMethodRecordsFromPayments = function () {
+        $methodCodes = ['card', 'apple_pay', 'google_pay', 'paypal', 'cod'];
+        return \Admin\Models\Payments_model::query()
+            ->whereIn('code', $methodCodes)
+            ->get()
+            ->map(function ($row) {
+                $meta = is_array($row->data ?? null) ? (array)$row->data : [];
+                return [
+                    'code' => (string)$row->code,
+                    'name' => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
+                    'provider_code' => $row->provider_code ?? ($meta['provider_code'] ?? null),
+                    'enabled' => (bool)$row->status,
+                    'priority' => (int)($row->priority ?? 0),
+                ];
+            })
+            ->keyBy('code');
+    };
+
+    $syncStripeProviderConfigToPayments = function (array $provider): void {
+        if ((string)($provider['code'] ?? '') !== 'stripe') {
+            return;
+        }
+
+        $config = is_array($provider['config'] ?? null) ? (array)$provider['config'] : [];
+        $allowedKeys = [
+            'transaction_mode',
+            'test_publishable_key',
+            'live_publishable_key',
+            'test_secret_key',
+            'live_secret_key',
+            'currency',
+        ];
+        $normalizedConfig = array_intersect_key($config, array_flip($allowedKeys));
+
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'stripe')->first();
+        if (!$payment) {
+            return;
+        }
+
+        $existing = method_exists($payment, 'getConfigData') ? $payment->getConfigData() : [];
+        $payment->setConfigData(array_merge($existing, $normalizedConfig));
+        $payment->status = !empty($provider['enabled']) ? 1 : 0;
+        $payment->save();
+    };
+
+    $resolveStripeRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentMethods, $defaultPaymentProviders, $loadMethodRecordsFromPayments): array {
+        $methodsFromDb = $loadMethodRecordsFromPayments();
+        $methods = $methodsFromDb->count() > 0
+            ? $methodsFromDb
+            : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $stripeProvider = (array)$providers->get('stripe', []);
+        $providerEnabled = (bool)($stripeProvider['enabled'] ?? false);
+
+        $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
+        $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        $mode = (string)($data['transaction_mode'] ?? 'test');
+        $publishableKey = (string)($mode === 'live' ? ($data['live_publishable_key'] ?? '') : ($data['test_publishable_key'] ?? ''));
+        $secretKey = (string)($mode === 'live' ? ($data['live_secret_key'] ?? '') : ($data['test_secret_key'] ?? ''));
+
+        $baseReady = $providerEnabled && $publishableKey !== '' && $secretKey !== '';
+        $cardMethodConfigured = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'stripe'));
+        $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
+        $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
+
+        $cardReady = $baseReady && $cardMethodConfigured;
+        $appleReady = $baseReady && $appleMethodConfigured;
+        $googleReady = $baseReady && $googleMethodConfigured;
+
+        return [
+            'provider_enabled' => $providerEnabled,
+            'mode' => $mode,
+            'publishable_key' => $publishableKey,
+            'secret_key_present' => $secretKey !== '',
+            'card_ready' => $cardReady,
+            'apple_pay_ready' => $appleReady,
+            'google_pay_ready' => $googleReady,
+            'any_ready' => $cardReady || $appleReady || $googleReady,
+        ];
+    };
+
+    $resolveWorldlineRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentMethods, $defaultPaymentProviders, $loadMethodRecordsFromPayments): array {
+        $methodsFromDb = $loadMethodRecordsFromPayments();
+        $methods = $methodsFromDb->count() > 0
+            ? $methodsFromDb
+            : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $worldlineProvider = (array)$providers->get('worldline', []);
+        $providerEnabled = (bool)($worldlineProvider['enabled'] ?? false);
+
+        $cardMethod = (array)$methods->get('card', []);
+        $cardMethodEnabled = (bool)($cardMethod['enabled'] ?? false);
+        $cardMappedToWorldline = (($cardMethod['provider_code'] ?? null) === 'worldline');
+
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'worldline')->first();
+        $config = method_exists($payment, 'getConfigData') ? $payment->getConfigData() : [];
+
+        $apiEndpoint = trim((string)($config['api_endpoint'] ?? ''));
+        $merchantId = trim((string)($config['merchant_id'] ?? ''));
+        $apiKeyId = trim((string)($config['api_key_id'] ?? ''));
+        $secretApiKey = trim((string)($config['secret_api_key'] ?? ''));
+
+        $credentialsReady = $apiEndpoint !== '' && $merchantId !== '' && $apiKeyId !== '' && $secretApiKey !== '';
+
+        $cardReady = $providerEnabled && $cardMethodEnabled && $cardMappedToWorldline && $credentialsReady;
+
+        return [
+            'provider_enabled' => $providerEnabled,
+            'card_method_enabled' => $cardMethodEnabled,
+            'card_mapped_to_worldline' => $cardMappedToWorldline,
+            'credentials_ready' => $credentialsReady,
+            'card_ready' => $cardReady,
+        ];
+    };
+
     // === Payments (read-only) ===
-    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod) {
-        $defaults = $defaultPaymentMethods;
-        $load = $loadJsonSetting;
+    Route::get('/payments', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $resolveWorldlineRuntimeReadiness, $loadMethodRecordsFromPayments) {
+        $methodsFromDb = $loadMethodRecordsFromPayments();
+        $stripeReadiness = $resolveStripeRuntimeReadiness();
+        $worldlineReadiness = $resolveWorldlineRuntimeReadiness();
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
             ? $availableProviderCodesForMethod
             : fn (string $methodCode): array => [];
-        $providersByCode = collect($load('payment_providers', $defaultPaymentProviders))->keyBy('code');
-        $methods = collect($load('payment_methods', $defaults))
+        $providersByCode = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $sourceMethods = $methodsFromDb->count() > 0
+            ? $methodsFromDb->values()
+            : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods));
+        $methods = collect($sourceMethods)
             ->where('enabled', true)
-            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders) {
+            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders, $stripeReadiness, $worldlineReadiness) {
                 $methodCode = (string)($m['code'] ?? '');
                 $providerCode = $m['provider_code'] ?? null;
                 if ($methodCode === 'cod') {
@@ -791,6 +897,22 @@ Route::group([
                 $provider = (array)$providersByCode->get($providerCode, []);
                 if (!($provider['enabled'] ?? false)) {
                     return false;
+                }
+                if ((string)$providerCode === 'stripe') {
+                    if ($methodCode === 'card' && !($stripeReadiness['card_ready'] ?? false)) {
+                        return false;
+                    }
+                    if ($methodCode === 'apple_pay' && !($stripeReadiness['apple_pay_ready'] ?? false)) {
+                        return false;
+                    }
+                    if ($methodCode === 'google_pay' && !($stripeReadiness['google_pay_ready'] ?? false)) {
+                        return false;
+                    }
+                }
+                if ((string)$providerCode === 'worldline' && $methodCode === 'card') {
+                    if (!($worldlineReadiness['card_ready'] ?? false)) {
+                        return false;
+                    }
                 }
                 return in_array((string)$providerCode, $resolveAvailableProviders($methodCode), true);
             })
@@ -888,7 +1010,7 @@ Route::group([
         ]);
     });
 
-    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting) {
+    Route::post('/payment-providers-admin', function (\Illuminate\Http\Request $request) use ($defaultPaymentProviders, $saveJsonSetting, $syncStripeProviderConfigToPayments) {
         $providers = $request->input('providers', []);
         if (!is_array($providers)) {
             return response()->json(['success' => false, 'message' => 'Invalid providers payload'], 422);
@@ -912,13 +1034,20 @@ Route::group([
             return response()->json(['success' => false, 'message' => 'All payment providers are required'], 422);
         }
         $saveJsonSetting('payment_providers', $normalized);
+        foreach ($normalized as $provider) {
+            $syncStripeProviderConfigToPayments($provider);
+        }
         return response()->json(['success' => true, 'data' => $normalized]);
     });
 
     // Stripe tenant config (safe for frontend: publishable key + mode only)
-    Route::get('/payments/stripe/config', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod) {
-        $methods = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+    Route::get('/payments/stripe/config', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $loadMethodRecordsFromPayments) {
+        $methodsFromDb = $loadMethodRecordsFromPayments();
+        $methods = $methodsFromDb->count() > 0
+            ? $methodsFromDb
+            : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
         $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $readiness = $resolveStripeRuntimeReadiness();
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
             ? $availableProviderCodesForMethod
             : fn (string $methodCode): array => [];
@@ -941,7 +1070,7 @@ Route::group([
             }
             return in_array('stripe', $resolveAvailableProviders((string)$methodCode), true);
         });
-        if (!$hasActiveStripeMethod) {
+        if (!$hasActiveStripeMethod || !($readiness['any_ready'] ?? false)) {
             return response()->json(['success' => false, 'error' => 'Stripe is not active for any enabled method'], 404);
         }
 
@@ -968,10 +1097,6 @@ Route::group([
             ));
         }
 
-        $applePayEnabled = !empty($data['apple_pay_enabled']) && (string)$data['apple_pay_enabled'] !== '0';
-        $googlePayEnabled = !empty($data['google_pay_enabled']) && (string)$data['google_pay_enabled'] !== '0';
-        $paypalEnabled = !empty($data['paypal_enabled']) && (string)$data['paypal_enabled'] !== '0';
-
         $countryCode = strtoupper((string)($data['country_code'] ?? 'DE'));
 
         return response()->json([
@@ -980,14 +1105,19 @@ Route::group([
             'mode' => $mode,
             'currency' => $resolvedCurrency,
             'countryCode' => $countryCode,
-            'applePayEnabled' => $applePayEnabled,
-            'googlePayEnabled' => $googlePayEnabled,
-            'paypalEnabled' => $paypalEnabled,
+            'methods' => [
+                'card' => (bool)($readiness['card_ready'] ?? false),
+                'apple_pay' => (bool)($readiness['apple_pay_ready'] ?? false),
+                'google_pay' => (bool)($readiness['google_pay_ready'] ?? false),
+            ],
         ], 200);
     });
 
-    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting) {
-        $methodsByCode = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $loadMethodRecordsFromPayments, $resolveWorldlineRuntimeReadiness) {
+        $methodsFromDb = $loadMethodRecordsFromPayments();
+        $methodsByCode = $methodsFromDb->count() > 0
+            ? $methodsFromDb
+            : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
         $providersByCode = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
         $cardMethod = (array)$methodsByCode->get('card', []);
         if (empty($cardMethod) || !($cardMethod['enabled'] ?? false)) {
@@ -1028,6 +1158,15 @@ Route::group([
 
         try {
             if ($providerCode === 'worldline') {
+                $worldlineReadiness = $resolveWorldlineRuntimeReadiness();
+                if (!($worldlineReadiness['card_ready'] ?? false)) {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'worldline',
+                        'error' => 'Worldline card flow is not ready',
+                        'details' => $worldlineReadiness,
+                    ], 503);
+                }
                 $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
                 $result = $svc->createHostedCheckout([
                     'amount_minor' => $amountMinor,
@@ -1857,7 +1996,12 @@ Route::group([
     });
 
 
-    Route::post('/payments/stripe/create-intent', function (\Illuminate\Http\Request $request) {
+    Route::post('/payments/stripe/create-intent', function (\Illuminate\Http\Request $request) use ($resolveStripeRuntimeReadiness) {
+        $stripeReadiness = $resolveStripeRuntimeReadiness();
+        if (!($stripeReadiness['any_ready'] ?? false)) {
+            return response()->json(['success' => false, 'error' => 'Stripe is not ready for checkout'], 503);
+        }
+
         $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
         if (!$payment) {
             return response()->json(['success' => false, 'error' => 'Stripe not configured'], 404);
@@ -1886,6 +2030,23 @@ Route::group([
             'host' => request()->getHost(),
             'path' => request()->getPathInfo(),
         ]);
+
+        $itemsSummary = collect(is_array($body['items'] ?? null) ? $body['items'] : [])
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+                $name = trim((string) ($item['name'] ?? ($item['item']['name'] ?? '')));
+                $qty = (int) ($item['quantity'] ?? 1);
+                if ($qty < 1) {
+                    $qty = 1;
+                }
+
+                return $name !== '' ? ($name . ' x' . $qty) : null;
+            })
+            ->filter()
+            ->take(8)
+            ->implode(', ');
 
 try {
             \Illuminate\Support\Facades\Log::info("[Stripe create-intent] resolved-keys", ["mode"=>$mode, "has_secret"=>(bool)$secretKey, "has_payment"=>(bool)$payment]);
@@ -1917,7 +2078,18 @@ if (!$raw) {
             $zeroDecimalCurrencies = ['bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'];
             $isZeroDecimal = in_array($currency, $zeroDecimalCurrencies);
             $amountMinor = $isZeroDecimal ? (int) round($amountMajor) : (int) round($amountMajor * 100);
-            $preferred = $body['preferredMethod'] ?? null;
+            $preferred = strtolower((string)($body['preferredMethod'] ?? 'card'));
+            $preferredMap = [
+                'card' => (bool)($stripeReadiness['card_ready'] ?? false),
+                'apple_pay' => (bool)($stripeReadiness['apple_pay_ready'] ?? false),
+                'google_pay' => (bool)($stripeReadiness['google_pay_ready'] ?? false),
+            ];
+            if (!($preferredMap[$preferred] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Stripe method '{$preferred}' is not ready for this tenant",
+                ], 422);
+            }
 
             $payload = [
                 'amount' => $amountMinor,
@@ -1928,23 +2100,7 @@ if (!$raw) {
                     'customer_email' => (string)($body['customerInfo']['email'] ?? ''),
                     'customer_name' => (string)($body['customerInfo']['name'] ?? ''),
                     'item_count' => isset($body['items']) && is_array($body['items']) ? (string)count($body['items']) : '0',
-                    'items_summary' => (
-                        !empty($itemsSummary)
-                            ? $itemsSummary
-                            : (
-                                collect(is_array($body['items'] ?? null) ? $body['items'] : [])
-                                    ->map(function ($item) {
-                                        if (!is_array($item)) { return null; }
-                                        $name = trim((string) ($item['name'] ?? ($item['item']['name'] ?? '')));
-                                        $qty = (int) ($item['quantity'] ?? 1);
-                                        if ($qty < 1) { $qty = 1; }
-                                        return $name !== '' ? ($name . ' x' . $qty) : null;
-                                    })
-                                    ->filter()
-                                    ->take(8)
-                                    ->implode(', ')
-                            )
-                    ) ?: 'No items',
+                    'items_summary' => $itemsSummary !== '' ? $itemsSummary : 'No items',
                 ],
             ];
 
@@ -2168,7 +2324,7 @@ return response()->json([
 
 
     // Order submission endpoint
-    Route::post('/orders', function (Request $request) {
+    Route::post('/orders', function (Request $request) use ($loadJsonSetting, $defaultPaymentMethods) {
         \Log::info('PMD_ACTIVE_ORDER_ROUTE_ENTER', [
             'host' => $request->getHost(),
             'path' => $request->path(),
@@ -2178,7 +2334,31 @@ return response()->json([
             'raw' => $request->getContent(),
         ]);
 
+        $normalizedPaymentMethod = strtolower((string)$request->input('payment_method', ''));
+        $normalizedPaymentMethodRaw = strtolower(trim((string)$request->input('payment_method_raw', $normalizedPaymentMethod)));
+        if ($normalizedPaymentMethodRaw === '') {
+            $normalizedPaymentMethodRaw = $normalizedPaymentMethod;
+        }
+        $normalizedPaymentProvider = strtolower(trim((string)$request->input('payment_provider', '')));
+        $normalizedPaymentReference = trim((string)$request->input('payment_reference', ''));
+        $hasStripePaymentIntentId = trim((string)$request->input('stripe_payment_intent_id', '')) !== '';
+
         try {
+            $methodConfigByCode = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+            if ($normalizedPaymentProvider === '') {
+                $normalizedPaymentProvider = strtolower((string)($methodConfigByCode->get($normalizedPaymentMethodRaw)['provider_code']
+                    ?? $methodConfigByCode->get($normalizedPaymentMethod)['provider_code']
+                    ?? ''));
+            }
+            if ($normalizedPaymentReference === '' && $hasStripePaymentIntentId) {
+                $normalizedPaymentReference = trim((string)$request->input('stripe_payment_intent_id', ''));
+            }
+            $request->merge([
+                'payment_method_raw' => $normalizedPaymentMethodRaw !== '' ? $normalizedPaymentMethodRaw : null,
+                'payment_provider' => $normalizedPaymentProvider !== '' ? $normalizedPaymentProvider : null,
+                'payment_reference' => $normalizedPaymentReference !== '' ? $normalizedPaymentReference : null,
+            ]);
+
             $isCashier = (bool)($request->get('is_cashier') ?? $request->get('is_codier') ?? false);
 
             $tableNameNormalized = strtolower(trim((string)($request->table_name ?? '')));
@@ -2201,6 +2381,74 @@ return response()->json([
                 'is_pickup' => $isPickup,
             ]);
 
+            if (empty($request->table_id) && in_array($tableNameNormalized, ['delivery', 'cashier'], true)) {
+                $locationId = (int)($request->input('location_id') ?? 1);
+                $resolvedDefaultTableId = null;
+                $resolutionSource = 'none';
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('tables', 'location_id')) {
+                        $resolvedDefaultTableId = DB::table('tables')
+                            ->whereRaw('LOWER(TRIM(table_name)) = ?', [$tableNameNormalized])
+                            ->where('location_id', $locationId)
+                            ->orderBy('table_id')
+                            ->value('table_id');
+                        if ($resolvedDefaultTableId) {
+                            $resolutionSource = 'direct_location';
+                        }
+                    }
+
+                    if (!$resolvedDefaultTableId && \Illuminate\Support\Facades\Schema::hasTable('locationables')) {
+                        $resolvedDefaultTableId = DB::table('tables')
+                            ->whereRaw('LOWER(TRIM(table_name)) = ?', [$tableNameNormalized])
+                            ->whereExists(function ($sub) use ($locationId) {
+                                $sub->select(DB::raw(1))
+                                    ->from('locationables')
+                                    ->whereColumn('locationables.locationable_id', 'tables.table_id')
+                                    ->whereIn('locationables.locationable_type', ['tables', 'Admin\\Models\\Tables_model'])
+                                    ->where('locationables.location_id', $locationId);
+                            })
+                            ->orderBy('table_id')
+                            ->value('table_id');
+                        if ($resolvedDefaultTableId) {
+                            $resolutionSource = 'pivot_locationable';
+                        }
+                    }
+
+                    if (!$resolvedDefaultTableId) {
+                        $resolvedDefaultTableId = DB::table('tables')
+                            ->whereRaw('LOWER(TRIM(table_name)) = ?', [$tableNameNormalized])
+                            ->orderBy('table_id')
+                            ->value('table_id');
+                        if ($resolvedDefaultTableId) {
+                            $resolutionSource = 'global_name_fallback';
+                        }
+                    }
+                } catch (\Throwable $resolverException) {
+                    \Log::warning('PMD_DEFAULT_TABLE_RESOLUTION_FAILED', [
+                        'requested_table_name' => $tableNameNormalized,
+                        'location_id' => $locationId,
+                        'error' => $resolverException->getMessage(),
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Default table resolution failed',
+                        'message' => 'Unable to resolve default table for this order',
+                    ], 422);
+                }
+
+                \Log::info('PMD_DEFAULT_TABLE_RESOLUTION', [
+                    'requested_table_name' => $tableNameNormalized,
+                    'resolved_table_id' => $resolvedDefaultTableId ? (int)$resolvedDefaultTableId : null,
+                    'location_id' => $locationId,
+                    'source' => $resolutionSource,
+                ]);
+
+                if ($resolvedDefaultTableId) {
+                    $request->merge(['table_id' => (string)$resolvedDefaultTableId]);
+                }
+            }
+
             $validationRules = [
                 'customer_name' => 'required|string|max:255',
                 'items' => 'required|array|min:1',
@@ -2212,7 +2460,7 @@ return response()->json([
                 'total_amount' => 'required|numeric|min:0',
                 'tip_amount' => 'nullable|numeric|min:0',
                 'coupon_discount' => 'nullable|numeric|min:0',
-                'payment_method' => 'required|in:cash,card,paypal,stripe,apple_pay,google_pay',
+                'payment_method' => 'required|in:cash,cod,card,paypal,stripe,apple_pay,google_pay',
                 'stripe_payment_intent_id' => 'nullable|string|max:255',
             ];
 
@@ -2224,13 +2472,23 @@ return response()->json([
                 $validationRules['table_id'] = 'nullable|string|max:50';
             }
 
+            $validationRules['payment_provider'] = 'nullable|string|in:stripe,paypal,worldline,sumup,square';
+            $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,paypal,cod,cash,stripe';
+            $validationRules['payment_reference'] = 'nullable|string|max:255';
+
             $request->validate($validationRules);
 
             $frontendPaymentMethod = (string)($request->payment_method ?? '');
+            $frontendPaymentMethodRaw = (string)($request->payment_method_raw ?? $frontendPaymentMethod);
+            $frontendPaymentProvider = strtolower((string)($request->payment_provider ?? ''));
+            if ($frontendPaymentProvider === '') {
+                $frontendPaymentProvider = strtolower((string)($methodConfigByCode->get($frontendPaymentMethodRaw)['provider_code'] ?? ''));
+            }
 
             $normalizedPaymentMethod = match ($frontendPaymentMethod) {
                 'stripe', 'apple_pay', 'google_pay' => 'card',
                 'paypal' => 'paypal',
+                'cod' => 'cash',
                 'cash' => 'cash',
                 'card' => 'card',
                 default => 'card',
@@ -2238,8 +2496,153 @@ return response()->json([
 
             \Log::info('PMD_ACTIVE_ORDER_ROUTE_PAYMENT_MAPPING', [
                 'frontend_payment_method' => $frontendPaymentMethod,
+                'frontend_payment_method_raw' => $frontendPaymentMethodRaw,
+                'frontend_payment_provider' => $frontendPaymentProvider,
                 'normalized_payment_method' => $normalizedPaymentMethod,
             ]);
+
+            $isStripeWalletMethod = in_array($frontendPaymentMethodRaw, ['stripe', 'apple_pay', 'google_pay'], true);
+            $isStripeCardMethod = $frontendPaymentMethodRaw === 'card' && $frontendPaymentProvider === 'stripe';
+            $mustVerifyStripe = $isStripeWalletMethod || $isStripeCardMethod;
+            $mustVerifyWorldline = $frontendPaymentMethodRaw === 'card' && $frontendPaymentProvider === 'worldline';
+            if ($isStripeWalletMethod && $frontendPaymentProvider !== 'stripe') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stripe payment verification failed: invalid provider for selected method',
+                ], 422);
+            }
+
+            if ($mustVerifyStripe) {
+                $stripePaymentIntentId = (string)($request->input('payment_reference') ?: $request->input('stripe_payment_intent_id'));
+                if ($stripePaymentIntentId === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Stripe payment verification failed: missing payment_intent_id',
+                    ], 422);
+                }
+
+                $stripePayment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
+                if (!$stripePayment) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Stripe payment verification failed: provider not configured',
+                    ], 503);
+                }
+
+                $stripeData = is_array($stripePayment->data ?? null) ? (array)$stripePayment->data : [];
+                $stripeMode = (string)($stripeData['transaction_mode'] ?? 'test');
+                $stripeSecretKey = (string)($stripeMode === 'live'
+                    ? ($stripeData['live_secret_key'] ?? '')
+                    : ($stripeData['test_secret_key'] ?? ''));
+
+                if ($stripeSecretKey === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Stripe payment verification failed: secret key missing',
+                    ], 503);
+                }
+
+                try {
+                    \Stripe\Stripe::setApiKey($stripeSecretKey);
+                    $paymentIntent = \Stripe\PaymentIntent::retrieve($stripePaymentIntentId);
+                    $paymentStatus = (string)($paymentIntent->status ?? '');
+                    if ($paymentStatus !== 'succeeded') {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Stripe payment verification failed: status '{$paymentStatus}' is not final",
+                        ], 422);
+                    }
+
+                    $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
+                    $rawCurrency = $settings['default_currency_code']->value ?? ($settings['default_currency']->value ?? null);
+                    if (!$rawCurrency) {
+                        $expectedCurrency = strtoupper((string)($request->input('currency') ?: 'EUR'));
+                    } elseif (!preg_match('/^\d+$/', (string)$rawCurrency)) {
+                        $expectedCurrency = strtoupper((string)$rawCurrency);
+                    } else {
+                        $expectedCurrency = strtoupper((string)(
+                            \Illuminate\Support\Facades\DB::table('currencies')->where('currency_id', (int)$rawCurrency)->value('currency_code') ?: 'EUR'
+                        ));
+                    }
+                    $expectedCurrencyLower = strtolower($expectedCurrency);
+                    $piCurrency = strtolower((string)($paymentIntent->currency ?? ''));
+                    if ($piCurrency !== $expectedCurrencyLower) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Stripe payment verification failed: currency mismatch',
+                        ], 422);
+                    }
+
+                    $expectedAmountMajor = (float)($request->input('total_amount') ?? 0);
+                    $zeroDecimalCurrencies = ['bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'];
+                    $isZeroDecimal = in_array($expectedCurrencyLower, $zeroDecimalCurrencies, true);
+                    $expectedAmountMinor = $isZeroDecimal
+                        ? (int) round($expectedAmountMajor)
+                        : (int) round($expectedAmountMajor * 100);
+                    $piAmount = (int)($paymentIntent->amount ?? 0);
+                    if ($expectedAmountMinor !== $piAmount) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Stripe payment verification failed: amount mismatch',
+                        ], 422);
+                    }
+
+                    $expectedTenantContext = (string)($request->input('location_id') ?? 1);
+                    $metadataRestaurantId = (string)($paymentIntent->metadata->restaurant_id ?? '');
+                    if ($metadataRestaurantId !== '' && $metadataRestaurantId !== $expectedTenantContext) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Stripe payment verification failed: tenant context mismatch',
+                        ], 422);
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('PMD_STRIPE_ORDER_VERIFICATION_FAILED', [
+                        'message' => $e->getMessage(),
+                        'payment_intent_id' => $stripePaymentIntentId,
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Stripe payment verification failed',
+                    ], 422);
+                }
+            }
+
+            if ($mustVerifyWorldline) {
+                $worldlineHostedCheckoutId = (string)$request->input('payment_reference');
+                if ($worldlineHostedCheckoutId === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Worldline payment verification failed: missing hosted_checkout_id',
+                    ], 422);
+                }
+
+                try {
+                    $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+                    $status = $service->getHostedCheckoutStatus($worldlineHostedCheckoutId);
+                    $hostedStatus = strtoupper((string)($status['hosted_checkout_status'] ?? ''));
+                    $paymentStatus = strtoupper((string)($status['payment_status'] ?? ''));
+                    $paidHostedStatuses = ['PAYMENT_CREATED', 'COMPLETED'];
+                    $paidPaymentStatuses = ['PAID', 'CAPTURED', '9'];
+                    $isPaid = in_array($hostedStatus, $paidHostedStatuses, true)
+                        || in_array($paymentStatus, $paidPaymentStatuses, true);
+
+                    if (!$isPaid) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Worldline payment verification failed: payment not completed',
+                        ], 422);
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('PMD_WORLDLINE_ORDER_VERIFICATION_FAILED', [
+                        'message' => $e->getMessage(),
+                        'hosted_checkout_id' => $worldlineHostedCheckoutId,
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Worldline payment verification failed',
+                    ], 422);
+                }
+            }
 
             DB::beginTransaction();
 
@@ -2296,6 +2699,30 @@ return response()->json([
                     }
                 } catch (\Throwable $e) {
                     \Log::warning('PMD_ACTIVE_ORDER_ROUTE stripe_payment_intent_id skipped', [
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($request->filled('payment_provider')) {
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'payment_provider')) {
+                        $insertData['payment_provider'] = (string)$request->payment_provider;
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('PMD_ACTIVE_ORDER_ROUTE payment_provider skipped', [
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($request->filled('payment_reference')) {
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'payment_reference')) {
+                        $insertData['payment_reference'] = (string)$request->payment_reference;
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('PMD_ACTIVE_ORDER_ROUTE payment_reference skipped', [
                         'message' => $e->getMessage(),
                     ]);
                 }
@@ -2785,8 +3212,24 @@ return response()->json([
                 'message' => 'Order placed successfully',
             ]);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('PMD_ORDER_VALIDATION_REJECTED', [
+                'payment_method' => $normalizedPaymentMethod,
+                'payment_method_raw' => $normalizedPaymentMethodRaw,
+                'payment_provider' => $normalizedPaymentProvider,
+                'has_stripe_payment_intent_id' => $hasStripePaymentIntentId,
+                'errors' => $e->errors(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'message' => 'Order payload validation failed',
+                'details' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
 
             \Log::error('PMD_ACTIVE_ORDER_ROUTE_EXCEPTION', [
                 'message' => $e->getMessage(),

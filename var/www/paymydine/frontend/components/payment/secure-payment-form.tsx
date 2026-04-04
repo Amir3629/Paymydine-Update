@@ -117,6 +117,7 @@ export function StripeCardForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...paymentData,
+          preferredMethod: 'card',
           customerInfo: {
             ...paymentData.customerInfo,
             name: safeName,

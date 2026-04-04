@@ -9,6 +9,7 @@ use Igniter\Flame\Database\Traits\Sortable;
 use Igniter\Flame\Exception\ApplicationException;
 use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Payments Model Class
@@ -30,22 +31,32 @@ class Payments_model extends Model
      */
     protected $primaryKey = 'payment_id';
 
-    protected $fillable = ['name', 'code', 'class_name', 'description', 'data', 'status', 'is_default', 'priority'];
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->applyStorageMapping();
+    }
+
+    protected $fillable = ['name', 'code', 'class_name', 'description', 'meta', 'provider_code', 'status', 'is_default', 'priority', 'sort_order'];
 
     public $timestamps = true;
 
-    protected $casts = [
-        'data' => 'array',
-        'status' => 'boolean',
-        'is_default' => 'boolean',
-        'priority' => 'integer',
-    ];
+    protected $casts = [];
 
-    protected $jsonable = ['data'];
+    protected $jsonable = [];
 
     protected $purgeable = ['payment'];
 
     protected static $defaultPayment;
+
+    protected const METHOD_PROVIDER_MATRIX = [
+        'card' => ['stripe', 'worldline'],
+        'apple_pay' => ['stripe'],
+        'google_pay' => ['stripe'],
+        'paypal' => ['paypal', 'stripe'],
+        'cod' => [],
+        'cash' => [],
+    ];
 
     public function getDropdownOptions()
     {
@@ -100,12 +111,23 @@ class Payments_model extends Model
     {
         $this->applyGatewayClass();
 
-        if (is_array($this->data))
-            $this->attributes = array_merge($this->data, $this->attributes);
+        $payload = $this->getConfigPayload();
+        if (is_array($payload))
+            $this->attributes = array_merge($payload, $this->attributes);
     }
 
     protected function beforeSave()
     {
+        $this->applyStorageMapping();
+
+        if (strlen((string)$this->code)) {
+            $existing = self::query()->where('code', (string)$this->code)->first();
+            if ($existing && ((string)$this->getKey() === '' || (int)$this->getKey() === 0 || !$this->exists)) {
+                $this->setAttribute($this->getKeyName(), $existing->getKey());
+                $this->exists = true;
+            }
+        }
+
         // This only happens during updates (edits) — it maintains its current behavior.
         if (!$this->exists) {
             return;
@@ -115,8 +137,14 @@ class Payments_model extends Model
             $this->makeDefault();
         }
 
-        // Everything that came from the form is in Payment[...]
-        $posted = (array) post('Payment', []);
+        // Collect form payload from all known roots used by admin forms.
+        $posted = [];
+        foreach (['Payment', 'Payments', 'payment', 'payments'] as $root) {
+            $rootPayload = post($root);
+            if (is_array($rootPayload)) {
+                $posted = array_merge($posted, $rootPayload);
+            }
+        }
 
         // Remove fields that do NOT belong to the JSON data (they are form columns/controls).
         foreach ([
@@ -131,15 +159,25 @@ class Payments_model extends Model
         ] as $k) {
             unset($posted[$k]);
         }
+
+        if (array_key_exists('provider_code', $posted)) {
+            $this->provider_code = strlen((string)$posted['provider_code']) ? (string)$posted['provider_code'] : null;
+            unset($posted['provider_code']);
+        }
         
         if (!empty($posted)) {
-            $current = is_array($this->data) ? $this->data : [];
-            $this->data = array_merge($current, $posted);
+            $current = $this->getConfigPayload();
+            $this->setConfigPayload(array_merge($current, $posted));
         }
 
-        // Remove attributes that cannot be filled (prevents attempts to save non-existent columns).
+        if (!$this->provider_code && in_array((string)$this->code, ['cod', 'cash'], true)) {
+            $this->provider_code = null;
+        }
+
+        // Keep only real DB columns for the resolved storage table.
+        $realColumns = Schema::getColumnListing($this->getTable());
         foreach (array_keys($this->attributes) as $name) {
-            if (in_array($name, $this->fillable)) continue;
+            if (in_array($name, $realColumns, true)) continue;
             unset($this->attributes[$name]);
         }
     }
@@ -211,7 +249,7 @@ class Payments_model extends Model
 
         $this->timestamps = false;
         $this->newQuery()->where('is_default', '!=', 0)->update(['is_default' => 0]);
-        $this->newQuery()->where('payment_id', $this->payment_id)->update(['is_default' => 1]);
+        $this->newQuery()->where($this->getKeyName(), $this->getKey())->update(['is_default' => 1]);
         $this->timestamps = true;
     }
 
@@ -285,7 +323,7 @@ class Payments_model extends Model
         $query = Payment_profiles_model::query();
 
         return $query->where('customer_id', $customer->customer_id)
-            ->where('payment_id', $this->payment_id)
+            ->where('payment_id', $this->getKey())
             ->first();
     }
 
@@ -299,7 +337,7 @@ class Payments_model extends Model
     {
         $profile = new Payment_profiles_model();
         $profile->customer_id = $customer->customer_id;
-        $profile->payment_id = $this->payment_id;
+        $profile->payment_id = $this->getKey();
 
         return $profile;
     }
@@ -322,5 +360,159 @@ class Payments_model extends Model
         $gatewayObj->deletePaymentProfile($customer, $profile);
 
         $profile->delete();
+    }
+
+    protected function applyStorageMapping(): void
+    {
+        $schema = $this->getConnection()->getSchemaBuilder();
+
+        $methodTables = ['payment_methods', 'ti_payment_methods'];
+        $legacyTables = ['payments', 'ti_payments'];
+
+        foreach ($methodTables as $tableName) {
+            if ($schema->hasTable($tableName)) {
+                $this->table = $tableName;
+                $this->primaryKey = 'id';
+                $this->casts = ['meta' => 'array'];
+                $this->jsonable = [];
+                return;
+            }
+        }
+
+        foreach ($legacyTables as $tableName) {
+            if ($schema->hasTable($tableName)) {
+                $this->table = $tableName;
+                $this->primaryKey = 'payment_id';
+                $this->casts = ['data' => 'array'];
+                $this->jsonable = [];
+                return;
+            }
+        }
+
+        $this->table = 'payments';
+        $this->primaryKey = 'payment_id';
+        $this->casts = ['data' => 'array'];
+        $this->jsonable = [];
+    }
+
+    protected function usesPaymentMethodsStorage(): bool
+    {
+        return in_array($this->getTable(), ['payment_methods', 'ti_payment_methods'], true);
+    }
+
+    public function getPriorityAttribute($value)
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            return (int)($this->attributes['sort_order'] ?? 0);
+        }
+
+        return $value;
+    }
+
+    public function setPriorityAttribute($value): void
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['sort_order'] = (int)$value;
+            return;
+        }
+
+        $this->attributes['priority'] = $value;
+    }
+
+    public function getDataAttribute($value)
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $meta = $this->attributes['meta'] ?? $this->meta ?? [];
+            return is_array($meta) ? $meta : (is_string($meta) ? (json_decode($meta, true) ?: []) : []);
+        }
+
+        return is_array($value) ? $value : (is_string($value) ? (json_decode($value, true) ?: []) : []);
+    }
+
+    public function setDataAttribute($value): void
+    {
+        $normalized = is_array($value) ? $value : (is_string($value) ? (json_decode($value, true) ?: []) : []);
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['meta'] = $normalized;
+            return;
+        }
+
+        $this->attributes['data'] = json_encode($normalized);
+    }
+
+    protected function getConfigPayload(): array
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            return (array)$this->getDataAttribute($this->attributes['meta'] ?? null);
+        }
+
+        return (array)$this->getDataAttribute($this->attributes['data'] ?? null);
+    }
+
+    protected function setConfigPayload(array $payload): void
+    {
+        if (array_key_exists('supported_providers', $payload)) {
+            $payload['supported_providers'] = $this->normalizeSupportedProviders($payload['supported_providers']);
+        }
+
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['meta'] = $payload;
+            return;
+        }
+
+        $this->attributes['data'] = json_encode($payload);
+    }
+
+    public function getConfigData(): array
+    {
+        return $this->getConfigPayload();
+    }
+
+    public function setConfigData(array $payload): void
+    {
+        $this->setConfigPayload($payload);
+    }
+
+    public function isMethodStorageResolved(): bool
+    {
+        $this->applyStorageMapping();
+        return $this->usesPaymentMethodsStorage();
+    }
+
+    public static function supportedProviderMatrix(): array
+    {
+        return self::METHOD_PROVIDER_MATRIX;
+    }
+
+    public static function supportedProvidersForMethod(string $methodCode): array
+    {
+        return self::METHOD_PROVIDER_MATRIX[strtolower($methodCode)] ?? [];
+    }
+
+    public function getSupportedProvidersAttribute($value): array
+    {
+        $payload = $this->getConfigPayload();
+        if (array_key_exists('supported_providers', $payload)) {
+            return $this->normalizeSupportedProviders($payload['supported_providers']);
+        }
+
+        return self::supportedProvidersForMethod((string)$this->code);
+    }
+
+    public function setSupportedProvidersAttribute($value): void
+    {
+        $payload = $this->getConfigPayload();
+        $payload['supported_providers'] = $this->normalizeSupportedProviders($value);
+        $this->setConfigPayload($payload);
+    }
+
+    protected function normalizeSupportedProviders($value): array
+    {
+        $items = array_values(array_filter(array_map(
+            fn ($v) => strtolower(trim((string)$v)),
+            is_array($value) ? $value : []
+        ), fn (string $v) => $v !== ''));
+
+        return array_values(array_unique($items));
     }
 }
