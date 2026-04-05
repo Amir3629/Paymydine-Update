@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react"
 import type { ReactNode } from "react"
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js"
-import * as OnlinePaymentsSdk from "onlinepayments-sdk-client-js"
+import { Session, PaymentRequest } from "onlinepayments-sdk-client-js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,33 +26,8 @@ interface WorldlineInlineCardFormProps extends SecurePaymentFormProps {
   currency?: string
 }
 
-type WorldlineRuntimeSdk = {
-  init: (...args: any[]) => any
-  PaymentRequest: new (...args: any[]) => any
-  source: "esm:init" | "esm:default.init"
-}
-
-const worldlineInlineInitPromiseByKey = new Map<string, Promise<{ sdk: any; paymentProduct: any; runtimeSdk: WorldlineRuntimeSdk }>>()
-const worldlineInlineInitResultByKey = new Map<string, { sdk: any; paymentProduct: any; runtimeSdk: WorldlineRuntimeSdk }>()
-
-function resolveWorldlineRuntimeSdk(mod: any): WorldlineRuntimeSdk | null {
-  // Root cause fix:
-  // - We use a bundler-safe static import so Next.js includes the package in the client bundle.
-  // - Then we resolve both common export shapes from that bundled module.
-  const esmInit = mod?.init
-  const esmDefaultInit = mod?.default?.init
-  const esmPaymentRequest = mod?.PaymentRequest
-  const esmDefaultPaymentRequest = mod?.default?.PaymentRequest
-
-  if (typeof esmInit === "function" && typeof esmPaymentRequest === "function") {
-    return { init: esmInit, PaymentRequest: esmPaymentRequest, source: "esm:init" }
-  }
-  if (typeof esmDefaultInit === "function" && typeof esmDefaultPaymentRequest === "function") {
-    return { init: esmDefaultInit, PaymentRequest: esmDefaultPaymentRequest, source: "esm:default.init" }
-  }
-
-  return null
-}
+const worldlineInlineInitPromiseByKey = new Map<string, Promise<{ sdk: any; paymentProduct: any }>>()
+const worldlineInlineInitResultByKey = new Map<string, { sdk: any; paymentProduct: any }>()
 
 // Stripe Card Form Component
 export function StripeCardForm({ 
@@ -635,7 +610,6 @@ export function WorldlineInlineCardForm({
   const initFailureShownRef = useRef(false)
   const onPaymentErrorRef = useRef(onPaymentError)
   const initKeyRef = useRef<string | null>(null)
-  const paymentRequestCtorRef = useRef<any>(null)
   const [isLoadingSession, setIsLoadingSession] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -664,8 +638,8 @@ export function WorldlineInlineCardForm({
   const currencyCode = String(currency || "EUR").toUpperCase()
 
   const buildPaymentRequest = (nextData: typeof formData) => {
-    if (!paymentProduct || typeof paymentRequestCtorRef.current !== "function") return null
-    const paymentRequest = new paymentRequestCtorRef.current(paymentProduct)
+    if (!paymentProduct) return null
+    const paymentRequest = new PaymentRequest(paymentProduct)
     paymentRequest.setValue("cardholderName", (nextData.cardholderName || "").trim())
     paymentRequest.setValue("cardNumber", (nextData.cardNumber || "").trim())
     paymentRequest.setValue("expiryDate", (nextData.expiryDate || "").trim())
@@ -739,26 +713,14 @@ export function WorldlineInlineCardForm({
 
         const cachedInit = worldlineInlineInitResultByKey.get(initKey)
         if (cachedInit) {
-          paymentRequestCtorRef.current = cachedInit.runtimeSdk.PaymentRequest
           if (!active) return
           setSdk(cachedInit.sdk)
           setPaymentProduct(cachedInit.paymentProduct)
           return
         }
 
-        // Root cause fix:
-        // - Previous browser runtime import used a bare specifier, which fails in production browser.
-        // - Previous script fallback loaded an ESM file as classic script, causing "Unexpected keyword 'export'".
-        // - Here we only use the module that Next bundles from static import.
         const inFlightInit = worldlineInlineInitPromiseByKey.get(initKey)
         const initPromise = inFlightInit ?? (async () => {
-          const runtimeSdk = resolveWorldlineRuntimeSdk(OnlinePaymentsSdk as any)
-          if (!runtimeSdk) {
-            throw new Error("Worldline SDK runtime adapter unavailable")
-          }
-          paymentRequestCtorRef.current = runtimeSdk.PaymentRequest
-          console.info(`[WorldlineInlineCardForm] SDK init path: ${runtimeSdk.source}`)
-
           const res = await fetch("/api/v1/payments/worldline/inline/session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -771,6 +733,18 @@ export function WorldlineInlineCardForm({
           if (!res.ok || !json?.success || !json?.session) {
             throw new Error(json?.error || "Failed to initialize Worldline inline session")
           }
+          const sessionData = json.session
+          const worldlineSession = new Session(
+            sessionData.clientSessionId,
+            sessionData.customerId,
+            sessionData.clientApiUrl,
+            sessionData.assetUrl,
+            {
+              environment: sessionData.environment || "TEST",
+              appIdentifier: "PayMyDine-Checkout/1.0",
+            }
+          )
+          console.log("[WorldlineInlineCardForm] Session initialized", worldlineSession)
 
           const paymentContext = {
             countryCode,
@@ -781,18 +755,9 @@ export function WorldlineInlineCardForm({
             isRecurring: false,
           }
 
-          const worldlineSdk = runtimeSdk.init(
-            {
-              clientSessionId: json.session.clientSessionId,
-              customerId: json.session.customerId,
-              clientApiUrl: json.session.clientApiUrl,
-              assetUrl: json.session.assetUrl,
-            },
-            { appIdentifier: "PayMyDine-Checkout" }
-          )
-          const product = await worldlineSdk.getPaymentProduct(1, paymentContext)
+          const product = await worldlineSession.getPaymentProduct(1, paymentContext)
 
-          return { sdk: worldlineSdk, paymentProduct: product, runtimeSdk }
+          return { sdk: worldlineSession, paymentProduct: product }
         })()
 
         if (!inFlightInit) {
@@ -802,7 +767,6 @@ export function WorldlineInlineCardForm({
         const resolvedInit = await initPromise
         worldlineInlineInitResultByKey.set(initKey, resolvedInit)
         worldlineInlineInitPromiseByKey.delete(initKey)
-        paymentRequestCtorRef.current = resolvedInit.runtimeSdk.PaymentRequest
         if (!active) return
         setSdk(resolvedInit.sdk)
         setPaymentProduct(resolvedInit.paymentProduct)
@@ -846,7 +810,9 @@ export function WorldlineInlineCardForm({
         throw new Error("Please check your card details")
       }
 
-      const encryptedRequest = await sdk.encryptPaymentRequest(paymentRequest)
+      const encryptedRequest =
+        (await sdk.preparePaymentRequest?.(paymentRequest)) ||
+        (await sdk.encryptPaymentRequest?.(paymentRequest))
       if (!encryptedRequest?.encryptedCustomerInput) {
         throw new Error("Worldline encryption returned empty payload")
       }
