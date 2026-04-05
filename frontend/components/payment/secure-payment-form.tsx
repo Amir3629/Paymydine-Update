@@ -28,7 +28,12 @@ interface WorldlineInlineCardFormProps extends SecurePaymentFormProps {
 type WorldlineRuntimeSdk = {
   init: (...args: any[]) => any
   PaymentRequest: new (...args: any[]) => any
-  source: "esm:init" | "esm:default.init" | "umd:window.onlinepaymentssdk"
+  source:
+    | "esm:init"
+    | "esm:default.init"
+    | "umd:window.onlinepaymentssdk"
+    | "umd:window.OnlinePaymentsSdk"
+    | "umd:window.Worldline"
 }
 
 const WORLDLINE_UMD_SOURCES = [
@@ -37,23 +42,41 @@ const WORLDLINE_UMD_SOURCES = [
 ]
 
 let worldlineUmdLoadPromise: Promise<boolean> | null = null
+const worldlineInlineInitPromiseByKey = new Map<string, Promise<{ sdk: any; paymentProduct: any; runtimeSdk: WorldlineRuntimeSdk }>>()
+const worldlineInlineInitResultByKey = new Map<string, { sdk: any; paymentProduct: any; runtimeSdk: WorldlineRuntimeSdk }>()
 
 function resolveWorldlineRuntimeSdk(mod: any): WorldlineRuntimeSdk | null {
-  const windowSdk = typeof window !== "undefined" ? (window as any)?.onlinepaymentssdk : null
-  const initFn = mod?.init ?? mod?.default?.init ?? windowSdk?.init
-  const paymentRequestCtor = mod?.PaymentRequest ?? mod?.default?.PaymentRequest ?? windowSdk?.PaymentRequest
+  const onlinePaymentsGlobal = typeof window !== "undefined" ? (window as any)?.onlinepaymentssdk : null
+  const onlinePaymentsSdkGlobal = typeof window !== "undefined" ? (window as any)?.OnlinePaymentsSdk : null
+  const worldlineGlobal = typeof window !== "undefined" ? (window as any)?.Worldline : null
 
-  if (typeof initFn !== "function" || typeof paymentRequestCtor !== "function") {
-    return null
+  const globalCandidates = [
+    { value: onlinePaymentsGlobal, source: "umd:window.onlinepaymentssdk" as const },
+    { value: onlinePaymentsSdkGlobal, source: "umd:window.OnlinePaymentsSdk" as const },
+    { value: worldlineGlobal, source: "umd:window.Worldline" as const },
+    { value: worldlineGlobal?.onlinepaymentssdk, source: "umd:window.Worldline" as const },
+    { value: worldlineGlobal?.OnlinePaymentsSdk, source: "umd:window.Worldline" as const },
+  ]
+
+  const esmInit = mod?.init
+  const esmDefaultInit = mod?.default?.init
+  const esmPaymentRequest = mod?.PaymentRequest
+  const esmDefaultPaymentRequest = mod?.default?.PaymentRequest
+
+  if (typeof esmInit === "function" && typeof esmPaymentRequest === "function") {
+    return { init: esmInit, PaymentRequest: esmPaymentRequest, source: "esm:init" }
+  }
+  if (typeof esmDefaultInit === "function" && typeof esmDefaultPaymentRequest === "function") {
+    return { init: esmDefaultInit, PaymentRequest: esmDefaultPaymentRequest, source: "esm:default.init" }
   }
 
-  if (typeof mod?.init === "function") {
-    return { init: initFn, PaymentRequest: paymentRequestCtor, source: "esm:init" }
+  for (const candidate of globalCandidates) {
+    if (typeof candidate?.value?.init === "function" && typeof candidate?.value?.PaymentRequest === "function") {
+      return { init: candidate.value.init, PaymentRequest: candidate.value.PaymentRequest, source: candidate.source }
+    }
   }
-  if (typeof mod?.default?.init === "function") {
-    return { init: initFn, PaymentRequest: paymentRequestCtor, source: "esm:default.init" }
-  }
-  return { init: initFn, PaymentRequest: paymentRequestCtor, source: "umd:window.onlinepaymentssdk" }
+
+  return null
 }
 
 async function ensureWorldlineUmdLoaded(): Promise<boolean> {
@@ -675,6 +698,8 @@ export function WorldlineInlineCardForm({
   countryCode = "DE",
   currency = "EUR",
 }: WorldlineInlineCardFormProps) {
+  const instanceIdRef = useRef<string>(`wl-inline-${Math.random().toString(36).slice(2, 10)}`)
+  const renderCountRef = useRef(0)
   const sdkRuntimeRef = useRef<WorldlineRuntimeSdk | null>(null)
   const initFailureShownRef = useRef(false)
   const onPaymentErrorRef = useRef(onPaymentError)
@@ -709,11 +734,16 @@ export function WorldlineInlineCardForm({
   }, [onPaymentError])
 
   useEffect(() => {
-    console.info("[WorldlineInlineCardForm][TEMP] mount")
+    console.info(`[WorldlineInlineCardForm][TEMP] mount (${instanceIdRef.current})`)
     return () => {
-      console.info("[WorldlineInlineCardForm][TEMP] unmount")
+      console.info(`[WorldlineInlineCardForm][TEMP] unmount (${instanceIdRef.current})`)
     }
   }, [])
+
+  useEffect(() => {
+    renderCountRef.current += 1
+    console.info(`[WorldlineInlineCardForm][TEMP] render #${renderCountRef.current} (${instanceIdRef.current})`)
+  })
 
   useEffect(() => {
     let active = true
@@ -722,95 +752,120 @@ export function WorldlineInlineCardForm({
       try {
         if (typeof window === "undefined") return
         if (initKeyRef.current === initKey) {
-          console.info(`[WorldlineInlineCardForm][TEMP] init skip (already initialized for ${initKey})`)
+          console.info(`[WorldlineInlineCardForm][TEMP] init skip same key (${instanceIdRef.current}): ${initKey}`)
           return
         }
 
-        console.info(`[WorldlineInlineCardForm][TEMP] init start key=${initKey}`)
+        console.info(`[WorldlineInlineCardForm][TEMP] init key (${instanceIdRef.current}): ${initKey}`)
         initKeyRef.current = initKey
         setIsLoadingSession(true)
         setError(null)
-        setPaymentProduct(null)
-        setSdk(null)
+
+        const cachedInit = worldlineInlineInitResultByKey.get(initKey)
+        if (cachedInit) {
+          console.info(`[WorldlineInlineCardForm][TEMP] init cache hit (${instanceIdRef.current}): ${initKey}`)
+          sdkRuntimeRef.current = cachedInit.runtimeSdk
+          if (!active) return
+          console.info(`[WorldlineInlineCardForm][TEMP] set sdk/paymentProduct from cache (${instanceIdRef.current})`)
+          setSdk(cachedInit.sdk)
+          setPaymentProduct(cachedInit.paymentProduct)
+          return
+        }
 
         // Root cause: the SDK export shape differs across build/runtime modes in Next.js.
         // We dynamically detect the real shape at runtime, then lock onto a stable path.
-        console.info("[WorldlineInlineCardForm][TEMP] sdk resolution start")
-        let sdkModule: any = null
-        try {
-          // Intentionally avoid a static import string so Next build does not hard-fail
-          // when this dependency is missing in a given deployment artifact.
-          const runtimeImport = (0, eval)("specifier => import(specifier)") as (specifier: string) => Promise<any>
-          sdkModule = await runtimeImport("onlinepayments-sdk-client-js")
-          console.info("[WorldlineInlineCardForm][TEMP] sdk import success")
-        } catch (importError) {
-          console.warn("[WorldlineInlineCardForm] ESM import failed, trying UMD fallback.", importError)
-        }
-
-        // TEMP diagnostics to inspect actual runtime shape in production.
-        console.info("[WorldlineInlineCardForm][TEMP] Object.keys(mod):", Object.keys(sdkModule || {}))
-        console.info("[WorldlineInlineCardForm][TEMP] typeof mod.init:", typeof sdkModule?.init)
-        console.info("[WorldlineInlineCardForm][TEMP] typeof mod.default?.init:", typeof sdkModule?.default?.init)
-        console.info("[WorldlineInlineCardForm][TEMP] typeof window.onlinepaymentssdk:", typeof (window as any)?.onlinepaymentssdk)
-        console.info("[WorldlineInlineCardForm][TEMP] typeof window.OnlinePaymentsSdk:", typeof (window as any)?.OnlinePaymentsSdk)
-        console.info("[WorldlineInlineCardForm][TEMP] typeof window.Worldline:", typeof (window as any)?.Worldline)
-
-        let runtimeSdk = resolveWorldlineRuntimeSdk(sdkModule)
-        if (!runtimeSdk) {
-          const umdLoaded = await ensureWorldlineUmdLoaded()
-          if (umdLoaded) {
-            console.info("[WorldlineInlineCardForm][TEMP] sdk UMD fallback loaded")
-            runtimeSdk = resolveWorldlineRuntimeSdk(sdkModule)
+        const inFlightInit = worldlineInlineInitPromiseByKey.get(initKey)
+        const initPromise = inFlightInit ?? (async () => {
+          console.info("[WorldlineInlineCardForm][TEMP] sdk resolution start")
+          let sdkModule: any = null
+          try {
+            // Intentionally avoid a static import string so Next build does not hard-fail
+            // when this dependency is missing in a given deployment artifact.
+            const runtimeImport = (0, eval)("specifier => import(specifier)") as (specifier: string) => Promise<any>
+            sdkModule = await runtimeImport("onlinepayments-sdk-client-js")
+            console.info("[WorldlineInlineCardForm][TEMP] sdk import success")
+          } catch (importError) {
+            console.warn("[WorldlineInlineCardForm] ESM import failed, trying UMD fallback.", importError)
           }
+
+          // TEMP diagnostics to inspect actual runtime shape in production.
+          console.info("[WorldlineInlineCardForm][TEMP] Object.keys(mod):", Object.keys(sdkModule || {}))
+          console.info("[WorldlineInlineCardForm][TEMP] typeof mod.init:", typeof sdkModule?.init)
+          console.info("[WorldlineInlineCardForm][TEMP] typeof mod.default?.init:", typeof sdkModule?.default?.init)
+          console.info("[WorldlineInlineCardForm][TEMP] typeof window.onlinepaymentssdk:", typeof (window as any)?.onlinepaymentssdk)
+          console.info("[WorldlineInlineCardForm][TEMP] typeof window.OnlinePaymentsSdk:", typeof (window as any)?.OnlinePaymentsSdk)
+          console.info("[WorldlineInlineCardForm][TEMP] typeof window.Worldline:", typeof (window as any)?.Worldline)
+
+          let runtimeSdk = resolveWorldlineRuntimeSdk(sdkModule)
+          if (!runtimeSdk) {
+            const umdLoaded = await ensureWorldlineUmdLoaded()
+            if (umdLoaded) {
+              console.info("[WorldlineInlineCardForm][TEMP] sdk UMD fallback loaded")
+              runtimeSdk = resolveWorldlineRuntimeSdk(sdkModule)
+            }
+          }
+
+          if (!runtimeSdk) {
+            throw new Error("Worldline SDK runtime adapter unavailable")
+          }
+          console.info(`[WorldlineInlineCardForm][TEMP] sdk resolution result: ${runtimeSdk.source}`)
+
+          console.info("[WorldlineInlineCardForm][TEMP] session fetch start")
+          const res = await fetch("/api/v1/payments/worldline/inline/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: Number(paymentData?.amount || 0),
+              currency: currencyCode,
+            }),
+          })
+          const json = await res.json().catch(() => ({}))
+          if (!res.ok || !json?.success || !json?.session) {
+            console.error("[WorldlineInlineCardForm][TEMP] session fetch fail", { status: res.status, json })
+            throw new Error(json?.error || "Failed to initialize Worldline inline session")
+          }
+          console.info("[WorldlineInlineCardForm][TEMP] session fetch success")
+
+          const paymentContext = {
+            countryCode,
+            amountOfMoney: {
+              amount: amountMinor,
+              currencyCode,
+            },
+            isRecurring: false,
+          }
+
+          console.info("[WorldlineInlineCardForm][TEMP] payment product fetch start")
+          const worldlineSdk = runtimeSdk.init(
+            {
+              clientSessionId: json.session.clientSessionId,
+              customerId: json.session.customerId,
+              clientApiUrl: json.session.clientApiUrl,
+              assetUrl: json.session.assetUrl,
+            },
+            { appIdentifier: "PayMyDine-Checkout" }
+          )
+          const product = await worldlineSdk.getPaymentProduct(1, paymentContext)
+          console.info("[WorldlineInlineCardForm][TEMP] payment product fetch success")
+
+          return { sdk: worldlineSdk, paymentProduct: product, runtimeSdk }
+        })()
+
+        if (!inFlightInit) {
+          worldlineInlineInitPromiseByKey.set(initKey, initPromise)
         }
 
-        if (!runtimeSdk) {
-          throw new Error("Worldline SDK runtime adapter unavailable")
-        }
-        sdkRuntimeRef.current = runtimeSdk
-        console.info(`[WorldlineInlineCardForm][TEMP] sdk resolution result: ${runtimeSdk.source}`)
-
-        console.info("[WorldlineInlineCardForm][TEMP] session fetch start")
-        const res = await fetch("/api/v1/payments/worldline/inline/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: Number(paymentData?.amount || 0),
-            currency: currencyCode,
-          }),
-        })
-        const json = await res.json().catch(() => ({}))
-        if (!res.ok || !json?.success || !json?.session) {
-          console.error("[WorldlineInlineCardForm][TEMP] session fetch fail", { status: res.status, json })
-          throw new Error(json?.error || "Failed to initialize Worldline inline session")
-        }
-        console.info("[WorldlineInlineCardForm][TEMP] session fetch success")
-
-        const paymentContext = {
-          countryCode,
-          amountOfMoney: {
-            amount: amountMinor,
-            currencyCode,
-          },
-          isRecurring: false,
-        }
-
-        console.info("[WorldlineInlineCardForm][TEMP] payment product fetch start")
-        const worldlineSdk = runtimeSdk.init(
-          {
-            clientSessionId: json.session.clientSessionId,
-            customerId: json.session.customerId,
-            clientApiUrl: json.session.clientApiUrl,
-            assetUrl: json.session.assetUrl,
-          },
-          { appIdentifier: "PayMyDine-Checkout" }
-        )
-        const product = await worldlineSdk.getPaymentProduct(1, paymentContext)
-        console.info("[WorldlineInlineCardForm][TEMP] payment product fetch success")
+        const resolvedInit = await initPromise
+        worldlineInlineInitResultByKey.set(initKey, resolvedInit)
+        worldlineInlineInitPromiseByKey.delete(initKey)
+        sdkRuntimeRef.current = resolvedInit.runtimeSdk
         if (!active) return
-        setSdk(worldlineSdk)
-        setPaymentProduct(product)
+        console.info(`[WorldlineInlineCardForm][TEMP] set sdk/paymentProduct state (${instanceIdRef.current})`)
+        setSdk(resolvedInit.sdk)
+        setPaymentProduct(resolvedInit.paymentProduct)
       } catch (e: any) {
+        worldlineInlineInitPromiseByKey.delete(initKey)
+        worldlineInlineInitResultByKey.delete(initKey)
         console.error("[WorldlineInlineCardForm][TEMP] payment product/session fail", e)
         if (!initFailureShownRef.current) {
           console.error("[WorldlineInlineCardForm][session-init]", e)
