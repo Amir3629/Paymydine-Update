@@ -734,17 +734,28 @@ export function WorldlineInlineCardForm({
             throw new Error(json?.error || "Failed to initialize Worldline inline session")
           }
           const sessionData = json.session
-          const worldlineSession = new Session(
-            sessionData.clientSessionId,
-            sessionData.customerId,
-            sessionData.clientApiUrl,
-            sessionData.assetUrl,
-            {
-              environment: sessionData.environment || "TEST",
-              appIdentifier: "PayMyDine-Checkout/1.0",
-            }
-          )
-          console.log("[WorldlineInlineCardForm] Session initialized", worldlineSession)
+          let worldlineSession: any = null
+          try {
+            worldlineSession = new (Session as any)({
+              clientSessionId: sessionData.clientSessionId,
+              customerId: sessionData.customerId,
+              clientApiUrl: sessionData.clientApiUrl,
+              assetUrl: sessionData.assetUrl,
+              appIdentifier: "PayMyDine-Checkout",
+            })
+          } catch {
+            worldlineSession = new (Session as any)(
+              sessionData.clientSessionId,
+              sessionData.customerId,
+              sessionData.clientApiUrl,
+              sessionData.assetUrl,
+              {
+                environment: sessionData.environment || "TEST",
+                appIdentifier: "PayMyDine-Checkout",
+              }
+            )
+          }
+          console.info("[WorldlineInlineCardForm] Session initialized")
 
           const paymentContext = {
             countryCode,
@@ -755,7 +766,15 @@ export function WorldlineInlineCardForm({
             isRecurring: false,
           }
 
-          const product = await worldlineSession.getPaymentProduct(1, paymentContext)
+          let product: any = null
+          try {
+            product = await worldlineSession.getPaymentProduct({
+              productId: 1,
+              paymentContext,
+            })
+          } catch {
+            product = await worldlineSession.getPaymentProduct(1, paymentContext)
+          }
 
           return { sdk: worldlineSession, paymentProduct: product }
         })()
@@ -771,11 +790,11 @@ export function WorldlineInlineCardForm({
         setSdk(resolvedInit.sdk)
         setPaymentProduct(resolvedInit.paymentProduct)
         validateWorldlineFields(formData)
-      } catch (e: any) {
+      } catch (err: any) {
         worldlineInlineInitPromiseByKey.delete(initKey)
         worldlineInlineInitResultByKey.delete(initKey)
         if (!initFailureShownRef.current) {
-          console.error("[WorldlineInlineCardForm][session-init]", e)
+          console.error("[WorldlineInlineCardForm][session-init]", err)
           initFailureShownRef.current = true
         }
         if (!active) return
