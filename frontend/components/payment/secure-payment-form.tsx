@@ -829,10 +829,27 @@ export function WorldlineInlineCardForm({
         throw new Error("Please check your card details")
       }
 
-      const encryptedRequest =
-        (await sdk.preparePaymentRequest?.(paymentRequest)) ||
+      const preparedOrEncrypted =
+        (await sdk.preparePaymentRequest?.(paymentRequest)) ??
         (await sdk.encryptPaymentRequest?.(paymentRequest))
-      if (!encryptedRequest?.encryptedCustomerInput) {
+
+      console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)
+
+      const encryptedCustomerInput =
+        preparedOrEncrypted?.encryptedCustomerInput ??
+        preparedOrEncrypted?.encryptedFields ??
+        preparedOrEncrypted?.payload?.encryptedCustomerInput ??
+        preparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+        ""
+
+      const encodedClientMetaInfo =
+        preparedOrEncrypted?.encodedClientMetaInfo ??
+        preparedOrEncrypted?.payload?.encodedClientMetaInfo ??
+        preparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??
+        ""
+
+      if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
+        console.error("[WorldlineInlineCardForm] unexpected encryption payload", preparedOrEncrypted)
         throw new Error("Worldline encryption returned empty payload")
       }
 
@@ -843,8 +860,8 @@ export function WorldlineInlineCardForm({
           amount: Number(paymentData?.amount || 0),
           currency: String(currency || "EUR").toUpperCase(),
           paymentProductId: Number(paymentProduct?.id || 1),
-          encryptedCustomerInput: encryptedRequest.encryptedCustomerInput,
-          encodedClientMetaInfo: encryptedRequest.encodedClientMetaInfo || "",
+          encryptedCustomerInput,
+          encodedClientMetaInfo,
           cardholderName: formData.cardholderName,
           email: formData.email,
           phone: formData.phone,
