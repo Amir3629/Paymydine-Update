@@ -70,7 +70,7 @@ export interface OrderRequest {
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  payment_method: 'cod' | 'card' | 'paypal';
+  payment_method: 'cash' | 'card' | 'paypal';
   payment_method_raw?: string;
   payment_provider?: string;
   payment_reference?: string;

@@ -39,7 +39,7 @@ class OrderController extends Controller
             'tax_amount' => 'nullable|numeric|min:0',
             'coupon_code' => 'nullable|string|max:255',
             'coupon_discount' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,card,paypal',
+            'payment_method' => 'required|string|in:cash,cod,card,paypal',
             'special_instructions' => 'nullable|string|max:500'
         ]);
 
@@ -294,11 +294,15 @@ class OrderController extends Controller
                 ];
             }
 
+            $normalizedPaymentMethod = strtolower((string)$request->payment_method) === 'cod'
+                ? 'cash'
+                : (string)$request->payment_method;
+
             $orderTotals[] = [
                 'order_id' => $orderId,
                 'code' => 'payment_method',
                 'title' => 'Payment Method',
-                'value' => $request->payment_method,
+                'value' => $normalizedPaymentMethod,
                 'priority' => 98,
                 'created_at' => now(),
                 'updated_at' => now(),

@@ -8,6 +8,7 @@ const KNOWN = new Set([
   "square",
   "authorizenetaim",
   "sumup",
+  "worldline",
 ])
 
 const PNG_ONLY = new Set<string>([

@@ -1344,6 +1344,142 @@ Route::group([
         }
     });
 
+    Route::get('/payments/worldline/auth-diagnostic', function () {
+        try {
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'result' => $service->getConfigForDiagnostics(),
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE AUTH DIAGNOSTIC ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    Route::post('/payments/worldline/create-hosted-checkout', function (\Illuminate\Http\Request $request) {
+        try {
+            $payload = $request->validate([
+                'amount_minor' => 'required|integer|min:1',
+                'currency' => 'required|string|size:3',
+                'return_url' => 'required|url',
+                'locale' => 'nullable|string|max:10',
+                'country_code' => 'nullable|string|size:2',
+                'merchant_customer_id' => 'nullable|string|max:64',
+            ]);
+
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $result = $service->createHostedCheckout([
+                'amount_minor' => (int)$payload['amount_minor'],
+                'currency' => strtoupper((string)$payload['currency']),
+                'return_url' => (string)$payload['return_url'],
+                'locale' => (string)($payload['locale'] ?? 'en_GB'),
+                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? ('PMD-'.substr(sha1((string)microtime(true)), 0, 12))),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'redirect_url' => $result['redirect_url'] ?? null,
+                'hosted_checkout_id' => $result['hosted_checkout_id'] ?? null,
+                'environment' => $result['environment'] ?? null,
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE CREATE HOSTED CHECKOUT V1 ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    Route::get('/payments/worldline/status/{hostedCheckoutId}', function (string $hostedCheckoutId) {
+        try {
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $status = $service->getHostedCheckoutStatus($hostedCheckoutId);
+
+            $hostedStatus = strtoupper((string)($status['hosted_checkout_status'] ?? ''));
+            $paymentStatus = strtoupper((string)($status['payment_status'] ?? ''));
+            $isPaid = in_array($hostedStatus, ['PAYMENT_CREATED', 'COMPLETED'], true)
+                || in_array($paymentStatus, ['PAID', 'CAPTURED', '9'], true);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'result' => [
+                    'hosted_checkout_id' => $hostedCheckoutId,
+                    'is_paid' => $isPaid,
+                    'hosted_checkout_status' => $status['hosted_checkout_status'] ?? null,
+                    'payment_status' => $status['payment_status'] ?? null,
+                    'payment_id' => $status['payment_id'] ?? null,
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE STATUS V1 ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    Route::get('/payments/worldline/return', function (\Illuminate\Http\Request $request) {
+        try {
+            $hostedCheckoutId = (string)$request->query('hostedCheckoutId', '');
+            if ($hostedCheckoutId === '') {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'worldline',
+                    'error' => 'Missing hostedCheckoutId',
+                ], 422);
+            }
+
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $status = $service->getHostedCheckoutStatus($hostedCheckoutId);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'hosted_checkout_id' => $hostedCheckoutId,
+                'query' => $request->query(),
+                'status_result' => [
+                    'hosted_checkout_status' => $status['hosted_checkout_status'] ?? null,
+                    'payment_status' => $status['payment_status'] ?? null,
+                    'payment_id' => $status['payment_id'] ?? null,
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE RETURN V1 ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
     Route::post('/payments/worldline/inline/session', function (\Illuminate\Http\Request $request) {
         try {
             $payload = $request->validate([
