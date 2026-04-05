@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react"
 import type { ReactNode } from "react"
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js"
-import * as OnlinePaymentsSdk from "onlinepayments-sdk-client-js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,6 +23,78 @@ interface SecurePaymentFormProps {
 interface WorldlineInlineCardFormProps extends SecurePaymentFormProps {
   countryCode?: string
   currency?: string
+}
+
+type WorldlineRuntimeSdk = {
+  init: (...args: any[]) => any
+  PaymentRequest: new (...args: any[]) => any
+  source: "esm:init" | "esm:default.init" | "umd:window.onlinepaymentssdk"
+}
+
+const WORLDLINE_UMD_SOURCES = [
+  "https://cdn.jsdelivr.net/npm/onlinepayments-sdk-client-js@3.4.0/dist/onlinepayments-sdk-client-js.js",
+  "https://unpkg.com/onlinepayments-sdk-client-js@3.4.0/dist/onlinepayments-sdk-client-js.js",
+]
+
+let worldlineUmdLoadPromise: Promise<boolean> | null = null
+
+function resolveWorldlineRuntimeSdk(mod: any): WorldlineRuntimeSdk | null {
+  const windowSdk = typeof window !== "undefined" ? (window as any)?.onlinepaymentssdk : null
+  const initFn = mod?.init ?? mod?.default?.init ?? windowSdk?.init
+  const paymentRequestCtor = mod?.PaymentRequest ?? mod?.default?.PaymentRequest ?? windowSdk?.PaymentRequest
+
+  if (typeof initFn !== "function" || typeof paymentRequestCtor !== "function") {
+    return null
+  }
+
+  if (typeof mod?.init === "function") {
+    return { init: initFn, PaymentRequest: paymentRequestCtor, source: "esm:init" }
+  }
+  if (typeof mod?.default?.init === "function") {
+    return { init: initFn, PaymentRequest: paymentRequestCtor, source: "esm:default.init" }
+  }
+  return { init: initFn, PaymentRequest: paymentRequestCtor, source: "umd:window.onlinepaymentssdk" }
+}
+
+async function ensureWorldlineUmdLoaded(): Promise<boolean> {
+  if (typeof window === "undefined") return false
+  if ((window as any)?.onlinepaymentssdk?.init) return true
+  if (worldlineUmdLoadPromise) return worldlineUmdLoadPromise
+
+  worldlineUmdLoadPromise = (async () => {
+    for (const src of WORLDLINE_UMD_SOURCES) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector(`script[data-worldline-sdk-src="${src}"]`) as HTMLScriptElement | null
+          if (existing) {
+            if ((window as any)?.onlinepaymentssdk?.init) return resolve()
+            existing.addEventListener("load", () => resolve(), { once: true })
+            existing.addEventListener("error", () => reject(new Error("Worldline SDK script failed")), { once: true })
+            return
+          }
+
+          const script = document.createElement("script")
+          script.src = src
+          script.async = true
+          script.defer = true
+          script.dataset.worldlineSdkSrc = src
+          script.onload = () => resolve()
+          script.onerror = () => reject(new Error("Worldline SDK script failed"))
+          document.head.appendChild(script)
+        })
+
+        if ((window as any)?.onlinepaymentssdk?.init) {
+          return true
+        }
+      } catch {
+        // try the next fallback source
+      }
+    }
+
+    return Boolean((window as any)?.onlinepaymentssdk?.init)
+  })()
+
+  return worldlineUmdLoadPromise
 }
 
 // Stripe Card Form Component
@@ -604,6 +675,8 @@ export function WorldlineInlineCardForm({
   countryCode = "DE",
   currency = "EUR",
 }: WorldlineInlineCardFormProps) {
+  const sdkRuntimeRef = useRef<WorldlineRuntimeSdk | null>(null)
+  const initFailureShownRef = useRef(false)
   const [isLoadingSession, setIsLoadingSession] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -640,7 +713,33 @@ export function WorldlineInlineCardForm({
     let active = true
     ;(async () => {
       try {
+        if (typeof window === "undefined") return
         setIsLoadingSession(true)
+        setError(null)
+        setPaymentProduct(null)
+
+        // Runtime SDK loading is intentionally dynamic to support Next.js ESM/CJS/UMD variations.
+        let sdkModule: any = null
+        try {
+          sdkModule = await import("onlinepayments-sdk-client-js")
+        } catch (importError) {
+          console.warn("[WorldlineInlineCardForm] ESM import failed, trying UMD fallback.", importError)
+        }
+
+        let runtimeSdk = resolveWorldlineRuntimeSdk(sdkModule)
+        if (!runtimeSdk) {
+          const umdLoaded = await ensureWorldlineUmdLoaded()
+          if (umdLoaded) {
+            runtimeSdk = resolveWorldlineRuntimeSdk(sdkModule)
+          }
+        }
+
+        if (!runtimeSdk) {
+          throw new Error("Worldline SDK runtime adapter unavailable")
+        }
+        sdkRuntimeRef.current = runtimeSdk
+        console.info(`[WorldlineInlineCardForm] SDK init path: ${runtimeSdk.source}`)
+
         const res = await fetch("/api/v1/payments/worldline/inline/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -653,12 +752,7 @@ export function WorldlineInlineCardForm({
         if (!res.ok || !json?.success || !json?.session) {
           throw new Error(json?.error || "Failed to initialize Worldline inline session")
         }
-        const sdkModule: any = OnlinePaymentsSdk as any
-        const initFn = sdkModule?.init || sdkModule?.default?.init
-        if (typeof initFn !== "function") {
-          throw new Error("Worldline SDK initialization is unavailable in this runtime")
-        }
-        const worldlineSdk = initFn(
+        const worldlineSdk = runtimeSdk.init(
           {
             clientSessionId: json.session.clientSessionId,
             customerId: json.session.customerId,
@@ -672,7 +766,10 @@ export function WorldlineInlineCardForm({
         setSdk(worldlineSdk)
         setPaymentProduct(product)
       } catch (e: any) {
-        console.error("[WorldlineInlineCardForm][session-init]", e)
+        if (!initFailureShownRef.current) {
+          console.error("[WorldlineInlineCardForm][session-init]", e)
+          initFailureShownRef.current = true
+        }
         if (!active) return
         const msg = "Could not initialize secure card payment."
         setError(msg)
@@ -695,8 +792,7 @@ export function WorldlineInlineCardForm({
     try {
       setIsProcessing(true)
       setError(null)
-      const sdkModule: any = OnlinePaymentsSdk as any
-      const PaymentRequestCtor = sdkModule?.PaymentRequest || sdkModule?.default?.PaymentRequest
+      const PaymentRequestCtor = sdkRuntimeRef.current?.PaymentRequest
       if (typeof PaymentRequestCtor !== "function") {
         throw new Error("Worldline PaymentRequest is unavailable in this runtime")
       }
@@ -764,29 +860,6 @@ export function WorldlineInlineCardForm({
 
   return (
     <form onSubmit={handleSubmit} className={cn("space-y-4", className)}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="wlCardholder">Cardholder name</Label>
-          <Input
-            id="wlCardholder"
-            value={formData.cardholderName}
-            onChange={(e) => setFormData((p) => ({ ...p, cardholderName: e.target.value }))}
-            required
-            className="h-11 rounded-xl"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="wlEmail">Email</Label>
-          <Input
-            id="wlEmail"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-            required
-            className="h-11 rounded-xl"
-          />
-        </div>
-      </div>
       <div className="space-y-2">
         <Label htmlFor="wlCardNumber">Card number</Label>
         <Input
@@ -822,14 +895,28 @@ export function WorldlineInlineCardForm({
           />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="wlPhone">Phone (optional)</Label>
-        <Input
-          id="wlPhone"
-          value={formData.phone}
-          onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
-          className="h-11 rounded-xl"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="wlCardholder">Cardholder name</Label>
+          <Input
+            id="wlCardholder"
+            value={formData.cardholderName}
+            onChange={(e) => setFormData((p) => ({ ...p, cardholderName: e.target.value }))}
+            required
+            className="h-11 rounded-xl"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="wlEmail">Email</Label>
+          <Input
+            id="wlEmail"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+            required
+            className="h-11 rounded-xl"
+          />
+        </div>
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
       <button
