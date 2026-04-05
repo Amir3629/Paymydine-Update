@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react"
 import type { ReactNode } from "react"
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js"
+import { Session, PaymentRequest } from "onlinepayments-sdk-client-js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +20,14 @@ interface SecurePaymentFormProps {
   footerSlot?: React.ReactNode
   paypalFundingSource?: "paypal" | "card"
 }
+
+interface WorldlineInlineCardFormProps extends SecurePaymentFormProps {
+  countryCode?: string
+  currency?: string
+}
+
+const worldlineInlineInitPromiseByKey = new Map<string, Promise<{ sdk: any; paymentProduct: any }>>()
+const worldlineInlineInitResultByKey = new Map<string, { sdk: any; paymentProduct: any }>()
 
 // Stripe Card Form Component
 export function StripeCardForm({ 
@@ -585,6 +594,449 @@ export function StripeCardForm({
             <span style={{ color: "#FFFFFF", fontWeight: 700 }}>Pay</span>
           </span>
         )}
+      </button>
+    </form>
+  )
+}
+
+export function WorldlineInlineCardForm({
+  paymentData,
+  onPaymentComplete,
+  onPaymentError,
+  className,
+  countryCode = "DE",
+  currency = "EUR",
+}: WorldlineInlineCardFormProps) {
+  const initFailureShownRef = useRef(false)
+  const onPaymentErrorRef = useRef(onPaymentError)
+  const initKeyRef = useRef<string | null>(null)
+  const [isLoadingSession, setIsLoadingSession] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [sdk, setSdk] = useState<any>(null)
+  const [paymentProduct, setPaymentProduct] = useState<any>(null)
+  const [formData, setFormData] = useState({
+    cardholderName: "",
+    email: "",
+    phone: "",
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+  })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const amountMinor = Math.round(Number(paymentData?.amount || 0) * 100)
+  const formIsValid = useMemo(() => {
+    return Boolean(
+      formData.cardholderName.trim() &&
+      formData.email.trim() &&
+      formData.cardNumber.trim() &&
+      formData.expiryDate.trim() &&
+      formData.cvv.trim() &&
+      Object.values(fieldErrors).every((err) => !err)
+    )
+  }, [fieldErrors, formData])
+  const currencyCode = String(currency || "EUR").toUpperCase()
+
+  const buildPaymentRequest = (nextData: typeof formData) => {
+    if (!paymentProduct) return null
+    const paymentRequest = new PaymentRequest(paymentProduct)
+    paymentRequest.setValue("cardholderName", (nextData.cardholderName || "").trim())
+    paymentRequest.setValue("cardNumber", (nextData.cardNumber || "").trim())
+    paymentRequest.setValue("expiryDate", (nextData.expiryDate || "").trim())
+    paymentRequest.setValue("cvv", (nextData.cvv || "").trim())
+    return paymentRequest
+  }
+
+  const extractFieldErrorMessage = (validationErrors: any, fallback: string) => {
+    if (!Array.isArray(validationErrors) || validationErrors.length === 0) return ""
+    const first =
+      validationErrors?.[0]?.errorMessage ||
+      validationErrors?.[0]?.message ||
+      validationErrors?.[0]?.id
+    return typeof first === "string" && first.trim() ? first : fallback
+  }
+
+  const validateWorldlineFields = (nextData: typeof formData) => {
+    if (!paymentProduct?.getField) return
+
+    const cardNumberValidation = paymentProduct.getField("cardNumber")?.validate?.((nextData.cardNumber || "").trim())
+    const expiryValidation = paymentProduct.getField("expiryDate")?.validate?.((nextData.expiryDate || "").trim())
+    const cvvValidation = paymentProduct.getField("cvv")?.validate?.((nextData.cvv || "").trim())
+
+    setFieldErrors({
+      cardNumber: extractFieldErrorMessage(cardNumberValidation, "Invalid card number"),
+      expiryDate: extractFieldErrorMessage(expiryValidation, "Invalid expiry date"),
+      cvv: extractFieldErrorMessage(cvvValidation, "Invalid CVV"),
+    })
+  }
+
+  const applyFieldMask = (fieldId: "cardNumber" | "expiryDate" | "cvv", value: string) => {
+    if (!paymentProduct?.getField) return value
+    const field = paymentProduct.getField(fieldId)
+    if (!field?.applyMask) return value
+    try {
+      return field.applyMask(value)
+    } catch {
+      return value
+    }
+  }
+
+  const updateField = (name: keyof typeof formData, value: string) => {
+    const formattedValue =
+      name === "cardNumber" || name === "expiryDate" || name === "cvv"
+        ? applyFieldMask(name, value)
+        : value
+    const nextData = { ...formData, [name]: formattedValue }
+    setFormData(nextData)
+    if (paymentProduct) {
+      validateWorldlineFields(nextData)
+    }
+  }
+
+  useEffect(() => {
+    onPaymentErrorRef.current = onPaymentError
+  }, [onPaymentError])
+
+  useEffect(() => {
+    let active = true
+    const initKey = `${countryCode}:${currencyCode}:${amountMinor}`
+    ;(async () => {
+      try {
+        if (typeof window === "undefined") return
+        if (initKeyRef.current === initKey) {
+          return
+        }
+
+        initKeyRef.current = initKey
+        setIsLoadingSession(true)
+        setError(null)
+
+        const cachedInit = worldlineInlineInitResultByKey.get(initKey)
+        if (cachedInit) {
+          if (!active) return
+          setSdk(cachedInit.sdk)
+          setPaymentProduct(cachedInit.paymentProduct)
+          return
+        }
+
+        const inFlightInit = worldlineInlineInitPromiseByKey.get(initKey)
+        const initPromise = inFlightInit ?? (async () => {
+          const res = await fetch("/api/v1/payments/worldline/inline/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: Number(paymentData?.amount || 0),
+              currency: currencyCode,
+            }),
+          })
+          const json = await res.json().catch(() => ({}))
+          if (!res.ok || !json?.success || !json?.session) {
+            throw new Error(json?.error || "Failed to initialize Worldline inline session")
+          }
+          const sessionData = json.session
+          let worldlineSession: any = null
+          try {
+            worldlineSession = new (Session as any)({
+              clientSessionId: sessionData.clientSessionId,
+              customerId: sessionData.customerId,
+              clientApiUrl: sessionData.clientApiUrl,
+              assetUrl: sessionData.assetUrl,
+              appIdentifier: "PayMyDine-Checkout",
+            })
+          } catch {
+            worldlineSession = new (Session as any)(
+              sessionData.clientSessionId,
+              sessionData.customerId,
+              sessionData.clientApiUrl,
+              sessionData.assetUrl,
+              {
+                environment: sessionData.environment || "TEST",
+                appIdentifier: "PayMyDine-Checkout",
+              }
+            )
+          }
+          console.info("[WorldlineInlineCardForm] Session initialized")
+
+          const paymentContext = {
+            countryCode,
+            amountOfMoney: {
+              amount: amountMinor,
+              currencyCode,
+            },
+            isRecurring: false,
+          }
+
+          let product: any = null
+          try {
+            product = await worldlineSession.getPaymentProduct({
+              productId: 1,
+              paymentContext,
+            })
+          } catch {
+            product = await worldlineSession.getPaymentProduct(1, paymentContext)
+          }
+
+          return { sdk: worldlineSession, paymentProduct: product }
+        })()
+
+        if (!inFlightInit) {
+          worldlineInlineInitPromiseByKey.set(initKey, initPromise)
+        }
+
+        const resolvedInit = await initPromise
+        worldlineInlineInitResultByKey.set(initKey, resolvedInit)
+        worldlineInlineInitPromiseByKey.delete(initKey)
+        if (!active) return
+        setSdk(resolvedInit.sdk)
+        setPaymentProduct(resolvedInit.paymentProduct)
+        validateWorldlineFields(formData)
+      } catch (err: any) {
+        worldlineInlineInitPromiseByKey.delete(initKey)
+        worldlineInlineInitResultByKey.delete(initKey)
+        if (!initFailureShownRef.current) {
+          console.error("[WorldlineInlineCardForm][session-init]", err)
+          initFailureShownRef.current = true
+        }
+        if (!active) return
+        const msg = "Could not initialize secure card payment."
+        setError(msg)
+        onPaymentErrorRef.current(msg)
+      } finally {
+        if (active) setIsLoadingSession(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [amountMinor, countryCode, currencyCode])
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!sdk || !paymentProduct) {
+      onPaymentError("Worldline SDK not ready")
+      return
+    }
+    try {
+      setIsProcessing(true)
+      setError(null)
+      const paymentRequest = buildPaymentRequest(formData)
+      if (!paymentRequest) {
+        throw new Error("Worldline payment form is not ready")
+      }
+      const validationResult = paymentRequest.validate?.()
+      if (validationResult && typeof validationResult === "object" && "isValid" in validationResult && (validationResult as any).isValid === false) {
+        validateWorldlineFields(formData)
+        throw new Error("Please check your card details")
+      }
+
+      console.info("[WorldlineInlineCardForm] submit runtime keys", Object.keys(sdk || {}))
+      console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+      console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)
+      console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+
+      let preparedOrEncrypted: any = undefined
+      if (typeof sdk?.preparePaymentRequest === "function") {
+        console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+        preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+      } else if (typeof sdk?.encryptPaymentRequest === "function") {
+        console.info("[WorldlineInlineCardForm] using encryption method: sdk.encryptPaymentRequest")
+        preparedOrEncrypted = await sdk.encryptPaymentRequest(paymentRequest)
+      } else if (typeof sdk?.getEncryptor === "function") {
+        const encryptor = sdk.getEncryptor()
+        console.info("[WorldlineInlineCardForm] encryptor keys", Object.keys(encryptor || {}))
+        console.info("[WorldlineInlineCardForm] typeof encryptor.encrypt", typeof encryptor?.encrypt)
+        if (typeof encryptor?.encrypt === "function") {
+          console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")
+          preparedOrEncrypted = await encryptor.encrypt(paymentRequest)
+        }
+      }
+
+      console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)
+
+      const encryptedCustomerInput =
+        preparedOrEncrypted?.encryptedCustomerInput ??
+        preparedOrEncrypted?.encryptedFields ??
+        preparedOrEncrypted?.payload?.encryptedCustomerInput ??
+        preparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+        ""
+
+      const encodedClientMetaInfo =
+        preparedOrEncrypted?.encodedClientMetaInfo ??
+        preparedOrEncrypted?.payload?.encodedClientMetaInfo ??
+        preparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??
+        ""
+
+      if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
+        console.error("[WorldlineInlineCardForm] unexpected encryption payload", preparedOrEncrypted)
+        throw new Error("Worldline encryption returned empty payload")
+      }
+
+      const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Number(paymentData?.amount || 0),
+          currency: String(currency || "EUR").toUpperCase(),
+          paymentProductId: Number(paymentProduct?.id || 1),
+          encryptedCustomerInput,
+          encodedClientMetaInfo,
+          cardholderName: formData.cardholderName,
+          email: formData.email,
+          phone: formData.phone,
+        }),
+      })
+      const payJson = await payRes.json().catch(() => ({}))
+      if (!payRes.ok || !payJson?.success || !payJson?.payment_id) {
+        throw new Error(payJson?.error || "Worldline inline payment failed")
+      }
+
+      const verifyRes = await fetch("/api/v1/payments/worldline/inline/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_id: String(payJson.payment_id) }),
+      })
+      const verifyJson = await verifyRes.json().catch(() => ({}))
+      if (!verifyRes.ok || !verifyJson?.success || !verifyJson?.is_paid) {
+        throw new Error("Worldline payment is not finalized yet")
+      }
+
+      onPaymentComplete({
+        success: true,
+        transactionId: String(verifyJson.payment_id),
+        paymentMethod: "worldline",
+      } as any)
+    } catch (e: any) {
+      console.error("[WorldlineInlineCardForm][submit]", e)
+      const msg = "Payment could not be completed. Please check your details and try again."
+      setError(msg)
+      onPaymentErrorRef.current(msg)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className={cn("space-y-4", className)}>
+      <div className="space-y-2">
+        <Label htmlFor="wlCardNumber">Card number</Label>
+        <Input
+          id="wlCardNumber"
+          value={formData.cardNumber}
+          onChange={(e) => updateField("cardNumber", e.target.value)}
+          required
+          autoComplete="cc-number"
+          className="h-11 rounded-xl text-[15px]"
+        />
+        {fieldErrors.cardNumber ? <p className="text-xs text-red-500">{fieldErrors.cardNumber}</p> : null}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="wlExpiry">Expiry (MM/YY)</Label>
+          <Input
+            id="wlExpiry"
+            value={formData.expiryDate}
+            onChange={(e) => updateField("expiryDate", e.target.value)}
+            required
+            autoComplete="cc-exp"
+            className="h-11 rounded-xl"
+          />
+          {fieldErrors.expiryDate ? <p className="text-xs text-red-500">{fieldErrors.expiryDate}</p> : null}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="wlCvv">CVV</Label>
+          <Input
+            id="wlCvv"
+            value={formData.cvv}
+            onChange={(e) => updateField("cvv", e.target.value)}
+            required
+            autoComplete="cc-csc"
+            className="h-11 rounded-xl"
+          />
+          {fieldErrors.cvv ? <p className="text-xs text-red-500">{fieldErrors.cvv}</p> : null}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="wlCardholder">Cardholder name</Label>
+          <Input
+            id="wlCardholder"
+            value={formData.cardholderName}
+            onChange={(e) => updateField("cardholderName", e.target.value)}
+            required
+            className="h-11 rounded-xl"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="wlEmail">Email</Label>
+          <Input
+            id="wlEmail"
+            type="email"
+            value={formData.email}
+            onChange={(e) => updateField("email", e.target.value)}
+            required
+            className="h-11 rounded-xl"
+          />
+        </div>
+      </div>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <button
+        type="submit"
+        disabled={isLoadingSession || isProcessing || !sdk || !paymentProduct || !formIsValid}
+        className="relative w-full min-w-full max-w-full h-[54px] rounded-2xl border-0 overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{
+          background: "transparent",
+          boxShadow: "none",
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            borderRadius: "16px",
+            background: "linear-gradient(135deg, #635BFF 0%, #4F46E5 100%)",
+            boxShadow: "0 8px 22px rgba(99, 91, 255, 0.35)",
+            pointerEvents: "none",
+          }}
+        />
+        <span
+          style={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            color: "#FFFFFF",
+            fontSize: "16px",
+            fontWeight: 700,
+            width: "100%",
+          }}
+        >
+          {isProcessing ? (
+            <>
+              <span
+                className="animate-spin"
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid rgba(255,255,255,0.35)",
+                  borderTopColor: "#FFFFFF",
+                  borderRadius: "9999px",
+                }}
+              />
+              <span>Processing...</span>
+            </>
+          ) : isLoadingSession ? (
+            <span>Initializing...</span>
+          ) : (
+            <>
+              <Lock className="h-4 w-4" />
+              <span>Pay</span>
+            </>
+          )}
+        </span>
       </button>
     </form>
   )

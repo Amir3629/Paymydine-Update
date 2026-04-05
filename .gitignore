@@ -9,4 +9,12 @@ build/
 coverage/
 .cache/
 tmp/
+logs/
+storage/logs/
+.audit-backups/
+audit-backups/
+*.bak
+*.bak_*
+*.old
+paymydine_backup.tar.gz
 .DS_Store

@@ -1,4 +1,0 @@
-*/2 * * * * /home/ubuntu/pmd_signde_selfheal.sh >> /home/ubuntu/pmd_signde_selfheal.cron.log 2>&1
-* * * * * /usr/bin/php /home/ubuntu/pmd_r2o_import_orders_fullscan.php >> /home/ubuntu/pmd_r2o_import_orders_fullscan.log 2>&1
-* * * * * /usr/bin/php /home/ubuntu/pmd_r2o_stateful_tracker.php >> /home/ubuntu/pmd_r2o_stateful_tracker.log 2>&1
-* * * * * bash /home/ubuntu/pmd_r2o_repair_order_menu_names.sh mimoza.paymydine.com >> /home/ubuntu/pmd_r2o_repair_order_menu_names.log 2>&1

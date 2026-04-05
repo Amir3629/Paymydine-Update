@@ -1,6 +1,0 @@
-<svg width="120" height="60" viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="120" height="60" rx="14" fill="#0C111D"/>
-  <rect x="18" y="14" width="24" height="24" rx="6" fill="white"/>
-  <path d="M24 20C24 18.3431 25.3431 17 27 17H36V21H29C28.4477 21 28 21.4477 28 22C28 22.5523 28.4477 23 29 23H33C35.7614 23 38 25.2386 38 28C38 30.7614 35.7614 33 33 33H24V29H31C31.5523 29 32 28.5523 32 28C32 27.4477 31.5523 27 31 27H29C26.2386 27 24 24.7614 24 22Z" fill="#0C111D"/>
-  <text x="52" y="36" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">SumUp</text>
-</svg>
