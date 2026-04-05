@@ -29,11 +29,7 @@ interface WorldlineInlineCardFormProps extends SecurePaymentFormProps {
 type WorldlineRuntimeSdk = {
   init: (...args: any[]) => any
   PaymentRequest: new (...args: any[]) => any
-  source:
-    | "esm:init"
-    | "esm:default.init"
-    | "global:window.onlinepaymentssdk"
-    | "global:window.OnlinePaymentsSdk"
+  source: "esm:init" | "esm:default.init"
 }
 
 const worldlineInlineInitPromiseByKey = new Map<string, Promise<{ sdk: any; paymentProduct: any; runtimeSdk: WorldlineRuntimeSdk }>>()
@@ -43,14 +39,6 @@ function resolveWorldlineRuntimeSdk(mod: any): WorldlineRuntimeSdk | null {
   // Root cause fix:
   // - We use a bundler-safe static import so Next.js includes the package in the client bundle.
   // - Then we resolve both common export shapes from that bundled module.
-  const onlinePaymentsGlobal = typeof window !== "undefined" ? (window as any)?.onlinepaymentssdk : null
-  const onlinePaymentsSdkGlobal = typeof window !== "undefined" ? (window as any)?.OnlinePaymentsSdk : null
-
-  const globalCandidates = [
-    { value: onlinePaymentsGlobal, source: "global:window.onlinepaymentssdk" as const },
-    { value: onlinePaymentsSdkGlobal, source: "global:window.OnlinePaymentsSdk" as const },
-  ]
-
   const esmInit = mod?.init
   const esmDefaultInit = mod?.default?.init
   const esmPaymentRequest = mod?.PaymentRequest
@@ -61,12 +49,6 @@ function resolveWorldlineRuntimeSdk(mod: any): WorldlineRuntimeSdk | null {
   }
   if (typeof esmDefaultInit === "function" && typeof esmDefaultPaymentRequest === "function") {
     return { init: esmDefaultInit, PaymentRequest: esmDefaultPaymentRequest, source: "esm:default.init" }
-  }
-
-  for (const candidate of globalCandidates) {
-    if (typeof candidate?.value?.init === "function" && typeof candidate?.value?.PaymentRequest === "function") {
-      return { init: candidate.value.init, PaymentRequest: candidate.value.PaymentRequest, source: candidate.source }
-    }
   }
 
   return null
@@ -653,6 +635,7 @@ export function WorldlineInlineCardForm({
   const initFailureShownRef = useRef(false)
   const onPaymentErrorRef = useRef(onPaymentError)
   const initKeyRef = useRef<string | null>(null)
+  const paymentRequestCtorRef = useRef<any>(null)
   const [isLoadingSession, setIsLoadingSession] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -681,8 +664,8 @@ export function WorldlineInlineCardForm({
   const currencyCode = String(currency || "EUR").toUpperCase()
 
   const buildPaymentRequest = (nextData: typeof formData) => {
-    if (!paymentProduct) return null
-    const paymentRequest = new (OnlinePaymentsSdk as any).PaymentRequest(paymentProduct)
+    if (!paymentProduct || typeof paymentRequestCtorRef.current !== "function") return null
+    const paymentRequest = new paymentRequestCtorRef.current(paymentProduct)
     paymentRequest.setValue("cardholderName", (nextData.cardholderName || "").trim())
     paymentRequest.setValue("cardNumber", (nextData.cardNumber || "").trim())
     paymentRequest.setValue("expiryDate", (nextData.expiryDate || "").trim())
@@ -690,28 +673,26 @@ export function WorldlineInlineCardForm({
     return paymentRequest
   }
 
-  const extractFieldErrorMessage = (validation: any, fallback: string) => {
-    if (!validation) return null
-    if (validation.isValid === true) return null
+  const extractFieldErrorMessage = (validationErrors: any, fallback: string) => {
+    if (!Array.isArray(validationErrors) || validationErrors.length === 0) return ""
     const first =
-      validation?.errors?.[0]?.errorMessage ||
-      validation?.errors?.[0]?.message ||
-      validation?.errors?.[0]?.id
+      validationErrors?.[0]?.errorMessage ||
+      validationErrors?.[0]?.message ||
+      validationErrors?.[0]?.id
     return typeof first === "string" && first.trim() ? first : fallback
   }
 
   const validateWorldlineFields = (nextData: typeof formData) => {
-    const paymentRequest = buildPaymentRequest(nextData)
-    if (!paymentRequest) return
+    if (!paymentProduct?.getField) return
 
-    const cardNumberValidation = paymentRequest.getField("cardNumber")?.validate?.()
-    const expiryValidation = paymentRequest.getField("expiryDate")?.validate?.()
-    const cvvValidation = paymentRequest.getField("cvv")?.validate?.()
+    const cardNumberValidation = paymentProduct.getField("cardNumber")?.validate?.((nextData.cardNumber || "").trim())
+    const expiryValidation = paymentProduct.getField("expiryDate")?.validate?.((nextData.expiryDate || "").trim())
+    const cvvValidation = paymentProduct.getField("cvv")?.validate?.((nextData.cvv || "").trim())
 
     setFieldErrors({
-      cardNumber: extractFieldErrorMessage(cardNumberValidation, "Invalid card number") || "",
-      expiryDate: extractFieldErrorMessage(expiryValidation, "Invalid expiry date") || "",
-      cvv: extractFieldErrorMessage(cvvValidation, "Invalid CVV") || "",
+      cardNumber: extractFieldErrorMessage(cardNumberValidation, "Invalid card number"),
+      expiryDate: extractFieldErrorMessage(expiryValidation, "Invalid expiry date"),
+      cvv: extractFieldErrorMessage(cvvValidation, "Invalid CVV"),
     })
   }
 
@@ -758,6 +739,7 @@ export function WorldlineInlineCardForm({
 
         const cachedInit = worldlineInlineInitResultByKey.get(initKey)
         if (cachedInit) {
+          paymentRequestCtorRef.current = cachedInit.runtimeSdk.PaymentRequest
           if (!active) return
           setSdk(cachedInit.sdk)
           setPaymentProduct(cachedInit.paymentProduct)
@@ -774,6 +756,7 @@ export function WorldlineInlineCardForm({
           if (!runtimeSdk) {
             throw new Error("Worldline SDK runtime adapter unavailable")
           }
+          paymentRequestCtorRef.current = runtimeSdk.PaymentRequest
           console.info(`[WorldlineInlineCardForm] SDK init path: ${runtimeSdk.source}`)
 
           const res = await fetch("/api/v1/payments/worldline/inline/session", {
@@ -819,6 +802,7 @@ export function WorldlineInlineCardForm({
         const resolvedInit = await initPromise
         worldlineInlineInitResultByKey.set(initKey, resolvedInit)
         worldlineInlineInitPromiseByKey.delete(initKey)
+        paymentRequestCtorRef.current = resolvedInit.runtimeSdk.PaymentRequest
         if (!active) return
         setSdk(resolvedInit.sdk)
         setPaymentProduct(resolvedInit.paymentProduct)
