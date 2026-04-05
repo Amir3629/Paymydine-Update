@@ -650,7 +650,6 @@ export function WorldlineInlineCardForm({
   countryCode = "DE",
   currency = "EUR",
 }: WorldlineInlineCardFormProps) {
-  const sdkRuntimeRef = useRef<WorldlineRuntimeSdk | null>(null)
   const initFailureShownRef = useRef(false)
   const onPaymentErrorRef = useRef(onPaymentError)
   const initKeyRef = useRef<string | null>(null)
@@ -667,17 +666,77 @@ export function WorldlineInlineCardForm({
     expiryDate: "",
     cvv: "",
   })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const amountMinor = Math.round(Number(paymentData?.amount || 0) * 100)
   const formIsValid = useMemo(() => {
     return Boolean(
       formData.cardholderName.trim() &&
       formData.email.trim() &&
-      formData.cardNumber.replace(/\s+/g, "").length >= 12 &&
-      formData.expiryDate.trim().length >= 4 &&
-      formData.cvv.trim().length >= 3
+      formData.cardNumber.trim() &&
+      formData.expiryDate.trim() &&
+      formData.cvv.trim() &&
+      Object.values(fieldErrors).every((err) => !err)
     )
-  }, [formData])
+  }, [fieldErrors, formData])
   const currencyCode = String(currency || "EUR").toUpperCase()
+
+  const buildPaymentRequest = (nextData: typeof formData) => {
+    if (!paymentProduct) return null
+    const paymentRequest = new (OnlinePaymentsSdk as any).PaymentRequest(paymentProduct)
+    paymentRequest.setValue("cardholderName", (nextData.cardholderName || "").trim())
+    paymentRequest.setValue("cardNumber", (nextData.cardNumber || "").trim())
+    paymentRequest.setValue("expiryDate", (nextData.expiryDate || "").trim())
+    paymentRequest.setValue("cvv", (nextData.cvv || "").trim())
+    return paymentRequest
+  }
+
+  const extractFieldErrorMessage = (validation: any, fallback: string) => {
+    if (!validation) return null
+    if (validation.isValid === true) return null
+    const first =
+      validation?.errors?.[0]?.errorMessage ||
+      validation?.errors?.[0]?.message ||
+      validation?.errors?.[0]?.id
+    return typeof first === "string" && first.trim() ? first : fallback
+  }
+
+  const validateWorldlineFields = (nextData: typeof formData) => {
+    const paymentRequest = buildPaymentRequest(nextData)
+    if (!paymentRequest) return
+
+    const cardNumberValidation = paymentRequest.getField("cardNumber")?.validate?.()
+    const expiryValidation = paymentRequest.getField("expiryDate")?.validate?.()
+    const cvvValidation = paymentRequest.getField("cvv")?.validate?.()
+
+    setFieldErrors({
+      cardNumber: extractFieldErrorMessage(cardNumberValidation, "Invalid card number") || "",
+      expiryDate: extractFieldErrorMessage(expiryValidation, "Invalid expiry date") || "",
+      cvv: extractFieldErrorMessage(cvvValidation, "Invalid CVV") || "",
+    })
+  }
+
+  const applyFieldMask = (fieldId: "cardNumber" | "expiryDate" | "cvv", value: string) => {
+    if (!paymentProduct?.getField) return value
+    const field = paymentProduct.getField(fieldId)
+    if (!field?.applyMask) return value
+    try {
+      return field.applyMask(value)
+    } catch {
+      return value
+    }
+  }
+
+  const updateField = (name: keyof typeof formData, value: string) => {
+    const formattedValue =
+      name === "cardNumber" || name === "expiryDate" || name === "cvv"
+        ? applyFieldMask(name, value)
+        : value
+    const nextData = { ...formData, [name]: formattedValue }
+    setFormData(nextData)
+    if (paymentProduct) {
+      validateWorldlineFields(nextData)
+    }
+  }
 
   useEffect(() => {
     onPaymentErrorRef.current = onPaymentError
@@ -699,7 +758,6 @@ export function WorldlineInlineCardForm({
 
         const cachedInit = worldlineInlineInitResultByKey.get(initKey)
         if (cachedInit) {
-          sdkRuntimeRef.current = cachedInit.runtimeSdk
           if (!active) return
           setSdk(cachedInit.sdk)
           setPaymentProduct(cachedInit.paymentProduct)
@@ -761,10 +819,10 @@ export function WorldlineInlineCardForm({
         const resolvedInit = await initPromise
         worldlineInlineInitResultByKey.set(initKey, resolvedInit)
         worldlineInlineInitPromiseByKey.delete(initKey)
-        sdkRuntimeRef.current = resolvedInit.runtimeSdk
         if (!active) return
         setSdk(resolvedInit.sdk)
         setPaymentProduct(resolvedInit.paymentProduct)
+        validateWorldlineFields(formData)
       } catch (e: any) {
         worldlineInlineInitPromiseByKey.delete(initKey)
         worldlineInlineInitResultByKey.delete(initKey)
@@ -794,20 +852,13 @@ export function WorldlineInlineCardForm({
     try {
       setIsProcessing(true)
       setError(null)
-      const PaymentRequestCtor = sdkRuntimeRef.current?.PaymentRequest
-      if (typeof PaymentRequestCtor !== "function") {
-        throw new Error("Worldline PaymentRequest is unavailable in this runtime")
+      const paymentRequest = buildPaymentRequest(formData)
+      if (!paymentRequest) {
+        throw new Error("Worldline payment form is not ready")
       }
-      const paymentRequest = new PaymentRequestCtor(paymentProduct)
-      paymentRequest.setValue("cardholderName", (formData.cardholderName || "").trim())
-      paymentRequest.setValue("cardNumber", (formData.cardNumber || "").trim())
-      paymentRequest.setValue("expiryDate", (formData.expiryDate || "").trim())
-      paymentRequest.setValue("cvv", (formData.cvv || "").trim())
       const validationResult = paymentRequest.validate?.()
-      if (Array.isArray(validationResult) && validationResult.length > 0) {
-        throw new Error("Please check your card details")
-      }
       if (validationResult && typeof validationResult === "object" && "isValid" in validationResult && (validationResult as any).isValid === false) {
+        validateWorldlineFields(formData)
         throw new Error("Please check your card details")
       }
 
@@ -867,11 +918,12 @@ export function WorldlineInlineCardForm({
         <Input
           id="wlCardNumber"
           value={formData.cardNumber}
-          onChange={(e) => setFormData((p) => ({ ...p, cardNumber: e.target.value }))}
+          onChange={(e) => updateField("cardNumber", e.target.value)}
           required
           autoComplete="cc-number"
           className="h-11 rounded-xl text-[15px]"
         />
+        {fieldErrors.cardNumber ? <p className="text-xs text-red-500">{fieldErrors.cardNumber}</p> : null}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
@@ -879,22 +931,24 @@ export function WorldlineInlineCardForm({
           <Input
             id="wlExpiry"
             value={formData.expiryDate}
-            onChange={(e) => setFormData((p) => ({ ...p, expiryDate: e.target.value }))}
+            onChange={(e) => updateField("expiryDate", e.target.value)}
             required
             autoComplete="cc-exp"
             className="h-11 rounded-xl"
           />
+          {fieldErrors.expiryDate ? <p className="text-xs text-red-500">{fieldErrors.expiryDate}</p> : null}
         </div>
         <div className="space-y-2">
           <Label htmlFor="wlCvv">CVV</Label>
           <Input
             id="wlCvv"
             value={formData.cvv}
-            onChange={(e) => setFormData((p) => ({ ...p, cvv: e.target.value }))}
+            onChange={(e) => updateField("cvv", e.target.value)}
             required
             autoComplete="cc-csc"
             className="h-11 rounded-xl"
           />
+          {fieldErrors.cvv ? <p className="text-xs text-red-500">{fieldErrors.cvv}</p> : null}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -903,7 +957,7 @@ export function WorldlineInlineCardForm({
           <Input
             id="wlCardholder"
             value={formData.cardholderName}
-            onChange={(e) => setFormData((p) => ({ ...p, cardholderName: e.target.value }))}
+            onChange={(e) => updateField("cardholderName", e.target.value)}
             required
             className="h-11 rounded-xl"
           />
@@ -914,7 +968,7 @@ export function WorldlineInlineCardForm({
             id="wlEmail"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+            onChange={(e) => updateField("email", e.target.value)}
             required
             className="h-11 rounded-xl"
           />
