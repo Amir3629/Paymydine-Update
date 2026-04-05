@@ -1541,7 +1541,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                     tableNumber: stripeResolvedTableNumber,
                   } as any}
                   currency={(merchantSettings?.currency || "EUR")}
-                  countryCode={(stripeConfig?.countryCode || paypalConfig?.countryCode || "DE")}
+                  countryCode={(stripeConfig?.countryCode || "DE")}
                   onPaymentComplete={(result: any) => {
                     if (result?.success && result?.transactionId) {
                       handlePayment(result.transactionId)

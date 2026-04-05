@@ -865,22 +865,39 @@ export function WorldlineInlineCardForm({
 
       console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)
 
+      const parsedPreparedOrEncrypted =
+        typeof preparedOrEncrypted === "string"
+          ? (() => {
+              try {
+                return JSON.parse(preparedOrEncrypted)
+              } catch {
+                return { encryptedCustomerInput: preparedOrEncrypted }
+              }
+            })()
+          : preparedOrEncrypted
+
       const encryptedCustomerInput =
-        preparedOrEncrypted?.encryptedCustomerInput ??
-        preparedOrEncrypted?.encryptedFields ??
-        preparedOrEncrypted?.payload?.encryptedCustomerInput ??
-        preparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+        parsedPreparedOrEncrypted?.encryptedCustomerInput ??
+        parsedPreparedOrEncrypted?.encryptedFields ??
+        parsedPreparedOrEncrypted?.payload?.encryptedCustomerInput ??
+        parsedPreparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+        paymentRequest?.encryptedCustomerInput ??
         ""
 
       const encodedClientMetaInfo =
-        preparedOrEncrypted?.encodedClientMetaInfo ??
-        preparedOrEncrypted?.payload?.encodedClientMetaInfo ??
-        preparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??
+        parsedPreparedOrEncrypted?.encodedClientMetaInfo ??
+        parsedPreparedOrEncrypted?.payload?.encodedClientMetaInfo ??
+        parsedPreparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??
+        paymentRequest?.encodedClientMetaInfo ??
         ""
 
       if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
-        console.error("[WorldlineInlineCardForm] unexpected encryption payload", preparedOrEncrypted)
-        throw new Error("Worldline encryption returned empty payload")
+        console.error("[WorldlineInlineCardForm] unexpected encryption payload", {
+          preparedOrEncrypted,
+          parsedPreparedOrEncrypted,
+          paymentRequestKeys: Object.keys(paymentRequest || {}),
+        })
+        throw new Error("Worldline encryption failed: encrypted customer payload is missing")
       }
 
       const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
