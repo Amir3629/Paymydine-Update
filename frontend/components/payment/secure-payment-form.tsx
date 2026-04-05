@@ -637,13 +637,44 @@ export function WorldlineInlineCardForm({
   }, [fieldErrors, formData])
   const currencyCode = String(currency || "EUR").toUpperCase()
 
+  const normalizeCardNumber = (value: string) => (value || "").replace(/\D/g, "")
+  const normalizeExpiry = (value: string) => {
+    const digits = (value || "").replace(/\D/g, "")
+    // handle MMYYYY -> MMYY
+    const fourDigits = digits.length >= 6
+      ? `${digits.slice(0, 2)}${digits.slice(-2)}`
+      : digits.slice(0, 4)
+
+    if (fourDigits.length <= 2) return fourDigits
+    return `${fourDigits.slice(0, 2)}/${fourDigits.slice(2, 4)}`
+  }
+  const normalizeCvv = (value: string) => (value || "").replace(/\D/g, "")
+
   const buildPaymentRequest = (nextData: typeof formData) => {
     if (!paymentProduct) return null
     const paymentRequest = new PaymentRequest(paymentProduct)
-    paymentRequest.setValue("cardholderName", (nextData.cardholderName || "").trim())
-    paymentRequest.setValue("cardNumber", (nextData.cardNumber || "").trim())
-    paymentRequest.setValue("expiryDate", (nextData.expiryDate || "").trim())
-    paymentRequest.setValue("cvv", (nextData.cvv || "").trim())
+    const safeSetValue = (key: string, val: string) => {
+      if (!val) return
+      try {
+        paymentRequest.setValue(key, val)
+      } catch {
+        // Ignore unsupported field ids across SDK/payment product variants.
+      }
+    }
+
+    const normalizedExpiry = normalizeExpiry(nextData.expiryDate)
+    const expiryDigits = normalizedExpiry.replace(/\D/g, "")
+    const expiryMonth = expiryDigits.slice(0, 2)
+    const expiryYear2 = expiryDigits.slice(2, 4)
+    const expiryYear4 = expiryYear2 ? `20${expiryYear2}` : ""
+
+    safeSetValue("cardholderName", (nextData.cardholderName || "").trim())
+    safeSetValue("cardNumber", normalizeCardNumber(nextData.cardNumber))
+    safeSetValue("expiryDate", normalizedExpiry)
+    safeSetValue("expiryMonth", expiryMonth)
+    safeSetValue("expiryYear", expiryYear4)
+    safeSetValue("cvv", normalizeCvv(nextData.cvv))
+    safeSetValue("securityCode", normalizeCvv(nextData.cvv))
     return paymentRequest
   }
 
@@ -659,9 +690,11 @@ export function WorldlineInlineCardForm({
   const validateWorldlineFields = (nextData: typeof formData) => {
     if (!paymentProduct?.getField) return
 
-    const cardNumberValidation = paymentProduct.getField("cardNumber")?.validate?.((nextData.cardNumber || "").trim())
-    const expiryValidation = paymentProduct.getField("expiryDate")?.validate?.((nextData.expiryDate || "").trim())
-    const cvvValidation = paymentProduct.getField("cvv")?.validate?.((nextData.cvv || "").trim())
+    const cardNumberValidation = paymentProduct.getField("cardNumber")?.validate?.(normalizeCardNumber(nextData.cardNumber))
+    const expiryValidation = paymentProduct.getField("expiryDate")?.validate?.(normalizeExpiry(nextData.expiryDate))
+    const cvvValidation =
+      paymentProduct.getField("cvv")?.validate?.(normalizeCvv(nextData.cvv)) ??
+      paymentProduct.getField("securityCode")?.validate?.(normalizeCvv(nextData.cvv))
 
     setFieldErrors({
       cardNumber: extractFieldErrorMessage(cardNumberValidation, "Invalid card number"),
@@ -853,22 +886,39 @@ export function WorldlineInlineCardForm({
 
       console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)
 
+      const parsedPreparedOrEncrypted =
+        typeof preparedOrEncrypted === "string"
+          ? (() => {
+              try {
+                return JSON.parse(preparedOrEncrypted)
+              } catch {
+                return { encryptedCustomerInput: preparedOrEncrypted }
+              }
+            })()
+          : preparedOrEncrypted
+
       const encryptedCustomerInput =
-        preparedOrEncrypted?.encryptedCustomerInput ??
-        preparedOrEncrypted?.encryptedFields ??
-        preparedOrEncrypted?.payload?.encryptedCustomerInput ??
-        preparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+        parsedPreparedOrEncrypted?.encryptedCustomerInput ??
+        parsedPreparedOrEncrypted?.encryptedFields ??
+        parsedPreparedOrEncrypted?.payload?.encryptedCustomerInput ??
+        parsedPreparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+        paymentRequest?.encryptedCustomerInput ??
         ""
 
       const encodedClientMetaInfo =
-        preparedOrEncrypted?.encodedClientMetaInfo ??
-        preparedOrEncrypted?.payload?.encodedClientMetaInfo ??
-        preparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??
+        parsedPreparedOrEncrypted?.encodedClientMetaInfo ??
+        parsedPreparedOrEncrypted?.payload?.encodedClientMetaInfo ??
+        parsedPreparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??
+        paymentRequest?.encodedClientMetaInfo ??
         ""
 
       if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
-        console.error("[WorldlineInlineCardForm] unexpected encryption payload", preparedOrEncrypted)
-        throw new Error("Worldline encryption returned empty payload")
+        console.error("[WorldlineInlineCardForm] unexpected encryption payload", {
+          preparedOrEncrypted,
+          parsedPreparedOrEncrypted,
+          paymentRequestKeys: Object.keys(paymentRequest || {}),
+        })
+        throw new Error("Worldline encryption failed: encrypted customer payload is missing")
       }
 
       const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
@@ -907,7 +957,10 @@ export function WorldlineInlineCardForm({
       } as any)
     } catch (e: any) {
       console.error("[WorldlineInlineCardForm][submit]", e)
-      const msg = "Payment could not be completed. Please check your details and try again."
+      const rawMsg = typeof e?.message === "string" ? e.message : ""
+      const msg = rawMsg.includes("payment request is not valid")
+        ? "Card details are invalid. Please check card number, expiry (MM/YY), and CVV."
+        : (rawMsg || "Payment could not be completed. Please check your details and try again.")
       setError(msg)
       onPaymentErrorRef.current(msg)
     } finally {

@@ -1024,11 +1024,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         customer_email: String(paymentFormData.email || ""),
         payment_method: (
           selectedPaymentMethod === "cod"
-            ? "cod"
+            ? "cash"
             : selectedPaymentMethod === "paypal"
               ? "paypal"
               : "card"
-        ) as 'cod' | 'paypal' | 'card',
+        ) as 'cash' | 'paypal' | 'card',
         payment_method_raw: selectedPaymentMethod || undefined,
         payment_provider: selectedProviderCodeForSubmit || undefined,
         payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
@@ -1541,7 +1541,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                     tableNumber: stripeResolvedTableNumber,
                   } as any}
                   currency={(merchantSettings?.currency || "EUR")}
-                  countryCode="DE"
+                  countryCode={(stripeConfig?.countryCode || "DE")}
                   onPaymentComplete={(result: any) => {
                     if (result?.success && result?.transactionId) {
                       handlePayment(result.transactionId)
