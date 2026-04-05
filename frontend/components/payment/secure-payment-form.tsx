@@ -829,9 +829,27 @@ export function WorldlineInlineCardForm({
         throw new Error("Please check your card details")
       }
 
-      const preparedOrEncrypted =
-        (await sdk.preparePaymentRequest?.(paymentRequest)) ??
-        (await sdk.encryptPaymentRequest?.(paymentRequest))
+      console.info("[WorldlineInlineCardForm] submit runtime keys", Object.keys(sdk || {}))
+      console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+      console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)
+      console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+
+      let preparedOrEncrypted: any = undefined
+      if (typeof sdk?.preparePaymentRequest === "function") {
+        console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+        preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+      } else if (typeof sdk?.encryptPaymentRequest === "function") {
+        console.info("[WorldlineInlineCardForm] using encryption method: sdk.encryptPaymentRequest")
+        preparedOrEncrypted = await sdk.encryptPaymentRequest(paymentRequest)
+      } else if (typeof sdk?.getEncryptor === "function") {
+        const encryptor = sdk.getEncryptor()
+        console.info("[WorldlineInlineCardForm] encryptor keys", Object.keys(encryptor || {}))
+        console.info("[WorldlineInlineCardForm] typeof encryptor.encrypt", typeof encryptor?.encrypt)
+        if (typeof encryptor?.encrypt === "function") {
+          console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")
+          preparedOrEncrypted = await encryptor.encrypt(paymentRequest)
+        }
+      }
 
       console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)
 
