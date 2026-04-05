@@ -637,13 +637,25 @@ export function WorldlineInlineCardForm({
   }, [fieldErrors, formData])
   const currencyCode = String(currency || "EUR").toUpperCase()
 
+  const normalizeCardNumber = (value: string) => (value || "").replace(/\D/g, "")
+  const normalizeExpiry = (value: string) => {
+    const digits = (value || "").replace(/\D/g, "")
+    if (digits.length <= 4) return digits
+    // handle MMYYYY -> MMYY
+    if (digits.length >= 6) {
+      return `${digits.slice(0, 2)}${digits.slice(-2)}`
+    }
+    return digits.slice(0, 4)
+  }
+  const normalizeCvv = (value: string) => (value || "").replace(/\D/g, "")
+
   const buildPaymentRequest = (nextData: typeof formData) => {
     if (!paymentProduct) return null
     const paymentRequest = new PaymentRequest(paymentProduct)
     paymentRequest.setValue("cardholderName", (nextData.cardholderName || "").trim())
-    paymentRequest.setValue("cardNumber", (nextData.cardNumber || "").trim())
-    paymentRequest.setValue("expiryDate", (nextData.expiryDate || "").trim())
-    paymentRequest.setValue("cvv", (nextData.cvv || "").trim())
+    paymentRequest.setValue("cardNumber", normalizeCardNumber(nextData.cardNumber))
+    paymentRequest.setValue("expiryDate", normalizeExpiry(nextData.expiryDate))
+    paymentRequest.setValue("cvv", normalizeCvv(nextData.cvv))
     return paymentRequest
   }
 
@@ -659,9 +671,9 @@ export function WorldlineInlineCardForm({
   const validateWorldlineFields = (nextData: typeof formData) => {
     if (!paymentProduct?.getField) return
 
-    const cardNumberValidation = paymentProduct.getField("cardNumber")?.validate?.((nextData.cardNumber || "").trim())
-    const expiryValidation = paymentProduct.getField("expiryDate")?.validate?.((nextData.expiryDate || "").trim())
-    const cvvValidation = paymentProduct.getField("cvv")?.validate?.((nextData.cvv || "").trim())
+    const cardNumberValidation = paymentProduct.getField("cardNumber")?.validate?.(normalizeCardNumber(nextData.cardNumber))
+    const expiryValidation = paymentProduct.getField("expiryDate")?.validate?.(normalizeExpiry(nextData.expiryDate))
+    const cvvValidation = paymentProduct.getField("cvv")?.validate?.(normalizeCvv(nextData.cvv))
 
     setFieldErrors({
       cardNumber: extractFieldErrorMessage(cardNumberValidation, "Invalid card number"),
@@ -907,7 +919,10 @@ export function WorldlineInlineCardForm({
       } as any)
     } catch (e: any) {
       console.error("[WorldlineInlineCardForm][submit]", e)
-      const msg = "Payment could not be completed. Please check your details and try again."
+      const rawMsg = typeof e?.message === "string" ? e.message : ""
+      const msg = rawMsg.includes("payment request is not valid")
+        ? "Card details are invalid. Please check card number, expiry (MM/YY), and CVV."
+        : (rawMsg || "Payment could not be completed. Please check your details and try again.")
       setError(msg)
       onPaymentErrorRef.current(msg)
     } finally {
