@@ -25,7 +25,6 @@ import { CashPaymentForm } from "./secure-payment-form"
 import { ApiClient, type PaymentMethod } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout"
-import WorldlineGridLauncher from "@/components/payment/worldline-grid-launcher"
 
 interface SecurePaymentFlowProps {
   isOpen: boolean
@@ -245,31 +244,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
   useEffect(() => {
     const api = new ApiClient();
     api.getPaymentMethods()
-      .then((methods) => {
-        const list = Array.isArray(methods) ? [...methods] : []
-        const exists = list.some((m: any) => String(m?.code || "").toLowerCase() === "worldline")
-        if (!exists) {
-          list.push({
-            id: "worldline",
-            code: "worldline",
-            name: "Worldline",
-            title: "Worldline",
-            label: "Worldline",
-            enabled: true,
-          } as any)
-        }
-        setPaymentMethods(list)
-      })
-      .catch(() => {
-        setPaymentMethods([{
-          id: "worldline",
-          code: "worldline",
-          name: "Worldline",
-          title: "Worldline",
-          label: "Worldline",
-          enabled: true,
-        } as any])
-      })
+      .then(setPaymentMethods)
       .finally(() => setLoadingPayments(false));
   }, [])
 
@@ -285,9 +260,6 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
     }
 
     switch (selectedMethod.code) {
-      case "worldline":
-        return <WorldlineGridLauncher />
-
       case "sumup":
         return (
           <SumUpHostedCheckout
@@ -588,28 +560,6 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
                       </motion.div>
                     ))
                   )}
-
-                  <motion.div
-                    key="worldline-explicit-button"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    data-pmd-worldline-grid-button="1"
-                  >
-                    <Button
-                      variant="outline"
-                      className="h-14 w-20 rounded-2xl shadow-sm flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--theme-input, #121923)', borderColor: 'var(--theme-menu-item-border, #223042)' }}
-                      onClick={() => handlePaymentMethodSelect("worldline")}
-                    >
-                      <img
-                        src="/images/payments/worldline.svg"
-                        alt="Worldline"
-                        width={40}
-                        height={20}
-                        className="object-contain"
-                      />
-                    </Button>
-                  </motion.div>
                 </div>
               </motion.div>
             ) : (

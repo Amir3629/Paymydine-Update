@@ -1,0 +1,455 @@
+============================================================
+WORLDLINE BLOCK RESTORE
+time: 2026-04-06T00:38:27+00:00
+file: /var/www/paymydine/frontend/components/payment/secure-payment-form.tsx
+current backup: /var/www/paymydine/.backup_20260406_003827_before_restore_worldline_block.tsx
+work dir: /var/www/paymydine/.worldline_restore_20260406_003827
+============================================================
+
+== Backup candidates ==
+     1	/var/www/paymydine/.backup_20260406_003827_before_restore_worldline_block.tsx
+     2	/var/www/paymydine/.backup_20260406_003401_worldline_init_diag.tsx
+     3	/var/www/paymydine/.backup_20260406_002745_before_fix_worldline_updateField.tsx
+     4	/var/www/paymydine/.deploy_backup_20260406_001222_current_broken_secure-payment-form.tsx
+     5	/var/www/paymydine/.ultimate_fix_1775434087.tsx
+     6	/var/www/paymydine/.final_struct_fix_1775434779.tsx
+     7	/var/www/paymydine/.final_real_fix_1775433442.tsx
+     8	/var/www/paymydine/.hard_fix_1775433112.tsx
+     9	/var/www/paymydine/.safe_restore_1775432069.tsx
+    10	/var/www/paymydine/.repair_1775431739.tsx
+    11	/var/www/paymydine/.final_fix_1775431499.tsx
+    12	/var/www/paymydine/.deploy_backup_20260405_231449_pre_auto_recovery_secure-payment-form.tsx
+    13	/var/www/paymydine/.deploy_backup_20260405_231829_investigation_secure-payment-form.tsx
+    14	/var/www/paymydine/.deploy_backup_20260405_231103_worldline_clean_fix.tsx
+    15	/var/www/paymydine/.fix_1775431223_secure-payment-form.tsx
+    16	/var/www/paymydine/.deploy_backup_20260405_230801_worldline_probe_real_request.tsx
+    17	/var/www/paymydine/.deploy_backup_20260405_230138_worldline_force_log_submit.tsx
+    18	/var/www/paymydine/.deploy_backup_20260405_225937_worldline_deep_debug.tsx
+    19	/var/www/paymydine/.deploy_backup_20260405_225517_worldline_expiry_noslash_fix.tsx
+    20	/var/www/paymydine/.deploy_backup_20260405_225143_worldline_final_expiry_override.tsx
+    21	/var/www/paymydine/.deploy_backup_20260405_224650_worldline_remove_duplicate_expiryDigits.tsx
+    22	/var/www/paymydine/.deploy_backup_20260405_224457_worldline_force_raw_fix.tsx
+    23	/var/www/paymydine/.deploy_backup_20260405_224047_worldline_expiry_real_fix.tsx
+    24	/var/www/paymydine/.deploy_backup_20260405_223844_worldline_expiry_digits_define_fix.tsx
+    25	/var/www/paymydine/.deploy_backup_20260405_221446_worldline_expiry_send_fix.tsx
+    26	/var/www/paymydine/.deploy_backup_20260405_220508_worldline_expiry_display_raw_fix.tsx
+    27	/var/www/paymydine/.deploy_backup_20260405_215805_worldline_iffix.tsx
+    28	/var/www/paymydine/.deploy_backup_20260405_215626_worldline_expiry_encrypt_fix.tsx
+    29	/var/www/paymydine/.deploy_backup_20260405_215225_worldline_final_fix.tsx
+    30	/var/www/paymydine/.deploy_backup_20260405_214328_worldline_real_fix.tsx
+    31	/var/www/paymydine/.deploy_backup_20260405_213711_worldline_submit_fix.tsx
+    32	/var/www/paymydine/.deploy_backup_20260405_213426_secure-payment-form.tsx
+    33	/var/www/paymydine/.deploy_backup_20260405_212935_secure-payment-form.tsx
+    34	/var/www/paymydine/.deploy_backup_20260405_213039_manual_fix.tsx
+    35	/var/www/paymydine/.deploy_backup_20260405_211033_secure-payment-form.tsx
+    36	/var/www/paymydine/.deploy_backup_20260405_210656_secure-payment-form.tsx
+    37	/var/www/paymydine/.deploy_backup_20260405_205343_secure-payment-form.tsx
+    38	/var/www/paymydine/.deploy_backup_20260405_204546_secure-payment-form.tsx
+    39	/var/www/paymydine/.deploy_backup_20260405_202509_secure-payment-form.tsx
+    40	/var/www/paymydine/.deploy_backup_20260405_205017_secure-payment-form.tsx
+
+------------------------------------------------------------
+Trying candidate #1
+/var/www/paymydine/.backup_20260406_003827_before_restore_worldline_block.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': True, 'updateField': True, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #2
+/var/www/paymydine/.backup_20260406_003401_worldline_init_diag.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': True, 'updateField': True, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #3
+/var/www/paymydine/.backup_20260406_002745_before_fix_worldline_updateField.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': True, 'updateField': False, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #4
+/var/www/paymydine/.deploy_backup_20260406_001222_current_broken_secure-payment-form.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': True, 'updateField': False, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #5
+/var/www/paymydine/.ultimate_fix_1775434087.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': True, 'updateField': False, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #6
+/var/www/paymydine/.final_struct_fix_1775434779.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': False, 'updateField': False, 'preparePaymentRequest': False}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #7
+/var/www/paymydine/.final_real_fix_1775433442.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': False, 'updateField': False, 'preparePaymentRequest': False}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #8
+/var/www/paymydine/.hard_fix_1775433112.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': False, 'updateField': False, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #9
+/var/www/paymydine/.safe_restore_1775432069.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': False, 'updateField': False, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #10
+/var/www/paymydine/.repair_1775431739.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': False, 'setPaymentProduct': False, 'handleSubmit': False, 'updateField': False, 'preparePaymentRequest': True}
+skip: candidate missing critical init markers
+Candidate skipped
+------------------------------------------------------------
+Trying candidate #11
+/var/www/paymydine/.final_fix_1775431499.tsx
+------------------------------------------------------------
+candidate checks: {'setSdk': True, 'setPaymentProduct': True, 'handleSubmit': True, 'updateField': True, 'preparePaymentRequest': True}
+patched from candidate
+Patch applied from candidate
+
+== BUILD TEST ==
+✅ Build succeeded with candidate:
+   /var/www/paymydine/.final_fix_1775431499.tsx
+
+== RESTART PM2 ==
+[PM2] Applying action restartProcessId on app [paymydine-frontend](ids: [ 11 ])
+[PM2] [paymydine-frontend](11) ✓
+┌────┬───────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                  │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ next-app              │ default     │ N/A     │ fork    │ 641501   │ 26h    │ 5    │ online    │ 0%       │ 59.6mb   │ ubuntu   │ disabled │
+│ 11 │ paymydine-frontend    │ default     │ N/A     │ fork    │ 704548   │ 0s     │ 60   │ online    │ 0%       │ 3.4mb    │ ubuntu   │ disabled │
+└────┴───────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+
+== VERIFY MARKERS IN CURRENT FILE ==
+534:export function WorldlineInlineCardForm({
+735:  const updateField = (name: keyof typeof formData, value: any) => {
+769:          setSdk(cachedInit.sdk)
+770:          setPaymentProduct(cachedInit.paymentProduct)
+842:        setSdk(resolvedInit.sdk)
+843:        setPaymentProduct(resolvedInit.paymentProduct)
+868:  const handleSubmit = async (event: React.FormEvent) => {
+910:      console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+911:      console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)
+912:      console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+926:      if (typeof sdk?.preparePaymentRequest === "function") {
+927:        console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+928:        preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+929:      } else if (typeof sdk?.getEncryptor === "function") {
+930:        const encryptor = sdk.getEncryptor()
+935:          console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")
+1164:            <span>Initializing...</span>
+
+== LAST PM2 LOGS ==
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "xz". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "xz". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "zx". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | ⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+11|paymydi | ⚠ Invalid next.config.mjs options detected: 
+11|paymydi | ⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+11|paymydi | ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+11|paymydi | ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+11|paymydi |  We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+11|paymydi |  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+11|paymydi |    See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+11|paymydi |  Detected additional lockfiles: 
+11|paymydi |    * /var/www/paymydine/frontend/package-lock.json
+11|paymydi | 
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | ⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+11|paymydi | ⚠ Invalid next.config.mjs options detected: 
+11|paymydi | ⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+11|paymydi | ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+11|paymydi | ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+11|paymydi |  We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+11|paymydi |  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+11|paymydi |    See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+11|paymydi |  Detected additional lockfiles: 
+11|paymydi |    * /var/www/paymydine/frontend/package-lock.json
+11|paymydi | 
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
+11|paymydi | Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+11|paymydi |     at ignore-listed frames
+11|paymydi | ⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+11|paymydi | ⚠ Invalid next.config.mjs options detected: 
+11|paymydi | ⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+11|paymydi | ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+11|paymydi | ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+11|paymydi |  We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+11|paymydi |  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+11|paymydi |    See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+11|paymydi |  Detected additional lockfiles: 
+11|paymydi |    * /var/www/paymydine/frontend/package-lock.json
+11|paymydi | 
+11|paymydi | ⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+11|paymydi | ⚠ Invalid next.config.mjs options detected: 
+11|paymydi | ⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+11|paymydi | ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+11|paymydi | ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+11|paymydi |  We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+11|paymydi |  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+11|paymydi |    See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+11|paymydi |  Detected additional lockfiles: 
+11|paymydi |    * /var/www/paymydine/frontend/package-lock.json
+11|paymydi | 
+11|paymydi | ⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+11|paymydi | ⚠ Invalid next.config.mjs options detected: 
+11|paymydi | ⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+11|paymydi | ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+11|paymydi | ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+11|paymydi |  We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+11|paymydi |  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+11|paymydi |    See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+11|paymydi |  Detected additional lockfiles: 
+11|paymydi |    * /var/www/paymydine/frontend/package-lock.json
+11|paymydi | 
+11|paymydi | ⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+11|paymydi | ⚠ Invalid next.config.mjs options detected: 
+11|paymydi | ⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+11|paymydi | ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+11|paymydi | ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+11|paymydi |  We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+11|paymydi |  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+11|paymydi |    See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+11|paymydi |  Detected additional lockfiles: 
+11|paymydi |    * /var/www/paymydine/frontend/package-lock.json
+11|paymydi | 
+
+
+============================================================
+✅ DONE
+Working candidate:   /var/www/paymydine/.final_fix_1775431499.tsx
+Current backup:      /var/www/paymydine/.backup_20260406_003827_before_restore_worldline_block.tsx
+Restored copy:       /var/www/paymydine/.backup_20260406_003827_restored_worldline_block.tsx
+Build log:           /var/www/paymydine/.worldline_restore_20260406_003827/build.log
+Report:              /var/www/paymydine/.worldline_restore_20260406_003827/report.txt
+============================================================
+[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ 
+[?2004l[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine/frontend[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine/frontend[00m$ set -euo pipefail
+
+APP_DIR="/var/www/paymydine/frontend"
+FILE="$APP_DIR/components/payment/secure-payment-form.tsx"
+ROOT_DIR="/var/www/paymydine"
+NOW="$(date +%Y%m%d_%H%M%S)"
+
+BACKUP="$ROOT_DIR/.backup_${NOW}_fix_worldline_paymentrequest_submit.tsx"
+BUILD_LOG="$ROOT_DIR/.build_${NOW}_fix_worldline_paymentrequest_submit.log"
+
+cp -a "$FILE" "$BACKUP"
+echo "✅ Backup: $BACKUP"
+
+python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+p = Path("/var/www/paymydine/frontend/components/payment/secure-payment-form.tsx")
+s = p.read_text()
+
+start_marker = "export function WorldlineInlineCardForm("
+end_markers = [
+    "\n// PayPal Form Component",
+    "\nexport function PayPalForm(",
+]
+
+start = s.find(start_marker)
+if start == -1:
+    print("❌ WorldlineInlineCardForm پیدا نشد")
+    sys.exit(1)
+
+end = -1
+for m in end_markers:
+    i = s.find(m, start)
+    if i != -1:
+        end = i
+        break
+
+if end == -1:
+    print("❌ انتهای WorldlineInlineCardForm پیدا نشد")
+    sys.exit(1)
+
+block = s[start:end]
+
+handle_submit_match = re.search(
+    r'const handleSubmit = async\s*\(event: React\.FormEvent\)\s*=>\s*\{[\s\S]*?\n\s*\}',
+    block
+)
+if not handle_submit_match:
+    print("❌ handleSubmit پیدا نشد")
+    sys.exit(1)
+
+old_handle = handle_submit_match.group(0)
+
+new_handle = r'''
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+
+    if (!sdk || !paymentProduct) {
+      onPaymentError("Worldline SDK not ready")
+      return
+    }    try {      setIsProcessing(true)      setError(null)      const paymentRequest = new PaymentRequest(paymentProduct)      paymentRequest.setValue("cardNumber", normalizeCardNumber(formData.cardNumber))      paymentRequest.setValue("expiryDate", getExpiryDigits(formData.expiryDate))      paymentRequest.setValue("cvv", normalizeCvv(formData.cvv))      paymentRequest.setValue("cardholderName", String(formData.cardholderName ?? "").trim())      const validationResult =        typeof paymentRequest?.validate === "function"          ? paymentRequest.validate()          : null      if (        validationResult &&        typeof validationResult === "object" &&        "isValid" in validationResult &&        validationResult.isValid === false      ) {        validateWorldlineFields(formData)        throw new Error("Please check your card details")      }      console.info("[WorldlineInlineCardForm] submit runtime keys", Object.keys(sdk || {}))      console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)      console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)      console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)      const debugValues = {        cardNumber: normalizeCardNumber(formData.cardNumber),        expiryDateDisplay: normalizeExpiry(formData.expiryDate),        expiryDateRaw: getExpiryDigits(formData.expiryDate),        cvv: normalizeCvv(formData.cvv),        cardholderName: String(formData.cardholderName ?? ""),      }      console.info("[WorldlineInlineCardForm] WORLDLINE FINAL VALUES", debugValues)      let preparedOrEncrypted: any = undefined      if (typeof sdk?.preparePaymentRequest === "function") {        console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")        preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)      } else if (typeof sdk?.getEncryptor === "function") {        const encryptor = sdk.getEncryptor()        console.info("[WorldlineInlineCardForm] encryptor keys", Object.keys(encryptor || {}))        console.info("[WorldlineInlineCardForm] typeof encryptor.encrypt", typeof encryptor?.encrypt)        if (typeof encryptor?.encrypt === "function") {          console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")          preparedOrEncrypted = await encryptor.encrypt(paymentRequest)        } else {          throw new Error("Worldline encryptor.encrypt is not available")        }      } else {        throw new Error("Worldline SDK has no supported encryption method")      }      console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)      const parsedPreparedOrEncrypted =        typeof preparedOrEncrypted === "string"          ? (() => {              try {                return JSON.parse(preparedOrEncrypted)              } catch {                return { encryptedCustomerInput: preparedOrEncrypted }              }            })()          : preparedOrEncrypted      const encryptedCustomerInput =        parsedPreparedOrEncrypted?.encryptedCustomerInput ??        parsedPreparedOrEncrypted?.encryptedFields ??        parsedPreparedOrEncrypted?.payload?.encryptedCustomerInput ??        parsedPreparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??        ""      const encodedClientMetaInfo =        parsedPreparedOrEncrypted?.encodedClientMetaInfo ??        parsedPreparedOrEncrypted?.payload?.encodedClientMetaInfo ??        parsedPreparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??        ""      if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {        console.error("[WorldlineInlineCardForm] unexpected encryption payload", {          preparedOrEncrypted,          parsedPreparedOrEncrypted,        })        throw new Error("Worldline encryption failed: encrypted customer payload is missing")      }      const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {        method: "POST",        headers: { "Content-Type": "application/json" },        body: JSON.stringify({          amount: Number(paymentData?.amount || 0),          currency: String(currency || "EUR").toUpperCase(),          paymentProductId: Number(paymentProduct?.id || 1),          encryptedCustomerInput,          encodedClientMetaInfo,          cardholderName: formData.cardholderName,          email: formData.email,          phone: formData.phone,        }),      })      const payJson = await payRes.json().catch(() => ({}))      if (!payRes.ok || !payJson?.success || !payJson?.payment_id) {        throw new Error(payJson?.error || "Worldline inline payment failed")      }      const verifyRes = await fetch("/api/v1/payments/worldline/inline/verify", {        method: "POST",        headers: { "Content-Type": "application/json" },        body: JSON.stringify({ payment_id: String(payJson.payment_id) }),      })      const verifyJson = await verifyRes.json().catch(() => ({}))      if (!verifyRes.ok || !verifyJson?.success || !verifyJson?.is_paid) {        throw new Error("Worldline payment is not finalized yet")      }      onPaymentComplete({        success: true,        transactionId: String(verifyJson.payment_id),        paymentMethod: "worldline",      } as any)    } catch (e: any) {      console.error("[WorldlineInlineCardForm][submit]", e)      const rawMsg = typeof e?.message === "string" ? e.message : ""      const availableFieldIds = Array.isArray(paymentProduct?.paymentProductFields)        ? paymentProduct.paymentProductFields.map((f: any) => String(f?.id ?? "")).filter(Boolean)        : (            typeof paymentProduct?.getFields === "function"              ? paymentProduct.getFields().map((f: any) => String(f?.id ?? "")).filter(Boolean)              : Object.keys(paymentProduct?.paymentProductFieldById || {})          )[7m      const debugPayload = {[27m[7m        rawError: rawMsg,[27m[7m        availableFieldIds,[27m[7m        sentValues: {[27m[7m          cardNumber: normalizeCardNumber(formData.cardNumber),[27m[7m          expiryDate: getExpiryDigits(formData.expiryDate),[27m[7m          cvv: normalizeCvv(formData.cvv),[27m[7m          cardholderName: formData.cardholderName,[27m[7m          email: formData.email,[27m[7m        },[27m[7m      }[27m[7m      const msg =[27m[7m        rawMsg.includes("payment request is not valid")[27m[7m          ? "Card details are invalid. Please check card number, expiry (MMYY), and CVV.\n\nDEBUG:\n" + JSON.stringify(debugPayload, null, 2)[27m[7m          : ((rawMsg || "Payment could not be completed. Please check your details and try again.") + "\n\nDEBUG:\n" + JSON.stringify(debugPayload, null, 2))[27m[7m      setError(msg)[27m[7m      onPaymentErrorRef.current(msg)[27m[7m    } finally {[27m[7m      setIsProcessing(false)[27m[7m    }[27m[7m  }[27m[7m'''[27m[7mblock2 = block.replace(old_handle, new_handle)[27m[7mif block == block2:[27m[7m    print("ℹ️ handleSubmit تغییری نکرد")[27m[7melse:[27m[7m    print("✅ handleSubmit جایگزین شد")[27m[7m# پاک کردن هر اشاره‌ی باقی‌مانده به buildPaymentRequest / PaymentRequest creation failed فقط داخل Worldline[27m[7mblock2 = block2.replace('const paymentRequest = buildPaymentRequest(formData)', 'const paymentRequest = new PaymentRequest(paymentProduct)')[27m[7mblock2 = block2.replace('throw new Error("PaymentRequest creation failed")', 'throw new Error("Worldline payment form is not ready")')[27m[7mnew_s = s[:start] + block2 + s[end:][27m[7mp.write_text(new_s)[27m[7mprint("✅ فایل ذخیره شد")[27m[7mPY[27m[7mecho[27m[7mecho "== VERIFY PATCH =="[27m[7mgrep -nE 'const handleSubmit = async|buildPaymentRequest\(|PaymentRequest creation failed|new PaymentRequest\(paymentProduct\)|preparePaymentRequest|getEncryptor|encryptedCustomerInput' "$FILE" || true[27m[7mecho[27m[7mecho "== BUILD =="[27m[7mcd "$APP_DIR"[27m[7mnpm run build | tee "$BUILD_LOG"[27m[7mecho[27m[7mecho "== RESTART =="[27m[7mpm2 restart paymydine-frontend --update-env || pm2 restart paymydine-frontend[27m[7mecho[27m[7mecho "== LAST RELEVANT LOGS =="[27m[7mpm2 logs paymydine-frontend --lines 120 --nostream | grep -Ei 'WorldlineInlineCardForm|payment request|preparePaymentRequest|getEncryptor|encrypted|Session initialized' || true[27m[7mecho[27m[7mecho "✅ DONE"[27m[7mecho "Backup: $BACKUP"[27m[7mecho "Build log: $BUILD_LOG"[27m      const debugPayload = {        rawError: rawMsg,        availableFieldIds,        sentValues: {          cardNumber: normalizeCardNumber(formData.cardNumber),          expiryDate: getExpiryDigits(formData.expiryDate),          cvv: normalizeCvv(formData.cvv),          cardholderName: formData.cardholderName,          email: formData.email,        },      }      const msg =        rawMsg.includes("payment request is not valid")          ? "Card details are invalid. Please check card number, expiry (MMYY), and CVV.\n\nDEBUG:\n" + JSON.stringify(debugPayload, null, 2)          : ((rawMsg || "Payment could not be completed. Please check your details and try again.") + "\n\nDEBUG:\n" + JSON.stringify(debugPayload, null, 2))      setError(msg)      onPaymentErrorRef.current(msg)    } finally {      setIsProcessing(false)    }  }'''block2 = block.replace(old_handle, new_handle)if block == block2:    print("ℹ️ handleSubmit تغییری نکرد")else:    print("✅ handleSubmit جایگزین شد")# پاک کردن هر اشاره‌ی باقی‌مانده به buildPaymentRequest / PaymentRequest creation failed فقط داخل Worldlineblock2 = block2.replace('const paymentRequest = buildPaymentRequest(formData)', 'const paymentRequest = new PaymentRequest(paymentProduct)')block2 = block2.replace('throw new Error("PaymentRequest creation failed")', 'throw new Error("Worldline payment form is not ready")')new_s = s[:start] + block2 + s[end:]p.write_text(new_s)print("✅ فایل ذخیره شد")PYechoecho "== VERIFY PATCH =="grep -nE 'const handleSubmit = async|buildPaymentRequest\(|PaymentRequest creation failed|new PaymentRequest\(paymentProduct\)|preparePaymentRequest|getEncryptor|encryptedCustomerInput' "$FILE" || trueechoecho "== BUILD =="cd "$APP_DIR"npm run build | tee "$BUILD_LOG"echoecho "== RESTART =="pm2 restart paymydine-frontend --update-env || pm2 restart paymydine-frontendechoecho "== LAST RELEVANT LOGS =="pm2 logs paymydine-frontend --lines 120 --nostream | grep -Ei 'WorldlineInlineCardForm|payment request|preparePaymentRequest|getEncryptor|encrypted|Session initialized' || trueechoecho "✅ DONE"echo "Backup: $BACKUP"echo "Build log: $BUILD_LOG"
+[?2004l✅ Backup: /var/www/paymydine/.backup_20260406_005013_fix_worldline_paymentrequest_submit.tsx
+✅ handleSubmit جایگزین شد
+✅ فایل ذخیره شد
+
+== VERIFY PATCH ==
+869:  const handleSubmit = async (event: React.FormEvent) => {
+881:      const paymentRequest = new PaymentRequest(paymentProduct)
+904:      console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+906:      console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+919:      if (typeof sdk?.preparePaymentRequest === "function") {
+920:        console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+921:        preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+922:      } else if (typeof sdk?.getEncryptor === "function") {
+923:        const encryptor = sdk.getEncryptor()
+928:          console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")
+945:                return { encryptedCustomerInput: preparedOrEncrypted }
+950:      const encryptedCustomerInput =
+951:        parsedPreparedOrEncrypted?.encryptedCustomerInput ??
+953:        parsedPreparedOrEncrypted?.payload?.encryptedCustomerInput ??
+954:        parsedPreparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+963:      if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
+978:          encryptedCustomerInput,
+1056:      const paymentRequest = new PaymentRequest(paymentProduct)
+1077:      console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+1079:      console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+1093:      if (typeof sdk?.preparePaymentRequest === "function") {
+1094:        console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+1095:        preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+1096:      } else if (typeof sdk?.getEncryptor === "function") {
+1097:        const encryptor = sdk.getEncryptor()
+1102:          console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")
+1119:                return { encryptedCustomerInput: preparedOrEncrypted }
+1124:      const encryptedCustomerInput =
+1125:        parsedPreparedOrEncrypted?.encryptedCustomerInput ??
+1127:        parsedPreparedOrEncrypted?.payload?.encryptedCustomerInput ??
+1128:        parsedPreparedOrEncrypted?.paymentRequest?.encryptedCustomerInput ??
+1129:        paymentRequest?.encryptedCustomerInput ??
+1139:      if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
+1155:          encryptedCustomerInput,
+
+== BUILD ==
+
+> my-v0-project@0.1.0 build
+> next build
+
+⚠ `images.domains` is deprecated in favor of `images.remotePatterns`. Please update next.config.mjs to protect your application from malicious users.
+⚠ Invalid next.config.mjs options detected: 
+⚠     Unrecognized key(s) in object: 'serverRuntimeConfig', 'publicRuntimeConfig'
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /var/www/paymydine/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /var/www/paymydine/frontend/package-lock.json
+
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env.production
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./frontend/components/payment/secure-payment-form.tsx:1042:1
+Expression expected
+  [90m1040 |[0m     }
+  [90m1041 |[0m   }
+[31m[1m>[0m [90m1042 |[0m )
+  [90m     |[0m [31m[1m^[0m
+  [90m1043 |[0m     } [36mcatch[0m (e) {
+  [90m1044 |[0m       console.warn([32m"LOG FAILED"[0m, e)
+  [90m1045 |[0m     }
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./frontend/components/payment/secure-payment-form.tsx [Client Component Browser]
+    ./frontend/app/menu/page.tsx [Client Component Browser]
+    ./frontend/app/menu/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/components/payment/secure-payment-form.tsx [Client Component SSR]
+    ./frontend/app/menu/page.tsx [Client Component SSR]
+    ./frontend/app/menu/page.tsx [Server Component]
+
+
+    at <unknown> (./frontend/components/payment/secure-payment-form.tsx:1042:1)

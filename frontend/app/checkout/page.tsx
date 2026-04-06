@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { ApiClient, type PaymentMethod } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
-import { StripeCardForm } from "@/components/payment/secure-payment-form"
+import { WorldlineInlineCardForm } from "@/components/payment/secure-payment-form"
 import StripePaymentElementBox from "@/components/payment/stripe-payment-element"
 import type { PaymentData } from "@/lib/payment-service"
 
@@ -106,7 +106,7 @@ const [isSplitting, setIsSplitting] = useState(false)
   )
 
   useEffect(() => {
-    if (selectedPaymentMethod !== 'stripe' && selectedPaymentMethod !== 'authorizenetaim') return
+    if (selectedPaymentMethod !== 'card' && selectedPaymentMethod !== 'stripe' && selectedPaymentMethod !== 'authorizenetaim') return
     let cancelled = false
     fetch('/api/v1/payments/stripe/config')
       .then((res) => res.json())
@@ -243,6 +243,9 @@ const [isSplitting, setIsSplitting] = useState(false)
 
       const resolvedLocationId = tableInfo?.location_id || 1
 
+      const activeMethod = paymentMethods.find((method) => method.code === selectedPaymentMethod)
+      const activeProvider = (activeMethod?.provider_code || null) as string | null
+
       const orderData: Record<string, unknown> = {
         table_id: isCashier ? "cashier" : (numericResolvedTableId !== null ? String(numericResolvedTableId) : null),
         table_name: isCashier ? "Cashier" : resolvedTableName,
@@ -259,8 +262,10 @@ const [isSplitting, setIsSplitting] = useState(false)
         customer_name: paymentFormData.cardholderName || (isCashier ? "Cashier Customer" : `${resolvedTableName} Customer`),
         customer_phone: paymentFormData.phone || '',
         customer_email: paymentFormData.email || '',
-        payment_method: (selectedPaymentMethod === 'paypal' ? 'paypal' : 
-                        selectedPaymentMethod === 'cash' ? 'cod' : 'card') as 'cod' | 'card' | 'paypal',
+        payment_method: (selectedPaymentMethod === 'paypal' ? 'paypal' :
+                        selectedPaymentMethod === 'cod' ? 'cash' : 'card') as 'cash' | 'card' | 'paypal',
+        payment_method_raw: selectedPaymentMethod || null,
+        payment_provider: activeProvider,
         total_amount: finalTotal,
         tip_amount: tipAmount,
         coupon_code: appliedCoupon?.code || null,
@@ -271,6 +276,24 @@ const [isSplitting, setIsSplitting] = useState(false)
       // Stripe: intent already confirmed on client; just submit order with payment intent id
       if (paymentData?.stripePaymentIntentId) {
         orderData.stripe_payment_intent_id = paymentData.stripePaymentIntentId
+        orderData.payment_reference = paymentData.stripePaymentIntentId
+        const orderResponse = await api.submitOrder(orderData as any)
+        if (orderResponse.success) {
+          if (orderResponse.order_id) localStorage.setItem('lastOrderId', orderResponse.order_id.toString())
+          toast({ title: t("paymentSuccessful"), description: `Order #${orderResponse.order_id || 'submitted'} placed successfully!`, variant: "default" })
+          setTimeout(() => {
+            clearCart()
+            const currentUrl = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+            router.push(`/order-placed?order_id=${orderResponse.order_id || 'unknown'}&return_url=${encodeURIComponent(currentUrl)}`)
+          }, 1500)
+        } else throw new Error('Order submission failed')
+        return
+      }
+
+      // Worldline inline: payment already created and verified on client, submit order with reference
+      if (paymentData?.worldlinePaymentId) {
+        orderData.payment_provider = 'worldline'
+        orderData.payment_reference = paymentData.worldlinePaymentId
         const orderResponse = await api.submitOrder(orderData as any)
         if (orderResponse.success) {
           if (orderResponse.order_id) localStorage.setItem('lastOrderId', orderResponse.order_id.toString())
@@ -285,7 +308,7 @@ const [isSplitting, setIsSplitting] = useState(false)
       }
 
       // Other methods: call payment API then submit order (e.g. cash via /api/payments/process-cash)
-      if (selectedPaymentMethod !== 'cod' && selectedPaymentMethod !== 'cash') {
+      if (selectedPaymentMethod !== 'cod') {
         toast({ title: "Payment Failed", description: "This payment method is not configured. Use Stripe card or Cash.", variant: "destructive" })
         return
       }
@@ -363,6 +386,7 @@ const handlePayment = async () => {
         break
       
       case "applepay":
+      case "apple_pay":
         // Apple Pay integration
         if (window.ApplePaySession) {
           const session = new window.ApplePaySession(3, {
@@ -380,11 +404,12 @@ const handlePayment = async () => {
         break
       
       case "googlepay":
+      case "google_pay":
         // Google Pay integration
         await processPayment({ provider: 'googlepay' })
         break
       
-      case "cash":
+      case "cod":
         await processPayment({ provider: 'cash' })
         break
       
@@ -414,13 +439,13 @@ const handlePayment = async () => {
 
   const handlePaymentMethodSelect = (methodId: string) => {
     // Wallet buttons are shown separately but routed through Stripe Payment Element
-    if (methodId === "applepay") {
-      setSelectedPaymentMethod("stripe")
+    if (methodId === "applepay" || methodId === "apple_pay") {
+      setSelectedPaymentMethod("card")
       setStripePreferred("apple_pay")
       return
     }
-    if (methodId === "googlepay") {
-      setSelectedPaymentMethod("stripe")
+    if (methodId === "googlepay" || methodId === "google_pay") {
+      setSelectedPaymentMethod("card")
       setStripePreferred("google_pay")
       return
     }
@@ -665,8 +690,51 @@ const formatExpiryDate = (value: string) => {
 
   const renderPaymentForm = () => {
     if (!selectedMethod) return null
+    const selectedProvider = String((selectedMethod as any).provider_code || "").toLowerCase()
 
     switch (selectedMethod.code) {
+      case "card":
+        if (selectedProvider === "worldline") {
+          const worldlinePaymentData: PaymentData = {
+            amount: finalTotal,
+            currency: (merchantSettings.currency || 'EUR').toUpperCase(),
+            items: itemsToPay.map(inst => ({
+              id: String(inst.item.id),
+              name: inst.item.name,
+              price: inst.price,
+              quantity: 1,
+              restaurantId: stripeResolvedRestaurantId,
+            })),
+            customerInfo: {
+              name: paymentFormData.cardholderName,
+              email: paymentFormData.email,
+              phone: paymentFormData.phone,
+            },
+            restaurantId: stripeResolvedRestaurantId,
+            tableNumber: stripeResolvedTableNumber,
+          }
+
+          return (
+            <WorldlineInlineCardForm
+              paymentData={worldlinePaymentData}
+              currency={(merchantSettings.currency || 'EUR').toUpperCase()}
+              countryCode={stripeConfig?.countryCode || "DE"}
+              onPaymentComplete={(result: any) => {
+                processPayment({ worldlinePaymentId: result?.transactionId })
+              }}
+              onPaymentError={(m) => toast({ title: "Payment Error", description: m, variant: "destructive" })}
+            />
+          )
+        }
+
+        if (selectedProvider !== "stripe" && selectedProvider !== "authorizenetaim") {
+          return (
+            <div className="rounded-xl p-4 bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              Unsupported card provider selected for checkout.
+            </div>
+          )
+        }
       case "stripe":
       case "authorizenetaim":
         if (stripeConfigError || (stripeConfig && !stripeConfig.publishableKey)) {
@@ -750,6 +818,8 @@ const stripePaymentData: PaymentData = {
 
       case "applepay":
       case "googlepay":
+      case "apple_pay":
+      case "google_pay":
         return (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -782,7 +852,7 @@ const stripePaymentData: PaymentData = {
               <div className="bg-gray-50 rounded-xl p-6">
                 <CreditCard className="h-12 w-12 text-paydine-champagne mx-auto mb-3" />
                 <p className="text-sm text-gray-600 mb-4">
-                  {selectedMethod.code === "applepay" 
+                  {selectedMethod.code === "applepay" || selectedMethod.code === "apple_pay"
                     ? "Touch ID or Face ID to pay with Apple Pay"
                     : "Use your saved payment method with Google Pay"
                   }
@@ -795,7 +865,7 @@ const stripePaymentData: PaymentData = {
           </motion.div>
         )
 
-      case "cash":
+      case "cod":
         return (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -839,7 +909,7 @@ const stripePaymentData: PaymentData = {
 
 const renderPaymentButton = () => {
     if (!selectedMethod) return null
-    if (selectedMethod.code === 'stripe' || selectedMethod.code === 'authorizenetaim') return null
+    if (selectedMethod.code === 'stripe' || selectedMethod.code === 'authorizenetaim' || selectedMethod.code === 'card') return null
 
     const isFormValid = () => {
       switch (selectedMethod.code) {
@@ -853,7 +923,9 @@ const renderPaymentButton = () => {
           return true // PayPal handles its own validation
         case "applepay":
         case "googlepay":
-        case "cash":
+        case "apple_pay":
+        case "google_pay":
+        case "cod":
           return true
         default:
           return false
@@ -871,8 +943,10 @@ const getButtonText = () => {
           return "Continue with PayPal"
         case "applepay":
         case "googlepay":
+        case "apple_pay":
+        case "google_pay":
           return `Pay with ${selectedMethod.name}`
-        case "cash":
+        case "cod":
           return "Confirm Cash Payment"
         default:
           return "Pay"
@@ -1257,11 +1331,11 @@ const getButtonText = () => {
                       const base = paymentMethods || []
                       const has = new Set(base.map((m) => m.code))
                       const extra: any[] = []
-                      if (stripeConfig?.applePayEnabled && !has.has("applepay")) {
-                        extra.push({ code: "applepay", name: "Apple Pay" })
+                      if (stripeConfig?.applePayEnabled && !has.has("apple_pay")) {
+                        extra.push({ code: "apple_pay", name: "Apple Pay" })
                       }
-                      if (stripeConfig?.googlePayEnabled && !has.has("googlepay")) {
-                        extra.push({ code: "googlepay", name: "Google Pay" })
+                      if (stripeConfig?.googlePayEnabled && !has.has("google_pay")) {
+                        extra.push({ code: "google_pay", name: "Google Pay" })
                       }
                       return [...base, ...extra]
                     })().map((method) => (

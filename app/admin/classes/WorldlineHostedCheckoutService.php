@@ -245,7 +245,7 @@ class WorldlineHostedCheckoutService
 
         if (!empty($response->createdPaymentOutput) && !empty($response->createdPaymentOutput->payment)) {
             $paymentId = $response->createdPaymentOutput->payment->id ?? null;
-            $paymentStatus = $response->createdPaymentOutput->payment->status ?? null;
+            $paymentStatus = $response->createdPaymentOutput->status ?? null;
         }
 
         return [
@@ -345,8 +345,22 @@ class WorldlineHostedCheckoutService
         ]);
 
         try {
-            $response = $merchantClient->hostedcheckouts()->create($body);
+            $response = $merchantClient->hostedcheckouts()->create($this->pmdNormalizeCreatePaymentRequest($body));
         } catch (\Throwable $e) {
+            try {
+                \Log::error('PMD WORLDLINE create-payment exception', [
+                    'class' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode(),
+                    'trace_top' => substr($e->getTraceAsString(), 0, 4000),
+                    'response_body' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+                    'errors' => method_exists($e, 'getErrors') ? $e->getErrors() : null,
+                ]);
+            } catch (\Throwable $logErr) {
+                \Log::error('PMD WORLDLINE exception logging failed', [
+                    'message' => $logErr->getMessage(),
+                ]);
+            }
             \Log::error('WORLDLINE HOSTED CHECKOUT CREATE FAILED', [
                 'host' => $cfg['host'] ?? null,
                 'tenant_database' => $cfg['tenant_database'] ?? null,
@@ -503,7 +517,455 @@ class WorldlineHostedCheckoutService
             'request' => $this->sanitizeForLogs(json_decode(json_encode($request), true) ?: []),
         ]);
 
-        $response = $merchantClient->payments()->create($request);
+        if (!isset($request->order) || !is_object($request->order)) {
+            $request->order = (object) [];
+        }
+
+        if (!isset($request->order->customer) || !is_object($request->order->customer)) {
+            $request->order->customer = (object) [];
+        }
+
+        if (!isset($request->order->customer->billingAddress) || !is_object($request->order->customer->billingAddress)) {
+            $request->order->customer->billingAddress = (object) [];
+        }
+
+        $pmdCountryCode = null;
+
+        if (isset($request->countryCode) && is_string($request->countryCode) && trim($request->countryCode) !== '') {
+            $pmdCountryCode = strtoupper(trim($request->countryCode));
+        } elseif (isset($request->country) && is_string($request->country) && trim($request->country) !== '') {
+            $pmdCountryCode = strtoupper(trim($request->country));
+        } elseif (
+            isset($request->order->customer->billingAddress->countryCode) &&
+            is_string($request->order->customer->billingAddress->countryCode) &&
+            trim($request->order->customer->billingAddress->countryCode) !== ''
+        ) {
+            $pmdCountryCode = strtoupper(trim($request->order->customer->billingAddress->countryCode));
+        }
+
+        if (!$pmdCountryCode || strlen($pmdCountryCode) !== 2) {
+            $pmdCountryCode = 'AT';
+        }
+
+        $request->order->customer->billingAddress->countryCode = $pmdCountryCode;
+
+        if (isset($request->email) && is_string($request->email) && trim($request->email) !== '') {
+            if (!isset($request->order->customer->contactDetails) || !is_object($request->order->customer->contactDetails)) {
+                $request->order->customer->contactDetails = (object) [];
+            }
+            if (
+                !isset($request->order->customer->contactDetails->emailAddress) ||
+                !is_string($request->order->customer->contactDetails->emailAddress) ||
+                trim($request->order->customer->contactDetails->emailAddress) === ''
+            ) {
+                $request->order->customer->contactDetails->emailAddress = trim($request->email);
+            }
+        }
+
+        if (!isset($request->order) || !is_object($request->order)) {
+            $request->order = (object) [];
+        }
+
+        if (!isset($request->order->customer) || !is_object($request->order->customer)) {
+            $request->order->customer = (object) [];
+        }
+
+        if (!isset($request->order->customer->billingAddress) || !is_object($request->order->customer->billingAddress)) {
+            $request->order->customer->billingAddress = (object) [];
+        }
+
+        if (!isset($request->order->customer->contactDetails) || !is_object($request->order->customer->contactDetails)) {
+            $request->order->customer->contactDetails = (object) [];
+        }
+
+        if (!isset($request->cardPaymentMethodSpecificInput) || !is_object($request->cardPaymentMethodSpecificInput)) {
+            $request->cardPaymentMethodSpecificInput = (object) [];
+        }
+
+        $pmdCountryCode = null;
+
+        if (isset($request->countryCode) && is_string($request->countryCode) && trim($request->countryCode) !== '') {
+            $pmdCountryCode = strtoupper(trim($request->countryCode));
+        } elseif (isset($request->country) && is_string($request->country) && trim($request->country) !== '') {
+            $pmdCountryCode = strtoupper(trim($request->country));
+        } elseif (
+            isset($request->order->customer->billingAddress->countryCode) &&
+            is_string($request->order->customer->billingAddress->countryCode) &&
+            trim($request->order->customer->billingAddress->countryCode) !== ''
+        ) {
+            $pmdCountryCode = strtoupper(trim($request->order->customer->billingAddress->countryCode));
+        }
+
+        if (!$pmdCountryCode || strlen($pmdCountryCode) !== 2) {
+            $pmdCountryCode = 'AT';
+        }
+
+        $request->order->customer->billingAddress->countryCode = $pmdCountryCode;
+
+        $pmdFinalEmail = null;
+
+        if (isset($request->email) && is_string($request->email) && trim($request->email) !== '') {
+            $pmdFinalEmail = trim($request->email);
+        }
+
+        if ((!$pmdFinalEmail || trim($pmdFinalEmail) === '') && isset($pmdRawInputEmail) && is_string($pmdRawInputEmail) && trim($pmdRawInputEmail) !== '') {
+            $pmdFinalEmail = trim($pmdRawInputEmail);
+            $request->email = $pmdFinalEmail;
+        }
+
+        if (
+            $pmdFinalEmail &&
+            (
+                !isset($request->order->customer->contactDetails->emailAddress) ||
+                !is_string($request->order->customer->contactDetails->emailAddress) ||
+                trim($request->order->customer->contactDetails->emailAddress) === ''
+            )
+        ) {
+            $request->order->customer->contactDetails->emailAddress = $pmdFinalEmail;
+        }
+
+        if (
+            !isset($request->order->customer->locale) ||
+            !is_string($request->order->customer->locale) ||
+            trim($request->order->customer->locale) === ''
+        ) {
+            $request->order->customer->locale = 'de_AT';
+        }
+
+        if (
+            !isset($request->cardPaymentMethodSpecificInput->paymentProductId) ||
+            !$request->cardPaymentMethodSpecificInput->paymentProductId
+        ) {
+            $request->cardPaymentMethodSpecificInput->paymentProductId = 1;
+        }
+
+        if (
+            !isset($request->cardPaymentMethodSpecificInput->transactionChannel) ||
+            !is_string($request->cardPaymentMethodSpecificInput->transactionChannel) ||
+            trim($request->cardPaymentMethodSpecificInput->transactionChannel) === ''
+        ) {
+            $request->cardPaymentMethodSpecificInput->transactionChannel = 'ECOMMERCE';
+        }
+
+        if (
+            !isset($request->cardPaymentMethodSpecificInput->returnUrl) ||
+            !is_string($request->cardPaymentMethodSpecificInput->returnUrl) ||
+            trim($request->cardPaymentMethodSpecificInput->returnUrl) === ''
+        ) {
+            $pmdHost = $_SERVER['HTTP_HOST'] ?? 'mimoza.paymydine.com';
+            $request->cardPaymentMethodSpecificInput->returnUrl = 'https://' . $pmdHost . '/worldline-return';
+        }
+
+        $pmdRawInputEmail = $this->pmdGetInputEmailFromGlobals();
+
+        try {
+            \Log::info('PMD WORLDLINE RAW INPUT PROBE', [
+                'request_email_top_level' => isset($request->email) ? $request->email : null,
+                'request_customer_email_nested' => (
+                    isset($request->order) &&
+                    is_object($request->order) &&
+                    isset($request->order->customer) &&
+                    is_object($request->order->customer) &&
+                    isset($request->order->customer->contactDetails) &&
+                    is_object($request->order->customer->contactDetails) &&
+                    isset($request->order->customer->contactDetails->emailAddress)
+                ) ? $request->order->customer->contactDetails->emailAddress : null,
+                'raw_input_email' => $pmdRawInputEmail,
+            ]);
+        } catch (\Throwable $e) {
+        }
+
+        
+        
+        // ==========================================
+        // PMD CLEAN EMAIL + 3DS V2 SHAPE
+        // Use NEW 3DS structure only
+        
+        // ==========================================
+        // PMD PURE ENCRYPTED FLOW
+        // Client Encryption only
+        // Mode A: no cardPaymentMethodSpecificInput
+        // Mode B: redirectPaymentMethodSpecificInput only
+        
+        // ==========================================
+        // PMD PURE ENCRYPTED FLOW
+        // Client Encryption only
+        // Mode A: no cardPaymentMethodSpecificInput
+        // Mode B: redirectPaymentMethodSpecificInput only
+        // ==========================================
+        try {
+            $pmdRawInput = null;
+            try {
+                $pmdRawInput = function_exists('request') ? request()->all() : [];
+            } catch (\Throwable $ignored) {
+                $pmdRawInput = [];
+            }
+
+            $pmdEmail = null;
+            if (is_array($pmdRawInput)) {
+                if (!empty($pmdRawInput['email']) && is_string($pmdRawInput['email'])) {
+                    $pmdEmail = trim($pmdRawInput['email']);
+                } elseif (!empty($pmdRawInput['customerEmail']) && is_string($pmdRawInput['customerEmail'])) {
+                    $pmdEmail = trim($pmdRawInput['customerEmail']);
+                }
+            }
+
+            if (!isset($request->order) || !is_object($request->order)) {
+                $request->order = (object) [];
+            }
+            if (!isset($request->order->customer) || !is_object($request->order->customer)) {
+                $request->order->customer = (object) [];
+            }
+            if (!isset($request->order->customer->billingAddress) || !is_object($request->order->customer->billingAddress)) {
+                $request->order->customer->billingAddress = (object) [];
+            }
+            if (!isset($request->order->customer->contactDetails) || !is_object($request->order->customer->contactDetails)) {
+                $request->order->customer->contactDetails = (object) [];
+            }
+
+            // required basic field per official client-encryption minimum payload
+            if (
+                !isset($request->order->customer->billingAddress->countryCode) ||
+                !is_string($request->order->customer->billingAddress->countryCode) ||
+                trim($request->order->customer->billingAddress->countryCode) === ''
+            ) {
+                $request->order->customer->billingAddress->countryCode = 'AT';
+            }
+
+            if ($pmdEmail && filter_var($pmdEmail, FILTER_VALIDATE_EMAIL)) {
+                $request->email = $pmdEmail;
+                $request->order->customer->contactDetails->emailAddress = $pmdEmail;
+            }
+
+            // IMPORTANT: remove cardPaymentMethodSpecificInput entirely in encrypted flow test
+            if (isset($request->cardPaymentMethodSpecificInput)) {
+                unset($request->cardPaymentMethodSpecificInput);
+            }
+
+            // Toggle this to true if you want redirect-mode test
+            $pmdUseRedirectSpecificInput = true;
+
+            if ($pmdUseRedirectSpecificInput) {
+                if (!isset($request->redirectPaymentMethodSpecificInput) || !is_object($request->redirectPaymentMethodSpecificInput)) {
+                    $request->redirectPaymentMethodSpecificInput = (object) [];
+                }
+                $request->redirectPaymentMethodSpecificInput->returnUrl = 'https://mimoza.paymydine.com/worldline-return';
+            } else {
+                if (isset($request->redirectPaymentMethodSpecificInput)) {
+                    unset($request->redirectPaymentMethodSpecificInput);
+                }
+            }
+
+            \Log::info('PMD WORLDLINE PURE ENCRYPTED FLOW APPLIED', [
+                'mode' => $pmdUseRedirectSpecificInput ? 'B_redirectPaymentMethodSpecificInput' : 'A_minimal_only',
+                'email' => $request->order->customer->contactDetails->emailAddress ?? null,
+                'countryCode' => $request->order->customer->billingAddress->countryCode ?? null,
+                'has_cardPaymentMethodSpecificInput' => isset($request->cardPaymentMethodSpecificInput),
+                'has_redirectPaymentMethodSpecificInput' => isset($request->redirectPaymentMethodSpecificInput),
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('PMD WORLDLINE PURE ENCRYPTED FLOW PATCH ERROR', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+
+        
+        // ==========================================
+        // PMD HARD REMOVE CARD INPUT BEFORE NORMALIZE
+        // encryptedCustomerInput flow only
+        
+        // ==========================================
+        // PMD EMAIL ONLY SAFE BLOCK
+        // no forced 3DS
+        // no forced redirect object
+        // no null cardPaymentMethodSpecificInput
+        
+        // ==========================================
+        // PMD TRUE MINIMAL ENCRYPTED CARD
+        // encryptedCustomerInput + order only
+        // no redirectPaymentMethodSpecificInput
+        // no cardPaymentMethodSpecificInput
+        // no forced 3DS
+        // ==========================================
+        try {
+            $pmdRawInput = [];
+            try {
+                $pmdRawInput = function_exists('request') ? (request()->all() ?: []) : [];
+            } catch (\Throwable $ignored) {
+                $pmdRawInput = [];
+            }
+
+            $pmdEmail = null;
+            if (is_array($pmdRawInput)) {
+                if (!empty($pmdRawInput['email']) && is_string($pmdRawInput['email'])) {
+                    $pmdEmail = trim($pmdRawInput['email']);
+                } elseif (!empty($pmdRawInput['customerEmail']) && is_string($pmdRawInput['customerEmail'])) {
+                    $pmdEmail = trim($pmdRawInput['customerEmail']);
+                }
+            }
+
+            if (!isset($request->order) || !is_object($request->order)) {
+                $request->order = (object) [];
+            }
+            if (!isset($request->order->customer) || !is_object($request->order->customer)) {
+                $request->order->customer = (object) [];
+            }
+            if (!isset($request->order->customer->contactDetails) || !is_object($request->order->customer->contactDetails)) {
+                $request->order->customer->contactDetails = (object) [];
+            }
+            if (!isset($request->order->customer->billingAddress) || !is_object($request->order->customer->billingAddress)) {
+                $request->order->customer->billingAddress = (object) [];
+            }
+
+            if ($pmdEmail && filter_var($pmdEmail, FILTER_VALIDATE_EMAIL)) {
+                $request->email = $pmdEmail;
+                $request->order->customer->contactDetails->emailAddress = $pmdEmail;
+            }
+
+            if (!isset($request->order->customer->billingAddress->countryCode) || !$request->order->customer->billingAddress->countryCode) {
+                $request->order->customer->billingAddress->countryCode = 'AT';
+            }
+
+            if (!isset($request->order->customer->locale) || !$request->order->customer->locale) {
+                $request->order->customer->locale = 'de_AT';
+            }
+
+            // مهم: برای تست مینیمال، هر دو را کامل حذف کن
+            if (isset($request->cardPaymentMethodSpecificInput)) {
+                unset($request->cardPaymentMethodSpecificInput);
+            }
+            if (isset($request->redirectPaymentMethodSpecificInput)) {
+                unset($request->redirectPaymentMethodSpecificInput);
+            }
+
+            \Log::info('PMD WORLDLINE TRUE MINIMAL ENCRYPTED CARD APPLIED', [
+                'final_email_top_level' => $request->email ?? null,
+                'final_email_nested' => $request->order->customer->contactDetails->emailAddress ?? null,
+                'has_cardPaymentMethodSpecificInput' => isset($request->cardPaymentMethodSpecificInput),
+                'has_redirectPaymentMethodSpecificInput' => isset($request->redirectPaymentMethodSpecificInput),
+                'request_preview' => [
+                    'has_order' => isset($request->order),
+                    'has_encryptedCustomerInput' => !empty($request->encryptedCustomerInput ?? null),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('PMD WORLDLINE TRUE MINIMAL ENCRYPTED CARD FAILED', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+
+        // PMD FIX merchantCustomerId length <= 15
+        try {
+            if (!isset($request->order) || !is_object($request->order)) {
+                $request->order = (object) [];
+            }
+            if (!isset($request->order->customer) || !is_object($request->order->customer)) {
+                $request->order->customer = (object) [];
+            }
+
+            $pmdRawInput = [];
+            try {
+                $pmdRawInput = function_exists('request') ? (request()->all() ?: []) : [];
+            } catch (\Throwable $ignored) {
+                $pmdRawInput = [];
+            }
+
+            $pmdMerchantCustomerId = null;
+
+            if (
+                isset($request->order->customer->merchantCustomerId) &&
+                is_string($request->order->customer->merchantCustomerId)
+            ) {
+                $pmdMerchantCustomerId = trim($request->order->customer->merchantCustomerId);
+            }
+
+            if (
+                !$pmdMerchantCustomerId &&
+                is_array($pmdRawInput) &&
+                !empty($pmdRawInput['merchantCustomerId']) &&
+                is_string($pmdRawInput['merchantCustomerId'])
+            ) {
+                $pmdMerchantCustomerId = trim($pmdRawInput['merchantCustomerId']);
+            }
+
+            $pmdMerchantCustomerId = preg_replace('/[^A-Za-z0-9]/', '', (string) $pmdMerchantCustomerId);
+
+            if (!$pmdMerchantCustomerId) {
+                // PMD + 12 hex = 15 chars exactly
+                $pmdMerchantCustomerId = 'PMD' . substr(md5((string) microtime(true)), 0, 12);
+            }
+
+            if (strlen($pmdMerchantCustomerId) > 15) {
+                $pmdMerchantCustomerId = substr($pmdMerchantCustomerId, 0, 15);
+            }
+
+            $request->order->customer->merchantCustomerId = $pmdMerchantCustomerId;
+
+            if (
+                is_array($pmdRawInput) &&
+                !empty($pmdRawInput['email']) &&
+                is_string($pmdRawInput['email'])
+            ) {
+                if (
+                    !isset($request->order->customer->contactDetails) ||
+                    !is_object($request->order->customer->contactDetails)
+                ) {
+                    $request->order->customer->contactDetails = (object) [];
+                }
+                $request->order->customer->contactDetails->emailAddress = trim($pmdRawInput['email']);
+            }
+
+            \Log::info('PMD FIXED merchantCustomerId', [
+                'merchantCustomerId' => $request->order->customer->merchantCustomerId,
+                'length' => strlen((string) $request->order->customer->merchantCustomerId),
+                'email' => $request->order->customer->contactDetails->emailAddress ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('PMD FIX merchantCustomerId failed', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+$normalizedRequest = $this->pmdNormalizeCreatePaymentRequest($request);
+
+        try {
+            \Log::info('PMD WORLDLINE create-payment request snapshot', [
+                'request_type' => is_object($request) ? get_class($request) : gettype($request),
+                'normalized_type' => is_object($normalizedRequest) ? get_class($normalizedRequest) : gettype($normalizedRequest),
+                'request_json' => $this->pmdSafeJson($request),
+                'normalized_json' => $this->pmdSafeJson($normalizedRequest),
+                'final_email_top_level' => isset($request->email) ? $request->email : null,
+                'final_email_nested' => (
+                    isset($request->order) &&
+                    is_object($request->order) &&
+                    isset($request->order->customer) &&
+                    is_object($request->order->customer) &&
+                    isset($request->order->customer->contactDetails) &&
+                    is_object($request->order->customer->contactDetails) &&
+                    isset($request->order->customer->contactDetails->emailAddress)
+                ) ? $request->order->customer->contactDetails->emailAddress : null,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('PMD WORLDLINE request snapshot failed', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        $response = $merchantClient->payments()->create($normalizedRequest);
+            \Log::info('PMD WORLDLINE CREATE PAYMENT SUCCESS', [
+                'payment_id' => $response->payment->id ?? $response->id ?? null,
+                'status' => $response->status ?? $response->status ?? null,
+                'is_final' => $response->statusOutput->isFinal ?? $response->statusOutput->isFinal ?? null,
+                'merchant_action_type' => $response->merchantAction->actionType ?? null,
+                'redirect_url' => $response->merchantAction->redirectData->redirectURL ?? $response->merchantAction->redirectData->redirectUrl ?? null,
+                'form_method' => $response->merchantAction->redirectData->method ?? null,
+                'complete_response_json' => json_decode(json_encode($response), true),
+            ]);
+
+
         $raw = json_decode(json_encode($response), true);
         $raw = is_array($raw) ? $raw : [];
 
@@ -515,7 +977,7 @@ class WorldlineHostedCheckoutService
             'response' => $this->sanitizeForLogs($raw),
         ]);
 
-        $status = $response->payment->status ?? ($raw['payment']['status'] ?? null);
+        $status = $response->status ?? ($raw['payment']['status'] ?? null);
         $id = $response->payment->id ?? ($raw['payment']['id'] ?? null);
 
         return [
@@ -529,7 +991,19 @@ class WorldlineHostedCheckoutService
     {
         $cfg = $this->getConfig();
         $merchantClient = $this->makeMerchantClient($cfg);
-        $response = $merchantClient->payments()->get($paymentId);
+        $response = $merchantClient->payments()->get($paymentId, new \Worldline\Connect\Sdk\V1\Merchant\Payments\GetPaymentParams());
+
+        \Log::info('PMD WORLDLINE VERIFY RESPONSE DUMP', [
+            'payment_id' => $paymentId ?? null,
+            'response_json' => json_decode(json_encode($response), true),
+            'top_status' => $response->status ?? $response->status ?? null,
+            'status_category' => $response->statusOutput->statusCategory ?? $response->statusOutput->statusCategory ?? null,
+            'status_code' => $response->statusOutput->statusCode ?? $response->statusOutput->statusCode ?? null,
+            'is_final' => $response->statusOutput->isFinal ?? $response->statusOutput->isFinal ?? null,
+            'is_authorized' => $response->statusOutput->isAuthorized ?? $response->statusOutput->isAuthorized ?? null,
+        ]);
+
+
         $raw = json_decode(json_encode($response), true);
         $raw = is_array($raw) ? $raw : [];
         $status = $response->status ?? ($raw['status'] ?? null);
@@ -550,4 +1024,266 @@ class WorldlineHostedCheckoutService
             'raw' => $raw,
         ];
     }
+
+
+    /**
+     * Normalize stdClass/array payload into the Worldline PHP SDK domain object
+     * expected by PaymentsClient::create().
+     */
+    private function pmdNormalizeCreatePaymentRequest($body): \Worldline\Connect\Sdk\V1\Domain\CreatePaymentRequest
+    {
+        if (is_array($body)) {
+            $body = (object) $body;
+        }
+
+        $request = new \Worldline\Connect\Sdk\V1\Domain\CreatePaymentRequest();
+        return $request->fromObject($body);
+    }
+
+    /**
+     * Recursively map stdClass/array payloads to typed Worldline domain objects
+     * by inspecting setter parameter types.
+     */
+    
+
+
+
+    private function pmdGetInputEmailFromGlobals()
+    {
+        try {
+            $raw = file_get_contents('php://input');
+            if (!$raw || !is_string($raw)) {
+                return null;
+            }
+
+            $json = json_decode($raw, true);
+            if (!is_array($json)) {
+                return null;
+            }
+
+            $candidates = [
+                $json['email'] ?? null,
+                $json['customerEmail'] ?? null,
+                $json['billingEmail'] ?? null,
+                $json['order']['customer']['contactDetails']['emailAddress'] ?? null,
+                $json['paymentData']['email'] ?? null,
+                $json['payload']['email'] ?? null,
+            ];
+
+            foreach ($candidates as $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    return trim($value);
+                }
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            $pmdStatusCode = null;
+            $pmdResponseBody = null;
+            $pmdErrors = null;
+            $pmdCode = null;
+
+            try {
+                $pmdCode = $e->getCode();
+            } catch (\Throwable $ignored) {
+            }
+
+            try {
+                if (method_exists($e, 'getStatusCode')) {
+                    $pmdStatusCode = $e->getStatusCode();
+                }
+            } catch (\Throwable $ignored) {
+            }
+
+            try {
+                if (method_exists($e, 'getResponseBody')) {
+                    $pmdResponseBody = $e->getResponseBody();
+                }
+            } catch (\Throwable $ignored) {
+            }
+
+            try {
+                if (method_exists($e, 'getErrors')) {
+                    $pmdErrors = $e->getErrors();
+                }
+            } catch (\Throwable $ignored) {
+            }
+
+            
+        if ($e instanceof \Worldline\Connect\Sdk\V1\DeclinedPaymentException) {
+            $pmdDeclinedBody = null;
+            $pmdDeclinedErrors = null;
+            $pmdDeclinedPayment = null;
+            $pmdDeclinedStatus = null;
+
+            try {
+                if (method_exists($e, 'getResponseBody')) {
+                    $pmdDeclinedBody = $e->getResponseBody();
+                }
+            } catch (\Throwable $ignored) {}
+
+            try {
+                if (method_exists($e, 'getErrors')) {
+                    $pmdDeclinedErrors = $e->getErrors();
+                }
+            } catch (\Throwable $ignored) {}
+
+            try {
+                if (method_exists($e, 'getPaymentResult')) {
+                    $pmdDeclinedPayment = $e->getPaymentResult();
+                } elseif (method_exists($e, 'getCreatePaymentResult')) {
+                    $pmdDeclinedPayment = $e->getCreatePaymentResult();
+                }
+            } catch (\Throwable $ignored) {}
+
+            try {
+                $pmdDeclinedStatus = $pmdDeclinedPayment->status
+                    ?? $pmdDeclinedPayment->status
+                    ?? null;
+            } catch (\Throwable $ignored) {}
+
+            \Log::error('PMD WORLDLINE DECLINED DETAIL', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+                'responseBody' => $pmdDeclinedBody,
+                'errors' => $pmdDeclinedErrors,
+                'declined_status' => $pmdDeclinedStatus,
+                'payment_result_json' => json_decode(json_encode($pmdDeclinedPayment), true),
+            ]);
+        }
+
+
+        try {
+            if ($e instanceof \Throwable) {
+                $pmdMethods = get_class_methods($e);
+                $pmdMethodResults = [];
+
+                foreach ([
+                    'getResponseBody',
+                    'getErrors',
+                    'getPaymentResult',
+                    'getCreatePaymentResult',
+                    'getStatusCode',
+                    'getErrorId',
+                    'getPayment',
+                    'getResponse'
+                ] as $m) {
+                    try {
+                        if (method_exists($e, $m)) {
+                            $pmdMethodResults[$m] = json_decode(json_encode($e->$m()), true);
+                        } else {
+                            $pmdMethodResults[$m] = '__METHOD_NOT_FOUND__';
+                        }
+                    } catch (\Throwable $inner) {
+                        $pmdMethodResults[$m] = '__THREW__: ' . $inner->getMessage();
+                    }
+                }
+
+                \Log::error('PMD WORLDLINE EXCEPTION METHOD DUMP', [
+                    'exception_class' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'methods' => $pmdMethods,
+                    'selected_method_results' => $pmdMethodResults,
+                ]);
+            }
+        } catch (\Throwable $dumpIgnored) {
+            \Log::error('PMD WORLDLINE EXCEPTION METHOD DUMP FAILED', [
+                'message' => $dumpIgnored->getMessage(),
+            ]);
+        }
+
+\Log::error('WORLDLINE INLINE CREATE PAYMENT ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'code' => $pmdCode,
+                'statusCode' => $pmdStatusCode,
+                'responseBody' => $pmdResponseBody,
+                'errors' => $this->sanitizeForLogs($pmdErrors),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+
+    private function pmdSafeJson($value)
+    {
+        try {
+            if (is_object($value) && method_exists($value, 'toObject')) {
+                $value = $value->toObject();
+            }
+
+            $json = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+            if ($json === false) {
+                return 'json_encode_failed';
+            }
+
+            return $json;
+        } catch (\Throwable $e) {
+            $pmdErrors = null;
+            $pmdErrorsJson = null;
+            $pmdResponseBody = null;
+
+            try {
+                if (method_exists($e, 'getResponseBody')) {
+                    $pmdResponseBody = $e->getResponseBody();
+                }
+            } catch (\Throwable $inner) {
+                $pmdResponseBody = 'GET_RESPONSE_BODY_FAILED: ' . $inner->getMessage();
+            }
+
+            try {
+                if (method_exists($e, 'getErrors')) {
+                    $errs = $e->getErrors();
+
+                    if (is_array($errs)) {
+                        $tmp = [];
+                        foreach ($errs as $err) {
+                            if (is_object($err)) {
+                                $tmp[] = get_object_vars($err);
+                            } else {
+                                $tmp[] = $err;
+                            }
+                        }
+                        $pmdErrors = $tmp;
+                    } elseif (is_object($errs)) {
+                        $pmdErrors = get_object_vars($errs);
+                    } else {
+                        $pmdErrors = $errs;
+                    }
+                }
+            } catch (\Throwable $inner) {
+                $pmdErrors = [
+                    [
+                        'code' => 'GET_ERRORS_PARSE_FAILED',
+                        'message' => $inner->getMessage(),
+                    ]
+                ];
+            }
+
+            try {
+                $pmdErrorsJson = json_encode($pmdErrors, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } catch (\Throwable $inner) {
+                $pmdErrorsJson = 'JSON_ENCODE_FAILED: ' . $inner->getMessage();
+            }
+
+            \Log::error('WORLDLINE INLINE CREATE PAYMENT ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+                'responseBody' => $pmdResponseBody,
+                'errors' => $pmdErrors,
+                'errors_json' => $pmdErrorsJson,
+                'request_after_defaults' => $this->sanitizeForLogs(json_decode(json_encode($request), true) ?: []),
+                'normalized_request' => $this->sanitizeForLogs(json_decode(json_encode($normalizedRequest->toObject()), true) ?: []),
+            ]);
+
+            throw $e;
+        }
+    }
+
 }

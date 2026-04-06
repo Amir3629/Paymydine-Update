@@ -1,0 +1,448 @@
+======================================================================
+MARKER: const normalizeExpiry = @ line 570
+======================================================================
+ 560:       formData.email.trim() &&
+ 561:       formData.cardNumber.trim() &&
+ 562:       formData.expiryDate.trim() &&
+ 563:       formData.cvv.trim() &&
+ 564:       Object.values(fieldErrors).every((err) => !err)
+ 565:     )
+ 566:   }, [fieldErrors, formData])
+ 567:   const currencyCode = String(currency || "EUR").toUpperCase()
+ 568: 
+ 569:   const normalizeCardNumber = (value: any) => String(value ?? "").replace(/\D/g, "")
+ 570:   const normalizeExpiry = (value: any) => {
+ 571:     return String(value ?? "").replace(/\D/g, "").slice(0, 4)
+ 572:   }
+ 573:   const normalizeCvv = (value: any) => String(value ?? "").replace(/\D/g, "")
+ 574: 
+ 575:   const getExpiryDigits = (value: any) => String(value ?? "").replace(/\D/g, "").slice(0, 4)
+ 576: 
+ 577:   const getPaymentRequestProbe = (paymentRequest: any) => {
+ 578:     const safeGet = (key: string) => {
+ 579:       try {
+ 580:         if (typeof paymentRequest?.getValue === "function") {
+ 581:           return paymentRequest.getValue(key)
+ 582:         }
+ 583:       } catch {}
+ 584:       try {
+ 585:         return paymentRequest?.[key]
+ 586:       } catch {}
+ 587:       return undefined
+
+======================================================================
+MARKER: const getExpiryDigits = @ line 575
+======================================================================
+ 565:     )
+ 566:   }, [fieldErrors, formData])
+ 567:   const currencyCode = String(currency || "EUR").toUpperCase()
+ 568: 
+ 569:   const normalizeCardNumber = (value: any) => String(value ?? "").replace(/\D/g, "")
+ 570:   const normalizeExpiry = (value: any) => {
+ 571:     return String(value ?? "").replace(/\D/g, "").slice(0, 4)
+ 572:   }
+ 573:   const normalizeCvv = (value: any) => String(value ?? "").replace(/\D/g, "")
+ 574: 
+ 575:   const getExpiryDigits = (value: any) => String(value ?? "").replace(/\D/g, "").slice(0, 4)
+ 576: 
+ 577:   const getPaymentRequestProbe = (paymentRequest: any) => {
+ 578:     const safeGet = (key: string) => {
+ 579:       try {
+ 580:         if (typeof paymentRequest?.getValue === "function") {
+ 581:           return paymentRequest.getValue(key)
+ 582:         }
+ 583:       } catch {}
+ 584:       try {
+ 585:         return paymentRequest?.[key]
+ 586:       } catch {}
+ 587:       return undefined
+ 588:     }
+ 589: 
+ 590:     let validationSummary: any = null
+ 591:     try {
+ 592:       const vr = paymentRequest?.validate?.()
+
+======================================================================
+MARKER: const getPaymentRequestProbe = @ line 577
+======================================================================
+ 567:   const currencyCode = String(currency || "EUR").toUpperCase()
+ 568: 
+ 569:   const normalizeCardNumber = (value: any) => String(value ?? "").replace(/\D/g, "")
+ 570:   const normalizeExpiry = (value: any) => {
+ 571:     return String(value ?? "").replace(/\D/g, "").slice(0, 4)
+ 572:   }
+ 573:   const normalizeCvv = (value: any) => String(value ?? "").replace(/\D/g, "")
+ 574: 
+ 575:   const getExpiryDigits = (value: any) => String(value ?? "").replace(/\D/g, "").slice(0, 4)
+ 576: 
+ 577:   const getPaymentRequestProbe = (paymentRequest: any) => {
+ 578:     const safeGet = (key: string) => {
+ 579:       try {
+ 580:         if (typeof paymentRequest?.getValue === "function") {
+ 581:           return paymentRequest.getValue(key)
+ 582:         }
+ 583:       } catch {}
+ 584:       try {
+ 585:         return paymentRequest?.[key]
+ 586:       } catch {}
+ 587:       return undefined
+ 588:     }
+ 589: 
+ 590:     let validationSummary: any = null
+ 591:     try {
+ 592:       const vr = paymentRequest?.validate?.()
+ 593:       validationSummary =
+ 594:         vr && typeof vr === "object"
+
+======================================================================
+MARKER: const buildPaymentRequest = @ line 638
+======================================================================
+ 628:       return product.paymentProductFieldById[fieldId]
+ 629:     }
+ 630: 
+ 631:     if (Array.isArray(product?.paymentProductFields)) {
+ 632:       return product.paymentProductFields.find((f: any) => f?.id === fieldId) || null
+ 633:     }
+ 634: 
+ 635:     return null
+ 636:   }
+ 637: 
+ 638:   const buildPaymentRequest = (nextData: typeof formData) => {
+ 639:     if (!paymentProduct) return null
+ 640: 
+ 641:     const paymentRequest = new PaymentRequest(paymentProduct)
+ 642: 
+ 643:     const maybeSet = (fieldId: string, value: any) => {
+ 644:       const normalizedValue = String(value ?? "")
+ 645:       if (!normalizedValue) return
+ 646:       try {
+ 647:         const field = getProductField(paymentProduct, fieldId)
+ 648:         if (!field) return
+ 649:         paymentRequest.setValue(fieldId, normalizedValue)
+ 650:       } catch {}
+ 651:     }
+ 652: 
+ 653:     const cardholderName = String(nextData.cardholderName ?? "").trim()
+ 654:     const cardNumber = normalizeCardNumber(nextData.cardNumber)
+ 655:     const expiryMasked = normalizeExpiry(nextData.expiryDate)
+
+======================================================================
+MARKER: maybeSet("expiryDate" @ line 661
+======================================================================
+ 651:     }
+ 652: 
+ 653:     const cardholderName = String(nextData.cardholderName ?? "").trim()
+ 654:     const cardNumber = normalizeCardNumber(nextData.cardNumber)
+ 655:     const expiryMasked = normalizeExpiry(nextData.expiryDate)
+ 656:     const expiryDigits = getExpiryDigits(nextData.expiryDate)
+ 657:     const cvv = normalizeCvv(nextData.cvv)
+ 658: 
+ 659:     maybeSet("cardholderName", cardholderName)
+ 660:     maybeSet("cardNumber", cardNumber)
+ 661:     maybeSet("expiryDate", expiryDigits) // FIX: Worldline requires MMYY
+ 662:     maybeSet("cvv", cvv)
+ 663: 
+ 664:     return paymentRequest
+ 665:   }
+ 666: 
+ 667:   const extractFieldErrorMessage = (validationErrors: any, fallback: string) => {
+ 668:     if (!Array.isArray(validationErrors) || validationErrors.length === 0) return ""
+ 669:     const first =
+ 670:       validationErrors?.[0]?.errorMessage ||
+ 671:       validationErrors?.[0]?.message ||
+ 672:       validationErrors?.[0]?.id
+ 673:     return typeof first === "string" && first.trim() ? first : fallback
+ 674:   }
+ 675: 
+ 676:   const validateWorldlineFields = (nextData: typeof formData) => {
+ 677:     if (!paymentProduct) return
+ 678: 
+
+======================================================================
+MARKER: paymentRequest.setValue("expiryDate" @ line 891
+======================================================================
+ 881:       onPaymentError("Worldline SDK not ready")
+ 882:       return
+ 883:     }
+ 884:     try {
+ 885:       setIsProcessing(true)
+ 886:       setError(null)
+ 887:       const paymentRequest = buildPaymentRequest(formData)
+ 888: 
+ 889:       // 🚨 FORCE CORRECT VALUES INTO SDK (bypass mask issues)
+ 890:       paymentRequest.setValue("cardNumber", normalizeCardNumber(formData.cardNumber))
+ 891:       paymentRequest.setValue("expiryDate", getExpiryDigits(formData.expiryDate)) // MMYY ONLY
+ 892:       paymentRequest.setValue("cvv", normalizeCvv(formData.cvv))
+ 893:       paymentRequest.setValue("cardholderName", String(formData.cardholderName ?? "").trim())
+ 894: 
+ 895:       if (!paymentRequest) {
+ 896:         throw new Error("Worldline payment form is not ready")
+ 897:       }
+ 898:       const validationResult = paymentRequest.validate?.()
+ 899:       if (validationResult && typeof validationResult === "object" && "isValid" in validationResult && (validationResult as any).isValid === false) {
+ 900:         validateWorldlineFields(formData)
+ 901:         throw new Error("Please check your card details")
+ 902:       }
+ 903: 
+ 904:       console.info("[WorldlineInlineCardForm] submit runtime keys", Object.keys(sdk || {}))
+ 905:       console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+ 906:       console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)
+ 907:       console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+ 908: 
+
+======================================================================
+MARKER: const handleSubmit = async @ line 866
+======================================================================
+ 856:         onPaymentErrorRef.current(msg)
+ 857:       } finally {
+ 858:         if (active) setIsLoadingSession(false)
+ 859:       }
+ 860:     })()
+ 861:     return () => {
+ 862:       active = false
+ 863:     }
+ 864:   }, [amountMinor, countryCode, currencyCode])
+ 865: 
+ 866:   const handleSubmit = async (event: React.FormEvent) => {
+ 867:     try {
+ 868:       console.info("🔥 SUBMIT STARTED", {
+ 869:         expiryRaw: typeof getExpiryDigits === "function" ? getExpiryDigits(formData?.expiryDate) : String(formData?.expiryDate ?? ""),
+ 870:         expiryDisplay: typeof normalizeExpiry === "function" ? normalizeExpiry(formData?.expiryDate) : String(formData?.expiryDate ?? ""),
+ 871:         card: typeof normalizeCardNumber === "function" ? normalizeCardNumber(formData?.cardNumber) : String(formData?.cardNumber ?? ""),
+ 872:         cvv: typeof normalizeCvv === "function" ? normalizeCvv(formData?.cvv) : String(formData?.cvv ?? "")
+ 873:       })
+ 874:     } catch (e) {
+ 875:       console.warn("LOG FAILED", e)
+ 876:     }
+ 877:     // 🔥 SAFE SUBMIT LOG
+ 878: 
+ 879:     event.preventDefault()
+ 880:     if (!sdk || !paymentProduct) {
+ 881:       onPaymentError("Worldline SDK not ready")
+ 882:       return
+ 883:     }
+
+======================================================================
+MARKER: typeof sdk?.preparePaymentRequest @ line 905
+======================================================================
+ 895:       if (!paymentRequest) {
+ 896:         throw new Error("Worldline payment form is not ready")
+ 897:       }
+ 898:       const validationResult = paymentRequest.validate?.()
+ 899:       if (validationResult && typeof validationResult === "object" && "isValid" in validationResult && (validationResult as any).isValid === false) {
+ 900:         validateWorldlineFields(formData)
+ 901:         throw new Error("Please check your card details")
+ 902:       }
+ 903: 
+ 904:       console.info("[WorldlineInlineCardForm] submit runtime keys", Object.keys(sdk || {}))
+ 905:       console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+ 906:       console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)
+ 907:       console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+ 908: 
+ 909:       const debugValues = {
+ 910:         cardNumber: normalizeCardNumber(formData.cardNumber),
+ 911:         expiryDateDisplay: normalizeExpiry(formData.expiryDate),
+ 912:         expiryDateRaw: getExpiryDigits(formData.expiryDate),
+ 913:         cvv: normalizeCvv(formData.cvv),
+ 914:         cardholderName: String(formData.cardholderName ?? ""),
+ 915:         paymentRequestProbeBeforeEncrypt,
+ 916:       }
+ 917:       console.info("[WorldlineInlineCardForm] WORLDLINE FINAL VALUES", debugValues)
+ 918: 
+ 919:       let preparedOrEncrypted: any = undefined
+ 920: 
+ 921:       if (typeof sdk?.preparePaymentRequest === "function") {
+ 922:         console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+
+======================================================================
+MARKER: typeof sdk?.encryptPaymentRequest @ line 906
+======================================================================
+ 896:         throw new Error("Worldline payment form is not ready")
+ 897:       }
+ 898:       const validationResult = paymentRequest.validate?.()
+ 899:       if (validationResult && typeof validationResult === "object" && "isValid" in validationResult && (validationResult as any).isValid === false) {
+ 900:         validateWorldlineFields(formData)
+ 901:         throw new Error("Please check your card details")
+ 902:       }
+ 903: 
+ 904:       console.info("[WorldlineInlineCardForm] submit runtime keys", Object.keys(sdk || {}))
+ 905:       console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+ 906:       console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)
+ 907:       console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+ 908: 
+ 909:       const debugValues = {
+ 910:         cardNumber: normalizeCardNumber(formData.cardNumber),
+ 911:         expiryDateDisplay: normalizeExpiry(formData.expiryDate),
+ 912:         expiryDateRaw: getExpiryDigits(formData.expiryDate),
+ 913:         cvv: normalizeCvv(formData.cvv),
+ 914:         cardholderName: String(formData.cardholderName ?? ""),
+ 915:         paymentRequestProbeBeforeEncrypt,
+ 916:       }
+ 917:       console.info("[WorldlineInlineCardForm] WORLDLINE FINAL VALUES", debugValues)
+ 918: 
+ 919:       let preparedOrEncrypted: any = undefined
+ 920: 
+ 921:       if (typeof sdk?.preparePaymentRequest === "function") {
+ 922:         console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+ 923:         preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+
+======================================================================
+MARKER: typeof sdk?.getEncryptor @ line 907
+======================================================================
+ 897:       }
+ 898:       const validationResult = paymentRequest.validate?.()
+ 899:       if (validationResult && typeof validationResult === "object" && "isValid" in validationResult && (validationResult as any).isValid === false) {
+ 900:         validateWorldlineFields(formData)
+ 901:         throw new Error("Please check your card details")
+ 902:       }
+ 903: 
+ 904:       console.info("[WorldlineInlineCardForm] submit runtime keys", Object.keys(sdk || {}))
+ 905:       console.info("[WorldlineInlineCardForm] typeof sdk.preparePaymentRequest", typeof sdk?.preparePaymentRequest)
+ 906:       console.info("[WorldlineInlineCardForm] typeof sdk.encryptPaymentRequest", typeof sdk?.encryptPaymentRequest)
+ 907:       console.info("[WorldlineInlineCardForm] typeof sdk.getEncryptor", typeof sdk?.getEncryptor)
+ 908: 
+ 909:       const debugValues = {
+ 910:         cardNumber: normalizeCardNumber(formData.cardNumber),
+ 911:         expiryDateDisplay: normalizeExpiry(formData.expiryDate),
+ 912:         expiryDateRaw: getExpiryDigits(formData.expiryDate),
+ 913:         cvv: normalizeCvv(formData.cvv),
+ 914:         cardholderName: String(formData.cardholderName ?? ""),
+ 915:         paymentRequestProbeBeforeEncrypt,
+ 916:       }
+ 917:       console.info("[WorldlineInlineCardForm] WORLDLINE FINAL VALUES", debugValues)
+ 918: 
+ 919:       let preparedOrEncrypted: any = undefined
+ 920: 
+ 921:       if (typeof sdk?.preparePaymentRequest === "function") {
+ 922:         console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+ 923:         preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+ 924:       } else if (typeof sdk?.getEncryptor === "function") {
+
+======================================================================
+MARKER: using encryption method: sdk.preparePaymentRequest @ line 922
+======================================================================
+ 912:         expiryDateRaw: getExpiryDigits(formData.expiryDate),
+ 913:         cvv: normalizeCvv(formData.cvv),
+ 914:         cardholderName: String(formData.cardholderName ?? ""),
+ 915:         paymentRequestProbeBeforeEncrypt,
+ 916:       }
+ 917:       console.info("[WorldlineInlineCardForm] WORLDLINE FINAL VALUES", debugValues)
+ 918: 
+ 919:       let preparedOrEncrypted: any = undefined
+ 920: 
+ 921:       if (typeof sdk?.preparePaymentRequest === "function") {
+ 922:         console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+ 923:         preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+ 924:       } else if (typeof sdk?.getEncryptor === "function") {
+ 925:         const encryptor = sdk.getEncryptor()
+ 926:         console.info("[WorldlineInlineCardForm] encryptor keys", Object.keys(encryptor || {}))
+ 927:         console.info("[WorldlineInlineCardForm] typeof encryptor.encrypt", typeof encryptor?.encrypt)
+ 928: 
+ 929:         if (typeof encryptor?.encrypt === "function") {
+ 930:           console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")
+ 931:           preparedOrEncrypted = await encryptor.encrypt(paymentRequest)
+ 932:         } else {
+ 933:           throw new Error("Worldline encryptor.encrypt is not available")
+ 934:         }
+ 935:       } else {
+ 936:         throw new Error("Worldline SDK has no supported encryption method")
+ 937:       }
+ 938: 
+ 939:       console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)
+
+======================================================================
+MARKER: using encryption method: sdk.getEncryptor().encrypt @ line 930
+======================================================================
+ 920: 
+ 921:       if (typeof sdk?.preparePaymentRequest === "function") {
+ 922:         console.info("[WorldlineInlineCardForm] using encryption method: sdk.preparePaymentRequest")
+ 923:         preparedOrEncrypted = await sdk.preparePaymentRequest(paymentRequest)
+ 924:       } else if (typeof sdk?.getEncryptor === "function") {
+ 925:         const encryptor = sdk.getEncryptor()
+ 926:         console.info("[WorldlineInlineCardForm] encryptor keys", Object.keys(encryptor || {}))
+ 927:         console.info("[WorldlineInlineCardForm] typeof encryptor.encrypt", typeof encryptor?.encrypt)
+ 928: 
+ 929:         if (typeof encryptor?.encrypt === "function") {
+ 930:           console.info("[WorldlineInlineCardForm] using encryption method: sdk.getEncryptor().encrypt")
+ 931:           preparedOrEncrypted = await encryptor.encrypt(paymentRequest)
+ 932:         } else {
+ 933:           throw new Error("Worldline encryptor.encrypt is not available")
+ 934:         }
+ 935:       } else {
+ 936:         throw new Error("Worldline SDK has no supported encryption method")
+ 937:       }
+ 938: 
+ 939:       console.info("[WorldlineInlineCardForm] encryption result", preparedOrEncrypted)
+ 940: 
+ 941:       const parsedPreparedOrEncrypted =
+ 942:         typeof preparedOrEncrypted === "string"
+ 943:           ? (() => {
+ 944:               try {
+ 945:                 return JSON.parse(preparedOrEncrypted)
+ 946:               } catch {
+ 947:                 return { encryptedCustomerInput: preparedOrEncrypted }
+
+======================================================================
+MARKER: unexpected encryption payload @ line 968
+======================================================================
+ 958:         ""
+ 959: 
+ 960:       const encodedClientMetaInfo =
+ 961:         parsedPreparedOrEncrypted?.encodedClientMetaInfo ??
+ 962:         parsedPreparedOrEncrypted?.payload?.encodedClientMetaInfo ??
+ 963:         parsedPreparedOrEncrypted?.paymentRequest?.encodedClientMetaInfo ??
+ 964:         paymentRequest?.encodedClientMetaInfo ??
+ 965:         ""
+ 966: 
+ 967:       if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
+ 968:         console.error("[WorldlineInlineCardForm] unexpected encryption payload", {
+ 969:           preparedOrEncrypted,
+ 970:           parsedPreparedOrEncrypted,
+ 971:           paymentRequestKeys: Object.keys(paymentRequest || {}),
+ 972:         })
+ 973:         throw new Error("Worldline encryption failed: encrypted customer payload is missing")
+ 974:       }
+ 975: 
+ 976:       const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
+ 977:         method: "POST",
+ 978:         headers: { "Content-Type": "application/json" },
+ 979:         body: JSON.stringify({
+ 980:           amount: Number(paymentData?.amount || 0),
+ 981:           currency: String(currency || "EUR").toUpperCase(),
+ 982:           paymentProductId: Number(paymentProduct?.id || 1),
+ 983:           encryptedCustomerInput,
+ 984:           encodedClientMetaInfo,
+ 985:           cardholderName: formData.cardholderName,
+
+======================================================================
+MARKER: rawError: @ line 1021
+======================================================================
+1011:       console.error("[WorldlineInlineCardForm][submit]", e)
+1012:       const rawMsg = typeof e?.message === "string" ? e.message : ""
+1013:       const availableFieldIds = Array.isArray(paymentProduct?.paymentProductFields)
+1014:         ? paymentProduct.paymentProductFields.map((f: any) => String(f?.id ?? "")).filter(Boolean)
+1015:         : (
+1016:             typeof paymentProduct?.getFields === "function"
+1017:               ? paymentProduct.getFields().map((f: any) => String(f?.id ?? "")).filter(Boolean)
+1018:               : Object.keys(paymentProduct?.paymentProductFieldById || {})
+1019:           )
+1020:       const debugPayload = {
+1021:         rawError: rawMsg,
+1022:         availableFieldIds,
+1023:         sentValues: {
+1024:           cardNumber: normalizeCardNumber(formData.cardNumber),
+1025:           expiryDate: normalizeExpiry(formData.expiryDate),  // MM/YY enforced
+1026:           cvv: normalizeCvv(formData.cvv),
+1027:           cardholderName: formData.cardholderName,
+1028:           email: formData.email,
+1029:         },
+1030:       }
+1031:       const msg = rawMsg.includes("payment request is not valid")
+1032:         ? "Card details are invalid. Please check card number, expiry (MM/YY), and CVV.\n\nDEBUG:\n" + JSON.stringify(debugPayload, null, 2)
+1033:         : ((rawMsg || "Payment could not be completed. Please check your details and try again.") + "\n\nDEBUG:\n" + JSON.stringify(debugPayload, null, 2))
+1034:       setError(msg)
+1035:       onPaymentErrorRef.current(msg)
+1036:     } finally {
+1037:       setIsProcessing(false)
+1038:     }
+

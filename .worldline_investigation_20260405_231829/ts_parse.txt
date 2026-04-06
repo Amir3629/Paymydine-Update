@@ -1,0 +1,128 @@
+app/api/orders/confirm/route.ts(5,49): error TS2322: Type '"2023-10-16"' is not assignable to type '"2025-06-30.basil"'.
+app/api/orders/confirm/route.ts(42,52): error TS2304: Cannot find name 'req'.
+app/api/payments/create-intent/route.ts(8,5): error TS2322: Type '"2023-10-16"' is not assignable to type '"2025-06-30.basil"'.
+app/api/payments/create-intent/route.ts(85,62): error TS2352: Conversion of type 'Record<string, unknown>' to type 'PaymentIntentCreateParams' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'PaymentIntentCreateParams': amount, currency
+app/api/payments/process-apple-pay/route.ts(8,5): error TS2322: Type '"2023-10-16"' is not assignable to type '"2025-06-30.basil"'.
+app/api/payments/process-apple-pay/route.ts(73,9): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/api/payments/process-google-pay/route.ts(8,5): error TS2322: Type '"2023-10-16"' is not assignable to type '"2025-06-30.basil"'.
+app/api/payments/process-google-pay/route.ts(77,9): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/checkout/page.tsx(27,5): error TS2717: Subsequent property declarations must have the same type.  Property 'paypal' must be of type 'PayPalNamespace | null | undefined', but here has type 'any'.
+app/checkout/page.tsx(370,11): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+app/checkout/page.tsx(714,13): error TS2322: Type 'number | null' is not assignable to type 'number'.
+  Type 'null' is not assignable to type 'number'.
+app/checkout/page.tsx(768,11): error TS2322: Type 'number | null' is not assignable to type 'number'.
+  Type 'null' is not assignable to type 'number'.
+app/menu/page.tsx(181,18): error TS2304: Cannot find name 'loadMerchantSettings'.
+app/menu/page.tsx(181,62): error TS2304: Cannot find name 'loadMerchantSettings'.
+app/menu/page.tsx(1262,29): error TS2339: Property 'cardholderName' does not exist on type 'PaymentFormData'.
+app/menu/page.tsx(1901,9): error TS2322: Type '(stripePaymentIntentId?: string) => Promise<void>' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.
+  Types of parameters 'stripePaymentIntentId' and 'event' are incompatible.
+    Type 'MouseEvent<HTMLButtonElement, MouseEvent>' is not assignable to type 'string'.
+app/menu/page.tsx(3082,28): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+app/menu/page.tsx(3082,28): error TS2345: Argument of type '(prev: any) => any' is not assignable to parameter of type 'TableInfo'.
+app/menu/table-[table_id]/page.tsx(52,11): error TS2339: Property 'table_id' does not exist on type 'Promise<{ table_id: string; }>'.
+app/table/[table_id]/page.tsx(179,20): error TS2345: Argument of type '"menuCardDescription"' is not assignable to parameter of type '"cash" | "paypal" | "license_plate" | "car_make" | "processing" | "tableNumber" | "confirm" | "details" | "yes" | "no" | "none" | "cvc" | "close" | "appName" | "welcome_to_cashier" | ... 118 more ... | "optional"'.
+app/table/[table_id]/page.tsx(228,20): error TS2345: Argument of type '"valetParkingDescription"' is not assignable to parameter of type '"cash" | "paypal" | "license_plate" | "car_make" | "processing" | "tableNumber" | "confirm" | "details" | "yes" | "no" | "none" | "cvc" | "close" | "appName" | "welcome_to_cashier" | ... 118 more ... | "optional"'.
+components/cart-sheet.tsx(102,55): error TS2345: Argument of type 'number' is not assignable to parameter of type 'MenuItem'.
+components/menu-item-card.tsx(55,7): error TS2322: Type '{ hidden: { y: number; opacity: number; }; visible: { y: number; opacity: number; transition: { type: string; stiffness: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'visible' is incompatible with index signature.
+    Type '{ y: number; opacity: number; transition: { type: string; stiffness: number; }; }' is not assignable to type 'Variant'.
+      Type '{ y: number; opacity: number; transition: { type: string; stiffness: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ y: number; opacity: number; transition: { type: string; stiffness: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ type: string; stiffness: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+components/menu-item-modal.tsx(59,19): error TS2322: Type '{ src: string; alt: string; fill: true; className: string; style: { objectPosition: string; }; }' is not assignable to type 'IntrinsicAttributes & OptimizedImageProps'.
+  Property 'style' does not exist on type 'IntrinsicAttributes & OptimizedImageProps'.
+components/payment-flow.tsx(200,13): error TS2322: Type '{ currency: any; description: string; className: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'currency' does not exist on type 'IntrinsicAttributes & Props'.
+components/payment-flow.tsx(200,23): error TS2304: Cannot find name 'merchantSettings'.
+components/payment-flow.tsx(446,30): error TS2339: Property 'id' does not exist on type 'PaymentMethod'.
+components/payment-flow.tsx(463,30): error TS2339: Property 'id' does not exist on type 'PaymentMethod'.
+components/payment-flow.tsx(543,37): error TS2339: Property 'key' does not exist on type 'ItemInstance'.
+components/payment-flow.tsx(545,58): error TS2345: Argument of type 'ItemInstance' is not assignable to parameter of type 'ItemInstance & { key: string; }'.
+  Property 'key' is missing in type 'ItemInstance' but required in type '{ key: string; }'.
+components/payment-flow.tsx(551,52): error TS2339: Property 'key' does not exist on type 'ItemInstance'.
+components/payment-flow.tsx(554,51): error TS2339: Property 'key' does not exist on type 'ItemInstance'.
+components/payment-flow.tsx(738,19): error TS2322: Type '{ currency: string; description: string; className: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'currency' does not exist on type 'IntrinsicAttributes & Props'.
+components/payment/secure-payment-flow.tsx(14,26): error TS2307: Cannot find module './ui/use-toast' or its corresponding type declarations.
+components/payment/secure-payment-flow.tsx(174,5): error TS2322: Type '{ id: number; name: string; price: number; quantity: number; restaurantId: string; }[]' is not assignable to type '{ id: string; name: string; price: number; quantity: number; restaurantId: string; }[]'.
+  Type '{ id: number; name: string; price: number; quantity: number; restaurantId: string; }' is not assignable to type '{ id: string; name: string; price: number; quantity: number; restaurantId: string; }'.
+    Types of property 'id' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+components/payment/secure-payment-flow.tsx(294,13): error TS2322: Type '{ currency: string; description: string; className: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'currency' does not exist on type 'IntrinsicAttributes & Props'.
+components/payment/secure-payment-flow.tsx(412,37): error TS2339: Property 'key' does not exist on type 'ItemInstance'.
+components/payment/secure-payment-flow.tsx(414,58): error TS2345: Argument of type 'ItemInstance' is not assignable to parameter of type 'ItemInstance & { key: string; }'.
+  Property 'key' is missing in type 'ItemInstance' but required in type '{ key: string; }'.
+components/payment/secure-payment-flow.tsx(420,52): error TS2339: Property 'key' does not exist on type 'ItemInstance'.
+components/payment/secure-payment-flow.tsx(423,51): error TS2339: Property 'key' does not exist on type 'ItemInstance'.
+components/payment/secure-payment-flow.tsx(633,29): error TS18048: 'selectedMethod' is possibly 'undefined'.
+components/payment/secure-payment-flow.tsx(633,44): error TS2339: Property 'icon' does not exist on type 'PaymentMethod'.
+components/payment/secure-payment-flow.tsx(635,30): error TS18048: 'selectedMethod' is possibly 'undefined'.
+components/payment/secure-payment-flow.tsx(635,45): error TS2339: Property 'icon' does not exist on type 'PaymentMethod'.
+components/payment/secure-payment-flow.tsx(636,30): error TS18048: 'selectedMethod' is possibly 'undefined'.
+components/payment/secure-payment-flow.tsx(640,24): error TS18048: 'selectedMethod' is possibly 'undefined'.
+components/payment/secure-payment-flow.tsx(640,39): error TS2339: Property 'icon' does not exist on type 'PaymentMethod'.
+components/payment/secure-payment-flow.tsx(642,54): error TS18048: 'selectedMethod' is possibly 'undefined'.
+components/payment/secure-payment-flow.tsx(643,22): error TS18048: 'selectedMethod' is possibly 'undefined'.
+components/payment/secure-payment-flow.tsx(643,37): error TS2339: Property 'secure' does not exist on type 'PaymentMethod'.
+components/payment/secure-payment-form.tsx(323,66): error TS2304: Cannot find name 'handleSubmit'.
+components/payment/secure-payment-form.tsx(342,13): error TS17001: JSX elements cannot have multiple attributes with the same name.
+components/payment/secure-payment-form.tsx(367,13): error TS17001: JSX elements cannot have multiple attributes with the same name.
+components/payment/secure-payment-form.tsx(392,13): error TS17001: JSX elements cannot have multiple attributes with the same name.
+components/payment/secure-payment-form.tsx(641,47): error TS2554: Expected 0 arguments, but got 1.
+components/payment/secure-payment-form.tsx(890,7): error TS18047: 'paymentRequest' is possibly 'null'.
+components/payment/secure-payment-form.tsx(891,7): error TS18047: 'paymentRequest' is possibly 'null'.
+components/payment/secure-payment-form.tsx(892,7): error TS18047: 'paymentRequest' is possibly 'null'.
+components/payment/secure-payment-form.tsx(893,7): error TS18047: 'paymentRequest' is possibly 'null'.
+components/payment/secure-payment-form.tsx(898,47): error TS2339: Property 'validate' does not exist on type 'PaymentRequest'.
+components/payment/secure-payment-form.tsx(915,9): error TS18004: No value exists in scope for the shorthand property 'paymentRequestProbeBeforeEncrypt'. Either declare one or provide an initializer.
+components/payment/secure-payment-form.tsx(957,25): error TS2339: Property 'encryptedCustomerInput' does not exist on type 'PaymentRequest'.
+components/payment/secure-payment-form.tsx(964,25): error TS2339: Property 'encodedClientMetaInfo' does not exist on type 'PaymentRequest'.
+components/payment/secure-payment-form.tsx(1334,22): error TS2304: Cannot find name 'ApplePaySession'.
+components/payment/secure-payment-form.tsx(1358,27): error TS2304: Cannot find name 'ApplePaySession'.
+components/payment/secure-payment-form.tsx(1360,43): error TS7006: Parameter 'event' implicitly has an 'any' type.
+components/payment/secure-payment-form.tsx(1376,44): error TS7006: Parameter 'event' implicitly has an 'any' type.
+components/payment/secure-payment-form.tsx(1390,37): error TS2304: Cannot find name 'ApplePaySession'.
+components/payment/secure-payment-form.tsx(1397,37): error TS2304: Cannot find name 'ApplePaySession'.
+components/payment/secure-payment-form.tsx(1401,35): error TS2304: Cannot find name 'ApplePaySession'.
+components/payment/secure-payment-form.tsx(1453,49): error TS2339: Property 'google' does not exist on type 'Window & typeof globalThis'.
+components/payment/secure-payment-form.tsx(1454,41): error TS2339: Property 'google' does not exist on type 'Window & typeof globalThis'.
+components/payment/secure-payment-form.tsx(1483,41): error TS2339: Property 'google' does not exist on type 'Window & typeof globalThis'.
+components/tenant-menu.tsx(44,11): error TS2339: Property 'addItem' does not exist on type 'CartState'.
+components/tenant-menu.tsx(44,20): error TS2339: Property 'removeItem' does not exist on type 'CartState'.
+components/tenant-menu.tsx(44,32): error TS2339: Property 'getItemQuantity' does not exist on type 'CartState'.
+components/tenant-menu.tsx(199,74): error TS2339: Property 'price' does not exist on type 'CartItem'.
+components/waiter-call-button.tsx(117,23): error TS2322: Type '{ id: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; placeholder: string; maxLength: number; rows: number; }' is not assignable to type 'IntrinsicAttributes & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref"> & RefAttributes<...>'.
+  Property 'rows' does not exist on type 'IntrinsicAttributes & Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref"> & RefAttributes<...>'.
+lib/api-client.ts(307,9): error TS2322: Type 'MenuItem[] | { items?: MenuItem[] | undefined; categories?: Category[] | undefined; }' is not assignable to type 'MenuItem[]'.
+  Type '{ items?: MenuItem[] | undefined; categories?: Category[] | undefined; }' is missing the following properties from type 'MenuItem[]': length, pop, push, concat, and 35 more.
+lib/api-client.ts(342,31): error TS7006: Parameter 'a' implicitly has an 'any' type.
+lib/api-client.ts(342,34): error TS7006: Parameter 'b' implicitly has an 'any' type.
+lib/api-client.ts(586,39): error TS2339: Property 'tax_mode' does not exist on type '{ success: boolean; data: any; }'.
+lib/payment-service.ts(4,22): error TS2307: Cannot find module 'crypto-js' or its corresponding type declarations.
+lib/payment-service.ts(140,13): error TS2353: Object literal may only specify known properties, and 'number' does not exist in type 'StripeCardElement | StripeCardNumberElement | { token: string; }'.
+lib/payment-service.ts(215,39): error TS2304: Cannot find name 'ApplePaySession'.
+lib/payment-service.ts(230,27): error TS2304: Cannot find name 'ApplePaySession'.
+lib/payment-service.ts(233,45): error TS7006: Parameter 'event' implicitly has an 'any' type.
+lib/payment-service.ts(253,46): error TS7006: Parameter 'event' implicitly has an 'any' type.
+lib/payment-service.ts(267,39): error TS2304: Cannot find name 'ApplePaySession'.
+lib/payment-service.ts(274,39): error TS2304: Cannot find name 'ApplePaySession'.
+lib/payment-service.ts(282,37): error TS2304: Cannot find name 'ApplePaySession'.
+lib/payment-service.ts(308,49): error TS2339: Property 'google' does not exist on type 'Window & typeof globalThis'.
+lib/payment-service.ts(309,40): error TS2339: Property 'google' does not exist on type 'Window & typeof globalThis'.
+lib/supabase/server.ts(8,28): error TS2339: Property 'get' does not exist on type 'Promise<ReadonlyRequestCookies>'.
+lib/supabase/server.ts(12,23): error TS2339: Property 'set' does not exist on type 'Promise<ReadonlyRequestCookies>'.
+lib/supabase/server.ts(21,23): error TS2339: Property 'set' does not exist on type 'Promise<ReadonlyRequestCookies>'.
+lib/theme-loader.ts(29,51): error TS2339: Property 'frontend_theme' does not exist on type '{ success: boolean; data: any; }'.
+store/language-store.ts(16,19): error TS7053: Element implicitly has an 'any' type because expression of type '"cash" | "paypal" | "license_plate" | "car_make" | "processing" | "tableNumber" | "confirm" | "details" | "yes" | "no" | "none" | "cvc" | "close" | "appName" | "welcome_to_cashier" | ... 118 more ... | "optional"' can't be used to index type '{ appName: string; tableNumber: string; welcome_to_cashier: string; cashier_mode_description: string; start_new_order: string; start_new_order_description: string; get_started: string; ... 126 more ...; optional: string; } | { ...; }'.
+  Property 'welcome_to_cashier' does not exist on type '{ appName: string; tableNumber: string; welcome_to_cashier: string; cashier_mode_description: string; start_new_order: string; start_new_order_description: string; get_started: string; ... 126 more ...; optional: string; } | { ...; }'.
+store/theme-store.ts(68,69): error TS2339: Property 'frontend_theme' does not exist on type '{ success: boolean; data: any; }'.

@@ -1344,6 +1344,142 @@ Route::group([
         }
     });
 
+    Route::get('/payments/worldline/auth-diagnostic', function () {
+        try {
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'result' => $service->getConfigForDiagnostics(),
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE AUTH DIAGNOSTIC ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    Route::post('/payments/worldline/create-hosted-checkout', function (\Illuminate\Http\Request $request) {
+        try {
+            $payload = $request->validate([
+                'amount_minor' => 'required|integer|min:1',
+                'currency' => 'required|string|size:3',
+                'return_url' => 'required|url',
+                'locale' => 'nullable|string|max:10',
+                'country_code' => 'nullable|string|size:2',
+                'merchant_customer_id' => 'nullable|string|max:64',
+            ]);
+
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $result = $service->createHostedCheckout([
+                'amount_minor' => (int)$payload['amount_minor'],
+                'currency' => strtoupper((string)$payload['currency']),
+                'return_url' => (string)$payload['return_url'],
+                'locale' => (string)($payload['locale'] ?? 'en_GB'),
+                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? ('PMD-'.substr(sha1((string)microtime(true)), 0, 12))),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'redirect_url' => $result['redirect_url'] ?? null,
+                'hosted_checkout_id' => $result['hosted_checkout_id'] ?? null,
+                'environment' => $result['environment'] ?? null,
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE CREATE HOSTED CHECKOUT V1 ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    Route::get('/payments/worldline/status/{hostedCheckoutId}', function (string $hostedCheckoutId) {
+        try {
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $status = $service->getHostedCheckoutStatus($hostedCheckoutId);
+
+            $hostedStatus = strtoupper((string)($status['hosted_checkout_status'] ?? ''));
+            $paymentStatus = strtoupper((string)($status['payment_status'] ?? ''));
+            $isPaid = in_array($hostedStatus, ['PAYMENT_CREATED', 'COMPLETED'], true)
+                || in_array($paymentStatus, ['PAID', 'CAPTURED', '9'], true);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'result' => [
+                    'hosted_checkout_id' => $hostedCheckoutId,
+                    'is_paid' => $isPaid,
+                    'hosted_checkout_status' => $status['hosted_checkout_status'] ?? null,
+                    'payment_status' => $status['payment_status'] ?? null,
+                    'payment_id' => $status['payment_id'] ?? null,
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE STATUS V1 ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
+    Route::get('/payments/worldline/return', function (\Illuminate\Http\Request $request) {
+        try {
+            $hostedCheckoutId = (string)$request->query('hostedCheckoutId', '');
+            if ($hostedCheckoutId === '') {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'worldline',
+                    'error' => 'Missing hostedCheckoutId',
+                ], 422);
+            }
+
+            $service = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $status = $service->getHostedCheckoutStatus($hostedCheckoutId);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'hosted_checkout_id' => $hostedCheckoutId,
+                'query' => $request->query(),
+                'status_result' => [
+                    'hosted_checkout_status' => $status['hosted_checkout_status'] ?? null,
+                    'payment_status' => $status['payment_status'] ?? null,
+                    'payment_id' => $status['payment_id'] ?? null,
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('WORLDLINE RETURN V1 ERROR', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    });
+
     Route::post('/payments/worldline/inline/session', function (\Illuminate\Http\Request $request) {
         try {
             $payload = $request->validate([
@@ -1381,6 +1517,20 @@ Route::group([
                 'phone' => 'nullable|string|max:64',
             ]);
             $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+
+            try {
+                \Log::info('PMD REAL INLINE ROUTE HIT', [
+                    'path' => method_exists($request, 'path') ? $request->path() : null,
+                    'full_url' => method_exists($request, 'fullUrl') ? $request->fullUrl() : null,
+                    'host' => method_exists($request, 'getHost') ? $request->getHost() : null,
+                    'payload' => json_decode(json_encode($request->all()), true),
+                    'raw_input' => file_get_contents('php://input'),
+                ]);
+            } catch (\Throwable $__pmdRouteProbeErr) {
+                \Log::error('PMD REAL INLINE ROUTE HIT LOG ERROR', [
+                    'message' => $__pmdRouteProbeErr->getMessage(),
+                ]);
+            }
             $res = $svc->createInlinePayment([
                 'amount_minor' => (int)round(((float)$payload['amount']) * 100),
                 'currency' => strtoupper((string)$payload['currency']),
@@ -4535,4 +4685,171 @@ Route::get('admin/orders/pos-bon/{id}', function ($id) {
         ], 500);
     }
 });
+
+
+Route::post('/payments/worldline/raw-card-probe', function (\Illuminate\Http\Request $request) {
+    try {
+        \Log::info('PMD RAW CARD PROBE HIT', [
+            'path' => $request->path(),
+            'host' => $request->getHost(),
+            'payload' => $request->except(['cardNumber', 'cvv']),
+        ]);
+
+        $host = $request->getHost();
+        $tenant = null;
+
+        try {
+            if (function_exists('db_get_active_connection')) {
+                $tenant = db_get_active_connection();
+            }
+        } catch (\Throwable $ignored) {}
+
+        $config = \DB::table('payment_provider_configs')
+            ->where('provider', 'worldline')
+            ->where('status', 1)
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$config) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'No active Worldline config found'
+            ], 500);
+        }
+
+        $merchantId = $config->merchant_id ?? $config->merchantId ?? null;
+        $apiKeyId = $config->api_key_id ?? $config->apiKeyId ?? null;
+        $secretApiKey = $config->secret_api_key ?? $config->secretApiKey ?? null;
+        $integrator = $config->integrator ?? 'PayMyDine Raw Probe';
+        $apiEndpoint = $config->api_endpoint ?? $config->apiEndpoint ?? null;
+
+        if (!$merchantId || !$apiKeyId || !$secretApiKey || !$apiEndpoint) {
+            \Log::error('PMD RAW CARD PROBE CONFIG INCOMPLETE', [
+                'merchantId' => $merchantId,
+                'apiKeyId' => $apiKeyId ? 'present' : null,
+                'secretApiKey' => $secretApiKey ? 'present' : null,
+                'apiEndpoint' => $apiEndpoint,
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'error' => 'Worldline config incomplete'
+            ], 500);
+        }
+
+        $communicatorConfiguration = new \Worldline\Connect\Sdk\CommunicatorConfiguration(
+            $apiKeyId,
+            $secretApiKey,
+            $apiEndpoint,
+            $integrator
+        );
+
+        $communicator = new \Worldline\Connect\Sdk\DefaultImpl\Communicator(
+            new \Worldline\Connect\Sdk\DefaultImpl\CurlConnection(),
+            $communicatorConfiguration
+        );
+
+        $client = new \Worldline\Connect\Sdk\Client($communicator);
+        $merchantClient = $client->v1()->merchant($merchantId);
+
+        $amount = (int) round(((float) ($request->input('amount', 12))) * 100);
+        $currency = (string) ($request->input('currency', 'EUR'));
+        $email = (string) ($request->input('email', 'rawprobe@example.com'));
+        $country = (string) ($request->input('countryCode', 'AT'));
+
+        $cardNumber = preg_replace('/\D+/', '', (string) $request->input('cardNumber', '4012000033330026'));
+        $expiryDate = preg_replace('/\D+/', '', (string) $request->input('expiryDate', '1229'));
+        $cvv = preg_replace('/\D+/', '', (string) $request->input('cvv', '123'));
+        $cardholderName = (string) ($request->input('cardholderName', 'Amir Test'));
+
+        $body = new \Worldline\Connect\Sdk\V1\Domain\CreatePaymentRequest();
+
+        $body->order = new \Worldline\Connect\Sdk\V1\Domain\Order();
+        $body->order->amountOfMoney = new \Worldline\Connect\Sdk\V1\Domain\AmountOfMoney();
+        $body->order->amountOfMoney->amount = $amount;
+        $body->order->amountOfMoney->currencyCode = $currency;
+
+        $body->order->customer = new \Worldline\Connect\Sdk\V1\Domain\Customer();
+        $body->order->customer->merchantCustomerId = 'PMD' . substr(md5((string) microtime(true)), 0, 12);
+        $body->order->customer->locale = 'de_AT';
+
+        $body->order->customer->billingAddress = new \Worldline\Connect\Sdk\V1\Domain\Address();
+        $body->order->customer->billingAddress->countryCode = $country;
+
+        $body->order->customer->contactDetails = new \Worldline\Connect\Sdk\V1\Domain\ContactDetails();
+        $body->order->customer->contactDetails->emailAddress = $email;
+
+        $body->cardPaymentMethodSpecificInput = new \Worldline\Connect\Sdk\V1\Domain\CardPaymentMethodSpecificInput();
+        $body->cardPaymentMethodSpecificInput->paymentProductId = 1;
+        $body->cardPaymentMethodSpecificInput->transactionChannel = 'ECOMMERCE';
+        $body->cardPaymentMethodSpecificInput->authorizationMode = 'SALE';
+
+        $body->cardPaymentMethodSpecificInput->card = new \Worldline\Connect\Sdk\V1\Domain\Card();
+        $body->cardPaymentMethodSpecificInput->card->cardNumber = $cardNumber;
+        $body->cardPaymentMethodSpecificInput->card->expiryDate = $expiryDate;
+        $body->cardPaymentMethodSpecificInput->card->cvv = $cvv;
+        $body->cardPaymentMethodSpecificInput->card->cardholderName = $cardholderName;
+
+        \Log::info('PMD RAW CARD PROBE REQUEST', [
+            'host' => $host,
+            'tenant_database' => $tenant,
+            'merchantId' => $merchantId,
+            'apiEndpoint' => $apiEndpoint,
+            'request' => json_decode(json_encode($body), true),
+        ]);
+
+        $response = $merchantClient->payments()->create($body);
+
+        \Log::info('PMD RAW CARD PROBE SUCCESS', [
+            'response' => json_decode(json_encode($response), true),
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Raw card probe succeeded',
+            'response' => json_decode(json_encode($response), true),
+        ]);
+    } catch (\Throwable $e) {
+        $statusCode = null;
+        $responseBody = null;
+        $errors = null;
+
+        try {
+            if (method_exists($e, 'getStatusCode')) {
+                $statusCode = $e->getStatusCode();
+            }
+        } catch (\Throwable $ignored) {}
+
+        try {
+            if (method_exists($e, 'getResponseBody')) {
+                $responseBody = $e->getResponseBody();
+            }
+        } catch (\Throwable $ignored) {}
+
+        try {
+            if (method_exists($e, 'getErrors')) {
+                $errors = $e->getErrors();
+            }
+        } catch (\Throwable $ignored) {}
+
+        \Log::error('PMD RAW CARD PROBE ERROR', [
+            'class' => get_class($e),
+            'message' => $e->getMessage(),
+            'statusCode' => $statusCode,
+            'responseBody' => $responseBody,
+            'errors' => $errors,
+        ]);
+
+        return response()->json([
+            'ok' => false,
+            'error' => $e->getMessage(),
+            'class' => get_class($e),
+            'statusCode' => $statusCode,
+            'responseBody' => $responseBody,
+            'errors' => $errors,
+        ], 500);
+    }
+});
+
+
 /* /PMD_WORLDLINE_PHASE1_ROUTES */

@@ -1,4 +1,4 @@
-1775402800a:1:{s:23:"account/reset.blade.php";a:12:{s:8:"fileName";s:23:"account/reset.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:690:"---
+1775494239a:1:{s:23:"account/reset.blade.php";a:12:{s:8:"fileName";s:23:"account/reset.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:690:"---
 title: main::lang.account.reset.title
 layout: default
 permalink: /forgot-password/:code?
