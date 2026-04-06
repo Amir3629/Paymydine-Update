@@ -992,15 +992,24 @@ $normalizedRequest = $this->pmdNormalizeCreatePaymentRequest($request);
         $cfg = $this->getConfig();
         $merchantClient = $this->makeMerchantClient($cfg);
         $response = $merchantClient->payments()->get($paymentId, new \Worldline\Connect\Sdk\V1\Merchant\Payments\GetPaymentParams());
+        error_log("VERIFY STATUS CODE: " . json_encode($response->statusOutput ?? null));
+
+        $statusOutput = $response->statusOutput ?? ($response->payment->statusOutput ?? null);
+        $statusCode = isset($statusOutput->statusCode) ? (int)$statusOutput->statusCode : null;
+        $isAuthorized = isset($statusOutput->isAuthorized)
+            ? filter_var($statusOutput->isAuthorized, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+            : null;
+        $isAuthorizedSuccess = ($statusCode === 600 && $isAuthorized === true);
 
         \Log::info('PMD WORLDLINE VERIFY RESPONSE DUMP', [
             'payment_id' => $paymentId ?? null,
             'response_json' => json_decode(json_encode($response), true),
             'top_status' => $response->status ?? $response->status ?? null,
-            'status_category' => $response->statusOutput->statusCategory ?? $response->statusOutput->statusCategory ?? null,
-            'status_code' => $response->statusOutput->statusCode ?? $response->statusOutput->statusCode ?? null,
-            'is_final' => $response->statusOutput->isFinal ?? $response->statusOutput->isFinal ?? null,
-            'is_authorized' => $response->statusOutput->isAuthorized ?? $response->statusOutput->isAuthorized ?? null,
+            'status_category' => $statusOutput->statusCategory ?? null,
+            'status_code' => $statusCode,
+            'is_final' => $statusOutput->isFinal ?? null,
+            'is_authorized' => $isAuthorized,
+            'is_authorized_success' => $isAuthorizedSuccess,
         ]);
 
 
@@ -1008,7 +1017,7 @@ $normalizedRequest = $this->pmdNormalizeCreatePaymentRequest($request);
         $raw = is_array($raw) ? $raw : [];
         $status = $response->status ?? ($raw['status'] ?? null);
         $statusStr = strtoupper((string)$status);
-        $isPaid = in_array($statusStr, ['9', 'PAID', 'CAPTURED'], true);
+        $isPaid = $isAuthorizedSuccess || in_array($statusStr, ['9', 'PAID', 'CAPTURED'], true);
 
         \Log::info('WORLDLINE INLINE VERIFY PAYMENT RESPONSE', [
             'payment_id' => $paymentId,
