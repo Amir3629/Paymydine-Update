@@ -37,11 +37,6 @@
         // Prefer header toggle (always visible), then sidebar toggle, then admin toggle
         const menuToggle = superadminToggleLink || superadminToggle || adminToggle;
 
-        // Ensure sidebar starts hidden on mobile
-        if (sidebar && !sidebar.classList.contains('show') && !sidebar.classList.contains('nk-sidebar-active')) {
-            sidebar.style.transform = 'translateX(-100%)';
-        }
-        
         // CRITICAL: Force header to be full width on mobile/tablet
         const header = document.querySelector('.nk-header, .nk-header.nk-header-fixed, .nk-header.is-light');
         if (header && isMobile) {
@@ -104,7 +99,6 @@
             if (sidebar) {
                 sidebar.classList.add('show');
                 sidebar.classList.add('nk-sidebar-active');
-                sidebar.style.transform = 'translateX(0)';
                 document.body.classList.add('sidebar-open');
                 
                 // NO OVERLAY - don't darken the page
@@ -126,7 +120,6 @@
             if (sidebar) {
                 sidebar.classList.remove('show');
                 sidebar.classList.remove('nk-sidebar-active');
-                sidebar.style.transform = 'translateX(-100%)';
                 document.body.classList.remove('sidebar-open');
                 
                 // Show toggle buttons again when sidebar is closed
@@ -235,7 +228,6 @@
                     if (sidebar) {
                         sidebar.classList.add('show');
                         sidebar.classList.add('nk-sidebar-active');
-                        sidebar.style.transform = 'translateX(0)';
                     }
                     if (overlay) {
                         overlay.style.opacity = '0';
@@ -248,10 +240,6 @@
                         header.style.left = '230px';
                     }
                 } else {
-                    // Mobile: ensure sidebar is hidden if not explicitly opened
-                    if (sidebar && !sidebar.classList.contains('show') && !sidebar.classList.contains('nk-sidebar-active')) {
-                        sidebar.style.transform = 'translateX(-100%)';
-                    }
                     // Mobile: header full width
                     const header = document.querySelector('.nk-header, .nk-header.nk-header-fixed, .nk-header.is-light');
                     if (header) {
