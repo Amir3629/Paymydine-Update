@@ -319,6 +319,97 @@ export function StripeCardForm({
   }, [stripe, isProcessing])
 
 
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setCardError(null)
+
+    if (!stripe || !elements) {
+      const msg = "Stripe is not ready yet"
+      setCardError(msg)
+      onPaymentError(msg)
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      const amount = Number(paymentData?.amount || 0)
+      const currency = String(paymentData?.currency || "EUR").toUpperCase()
+
+      if (!amount || amount <= 0) {
+        throw new Error("Invalid payment amount")
+      }
+
+      const cardElement = elements.getElement(CardElement)
+      if (!cardElement) {
+        throw new Error("Stripe card field is not ready")
+      }
+
+      const response = await fetch("/api/v1/payments/stripe/create-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          currency,
+          restaurantId: String((paymentData as any)?.restaurantId || "1"),
+          tableNumber: (paymentData as any)?.tableNumber ?? null,
+          cartId: (paymentData as any)?.cartId ?? null,
+          userId: (paymentData as any)?.userId ?? null,
+          items: Array.isArray((paymentData as any)?.items) ? (paymentData as any)?.items : [],
+          customerInfo: (paymentData as any)?.customerInfo || {},
+        }),
+      })
+
+      const payload = await response.json().catch(() => ({} as any))
+
+      if (!response.ok || !payload?.clientSecret) {
+        throw new Error(payload?.error || "Failed to create Stripe payment intent")
+      }
+
+      const billingName =
+        String(formData.cardholderName || "").trim() ||
+        String((paymentData as any)?.customerInfo?.name || "").trim() ||
+        "Customer"
+
+      const billingEmail = String(formData.email || "").trim() || undefined
+      const billingPhone = String(formData.phone || "").trim() || undefined
+
+      const { error, paymentIntent } = await stripe.confirmCardPayment(payload.clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: billingName,
+            email: billingEmail,
+            phone: billingPhone,
+          },
+        },
+      })
+
+      if (error) {
+        throw new Error(error.message || "Stripe payment confirmation failed")
+      }
+
+      const status = String(paymentIntent?.status || "")
+      if (!paymentIntent || !["succeeded", "processing", "requires_capture"].includes(status)) {
+        throw new Error(`Unexpected Stripe payment status: ${status || "unknown"}`)
+      }
+
+      onPaymentComplete({
+        success: true,
+        transactionId: String(paymentIntent.id),
+        paymentMethod: "stripe",
+      } as any)
+    } catch (error: any) {
+      const msg = typeof error?.message === "string" ? error.message : "Stripe payment failed"
+      setCardError(msg)
+      onPaymentError(msg)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+
   return (
     <form ref={stripeFormRef} data-pmd-stripe-form="1" onSubmit={handleSubmit} className={cn("space-y-4 bg-transparent w-full", className)}>
       <div className="space-y-3">
