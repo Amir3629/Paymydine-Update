@@ -1,6 +1,32 @@
 @php
     $__orderId = (int)($model->order_id ?? 0);
     $__orderCommentRaw = (string) ($model->comment ?? '');
+    $__settingFlag = static function (string $key, bool $default = false): bool {
+        $value = setting($key, null);
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return in_array((string)$value, ['1', 'true', 'yes', 'on'], true);
+    };
+
+    $__receiptMode = $__settingFlag('invoice_receipt_mode', true);
+    $__paperWidth = (string) setting('invoice_paper_width', '80mm');
+    $__paperWidth = in_array($__paperWidth, ['80mm', 'a4'], true) ? $__paperWidth : '80mm';
+    if (!$__receiptMode) {
+        $__paperWidth = 'a4';
+    }
+    $__showLogo = $__settingFlag('invoice_show_logo', true);
+    $__showQr = $__settingFlag('invoice_show_qr', true);
+    $__showFiskalyDetails = $__settingFlag('invoice_show_fiskaly', true);
+    $__compactMode = $__receiptMode && $__settingFlag('invoice_compact_mode', true);
+    $__autoPrintDialog = $__settingFlag('invoice_auto_print_dialog', false);
+    $__fontPreset = (string) setting('invoice_font_size_preset', 'normal');
+    $__fontPreset = in_array($__fontPreset, ['small', 'normal'], true) ? $__fontPreset : 'normal';
 
     $__isPosImport = stripos($__orderCommentRaw, 'ready2order') !== false
         || stripos($__orderCommentRaw, 'r2o-invoice') !== false
@@ -186,10 +212,15 @@
     $__fTssId = $__txRow->tss_id ?? $__pick($__sources, ['tss_id', 'responses.update.tss_id', 'responses.finish.tss_id', 'responses.start.tss_id']);
     $__fClientId = $__txRow->client_id ?? $__pick($__sources, ['client_id', 'responses.update.client_id', 'responses.finish.client_id', 'responses.start.client_id']);
 
-    $__showFiskaly = !empty($__fQr) || !empty($__fTxRef) || !empty($__fTxNo) || !empty($__fCounter) || !empty($__fSerial) || !empty($__fTssId) || !empty($__fClientId);
+    $__showFiskaly = $__showFiskalyDetails
+        && (!empty($__fQr) || !empty($__fTxRef) || !empty($__fTxNo) || !empty($__fCounter) || !empty($__fSerial) || !empty($__fTssId) || !empty($__fClientId));
     $__qrSrc = !empty($__fQr)
         ? ('https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . rawurlencode((string)$__fQr))
         : null;
+    $__printPaper = $__paperWidth === 'a4' ? '210mm' : '80mm';
+    $__contentWidth = $__paperWidth === 'a4' ? '186mm' : '76mm';
+    $__baseFontPx = $__fontPreset === 'small' ? '10px' : '11px';
+    $__compactFactor = $__compactMode ? '1' : '1.35';
 @endphp
 
 <!doctype html>
@@ -215,17 +246,19 @@
             background: #fff;
             color: var(--text);
             font-family: "Segoe UI", Arial, Helvetica, sans-serif;
-            font-size: 11px;
-            line-height: 1.3;
+            font-size: {{ $__baseFontPx }};
+            line-height: calc(1.3 * {{ $__compactFactor }});
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
         .receipt {
-            width: var(--receipt-width);
-            max-width: var(--receipt-width);
+            width: {{ $__contentWidth }};
+            max-width: {{ $__contentWidth }};
             margin: 0 auto;
-            padding: 2mm;
+            padding: {{ $__compactMode ? '2mm' : '4mm' }};
+            border: 0;
+            background: #fff;
         }
 
         .center { text-align: center; }
@@ -263,11 +296,12 @@
         }
 
         table.items th, table.items td {
-            padding: 2px 1px;
+            padding: {{ $__compactMode ? '2px 1px' : '4px 2px' }};
             vertical-align: top;
             border-bottom: 1px dotted #bbb;
             word-break: break-word;
             overflow-wrap: anywhere;
+            color: #000;
         }
 
         table.items th {
@@ -332,17 +366,29 @@
         }
 
         @page {
-            size: 80mm auto;
-            margin: 2mm;
+            size: {{ $__printPaper }} auto;
+            margin: {{ $__paperWidth === 'a4' ? '8mm' : '2mm' }};
         }
 
         @media print {
-            html, body { width: 80mm !important; }
+            html, body {
+                width: {{ $__printPaper }} !important;
+                background: #fff !important;
+                color: #000 !important;
+            }
             .receipt {
-                width: 76mm !important;
-                max-width: 76mm !important;
+                width: {{ $__contentWidth }} !important;
+                max-width: {{ $__contentWidth }} !important;
                 margin: 0 !important;
                 padding: 0 !important;
+            }
+            img {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .fiskaly, .totals, table.items, .meta-grid, .rule {
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
         }
     </style>
@@ -357,7 +403,7 @@
     <div class="rule"></div>
 
     <section class="center">
-        @if(setting('invoice_logo') || setting('site_logo'))
+        @if($__showLogo && (setting('invoice_logo') || setting('site_logo')))
             <img
                 class="logo"
                 src="{{ uploads_url(setting('invoice_logo') ?: setting('site_logo')) }}"
@@ -512,7 +558,7 @@
             <p class="fiskaly-title">TSE / Fiskaly Signaturdaten</p>
             <p class="fiskaly-intro">TSE/Fiskaly data loaded directly from order/transaction data.</p>
 
-            @if(!empty($__qrSrc))
+            @if($__showQr && !empty($__qrSrc))
                 <div class="qr-wrap">
                     <img class="qr-img" src="{{ $__qrSrc }}" alt="Fiskaly QR code">
                 </div>
@@ -540,5 +586,14 @@
 
     <p class="thanks">Thank you for your Visit</p>
 </div>
+@if($__autoPrintDialog)
+    <script>
+        window.addEventListener('load', function () {
+            window.setTimeout(function () {
+                window.print();
+            }, 250);
+        });
+    </script>
+@endif
 </body>
 </html>
