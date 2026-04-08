@@ -70,7 +70,7 @@ export interface OrderRequest {
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  payment_method: 'cash' | 'card' | 'paypal';
+  payment_method: 'cash' | 'card' | 'paypal' | 'qr_pay_later';
   payment_method_raw?: string;
   payment_provider?: string;
   payment_reference?: string;
@@ -86,6 +86,25 @@ export interface OrderResponse {
   success: boolean;
   message: string;
   order_id?: number;
+}
+
+export interface PendingQrOrderResponse {
+  success: boolean;
+  data?: {
+    order_id: number;
+    table_id: string;
+    payment: string;
+    status_id: number;
+    order_total: number;
+    items: Array<{
+      menu_id: number;
+      name: string;
+      quantity: number;
+      price: number;
+      subtotal: number;
+    }>;
+  } | null;
+  error?: string;
 }
 
 export interface RestaurantInfo {
@@ -744,6 +763,39 @@ export class ApiClient {
       console.error('Table orders fetch failed:', error);
       return { success: false, error: 'Failed to fetch table orders' };
     }
+  }
+
+  async getPendingQrOrderByTable(tableId: string): Promise<PendingQrOrderResponse> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint(`/orders/pending-qr?table_id=${encodeURIComponent(tableId)}`);
+      const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+      return await response.json();
+    } catch (error) {
+      console.error('Pending QR order fetch failed:', error);
+      return { success: false, error: 'Failed to fetch pending QR order' };
+    }
+  }
+
+  async payExistingQrOrder(orderId: number, payload: { payment_method: string; payment_reference?: string | null }) {
+    const endpoint = this.envConfig.getApiEndpoint('/orders/pay-existing');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: safeJsonStringify({
+        order_id: orderId,
+        payment_method: payload.payment_method,
+        payment_reference: payload.payment_reference ?? null,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || data?.message || 'Failed to pay existing order');
+    }
+    return data;
   }
 
   async getThemeSettings(): Promise<{ success: boolean; data: any }> {

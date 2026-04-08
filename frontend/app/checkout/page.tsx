@@ -1,7 +1,7 @@
 "use client"
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Elements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
@@ -55,6 +55,7 @@ const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { t } = useLanguageStore()
   const { items: allItems, clearCart, tableInfo } = useCartStore()
@@ -100,6 +101,7 @@ const [isSplitting, setIsSplitting] = useState(false)
   } | null>(null)
   const [stripePreferred, setStripePreferred] = useState<"card" | "paypal" | "apple_pay" | "google_pay">("card")
   const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
+  const [existingQrOrder, setExistingQrOrder] = useState<{ order_id: number; table_id: string; order_total: number; items: any[] } | null>(null)
   const stripePromise = useMemo(
     () => stripeConfig?.publishableKey ? loadStripe(stripeConfig.publishableKey) : null,
     [stripeConfig?.publishableKey]
@@ -139,6 +141,26 @@ const [isSplitting, setIsSplitting] = useState(false)
   }, [allItems.length])
 
   useEffect(() => {
+    const existingOrderId = Number(searchParams.get('order_id') || '')
+    const tableId = searchParams.get('table_id') || ''
+    if (!existingOrderId || !tableId) return
+
+    const api = new ApiClient()
+    api.getPendingQrOrderByTable(tableId).then((res) => {
+      if (res?.success && res.data && Number(res.data.order_id) === existingOrderId) {
+        setExistingQrOrder({
+          order_id: res.data.order_id,
+          table_id: res.data.table_id,
+          order_total: res.data.order_total,
+          items: res.data.items || [],
+        })
+      }
+    }).catch((err) => {
+      console.error('Failed loading existing QR order', err)
+    })
+  }, [searchParams])
+
+  useEffect(() => {
     const api = new ApiClient();
     api.getPaymentMethods()
       .then(setPaymentMethods)
@@ -150,7 +172,7 @@ const [isSplitting, setIsSplitting] = useState(false)
     loadTaxSettings()
   }, [loadTaxSettings])
 
-  const isCartEmpty = allItems.length === 0
+  const isCartEmpty = allItems.length === 0 && !existingQrOrder
 
   // Flatten allItems into individual item instances for split bill
   const allItemInstances = allItems.flatMap((cartItem, cartIndex) =>
@@ -163,7 +185,23 @@ const [isSplitting, setIsSplitting] = useState(false)
   )
 
   // For split bill, use selected individual items; otherwise, use all items
-  const itemsToPay: ItemInstance[] = isSplitting
+  const qrItemsToPay: ItemInstance[] = (existingQrOrder?.items || []).flatMap((item: any) =>
+    Array.from({ length: Number(item.quantity || 0) }).map(() => ({
+      item: {
+        id: Number(item.menu_id),
+        name: String(item.name),
+        description: "",
+        price: Number(item.price),
+        image: "",
+        category: "",
+      },
+      price: Number(item.price),
+    }))
+  )
+
+  const itemsToPay: ItemInstance[] = existingQrOrder
+    ? qrItemsToPay
+    : isSplitting
     ? Object.values(selectedItems)
     : allItems.flatMap((cartItem) =>
         Array.from({ length: cartItem.quantity }).map(() => ({
@@ -271,6 +309,24 @@ const [isSplitting, setIsSplitting] = useState(false)
         coupon_code: appliedCoupon?.code || null,
         coupon_discount: couponDiscount,
         special_instructions: ''
+      }
+
+      if (existingQrOrder?.order_id) {
+        const paidMethod = selectedPaymentMethod === 'paypal' ? 'paypal' : (selectedPaymentMethod === 'cod' ? 'cash' : 'card')
+        const payResult = await api.payExistingQrOrder(existingQrOrder.order_id, {
+          payment_method: paidMethod,
+          payment_reference: paymentData?.stripePaymentIntentId || paymentData?.worldlinePaymentId || null,
+        })
+        if (payResult?.success) {
+          localStorage.setItem('lastOrderId', String(existingQrOrder.order_id))
+          toast({ title: t("paymentSuccessful"), description: `Order #${existingQrOrder.order_id} paid successfully!`, variant: "default" })
+          setTimeout(() => {
+            clearCart()
+            const currentUrl = typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+            router.push(`/order-placed?order_id=${existingQrOrder.order_id}&return_url=${encodeURIComponent(currentUrl)}`)
+          }, 1200)
+          return
+        }
       }
 
       // Stripe: intent already confirmed on client; just submit order with payment intent id
