@@ -1,124 +1,120 @@
-
 @php
-    $__pmdOrderCommentRaw = (string) ($model->comment ?? '');
-    $__pmdIsPosImport = stripos($__pmdOrderCommentRaw, 'ready2order') !== false
-        || stripos($__pmdOrderCommentRaw, 'r2o-invoice') !== false
-        || stripos($__pmdOrderCommentRaw, 'Imported from ready2order') !== false;
+    $__orderId = (int)($model->order_id ?? 0);
+    $__orderCommentRaw = (string) ($model->comment ?? '');
 
-    $__pmdPosMeta = ['gross' => null, 'net' => null, 'vat' => null];
-    $__pmdPosLineTotals = [];
+    $__isPosImport = stripos($__orderCommentRaw, 'ready2order') !== false
+        || stripos($__orderCommentRaw, 'r2o-invoice') !== false
+        || stripos($__orderCommentRaw, 'Imported from ready2order') !== false;
 
-    if ($__pmdIsPosImport && $__pmdOrderCommentRaw !== '') {
-        foreach (array_keys($__pmdPosMeta) as $__key) {
-            if (preg_match('/'. $__key .'=([^|]+)/u', $__pmdOrderCommentRaw, $__m)) {
-                $__pmdPosMeta[$__key] = trim($__m[1]);
-            }
-        }
-
-        if (preg_match_all('/item_total_([0-9]+)=([^|]+)/u', $__pmdOrderCommentRaw, $__m2, PREG_SET_ORDER)) {
-            foreach ($__m2 as $__row2) {
-                $__pmdPosLineTotals[(int)$__row2[1]] = (float) trim($__row2[2]);
+    $__posMeta = ['gross' => null, 'vat' => null];
+    if ($__isPosImport && $__orderCommentRaw !== '') {
+        foreach (array_keys($__posMeta) as $__key) {
+            if (preg_match('/'. $__key .'=([^|]+)/u', $__orderCommentRaw, $__m)) {
+                $__posMeta[$__key] = trim($__m[1]);
             }
         }
     }
 
-    $__pmdPosGross = isset($__pmdPosMeta['gross']) && $__pmdPosMeta['gross'] !== null ? (float) $__pmdPosMeta['gross'] : null;
-    $__pmdPosVat   = isset($__pmdPosMeta['vat']) && $__pmdPosMeta['vat'] !== null ? (float) $__pmdPosMeta['vat'] : null;
-
-    /* PMD_SAFE_INCLUDED_TAX_INVOICE_START */
-    $__orderTotals = collect($model->getOrderTotals() ?? []);
-
-    $__subtotalTotal = $__subtotalTotal ?? $__orderTotals->firstWhere('code', 'subtotal');
-    $__taxTotal = $__taxTotal ?? $__orderTotals->firstWhere('code', 'tax');
-    $__tipTotal = $__tipTotal ?? $__orderTotals->firstWhere('code', 'tip');
-    $__finalTotal = $__finalTotal ?? $__orderTotals->firstWhere('code', 'total');
-    $__discountTotal = $__discountTotal ?? $__orderTotals->firstWhere('code', 'discount');
-    $__couponTotal = $__couponTotal ?? $__discountTotal ?? null;
-    $__couponCode = $__couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
-
-    $__fQr = $__fQr ?? ($__orderRow->fiskaly_qr_code_data ?? ($model->fiskaly_qr_code_data ?? null));
-    $__fStatus = $__fStatus ?? ($__orderRow->fiskaly_status ?? ($model->fiskaly_status ?? null));
-    $__fTxNo = $__fTxNo ?? ($__orderRow->fiskaly_tx_number ?? ($model->fiskaly_tx_number ?? null));
-    $__fSigCounter = $__fSigCounter ?? ($__orderRow->fiskaly_signature_counter ?? ($model->fiskaly_signature_counter ?? null));
-    $__fSerial = $__fSerial ?? ($__orderRow->fiskaly_serial_number ?? ($model->fiskaly_serial_number ?? null));
-
-    $__pmdTaxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
-    $__pmdTaxIncluded = $__pmdTaxMode === 'included';
-
-    $__pmdReadTaxSetting = $__pmdReadTaxSetting ?? function ($key, $default = null) {
+    $__readTaxSetting = static function ($key, $default = null) {
         try {
             $value = setting($key, null);
             if ($value !== null && $value !== '') {
                 return $value;
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         try {
-            $row = \Illuminate\Support\Facades\DB::table('settings')
-                ->where('item', $key)
-                ->first();
-
+            $row = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->first();
             if ($row && $row->value !== null && $row->value !== '') {
                 return $row->value;
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         return $default;
     };
 
-    $__pmdTaxPercent = (float) $__pmdReadTaxSetting('tax_percentage', 0);
-    if ($__pmdTaxPercent <= 0) {
-        $__pmdTaxPercent = 50.0;
+    $__orderTotals = collect($model->getOrderTotals() ?? []);
+    $__menus = collect($model->getOrderMenusWithOptions() ?? []);
+
+    $__taxTotal = $__orderTotals->firstWhere('code', 'tax');
+    $__tipTotal = $__orderTotals->firstWhere('code', 'tip');
+    $__discountTotal = $__orderTotals->firstWhere('code', 'discount');
+    $__couponTotal = $__discountTotal;
+    $__finalTotal = $__orderTotals->firstWhere('code', 'total');
+
+    $__taxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
+    if (!in_array($__taxMode, ['included', 'add_at_end'], true)) {
+        $__taxMode = ((string) $__readTaxSetting('tax_menu_price', '1') === '1') ? 'included' : 'add_at_end';
+    }
+    $__taxIncluded = $__taxMode === 'included';
+
+    $__taxPercent = (float) $__readTaxSetting('tax_percentage', 0);
+    if ($__taxIncluded && $__taxPercent <= 0) {
+        $__taxPercent = 50.0;
     }
 
-    $__pmdMultiplier = $__pmdTaxIncluded ? (1 + ($__pmdTaxPercent / 100)) : 1.0;
+    $__toGross = static function (float $amount) use ($__taxIncluded, $__taxPercent): float {
+        if (!$__taxIncluded || $__taxPercent <= 0) {
+            return round($amount, 2);
+        }
 
-    $__pmdGross = function ($amount) use ($__pmdMultiplier, $__pmdTaxIncluded) {
-        $amount = (float) $amount;
-        return round($__pmdTaxIncluded ? ($amount * $__pmdMultiplier) : $amount, 2);
+        return round($amount * (1 + ($__taxPercent / 100)), 2);
     };
 
-    $__pmdNetSubtotal = 0.0;
-    foreach (($model->getOrderMenusWithOptions() ?? []) as $__menuCalc) {
-        $__pmdNetSubtotal += (float)($__menuCalc->subtotal ?? 0);
-    }
-    $__pmdNetSubtotal = round($__pmdNetSubtotal, 2);
+    $__displayItems = 0;
+    $__displaySubtotal = 0.0;
 
-    $__pmdDisplayedSubtotal = round($__pmdGross($__pmdNetSubtotal), 2);
-    $__pmdDisplayedTax = round($__pmdDisplayedSubtotal - $__pmdNetSubtotal, 2);
-    $__pmdDisplayedTip = round((float)($__tipTotal->value ?? 0), 2);
-    $__pmdDisplayedDiscount = round((float)($__couponTotal->value ?? 0), 2);
-    $__pmdDisplayedTotal = round($__pmdDisplayedSubtotal + $__pmdDisplayedTip + $__pmdDisplayedDiscount, 2);
+    foreach ($__menus as $__menuItem) {
+        $__qty = max(1, (int)($__menuItem->quantity ?? 1));
+        $__displayItems += $__qty;
 
-    if ($__pmdIsPosImport) {
-        if ($__pmdPosGross !== null) {
-            $__pmdDisplayedSubtotal = round($__pmdPosGross, 2);
-            $__pmdDisplayedTotal = round($__pmdPosGross, 2);
-        }
-        if ($__pmdPosVat !== null) {
-            $__pmdDisplayedTax = round($__pmdPosVat, 2);
-        }
+        $__lineNet = round((float)($__menuItem->subtotal ?? 0), 2);
+        $__lineGross = $__toGross($__lineNet);
+
+        $__menuItem->__pmd_display_subtotal = $__lineGross;
+        $__menuItem->__pmd_display_price = round($__qty > 0 ? ($__lineGross / $__qty) : $__lineGross, 2);
+
+        $__displaySubtotal += $__lineGross;
     }
 
-    $__pmdTaxLabel = $__pmdTaxIncluded
-        ? ('VAT included'.($__pmdTaxPercent > 0 ? ' ('.rtrim(rtrim(number_format($__pmdTaxPercent, 2, '.', ''), '0'), '.').'%)' : ''))
-        : ('VAT'.($__pmdTaxPercent > 0 ? ' ('.rtrim(rtrim(number_format($__pmdTaxPercent, 2, '.', ''), '0'), '.').'%)' : ''));
-    /* PMD_SAFE_INCLUDED_TAX_INVOICE_END */
-@endphp
+    $__displaySubtotal = round($__displaySubtotal, 2);
 
-@php
-    $__orderId = (int)($model->order_id ?? 0);
+    $__posGross = $__posMeta['gross'] !== null ? (float)$__posMeta['gross'] : null;
+    $__posVat = $__posMeta['vat'] !== null ? (float)$__posMeta['vat'] : null;
+    if ($__isPosImport && $__posGross !== null) {
+        $__displaySubtotal = round($__posGross, 2);
+    }
 
-    $__decode = function ($value) {
+    $__displayTip = round((float)($__tipTotal->value ?? 0), 2);
+    $__displayDiscount = round((float)($__couponTotal->value ?? 0), 2);
+    $__displayTotal = round($__displaySubtotal + $__displayTip + $__displayDiscount, 2);
+
+    $__displayTax = $__taxIncluded
+        ? round($__displaySubtotal - ($__displaySubtotal / (1 + (max($__taxPercent, 0.0001) / 100))), 2)
+        : round((float)($__taxTotal->value ?? 0), 2);
+
+    if ($__isPosImport && $__posVat !== null) {
+        $__displayTax = round($__posVat, 2);
+    }
+
+    $__couponCode = null;
+    if ($__couponTotal && preg_match('/\(([^)]+)\)/', (string)($__couponTotal->title ?? ''), $__couponCodeMatch)) {
+        $__couponCode = $__couponCodeMatch[1];
+    }
+
+    $__decode = static function ($value) {
         if ($value === null || $value === '') return null;
         if (is_array($value)) return $value;
         if (is_object($value)) return json_decode(json_encode($value), true);
         if (!is_string($value)) return null;
+
         $decoded = json_decode($value, true);
         return json_last_error() === JSON_ERROR_NONE ? $decoded : null;
     };
 
-    $__pick = function (array $sources, array $paths) {
+    $__pick = static function (array $sources, array $paths) {
         foreach ($sources as $src) {
             if (!is_array($src)) continue;
             foreach ($paths as $path) {
@@ -131,10 +127,8 @@
 
     $__orderRow = null;
     $__txRow = null;
-
     try {
         $__conn = method_exists($model, 'getConnectionName') ? ($model->getConnectionName() ?: config('database.default')) : config('database.default');
-
         if ($__orderId > 0) {
             $__orderRow = \Illuminate\Support\Facades\DB::connection($__conn)
                 ->table('orders')
@@ -154,634 +148,397 @@
 
     $__resp = $__decode($__txRow->response_payload ?? null);
     $__meta = $__decode($__txRow->meta ?? null);
-    $__req  = $__decode($__txRow->request_payload ?? null);
+    $__req = $__decode($__txRow->request_payload ?? null);
     $__sources = [$__resp, $__meta, $__req];
 
-    $__fStatus = $__orderRow->fiskaly_status
-        ?? ($model->fiskaly_status ?? null)
-        ?? ($__txRow->status ?? null);
-
+    $__fStatus = $__orderRow->fiskaly_status ?? ($model->fiskaly_status ?? ($__txRow->status ?? null));
     $__fQr = $__orderRow->fiskaly_qr_code_data
-        ?? ($model->fiskaly_qr_code_data ?? null)
-        ?? ($__txRow->qr_code_data ?? null)
-        ?? $__pick($__sources, [
+        ?? ($model->fiskaly_qr_code_data ?? ($__txRow->qr_code_data ?? $__pick($__sources, [
             'qr_code_data',
             'responses.update.qr_code_data',
             'responses.finish.qr_code_data',
             'responses.start.qr_code_data',
-        ]);
-
+        ])));
+    $__fTxRef = $__orderRow->fiskaly_transaction_id_ref
+        ?? ($model->fiskaly_transaction_id_ref ?? ($__txRow->tx_id ?? $__pick($__sources, ['_id', 'responses.update._id', 'responses.finish._id', 'responses.start._id'])));
     $__fTxNo = $__orderRow->fiskaly_tx_number
-        ?? ($model->fiskaly_tx_number ?? null)
-        ?? ($__txRow->tx_number ?? null)
-        ?? $__pick($__sources, [
+        ?? ($model->fiskaly_tx_number ?? ($__txRow->tx_number ?? $__pick($__sources, [
             'number',
             'responses.update.number',
             'responses.finish.number',
             'responses.start.number',
-        ]);
-
+        ])));
     $__fCounter = $__orderRow->fiskaly_signature_counter
-        ?? ($model->fiskaly_signature_counter ?? null)
-        ?? ($__txRow->signature_counter ?? null)
-        ?? $__pick($__sources, [
+        ?? ($model->fiskaly_signature_counter ?? ($__txRow->signature_counter ?? $__pick($__sources, [
             'signature.counter',
             'responses.update.signature.counter',
             'responses.finish.signature.counter',
             'responses.start.signature.counter',
-        ]);
-
-    $__fAlgo = $__txRow->signature_algorithm
-        ?? $__pick($__sources, [
-            'signature.algorithm',
-            'responses.update.signature.algorithm',
-            'responses.finish.signature.algorithm',
-            'responses.start.signature.algorithm',
-        ]);
-
+        ])));
     $__fSerial = $__orderRow->fiskaly_serial_number
-        ?? ($model->fiskaly_serial_number ?? null)
-        ?? ($__txRow->serial_number ?? null)
-        ?? $__pick($__sources, [
+        ?? ($model->fiskaly_serial_number ?? ($__txRow->serial_number ?? $__pick($__sources, [
             'tss_serial_number',
             'serial_number',
             'responses.update.tss_serial_number',
             'responses.finish.tss_serial_number',
             'responses.start.tss_serial_number',
-        ]);
+        ])));
+    $__fTssId = $__txRow->tss_id ?? $__pick($__sources, ['tss_id', 'responses.update.tss_id', 'responses.finish.tss_id', 'responses.start.tss_id']);
+    $__fClientId = $__txRow->client_id ?? $__pick($__sources, ['client_id', 'responses.update.client_id', 'responses.finish.client_id', 'responses.start.client_id']);
 
-    $__fTxId = $__txRow->tx_id
-        ?? $__pick($__sources, ['_id', 'responses.update._id', 'responses.finish._id', 'responses.start._id']);
-
-    $__fTssId = $__txRow->tss_id
-        ?? $__pick($__sources, ['tss_id', 'responses.update.tss_id', 'responses.finish.tss_id', 'responses.start.tss_id']);
-
-    $__fClientId = $__txRow->client_id
-        ?? $__pick($__sources, ['client_id', 'responses.update.client_id', 'responses.finish.client_id', 'responses.start.client_id']);
-
-    $__showFiskaly = !empty($__fQr) || !empty($__fTxNo) || !empty($__fCounter) || !empty($__fSerial) || !empty($__fTxId);
+    $__showFiskaly = !empty($__fQr) || !empty($__fTxRef) || !empty($__fTxNo) || !empty($__fCounter) || !empty($__fSerial) || !empty($__fTssId) || !empty($__fClientId);
+    $__qrSrc = !empty($__fQr)
+        ? ('https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . rawurlencode((string)$__fQr))
+        : null;
 @endphp
 
-<!DOCTYPE HTML>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{!! $model->invoice_number.' - '.lang('admin::lang.orders.text_invoice').' - '.setting('site_name') !!}</title>
-    {!! get_style_tags() !!}
     <style>
-        body {
-            background-color: #FFF;
-            color: #000;
+        :root {
+            --receipt-width: 76mm;
+            --text: #000;
+            --muted: #444;
+            --line: #111;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
             margin: 0;
             padding: 0;
-            font-size: 11px;
-            font-family: Arial, sans-serif;
-        }
-        @media print {
-            @page { size: 80mm auto; margin: 4mm; }
-        }
-        .container-fluid {
-            max-width: 80mm;
-            width: 80mm;
-            margin: 0 auto;
-            padding: 8px 8px !important;
-            box-sizing: border-box;
-        }
-        .invoice-title { text-align: center; }
-        .invoice-title h2 { font-size: 16px; margin: 0 0 3px 0; }
-        .invoice-title h3 { font-size: 12px; margin: 0; }
-        .row { margin: 0; }
-        .col, .col-6, .col-12 { padding-left: 0; padding-right: 0; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .invoice-table th, .invoice-table td { padding: 3px 2px !important; vertical-align: top; }
-        .invoice-table thead tr { border-bottom: 1px solid #000; }
-        .invoice-table tbody tr { border-bottom: 1px solid #ddd; }
-        .invoice-table tbody tr:last-child { border-bottom: 1px solid #000; }
-        .invoice-table tfoot tr:first-child td { border-top: 1px solid #000; }
-        address, p { font-size: 10px; line-height: 1.35; margin: 0 0 5px 0; }
-        img.img-responsive { max-height: 55px !important; }
-        hr { margin: 6px 0; border: 0; border-top: 1px solid #000; }
-        .text-center { text-align: center; }
-        .text-left { text-align: left; }
-        .text-right { text-align: right; }
-
-        .pmd-fiskaly-box {
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 1px dashed #888;
-            font-size: 10px;
-        }
-        .pmd-fiskaly-title {
-            font-size: 12px;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-        .pmd-fiskaly-intro {
-            font-size: 10px;
-            color: #444;
-            margin-bottom: 8px;
-        }
-        .pmd-fiskaly-grid {
-            display: table;
             width: 100%;
+            background: #fff;
+            color: var(--text);
+            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            line-height: 1.3;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .receipt {
+            width: var(--receipt-width);
+            max-width: var(--receipt-width);
+            margin: 0 auto;
+            padding: 2mm;
+        }
+
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .muted { color: var(--muted); }
+        .rule { border-top: 1px solid var(--line); margin: 5px 0; }
+
+        .title { font-size: 14px; font-weight: 700; margin: 0; }
+        .subtitle { margin: 2px 0 0; font-size: 10px; }
+
+        .logo {
+            display: block;
+            margin: 0 auto 4px;
+            max-width: 40mm;
+            max-height: 16mm;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 8px;
+        }
+
+        .meta-block { min-width: 0; }
+        .meta-label { font-weight: 600; font-size: 10px; }
+        .meta-value { word-break: break-word; overflow-wrap: anywhere; }
+
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
             table-layout: fixed;
         }
-        .pmd-fiskaly-qr,
-        .pmd-fiskaly-meta {
-            display: table-cell;
+
+        table.items th, table.items td {
+            padding: 2px 1px;
             vertical-align: top;
-        }
-        .pmd-fiskaly-qr {
-            width: 38mm;
-            padding-right: 6px;
-        }
-        .pmd-fiskaly-qr img {
-            width: 100%;
-            max-width: 140px;
-            height: auto;
-            border: 1px solid #ccc;
-            background: #fff;
-            padding: 3px;
-            box-sizing: border-box;
-        }
-        .pmd-fiskaly-row {
-            margin-bottom: 4px;
+            border-bottom: 1px dotted #bbb;
             word-break: break-word;
+            overflow-wrap: anywhere;
         }
-        .pmd-fiskaly-label {
+
+        table.items th {
+            font-size: 10px;
             font-weight: 700;
-            display: block;
-            margin-bottom: 1px;
+            border-bottom: 1px solid var(--line);
         }
-        .pmd-fiskaly-value {
-            color: #333;
+
+        .col-qty { width: 10%; text-align: center; }
+        .col-name { width: 50%; }
+        .col-price, .col-total { width: 20%; text-align: right; }
+
+        .item-name { font-weight: 600; }
+        .item-options, .item-comment { font-size: 10px; margin-top: 2px; }
+
+        .totals { margin-top: 4px; }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 1px 0;
             word-break: break-word;
+            overflow-wrap: anywhere;
         }
+
+        .grand-total { font-size: 12px; font-weight: 700; border-top: 1px solid var(--line); padding-top: 3px; margin-top: 2px; }
+
+        .fiskaly {
+            margin-top: 6px;
+            border-top: 1px dashed #777;
+            padding-top: 5px;
+        }
+
+        .fiskaly-title { font-weight: 700; margin: 0 0 3px; }
+        .fiskaly-intro { font-size: 10px; margin: 0 0 4px; color: var(--muted); }
+
+        .qr-wrap {
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .qr-img {
+            width: 26mm;
+            height: 26mm;
+            border: 1px solid #aaa;
+            padding: 1mm;
+            background: #fff;
+            display: inline-block;
+        }
+
+        .fiskaly-row { margin: 0 0 2px; font-size: 10px; }
+        .fiskaly-label { font-weight: 600; }
+        .fiskaly-value {
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
         .thanks {
-            margin-top: 10px;
+            margin-top: 8px;
             text-align: center;
             font-size: 11px;
         }
+
+        @page {
+            size: 80mm auto;
+            margin: 2mm;
+        }
+
+        @media print {
+            html, body { width: 80mm !important; }
+            .receipt {
+                width: 76mm !important;
+                max-width: 76mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
     </style>
 </head>
-
 <body>
-@if(request()->get('pmd_debug') == '1')
-    @php
-        $__dbgModel = $model ?? null;
-        $__dbgConn = null;
-        $__dbgOrderId = (int)($__dbgModel->order_id ?? 0);
-        $__dbgMenus = collect();
-        $__dbgTotals = collect();
-        $__dbgMenuRows = [];
-        $__dbgTotalRows = [];
-        $__dbgError = null;
+<div class="receipt">
+    <header class="center">
+        <h1 class="title">@lang('admin::lang.orders.text_invoice')</h1>
+        <p class="subtitle">@lang('admin::lang.orders.label_order_id') #{{ $model->order_id }}</p>
+    </header>
 
-        try {
-            $__dbgConn = method_exists($__dbgModel, 'getConnectionName')
-                ? ($__dbgModel->getConnectionName() ?: config('database.default'))
-                : config('database.default');
+    <div class="rule"></div>
 
-            $__dbgMenus = collect($__dbgModel ? ($__dbgModel->getOrderMenusWithOptions() ?? []) : []);
-            $__dbgTotals = collect($__dbgModel ? ($__dbgModel->getOrderTotals() ?? []) : []);
+    <section class="center">
+        @if(setting('invoice_logo') || setting('site_logo'))
+            <img
+                class="logo"
+                src="{{ uploads_url(setting('invoice_logo') ?: setting('site_logo')) }}"
+                alt="{{ setting('site_name') }} logo"
+            >
+        @endif
 
-            foreach ($__dbgMenus as $__m) {
-                $__opts = [];
-                foreach (($__m->menu_options ?? []) as $__o) {
-                    $__opts[] = [
-                        'order_option_category' => $__o->order_option_category ?? null,
-                        'order_option_name' => $__o->order_option_name ?? null,
-                        'quantity' => $__o->quantity ?? null,
-                        'price' => $__o->price ?? ($__o->order_option_price ?? null),
-                        'order_option_price' => $__o->order_option_price ?? null,
-                    ];
-                }
-
-                $__dbgMenuRows[] = [
-                    'menu_name' => $__m->name ?? ($__m->menu_name ?? null),
-                    'quantity' => $__m->quantity ?? null,
-                    'price' => $__m->price ?? null,
-                    'subtotal' => $__m->subtotal ?? null,
-                    'total' => $__m->total ?? null,
-                    'comment' => $__m->comment ?? null,
-                    'options_count' => count($__opts),
-                    'options' => $__opts,
-                ];
-            }
-
-            foreach ($__dbgTotals as $__t) {
-                $__dbgTotalRows[] = [
-                    'code' => $__t->code ?? null,
-                    'title' => $__t->title ?? null,
-                    'value' => $__t->value ?? null,
-                    'priority' => $__t->priority ?? null,
-                ];
-            }
-        } catch (\Throwable $__dbgEx) {
-            $__dbgError = $__dbgEx->getMessage();
-        }
-    @endphp
-
-    <!-- PMD_INVOICE_RUNTIME_DEBUG_PANEL_V1 -->
-    <div style="max-width:900px;margin:10px auto 20px auto;padding:12px;border:2px solid #c00;background:#fff8f8;color:#111;font-family:monospace;font-size:12px;white-space:pre-wrap;">
-PMD INVOICE RUNTIME DEBUG
--------------------------
-order_id: {{ $__dbgOrderId }}
-connection: {{ $__dbgConn ?: 'n/a' }}
-menus_count: {{ count($__dbgMenuRows) }}
-totals_count: {{ count($__dbgTotalRows) }}
-error: {{ $__dbgError ?: 'none' }}
-
-MENUS:
-{{ json_encode($__dbgMenuRows, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}
-
-TOTALS:
-{{ json_encode($__dbgTotalRows, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}
-    </div>
-@endif
-
-<div class="container-fluid">
-    <div class="row">
-        <div class="col">
-            <div class="invoice-title">
-                <h2>@lang('admin::lang.orders.text_invoice')</h2>
-                <h3>@lang('admin::lang.orders.label_order_id') #{{ $model->order_id }}</h3>
-            </div>
-        </div>
-    </div>
-
-    <div class="row"><div class="col"><hr></div></div>
-
-    <div class="row">
-        <div class="col-12 text-center" style="margin-bottom: 8px;">
-            @if(setting('invoice_logo') || setting('site_logo'))
-                <img class="img-responsive" src="{{ uploads_url(setting('invoice_logo') ?: setting('site_logo')) }}" alt="" style="max-height:50px; margin-bottom:5px;" />
-                <br>
+        <p style="margin:0 0 2px;"><strong>{{ $model->location->location_name }}</strong></p>
+        <p class="muted" style="margin:0; font-size:10px;">
+            {{ format_address($model->location->getAddress(), true) }}
+            @if($model->location->location_telephone)
+                <br><strong>Tel:</strong> {{ $model->location->location_telephone }}
             @endif
+            @if($model->location->location_email)
+                <br><strong>Email:</strong> {{ $model->location->location_email }}
+            @endif
+        </p>
+    </section>
 
-            <p style="margin-bottom: 4px;">
-                <span style="font-size: 13px; font-weight: 600;">{{ $model->location->location_name }}</span>
-            </p>
+    <div class="rule"></div>
 
-            <address style="font-style: normal; font-size: 9px;">
-                {{ format_address($model->location->getAddress(), true) }}
-                @if($model->location->location_telephone)
-                    <br><strong>Tel:</strong> {{ $model->location->location_telephone }}
-                @endif
-                @if($model->location->location_email)
-                    <br><strong>Email:</strong> {{ $model->location->location_email }}
-                @endif
-            </address>
+    <section class="meta-grid">
+        <div class="meta-block">
+            <div class="meta-label">@lang('admin::lang.orders.text_invoice_no')</div>
+            <div class="meta-value">{{ $model->invoice_number }}</div>
         </div>
-    </div>
+        <div class="meta-block">
+            <div class="meta-label">@lang('admin::lang.orders.text_payment')</div>
+            <div class="meta-value">{{ $model->payment_method ? $model->payment_method->name : '' }}</div>
+        </div>
 
-    <div class="row"><div class="col"><hr></div></div>
-
-    <div class="row">
-        <div class="col-6" style="width:50%; float:left;">
-            <p style="font-size:9px;">
-                <strong>@lang('admin::lang.orders.text_invoice_no')</strong><br>
-                {{ $model->invoice_number }}
-            </p>
-
-            <p style="font-size:9px;">
-                <strong>@lang('admin::lang.orders.text_invoice_date')</strong><br>
+        <div class="meta-block">
+            <div class="meta-label">@lang('admin::lang.orders.text_invoice_date')</div>
+            <div class="meta-value">
                 @if($model->invoice_date)
                     {{ $model->invoice_date->format(lang('system::lang.php.date_format')) }}
                 @elseif($model->order_date)
                     {{ $model->order_date->format(lang('system::lang.php.date_format')) }}
                 @endif
-            </p>
-        </div>
-
-        <div class="col-6" style="width:50%; float:left;">
-            <p style="font-size:9px;">
-                <strong>@lang('admin::lang.orders.text_payment')</strong><br>
-                {{ $model->payment_method ? $model->payment_method->name : '' }}
-            </p>
-
-            <p style="font-size:9px;">
-                <strong>@lang('admin::lang.orders.text_order_date')</strong><br>
-                {{ $model->order_date->setTimeFromTimeString($model->order_time)->format(lang('system::lang.php.date_time_format')) }}
-            </p>
-        </div>
-    </div>
-
-    <div style="clear: both;"></div>
-    <div class="row"><div class="col"><hr></div></div>
-
-    <div class="row">
-        <div class="col">
-            <table class="invoice-table">
-                <thead>
-                <tr>
-                    <th class="text-center" width="10%"></th>
-                    <th class="text-left" width="48%"><b>NAME/OPTIONS</b></th>
-                    <th class="text-right" width="21%"><b>PRICE</b></th>
-                    <th class="text-right" width="21%"><b>TOTAL</b></th>
-                </tr>
-                </thead>
-                
-                    
-@php
-    /* PMD_CANONICAL_GROSS_DISPLAY_V3 */
-    $orderTotals = collect($model->getOrderTotals() ?? []);
-    $pmdMenus = collect($model->getOrderMenusWithOptions() ?? []);
-
-    $subtotalTotal = $subtotalTotal ?? $orderTotals->firstWhere('code', 'subtotal');
-    $taxTotal = $taxTotal ?? $orderTotals->firstWhere('code', 'tax');
-    $tipTotal = $tipTotal ?? $orderTotals->firstWhere('code', 'tip');
-    $finalTotal = $finalTotal ?? $orderTotals->firstWhere('code', 'total');
-    $discountTotal = $discountTotal ?? $orderTotals->firstWhere('code', 'discount');
-    $couponTotal = $couponTotal ?? $discountTotal ?? null;
-    $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
-
-    $pmdTaxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
-    if (!in_array($pmdTaxMode, ['included', 'add_at_end'], true)) {
-        $pmdTaxMode = ((string) $__pmdReadTaxSetting('tax_menu_price', '1') === '1') ? 'included' : 'add_at_end';
-    }
-
-    $pmdTaxIncluded = $pmdTaxMode === 'included';
-
-    try {
-        $pmdTaxPercent = (float) $__pmdReadTaxSetting('tax_percentage', 0);
-    } catch (\Throwable $e) {
-        $pmdTaxPercent = 0.0;
-    }
-
-    $pmdGross = function ($amount) use ($pmdTaxIncluded, $pmdTaxPercent) {
-        $amount = (float) $amount;
-        if (!$pmdTaxIncluded || $pmdTaxPercent <= 0) {
-            return round($amount, 2);
-        }
-        return round($amount * (1 + ($pmdTaxPercent / 100)), 2);
-    };
-
-    $displayTotalItems = 0;
-    $pmdDisplayedSubtotal = 0.0;
-
-    foreach ($pmdMenus as $pmdMenuItem) {
-        $qty = max(1, (int)($pmdMenuItem->quantity ?? 1));
-        $displayTotalItems += $qty;
-
-        $baseNetLine = round((float)($pmdMenuItem->subtotal ?? 0), 2);
-        $optionsNetLine = 0.0;
-
-        foreach (($pmdMenuItem->menu_options ?? []) as $pmdMenuItemOption) {
-            $optValueNet = round(
-                (float)($pmdMenuItemOption->quantity ?? 0) * (float)($pmdMenuItemOption->order_option_price ?? 0),
-                2
-            );
-            $optionsNetLine += $optValueNet;
-            $pmdMenuItemOption->__pmd_display_value = $pmdGross($optValueNet);
-        }
-
-        $fullNetLine = round($baseNetLine + $optionsNetLine, 2);
-        $fullGrossLine = $pmdGross($fullNetLine);
-
-        $pmdMenuItem->__pmd_display_subtotal = $fullGrossLine;
-        $pmdMenuItem->__pmd_display_price = round($qty > 0 ? ($fullGrossLine / $qty) : $fullGrossLine, 2);
-
-        $pmdDisplayedSubtotal += $fullGrossLine;
-    }
-
-    $pmdDisplayedSubtotal = round($pmdDisplayedSubtotal, 2);
-    $pmdDisplayedTip = round((float)($tipTotal->value ?? 0), 2);
-    $pmdDisplayedDiscount = round((float)($couponTotal->value ?? 0), 2);
-
-    if ($pmdTaxIncluded && $pmdTaxPercent > 0) {
-        $pmdDisplayedTax = round($pmdDisplayedSubtotal - ($pmdDisplayedSubtotal / (1 + ($pmdTaxPercent / 100))), 2);
-    } else {
-        $pmdDisplayedTax = round((float)($taxTotal->value ?? 0), 2);
-    }
-
-    $pmdDisplayedTotal = round($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount, 2);
-
-    $pmdRateLabel = rtrim(rtrim(number_format($pmdTaxPercent, 2, '.', ''), '0'), '.');
-    $pmdTaxLabel = $pmdTaxIncluded
-        ? ('VAT included'.($pmdRateLabel !== '' ? ' ('.$pmdRateLabel.'%)' : ''))
-        : ('VAT'.($pmdRateLabel !== '' ? ' ('.$pmdRateLabel.'%)' : ''));
-@endphp
-
-
-<tbody>
-                    @php
-                        $__invoiceMenus = $model->getOrderMenusWithOptions();
-                    @endphp
-                    @foreach($__invoiceMenus as $menuItem)
-                        @php
-                            $__qty = (float)($menuItem->quantity ?? 0);
-                            $__lineSubtotal = (float)($menuItem->subtotal ?? 0);
-
-                            $__menuItemOptionGroup = collect($menuItem->menu_options ?? [])->groupBy('order_option_category');
-
-                            $__lineDisplaySubtotal = $__pmdGross($__lineSubtotal);
-                            $__unitDisplayPrice = $__qty > 0
-                                ? round($__lineDisplaySubtotal / $__qty, 2)
-                                : $__lineDisplaySubtotal;
-                        @endphp
-                        <tr>
-                            <td class="text-center">{{ (int)$menuItem->quantity }}x</td>
-                            <td class="text-left">
-                                <b>{{ $menuItem->name }}</b>
-
-                                @if($__menuItemOptionGroup->isNotEmpty())
-                                    @foreach($__menuItemOptionGroup as $__groupName => $__groupItems)
-                                        <div style="font-size:8px; margin-top:3px; line-height:1.45;">
-                                            @if(!empty($__groupName))
-                                                <strong>{{ $__groupName }}:</strong><br>
-                                            @endif
-
-                                            @foreach($__groupItems as $__opt)
-                                                @php
-                                                    $__optQty = (float)($__opt->quantity ?? 1);
-                                                    $__optPrice = $__pmdGross((float)($__opt->order_option_price ?? 0));
-                                                    $__optTotal = $__optQty * $__optPrice;
-                                                @endphp
-
-                                                &nbsp;&nbsp;— {{ $__opt->order_option_name }}
-                                                @if($__optPrice > 0)
-                                                    ({{ currency_format($__optTotal) }})
-                                                @endif
-                                                <br>
-                                            @endforeach
-                                        </div>
-                                    @endforeach
-                                @endif
-
-                                @if(!empty($menuItem->comment))
-                                    <div style="margin-top:2px;">
-                                        <small><b>{{ $menuItem->comment }}</b></small>
-                                    </div>
-                                @endif
-                            </td>
-                            <td class="text-right">{{ currency_format($__unitDisplayPrice) }}</td>
-                            <td class="text-right">{{ currency_format($__lineDisplaySubtotal ?? $__lineSubtotal) }}</td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-
-                
-                    <tfoot>
-                    @php
-                        $orderTotals = collect($model->getOrderTotals() ?? []);
-                        $tipTotal = $orderTotals->firstWhere('code', 'tip');
-                        $discountTotal = $orderTotals->firstWhere('code', 'discount');
-                        $couponTotal = $couponTotal ?? $discountTotal ?? null;
-                        $finalTotal = $orderTotals->firstWhere('code', 'total');
-
-                        $displaySubtotal = round($__pmdDisplayedSubtotal, 2);
-                        $displayTip = round((float)($tipTotal->value ?? 0), 2);
-                        $displayDiscount = round((float)($couponTotal->value ?? 0), 2);
-                        $displayFinal = round($displaySubtotal + $displayTip + $displayDiscount, 2);
-
-                        $displayItems = 0;
-                        foreach (($model->getOrderMenusWithOptions() ?? []) as $__mi) {
-                            $displayItems += (int)($__mi->quantity ?? 0);
-                        }
-
-                        $couponCode = null;
-                        if ($couponTotal) {
-                            $couponTitle = $couponTotal->title ?? '';
-                            if (preg_match('/\(([^)]+)\)/', $couponTitle, $matches)) {
-                                $couponCode = $matches[1];
-                            }
-                        }
-                    @endphp
-
-                    @if($displaySubtotal > 0)
-                        <tr>
-                            <td class="thick-line"></td>
-                            <td class="thick-line text-left">
-                                {{ $model->order_type_name }}
-                                @if($displayItems > 0)
-                                    ({{ $displayItems }} item{{ $displayItems > 1 ? 's' : '' }})
-                                @endif
-                            </td>
-                            <td class="thick-line"></td>
-                            <td class="thick-line text-right">{{ currency_format($displaySubtotal) }}</td>
-                        </tr>
-                    @endif
-
-                    @if($__pmdTaxIncluded)
-                        <tr>
-                            <td class="no-line"></td>
-                            <td class="no-line text-left">VAT included</td>
-                            <td class="no-line"></td>
-                            <td class="no-line text-right">({{ rtrim(rtrim(number_format((float) $__pmdReadTaxSetting('tax_percentage', 0), 2, '.', ''), '0'), '.') }}%)</td>
-                        </tr>
-                    @elseif($__taxTotal && (float)$__taxTotal->value > 0)
-                        <tr>
-                            <td class="no-line"></td>
-                            <td class="no-line text-left">{{ $__taxTotal->title ?: 'VAT' }}</td>
-                            <td class="no-line"></td>
-                            <td class="no-line text-right">{{ currency_format((float)$__taxTotal->value) }}</td>
-                        </tr>
-                    @endif
-
-                    @if($tipTotal && (float)$tipTotal->value > 0)
-                        <tr>
-                            <td class="no-line"></td>
-                            <td class="no-line text-left">{{ $tipTotal->title ?: 'Tip' }}</td>
-                            <td class="no-line"></td>
-                            <td class="no-line text-right">{{ currency_format((float)$tipTotal->value) }}</td>
-                        </tr>
-                    @endif
-
-                    @if($couponTotal && (float)$couponTotal->value != 0)
-                        <tr>
-                            <td class="no-line"></td>
-                            <td class="no-line text-left">
-                                {{ $couponTotal->title ?: 'Coupon' }}
-                                @if($couponCode)
-                                    ({{ $couponCode }})
-                                @endif
-                            </td>
-                            <td class="no-line"></td>
-                            <td class="no-line text-right">
-                                {{ (float)$couponTotal->value < 0 ? '-' : '' }}{{ currency_format(abs((float)$couponTotal->value)) }}
-                            </td>
-                        </tr>
-                    @endif
-
-                    <tr>
-                        <td class="thick-line"></td>
-                        <td class="thick-line text-left"><strong>{{ $finalTotal->title ?? 'Total' }}</strong></td>
-                        <td class="thick-line"></td>
-                        <td class="thick-line text-right"><strong>{{ currency_format($displayFinal) }}</strong></td>
-                    </tr>
-                    </tfoot>
-
-            </table>
-        </div>
-    </div>
-
-    @if($__showFiskaly)
-        <div class="pmd-fiskaly-box">
-            <div class="pmd-fiskaly-title">TSE / Fiskaly Signaturdaten</div>
-            <div class="pmd-fiskaly-intro">TSE/Fiskaly data loaded directly from order/transaction data.</div>
-
-            <div class="pmd-fiskaly-grid">
-                @if(!empty($__fQr))
-                    <div class="pmd-fiskaly-qr">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ urlencode($__fQr) }}" alt="Fiskaly QR Code">
-                    </div>
-                @endif
-
-                <div class="pmd-fiskaly-meta">
-                    @if(!empty($__fStatus))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">Fiskaly Status</span>
-                            <span class="pmd-fiskaly-value">{{ $__fStatus }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fTxId))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">Transaction Ref</span>
-                            <span class="pmd-fiskaly-value">{{ $__fTxId }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fTxNo))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">TSE Transaction No.</span>
-                            <span class="pmd-fiskaly-value">{{ $__fTxNo }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fCounter))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">Signature Counter</span>
-                            <span class="pmd-fiskaly-value">{{ $__fCounter }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fSerial))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">Serial Number</span>
-                            <span class="pmd-fiskaly-value">{{ $__fSerial }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fTssId))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-value">{{ $__fTssId }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fClientId))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-value">{{ $__fClientId }}</span>
-                        </div>
-                    @endif
-                </div>
             </div>
         </div>
+        <div class="meta-block">
+            <div class="meta-label">@lang('admin::lang.orders.text_order_date')</div>
+            <div class="meta-value">{{ $model->order_date->setTimeFromTimeString($model->order_time)->format(lang('system::lang.php.date_time_format')) }}</div>
+        </div>
+    </section>
+
+    <div class="rule"></div>
+
+    <table class="items" aria-label="Invoice items">
+        <thead>
+        <tr>
+            <th class="col-qty">#</th>
+            <th class="col-name">Item</th>
+            <th class="col-price">Price</th>
+            <th class="col-total">Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach($__menus as $menuItem)
+            @php
+                $__qty = (int)($menuItem->quantity ?? 0);
+                $__menuItemOptionGroup = collect($menuItem->menu_options ?? [])->groupBy('order_option_category');
+            @endphp
+            <tr>
+                <td class="col-qty">{{ $__qty }}x</td>
+                <td class="col-name">
+                    <div class="item-name">{{ $menuItem->name }}</div>
+
+                    @if($__menuItemOptionGroup->isNotEmpty())
+                        <div class="item-options muted">
+                            @foreach($__menuItemOptionGroup as $__groupName => $__groupItems)
+                                @if(!empty($__groupName))
+                                    <div><strong>{{ $__groupName }}:</strong></div>
+                                @endif
+
+                                @foreach($__groupItems as $__opt)
+                                    @php
+                                        $__optQty = (float)($__opt->quantity ?? 1);
+                                        $__optPrice = $__toGross((float)($__opt->order_option_price ?? 0));
+                                        $__optTotal = $__optQty * $__optPrice;
+                                    @endphp
+                                    <div>
+                                        - {{ $__opt->order_option_name }}
+                                        @if($__optPrice > 0)
+                                            ({{ currency_format($__optTotal) }})
+                                        @endif
+                                    </div>
+                                @endforeach
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if(!empty($menuItem->comment))
+                        <div class="item-comment"><strong>{{ $menuItem->comment }}</strong></div>
+                    @endif
+                </td>
+                <td class="col-price">{{ currency_format((float)($menuItem->__pmd_display_price ?? 0)) }}</td>
+                <td class="col-total">{{ currency_format((float)($menuItem->__pmd_display_subtotal ?? 0)) }}</td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+
+    <section class="totals">
+        @if($__displaySubtotal > 0)
+            <div class="total-row">
+                <span>{{ $model->order_type_name }} @if($__displayItems > 0)({{ $__displayItems }} item{{ $__displayItems > 1 ? 's' : '' }})@endif</span>
+                <span>{{ currency_format($__displaySubtotal) }}</span>
+            </div>
+        @endif
+
+        @if($__taxIncluded)
+            <div class="total-row muted">
+                <span>VAT included</span>
+                <span>({{ rtrim(rtrim(number_format($__taxPercent, 2, '.', ''), '0'), '.') }}%)</span>
+            </div>
+        @elseif($__displayTax > 0)
+            <div class="total-row">
+                <span>{{ $__taxTotal->title ?? 'VAT' }}</span>
+                <span>{{ currency_format($__displayTax) }}</span>
+            </div>
+        @endif
+
+        @if($__displayTip > 0)
+            <div class="total-row">
+                <span>{{ $__tipTotal->title ?? 'Tip' }}</span>
+                <span>{{ currency_format($__displayTip) }}</span>
+            </div>
+        @endif
+
+        @if($__couponTotal && (float)$__couponTotal->value != 0)
+            <div class="total-row">
+                <span>
+                    {{ $__couponTotal->title ?: 'Coupon' }}
+                    @if($__couponCode)
+                        ({{ $__couponCode }})
+                    @endif
+                </span>
+                <span>{{ (float)$__couponTotal->value < 0 ? '-' : '' }}{{ currency_format(abs((float)$__couponTotal->value)) }}</span>
+            </div>
+        @endif
+
+        <div class="total-row grand-total">
+            <span>{{ $__finalTotal->title ?? 'Total' }}</span>
+            <span>{{ currency_format($__displayTotal) }}</span>
+        </div>
+    </section>
+
+    @if($__showFiskaly)
+        <section class="fiskaly">
+            <p class="fiskaly-title">TSE / Fiskaly Signaturdaten</p>
+            <p class="fiskaly-intro">TSE/Fiskaly data loaded directly from order/transaction data.</p>
+
+            @if(!empty($__qrSrc))
+                <div class="qr-wrap">
+                    <img class="qr-img" src="{{ $__qrSrc }}" alt="Fiskaly QR code">
+                </div>
+            @endif
+
+            @foreach([
+                'Fiskaly Status' => $__fStatus,
+                'Transaction Ref' => $__fTxRef,
+                'TSE Transaction No.' => $__fTxNo,
+                'Signature Counter' => $__fCounter,
+                'Serial Number' => $__fSerial,
+                'TSS ID' => $__fTssId,
+                'Client ID' => $__fClientId,
+                'QR Payload' => $__fQr,
+            ] as $__label => $__value)
+                @if(!empty($__value))
+                    <div class="fiskaly-row">
+                        <span class="fiskaly-label">{{ $__label }}:</span>
+                        <span class="fiskaly-value">{{ $__value }}</span>
+                    </div>
+                @endif
+            @endforeach
+        </section>
     @endif
 
     <p class="thanks">Thank you for your Visit</p>
 </div>
-
 </body>
 </html>
