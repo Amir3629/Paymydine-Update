@@ -26,6 +26,8 @@ class Cash_drawers_model extends Model
         'pos_device_id',
         'local_pos_device_id',
         'local_mapping_invalid',
+        'last_command_status',
+        'last_command_message',
         'connection_type',
         'device_path',
         'printer_id',

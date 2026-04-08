@@ -118,6 +118,30 @@ $config['form']['toolbar'] = [
             'data-request' => 'onOpenDrawer',
             'context' => ['edit'],
         ],
+        'enable_local_hardware' => [
+            'label' => '<i class="fa fa-link"></i> Enable Local Hardware on This POS',
+            'class' => 'btn btn-primary',
+            'data-request' => 'onEnableLocalHardware',
+            'context' => ['edit'],
+        ],
+        'repair_local_hardware' => [
+            'label' => '<i class="fa fa-wrench"></i> Repair Local Hardware Connection',
+            'class' => 'btn btn-warning',
+            'data-request' => 'onRepairLocalHardware',
+            'context' => ['edit'],
+        ],
+        'download_windows_connector' => [
+            'label' => '<i class="fa fa-download"></i> Download Windows Connector',
+            'class' => 'btn btn-secondary',
+            'href' => 'cash_drawers/windows_connector/{drawer_id}',
+            'context' => ['edit'],
+        ],
+        'copy_setup_link' => [
+            'label' => '<i class="fa fa-copy"></i> Copy Setup Link',
+            'class' => 'btn btn-info',
+            'data-request' => 'onCopySetupLink',
+            'context' => ['edit'],
+        ],
         'delete' => [
             'label' => 'lang:admin::lang.button_icon_delete',
             'class' => 'btn btn-danger',

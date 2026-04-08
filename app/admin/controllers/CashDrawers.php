@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
+use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\AdminLocation;
 use Admin\Models\Cash_drawers_model;
@@ -79,6 +80,8 @@ class CashDrawers extends AdminController
     public function edit($context = null, $recordId = null)
     {
         $this->asExtension('FormController')->edit($context, $recordId);
+        $model = $this->formFindModelObject($recordId);
+        $this->vars['localHardwareStatus'] = $this->buildLocalHardwareStatus($model);
         
         return $this->makeView('cashdrawers/edit');
     }
@@ -102,7 +105,7 @@ class CashDrawers extends AdminController
 
             $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
                 'trigger_method' => 'manual_test',
-                'requested_by' => optional(admin_auth()->user())->staff_id,
+                'requested_by' => optional(AdminAuth::user())->staff_id,
             ]);
         } else {
             $result = CashDrawerService::testDrawer($drawer);
@@ -138,7 +141,7 @@ class CashDrawers extends AdminController
 
             $result = LocalPosHardwareCommandService::queueOpenDrawer($drawer, [
                 'trigger_method' => 'manual',
-                'requested_by' => optional(admin_auth()->user())->staff_id,
+                'requested_by' => optional(AdminAuth::user())->staff_id,
             ]);
         } else {
             $result = CashDrawerService::openDrawer($drawer, [
@@ -232,7 +235,7 @@ class CashDrawers extends AdminController
 
                 $result = LocalPosHardwareCommandService::queueTestConnection($model, [
                     'trigger_method' => 'save_test',
-                    'requested_by' => optional(admin_auth()->user())->staff_id,
+                    'requested_by' => optional(AdminAuth::user())->staff_id,
                 ]);
             } else {
                 $result = CashDrawerService::testDrawer($model);
@@ -269,5 +272,134 @@ class CashDrawers extends AdminController
         }
 
         return ['ok' => true, 'message' => 'OK'];
+    }
+
+    public function onEnableLocalHardware($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $device = $drawer->localPosDevice;
+        if (!$device) {
+            $device = Pos_devices_model::create([
+                'name' => $drawer->name.' POS',
+                'code' => 'local-pos-'.$drawer->drawer_id,
+                'device_type' => 'local_terminal',
+                'description' => 'Auto-created for cash drawer '.$drawer->name,
+                'is_local_terminal' => true,
+                'pairing_token' => bin2hex(random_bytes(16)),
+                'device_status' => 'offline',
+                'capabilities' => ['cash_drawer' => true, 'printer' => true],
+            ]);
+        } else {
+            if (!$device->pairing_token) {
+                $device->pairing_token = bin2hex(random_bytes(16));
+            }
+            $device->is_local_terminal = true;
+            $device->save();
+        }
+
+        $drawer->local_pos_device_id = $device->device_id;
+        $drawer->local_mapping_invalid = false;
+        $drawer->save();
+
+        flash()->success('Local hardware setup is ready. Download the Windows connector on the POS terminal to finish.');
+        return $this->refresh();
+    }
+
+    public function onRepairLocalHardware($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        if (!empty($drawer->local_pos_device_id)) {
+            flash()->success('Local hardware mapping is already configured. If terminal is offline, run the Windows connector again.');
+            return $this->refresh();
+        }
+
+        return $this->onEnableLocalHardware($context, $recordId);
+    }
+
+    public function onCopySetupLink($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $url = admin_url('cash_drawers/windows_connector/'.$drawer->drawer_id);
+        flash()->info('Setup link: '.$url);
+        return $this->refresh();
+    }
+
+    public function windowsConnector($recordId)
+    {
+        $drawer = Cash_drawers_model::find($recordId);
+        if (!$drawer) {
+            abort(404, 'Cash drawer not found');
+        }
+
+        $device = $drawer->localPosDevice;
+        if (!$device) {
+            abort(400, 'No local POS terminal paired');
+        }
+
+        if (!$device->pairing_token) {
+            $device->pairing_token = bin2hex(random_bytes(16));
+            $device->save();
+        }
+
+        $content = $this->buildWindowsConnectorScript($drawer, $device);
+        $filename = 'paymydine-connector-drawer-'.$drawer->drawer_id.'.bat';
+        $tmpFile = storage_path('app/'.$filename);
+        file_put_contents($tmpFile, $content);
+
+        return response()->download($tmpFile, $filename, [
+            'Content-Type' => 'application/octet-stream',
+        ])->deleteFileAfterSend(true);
+    }
+
+    protected function buildWindowsConnectorScript($drawer, $device): string
+    {
+        $adminBase = rtrim(url(admin_url('/')), '/');
+        $token = config('cashdrawer.agent_token');
+        $deviceCode = $device->device_code ?: ('POS-'.$device->device_id.'-'.substr(md5($drawer->drawer_id.'-'.time()), 0, 6));
+
+        return "@echo off\r\n"
+            ."setlocal\r\n"
+            ."set PMD_DIR=%ProgramData%\\PayMyDine\\LocalPosAgent\r\n"
+            ."if not exist \"%PMD_DIR%\" mkdir \"%PMD_DIR%\"\r\n"
+            ."copy /Y \"".base_path('tools\\local-pos-agent\\agent.js')."\" \"%PMD_DIR%\\agent.js\" >nul\r\n"
+            ."(echo BACKEND_BASE_URL={$adminBase}&echo POS_AGENT_TOKEN={$token}&echo POS_DEVICE_CODE={$deviceCode}&echo POS_PAIRING_TOKEN={$device->pairing_token}&echo POS_DISPLAY_NAME={$device->name}&echo POLL_INTERVAL_MS=2000) > \"%PMD_DIR%\\.env\"\r\n"
+            ."schtasks /create /tn \"PayMyDineLocalPosAgent\" /tr \"node \\\"%PMD_DIR%\\agent.js\\\"\" /sc onlogon /f >nul 2>&1\r\n"
+            ."start \"PayMyDine Local Agent\" /min cmd /c \"cd /d %PMD_DIR% && node agent.js >> %PMD_DIR%\\agent.log 2>&1\"\r\n"
+            ."echo PayMyDine local connector installed.\r\n"
+            ."echo You can close this window.\r\n";
+    }
+
+    protected function buildLocalHardwareStatus($drawer): array
+    {
+        if (!$drawer) {
+            return ['state' => 'not_configured', 'message' => 'Local hardware is not configured.'];
+        }
+
+        $device = $drawer->localPosDevice;
+        if (!$device) {
+            if (!empty($drawer->local_mapping_invalid)) {
+                return ['state' => 'invalid_mapping', 'message' => 'This drawer is linked to a cloud provider, not a local terminal.', 'drawer' => $drawer];
+            }
+            return ['state' => 'not_paired', 'message' => 'No local POS terminal is paired with this cash drawer.', 'drawer' => $drawer];
+        }
+
+        $online = method_exists($device, 'isOnline') ? $device->isOnline() : false;
+        if (!$online) {
+            return ['state' => 'offline', 'message' => 'This POS terminal is offline.', 'device' => $device, 'drawer' => $drawer];
+        }
+
+        return ['state' => 'online', 'message' => 'Local hardware is enabled and terminal is online.', 'device' => $device, 'drawer' => $drawer];
     }
 }

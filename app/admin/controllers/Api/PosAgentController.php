@@ -48,26 +48,33 @@ class PosAgentController extends Controller
         $device->last_seen_at = now();
         $device->save();
 
-        $command = DB::table('pos_hardware_commands')
-            ->where('pos_device_id', $device->device_id)
-            ->where('status', 'pending')
-            ->orderBy('id', 'asc')
-            ->first();
+        $fresh = DB::transaction(function () use ($device) {
+            $command = DB::table('pos_hardware_commands')
+                ->where('pos_device_id', $device->device_id)
+                ->where('status', 'pending')
+                ->orderBy('id', 'asc')
+                ->lockForUpdate()
+                ->first();
 
-        if (!$command) {
+            if (!$command) {
+                return null;
+            }
+
+            DB::table('pos_hardware_commands')
+                ->where('id', $command->id)
+                ->where('status', 'pending')
+                ->update([
+                    'status' => 'processing',
+                    'picked_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return DB::table('pos_hardware_commands')->where('id', $command->id)->first();
+        });
+
+        if (!$fresh) {
             return response()->json(['success' => true, 'command' => null], 200);
         }
-
-        DB::table('pos_hardware_commands')
-            ->where('id', $command->id)
-            ->where('status', 'pending')
-            ->update([
-                'status' => 'processing',
-                'picked_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-        $fresh = DB::table('pos_hardware_commands')->where('id', $command->id)->first();
 
         return response()->json([
             'success' => true,
@@ -104,6 +111,15 @@ class PosAgentController extends Controller
 
         if (!$updated) {
             return response()->json(['success' => false, 'message' => 'Command not found or already finalized'], 404);
+        }
+
+        $command = DB::table('pos_hardware_commands')->where('id', $commandId)->first();
+        if ($command && !empty($command->drawer_id)) {
+            DB::table('cash_drawers')->where('drawer_id', $command->drawer_id)->update([
+                'last_command_status' => $status,
+                'last_command_message' => (string)$request->input('message', ''),
+                'updated_at' => now(),
+            ]);
         }
 
         return response()->json(['success' => true], 200);

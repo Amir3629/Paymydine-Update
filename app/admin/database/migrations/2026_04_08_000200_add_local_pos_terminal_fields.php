@@ -45,6 +45,12 @@ class AddLocalPosTerminalFields extends Migration
                 if (!Schema::hasColumn('cash_drawers', 'local_mapping_invalid')) {
                     $table->boolean('local_mapping_invalid')->default(false)->after('local_pos_device_id');
                 }
+                if (!Schema::hasColumn('cash_drawers', 'last_command_status')) {
+                    $table->string('last_command_status', 20)->nullable()->after('local_mapping_invalid');
+                }
+                if (!Schema::hasColumn('cash_drawers', 'last_command_message')) {
+                    $table->text('last_command_message')->nullable()->after('last_command_status');
+                }
             });
 
             $drawers = DB::table('cash_drawers')->select('drawer_id', 'pos_device_id')->get();
@@ -87,6 +93,12 @@ class AddLocalPosTerminalFields extends Migration
                 if (Schema::hasColumn('cash_drawers', 'local_pos_device_id')) {
                     $table->dropColumn('local_pos_device_id');
                 }
+                if (Schema::hasColumn('cash_drawers', 'last_command_status')) {
+                    $table->dropColumn('last_command_status');
+                }
+                if (Schema::hasColumn('cash_drawers', 'last_command_message')) {
+                    $table->dropColumn('last_command_message');
+                }
             });
         }
 
@@ -101,4 +113,3 @@ class AddLocalPosTerminalFields extends Migration
         }
     }
 }
-
