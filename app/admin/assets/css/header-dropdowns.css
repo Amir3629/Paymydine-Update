@@ -825,3 +825,134 @@ a i {
   min-height: 44px !important;
 }
 
+/* ============================================
+   Header responsive cleanup (desktop/tablet/mobile)
+   Scope: header spacing + sidebar/toggler behavior only
+   ============================================ */
+
+/* Base alignment and balanced spacing */
+.navbar-top {
+  box-shadow: none !important;
+}
+
+.navbar-top .container-fluid {
+  min-width: 0 !important;
+  gap: 12px !important;
+  padding-left: 12px !important;
+  padding-right: 16px !important;
+}
+
+.navbar-top .navbar-brand {
+  flex: 0 0 auto !important;
+  margin-right: 8px !important;
+}
+
+.navbar-top .navbar-brand .logo {
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+}
+
+.navbar-top .page-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  margin: 0 10px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.navbar-top .navbar-right {
+  flex: 0 0 auto !important;
+  gap: 8px !important;
+}
+
+.navbar-top .navbar-right > * {
+  margin: 0 !important;
+}
+
+.navbar-top .navbar-tour-btn {
+  margin: 0 !important;
+  padding: 0 8px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+}
+
+.navbar-top .navbar-nav {
+  gap: 6px !important;
+}
+
+.navbar-top .navbar-nav > .nav-item,
+.navbar-top .navbar-nav > .nav-item:not(:last-child),
+.navbar-top .navbar-nav > .nav-item:last-child {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Tablet: keep sidebar visible, hide header toggler */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .navbar-top .navbar-toggler {
+    display: none !important;
+  }
+
+  .sidebar {
+    display: block !important;
+  }
+
+  #navSidebar,
+  #navSidebar.nav-sidebar,
+  #navSidebar.collapse,
+  #navSidebar.collapsing {
+    display: block !important;
+    height: 100% !important;
+    visibility: visible !important;
+  }
+
+  .navbar-top .container-fluid {
+    padding-right: 12px !important;
+  }
+
+  .navbar-top .page-title {
+    margin-right: 8px !important;
+    font-size: 20px !important;
+  }
+}
+
+/* Mobile: solid dark blue header + compact even spacing */
+@media (max-width: 767.98px) {
+  .navbar-top,
+  .navbar-top .container-fluid,
+  .navbar-top .navbar,
+  .navbar-top.navbar-fixed-top {
+    background: #202938 !important;
+    background-image: none !important;
+    border-color: #202938 !important;
+    box-shadow: none !important;
+  }
+
+  .navbar-top .container-fluid {
+    gap: 8px !important;
+    padding-left: 8px !important;
+    padding-right: 10px !important;
+  }
+
+  .navbar-top .navbar-right {
+    gap: 4px !important;
+  }
+
+  .navbar-top .navbar-nav {
+    gap: 4px !important;
+  }
+
+  .navbar-top .nav-link i,
+  .navbar-top .dropdown-toggle i,
+  .navbar-top .navbar-toggler i {
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .navbar-top .navbar-tour-btn {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 6px !important;
+  }
+}
