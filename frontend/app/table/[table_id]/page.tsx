@@ -108,7 +108,12 @@ export default function TableHomePage({ params }: { params: { table_id: string }
 
           const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId)
           if (!cancelled && pending?.success && pending?.data?.order_id) {
-            router.replace(`/checkout?order_id=${pending.data.order_id}&table_id=${encodeURIComponent(resolvedTableId)}`)
+            const menuUrl = new URL('/menu', window.location.origin)
+            menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
+            menuUrl.searchParams.set('table_id', resolvedTableId)
+            if (qr) menuUrl.searchParams.set('qr', qr)
+            menuUrl.searchParams.set('pending_order_id', String(pending.data.order_id))
+            router.replace(`${menuUrl.pathname}${menuUrl.search}`)
             return
           }
         }
