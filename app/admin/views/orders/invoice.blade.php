@@ -248,8 +248,6 @@
             font-family: "Segoe UI", Arial, Helvetica, sans-serif;
             font-size: {{ $__baseFontPx }};
             line-height: calc(1.3 * {{ $__compactFactor }});
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
         }
 
         .receipt {
@@ -365,6 +363,20 @@
             font-size: 11px;
         }
 
+        .print-action {
+            display: block;
+            width: 100%;
+            margin: 0 0 6px;
+            padding: 6px 8px;
+            border: 1px solid #000;
+            background: #fff;
+            color: #000;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+
         @page {
             size: {{ $__printPaper }} auto;
             margin: {{ $__paperWidth === 'a4' ? '8mm' : '2mm' }};
@@ -376,11 +388,20 @@
                 background: #fff !important;
                 color: #000 !important;
             }
+            body, body * {
+                color: #000 !important;
+                background: #fff !important;
+                text-shadow: none !important;
+                box-shadow: none !important;
+            }
             .receipt {
                 width: {{ $__contentWidth }} !important;
                 max-width: {{ $__contentWidth }} !important;
                 margin: 0 !important;
                 padding: 0 !important;
+            }
+            .print-action {
+                display: none !important;
             }
             img {
                 page-break-inside: avoid;
@@ -395,6 +416,8 @@
 </head>
 <body>
 <div class="receipt">
+    <button type="button" class="print-action" onclick="window.print()">Print</button>
+
     <header class="center">
         <h1 class="title">@lang('admin::lang.orders.text_invoice')</h1>
         <p class="subtitle">@lang('admin::lang.orders.label_order_id') #{{ $model->order_id }}</p>
