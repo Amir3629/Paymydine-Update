@@ -21,10 +21,19 @@ class LocalPosHardwareCommandService
 
     protected static function queueCommand(Cash_drawers_model $drawer, string $commandType, array $meta = []): array
     {
-        if (empty($drawer->pos_device_id)) {
+        $targetDeviceId = $drawer->local_pos_device_id ?: $drawer->pos_device_id;
+        if (empty($targetDeviceId)) {
             return [
                 'success' => false,
-                'message' => 'No POS device linked to drawer. Set pos_device_id to use local agent.',
+                'message' => 'No local POS terminal is paired with this cash drawer.',
+            ];
+        }
+
+        $device = Pos_devices_model::find($targetDeviceId);
+        if (!$device || (isset($device->is_local_terminal) && !$device->is_local_terminal)) {
+            return [
+                'success' => false,
+                'message' => 'Selected POS device is not a local POS terminal.',
             ];
         }
 
@@ -34,12 +43,19 @@ class LocalPosHardwareCommandService
             'connection_type' => $drawer->connection_type,
             'esc_pos_command' => $drawer->esc_pos_command ?? '27,112,0,60,120',
             'resolved_target' => self::resolveTargetPath($drawer),
+            'pos_device' => [
+                'device_id' => $device->device_id,
+                'device_code' => $device->device_code ?: $device->code,
+                'display_name' => $device->name,
+                'status' => $device->device_status,
+                'last_seen_at' => $device->last_seen_at,
+            ],
             'meta' => $meta,
         ];
 
         $commandId = DB::table('pos_hardware_commands')->insertGetId([
             'drawer_id' => $drawer->drawer_id,
-            'pos_device_id' => $drawer->pos_device_id,
+            'pos_device_id' => $targetDeviceId,
             'location_id' => $drawer->location_id,
             'command_type' => $commandType,
             'payload' => json_encode($payload),
@@ -52,7 +68,7 @@ class LocalPosHardwareCommandService
         Log::info('Cash Drawer: Queued local POS hardware command', [
             'command_id' => $commandId,
             'drawer_id' => $drawer->drawer_id,
-            'pos_device_id' => $drawer->pos_device_id,
+            'pos_device_id' => $targetDeviceId,
             'command_type' => $commandType,
             'target' => $payload['resolved_target'],
         ]);
@@ -95,4 +111,3 @@ class LocalPosHardwareCommandService
         return null;
     }
 }
-

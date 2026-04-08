@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\AdminLocation;
 use Admin\Models\Cash_drawers_model;
+use Admin\Models\Pos_devices_model;
 use Admin\Services\CashDrawerService\CashDrawerService;
 use Admin\Services\CashDrawerService\LocalPosHardwareCommandService;
 use Illuminate\Support\Facades\Log;
@@ -92,7 +93,13 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        if (config('cashdrawer.local_agent_enabled') && !empty($drawer->pos_device_id)) {
+        if (config('cashdrawer.local_agent_enabled')) {
+            $availability = $this->validateLocalDeviceAvailability($drawer);
+            if (!$availability['ok']) {
+                flash()->error($availability['message']);
+                return $this->refresh();
+            }
+
             $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
                 'trigger_method' => 'manual_test',
                 'requested_by' => optional(admin_auth()->user())->staff_id,
@@ -103,7 +110,7 @@ class CashDrawers extends AdminController
 
         if ($result['success']) {
             flash()->success(!empty($result['queued'])
-                ? 'Test command queued for local POS agent.'
+                ? 'Test command sent to POS terminal. Waiting for device response.'
                 : 'Connection test successful! Drawer opened.');
         } else {
             flash()->error('Connection test failed: ' . $result['message']);
@@ -122,7 +129,13 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        if (config('cashdrawer.local_agent_enabled') && !empty($drawer->pos_device_id)) {
+        if (config('cashdrawer.local_agent_enabled')) {
+            $availability = $this->validateLocalDeviceAvailability($drawer);
+            if (!$availability['ok']) {
+                flash()->error($availability['message']);
+                return $this->refresh();
+            }
+
             $result = LocalPosHardwareCommandService::queueOpenDrawer($drawer, [
                 'trigger_method' => 'manual',
                 'requested_by' => optional(admin_auth()->user())->staff_id,
@@ -135,7 +148,7 @@ class CashDrawers extends AdminController
 
         if ($result['success']) {
             flash()->success(!empty($result['queued'])
-                ? 'Open drawer command queued for local POS agent.'
+                ? 'Open command sent to POS terminal. Waiting for device response.'
                 : 'Cash drawer opened successfully!');
         } else {
             flash()->error('Failed to open drawer: ' . $result['message']);
@@ -161,7 +174,7 @@ class CashDrawers extends AdminController
         }
 
         // Add POS device options
-        $posDevices = \Admin\Models\Pos_devices_model::get();
+        $posDevices = Pos_devices_model::get();
         $posDeviceOptions = ['' => '-- None (Location Default) --'];
         foreach ($posDevices as $device) {
             $posDeviceOptions[$device->device_id] = $device->name;
@@ -169,6 +182,17 @@ class CashDrawers extends AdminController
 
         if (isset($form->fields['pos_device_id'])) {
             $form->fields['pos_device_id']['options'] = $posDeviceOptions;
+        }
+
+        // Local POS terminal options for non-technical hardware pairing
+        $localTerminalOptions = ['' => '-- Select Local POS Terminal --'];
+        $localDevices = Pos_devices_model::where('is_local_terminal', true)->get();
+        foreach ($localDevices as $device) {
+            $status = $device->isOnline() ? 'online' : (!empty($device->last_seen_at) ? 'offline' : 'never connected');
+            $localTerminalOptions[$device->device_id] = sprintf('%s (%s)', $device->name, $status);
+        }
+        if (isset($form->fields['local_pos_device_id'])) {
+            $form->fields['local_pos_device_id']['options'] = $localTerminalOptions;
         }
 
         // Add printer device options (for RJ11 connection)
@@ -199,12 +223,51 @@ class CashDrawers extends AdminController
     public function formAfterSave($model)
     {
         if ($model->test_on_save && $this->action == 'create') {
-            $result = CashDrawerService::testDrawer($model);
+            if (config('cashdrawer.local_agent_enabled')) {
+                $availability = $this->validateLocalDeviceAvailability($model);
+                if (!$availability['ok']) {
+                    flash()->warning($availability['message']);
+                    return;
+                }
+
+                $result = LocalPosHardwareCommandService::queueTestConnection($model, [
+                    'trigger_method' => 'save_test',
+                    'requested_by' => optional(admin_auth()->user())->staff_id,
+                ]);
+            } else {
+                $result = CashDrawerService::testDrawer($model);
+            }
+
             if ($result['success']) {
-                flash()->success('Cash drawer saved and connection test successful!');
+                flash()->success(!empty($result['queued'])
+                    ? 'Cash drawer saved. Test command sent to POS terminal.'
+                    : 'Cash drawer saved and connection test successful!');
             } else {
                 flash()->warning('Cash drawer saved but connection test failed: ' . $result['message']);
             }
         }
+    }
+
+    protected function validateLocalDeviceAvailability($drawer): array
+    {
+        $deviceId = $drawer->local_pos_device_id ?: $drawer->pos_device_id;
+        if (empty($deviceId)) {
+            return ['ok' => false, 'message' => 'No local POS terminal is paired with this cash drawer.'];
+        }
+
+        $device = Pos_devices_model::find($deviceId);
+        if (!$device) {
+            return ['ok' => false, 'message' => 'The selected POS terminal could not be found.'];
+        }
+
+        if (isset($device->is_local_terminal) && !$device->is_local_terminal) {
+            return ['ok' => false, 'message' => 'The selected device is a cloud integration provider, not a local POS terminal.'];
+        }
+
+        if (method_exists($device, 'isOnline') && !$device->isOnline()) {
+            return ['ok' => false, 'message' => 'The selected POS terminal is offline.'];
+        }
+
+        return ['ok' => true, 'message' => 'OK'];
     }
 }

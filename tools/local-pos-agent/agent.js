@@ -23,11 +23,36 @@ loadEnv(path.join(__dirname, '.env'));
 const BACKEND_BASE_URL = (process.env.BACKEND_BASE_URL || '').replace(/\/+$/, '');
 const POS_AGENT_TOKEN = process.env.POS_AGENT_TOKEN || '';
 const POS_DEVICE_CODE = process.env.POS_DEVICE_CODE || '';
+const POS_PAIRING_TOKEN = process.env.POS_PAIRING_TOKEN || '';
+const POS_DISPLAY_NAME = process.env.POS_DISPLAY_NAME || '';
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || '2000', 10);
 
 if (!BACKEND_BASE_URL || !POS_AGENT_TOKEN || !POS_DEVICE_CODE) {
   console.error('Missing BACKEND_BASE_URL, POS_AGENT_TOKEN, or POS_DEVICE_CODE');
   process.exit(1);
+}
+
+async function pairDeviceIfNeeded() {
+  if (!POS_PAIRING_TOKEN) return;
+
+  const url = `${BACKEND_BASE_URL}/api/pos-agent/pair`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${POS_AGENT_TOKEN}`,
+    },
+    body: JSON.stringify({
+      pairing_token: POS_PAIRING_TOKEN,
+      device_code: POS_DEVICE_CODE,
+      display_name: POS_DISPLAY_NAME,
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.text();
+    throw new Error(`Pair failed (${res.status}): ${data}`);
+  }
 }
 
 function parseEscPos(cmd) {
@@ -146,5 +171,11 @@ async function loop() {
 }
 
 console.log(`Starting PayMyDine local POS agent for device_code=${POS_DEVICE_CODE}`);
-loop();
-
+(async () => {
+  try {
+    await pairDeviceIfNeeded();
+  } catch (err) {
+    console.error(`[PAIR ERROR] ${err.message}`);
+  }
+  await loop();
+})();

@@ -15,6 +15,8 @@ Minimal polling agent for executing drawer hardware actions **on the local POS m
 BACKEND_BASE_URL=https://your-tenant.paymydine.com/admin
 POS_AGENT_TOKEN=replace_with_same_token_as_backend
 POS_DEVICE_CODE=your_pos_device_code
+POS_PAIRING_TOKEN=token_from_admin_device_record
+POS_DISPLAY_NAME=Front Counter POS
 POLL_INTERVAL_MS=2000
 ```
 

@@ -345,6 +345,7 @@ App::before(function () {
             Route::get('pull', [PosAgentController::class, 'pull']);
             Route::match(['get', 'post'], '{id}/ack', [PosAgentController::class, 'ack']);
         });
+        Route::post('api/pos-agent/pair', [PosAgentController::class, 'pair']);
 
         // Other pages
         Route::any('{slug}', 'System\Classes\Controller@runAdmin')

@@ -35,10 +35,18 @@ class PosAgentController extends Controller
             return response()->json(['success' => false, 'message' => 'device_code is required'], 400);
         }
 
-        $device = Pos_devices_model::where('code', $deviceCode)->first();
+        $device = Pos_devices_model::where('device_code', $deviceCode)->orWhere('code', $deviceCode)->first();
         if (!$device) {
             return response()->json(['success' => false, 'message' => 'POS device not found'], 404);
         }
+
+        if (isset($device->is_local_terminal) && !$device->is_local_terminal) {
+            return response()->json(['success' => false, 'message' => 'Device is not configured as local POS terminal'], 422);
+        }
+
+        $device->device_status = 'online';
+        $device->last_seen_at = now();
+        $device->save();
 
         $command = DB::table('pos_hardware_commands')
             ->where('pos_device_id', $device->device_id)
@@ -99,5 +107,45 @@ class PosAgentController extends Controller
         }
 
         return response()->json(['success' => true], 200);
+    }
+
+    public function pair(Request $request)
+    {
+        if (!$this->isAuthorized($request)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $pairingToken = trim((string)$request->input('pairing_token', ''));
+        $deviceCode = trim((string)$request->input('device_code', ''));
+        $displayName = trim((string)$request->input('display_name', ''));
+
+        if ($pairingToken === '' || $deviceCode === '') {
+            return response()->json(['success' => false, 'message' => 'pairing_token and device_code are required'], 422);
+        }
+
+        $device = Pos_devices_model::where('pairing_token', $pairingToken)
+            ->where('is_local_terminal', true)
+            ->first();
+
+        if (!$device) {
+            return response()->json(['success' => false, 'message' => 'Invalid pairing token'], 404);
+        }
+
+        $device->device_code = $deviceCode;
+        if ($displayName !== '') {
+            $device->name = $displayName;
+        }
+        $device->device_status = 'online';
+        $device->last_seen_at = now();
+        $device->save();
+
+        return response()->json([
+            'success' => true,
+            'device' => [
+                'device_id' => $device->device_id,
+                'name' => $device->name,
+                'device_code' => $device->device_code,
+            ],
+        ], 200);
     }
 }

@@ -161,6 +161,12 @@ $config['form']['fields'] = [
         ],
         'comment' => 'How is the drawer connected?',
     ],
+    'local_pos_device_id' => [
+        'label' => 'Local POS Terminal',
+        'type' => 'select',
+        'span' => 'right',
+        'comment' => 'Select the paired in-store POS terminal that physically controls this drawer.',
+    ],
     'status' => [
         'label' => 'Status',
         'type' => 'switch',
@@ -172,7 +178,7 @@ $config['form']['fields'] = [
         'label' => 'Device Path / Printer Name',
         'type' => 'text',
         'span' => 'left',
-        'comment' => 'Printer name (Windows), COM port, USB path, or IP address',
+        'comment' => 'Optional advanced setting for technical support only.',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
