@@ -461,7 +461,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $telephone = '1234567890';
     $location_id = 1;
     $address_id = 1;
-    $payment = $_POST['payment_method'] ?? 'cod';
+    $payment = strtolower((string)($_POST['payment_method'] ?? 'cod'));
+    $isQrPayLater = ($payment === 'qr_pay_later');
     
     // Get tax, tip, and coupon from POST
     $tax_amount = floatval($_POST['tax_amount'] ?? 0);
@@ -475,7 +476,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_agent = $_SERVER['HTTP_USER_AGENT'];
     $invoice_prefix = 'INV-2025-00';
     $order_time_is_asap = 1;
-    $processed = 1;
+    $processed = $isQrPayLater ? 0 : 1;
     $status_updated_at = date('Y-m-d H:i:s');
     $assignee_updated_at = date('Y-m-d H:i:s');
     $invoice_date = date('Y-m-d H:i:s');
@@ -483,6 +484,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check if updating existing order
     $existing_order_id = isset($_POST['order_id']) ? (int)$_POST['order_id'] : null;
     $is_updating = $existing_order_id && $existing_order_id > 0;
+
+    if ($isQrPayLater && !empty($table_id)) {
+        $paidStatusId = (int)(DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $duplicateQuery = DB::table('orders')
+            ->where('order_type', (string)$table_id)
+            ->where('payment', 'qr_pay_later')
+            ->where('status_id', '!=', $paidStatusId);
+
+        if ($is_updating) {
+            $duplicateQuery->where('order_id', '!=', $existing_order_id);
+        }
+
+        $duplicateOrder = $duplicateQuery->orderByDesc('order_id')->first();
+        if ($duplicateOrder) {
+            echo '<div id="notification"><div class="alert alert-danger flash-message animated fadeInDown alert-dismissible show" data-allow-dismiss="true" role="alert">Pending QR Payment order already exists for this table (Order #' . (int)$duplicateOrder->order_id . ').<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true"></button></div></div>';
+            exit;
+        }
+    }
     
     if ($is_updating) {
         // Update existing order
@@ -807,6 +829,15 @@ foreach ($menu_ids as $key => $menu_id) {
             'title' => 'Total',
             'priority' => 5,
             'value' => $final_total,
+            'is_summable' => 0,
+        ];
+
+        $orderTotals[] = [
+            'order_id' => $last_order_id,
+            'code' => 'payment_method',
+            'title' => 'Payment Method',
+            'priority' => 6,
+            'value' => $payment,
             'is_summable' => 0,
         ];
         
@@ -1187,11 +1218,16 @@ $unavailableTables = DB::table('orders')
                     <div class="payment-method-section" id="payment-method-section" style="display: none;">
                         <h5 style="margin-bottom: 10px; font-weight: 600;">Payment Method</h5>
                         <div class="payment-methods-grid" id="payment-methods-grid">
+                            @php
+                                $hasQrPayLaterMethod = isset($paymentMethods) && $paymentMethods->contains(function ($m) {
+                                    return ($m->code ?? null) === 'qr_pay_later';
+                                });
+                            @endphp
                             @if(isset($paymentMethods) && $paymentMethods->count() > 0)
                                 @foreach($paymentMethods as $method)
                                     <label class="payment-method-option">
                                         <input type="radio" name="payment_method_radio" value="{{ $method->code }}" 
-                                               {{ $method->code === 'cod' ? 'checked' : '' }}>
+                                               {{ (($existingOrder->payment ?? 'cod') === $method->code || (!isset($existingOrder) && $method->code === 'cod')) ? 'checked' : '' }}>
                                         <span class="payment-method-label">{{ $method->name }}</span>
                                     </label>
                                 @endforeach
@@ -1199,6 +1235,13 @@ $unavailableTables = DB::table('orders')
                                 <label class="payment-method-option">
                                     <input type="radio" name="payment_method_radio" value="cod" checked>
                                     <span class="payment-method-label">Cash on Delivery</span>
+                                </label>
+                            @endif
+                            @if(!$hasQrPayLaterMethod)
+                                <label class="payment-method-option">
+                                    <input type="radio" name="payment_method_radio" value="qr_pay_later"
+                                           {{ ($existingOrder->payment ?? '') === 'qr_pay_later' ? 'checked' : '' }}>
+                                    <span class="payment-method-label">QR Payment</span>
                                 </label>
                             @endif
                         </div>
@@ -3596,7 +3639,7 @@ document.addEventListener("DOMContentLoaded", function () {
             };
 
             // State variables
-            let selectedPaymentMethod = 'cod';
+            let selectedPaymentMethod = document.getElementById('payment-method-input')?.value || 'cod';
             let tipPercentage = 0;
             let customTipAmount = 0;
             let appliedCoupon = null;
@@ -3688,6 +3731,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Payment method selection
             const paymentMethodRadios = document.querySelectorAll('input[name="payment_method_radio"]');
+            paymentMethodRadios.forEach(radio => {
+                if (radio.value === selectedPaymentMethod) {
+                    radio.checked = true;
+                }
+            });
             paymentMethodRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     selectedPaymentMethod = this.value;
