@@ -1,6 +1,6 @@
 "use client"
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { formatCurrency } from "@/lib/currency";
 import { categories, menuData, type MenuItem, getMenuData, getCategories } from "@/lib/data";
 import { useLanguageStore } from "@/store/language-store";
@@ -490,6 +490,7 @@ interface PaymentModalProps {
   onClose: () => void;
   items: CartItem[];
   tableInfo?: any;
+  existingOrderId?: number | null;
 }
 
 interface ExpandingBottomToolbarProps {
@@ -684,7 +685,7 @@ function OrderItemWithOptions({
   )
 }
 
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId }: PaymentModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
@@ -1053,6 +1054,39 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         items_count: orderData.items.length,
         first_item: orderData.items[0] || null,
       })
+      if (existingOrderId) {
+        const paidMethod = orderData.payment_method
+        const paidResponse = await apiClient.payExistingQrOrder(existingOrderId, {
+          payment_method: String(paidMethod),
+          payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
+        })
+
+        if (paidResponse?.success) {
+          setIsLoading(false)
+          toast({
+            title: t("paymentSuccessful"),
+            description: `Order #${existingOrderId} paid successfully!`
+          })
+
+          const orderId = String(existingOrderId)
+          localStorage.setItem("lastOrderId", orderId)
+
+          const returnUrl =
+            typeof window !== "undefined"
+              ? `${window.location.pathname}${window.location.search}`
+              : "/menu"
+
+          const params = new URLSearchParams()
+          params.set("order_id", orderId)
+          params.set("return_url", returnUrl)
+
+          clearCart()
+          onClose()
+          router.push(`/order-placed?${params.toString()}`)
+          return
+        }
+      }
+
       const response = await apiClient.submitOrder(orderData)
       
       if (response.success) {
@@ -2994,7 +3028,7 @@ function MenuContent() {
     console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
     console.log("body bg:", getComputedStyle(document.body).background);
   }
-  const { items, toggleCart, addToCart, setTableInfo, clearTableContext } = useCartStore()
+  const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
   const themeBackgroundColor = useThemeBackgroundColor()
   const { t } = useLanguageStore()
   const { toast } = useToast()
@@ -3002,6 +3036,26 @@ function MenuContent() {
   const [isWaiterConfirmOpen, setWaiterConfirmOpen] = useState(false)
   const [note, setNote] = useState("")
   const [tableInfo, setTableInfoState] = useState<any>(null)
+  const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
+  const hydratedPendingOrderRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!existingOrderId) return
+    if (!items || items.length === 0) return
+
+    const timer = setTimeout(() => {
+      try {
+        const state = useCartStore.getState() as any
+        if (state?.isCartOpen !== true) {
+          toggleCart()
+        }
+      } catch (e) {
+        console.error('[PMD] auto-open bill failed', e)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [existingOrderId, items, toggleCart])
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -3087,6 +3141,40 @@ useEffect(() => {
                 qr_code: tableResult.data.qr_code,
                 table_no: prev?.table_no ?? tableResult.data.table_no ?? null
               }))
+
+              const pendingQr = await apiClient.getPendingQrOrderByTable(String(tableResult.data.table_id))
+              if (pendingQr?.success && pendingQr.data?.order_id) {
+                const pendingId = Number(pendingQr.data.order_id)
+                setExistingOrderId(pendingId)
+
+                if (hydratedPendingOrderRef.current !== pendingId) {
+                  clearCart()
+                  pendingQr.data.items.forEach((orderItem) => {
+                    const menuItem = {
+                      id: Number(orderItem.menu_id),
+                      name: String(orderItem.name),
+                      description: "",
+                      price: Number(orderItem.price),
+                      image: "",
+                      category: "Main",
+                    }
+                    addToCart(menuItem as any, Number(orderItem.quantity || 1))
+                  })
+                  hydratedPendingOrderRef.current = pendingId
+
+                  try {
+                    const state = useCartStore.getState() as any
+                    if (state?.isCartOpen !== true) {
+                      useCartStore.setState({ isCartOpen: true })
+                    }
+                  } catch (e) {
+                    console.error('[PMD] open bill after hydrate failed', e)
+                  }
+                }
+              } else {
+                setExistingOrderId(null)
+                hydratedPendingOrderRef.current = null
+              }
             }
           } catch (error) {
             console.error('Failed to fetch table info:', error)
@@ -3110,7 +3198,7 @@ useEffect(() => {
     }
     
     loadMenuData()
-  }, [searchParams, setTableInfo])
+  }, [searchParams, setTableInfo, clearCart, addToCart])
 
   // Add "All" to categories - FIXED VERSION
   const allCategories = useMemo(() => {
@@ -3338,6 +3426,7 @@ useEffect(() => {
         onClose={() => setPaymentModalOpen(false)}
         items={items}
         tableInfo={tableInfo}
+        existingOrderId={existingOrderId}
       />
       <EnhancedWaiterDialog
         isOpen={isWaiterConfirmOpen}

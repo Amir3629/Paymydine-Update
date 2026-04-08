@@ -6,6 +6,7 @@ use Admin\Controllers\StaffAuthController;
 use Admin\Controllers\Biometricdevices;
 use Admin\Controllers\BiometricDevicesAPI;
 use Admin\Controllers\Api\CashDrawerController;
+use Admin\Controllers\Api\PosAgentController;
 use App\Admin\Controllers\NotificationsApiController;
 use Illuminate\Http\Request;
 require_once base_path('app/system/helpers/r2o_outbound_dryrun_helper.php');
@@ -338,6 +339,15 @@ App::before(function () {
             Route::get('{id}/logs', [CashDrawerController::class, 'logs']);
             Route::post('location/{locationId}/open', [CashDrawerController::class, 'openForLocation']);
         });
+
+        // Local POS agent routes (pilot)
+        Route::group(['prefix' => 'api/pos-agent/commands'], function () {
+            Route::get('pull', [PosAgentController::class, 'pull']);
+            Route::match(['get', 'post'], '{id}/ack', [PosAgentController::class, 'ack']);
+        });
+        Route::post('api/pos-agent/pair', [PosAgentController::class, 'pair']);
+        Route::get('cash_drawers/windows_connector/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnector']);
+        Route::get('cash_drawers/windows_connector_agent/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnectorAgent']);
 
         // Other pages
         Route::any('{slug}', 'System\Classes\Controller@runAdmin')
@@ -3613,35 +3623,74 @@ return response()->json([
 
     // Table endpoints
     Route::get('/table-info', function (Request $request) {
-        $tableId = $request->get('table_id');
-        
-        if (!$tableId) {
+        $tableId = trim((string)$request->get('table_id', ''));
+        $tableNo = trim((string)$request->get('table_no', ''));
+        $tableParam = trim((string)$request->get('table', ''));
+        $qrCode  = trim((string)$request->get('qr', ''));
+
+        if ($tableId === '' && $tableNo === '' && $tableParam === '' && $qrCode === '') {
             return response()->json([
-                'error' => 'table_id is required'
+                'success' => false,
+                'error' => 'table_id or table_no or table or qr is required'
             ], 400);
         }
 
         try {
-            $table = DB::table('tables')
-                ->where('table_id', $tableId)
-                ->first();
+            $table = null;
+
+            $candidates = [];
+            foreach ([$tableId, $tableNo, $tableParam] as $v) {
+                if ($v !== '' && !in_array($v, $candidates, true)) {
+                    $candidates[] = $v;
+                }
+            }
+
+            foreach ($candidates as $candidate) {
+                $table = DB::table('tables')
+                    ->where('table_id', $candidate)
+                    ->orWhere('table_no', $candidate)
+                    ->first();
+
+                if ($table) {
+                    break;
+                }
+            }
+
+            if (!$table && $qrCode !== '') {
+                $table = DB::table('tables')
+                    ->where('qr_code', $qrCode)
+                    ->first();
+            }
 
             if (!$table) {
                 return response()->json([
+                    'success' => false,
                     'error' => 'Table not found'
                 ], 404);
             }
 
+            $locationId = 1;
+            try {
+                $locationRow = DB::table('locationables')
+                    ->where('locationable_id', $table->table_id)
+                    ->where('locationable_type', 'tables')
+                    ->first();
+                if ($locationRow && isset($locationRow->location_id)) {
+                    $locationId = (int)$locationRow->location_id;
+                }
+            } catch (\Throwable $e) {}
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'table_id' => $table->table_id,
-                    'table_name' => $table->table_name,
-                    'location_id' => $table->location_id,
+                    'table_id' => (string)$table->table_id,
+                    'table_no' => (string)($table->table_no ?? ''),
+                    'table_name' => (string)$table->table_name,
+                    'location_id' => $locationId,
+                    'qr_code' => (string)($table->qr_code ?? $qrCode),
                     'status' => $table->status ?? 'available'
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -4853,3 +4902,163 @@ Route::post('/payments/worldline/raw-card-probe', function (\Illuminate\Http\Req
 
 
 /* /PMD_WORLDLINE_PHASE1_ROUTES */
+
+// === QR PAY LATER ACTIVE API ROUTES ===
+Route::group([
+    'prefix' => 'api/v1',
+    'middleware' => ['web'],
+], function () {
+    Route::get('/orders/pending-qr', function (\Illuminate\Http\Request $request) {
+        $tableId   = trim((string)$request->get('table_id', ''));
+        $tableNo   = trim((string)$request->get('table_no', ''));
+        $tableParam= trim((string)$request->get('table', ''));
+        $qrInput   = trim((string)$request->get('qr', ''));
+
+        if ($tableId === '' && $tableNo === '' && $tableParam === '' && $qrInput === '') {
+            return response()->json([
+                'success' => false,
+                'error' => 'table_id or table_no or table or qr is required',
+            ], 422);
+        }
+
+        $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $table = null;
+        $inputs = [];
+        foreach ([$tableId, $tableNo, $tableParam] as $v) {
+            if ($v !== '' && !in_array($v, $inputs, true)) {
+                $inputs[] = $v;
+            }
+        }
+
+        foreach ($inputs as $candidate) {
+            $table = \Illuminate\Support\Facades\DB::table('tables')
+                ->where('table_id', $candidate)
+                ->orWhere('table_no', $candidate)
+                ->first();
+            if ($table) break;
+        }
+
+        if (!$table && $qrInput !== '') {
+            $table = \Illuminate\Support\Facades\DB::table('tables')
+                ->where('qr_code', $qrInput)
+                ->first();
+        }
+
+        $candidates = [];
+        foreach ([
+            $tableId,
+            $tableNo,
+            $tableParam,
+            $table ? (string)$table->table_id : null,
+            $table ? (string)$table->table_no : null,
+            $table ? (string)$table->table_name : null,
+        ] as $v) {
+            if ($v !== null && $v !== '' && !in_array($v, $candidates, true)) {
+                $candidates[] = $v;
+            }
+        }
+
+        $order = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('payment', 'qr_pay_later')
+            ->where('status_id', '!=', $paidStatusId)
+            ->where(function ($q) use ($candidates) {
+                foreach ($candidates as $candidate) {
+                    $q->orWhere('order_type', (string)$candidate);
+                    $q->orWhere('comment', 'like', '%Table ID: ' . $candidate . '%');
+                    $q->orWhere('comment', 'like', '%Table: ' . $candidate . '%');
+                }
+            })
+            ->orderByDesc('order_id')
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => true,
+                'data' => null,
+            ]);
+        }
+
+        $items = \Illuminate\Support\Facades\DB::table('order_menus')
+            ->where('order_id', $order->order_id)
+            ->get(['menu_id', 'name', 'quantity', 'price', 'subtotal']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order_id' => (int)$order->order_id,
+                'table_id' => (string)$order->order_type,
+                'payment' => (string)$order->payment,
+                'status_id' => (int)$order->status_id,
+                'order_total' => (float)$order->order_total,
+                'items' => $items,
+            ],
+        ]);
+    });
+
+    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'order_id' => 'required|integer',
+            'payment_method' => 'required|string|max:50',
+            'payment_reference' => 'nullable|string|max:255',
+        ]);
+
+        $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $order = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Order not found',
+            ], 404);
+        }
+
+        if (strtolower((string) $order->payment) !== 'qr_pay_later') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Only qr_pay_later orders can be paid through this endpoint',
+            ], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->update([
+                'status_id' => $paidStatusId,
+                'payment' => strtolower((string) $request->payment_method),
+                'processed' => 1,
+                'updated_at' => now(),
+            ]);
+
+        \Illuminate\Support\Facades\DB::table('order_totals')
+            ->where('order_id', $request->order_id)
+            ->where('code', 'payment_method')
+            ->update([
+                'value' => strtolower((string) $request->payment_method),
+            ]);
+
+        if ($request->filled('payment_reference')) {
+            \Illuminate\Support\Facades\DB::table('order_totals')->insert([
+                'order_id' => $request->order_id,
+                'code' => 'payment_reference',
+                'title' => 'Payment Reference',
+                'value' => (string) $request->payment_reference,
+                'priority' => 0,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int) $request->order_id,
+            'message' => 'Order paid successfully',
+        ]);
+    });
+});
+// === /QR PAY LATER ACTIVE API ROUTES ===
+

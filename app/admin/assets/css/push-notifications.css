@@ -5,9 +5,9 @@
 /* Toast container - top-right position */
 .notification-toast-container {
   position: fixed;
-  top: 80px;
+  top: 100px;
   right: 20px;
-  z-index: 99999;
+  z-index: 999997;
   pointer-events: none;
 }
 
@@ -19,8 +19,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 8px 12px;
   margin-bottom: 8px;
-  min-width: 300px;
-  max-width: 340px;
+  min-width: min(300px, 90vw);
+  max-width: 90vw;
   pointer-events: all;
   position: relative;
   overflow: hidden;
@@ -176,7 +176,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .notification-toast-container {
-    top: 60px;
+    top: 100px;
     right: 10px;
     left: 10px;
   }

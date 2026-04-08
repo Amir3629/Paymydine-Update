@@ -8,11 +8,12 @@ import { Logo } from "@/components/logo"
 import { Car, Utensils } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useSearchParams, useParams } from "next/navigation"
+import { useSearchParams, useParams, useRouter } from "next/navigation"
 import { EnvironmentConfig } from "@/lib/environment-config"
 import { setSavedHome } from "@/lib/table-home"
 import { stickySearch } from "@/lib/sticky-query"
 import { applyTheme } from "@/lib/theme-system"
+import { ApiClient } from "@/lib/api-client"
 
 const MotionLink = motion.create(Link)
 
@@ -20,6 +21,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
   const { setTableInfo } = useCartStore()
+  const router = useRouter()
   const searchParams = useSearchParams()
   
   // ✅ Don't use React's experimental `use(...)` here; this is a client file.
@@ -94,14 +96,27 @@ export default function TableHomePage({ params }: { params: { table_id: string }
         }
         if (!cancelled && res?.success) {
           setTable(res.data)
+          const resolvedTableId = String(res.data.table_id)
           setTableInfo({
-            table_id: String(res.data.table_id),
+            table_id: resolvedTableId,
             table_no: res.data.table_no,
             table_name: res.data.table_name,
             location_id: res.data.location_id,
             qr_code: res.data.qr_code,
             path_table: pathParam,          // keep original path for navigation
           })
+
+          const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId)
+          if (!cancelled && pending?.success && pending?.data?.order_id) {
+            const menuUrl = new URL('/menu', window.location.origin)
+            menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
+            menuUrl.searchParams.set('table_id', resolvedTableId)
+            menuUrl.searchParams.set('table', String(res.data.table_no || pathParam))
+            if (qr) menuUrl.searchParams.set('qr', qr)
+            menuUrl.searchParams.set('pending_order_id', String(pending.data.order_id))
+            router.replace(`${menuUrl.pathname}${menuUrl.search}`)
+            return
+          }
         }
       } catch (e) {
         console.error('Failed to fetch table info:', e)
@@ -114,7 +129,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
       cancelled = true
     }
     // ✅ Fix dependency to use pathParam instead of undefined table_id
-  }, [pathParam, qr, setTableInfo])
+  }, [pathParam, qr, router, setTableInfo])
 
   const cardStyles = "relative flex flex-col items-center backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border w-72 h-56 justify-center surface-sub"
   const iconContainerStyles = "rounded-full p-6 mb-6"

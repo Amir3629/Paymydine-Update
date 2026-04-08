@@ -42,6 +42,18 @@ class CashDrawerService
                 ];
             }
 
+            // Local POS agent execution path (physical hardware on in-store POS terminal)
+            if (config('cashdrawer.local_agent_enabled') && (!empty($drawer->local_pos_device_id) || !empty($drawer->pos_device_id))) {
+                $queued = LocalPosHardwareCommandService::queueOpenDrawer($drawer, $data);
+                if ($queued['success']) {
+                    self::logEvent($drawer, 'queued', array_merge($data, [
+                        'success' => true,
+                        'response_data' => ['command_id' => $queued['command_id'] ?? null],
+                    ]));
+                }
+                return $queued;
+            }
+
             // Create driver
             $driver = CashDrawerDriverFactory::createDriver($drawer);
 

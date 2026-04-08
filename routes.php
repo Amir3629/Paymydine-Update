@@ -737,7 +737,7 @@ Route::group([
                 'items.*.quantity' => 'required|integer|min:1',
                 'items.*.price' => 'required|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
-                'payment_method' => 'required|in:cash,card,paypal'
+                'payment_method' => 'required|in:cash,card,paypal,qr_pay_later'
             ];
             
             // Only require table_id and table_name if not in cashier mode
@@ -749,6 +749,31 @@ Route::group([
             $request->validate($validationRules);
 
             DB::beginTransaction();
+
+            $resolvedPaymentMethod = strtolower((string)($request->payment_method_raw ?: $request->payment_method));
+
+            // Prevent duplicate unpaid QR-pay-later order per table
+            if (!$isCashier && $resolvedPaymentMethod === 'qr_pay_later') {
+                $paidStatusId = (int)(DB::table('statuses')
+                    ->whereRaw('LOWER(status_name) = ?', ['paid'])
+                    ->value('status_id') ?? 10);
+
+                $existingUnpaid = DB::table('orders')
+                    ->where('order_type', (string)$request->table_id)
+                    ->where('payment', 'qr_pay_later')
+                    ->where('status_id', '!=', $paidStatusId)
+                    ->orderByDesc('order_id')
+                    ->first();
+
+                if ($existingUnpaid) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Pending QR payment order already exists for this table',
+                        'existing_order_id' => (int)$existingUnpaid->order_id
+                    ], 409);
+                }
+            }
 
             // Get next order number
             $orderNumber = DB::table('orders')->max('order_id') + 1;
@@ -786,7 +811,7 @@ Route::group([
                 'assignee_id' => null,
                 'comment' => $comment,
                 'processed' => 0,
-                'payment' => $request->payment_method,
+                'payment' => $resolvedPaymentMethod,
                 'total_items' => count($request->items),
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent() ?? 'API Client',
@@ -832,7 +857,7 @@ Route::group([
                 'order_id' => $orderId,
                 'code' => 'payment_method',
                 'title' => 'Payment Method',
-                'value' => $request->payment_method,
+                'value' => $resolvedPaymentMethod,
                 'priority' => 0
             ]);
 
@@ -857,6 +882,109 @@ Route::group([
     });
 
     // Order status endpoints
+    Route::get('/orders/pending-qr', function (Request $request) {
+        $tableId = (string)$request->get('table_id', '');
+        if ($tableId === '') {
+            return response()->json([
+                'success' => false,
+                'error' => 'table_id is required'
+            ], 422);
+        }
+
+        $paidStatusId = (int)(DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $order = DB::table('orders')
+            ->where('order_type', $tableId)
+            ->where('payment', 'qr_pay_later')
+            ->where('status_id', '!=', $paidStatusId)
+            ->orderByDesc('order_id')
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => true,
+                'data' => null
+            ]);
+        }
+
+        $items = DB::table('order_menus')
+            ->where('order_id', $order->order_id)
+            ->get(['menu_id', 'name', 'quantity', 'price', 'subtotal']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order_id' => (int)$order->order_id,
+                'table_id' => (string)$order->order_type,
+                'payment' => (string)$order->payment,
+                'status_id' => (int)$order->status_id,
+                'order_total' => (float)$order->order_total,
+                'items' => $items,
+            ]
+        ]);
+    });
+
+    Route::post('/orders/pay-existing', function (Request $request) {
+        $request->validate([
+            'order_id' => 'required|integer',
+            'payment_method' => 'required|string|max:50',
+            'payment_reference' => 'nullable|string|max:255',
+        ]);
+
+        $paidStatusId = (int)(DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $order = DB::table('orders')->where('order_id', $request->order_id)->first();
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Order not found',
+            ], 404);
+        }
+
+        if (strtolower((string)$order->payment) !== 'qr_pay_later') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Only qr_pay_later orders can be paid through this endpoint',
+            ], 422);
+        }
+
+        DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->update([
+                'status_id' => $paidStatusId,
+                'payment' => strtolower((string)$request->payment_method),
+                'processed' => 1,
+                'updated_at' => now(),
+            ]);
+
+        DB::table('order_totals')
+            ->where('order_id', $request->order_id)
+            ->where('code', 'payment_method')
+            ->update([
+                'value' => strtolower((string)$request->payment_method),
+            ]);
+
+        if ($request->filled('payment_reference')) {
+            DB::table('order_totals')->insert([
+                'order_id' => $request->order_id,
+                'code' => 'payment_reference',
+                'title' => 'Payment Reference',
+                'value' => (string)$request->payment_reference,
+                'priority' => 0
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int)$request->order_id,
+            'message' => 'Order paid successfully'
+        ]);
+    });
+
     Route::get('/order-status', function (Request $request) {
         $orderId = $request->get('order_id');
         
@@ -1238,4 +1366,233 @@ Route::middleware(['web'])->prefix('admin/notifications-api')->group(function ()
 /* === FISKALY_CREATE_CLIENT_AJAX_FINAL === */
 /* === /FISKALY_CREATE_CLIENT_AJAX_FINAL === */
 
+
+
+// === GUARANTEED QR PAY LATER FALLBACK ROUTES ===
+Route::group([
+    'prefix' => 'api/v1',
+    'middleware' => ['web'],
+], function () {
+    Route::get('/orders/pending-qr', function (\Illuminate\Http\Request $request) {
+        $tableId = (string)$request->get('table_id', '');
+        if ($tableId === '') {
+            return response()->json([
+                'success' => false,
+                'error' => 'table_id is required'
+            ], 422);
+        }
+
+        $paidStatusId = (int)(\Illuminate\Support\Facades\DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $order = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_type', $tableId)
+            ->where('payment', 'qr_pay_later')
+            ->where('status_id', '!=', $paidStatusId)
+            ->orderByDesc('order_id')
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => true,
+                'data' => null
+            ]);
+        }
+
+        $items = \Illuminate\Support\Facades\DB::table('order_menus')
+            ->where('order_id', $order->order_id)
+            ->get(['menu_id', 'name', 'quantity', 'price', 'subtotal']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order_id' => (int)$order->order_id,
+                'table_id' => (string)$order->order_type,
+                'payment' => (string)$order->payment,
+                'status_id' => (int)$order->status_id,
+                'order_total' => (float)$order->order_total,
+                'items' => $items,
+            ]
+        ]);
+    });
+
+    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'order_id' => 'required|integer',
+            'payment_method' => 'required|string|max:50',
+            'payment_reference' => 'nullable|string|max:255',
+        ]);
+
+        $paidStatusId = (int)(\Illuminate\Support\Facades\DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $order = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Order not found',
+            ], 404);
+        }
+
+        if (strtolower((string)$order->payment) !== 'qr_pay_later') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Only qr_pay_later orders can be paid through this endpoint',
+            ], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->update([
+                'status_id' => $paidStatusId,
+                'payment' => strtolower((string)$request->payment_method),
+                'processed' => 1,
+                'updated_at' => now(),
+            ]);
+
+        \Illuminate\Support\Facades\DB::table('order_totals')
+            ->where('order_id', $request->order_id)
+            ->where('code', 'payment_method')
+            ->update([
+                'value' => strtolower((string)$request->payment_method),
+            ]);
+
+        if ($request->filled('payment_reference')) {
+            \Illuminate\Support\Facades\DB::table('order_totals')->insert([
+                'order_id' => $request->order_id,
+                'code' => 'payment_reference',
+                'title' => 'Payment Reference',
+                'value' => (string)$request->payment_reference,
+                'priority' => 0
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int)$request->order_id,
+            'message' => 'Order paid successfully'
+        ]);
+    });
+});
+// === /GUARANTEED QR PAY LATER FALLBACK ROUTES ===
+
+
+// === MANUAL QR PAY LATER API ROUTES ===
+Route::group([
+    'prefix' => 'api/v1',
+    'middleware' => ['web'],
+], function () {
+    Route::get('/orders/pending-qr', function (\Illuminate\Http\Request $request) {
+        $tableId = (string) $request->get('table_id', '');
+
+        if ($tableId === '') {
+            return response()->json([
+                'success' => false,
+                'error' => 'table_id is required',
+            ], 422);
+        }
+
+        $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $order = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_type', $tableId)
+            ->where('payment', 'qr_pay_later')
+            ->where('status_id', '!=', $paidStatusId)
+            ->orderByDesc('order_id')
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => true,
+                'data' => null,
+            ]);
+        }
+
+        $items = \Illuminate\Support\Facades\DB::table('order_menus')
+            ->where('order_id', $order->order_id)
+            ->get(['menu_id', 'name', 'quantity', 'price', 'subtotal']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order_id' => (int) $order->order_id,
+                'table_id' => (string) $order->order_type,
+                'payment' => (string) $order->payment,
+                'status_id' => (int) $order->status_id,
+                'order_total' => (float) $order->order_total,
+                'items' => $items,
+            ],
+        ]);
+    });
+
+    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'order_id' => 'required|integer',
+            'payment_method' => 'required|string|max:50',
+            'payment_reference' => 'nullable|string|max:255',
+        ]);
+
+        $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
+
+        $order = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Order not found',
+            ], 404);
+        }
+
+        if (strtolower((string) $order->payment) !== 'qr_pay_later') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Only qr_pay_later orders can be paid through this endpoint',
+            ], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->update([
+                'status_id' => $paidStatusId,
+                'payment' => strtolower((string) $request->payment_method),
+                'processed' => 1,
+                'updated_at' => now(),
+            ]);
+
+        \Illuminate\Support\Facades\DB::table('order_totals')
+            ->where('order_id', $request->order_id)
+            ->where('code', 'payment_method')
+            ->update([
+                'value' => strtolower((string) $request->payment_method),
+            ]);
+
+        if ($request->filled('payment_reference')) {
+            \Illuminate\Support\Facades\DB::table('order_totals')->insert([
+                'order_id' => $request->order_id,
+                'code' => 'payment_reference',
+                'title' => 'Payment Reference',
+                'value' => (string) $request->payment_reference,
+                'priority' => 0,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int) $request->order_id,
+            'message' => 'Order paid successfully',
+        ]);
+    });
+});
+// === /MANUAL QR PAY LATER API ROUTES ===
 

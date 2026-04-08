@@ -504,3 +504,131 @@ div.nk-sidebar-brand {
   }
 }
 
+
+/* ============================================
+   MOBILE ADMIN STABILITY OVERRIDES
+   ============================================ */
+
+.nk-header,
+.navbar-top,
+.nk-header.nk-header-fixed {
+  z-index: 999999 !important;
+}
+
+.nk-sidebar,
+.nk-sidebar-fixed,
+.sidebar,
+.nav-sidebar {
+  z-index: 999998 !important;
+}
+
+#toast-container,
+.toast-container,
+.notification-toast-container {
+  z-index: 999997 !important;
+}
+
+#toast-container,
+.toast-container,
+.notification-toast-container {
+  top: 80px;
+  max-width: 90vw;
+}
+
+@media (max-width: 1199.98px) {
+  .nk-sidebar,
+  .nk-sidebar-fixed,
+  .sidebar,
+  .nav-sidebar {
+    width: min(85vw, 320px);
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .nk-sidebar.show,
+  .nk-sidebar.nk-sidebar-active,
+  .sidebar.show,
+  .nav-sidebar.show,
+  .nav-sidebar.nk-sidebar-active {
+    transform: translateX(0);
+  }
+
+  .navbar-top .navbar-toggler,
+  .navbar-top button.navbar-toggler,
+  .nk-header .navbar-toggler,
+  .nk-header .nk-nav-toggle,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle {
+    position: relative;
+    left: 0;
+    right: auto;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #toast-container,
+  .toast-container,
+  .notification-toast-container {
+    top: 80px;
+    width: 90vw;
+    max-width: 90vw;
+  }
+
+  button,
+  .btn,
+  .btn-icon,
+  .btn-trigger,
+  .navbar-toggler,
+  [type="button"],
+  [type="submit"],
+  [role="button"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea,
+  .form-control {
+    min-height: 40px;
+  }
+}
+
+
+/* PMD final toast/header polish */
+#toast-container,
+.toast-container,
+.notification-toast-container {
+  top: 100px !important;
+}
+
+@media (max-width: 1199.98px) {
+  #toast-container,
+  .toast-container,
+  .notification-toast-container {
+    top: 100px !important;
+    width: min(90vw, 550px) !important;
+    max-width: 90vw !important;
+  }
+
+  .notification-toast,
+  .notification-toast-close,
+  .navbar-top .nav-link,
+  .navbar-top .dropdown-toggle,
+  .navbar-top .navbar-toggler,
+  .navbar-top .nav-link i,
+  .navbar-top .dropdown-toggle i,
+  .navbar-top .navbar-toggler i {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+

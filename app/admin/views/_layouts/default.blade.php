@@ -318,8 +318,5 @@
 })();
 </script>
 
-<!-- Decorative curve replacing star icon -->
-<div class="sidebar-curve-fix"></div>
-
 </body>
 </html>
