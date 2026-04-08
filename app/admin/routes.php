@@ -6,6 +6,7 @@ use Admin\Controllers\StaffAuthController;
 use Admin\Controllers\Biometricdevices;
 use Admin\Controllers\BiometricDevicesAPI;
 use Admin\Controllers\Api\CashDrawerController;
+use Admin\Controllers\Api\PosAgentController;
 use App\Admin\Controllers\NotificationsApiController;
 use Illuminate\Http\Request;
 require_once base_path('app/system/helpers/r2o_outbound_dryrun_helper.php');
@@ -337,6 +338,12 @@ App::before(function () {
             Route::get('{id}/status', [CashDrawerController::class, 'status']);
             Route::get('{id}/logs', [CashDrawerController::class, 'logs']);
             Route::post('location/{locationId}/open', [CashDrawerController::class, 'openForLocation']);
+        });
+
+        // Local POS agent routes (pilot)
+        Route::group(['prefix' => 'api/pos-agent/commands'], function () {
+            Route::get('pull', [PosAgentController::class, 'pull']);
+            Route::match(['get', 'post'], '{id}/ack', [PosAgentController::class, 'ack']);
         });
 
         // Other pages

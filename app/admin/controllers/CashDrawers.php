@@ -7,6 +7,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\AdminLocation;
 use Admin\Models\Cash_drawers_model;
 use Admin\Services\CashDrawerService\CashDrawerService;
+use Admin\Services\CashDrawerService\LocalPosHardwareCommandService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -91,10 +92,19 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        $result = CashDrawerService::testDrawer($drawer);
+        if (config('cashdrawer.local_agent_enabled') && !empty($drawer->pos_device_id)) {
+            $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
+                'trigger_method' => 'manual_test',
+                'requested_by' => optional(admin_auth()->user())->staff_id,
+            ]);
+        } else {
+            $result = CashDrawerService::testDrawer($drawer);
+        }
 
         if ($result['success']) {
-            flash()->success('Connection test successful! Drawer opened.');
+            flash()->success(!empty($result['queued'])
+                ? 'Test command queued for local POS agent.'
+                : 'Connection test successful! Drawer opened.');
         } else {
             flash()->error('Connection test failed: ' . $result['message']);
         }
@@ -112,12 +122,21 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        $result = CashDrawerService::openDrawer($drawer, [
-            'trigger_method' => 'manual',
-        ]);
+        if (config('cashdrawer.local_agent_enabled') && !empty($drawer->pos_device_id)) {
+            $result = LocalPosHardwareCommandService::queueOpenDrawer($drawer, [
+                'trigger_method' => 'manual',
+                'requested_by' => optional(admin_auth()->user())->staff_id,
+            ]);
+        } else {
+            $result = CashDrawerService::openDrawer($drawer, [
+                'trigger_method' => 'manual',
+            ]);
+        }
 
         if ($result['success']) {
-            flash()->success('Cash drawer opened successfully!');
+            flash()->success(!empty($result['queued'])
+                ? 'Open drawer command queued for local POS agent.'
+                : 'Cash drawer opened successfully!');
         } else {
             flash()->error('Failed to open drawer: ' . $result['message']);
         }
