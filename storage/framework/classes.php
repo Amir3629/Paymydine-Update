@@ -194,4 +194,9 @@
   'Admin\\Controllers\\reservations' => 'app/admin/controllers/Reservations.php',
   'Admin\\Actions\\CalendarController' => 'app/admin/actions/CalendarController.php',
   'Admin\\Models\\Assignable_logs_model' => 'app/admin/models/Assignable_logs_model.php',
+  'System\\Controllers\\themes' => 'app/system/controllers/Themes.php',
+  'Main\\FormWidgets\\TemplateEditor' => 'app/main/formwidgets/TemplateEditor.php',
+  'System\\Traits\\RuleInjector' => 'app/system/traits/RuleInjector.php',
+  'System\\Classes\\FormRequest' => 'app/system/classes/FormRequest.php',
+  'System\\Requests\\Theme' => 'app/system/requests/Theme.php',
 );

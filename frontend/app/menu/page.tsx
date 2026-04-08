@@ -3038,6 +3038,44 @@ function MenuContent() {
   const [tableInfo, setTableInfoState] = useState<any>(null)
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
   const hydratedPendingOrderRef = useRef<number | null>(null)
+  const shouldHideCartSheet = !!existingOrderId
+
+  // close side cart for pending QR
+  useEffect(() => {
+    if (!existingOrderId) return
+    try {
+      const state = useCartStore.getState() as any
+      if (state?.isCartOpen === true) {
+        useCartStore.setState({ isCartOpen: false })
+      }
+    } catch (e) {
+      console.error('[PMD] close side cart for pending QR failed', e)
+    }
+  }, [existingOrderId])
+
+  useEffect(() => {
+    if (!existingOrderId) return
+    if (!items || items.length === 0) return
+
+    const timer = setTimeout(() => {
+      try {
+        const state = useCartStore.getState() as any
+        if (state?.isCartOpen === true) {
+          useCartStore.setState({ isCartOpen: false })
+        }
+      } catch (e) {
+        console.error('[PMD] close wrong cart drawer failed', e)
+      }
+
+      try {
+        setPaymentModalOpen(true)
+      } catch (e) {
+        console.error('[PMD] open real checkout bill failed', e)
+      }
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [existingOrderId, items])
 
   useEffect(() => {
     if (!existingOrderId) return
@@ -3161,6 +3199,15 @@ useEffect(() => {
                     addToCart(menuItem as any, Number(orderItem.quantity || 1))
                   })
                   hydratedPendingOrderRef.current = pendingId
+
+                  try {
+                    const state = useCartStore.getState() as any
+                    if (state?.isCartOpen === true) {
+                      useCartStore.setState({ isCartOpen: false })
+                    }
+                  } catch (e) {
+                    console.error('[PMD] close drawer after hydrate failed', e)
+                  }
 
                   try {
                     const state = useCartStore.getState() as any
@@ -3419,7 +3466,9 @@ useEffect(() => {
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
       />
+      {!shouldHideCartSheet && (
       <CartSheet />
+      )}
       <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
       <PaymentModal
         isOpen={isPaymentModalOpen}
