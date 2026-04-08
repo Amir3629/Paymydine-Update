@@ -935,8 +935,30 @@ a i {
     padding-right: 10px !important;
   }
 
+  .navbar-top .navbar-brand {
+    display: none !important;
+  }
+
+  /* Keep only storefront, bell and profile from main menu on mobile */
+  #menu-mainmenu > .nav-item {
+    display: none !important;
+  }
+  #menu-mainmenu > #menuitem-preview,
+  #menu-mainmenu > #notif-root,
+  #menu-mainmenu > .nav-item:last-child {
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  /* Explicitly hide settings trigger on mobile */
+  #menu-mainmenu > .nav-item > .media-toolbar-tooltip-wrap > a[aria-label="Settings"],
+  #menu-mainmenu > .nav-item > a[aria-label="Settings"] {
+    display: none !important;
+  }
+
   .navbar-top .navbar-right {
     gap: 4px !important;
+    min-width: 0 !important;
   }
 
   .navbar-top .navbar-nav {
@@ -954,5 +976,43 @@ a i {
     min-width: 40px !important;
     min-height: 40px !important;
     padding: 0 6px !important;
+  }
+
+  .navbar-top .navbar-toggler {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .navbar-top #menu-mainmenu .nav-link,
+  .navbar-top #menu-mainmenu .dropdown-toggle,
+  .navbar-top #guide-tour-btn {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .nav-sidebar .sidebar-mobile-brand {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-height: 56px !important;
+    padding: 10px 16px 8px !important;
+  }
+
+  .nav-sidebar .sidebar-mobile-brand .logo {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 36px !important;
+  }
+
+  .nav-sidebar .sidebar-mobile-brand .logo-svg {
+    display: inline-block !important;
   }
 }
