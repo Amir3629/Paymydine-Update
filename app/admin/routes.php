@@ -347,6 +347,7 @@ App::before(function () {
         });
         Route::post('api/pos-agent/pair', [PosAgentController::class, 'pair']);
         Route::get('cash_drawers/windows_connector/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnector']);
+        Route::get('cash_drawers/windows_connector_agent/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnectorAgent']);
 
         // Other pages
         Route::any('{slug}', 'System\Classes\Controller@runAdmin')

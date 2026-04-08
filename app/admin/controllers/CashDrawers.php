@@ -10,6 +10,7 @@ use Admin\Models\Cash_drawers_model;
 use Admin\Models\Pos_devices_model;
 use Admin\Services\CashDrawerService\CashDrawerService;
 use Admin\Services\CashDrawerService\LocalPosHardwareCommandService;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -97,6 +98,10 @@ class CashDrawers extends AdminController
         }
 
         if (config('cashdrawer.local_agent_enabled')) {
+            if (!$this->hasLocalHardwareColumns()) {
+                flash()->error('Local hardware is not available for this tenant yet. Please complete the latest system update.');
+                return $this->refresh();
+            }
             $availability = $this->validateLocalDeviceAvailability($drawer);
             if (!$availability['ok']) {
                 flash()->error($availability['message']);
@@ -133,6 +138,10 @@ class CashDrawers extends AdminController
         }
 
         if (config('cashdrawer.local_agent_enabled')) {
+            if (!$this->hasLocalHardwareColumns()) {
+                flash()->error('Local hardware is not available for this tenant yet. Please complete the latest system update.');
+                return $this->refresh();
+            }
             $availability = $this->validateLocalDeviceAvailability($drawer);
             if (!$availability['ok']) {
                 flash()->error($availability['message']);
@@ -281,6 +290,11 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
+        if (!$this->hasLocalHardwareColumns()) {
+            flash()->error('Local hardware setup is not available yet for this tenant. Please run the latest update.');
+            return $this->refresh();
+        }
+
         $device = $drawer->localPosDevice;
         if (!$device) {
             $device = Pos_devices_model::create([
@@ -306,6 +320,46 @@ class CashDrawers extends AdminController
         $drawer->save();
 
         flash()->success('Local hardware setup is ready. Download the Windows connector on the POS terminal to finish.');
+        return $this->refresh();
+    }
+
+    public function onSetupOnThisPos($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        if (!$this->hasLocalHardwareColumns()) {
+            flash()->error('Local hardware setup is not available yet for this tenant. Please run the latest update.');
+            return $this->refresh();
+        }
+
+        $this->setSetupState($drawer, 'setting_up', 'Preparing local POS setup...');
+
+        $this->onEnableLocalHardware($context, $recordId);
+        $drawer->refresh();
+
+        $availability = $this->validateLocalDeviceAvailability($drawer);
+        if (!$availability['ok']) {
+            $this->setSetupState($drawer, 'offline', $availability['message']);
+            flash()->warning($availability['message'].' Use the Advanced section if the POS still needs connector install.');
+            return $this->refresh();
+        }
+
+        $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
+            'trigger_method' => 'setup_wizard',
+            'requested_by' => optional(AdminAuth::user())->staff_id,
+        ]);
+
+        if ($result['success']) {
+            $this->setSetupState($drawer, 'ready', 'POS connected. Test command sent successfully.');
+            flash()->success('POS connected. Local hardware is ready. Test command sent to POS terminal.');
+        } else {
+            $this->setSetupState($drawer, 'test_failed', $result['message'] ?? 'Setup test failed.');
+            flash()->warning('Setup completed but test command failed: '.($result['message'] ?? 'Unknown error'));
+        }
+
         return $this->refresh();
     }
 
@@ -363,17 +417,35 @@ class CashDrawers extends AdminController
         ])->deleteFileAfterSend(true);
     }
 
+    public function windowsConnectorAgent($recordId)
+    {
+        $drawer = Cash_drawers_model::find($recordId);
+        if (!$drawer) {
+            abort(404, 'Cash drawer not found');
+        }
+
+        $agentPath = base_path('tools/local-pos-agent/agent.js');
+        if (!file_exists($agentPath)) {
+            abort(404, 'Agent package not found');
+        }
+
+        return response(file_get_contents($agentPath), 200, [
+            'Content-Type' => 'application/javascript',
+        ]);
+    }
+
     protected function buildWindowsConnectorScript($drawer, $device): string
     {
         $adminBase = rtrim(url(admin_url('/')), '/');
         $token = config('cashdrawer.agent_token');
         $deviceCode = $device->device_code ?: ('POS-'.$device->device_id.'-'.substr(md5($drawer->drawer_id.'-'.time()), 0, 6));
+        $agentUrl = $adminBase.'/cash_drawers/windows_connector_agent/'.$drawer->drawer_id;
 
         return "@echo off\r\n"
             ."setlocal\r\n"
             ."set PMD_DIR=%ProgramData%\\PayMyDine\\LocalPosAgent\r\n"
             ."if not exist \"%PMD_DIR%\" mkdir \"%PMD_DIR%\"\r\n"
-            ."copy /Y \"".base_path('tools\\local-pos-agent\\agent.js')."\" \"%PMD_DIR%\\agent.js\" >nul\r\n"
+            ."powershell -Command \"Invoke-WebRequest -Uri '".$agentUrl."' -OutFile '%PMD_DIR%\\agent.js'\" >nul\r\n"
             ."(echo BACKEND_BASE_URL={$adminBase}&echo POS_AGENT_TOKEN={$token}&echo POS_DEVICE_CODE={$deviceCode}&echo POS_PAIRING_TOKEN={$device->pairing_token}&echo POS_DISPLAY_NAME={$device->name}&echo POLL_INTERVAL_MS=2000) > \"%PMD_DIR%\\.env\"\r\n"
             ."schtasks /create /tn \"PayMyDineLocalPosAgent\" /tr \"node \\\"%PMD_DIR%\\agent.js\\\"\" /sc onlogon /f >nul 2>&1\r\n"
             ."start \"PayMyDine Local Agent\" /min cmd /c \"cd /d %PMD_DIR% && node agent.js >> %PMD_DIR%\\agent.log 2>&1\"\r\n"
@@ -385,6 +457,10 @@ class CashDrawers extends AdminController
     {
         if (!$drawer) {
             return ['state' => 'not_configured', 'message' => 'Local hardware is not configured.'];
+        }
+
+        if (!$this->hasLocalHardwareColumns()) {
+            return ['state' => 'not_configured', 'message' => 'Local hardware setup is unavailable for this tenant version.'];
         }
 
         $device = $drawer->localPosDevice;
@@ -401,5 +477,26 @@ class CashDrawers extends AdminController
         }
 
         return ['state' => 'online', 'message' => 'Local hardware is enabled and terminal is online.', 'device' => $device, 'drawer' => $drawer];
+    }
+
+    protected function hasLocalHardwareColumns(): bool
+    {
+        return Schema::hasColumn('cash_drawers', 'local_pos_device_id')
+            && Schema::hasColumn('cash_drawers', 'setup_state')
+            && Schema::hasColumn('pos_devices', 'is_local_terminal');
+    }
+
+    protected function setSetupState($drawer, string $state, string $message): void
+    {
+        if (!$this->hasLocalHardwareColumns()) {
+            return;
+        }
+
+        $drawer->setup_state = $state;
+        $drawer->setup_message = $message;
+        if ($state === 'ready') {
+            $drawer->setup_completed_at = now();
+        }
+        $drawer->save();
     }
 }
