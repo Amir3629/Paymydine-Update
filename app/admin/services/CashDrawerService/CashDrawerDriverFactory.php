@@ -3,6 +3,7 @@
 namespace Admin\Services\CashDrawerService;
 
 use Admin\Models\Cash_drawers_model;
+use Admin\Models\Pos_devices_model;
 use Admin\Services\CashDrawerService\Drivers\RJ11PrinterDriver;
 use Admin\Services\CashDrawerService\Drivers\USBCashDrawerDriver;
 use Admin\Services\CashDrawerService\Drivers\SerialCashDrawerDriver;
@@ -25,8 +26,30 @@ class CashDrawerDriverFactory
         try {
             switch ($drawer->connection_type) {
                 case 'rj11_printer':
+                    $printerPath = $drawer->device_path ?? '';
+
+                    if (empty($printerPath) && !empty($drawer->printer_id)) {
+                        $printerDevice = Pos_devices_model::find($drawer->printer_id);
+                        if ($printerDevice) {
+                            foreach (['device_path', 'printer_path', 'path', 'port', 'printer_name', 'name', 'ip_address', 'host'] as $field) {
+                                $value = $printerDevice->{$field} ?? null;
+                                if (!empty($value)) {
+                                    $printerPath = $value;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    Log::info('Cash Drawer: Resolved RJ11 printer path', [
+                        'drawer_id' => $drawer->drawer_id,
+                        'printer_id' => $drawer->printer_id,
+                        'resolved_path' => $printerPath,
+                        'source' => !empty($drawer->device_path) ? 'drawer.device_path' : (!empty($printerPath) ? 'printer_device_lookup' : 'unresolved'),
+                    ]);
+
                     return new RJ11PrinterDriver(
-                        $drawer->device_path ?? '',
+                        $printerPath,
                         $drawer->esc_pos_command ?? '27,112,0,60,120'
                     );
 
