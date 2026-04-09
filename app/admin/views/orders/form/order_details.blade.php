@@ -19,6 +19,12 @@
             $pmdSplitTransactions = collect();
             $pmdSplitItemsByTx = [];
             if ($pmdHasSplitTables) {
+                $pmdAllocationColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
+                    ? 'order_menu_id'
+                    : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_item_id')
+                        ? 'order_item_id'
+                        : 'menu_id');
+                $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
                 $pmdSplitTransactions = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
                     ->where('order_id', (int)$formModel->order_id)
                     ->orderByDesc('id')
@@ -26,9 +32,9 @@
                 $pmdTxIds = $pmdSplitTransactions->pluck('id')->all();
                 if (!empty($pmdTxIds)) {
                     $pmdItemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-                        ->leftJoin('order_menus as om', 'om.order_menu_id', '=', 'ti.order_menu_id')
+                        ->leftJoin('order_menus as om', $pmdJoinLeft, '=', 'ti.'.$pmdAllocationColumn)
                         ->whereIn('ti.transaction_id', $pmdTxIds)
-                        ->get(['ti.transaction_id', 'ti.quantity_paid', 'ti.unit_price', 'ti.line_total', 'om.name', 'om.menu_id']);
+                        ->get(['ti.transaction_id', 'ti.quantity_paid', 'ti.unit_price', 'ti.line_total', 'om.name', 'om.menu_id', 'om.order_menu_id']);
                     foreach ($pmdItemRows as $pmdItemRow) {
                         $txId = (int)$pmdItemRow->transaction_id;
                         $pmdSplitItemsByTx[$txId] = $pmdSplitItemsByTx[$txId] ?? [];

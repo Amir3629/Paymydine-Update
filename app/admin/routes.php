@@ -4665,15 +4665,19 @@ Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionI
         $tableName = (string)($order->order_type ?? '');
     }
 
+    $allocationMeta = pmdResolveSplitAllocationColumn();
+    $allocationColumn = $allocationMeta['column'];
+    $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
     $items = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-        ->leftJoin('order_menus as om', 'om.order_menu_id', '=', 'ti.order_menu_id')
+        ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
         ->where('ti.transaction_id', (int)$transactionId)
         ->get([
-            'ti.order_menu_id',
+            'ti.'.$allocationColumn.' as allocation_key',
             'ti.quantity_paid',
             'ti.unit_price',
             'ti.line_total',
             'om.name',
+            'om.order_menu_id',
             'om.menu_id',
         ]);
 
@@ -4954,6 +4958,30 @@ Route::post('/payments/worldline/raw-card-probe', function (\Illuminate\Http\Req
 
 /* /PMD_WORLDLINE_PHASE1_ROUTES */
 
+if (!function_exists('pmdResolveSplitAllocationColumn')) {
+    function pmdResolveSplitAllocationColumn(): array
+    {
+        $hasTable = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
+        if (!$hasTable) {
+            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')) {
+            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_item_id')) {
+            return ['column' => 'order_item_id', 'mode' => 'order_menu_id'];
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'menu_id')) {
+            return ['column' => 'menu_id', 'mode' => 'menu_id_legacy'];
+        }
+
+        return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+    }
+}
+
 // === QR PAY LATER ACTIVE API ROUTES ===
 Route::group([
     'prefix' => 'api/v1',
@@ -5070,27 +5098,44 @@ Route::group([
 
         $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
             && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
+        $allocationMeta = pmdResolveSplitAllocationColumn();
+        $allocationColumn = $allocationMeta['column'];
+        $allocationMode = $allocationMeta['mode'];
         $paidQtyByOrderMenu = [];
+        $paidQtyByMenu = [];
 
         if ($hasSplitTables) {
             $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as t')
                 ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
                 ->where('t.order_id', $order->order_id)
                 ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
-                ->selectRaw('ti.order_menu_id, SUM(ti.quantity_paid) as qty_paid')
-                ->groupBy('ti.order_menu_id')
+                ->selectRaw("ti.{$allocationColumn} as alloc_key, SUM(ti.quantity_paid) as qty_paid")
+                ->groupBy("ti.{$allocationColumn}")
                 ->get();
 
             foreach ($paidRows as $paidRow) {
-                $paidQtyByOrderMenu[(int)$paidRow->order_menu_id] = (float)$paidRow->qty_paid;
+                if ($allocationMode === 'menu_id_legacy') {
+                    $paidQtyByMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                } else {
+                    $paidQtyByOrderMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                }
             }
         }
 
         $items = [];
         $computedRemainingAmount = 0.0;
+        $consumedPaidByMenu = [];
         foreach ($rawItems as $orderItem) {
             $orderedQty = (float)($orderItem->quantity ?? 0);
-            $paidQty = (float)($paidQtyByOrderMenu[(int)$orderItem->order_menu_id] ?? 0);
+            if ($allocationMode === 'menu_id_legacy') {
+                $menuId = (int)($orderItem->menu_id ?? 0);
+                $menuPaidTotal = (float)($paidQtyByMenu[$menuId] ?? 0);
+                $alreadyConsumed = (float)($consumedPaidByMenu[$menuId] ?? 0);
+                $paidQty = max(0, min($orderedQty, $menuPaidTotal - $alreadyConsumed));
+                $consumedPaidByMenu[$menuId] = $alreadyConsumed + $paidQty;
+            } else {
+                $paidQty = (float)($paidQtyByOrderMenu[(int)$orderItem->order_menu_id] ?? 0);
+            }
             if ($paidQty > $orderedQty) {
                 $paidQty = $orderedQty;
             }
@@ -5197,11 +5242,16 @@ Route::group([
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
         $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
             && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
+        $allocationMeta = pmdResolveSplitAllocationColumn();
+        $allocationColumn = $allocationMeta['column'];
+        $allocationMode = $allocationMeta['mode'];
+        $hasAllocOrderMenuColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id');
+        $hasAllocMenuIdColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'menu_id');
         $selectedItemsPayload = collect($request->input('selected_items', []));
         $transactionId = null;
 
         try {
-            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $hasSplitTables, $selectedItemsPayload, &$transactionId) {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId) {
                 $lockedOrder = \Admin\Models\Orders_model::query()
                     ->where('order_id', $order->order_id)
                     ->lockForUpdate()
@@ -5213,26 +5263,40 @@ Route::group([
 
                 $remainingByOrderMenu = [];
                 $paidQtyByOrderMenu = [];
+                $paidQtyByMenu = [];
 
                 if ($hasSplitTables) {
                     $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as t')
                         ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
                         ->where('t.order_id', $lockedOrder->order_id)
                         ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
-                        ->selectRaw('ti.order_menu_id, SUM(ti.quantity_paid) as qty_paid')
-                        ->groupBy('ti.order_menu_id')
+                        ->selectRaw("ti.{$allocationColumn} as alloc_key, SUM(ti.quantity_paid) as qty_paid")
+                        ->groupBy("ti.{$allocationColumn}")
                         ->get();
                     foreach ($paidRows as $paidRow) {
-                        $paidQtyByOrderMenu[(int)$paidRow->order_menu_id] = (float)$paidRow->qty_paid;
+                        if ($allocationMode === 'menu_id_legacy') {
+                            $paidQtyByMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                        } else {
+                            $paidQtyByOrderMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                        }
                     }
                 }
 
                 $remainingTotal = 0.0;
+                $consumedPaidByMenu = [];
                 foreach ($orderMenus as $menuRow) {
                     $orderedQty = (float)($menuRow->quantity ?? 0);
                     $lineSubtotal = (float)($menuRow->subtotal ?? 0);
                     $unitPrice = $orderedQty > 0 ? round($lineSubtotal / $orderedQty, 4) : round((float)($menuRow->price ?? 0), 4);
-                    $paidQty = min($orderedQty, (float)($paidQtyByOrderMenu[(int)$menuRow->order_menu_id] ?? 0));
+                    if ($allocationMode === 'menu_id_legacy') {
+                        $menuId = (int)($menuRow->menu_id ?? 0);
+                        $menuPaidTotal = (float)($paidQtyByMenu[$menuId] ?? 0);
+                        $alreadyConsumed = (float)($consumedPaidByMenu[$menuId] ?? 0);
+                        $paidQty = max(0, min($orderedQty, $menuPaidTotal - $alreadyConsumed));
+                        $consumedPaidByMenu[$menuId] = $alreadyConsumed + $paidQty;
+                    } else {
+                        $paidQty = min($orderedQty, (float)($paidQtyByOrderMenu[(int)$menuRow->order_menu_id] ?? 0));
+                    }
                     $remainingQty = round(max(0, $orderedQty - $paidQty), 3);
                     if ($remainingQty > 0) {
                         $remainingByOrderMenu[(int)$menuRow->order_menu_id] = ['row' => $menuRow, 'remaining_qty' => $remainingQty, 'unit_price' => $unitPrice];
@@ -5321,15 +5385,24 @@ Route::group([
                     ]);
                     $insertRows = [];
                     foreach ($allocationRows as $allocationRow) {
-                        $insertRows[] = [
+                        $insertRow = [
                             'transaction_id' => $transactionId,
-                            'order_menu_id' => $allocationRow['order_menu_id'],
+                            $allocationColumn => $allocationMode === 'menu_id_legacy'
+                                ? $allocationRow['menu_id']
+                                : $allocationRow['order_menu_id'],
                             'quantity_paid' => $allocationRow['quantity_paid'],
                             'unit_price' => $allocationRow['unit_price'],
                             'line_total' => $allocationRow['line_total'],
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
+                        if ($hasAllocOrderMenuColumn) {
+                            $insertRow['order_menu_id'] = $allocationRow['order_menu_id'];
+                        }
+                        if ($hasAllocMenuIdColumn) {
+                            $insertRow['menu_id'] = $allocationRow['menu_id'];
+                        }
+                        $insertRows[] = $insertRow;
                     }
                     \Illuminate\Support\Facades\DB::table('order_payment_transaction_items')->insert($insertRows);
                 }
@@ -5454,12 +5527,24 @@ Route::group([
             ->orderByDesc('id')
             ->get();
         $txIds = $transactions->pluck('id')->all();
+        $allocationMeta = pmdResolveSplitAllocationColumn();
+        $allocationColumn = $allocationMeta['column'];
+        $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
         $itemsByTx = [];
         if (!empty($txIds)) {
             $itemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-                ->leftJoin('order_menus as om', 'om.order_menu_id', '=', 'ti.order_menu_id')
+                ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
                 ->whereIn('ti.transaction_id', $txIds)
-                ->get(['ti.transaction_id', 'ti.order_menu_id', 'ti.quantity_paid', 'ti.unit_price', 'ti.line_total', 'om.menu_id', 'om.name']);
+                ->get([
+                    'ti.transaction_id',
+                    'ti.'.$allocationColumn.' as allocation_key',
+                    'ti.quantity_paid',
+                    'ti.unit_price',
+                    'ti.line_total',
+                    'om.order_menu_id',
+                    'om.menu_id',
+                    'om.name',
+                ]);
             foreach ($itemRows as $itemRow) {
                 $itemsByTx[(int)$itemRow->transaction_id] = $itemsByTx[(int)$itemRow->transaction_id] ?? [];
                 $itemsByTx[(int)$itemRow->transaction_id][] = $itemRow;
@@ -5480,7 +5565,7 @@ Route::group([
                 'receipt_url' => url('admin/orders/split-receipt/'.$id),
                 'items' => array_map(function ($row) {
                     return [
-                        'order_menu_id' => (int)$row->order_menu_id,
+                        'order_menu_id' => (int)($row->order_menu_id ?? 0),
                         'menu_id' => (int)($row->menu_id ?? 0),
                         'name' => (string)($row->name ?? ''),
                         'quantity_paid' => (float)$row->quantity_paid,
