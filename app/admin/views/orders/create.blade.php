@@ -489,11 +489,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $paidStatusId = (int)(DB::table('statuses')
             ->whereRaw('LOWER(status_name) = ?', ['paid'])
             ->value('status_id') ?? 10);
+        $hasSettlementStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status');
 
         $duplicateQuery = DB::table('orders')
             ->where('order_type', (string)$table_id)
             ->where('payment', 'qr_pay_later')
-            ->where('status_id', '!=', $paidStatusId);
+            ->when($hasSettlementStatusColumn, function ($q) {
+                $q->where('settlement_status', '!=', 'paid');
+            }, function ($q) use ($paidStatusId) {
+                $q->where('status_id', '!=', $paidStatusId);
+            });
 
         if ($is_updating) {
             $duplicateQuery->where('order_id', '!=', $existing_order_id);
@@ -892,8 +897,26 @@ foreach ($menu_ids as $key => $menu_id) {
     <?php
 $statuses = DB::table('statuses')->where('status_name', 'Paid')->first();
 $status_id = $statuses ? $statuses->status_id : 10; // Default to 10 if no 'Paid' status found
+$hasSettlementStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status');
 $unavailableTables = DB::table('orders')
-    ->where('status_id', '!=', $status_id)
+    ->where(function ($q) use ($status_id, $hasSettlementStatusColumn) {
+        $q->where(function ($sub) use ($status_id) {
+            $sub->where('payment', '!=', 'qr_pay_later')
+                ->where('status_id', '!=', $status_id);
+        });
+
+        if ($hasSettlementStatusColumn) {
+            $q->orWhere(function ($sub) {
+                $sub->where('payment', 'qr_pay_later')
+                    ->where('settlement_status', '!=', 'paid');
+            });
+        } else {
+            $q->orWhere(function ($sub) use ($status_id) {
+                $sub->where('payment', 'qr_pay_later')
+                    ->where('status_id', '!=', $status_id);
+            });
+        }
+    })
     ->pluck('order_type')
     ->toArray();
 ?>
@@ -935,7 +958,16 @@ $unavailableTables = DB::table('orders')
                         // Get actual order status for this table from the admin orders panel
                         $tableOrder = DB::table('orders')
                             ->where('order_type', $row->table_name)
-                            ->where('status_id', '!=', 10) // Exclude paid orders (status 10)
+                            ->where(function ($q) use ($hasSettlementStatusColumn) {
+                                if ($hasSettlementStatusColumn) {
+                                    $q->where(function ($sub) {
+                                        $sub->where('payment', '!=', 'qr_pay_later')
+                                            ->orWhere('settlement_status', '!=', 'paid');
+                                    });
+                                } else {
+                                    $q->where('status_id', '!=', 10); // Legacy fallback
+                                }
+                            })
                             ->orderBy('created_at', 'desc')
                             ->first();
                         

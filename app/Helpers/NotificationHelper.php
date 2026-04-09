@@ -246,7 +246,10 @@ class NotificationHelper
                 'preparation' => 'Order in Preparation', 
                 'ready' => 'Order Ready',
                 'delivered' => 'Order Delivered',
-                'cancelled' => 'Order Cancelled'
+                'cancelled' => 'Order Cancelled',
+                'partial_payment' => 'Order Partially Paid',
+                'full_payment' => 'Order Fully Paid',
+                'paid' => 'Order Fully Paid',
             ];
             
             $statusMessage = $statusMessages[$data['status']] ?? 'Order Status Updated';
