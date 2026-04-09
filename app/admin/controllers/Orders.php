@@ -96,6 +96,14 @@ class Orders extends \Admin\Classes\AdminController
         $paymentMethods = Payments_model::isEnabled()
             ->orderBy('priority')
             ->get(['code', 'name', 'priority']);
+        $paymentMethods = $paymentMethods->map(function ($method) {
+            $method->code = strtolower((string)$method->code);
+            $method->name = trim((string)$method->name) !== ''
+                ? trim((string)$method->name)
+                : ucwords(str_replace('_', ' ', (string)$method->code));
+
+            return $method;
+        })->values();
         
         // Load tax settings
         $settings = DB::table('settings')->get()->keyBy('item');
