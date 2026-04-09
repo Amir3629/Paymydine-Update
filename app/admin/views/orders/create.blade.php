@@ -1193,6 +1193,9 @@ $unavailableTables = DB::table('orders')
 
         <!-- Selected Items Container -->
         <div class="selected-items-container" id="selected-items-container">
+            <div class="checkout-section-title">
+                <h5>Order Summary</h5>
+            </div>
             <div class="empty-cart">
                 <div class="empty-cart-icon">
                     <i class="fas fa-shopping-cart"></i>
@@ -1202,34 +1205,35 @@ $unavailableTables = DB::table('orders')
         </div>
 
                     <!-- Tip Section -->
-                    <div class="tip-section" id="tip-section" style="display: none;">
-                        <h5 style="margin-bottom: 10px; font-weight: 600;">Tip</h5>
+                    <div class="tip-section checkout-card-section" id="tip-section" style="display: none;">
+                        <h5>Add Tip</h5>
                         <div class="tip-buttons">
                             <button type="button" class="tip-btn" data-tip="0">0%</button>
                             <button type="button" class="tip-btn" data-tip="5">5%</button>
                             <button type="button" class="tip-btn" data-tip="10">10%</button>
                         </div>
-                        <div class="custom-tip-input" style="margin-top: 10px;">
-                            <label>Custom Amount: $</label>
+                        <div class="custom-tip-input">
+                            <label>Custom Amount</label>
                             <input type="number" id="custom-tip-input" class="form-control" 
-                                   placeholder="0.00" step="0.01" min="0" style="display: inline-block; width: 120px;">
+                                   placeholder="0.00" step="0.01" min="0">
                         </div>
                     </div>
 
                     <!-- Coupon Section -->
-                    <div class="coupon-section" id="coupon-section" style="display: none;">
-                        <h5 style="margin-bottom: 10px; font-weight: 600;">Coupon Code</h5>
+                    <div class="coupon-section checkout-card-section" id="coupon-section" style="display: none;">
+                        <h5>Coupon</h5>
                         <div class="coupon-input-group">
                             <input type="text" id="coupon-code-field" class="form-control" 
                                    placeholder="Enter coupon code" style="text-transform: uppercase;">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="apply-coupon-btn">Apply</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="remove-coupon-btn" style="display: none;">Remove</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary checkout-btn" id="apply-coupon-btn">Apply</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger checkout-btn danger" id="remove-coupon-btn" style="display: none;">Remove</button>
                         </div>
                         <div id="coupon-message" class="coupon-message" style="display: none;"></div>
                     </div>
 
-                    <!-- Order Summary Section -->
-                    <div class="order-summary-section" id="order-summary-section" style="display: none;">
+                    <!-- Totals Section -->
+                    <div class="order-summary-section checkout-card-section" id="order-summary-section" style="display: none;">
+                        <h5>Totals</h5>
                         <div class="summary-row">
                             <span>Subtotal:</span>
                             <span id="summary-subtotal">$0.00</span>
@@ -1253,18 +1257,21 @@ $unavailableTables = DB::table('orders')
                     </div>
 
                     <!-- Payment Method Selection -->
-                    <div class="payment-method-section" id="payment-method-section" style="display: none;">
-                        <h5 style="margin-bottom: 10px; font-weight: 600;">Payment Methods</h5>
+                    <div class="payment-method-section checkout-card-section" id="payment-method-section" style="display: none;">
+                        <h5>Payment Methods</h5>
                         <div class="payment-methods-grid" id="payment-methods-grid">
                             @foreach(($paymentMethods ?? collect()) as $method)
                                 <label class="payment-method-option">
                                     <input type="radio" name="payment_method_radio" value="{{ $method->code }}"
                                            {{ (($existingOrder->payment ?? $defaultPaymentCode) === $method->code) ? 'checked' : '' }}>
-                                    <span class="payment-method-label">{{ $method->name }}</span>
+                                    <span class="payment-method-label">
+                                        <span class="payment-method-icon">{{ strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $method->name), 0, 2)) ?: 'PM' }}</span>
+                                        <span class="payment-method-name">{{ $method->name }}</span>
+                                    </span>
                                 </label>
                             @endforeach
                             @if(!isset($paymentMethods) || $paymentMethods->count() === 0)
-                                <p class="text-muted mb-0">No payment methods available.</p>
+                                <div class="payment-empty-state">No payment methods available.</div>
                             @endif
                         </div>
                     </div>
@@ -3064,217 +3071,279 @@ body, html {
     overflow-y: auto !important;
 }
 
-/* Order Summary Section Styles */
-.order-summary-section {
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin: 15px 0;
-    border: 1px solid #dee2e6;
+/* Checkout-bill card polish (frontend-like hierarchy) */
+.toolbar-glass {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
+    border-radius: 20px;
+    padding: 16px;
+}
+
+.toolbar-header {
+    border-bottom: 1px solid #eef1f4;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+.toolbar-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.checkout-section-title h5,
+.checkout-card-section h5 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    margin: 0 0 10px;
+}
+
+.selected-items-container {
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e6ebf0;
+    border-radius: 16px;
+    margin-bottom: 12px;
+}
+
+.selected-item-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #edf2f7;
+    border-radius: 14px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.selected-item-card:last-child { margin-bottom: 0; }
+
+.selected-item-image {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #f3f4f6;
+}
+
+.selected-item-info { flex: 1; min-width: 0; }
+
+.selected-item-name {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.selected-item-price {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #364a63;
+}
+
+.quantity-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 3px 6px;
+}
+
+.qty-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #111827;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.qty-btn.danger { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+.qty-display { min-width: 14px; text-align: center; font-weight: 700; font-size: 12px; color: #1f2937; }
+
+.checkout-card-section {
+    padding: 12px;
+    background: #ffffff;
+    border-radius: 16px;
+    margin: 10px 0;
+    border: 1px solid #e8edf2;
+}
+
+.tip-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.tip-btn {
+    min-width: 56px;
+    padding: 7px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.tip-btn:hover { border-color: #364a63; color: #1f2937; }
+.tip-btn.active { border-color: #364a63; background: #364a63; color: #ffffff; }
+
+.custom-tip-input { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.custom-tip-input label { font-size: 12px; color: #6b7280; min-width: 92px; }
+.custom-tip-input .form-control { height: 34px !important; border: 1px solid #dbe3ea !important; border-radius: 10px !important; }
+
+.coupon-input-group { display: flex; gap: 8px; align-items: center; }
+.coupon-input-group .form-control {
+    flex: 1;
+    height: 36px !important;
+    border: 1px solid #dbe3ea !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+}
+
+.checkout-btn {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    min-height: 36px !important;
 }
 
 .summary-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #e9ecef;
-    font-size: 14px;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13px;
+    color: #475569;
 }
 
-.summary-row:last-child {
-    border-bottom: none;
+.summary-row span:last-child {
+    font-weight: 700;
+    color: #111827;
 }
 
 .summary-total {
-    margin-top: 10px;
+    margin-top: 6px;
     padding-top: 10px;
-        border-top: 2px solid #2c3e50;
-    font-size: 16px;
+    border-top: 1px solid #dbe3ea;
 }
 
 .summary-total span {
-    color: #2c3e50;
-}
-
-/* Payment Method Section Styles */
-.payment-method-section {
-    padding: 15px;
-    background: #ffffff;
-    border-radius: 8px;
-    margin: 15px 0;
-    border: 1px solid #dee2e6;
-}
-
-.payment-method-section h5 {
-    color: #2c3e50;
-    margin-bottom: 15px;
+    color: #0f172a !important;
+    font-size: 15px;
 }
 
 .payment-methods-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
     gap: 10px;
 }
 
 .payment-method-option {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
+    display: block;
+    margin: 0;
     cursor: pointer;
-    transition: all 0.3s ease;
-    background: #ffffff;
-}
-
-.payment-method-option:hover {
-    border-color: #2c3e50;
-    background: #f0f9f5;
 }
 
 .payment-method-option input[type="radio"] {
-    margin-right: 8px;
-    cursor: pointer;
-}
-
-.payment-method-option input[type="radio"]:checked + .payment-method-label {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.payment-method-option:has(input[type="radio"]:checked) {
-    border-color: #2c3e50;
-    background: #f0f4f8;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .payment-method-label {
-    cursor: pointer;
-    font-size: 14px;
-    color: #495057;
-}
-
-/* Coupon Section Styles */
-.coupon-section {
-    padding: 15px;
-    background: #ffffff;
-    border-radius: 8px;
-    margin: 15px 0;
-    border: 1px solid #dee2e6;
-}
-
-.coupon-section h5 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-}
-
-.coupon-input-group {
     display: flex;
-    gap: 10px;
     align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 10px 12px;
+    border: 1px solid #d9e2ec;
+    border-radius: 12px;
+    background: #ffffff;
+    transition: all 0.2s ease;
 }
 
-.coupon-input-group .form-control {
-    flex: 1;
-    padding: 10px;
-    border: 2px solid #dee2e6;
-    border-radius: 6px;
-    font-size: 14px;
+.payment-method-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2ff;
+    color: #364a63;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
 }
 
-.coupon-input-group .form-control:focus {
-    border-color: #2c3e50;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+.payment-method-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.payment-method-option:hover .payment-method-label {
+    border-color: #b7c6d8;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.payment-method-option input[type="radio"]:checked + .payment-method-label {
+    border-color: #364a63;
+    background: #f0f4f8;
+    box-shadow: 0 0 0 2px rgba(54, 74, 99, 0.15);
+}
+
+.payment-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 12px;
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    color: #6b7280;
+    font-size: 13px;
 }
 
 .coupon-message {
     margin-top: 10px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12px;
 }
 
-.coupon-message.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+.coupon-message.success { background: #ecfdf3; color: #166534; border: 1px solid #bbf7d0; }
+.coupon-message.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+.toolbar-footer {
+    margin-top: 12px;
+    border-top: 1px solid #eef1f4;
+    padding-top: 12px;
 }
 
-.coupon-message.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+.toolbar-footer .total-price {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
 }
 
-/* Tip Section Styles */
-.tip-section {
-    padding: 15px;
-    background: #ffffff;
-    border-radius: 8px;
-    margin: 15px 0;
-    border: 1px solid #dee2e6;
-}
-
-.tip-section h5 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-}
-
-.tip-buttons {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.tip-btn {
-    flex: 1;
-    min-width: 60px;
-    padding: 10px 15px;
-    border: 2px solid #dee2e6;
-    border-radius: 6px;
-    background: #ffffff;
-    color: #495057;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.tip-btn:hover {
-    border-color: #2c3e50;
-    background: #f0f4f8;
-    color: #2c3e50;
-}
-
-.tip-btn.active {
-    border-color: #2c3e50;
-    background: #2c3e50;
-    color: #ffffff;
-}
-
-.custom-tip-input {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.custom-tip-input label {
-    font-size: 14px;
-    color: #495057;
-    font-weight: 500;
-}
-
-.custom-tip-input .form-control {
-    padding: 8px 12px;
-    border: 2px solid #dee2e6;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.custom-tip-input .form-control:focus {
-    border-color: #2c3e50;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+#place-order-btn.btn {
+    border-radius: 12px !important;
+    min-height: 42px !important;
+    font-weight: 700 !important;
+    background: #364a63 !important;
+    border: 1px solid #364a63 !important;
 }
 
     </style>
@@ -3944,7 +4013,7 @@ document.addEventListener("DOMContentLoaded", function () {
                              <img src="${itemData.image}" alt="${itemData.name}" class="selected-item-image">
                              <div class="selected-item-info">
                                  <h4 class="selected-item-name">${itemData.name}</h4>
-                                 <p class="selected-item-price">$${itemData.price}</p>
+                                 <p class="selected-item-price">$${(parseFloat(itemData.price) || 0).toFixed(2)}</p>
                                  ${sidesDisplay}
     </div>
                              <div class="selected-item-actions">
