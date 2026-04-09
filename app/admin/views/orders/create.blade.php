@@ -380,7 +380,10 @@
     <input type="hidden" name="menu_price[]" id="menu-prices" value="">
     <input type="hidden" name="qty[]" id="menu-quantities" value="">
     <input type="hidden" name="menu_name[]" id="menu-names" value="">
-    <input type="hidden" name="payment_method" id="payment-method-input" value="{{ $existingOrder->payment ?? 'cod' }}">
+    @php
+        $defaultPaymentCode = $existingOrder->payment ?? (($paymentMethods->first()->code ?? ''));
+    @endphp
+    <input type="hidden" name="payment_method" id="payment-method-input" value="{{ $defaultPaymentCode }}">
     <input type="hidden" name="tax_amount" id="tax-amount-input" value="0">
     <input type="hidden" name="tip_amount" id="tip-amount-input" value="0">
     <input type="hidden" name="coupon_code" id="coupon-code-input" value="">
@@ -1190,6 +1193,35 @@ $unavailableTables = DB::table('orders')
             </div>
         </div>
 
+                    <!-- Tip Section -->
+                    <div class="tip-section" id="tip-section" style="display: none;">
+                        <h5 style="margin-bottom: 10px; font-weight: 600;">Tip</h5>
+                        <div class="tip-buttons">
+                            <button type="button" class="tip-btn" data-tip="0">0%</button>
+                            <button type="button" class="tip-btn" data-tip="5">5%</button>
+                            <button type="button" class="tip-btn" data-tip="10">10%</button>
+                            <button type="button" class="tip-btn" data-tip="15">15%</button>
+                            <button type="button" class="tip-btn" data-tip="20">20%</button>
+                        </div>
+                        <div class="custom-tip-input" style="margin-top: 10px;">
+                            <label>Custom Amount: $</label>
+                            <input type="number" id="custom-tip-input" class="form-control" 
+                                   placeholder="0.00" step="0.01" min="0" style="display: inline-block; width: 120px;">
+                        </div>
+                    </div>
+
+                    <!-- Coupon Section -->
+                    <div class="coupon-section" id="coupon-section" style="display: none;">
+                        <h5 style="margin-bottom: 10px; font-weight: 600;">Coupon Code</h5>
+                        <div class="coupon-input-group">
+                            <input type="text" id="coupon-code-field" class="form-control" 
+                                   placeholder="Enter coupon code" style="text-transform: uppercase;">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="apply-coupon-btn">Apply</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="remove-coupon-btn" style="display: none;">Remove</button>
+                        </div>
+                        <div id="coupon-message" class="coupon-message" style="display: none;"></div>
+                    </div>
+
                     <!-- Order Summary Section -->
                     <div class="order-summary-section" id="order-summary-section" style="display: none;">
                         <div class="summary-row">
@@ -1216,63 +1248,18 @@ $unavailableTables = DB::table('orders')
 
                     <!-- Payment Method Selection -->
                     <div class="payment-method-section" id="payment-method-section" style="display: none;">
-                        <h5 style="margin-bottom: 10px; font-weight: 600;">Payment Method</h5>
+                        <h5 style="margin-bottom: 10px; font-weight: 600;">Payment Methods</h5>
                         <div class="payment-methods-grid" id="payment-methods-grid">
-                            @php
-                                $hasQrPayLaterMethod = isset($paymentMethods) && $paymentMethods->contains(function ($m) {
-                                    return ($m->code ?? null) === 'qr_pay_later';
-                                });
-                            @endphp
-                            @if(isset($paymentMethods) && $paymentMethods->count() > 0)
-                                @foreach($paymentMethods as $method)
-                                    <label class="payment-method-option">
-                                        <input type="radio" name="payment_method_radio" value="{{ $method->code }}" 
-                                               {{ (($existingOrder->payment ?? 'cod') === $method->code || (!isset($existingOrder) && $method->code === 'cod')) ? 'checked' : '' }}>
-                                        <span class="payment-method-label">{{ $method->name }}</span>
-                                    </label>
-                                @endforeach
-                            @else
+                            @foreach(($paymentMethods ?? collect()) as $method)
                                 <label class="payment-method-option">
-                                    <input type="radio" name="payment_method_radio" value="cod" checked>
-                                    <span class="payment-method-label">Cash on Delivery</span>
+                                    <input type="radio" name="payment_method_radio" value="{{ $method->code }}"
+                                           {{ (($existingOrder->payment ?? $defaultPaymentCode) === $method->code) ? 'checked' : '' }}>
+                                    <span class="payment-method-label">{{ $method->name }}</span>
                                 </label>
+                            @endforeach
+                            @if(!isset($paymentMethods) || $paymentMethods->count() === 0)
+                                <p class="text-muted mb-0">No payment methods available.</p>
                             @endif
-                            @if(!$hasQrPayLaterMethod)
-                                <label class="payment-method-option">
-                                    <input type="radio" name="payment_method_radio" value="qr_pay_later"
-                                           {{ ($existingOrder->payment ?? '') === 'qr_pay_later' ? 'checked' : '' }}>
-                                    <span class="payment-method-label">QR Payment</span>
-                                </label>
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- Coupon Section -->
-                    <div class="coupon-section" id="coupon-section" style="display: none;">
-                        <h5 style="margin-bottom: 10px; font-weight: 600;">Coupon Code</h5>
-                        <div class="coupon-input-group">
-                            <input type="text" id="coupon-code-field" class="form-control" 
-                                   placeholder="Enter coupon code" style="text-transform: uppercase;">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="apply-coupon-btn">Apply</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="remove-coupon-btn" style="display: none;">Remove</button>
-                        </div>
-                        <div id="coupon-message" class="coupon-message" style="display: none;"></div>
-                    </div>
-
-                    <!-- Tip Section -->
-                    <div class="tip-section" id="tip-section" style="display: none;">
-                        <h5 style="margin-bottom: 10px; font-weight: 600;">Tip</h5>
-                        <div class="tip-buttons">
-                            <button type="button" class="tip-btn" data-tip="0">0%</button>
-                            <button type="button" class="tip-btn" data-tip="5">5%</button>
-                            <button type="button" class="tip-btn" data-tip="10">10%</button>
-                            <button type="button" class="tip-btn" data-tip="15">15%</button>
-                            <button type="button" class="tip-btn" data-tip="20">20%</button>
-                        </div>
-                        <div class="custom-tip-input" style="margin-top: 10px;">
-                            <label>Custom Amount: $</label>
-                            <input type="number" id="custom-tip-input" class="form-control" 
-                                   placeholder="0.00" step="0.01" min="0" style="display: inline-block; width: 120px;">
                         </div>
                     </div>
 
@@ -3639,7 +3626,10 @@ document.addEventListener("DOMContentLoaded", function () {
             };
 
             // State variables
-            let selectedPaymentMethod = document.getElementById('payment-method-input')?.value || 'cod';
+            let selectedPaymentMethod =
+                document.getElementById('payment-method-input')?.value ||
+                document.querySelector('input[name="payment_method_radio"]:checked')?.value ||
+                '';
             let tipPercentage = 0;
             let customTipAmount = 0;
             let appliedCoupon = null;
