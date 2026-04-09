@@ -24,7 +24,6 @@ class SetupSettings extends FormRequest
             'invoice_logo' => lang('system::lang.settings.label_invoice_logo'),
             'invoice_receipt_mode' => lang('system::lang.settings.label_invoice_receipt_mode'),
             'invoice_paper_width' => lang('system::lang.settings.label_invoice_paper_width'),
-            'invoice_auto_print_after_paid' => lang('system::lang.settings.label_invoice_auto_print_after_paid'),
             'invoice_auto_print_dialog' => lang('system::lang.settings.label_invoice_auto_print_dialog'),
             'invoice_show_logo' => lang('system::lang.settings.label_invoice_show_logo'),
             'invoice_show_qr' => lang('system::lang.settings.label_invoice_show_qr'),

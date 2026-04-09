@@ -230,13 +230,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{!! $model->invoice_number.' - '.lang('admin::lang.orders.text_invoice').' - '.setting('site_name') !!}</title>
     <style>
-        :root {
-            --receipt-width: 76mm;
-            --text: #000;
-            --muted: #444;
-            --line: #111;
-        }
-
         * { box-sizing: border-box; }
 
         html, body {
@@ -244,10 +237,10 @@
             padding: 0;
             width: 100%;
             background: #fff;
-            color: var(--text);
-            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: {{ $__baseFontPx }};
-            line-height: calc(1.3 * {{ $__compactFactor }});
+            line-height: 1.3;
         }
 
         .receipt {
@@ -261,8 +254,8 @@
 
         .center { text-align: center; }
         .right { text-align: right; }
-        .muted { color: var(--muted); }
-        .rule { border-top: 1px solid var(--line); margin: 5px 0; }
+        .muted { color: #000; }
+        .rule { border-top: 1px solid #000; margin: 5px 0; }
 
         .title { font-size: 14px; font-weight: 700; margin: 0; }
         .subtitle { margin: 2px 0 0; font-size: 10px; }
@@ -305,7 +298,7 @@
         table.items th {
             font-size: 10px;
             font-weight: 700;
-            border-bottom: 1px solid var(--line);
+            border-bottom: 1px solid #000;
         }
 
         .col-qty { width: 10%; text-align: center; }
@@ -325,7 +318,7 @@
             overflow-wrap: anywhere;
         }
 
-        .grand-total { font-size: 12px; font-weight: 700; border-top: 1px solid var(--line); padding-top: 3px; margin-top: 2px; }
+        .grand-total { font-size: 12px; font-weight: 700; border-top: 1px solid #000; padding-top: 3px; margin-top: 2px; }
 
         .fiskaly {
             margin-top: 6px;
@@ -377,31 +370,32 @@
             text-align: center;
         }
 
-        @page {
-            size: {{ $__printPaper }} auto;
-            margin: {{ $__paperWidth === 'a4' ? '8mm' : '2mm' }};
-        }
-
         @media print {
+            @page {
+                size: {{ $__printPaper }} auto;
+                margin: {{ $__paperWidth === 'a4' ? '8mm' : '2mm' }};
+            }
             html, body {
                 width: {{ $__printPaper }} !important;
-                background: #fff !important;
-                color: #000 !important;
-            }
-            body, body * {
                 color: #000 !important;
                 background: #fff !important;
-                text-shadow: none !important;
-                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             .receipt {
                 width: {{ $__contentWidth }} !important;
                 max-width: {{ $__contentWidth }} !important;
                 margin: 0 !important;
-                padding: 0 !important;
+                padding: {{ $__compactMode ? '1mm' : '2mm' }} !important;
+                color: #000 !important;
+                background: #fff !important;
             }
             .print-action {
                 display: none !important;
+            }
+            table, tr, td, th, p, div, span, strong, small {
+                color: #000 !important;
+                background: transparent !important;
             }
             img {
                 page-break-inside: avoid;

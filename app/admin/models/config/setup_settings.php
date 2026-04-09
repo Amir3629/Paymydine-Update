@@ -150,15 +150,6 @@ return [
                     ],
                     'comment' => 'lang:system::lang.settings.help_invoice_paper_width',
                 ],
-                'invoice_auto_print_after_paid' => [
-                    'label' => 'lang:system::lang.settings.label_invoice_auto_print_after_paid',
-                    'tab' => 'lang:system::lang.settings.text_tab_title_invoice',
-                    'type' => 'switch',
-                    'default' => false,
-                    'on' => 'lang:admin::lang.text_yes',
-                    'off' => 'lang:admin::lang.text_no',
-                    'comment' => 'lang:system::lang.settings.help_invoice_auto_print_after_paid',
-                ],
                 'invoice_auto_print_dialog' => [
                     'label' => 'lang:system::lang.settings.label_invoice_auto_print_dialog',
                     'tab' => 'lang:system::lang.settings.text_tab_title_invoice',
