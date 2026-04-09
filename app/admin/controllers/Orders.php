@@ -103,6 +103,7 @@ class Orders extends \Admin\Classes\AdminController
             'enabled' => ($settings['tax_mode']->value ?? '0') === '1',
             'percentage' => floatval($settings['tax_percentage']->value ?? '0'),
             'menu_price' => intval($settings['tax_menu_price']->value ?? '1'),
+            'menuPrice' => intval($settings['tax_menu_price']->value ?? '1'),
         ];
         
         // Check if editing existing order
@@ -867,4 +868,3 @@ class Orders extends \Admin\Classes\AdminController
     }
 
 }
-

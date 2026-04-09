@@ -376,3 +376,256 @@
 })();
 </script>
 <!-- TOOLBAR_BUTTONS_RUNTIME_FIX_V2_END -->
+
+
+<!-- ORDER_HEADER_RUNTIME_FIX_V3_START -->
+<script>
+(function () {
+
+  function set(el, prop, value) {
+    if (!el) return;
+    el.style.setProperty(prop, value, 'important');
+  }
+
+  function fix() {
+    var root = document.querySelector('.order-info-header');
+    if (!root) return;
+
+    set(root, 'margin-top', '16px');
+    set(root, 'align-items', 'stretch');
+
+    var status = root.querySelector('.header-status-clickable');
+    if (status) {
+      set(status, 'display', 'inline-flex');
+      set(status, 'align-items', 'center');
+      set(status, 'justify-content', 'center');
+      set(status, 'gap', '8px');
+      set(status, 'height', '40px');
+      set(status, 'min-height', '40px');
+      set(status, 'padding', '0 14px');
+      set(status, 'line-height', '1');
+    }
+
+    var assignee = root.querySelector('.header-assignee-clickable');
+    if (assignee) {
+      set(assignee, 'display', 'inline-flex');
+      set(assignee, 'align-items', 'center');
+      set(assignee, 'justify-content', 'center');
+      set(assignee, 'min-height', '40px');
+      set(assignee, 'padding', '0 14px');
+      set(assignee, 'line-height', '1');
+    }
+
+    root.querySelectorAll('.invoice-icon-btn, .send-invoice-icon-btn, .note-icon-btn').forEach(function(btn){
+      set(btn, 'display', 'inline-flex');
+      set(btn, 'align-items', 'center');
+      set(btn, 'justify-content', 'center');
+      set(btn, 'width', '40px');
+      set(btn, 'height', '40px');
+      set(btn, 'min-width', '40px');
+      set(btn, 'min-height', '40px');
+      set(btn, 'padding', '0');
+      set(btn, 'line-height', '1');
+    });
+
+    root.querySelectorAll('.header-status-clickable i, .invoice-icon-btn i, .send-invoice-icon-btn i, .note-icon-btn i').forEach(function(icon){
+      set(icon, 'display', 'inline-flex');
+      set(icon, 'align-items', 'center');
+      set(icon, 'justify-content', 'center');
+      set(icon, 'width', '1em');
+      set(icon, 'height', '1em');
+      set(icon, 'line-height', '1');
+      set(icon, 'margin', '0');
+      set(icon, 'padding', '0');
+    });
+  }
+
+  function run() {
+    try { fix(); } catch(e) { console.error('ORDER_HEADER_FIX_V3', e); }
+  }
+
+  // اجرا چند مرحله‌ای (خیلی مهم)
+  window.addEventListener('load', function(){
+    setTimeout(run, 200);
+    setTimeout(run, 800);
+    setTimeout(run, 1500);
+    setTimeout(run, 3000);
+  });
+
+  // اگر JS های دیگر خراب کردند، دوباره اصلاح کن
+  var observer = new MutationObserver(function(){
+    run();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+})();
+</script>
+<!-- ORDER_HEADER_RUNTIME_FIX_V3_END -->
+
+
+<!-- ICON_BUTTON_FIX_V1_START -->
+<script>
+(function () {
+
+  function set(el,p,v){
+    if(!el) return;
+    el.style.setProperty(p,v,'important');
+  }
+
+  function fix(){
+    var buttons = document.querySelectorAll('a.btn, button.btn');
+
+    buttons.forEach(function(btn){
+      var icon = btn.querySelector('i');
+      if(!icon) return;
+
+      var r = btn.getBoundingClientRect();
+
+      // فقط دکمه‌های مربعی (icon buttons)
+      if(r.width <= 60 && r.height <= 60){
+        set(btn,'display','inline-flex');
+        set(btn,'align-items','center');
+        set(btn,'justify-content','center');
+        set(btn,'padding','0');
+        set(btn,'line-height','1');
+
+        set(icon,'margin','0');
+        set(icon,'display','inline-flex');
+        set(icon,'align-items','center');
+        set(icon,'justify-content','center');
+      }
+    });
+  }
+
+  function run(){
+    try{ fix(); }catch(e){ console.error('ICON_BUTTON_FIX_V1',e); }
+  }
+
+  window.addEventListener('load', function(){
+    setTimeout(run,200);
+    setTimeout(run,800);
+    setTimeout(run,1500);
+  });
+
+  var observer = new MutationObserver(run);
+  observer.observe(document.body,{childList:true,subtree:true});
+
+})();
+</script>
+<!-- ICON_BUTTON_FIX_V1_END -->
+
+
+<!-- TOOLBAR_STABILIZER_V1_START -->
+<script>
+(function(){
+
+  function set(el,p,v){
+    if(!el) return;
+    el.style.setProperty(p,v,'important');
+  }
+
+  function hideToolbars(){
+    document.querySelectorAll('.toolbar, .btn-toolbar, .toolbar-action').forEach(function(el){
+      set(el,'opacity','0');
+    });
+  }
+
+  function showToolbars(){
+    document.querySelectorAll('.toolbar, .btn-toolbar, .toolbar-action').forEach(function(el){
+      set(el,'opacity','1');
+    });
+  }
+
+  function fix(){
+    document.querySelectorAll('a.btn, button.btn').forEach(function(btn){
+      set(btn,'display','inline-flex');
+      set(btn,'align-items','center');
+      set(btn,'justify-content','center');
+      set(btn,'height','40px');
+      set(btn,'min-height','40px');
+      set(btn,'line-height','1');
+    });
+  }
+
+  function run(){
+    try{
+      hideToolbars();
+
+      setTimeout(function(){
+        fix();
+        showToolbars();
+      }, 250);
+
+    }catch(e){
+      console.error('TOOLBAR_STABILIZER_V1',e);
+    }
+  }
+
+  window.addEventListener('load', run);
+
+})();
+</script>
+<!-- TOOLBAR_STABILIZER_V1_END -->
+
+
+<!-- TOOLBAR_STABILIZER_V2_START -->
+<script>
+(function(){
+
+  function set(el,p,v){
+    if(!el) return;
+    el.style.setProperty(p,v,'important');
+  }
+
+  function fixButtons(){
+    document.querySelectorAll('a.btn, button.btn').forEach(function(btn){
+
+      // تثبیت کامل layout (جلوگیری از لرزش متن)
+      set(btn,'display','inline-flex');
+      set(btn,'align-items','center');
+      set(btn,'justify-content','center');
+      set(btn,'gap','8px');
+      set(btn,'height','40px');
+      set(btn,'min-height','40px');
+      set(btn,'padding','0 20px');
+      set(btn,'line-height','1');
+      set(btn,'white-space','nowrap');
+
+      // 🔥 مهم‌ترین قسمت ضد لرزش
+      set(btn,'transition','none');
+      set(btn,'transform','none');
+      set(btn,'letter-spacing','normal');
+    });
+
+    // آیکن‌ها هم تثبیت
+    document.querySelectorAll('a.btn i, button.btn i').forEach(function(icon){
+      set(icon,'margin','0');
+      set(icon,'transform','none');
+      set(icon,'transition','none');
+      set(icon,'flex','0 0 auto');
+    });
+  }
+
+  function run(){
+    try{ fixButtons(); }
+    catch(e){ console.error('TOOLBAR_STABILIZER_V2',e); }
+  }
+
+  // اجرای فوری (بدون delay)
+  run();
+
+  // بعد از load هم دوباره برای اطمینان
+  window.addEventListener('load', run);
+
+  // جلوگیری از override شدن توسط اسکریپت‌های دیگر
+  var observer = new MutationObserver(run);
+  observer.observe(document.body,{childList:true,subtree:true});
+
+})();
+</script>
+<!-- TOOLBAR_STABILIZER_V2_END -->
+
