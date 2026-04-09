@@ -381,7 +381,11 @@
     <input type="hidden" name="qty[]" id="menu-quantities" value="">
     <input type="hidden" name="menu_name[]" id="menu-names" value="">
     @php
-        $defaultPaymentCode = $existingOrder->payment ?? (($paymentMethods->first()->code ?? ''));
+        $enabledPaymentCodes = ($paymentMethods ?? collect())->pluck('code')->map(fn($code) => strtolower((string)$code))->all();
+        $existingPaymentCode = strtolower((string)($existingOrder->payment ?? ''));
+        $defaultPaymentCode = in_array($existingPaymentCode, $enabledPaymentCodes, true)
+            ? $existingPaymentCode
+            : strtolower((string)($paymentMethods->first()->code ?? ''));
     @endphp
     <input type="hidden" name="payment_method" id="payment-method-input" value="{{ $defaultPaymentCode }}">
     <input type="hidden" name="tax_amount" id="tax-amount-input" value="0">
@@ -464,7 +468,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $telephone = '1234567890';
     $location_id = 1;
     $address_id = 1;
-    $payment = strtolower((string)($_POST['payment_method'] ?? 'cod'));
+    $postedPayment = strtolower((string)($_POST['payment_method'] ?? ''));
+    $enabledPaymentCodes = \Admin\Models\Payments_model::isEnabled()->orderBy('priority')->pluck('code')->map(fn($code) => strtolower((string)$code))->all();
+    $payment = in_array($postedPayment, $enabledPaymentCodes, true)
+        ? $postedPayment
+        : strtolower((string)($enabledPaymentCodes[0] ?? ''));
     $isQrPayLater = ($payment === 'qr_pay_later');
     
     // Get tax, tip, and coupon from POST
@@ -1200,8 +1208,6 @@ $unavailableTables = DB::table('orders')
                             <button type="button" class="tip-btn" data-tip="0">0%</button>
                             <button type="button" class="tip-btn" data-tip="5">5%</button>
                             <button type="button" class="tip-btn" data-tip="10">10%</button>
-                            <button type="button" class="tip-btn" data-tip="15">15%</button>
-                            <button type="button" class="tip-btn" data-tip="20">20%</button>
                         </div>
                         <div class="custom-tip-input" style="margin-top: 10px;">
                             <label>Custom Amount: $</label>
@@ -3635,6 +3641,16 @@ document.addEventListener("DOMContentLoaded", function () {
             let appliedCoupon = null;
             let couponDiscount = 0;
 
+            function computeCouponDiscount(subtotal) {
+                if (!appliedCoupon || subtotal <= 0) return 0;
+
+                if (appliedCoupon.type === 'F') {
+                    return Math.min(parseFloat(appliedCoupon.discount_value || appliedCoupon.discount || 0), subtotal);
+                }
+
+                return subtotal * (parseFloat(appliedCoupon.discount_value || 0) / 100);
+            }
+
             // Helper function to adjust price if tax is included in menu prices
             function adjustPriceForTax(price) {
                 if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
@@ -3668,6 +3684,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else if (tipPercentage > 0) {
                     tipAmount = subtotal * (tipPercentage / 100);
                 }
+
+                // Recalculate coupon discount against latest subtotal (frontend parity)
+                couponDiscount = computeCouponDiscount(subtotal);
 
                 // Calculate final total
                 const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount);
@@ -3726,6 +3745,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     radio.checked = true;
                 }
             });
+            if (!selectedPaymentMethod && paymentMethodRadios.length > 0) {
+                selectedPaymentMethod = paymentMethodRadios[0].value;
+                paymentMethodRadios[0].checked = true;
+                document.getElementById('payment-method-input').value = selectedPaymentMethod;
+            }
             paymentMethodRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     selectedPaymentMethod = this.value;
@@ -3752,7 +3776,12 @@ document.addEventListener("DOMContentLoaded", function () {
             // Custom tip input
             const customTipInput = document.getElementById('custom-tip-input');
             customTipInput.addEventListener('input', function() {
-                const value = parseFloat(this.value) || 0;
+                const normalized = String(this.value || '').replace(/[^0-9.]/g, '');
+                if (normalized !== this.value) {
+                    this.value = normalized;
+                }
+
+                const value = Math.max(0, parseFloat(normalized) || 0);
                 if (value > 0) {
                     customTipAmount = value;
                     tipPercentage = 0; // Reset percentage when custom tip is entered
@@ -3799,7 +3828,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     if (data.success && data.data) {
                         appliedCoupon = data.data;
-                        couponDiscount = parseFloat(data.data.discount) || 0;
+                        couponDiscount = computeCouponDiscount(subtotal);
                         
                         document.getElementById('coupon-code-input').value = code;
                         document.getElementById('coupon-discount-input').value = couponDiscount.toFixed(2);
@@ -4407,6 +4436,16 @@ document.addEventListener("DOMContentLoaded", function () {
             
             if (selectedItems.size === 0) {
                 alert('Please select at least one item');
+                return;
+            }
+
+            if (!selectedPaymentMethod && paymentMethodRadios.length > 0) {
+                alert('Please select a payment method');
+                return;
+            }
+
+            if (!selectedPaymentMethod && paymentMethodRadios.length === 0) {
+                alert('No payment methods available. Please enable at least one payment method first.');
                 return;
             }
             
