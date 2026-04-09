@@ -4906,13 +4906,15 @@ Route::post('/payments/worldline/raw-card-probe', function (\Illuminate\Http\Req
 // === QR PAY LATER ACTIVE API ROUTES ===
 Route::group([
     'prefix' => 'api/v1',
-    'middleware' => ['web'],
+    'middleware' => ['web', \App\Http\Middleware\DetectTenant::class, \App\Http\Middleware\TenantDatabaseMiddleware::class],
 ], function () {
     Route::get('/orders/pending-qr', function (\Illuminate\Http\Request $request) {
         $tableId   = trim((string)$request->get('table_id', ''));
         $tableNo   = trim((string)$request->get('table_no', ''));
         $tableParam= trim((string)$request->get('table', ''));
         $qrInput   = trim((string)$request->get('qr', ''));
+        $connName = \Illuminate\Support\Facades\DB::getDefaultConnection();
+        $dbName = \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
 
         if ($tableId === '' && $tableNo === '' && $tableParam === '' && $qrInput === '') {
             return response()->json([
@@ -4921,24 +4923,20 @@ Route::group([
             ], 422);
         }
 
-        $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
-            ->whereRaw('LOWER(status_name) = ?', ['paid'])
-            ->value('status_id') ?? 10);
+        $hasSettlementColumns = \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')
+            && \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settled_amount');
 
         $table = null;
-        $inputs = [];
-        foreach ([$tableId, $tableNo, $tableParam] as $v) {
-            if ($v !== '' && !in_array($v, $inputs, true)) {
-                $inputs[] = $v;
-            }
-        }
+        $inputs = array_values(array_unique(array_filter([$tableId, $tableNo, $tableParam], fn($v) => $v !== '')));
 
         foreach ($inputs as $candidate) {
             $table = \Illuminate\Support\Facades\DB::table('tables')
                 ->where('table_id', $candidate)
                 ->orWhere('table_no', $candidate)
                 ->first();
-            if ($table) break;
+            if ($table) {
+                break;
+            }
         }
 
         if (!$table && $qrInput !== '') {
@@ -4947,32 +4945,66 @@ Route::group([
                 ->first();
         }
 
-        $candidates = [];
-        foreach ([
-            $tableId,
-            $tableNo,
-            $tableParam,
+        $exactCandidates = array_values(array_unique(array_filter([
             $table ? (string)$table->table_id : null,
             $table ? (string)$table->table_no : null,
             $table ? (string)$table->table_name : null,
-        ] as $v) {
-            if ($v !== null && $v !== '' && !in_array($v, $candidates, true)) {
-                $candidates[] = $v;
-            }
+            $tableId,
+            $tableNo,
+            $tableParam,
+        ], fn($v) => $v !== null && $v !== '')));
+
+        $baseOrderQuery = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('payment', 'qr_pay_later')
+            ->when($hasSettlementColumns, function ($q) {
+                $q->where('settlement_status', '!=', 'paid');
+            }, function ($q) {
+                $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
+                    ->whereRaw('LOWER(status_name) = ?', ['paid'])
+                    ->value('status_id') ?? 10);
+                $q->where('status_id', '!=', $paidStatusId);
+            });
+
+        // Deterministic targeting: first try exact order_type table match.
+        $order = null;
+        if (!empty($exactCandidates)) {
+            $order = (clone $baseOrderQuery)
+                ->whereIn('order_type', $exactCandidates)
+                ->orderByDesc('order_id')
+                ->first();
         }
 
-        $order = \Illuminate\Support\Facades\DB::table('orders')
-            ->where('payment', 'qr_pay_later')
-            ->where('status_id', '!=', $paidStatusId)
-            ->where(function ($q) use ($candidates) {
-                foreach ($candidates as $candidate) {
-                    $q->orWhere('order_type', (string)$candidate);
-                    $q->orWhere('comment', 'like', '%Table ID: ' . $candidate . '%');
-                    $q->orWhere('comment', 'like', '%Table: ' . $candidate . '%');
-                }
-            })
-            ->orderByDesc('order_id')
-            ->first();
+        // Legacy fallback: only when exact table match failed.
+        if (!$order && !empty($exactCandidates)) {
+            $order = (clone $baseOrderQuery)
+                ->where(function ($q) use ($exactCandidates) {
+                    foreach ($exactCandidates as $candidate) {
+                        $q->orWhere('comment', 'like', '%Table ID: ' . $candidate . '%');
+                        $q->orWhere('comment', 'like', '%Table: ' . $candidate . '%');
+                    }
+                })
+                ->orderByDesc('order_id')
+                ->first();
+        }
+
+        \Log::info('QR_SETTLEMENT_DEBUG pending-qr resolve', [
+            'host' => $request->getHost(),
+            'connection' => $connName,
+            'database' => $dbName,
+            'input' => [
+                'table_id' => $tableId,
+                'table_no' => $tableNo,
+                'table' => $tableParam,
+                'qr' => $qrInput,
+            ],
+            'resolved_table' => $table ? [
+                'table_id' => (string)$table->table_id,
+                'table_no' => (string)($table->table_no ?? ''),
+                'table_name' => (string)($table->table_name ?? ''),
+            ] : null,
+            'exact_candidates' => $exactCandidates,
+            'selected_order_id' => $order->order_id ?? null,
+        ]);
 
         if (!$order) {
             return response()->json([
@@ -4985,6 +5017,33 @@ Route::group([
             ->where('order_id', $order->order_id)
             ->get(['menu_id', 'name', 'quantity', 'price', 'subtotal']);
 
+        $orderTotal = (float)($order->order_total ?? 0);
+        $settledAmount = $hasSettlementColumns
+            ? (float)($order->settled_amount ?? 0)
+            : (strtolower((string)($order->payment ?? '')) === 'qr_pay_later' ? 0.0 : $orderTotal);
+
+        if ($settledAmount < 0) {
+            $settledAmount = 0;
+        }
+        if ($settledAmount > $orderTotal && $orderTotal > 0) {
+            $settledAmount = $orderTotal;
+        }
+
+        $remainingAmount = max(0, round($orderTotal - $settledAmount, 4));
+        $settlementStatus = $hasSettlementColumns
+            ? strtolower((string)($order->settlement_status ?? 'unpaid'))
+            : ($remainingAmount <= 0.0001 ? 'paid' : 'unpaid');
+
+        if (!in_array($settlementStatus, ['unpaid', 'partial', 'paid'], true)) {
+            if ($remainingAmount <= 0.0001) {
+                $settlementStatus = 'paid';
+            } elseif ($settledAmount > 0.0001) {
+                $settlementStatus = 'partial';
+            } else {
+                $settlementStatus = 'unpaid';
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -4992,7 +5051,12 @@ Route::group([
                 'table_id' => (string)$order->order_type,
                 'payment' => (string)$order->payment,
                 'status_id' => (int)$order->status_id,
-                'order_total' => (float)$order->order_total,
+                'order_total' => $orderTotal,
+                'settlement_status' => $settlementStatus,
+                'settled_amount' => round($settledAmount, 4),
+                'remaining_amount' => round($remainingAmount, 4),
+                'settlement_method' => (string)($order->settlement_method ?? ''),
+                'settlement_reference' => (string)($order->settlement_reference ?? ''),
                 'items' => $items,
             ],
         ]);
@@ -5003,13 +5067,10 @@ Route::group([
             'order_id' => 'required|integer',
             'payment_method' => 'required|string|max:50',
             'payment_reference' => 'nullable|string|max:255',
+            'amount' => 'nullable|numeric|min:0.0001',
         ]);
 
-        $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
-            ->whereRaw('LOWER(status_name) = ?', ['paid'])
-            ->value('status_id') ?? 10);
-
-        $order = \Illuminate\Support\Facades\DB::table('orders')
+        $order = \Admin\Models\Orders_model::query()
             ->where('order_id', $request->order_id)
             ->first();
 
@@ -5027,20 +5088,95 @@ Route::group([
             ], 422);
         }
 
-        \Illuminate\Support\Facades\DB::table('orders')
-            ->where('order_id', $request->order_id)
-            ->update([
-                'status_id' => $paidStatusId,
-                'payment' => strtolower((string) $request->payment_method),
-                'processed' => 1,
-                'updated_at' => now(),
-            ]);
+        \Log::info('QR_SETTLEMENT_DEBUG pay-existing before', [
+            'host' => $request->getHost(),
+            'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
+            'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
+            'order_id' => $order->order_id,
+            'payload' => $request->only(['order_id', 'payment_method', 'payment_reference', 'amount']),
+            'order_before' => [
+                'order_id' => (int)$order->order_id,
+                'order_type' => (string)$order->order_type,
+                'payment' => (string)$order->payment,
+                'processed' => (int)$order->processed,
+                'status_id' => (int)$order->status_id,
+                'settlement_status' => (string)($order->settlement_status ?? ''),
+                'settled_amount' => (float)($order->settled_amount ?? 0),
+                'settlement_method' => (string)($order->settlement_method ?? ''),
+                'settlement_reference' => (string)($order->settlement_reference ?? ''),
+                'settled_at' => $order->settled_at,
+            ],
+        ]);
+
+        $orderTotal = round((float)($order->order_total ?? 0), 4);
+        $currentSettled = round((float)($order->settled_amount ?? 0), 4);
+        if ($currentSettled < 0) {
+            $currentSettled = 0.0;
+        }
+
+        $paymentAmount = $request->filled('amount')
+            ? round((float)$request->input('amount'), 4)
+            : round(max(0, $orderTotal - $currentSettled), 4);
+
+        if ($paymentAmount <= 0 && $orderTotal > 0) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Payment amount must be greater than zero',
+            ], 422);
+        }
+
+        $newSettled = round($currentSettled + $paymentAmount, 4);
+        if ($orderTotal > 0 && $newSettled > $orderTotal) {
+            $newSettled = $orderTotal;
+        }
+
+        $remaining = max(0, round($orderTotal - $newSettled, 4));
+        $newSettlementStatus = $remaining <= 0.0001
+            ? 'paid'
+            : ($newSettled > 0 ? 'partial' : 'unpaid');
+
+        $previousSettlementStatus = strtolower((string)($order->settlement_status ?? 'unpaid'));
+        if (!in_array($previousSettlementStatus, ['unpaid', 'partial', 'paid'], true)) {
+            $previousSettlementStatus = $currentSettled > 0.0001 ? 'partial' : 'unpaid';
+        }
+
+        $normalizedPaymentMethod = strtolower((string)$request->payment_method);
+
+        // Important: do NOT mutate operational status_id for QR settlement.
+        $order->settlement_status = $newSettlementStatus;
+        $order->settled_amount = $newSettled;
+        $order->settlement_method = $normalizedPaymentMethod;
+        if ($request->filled('payment_reference')) {
+            $order->settlement_reference = (string)$request->payment_reference;
+        }
+        if ($newSettlementStatus === 'paid') {
+            $order->settled_at = now()->format('Y-m-d H:i:s');
+            $order->processed = 1;
+        } else {
+            $order->processed = 0;
+        }
+        $order->save();
+
+        \Log::info('QR_SETTLEMENT_DEBUG pay-existing after', [
+            'order_id' => (int)$order->order_id,
+            'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
+            'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
+            'order_after' => [
+                'processed' => (int)$order->processed,
+                'status_id' => (int)$order->status_id,
+                'settlement_status' => (string)($order->settlement_status ?? ''),
+                'settled_amount' => (float)($order->settled_amount ?? 0),
+                'settlement_method' => (string)($order->settlement_method ?? ''),
+                'settlement_reference' => (string)($order->settlement_reference ?? ''),
+                'settled_at' => $order->settled_at,
+            ],
+        ]);
 
         \Illuminate\Support\Facades\DB::table('order_totals')
             ->where('order_id', $request->order_id)
             ->where('code', 'payment_method')
             ->update([
-                'value' => strtolower((string) $request->payment_method),
+                'value' => $normalizedPaymentMethod,
             ]);
 
         if ($request->filled('payment_reference')) {
@@ -5053,12 +5189,77 @@ Route::group([
             ]);
         }
 
+        try {
+            $tableDisplay = null;
+            $tableId = trim((string)($order->order_type ?? ''));
+            if ($tableId !== '' && is_numeric($tableId)) {
+                $table = \Illuminate\Support\Facades\DB::table('tables')->where('table_id', $tableId)->first();
+                if ($table) {
+                    $tableDisplay = (string)($table->table_name ?: ('Table '.$table->table_no));
+                }
+            }
+
+            if ($tableDisplay === null || $tableDisplay === '') {
+                $tableDisplay = (string)($order->order_type ?? '');
+            }
+
+            $notifyStatus = null;
+            if ($previousSettlementStatus === 'unpaid' && $newSettlementStatus === 'partial') {
+                $notifyStatus = 'partial_payment';
+            } elseif ($newSettlementStatus === 'paid') {
+                $notifyStatus = 'full_payment';
+            }
+
+            if ($notifyStatus !== null) {
+                $notificationId = \App\Helpers\NotificationHelper::createOrderNotification([
+                    'tenant_id' => $order->location_id ?? 1,
+                    'order_id' => $order->order_id,
+                    'table_id' => is_numeric($tableId) ? (int)$tableId : null,
+                    'table_name' => $tableDisplay,
+                    'status' => $notifyStatus,
+                    'status_name' => $newSettlementStatus === 'paid' ? 'Paid' : 'Partial',
+                    'message' => $newSettlementStatus === 'paid'
+                        ? sprintf(
+                            'Order #%d paid (%s, amount %0.2f).',
+                            (int)$order->order_id,
+                            strtoupper($normalizedPaymentMethod),
+                            $paymentAmount
+                        )
+                        : sprintf(
+                            'Order #%d partially paid (%s, paid %0.2f, remaining %0.2f).',
+                            (int)$order->order_id,
+                            strtoupper($normalizedPaymentMethod),
+                            $paymentAmount,
+                            $remaining
+                        ),
+                    'priority' => $newSettlementStatus === 'paid' ? 'high' : 'medium',
+                ]);
+
+                \Log::info('QR_SETTLEMENT_DEBUG pay-existing notification', [
+                    'order_id' => (int)$order->order_id,
+                    'notify_status' => $notifyStatus,
+                    'notification_id' => $notificationId,
+                    'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
+                    'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('QR settlement notification failed', [
+                'order_id' => $order->order_id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'order_id' => (int) $request->order_id,
-            'message' => 'Order paid successfully',
+            'message' => $newSettlementStatus === 'paid'
+                ? 'Order paid successfully'
+                : 'Partial payment recorded',
+            'settlement_status' => $newSettlementStatus,
+            'settled_amount' => $newSettled,
+            'remaining_amount' => $remaining,
         ]);
     });
 });
 // === /QR PAY LATER ACTIVE API ROUTES ===
-

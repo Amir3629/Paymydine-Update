@@ -80,9 +80,11 @@ class Orders_model extends Model
         'order_date' => 'date',
         'order_time' => 'time',
         'order_total' => 'float',
+        'settled_amount' => 'float',
         'notify' => 'boolean',
         'processed' => 'boolean',
         'order_time_is_asap' => 'boolean',
+        'settled_at' => 'datetime',
     ];
 
     public $relation = [
@@ -711,4 +713,3 @@ class Orders_model extends Model
     }
 
 }
-

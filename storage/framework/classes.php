@@ -204,4 +204,12 @@
   'Main\\Template\\Code\\LayoutCode' => 'app/main/template/code/LayoutCode.php',
   'Main\\Template\\Code\\PageCode' => 'app/main/template/code/PageCode.php',
   'Admin\\Models\\Assignable_logs_model' => 'app/admin/models/Assignable_logs_model.php',
+  'Admin\\Models\\Allergens_model' => 'app/admin/models/Allergens_model.php',
+  'Admin\\FormWidgets\\StockEditor' => 'app/admin/formwidgets/StockEditor.php',
+  'Admin\\FormWidgets\\RecordEditor' => 'app/admin/formwidgets/RecordEditor.php',
+  'Admin\\FormWidgets\\Connector' => 'app/admin/formwidgets/Connector.php',
+  'Admin\\Models\\Menu_prices_model' => 'app/admin/models/Menu_prices_model.php',
+  'Admin\\Models\\Menu_options_model' => 'app/admin/models/Menu_options_model.php',
+  'Admin\\Controllers\\combos' => 'app/admin/controllers/Combos.php',
+  'Admin\\Models\\Kds_stations_model' => 'app/admin/models/Kds_stations_model.php',
 );

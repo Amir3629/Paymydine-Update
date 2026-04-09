@@ -135,7 +135,8 @@ $config['list']['columns'] = [
     ],
     'payment' => [
         'label' => 'lang:admin::lang.orders.column_payment',
-        'type' => 'text',
+        'type' => 'partial',
+        'path' => 'orders/payment_column',
         'sortable' => false,
         'relation' => 'payment_method',
         'select' => 'name',
