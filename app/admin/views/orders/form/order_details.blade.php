@@ -13,6 +13,27 @@
             $pmdOrderTotal = (float)($formModel->order_total ?? 0);
             $pmdRemainingAmount = max(0, $pmdOrderTotal - $pmdSettledAmount);
             $pmdSettlementLabel = $pmdSettlementStatus !== '' ? ucfirst($pmdSettlementStatus) : 'Unpaid';
+            $pmdHasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
+            $pmdSplitTransactions = collect();
+            $pmdSplitItemsByTx = [];
+            if ($pmdHasSplitTables) {
+                $pmdSplitTransactions = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                    ->where('order_id', (int)$formModel->order_id)
+                    ->orderByDesc('id')
+                    ->get();
+                $pmdTxIds = $pmdSplitTransactions->pluck('id')->all();
+                if (!empty($pmdTxIds)) {
+                    $pmdItemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
+                        ->leftJoin('order_menus as om', 'om.order_menu_id', '=', 'ti.order_menu_id')
+                        ->whereIn('ti.transaction_id', $pmdTxIds)
+                        ->get(['ti.transaction_id', 'ti.quantity_paid', 'ti.unit_price', 'ti.line_total', 'om.name', 'om.menu_id']);
+                    foreach ($pmdItemRows as $pmdItemRow) {
+                        $txId = (int)$pmdItemRow->transaction_id;
+                        $pmdSplitItemsByTx[$txId] = $pmdSplitItemsByTx[$txId] ?? [];
+                        $pmdSplitItemsByTx[$txId][] = $pmdItemRow;
+                    }
+                }
+            }
         @endphp
         <tr>
             <td class="text-muted">Settlement</td>
@@ -20,6 +41,45 @@
                 {{ $pmdSettlementLabel }} ({{ currency_format($pmdSettledAmount) }} / {{ currency_format($pmdOrderTotal) }}, Remaining {{ currency_format($pmdRemainingAmount) }})
             </td>
         </tr>
+        @if($pmdHasSplitTables && $pmdSplitTransactions->count() > 0)
+            <tr>
+                <td class="text-muted align-top">Split Payments</td>
+                <td class="text-right">
+                    <div style="text-align:left;">
+                        @foreach($pmdSplitTransactions as $pmdTx)
+                            <div style="border:1px solid #eceef4;border-radius:10px;padding:8px 10px;margin-bottom:8px;">
+                                <div style="display:flex;justify-content:space-between;gap:10px;">
+                                    <div>
+                                        <strong>#{{ (int)$pmdTx->id }}</strong>
+                                        · {{ strtoupper((string)$pmdTx->payment_method) }}
+                                        · {{ currency_format((float)$pmdTx->amount) }}
+                                    </div>
+                                    <a href="{{ url('admin/orders/split-receipt/'.(int)$pmdTx->id) }}" target="_blank">Receipt</a>
+                                </div>
+                                <div class="text-muted" style="font-size:12px;margin-top:2px;">
+                                    Status: {{ ucfirst((string)($pmdTx->settlement_status ?? 'partial')) }}
+                                    @if(!empty($pmdTx->payment_reference))
+                                        · Ref: {{ $pmdTx->payment_reference }}
+                                    @endif
+                                    · Paid: {{ $pmdTx->paid_at ?: $pmdTx->created_at }}
+                                </div>
+                                @if(!empty($pmdSplitItemsByTx[(int)$pmdTx->id]))
+                                    <ul style="margin:6px 0 0 18px;padding:0;font-size:12px;">
+                                        @foreach($pmdSplitItemsByTx[(int)$pmdTx->id] as $pmdTxItem)
+                                            <li>
+                                                {{ $pmdTxItem->name ?: ('Menu #'.$pmdTxItem->menu_id) }}
+                                                × {{ rtrim(rtrim(number_format((float)$pmdTxItem->quantity_paid, 3, '.', ''), '0'), '.') }}
+                                                = {{ currency_format((float)$pmdTxItem->line_total) }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </td>
+            </tr>
+        @endif
         <tr>
             <td class="text-muted">@lang('admin::lang.orders.label_invoice')</td>
             <td class="text-right">
