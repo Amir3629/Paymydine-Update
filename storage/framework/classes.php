@@ -203,4 +203,5 @@
   'Main\\Template\\Layout' => 'app/main/template/Layout.php',
   'Main\\Template\\Code\\LayoutCode' => 'app/main/template/code/LayoutCode.php',
   'Main\\Template\\Code\\PageCode' => 'app/main/template/code/PageCode.php',
+  'Admin\\Models\\Assignable_logs_model' => 'app/admin/models/Assignable_logs_model.php',
 );
