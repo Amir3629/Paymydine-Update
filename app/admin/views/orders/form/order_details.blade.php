@@ -13,6 +13,8 @@
             $pmdOrderTotal = (float)($formModel->order_total ?? 0);
             $pmdRemainingAmount = max(0, $pmdOrderTotal - $pmdSettledAmount);
             $pmdSettlementLabel = $pmdSettlementStatus !== '' ? ucfirst($pmdSettlementStatus) : 'Unpaid';
+            $pmdSettlementMethod = trim((string)($formModel->settlement_method ?? ''));
+            $pmdSettlementReference = trim((string)($formModel->settlement_reference ?? ''));
             $pmdHasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
             $pmdSplitTransactions = collect();
             $pmdSplitItemsByTx = [];
@@ -39,6 +41,12 @@
             <td class="text-muted">Settlement</td>
             <td class="text-right">
                 {{ $pmdSettlementLabel }} ({{ currency_format($pmdSettledAmount) }} / {{ currency_format($pmdOrderTotal) }}, Remaining {{ currency_format($pmdRemainingAmount) }})
+                @if($pmdSettlementMethod !== '')
+                    <div class="text-muted" style="font-size:12px;">Method: {{ strtoupper($pmdSettlementMethod) }}</div>
+                @endif
+                @if($pmdSettlementReference !== '')
+                    <div class="text-muted" style="font-size:12px;">Reference: {{ $pmdSettlementReference }}</div>
+                @endif
             </td>
         </tr>
         @if($pmdHasSplitTables && $pmdSplitTransactions->count() > 0)

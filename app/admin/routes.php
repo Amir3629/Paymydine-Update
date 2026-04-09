@@ -5387,9 +5387,7 @@ Route::group([
                 $table = \Illuminate\Support\Facades\DB::table('tables')->where('table_id', $tableId)->first();
                 if ($table) $tableDisplay = (string)($table->table_name ?: ('Table '.$table->table_no));
             }
-            $notifyStatus = null;
-            if ($previousSettlementStatus === 'unpaid' && $newSettlementStatus === 'partial') $notifyStatus = 'partial_payment';
-            elseif ($newSettlementStatus === 'paid') $notifyStatus = 'full_payment';
+            $notifyStatus = $newSettlementStatus === 'paid' ? 'full_payment' : 'partial_payment';
             if ($notifyStatus !== null) {
                 \App\Helpers\NotificationHelper::createOrderNotification([
                     'tenant_id' => $order->location_id ?? 1,
@@ -5398,14 +5396,24 @@ Route::group([
                     'table_name' => $tableDisplay,
                     'status' => $notifyStatus,
                     'status_name' => $newSettlementStatus === 'paid' ? 'Paid' : 'Partial',
-                    'message' => sprintf(
-                        'Order #%d %s paid (%s, amount %0.2f, transaction #%s).',
-                        (int)$order->order_id,
-                        $newSettlementStatus === 'paid' ? 'fully' : 'partially',
-                        strtoupper($normalizedPaymentMethod),
-                        $paymentAmount,
-                        $transactionId ? (string)$transactionId : 'N/A'
-                    ),
+                    'message' => $newSettlementStatus === 'paid'
+                        ? sprintf(
+                            'Order #%d fully paid (%s, paid %0.2f).',
+                            (int)$order->order_id,
+                            strtoupper($normalizedPaymentMethod),
+                            $paymentAmount
+                        )
+                        : sprintf(
+                            'Order #%d partially paid (%s, paid %0.2f, remaining %0.2f).',
+                            (int)$order->order_id,
+                            strtoupper($normalizedPaymentMethod),
+                            $paymentAmount,
+                            $remaining
+                        ),
+                    'amount_paid' => $paymentAmount,
+                    'remaining_amount' => $remaining,
+                    'payment_method' => $normalizedPaymentMethod,
+                    'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : '',
                     'priority' => $newSettlementStatus === 'paid' ? 'high' : 'medium',
                 ]);
             }

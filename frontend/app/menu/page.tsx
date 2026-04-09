@@ -2005,6 +2005,10 @@ case "cod":
           {pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">
               <div className="flex justify-between">
+                <span className="muted">Total</span>
+                <span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="muted">Already paid</span>
                 <span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span>
               </div>
