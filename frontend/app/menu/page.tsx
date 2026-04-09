@@ -1059,6 +1059,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         const paidResponse = await apiClient.payExistingQrOrder(existingOrderId, {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
+          amount: Number(finalTotal || 0),
         })
 
         if (paidResponse?.success) {

@@ -7,6 +7,19 @@
                 <td class="text-right">{{ $formModel->payment_method->name }}</td>
             </tr>
         @endif
+        @php
+            $pmdSettlementStatus = (string)($formModel->settlement_status ?? '');
+            $pmdSettledAmount = (float)($formModel->settled_amount ?? 0);
+            $pmdOrderTotal = (float)($formModel->order_total ?? 0);
+            $pmdRemainingAmount = max(0, $pmdOrderTotal - $pmdSettledAmount);
+            $pmdSettlementLabel = $pmdSettlementStatus !== '' ? ucfirst($pmdSettlementStatus) : 'Unpaid';
+        @endphp
+        <tr>
+            <td class="text-muted">Settlement</td>
+            <td class="text-right">
+                {{ $pmdSettlementLabel }} ({{ currency_format($pmdSettledAmount) }} / {{ currency_format($pmdOrderTotal) }}, Remaining {{ currency_format($pmdRemainingAmount) }})
+            </td>
+        </tr>
         <tr>
             <td class="text-muted">@lang('admin::lang.orders.label_invoice')</td>
             <td class="text-right">

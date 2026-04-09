@@ -776,7 +776,10 @@ export class ApiClient {
     }
   }
 
-  async payExistingQrOrder(orderId: number, payload: { payment_method: string; payment_reference?: string | null }) {
+  async payExistingQrOrder(
+    orderId: number,
+    payload: { payment_method: string; payment_reference?: string | null; amount?: number | null }
+  ) {
     const endpoint = `/api/v1/orders/pay-existing`;
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -788,6 +791,7 @@ export class ApiClient {
         order_id: orderId,
         payment_method: payload.payment_method,
         payment_reference: payload.payment_reference ?? null,
+        amount: payload.amount ?? null,
       }),
     });
 
