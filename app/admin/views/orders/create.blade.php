@@ -1261,12 +1261,21 @@ $unavailableTables = DB::table('orders')
                         <h5>Payment Methods</h5>
                         <div class="payment-methods-grid" id="payment-methods-grid">
                             @foreach(($paymentMethods ?? collect()) as $method)
+                                @php
+                                    $methodCode = strtolower((string)$method->code);
+                                    $methodName = trim((string)$method->name) !== ''
+                                        ? trim((string)$method->name)
+                                        : ucwords(str_replace('_', ' ', $methodCode));
+                                    $methodIcon = $methodCode === 'qr_pay_later'
+                                        ? 'QR'
+                                        : (strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $methodName), 0, 2)) ?: 'PM');
+                                @endphp
                                 <label class="payment-method-option">
-                                    <input type="radio" name="payment_method_radio" value="{{ $method->code }}"
-                                           {{ (($existingOrder->payment ?? $defaultPaymentCode) === $method->code) ? 'checked' : '' }}>
+                                    <input type="radio" name="payment_method_radio" value="{{ $methodCode }}"
+                                           {{ $defaultPaymentCode === $methodCode ? 'checked' : '' }}>
                                     <span class="payment-method-label">
-                                        <span class="payment-method-icon">{{ strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $method->name), 0, 2)) ?: 'PM' }}</span>
-                                        <span class="payment-method-name">{{ $method->name }}</span>
+                                        <span class="payment-method-icon">{{ $methodIcon }}</span>
+                                        <span class="payment-method-name">{{ $methodName }}</span>
                                     </span>
                                 </label>
                             @endforeach
