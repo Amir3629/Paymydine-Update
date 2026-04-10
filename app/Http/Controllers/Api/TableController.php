@@ -184,19 +184,12 @@ class TableController extends Controller
                 ->first();
             $locationId = $locationData ? $locationData->location_id : ($table->location_id ?? 1);
             
-            $tableNoOrId = (int)($table->table_no ?: $table->table_id);
-            $menuQuery = http_build_query([
-                'table_no' => $tableNoOrId,
-                'table_id' => $table->table_id,
-                'qr' => $table->qr_code,
-            ]);
-
-            // Build tenant-aware frontend URL that enters direct menu flow
+            // Build tenant-aware frontend URL
             try {
-                $frontendUrl = buildTenantFrontendUrl($locationId, "/menu?{$menuQuery}");
+                $frontendUrl = buildTenantFrontendUrl($locationId, "/menu/table-{$table->table_id}");
             } catch (\Exception $e) {
                 // Fallback if location has no permalink_slug
-                $frontendUrl = "http://" . request()->getHost() . "/menu?{$menuQuery}";
+                $frontendUrl = "http://" . request()->getHost() . "/menu/table-{$table->table_id}";
             }
             
             return response()->json([

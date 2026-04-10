@@ -20,7 +20,7 @@ const MotionLink = motion.create(Link)
 export default function TableHomePage({ params }: { params: { table_id: string } }) {
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
-  const { setTableInfo } = useCartStore()
+  const { setTableInfo, clearCart } = useCartStore()
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -95,6 +95,13 @@ export default function TableHomePage({ params }: { params: { table_id: string }
           res = await fetch(fb).then(r => r.json())
         }
         if (!cancelled && res?.success) {
+          console.info("[PMD QR entry] scanned table context", {
+            route_table: pathParam,
+            resolved_table_id: res.data?.table_id ?? null,
+            resolved_table_no: res.data?.table_no ?? null,
+            qr: qr ?? null,
+          })
+
           setTable(res.data)
           const resolvedTableId = String(res.data.table_id)
           setTableInfo({
@@ -107,7 +114,17 @@ export default function TableHomePage({ params }: { params: { table_id: string }
           })
 
           const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId)
+          console.info("[PMD QR entry] pending-qr response", {
+            table_id: resolvedTableId,
+            has_pending_order: !!pending?.data?.order_id,
+            pending_order_id: pending?.data?.order_id ?? null,
+            success: pending?.success ?? false,
+          })
           if (!cancelled && pending?.success && pending?.data?.order_id) {
+            console.info("[PMD QR entry] branch chosen: pending->menu", {
+              table_id: resolvedTableId,
+              pending_order_id: pending.data.order_id,
+            })
             const menuUrl = new URL('/menu', window.location.origin)
             menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
             menuUrl.searchParams.set('table_id', resolvedTableId)
@@ -116,6 +133,22 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             menuUrl.searchParams.set('pending_order_id', String(pending.data.order_id))
             router.replace(`${menuUrl.pathname}${menuUrl.search}`)
             return
+          } else if (!cancelled) {
+            console.info("[PMD QR entry] branch chosen: no-pending->stay-table-home", {
+              table_id: resolvedTableId,
+              table_no: res.data?.table_no ?? null,
+            })
+
+            // Clear stale pending cart state from prior scans/sessions
+            clearCart()
+            try {
+              const cartState = useCartStore.getState() as any
+              if (cartState?.isCartOpen === true) {
+                useCartStore.setState({ isCartOpen: false })
+              }
+            } catch (e) {
+              console.error("[PMD QR entry] failed to close stale cart drawer", e)
+            }
           }
         }
       } catch (e) {

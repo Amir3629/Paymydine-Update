@@ -35,17 +35,7 @@
         $affiliate_link = $site_url.'?code='.$qr_code->qr_code;
         // FIXED: Point QR codes to Next.js frontend instead of old system
         $frontend_url = env('FRONTEND_URL', 'http://127.0.0.1:8001');
-        $affiliate_link = $frontend_url.'/menu?'.http_build_query([
-            'table_no' => $table_id,
-            'table_id' => $table_id,
-            'location' => $location_id,
-            'guest' => $max_capacity,
-            'date' => $date,
-            'time' => $time,
-            'qr' => $qr_code->qr_code,
-            'table' => $table_id,
-            'uqr' => 'true',
-        ]);
+        $affiliate_link = $frontend_url.'/table/'.$table_id.'?location='.$location_id.'&guest='.$max_capacity.'&date='.$date.'&time='.$time.'&qr='.$qr_code->qr_code.'&table='.$table_id.'&uqr=true';
         $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($affiliate_link);
         $qr_code_image = file_get_contents($qr_code_url);
         $base64_qr_code = base64_encode($qr_code_image);
