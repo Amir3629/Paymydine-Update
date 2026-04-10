@@ -6,6 +6,7 @@ use Admin\Models\Cash_drawers_model;
 use Admin\Models\Pos_devices_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class LocalPosHardwareCommandService
 {
@@ -53,17 +54,42 @@ class LocalPosHardwareCommandService
             'meta' => $meta,
         ];
 
-        $commandId = DB::table('pos_hardware_commands')->insertGetId([
-            'drawer_id' => $drawer->drawer_id,
-            'pos_device_id' => $targetDeviceId,
-            'location_id' => $drawer->location_id,
-            'command_type' => $commandType,
-            'payload' => json_encode($payload),
-            'status' => 'pending',
-            'queued_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        if (!Schema::hasTable('pos_hardware_commands')) {
+            Log::error('Cash Drawer: pos_hardware_commands table is missing on current tenant connection', [
+                'drawer_id' => $drawer->drawer_id,
+                'pos_device_id' => $targetDeviceId,
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Local hardware queue table is missing. Please run tenant migrations.',
+            ];
+        }
+
+        try {
+            $commandId = DB::table('pos_hardware_commands')->insertGetId([
+                'drawer_id' => $drawer->drawer_id,
+                'pos_device_id' => $targetDeviceId,
+                'location_id' => $drawer->location_id,
+                'command_type' => $commandType,
+                'payload' => json_encode($payload),
+                'status' => 'pending',
+                'queued_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Cash Drawer: Failed writing to pos_hardware_commands table', [
+                'drawer_id' => $drawer->drawer_id,
+                'pos_device_id' => $targetDeviceId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Unable to queue local hardware command: '.$e->getMessage(),
+            ];
+        }
 
         Log::info('Cash Drawer: Queued local POS hardware command', [
             'command_id' => $commandId,

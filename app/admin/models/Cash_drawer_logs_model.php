@@ -16,7 +16,7 @@ class Cash_drawer_logs_model extends Model
     protected $fillable = [
         'drawer_id',
         'order_id',
-        'staff_id',
+        'location_id',
         'action',
         'status',
         'message',
@@ -27,7 +27,7 @@ class Cash_drawer_logs_model extends Model
     protected $casts = [
         'drawer_id' => 'integer',
         'order_id' => 'integer',
-        'staff_id' => 'integer',
+        'location_id' => 'integer',
         'request_payload' => 'array',
         'response_payload' => 'array',
     ];
@@ -36,6 +36,7 @@ class Cash_drawer_logs_model extends Model
         'belongsTo' => [
             'drawer' => ['Admin\Models\Cash_drawers_model', 'foreignKey' => 'drawer_id'],
             'order' => ['Admin\Models\Orders_model', 'foreignKey' => 'order_id'],
+            'location' => ['Admin\Models\Locations_model', 'foreignKey' => 'location_id'],
         ],
     ];
 
@@ -89,15 +90,15 @@ class Cash_drawer_logs_model extends Model
         return static::create([
             'drawer_id' => $drawerId,
             'order_id' => $data['order_id'] ?? null,
-            'staff_id' => $data['staff_id'] ?? null,
+            'location_id' => $data['location_id'] ?? null,
             'action' => $action,
             'status' => !empty($data['success']) ? 'success' : 'failed',
-            'message' => $data['error_message'] ?? null,
-            'request_payload' => [
-                'location_id' => $data['location_id'] ?? null,
+            'message' => $data['error_message'] ?? ($data['message'] ?? null),
+            'request_payload' => array_filter([
                 'trigger_method' => $data['trigger_method'] ?? null,
-            ],
-            'response_payload' => $data['response_data'] ?? null,
+                'staff_id' => $data['staff_id'] ?? null,
+            ], fn($value) => !is_null($value)),
+            'response_payload' => $data['response_data'] ?? ($data['result_payload'] ?? null),
         ]);
     }
 }
