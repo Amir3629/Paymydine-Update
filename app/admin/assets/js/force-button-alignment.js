@@ -9,12 +9,17 @@
     const isThemeEditPage = window.location.pathname.includes('/admin/themes/edit');
     const isHistoryPage = window.location.pathname.includes('/admin/history');
     const isMediaManagerPage = window.location.pathname.includes('/admin/media_manager');
+    const isCashDrawerPage = window.location.pathname.includes('/admin/cash_drawers');
     if (isThemeEditPage) {
         console.log('🔧 Force Button Alignment skipped on theme edit page');
         return;
     }
     if (isMediaManagerPage) {
         console.log('🔧 Force Button Alignment skipped on media manager page (prevents upload button from breaking)');
+        return;
+    }
+    if (isCashDrawerPage) {
+        console.log('🔧 Force Button Alignment skipped on cash drawers page (preserve simple toolbar layout)');
         return;
     }
     console.log('🔧 Force Button Alignment initialized');

@@ -19,6 +19,10 @@
     if (window.location.pathname.includes('/admin/media_manager')) {
         return; // Skip on media manager - buttons have their own styling
     }
+
+    if (window.location.pathname.includes('/admin/cash_drawers')) {
+        return; // Skip on cash drawers to keep primary action buttons in natural form layout
+    }
     
     /**
      * Apply consistent button styles
