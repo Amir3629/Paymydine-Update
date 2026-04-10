@@ -3268,9 +3268,34 @@ useEffect(() => {
                   }
                 }
               } else {
+                const hadPendingContext =
+                  hydratedPendingOrderRef.current !== null || existingOrderId !== null
+
                 setExistingOrderId(null)
                 setPendingSettlementSummary(null)
                 hydratedPendingOrderRef.current = null
+
+                if (hadPendingContext) {
+                  console.info('[PMD QR fallback] No pending QR order, restoring normal menu flow', {
+                    table_id: tableResult?.data?.table_id ?? null,
+                    table_no: tableResult?.data?.table_no ?? null,
+                  })
+
+                  // Clear stale split-payment cart hydration from previous pending order
+                  clearCart()
+
+                  try {
+                    const state = useCartStore.getState() as any
+                    if (state?.isCartOpen === true) {
+                      useCartStore.setState({ isCartOpen: false })
+                    }
+                  } catch (e) {
+                    console.error('[PMD QR fallback] close drawer failed', e)
+                  }
+
+                  // Ensure pending payment modal is closed when falling back to normal menu flow
+                  setPaymentModalOpen(false)
+                }
               }
             }
           } catch (error) {
