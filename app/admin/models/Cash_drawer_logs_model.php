@@ -18,18 +18,18 @@ class Cash_drawer_logs_model extends Model
         'order_id',
         'location_id',
         'action',
-        'status',
-        'message',
-        'request_payload',
-        'response_payload',
+        'trigger_method',
+        'success',
+        'error_message',
+        'response_data',
     ];
 
     protected $casts = [
         'drawer_id' => 'integer',
         'order_id' => 'integer',
         'location_id' => 'integer',
-        'request_payload' => 'array',
-        'response_payload' => 'array',
+        'success' => 'boolean',
+        'response_data' => 'array',
     ];
 
     public $relation = [
@@ -43,7 +43,7 @@ class Cash_drawer_logs_model extends Model
     /**
      * Get response data as array
      */
-    public function getResponsePayloadAttribute($value)
+    public function getResponseDataAttribute($value)
     {
         if (empty($value)) {
             return [];
@@ -59,27 +59,9 @@ class Cash_drawer_logs_model extends Model
     /**
      * Set response data
      */
-    public function setResponsePayloadAttribute($value)
+    public function setResponseDataAttribute($value)
     {
-        $this->attributes['response_payload'] = is_array($value) ? json_encode($value) : $value;
-    }
-
-    public function getRequestPayloadAttribute($value)
-    {
-        if (empty($value)) {
-            return [];
-        }
-
-        if (is_string($value)) {
-            return json_decode($value, true) ?: [];
-        }
-
-        return $value ?: [];
-    }
-
-    public function setRequestPayloadAttribute($value)
-    {
-        $this->attributes['request_payload'] = is_array($value) ? json_encode($value) : $value;
+        $this->attributes['response_data'] = is_array($value) ? json_encode($value) : $value;
     }
 
     /**
@@ -92,13 +74,10 @@ class Cash_drawer_logs_model extends Model
             'order_id' => $data['order_id'] ?? null,
             'location_id' => $data['location_id'] ?? null,
             'action' => $action,
-            'status' => !empty($data['success']) ? 'success' : 'failed',
-            'message' => $data['error_message'] ?? ($data['message'] ?? null),
-            'request_payload' => array_filter([
-                'trigger_method' => $data['trigger_method'] ?? null,
-                'staff_id' => $data['staff_id'] ?? null,
-            ], fn($value) => !is_null($value)),
-            'response_payload' => $data['response_data'] ?? ($data['result_payload'] ?? null),
+            'trigger_method' => $data['trigger_method'] ?? null,
+            'success' => $data['success'] ?? true,
+            'error_message' => $data['error_message'] ?? null,
+            'response_data' => $data['response_data'] ?? null,
         ]);
     }
 }
