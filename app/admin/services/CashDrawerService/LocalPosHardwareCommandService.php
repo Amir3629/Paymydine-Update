@@ -20,6 +20,21 @@ class LocalPosHardwareCommandService
         return self::queueCommand($drawer, 'test_connection', $meta);
     }
 
+    public static function queueListPrinters(Cash_drawers_model $drawer, array $meta = []): array
+    {
+        return self::queueCommand($drawer, 'list_printers', $meta);
+    }
+
+    public static function queueTestPrint(Cash_drawers_model $drawer, array $meta = []): array
+    {
+        return self::queueCommand($drawer, 'test_print', $meta);
+    }
+
+    public static function queueCustom(Cash_drawers_model $drawer, string $commandType, array $meta = []): array
+    {
+        return self::queueCommand($drawer, $commandType, $meta);
+    }
+
     protected static function queueCommand(Cash_drawers_model $drawer, string $commandType, array $meta = []): array
     {
         $targetDeviceId = $drawer->local_pos_device_id ?: $drawer->pos_device_id;
@@ -52,6 +67,8 @@ class LocalPosHardwareCommandService
                 'last_seen_at' => $device->last_seen_at,
             ],
             'meta' => $meta,
+            'printer_name' => $meta['printer_name'] ?? null,
+            'test_print_text' => $meta['test_print_text'] ?? null,
         ];
 
         if (!Schema::hasTable('pos_hardware_commands')) {

@@ -175,10 +175,31 @@ async function executeDrawerPulse({ target, escPosCommand, printerName }) {
 
 async function executeHardwareCommand(command) {
   const payload = command.payload || {};
+
+  if (command.command_type === 'list_printers') {
+    const printers = process.platform === 'win32' ? await getWindowsPrinters() : [];
+    return { mode: 'list_printers', printers, platform: process.platform };
+  }
+
+  if (command.command_type === 'test_print') {
+    const printerName = payload.printer_name || payload.meta?.printer_name;
+    if (!printerName) {
+      throw new Error('printer_name is required for test_print command');
+    }
+
+    if (process.platform !== 'win32') {
+      throw new Error('test_print is supported on Windows only');
+    }
+
+    const text = payload.test_print_text || payload.meta?.test_print_text || `${LOCAL_TEST_PRINT_TEXT} - ${new Date().toISOString()}`;
+    await printTextWindows(printerName, text);
+    return { mode: 'test_print', printer_name: printerName, text };
+  }
+
   return executeDrawerPulse({
     target: payload.resolved_target || '',
     escPosCommand: payload.esc_pos_command,
-    printerName: payload.printer_name || '',
+    printerName: payload.printer_name || payload.meta?.printer_name || '',
   });
 }
 
@@ -239,7 +260,7 @@ async function ackCommand(commandId, status, message, result) {
 
 async function handleCommand(command) {
   try {
-    if (!['open_drawer', 'test_connection'].includes(command.command_type)) {
+    if (!['open_drawer', 'test_connection', 'list_printers', 'test_print'].includes(command.command_type)) {
       await ackCommand(command.id, 'failed', `Unsupported command type: ${command.command_type}`, {});
       return;
     }

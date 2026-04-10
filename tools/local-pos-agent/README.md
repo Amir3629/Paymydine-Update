@@ -7,8 +7,8 @@ PayMyDine local POS agent runs on the **Windows POS machine** and supports two p
 
 ## Requirements
 
-- Node.js 18+
 - Network access from POS machine to tenant admin URL
+- No manual Node install is required when using the generated connector installer
 
 ## Environment (`.env` next to `agent.js`)
 
@@ -28,7 +28,7 @@ DEFAULT_DRAWER_TARGET=
 LOCAL_TEST_PRINT_TEXT=PayMyDine printer test
 ```
 
-## Run locally
+## Run locally (developer/manual mode only)
 
 ```bash
 node agent.js
@@ -63,3 +63,4 @@ Example test drawer body:
 - folder: `C:\ProgramData\PayMyDine\LocalPosAgent`
 - log: `C:\ProgramData\PayMyDine\LocalPosAgent\agent.log`
 - startup task: `PayMyDineLocalPosAgent`
+- runtime bootstrap: downloads portable Node runtime under `runtime\` automatically when missing
