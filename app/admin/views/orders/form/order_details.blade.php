@@ -15,15 +15,26 @@
             $pmdSettlementLabel = $pmdSettlementStatus !== '' ? ucfirst($pmdSettlementStatus) : 'Unpaid';
             $pmdSettlementMethod = trim((string)($formModel->settlement_method ?? ''));
             $pmdSettlementReference = trim((string)($formModel->settlement_reference ?? ''));
+            $pmdTotalsByCode = collect($formModel->getOrderTotals() ?? [])->keyBy('code');
+            $pmdSubtotal = (float) optional($pmdTotalsByCode->get('subtotal'))->value;
+            $pmdTaxTitle = (string) (optional($pmdTotalsByCode->get('tax'))->title ?? 'Tax');
+            $pmdTaxValue = (float) optional($pmdTotalsByCode->get('tax'))->value;
+            $pmdTipValue = (float) optional($pmdTotalsByCode->get('tip'))->value;
+            $pmdDiscountTitle = (string) (optional($pmdTotalsByCode->get('discount'))->title ?? 'Discount');
+            $pmdDiscountValue = (float) optional($pmdTotalsByCode->get('discount'))->value;
+            $pmdTotalValue = (float) (optional($pmdTotalsByCode->get('total'))->value ?? $pmdOrderTotal);
             $pmdHasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
             $pmdSplitTransactions = collect();
             $pmdSplitItemsByTx = [];
             if ($pmdHasSplitTables) {
-                $pmdAllocationColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
-                    ? 'order_menu_id'
+                $pmdAllocationColumn = function_exists('pmdResolveSplitAllocationColumn')
+                    ? pmdResolveSplitAllocationColumn()
                     : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_item_id')
                         ? 'order_item_id'
-                        : 'menu_id');
+                        : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
+                            ? 'order_menu_id'
+                            : 'menu_id'));
+                \Log::info('Split allocation column resolved', ['column' => $pmdAllocationColumn]);
                 $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
                 $pmdSplitTransactions = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
                     ->where('order_id', (int)$formModel->order_id)
@@ -43,6 +54,20 @@
                 }
             }
         @endphp
+        <tr>
+            <td class="text-muted align-top">Billing Snapshot</td>
+            <td class="text-right">
+                <div>Subtotal: {{ currency_format($pmdSubtotal) }}</div>
+                <div>{{ $pmdTaxTitle }}: {{ currency_format($pmdTaxValue) }}</div>
+                @if(abs($pmdTipValue) > 0.0001)
+                    <div>Tip: {{ currency_format($pmdTipValue) }}</div>
+                @endif
+                @if(abs($pmdDiscountValue) > 0.0001)
+                    <div>{{ $pmdDiscountTitle }}: {{ currency_format($pmdDiscountValue) }}</div>
+                @endif
+                <div><strong>Total: {{ currency_format($pmdTotalValue) }}</strong></div>
+            </td>
+        </tr>
         <tr>
             <td class="text-muted">Settlement</td>
             <td class="text-right">

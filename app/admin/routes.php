@@ -4668,14 +4668,14 @@ Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionI
     $allocationMeta = pmdResolveSplitAllocationColumn();
     $allocationColumn = $allocationMeta['column'];
     $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
-    $items = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-        ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
-        ->where('ti.transaction_id', (int)$transactionId)
+    $items = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti_ti')
+        ->leftJoin('order_menus as om', $joinLeft, '=', 'ti_ti.'.$allocationColumn)
+        ->where('ti_ti.transaction_id', (int)$transactionId)
         ->get([
-            'ti.'.$allocationColumn.' as allocation_key',
-            'ti.quantity_paid',
-            'ti.unit_price',
-            'ti.line_total',
+            'ti_ti.'.$allocationColumn.' as allocation_key',
+            'ti_ti.quantity_paid',
+            'ti_ti.unit_price',
+            'ti_ti.line_total',
             'om.name',
             'om.order_menu_id',
             'om.menu_id',
@@ -5061,7 +5061,10 @@ Route::group([
         $baseOrderQuery = \Illuminate\Support\Facades\DB::table('orders')
             ->where('payment', 'qr_pay_later')
             ->when($hasSettlementColumns, function ($q) {
-                $q->where('settlement_status', '!=', 'paid');
+                $q->where(function ($settlement) {
+                    $settlement->whereNull('settlement_status')
+                        ->orWhere('settlement_status', '!=', 'paid');
+                });
             }, function ($q) {
                 $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
                     ->whereRaw('LOWER(status_name) = ?', ['paid'])
@@ -5131,11 +5134,11 @@ Route::group([
 
         if ($hasSplitTables) {
             $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as t')
-                ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
+                ->join('order_payment_transaction_items as ti_ti', 'ti_ti.transaction_id', '=', 't.id')
                 ->where('t.order_id', $order->order_id)
                 ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
-                ->selectRaw("COALESCE(ti.order_item_id, ti.order_menu_id, ti.menu_id) as alloc_key, SUM(ti.quantity_paid) as qty_paid")
-                ->groupByRaw("COALESCE(ti.order_item_id, ti.order_menu_id, ti.menu_id)")
+                ->selectRaw("COALESCE(ti_ti.order_item_id, ti_ti.order_menu_id, ti_ti.menu_id) as alloc_key, SUM(ti_ti.quantity_paid) as qty_paid")
+                ->groupByRaw("COALESCE(ti_ti.order_item_id, ti_ti.order_menu_id, ti_ti.menu_id)")
                 ->get();
 
             foreach ($paidRows as $paidRow) {
@@ -5292,11 +5295,11 @@ Route::group([
 
                 if ($hasSplitTables) {
                     $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as t')
-                        ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
+                        ->join('order_payment_transaction_items as ti_ti', 'ti_ti.transaction_id', '=', 't.id')
                         ->where('t.order_id', $lockedOrder->order_id)
                         ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
-                        ->selectRaw("ti.{$allocationColumn} as alloc_key, SUM(ti.quantity_paid) as qty_paid")
-                        ->groupBy("ti.{$allocationColumn}")
+                        ->selectRaw("ti_ti.{$allocationColumn} as alloc_key, SUM(ti_ti.quantity_paid) as qty_paid")
+                        ->groupBy("ti_ti.{$allocationColumn}")
                         ->get();
                     foreach ($paidRows as $paidRow) {
                         if ($allocationMode === 'menu_id_legacy') {
@@ -5557,15 +5560,15 @@ Route::group([
         $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
         $itemsByTx = [];
         if (!empty($txIds)) {
-            $itemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-                ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
-                ->whereIn('ti.transaction_id', $txIds)
+            $itemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti_ti')
+                ->leftJoin('order_menus as om', $joinLeft, '=', 'ti_ti.'.$allocationColumn)
+                ->whereIn('ti_ti.transaction_id', $txIds)
                 ->get([
-                    'ti.transaction_id',
-                    'ti.'.$allocationColumn.' as allocation_key',
-                    'ti.quantity_paid',
-                    'ti.unit_price',
-                    'ti.line_total',
+                    'ti_ti.transaction_id',
+                    'ti_ti.'.$allocationColumn.' as allocation_key',
+                    'ti_ti.quantity_paid',
+                    'ti_ti.unit_price',
+                    'ti_ti.line_total',
                     'om.order_menu_id',
                     'om.menu_id',
                     'om.name',

@@ -42,41 +42,8 @@
     $__fSigCounter = $__fSigCounter ?? ($__orderRow->fiskaly_signature_counter ?? ($model->fiskaly_signature_counter ?? null));
     $__fSerial = $__fSerial ?? ($__orderRow->fiskaly_serial_number ?? ($model->fiskaly_serial_number ?? null));
 
-    $__pmdTaxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
-    $__pmdTaxIncluded = $__pmdTaxMode === 'included';
-
-    $__pmdReadTaxSetting = $__pmdReadTaxSetting ?? function ($key, $default = null) {
-        try {
-            $value = setting($key, null);
-            if ($value !== null && $value !== '') {
-                return $value;
-            }
-        } catch (\Throwable $e) {}
-
-        try {
-            $row = \Illuminate\Support\Facades\DB::table('settings')
-                ->where('item', $key)
-                ->first();
-
-            if ($row && $row->value !== null && $row->value !== '') {
-                return $row->value;
-            }
-        } catch (\Throwable $e) {}
-
-        return $default;
-    };
-
-    $__pmdTaxPercent = (float) $__pmdReadTaxSetting('tax_percentage', 0);
-    if ($__pmdTaxPercent <= 0) {
-        $__pmdTaxPercent = 50.0;
-    }
-
-    $__pmdMultiplier = $__pmdTaxIncluded ? (1 + ($__pmdTaxPercent / 100)) : 1.0;
-
-    $__pmdGross = function ($amount) use ($__pmdMultiplier, $__pmdTaxIncluded) {
-        $amount = (float) $amount;
-        return round($__pmdTaxIncluded ? ($amount * $__pmdMultiplier) : $amount, 2);
-    };
+    $__pmdTaxLabelFromTotals = (string)($__taxTotal->title ?? 'Tax');
+    $__pmdTaxIncluded = stripos($__pmdTaxLabelFromTotals, 'included') !== false;
 
     $__pmdNetSubtotal = 0.0;
     foreach (($model->getOrderMenusWithOptions() ?? []) as $__menuCalc) {
@@ -84,11 +51,11 @@
     }
     $__pmdNetSubtotal = round($__pmdNetSubtotal, 2);
 
-    $__pmdDisplayedSubtotal = round($__pmdGross($__pmdNetSubtotal), 2);
-    $__pmdDisplayedTax = round($__pmdDisplayedSubtotal - $__pmdNetSubtotal, 2);
+    $__pmdDisplayedSubtotal = round((float)($__subtotalTotal->value ?? $__pmdNetSubtotal), 2);
+    $__pmdDisplayedTax = round((float)($__taxTotal->value ?? 0), 2);
     $__pmdDisplayedTip = round((float)($__tipTotal->value ?? 0), 2);
     $__pmdDisplayedDiscount = round((float)($__couponTotal->value ?? 0), 2);
-    $__pmdDisplayedTotal = round($__pmdDisplayedSubtotal + $__pmdDisplayedTip + $__pmdDisplayedDiscount, 2);
+    $__pmdDisplayedTotal = round((float)($__finalTotal->value ?? ($__pmdDisplayedSubtotal + $__pmdDisplayedTip + $__pmdDisplayedDiscount)), 2);
 
     if ($__pmdIsPosImport) {
         if ($__pmdPosGross !== null) {
@@ -100,9 +67,7 @@
         }
     }
 
-    $__pmdTaxLabel = $__pmdTaxIncluded
-        ? ('VAT included'.($__pmdTaxPercent > 0 ? ' ('.rtrim(rtrim(number_format($__pmdTaxPercent, 2, '.', ''), '0'), '.').'%)' : ''))
-        : ('VAT'.($__pmdTaxPercent > 0 ? ' ('.rtrim(rtrim(number_format($__pmdTaxPercent, 2, '.', ''), '0'), '.').'%)' : ''));
+    $__pmdTaxLabel = $__pmdTaxLabelFromTotals !== '' ? $__pmdTaxLabelFromTotals : ($__pmdTaxIncluded ? 'VAT included' : 'VAT');
     /* PMD_SAFE_INCLUDED_TAX_INVOICE_END */
 @endphp
 
@@ -496,26 +461,8 @@ TOTALS:
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
-    if (!in_array($pmdTaxMode, ['included', 'add_at_end'], true)) {
-        $pmdTaxMode = ((string) $__pmdReadTaxSetting('tax_menu_price', '1') === '1') ? 'included' : 'add_at_end';
-    }
-
-    $pmdTaxIncluded = $pmdTaxMode === 'included';
-
-    try {
-        $pmdTaxPercent = (float) $__pmdReadTaxSetting('tax_percentage', 0);
-    } catch (\Throwable $e) {
-        $pmdTaxPercent = 0.0;
-    }
-
-    $pmdGross = function ($amount) use ($pmdTaxIncluded, $pmdTaxPercent) {
-        $amount = (float) $amount;
-        if (!$pmdTaxIncluded || $pmdTaxPercent <= 0) {
-            return round($amount, 2);
-        }
-        return round($amount * (1 + ($pmdTaxPercent / 100)), 2);
-    };
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $__pmdTaxLabel ?? 'Tax');
+    $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
 
     $displayTotalItems = 0;
     $pmdDisplayedSubtotal = 0.0;
@@ -533,34 +480,23 @@ TOTALS:
                 2
             );
             $optionsNetLine += $optValueNet;
-            $pmdMenuItemOption->__pmd_display_value = $pmdGross($optValueNet);
+            $pmdMenuItemOption->__pmd_display_value = round($optValueNet, 2);
         }
 
         $fullNetLine = round($baseNetLine + $optionsNetLine, 2);
-        $fullGrossLine = $pmdGross($fullNetLine);
+        $pmdMenuItem->__pmd_display_subtotal = round($fullNetLine, 2);
+        $pmdMenuItem->__pmd_display_price = round($qty > 0 ? ($fullNetLine / $qty) : $fullNetLine, 2);
 
-        $pmdMenuItem->__pmd_display_subtotal = $fullGrossLine;
-        $pmdMenuItem->__pmd_display_price = round($qty > 0 ? ($fullGrossLine / $qty) : $fullGrossLine, 2);
-
-        $pmdDisplayedSubtotal += $fullGrossLine;
+        $pmdDisplayedSubtotal += (float)$pmdMenuItem->__pmd_display_subtotal;
     }
 
     $pmdDisplayedSubtotal = round($pmdDisplayedSubtotal, 2);
     $pmdDisplayedTip = round((float)($tipTotal->value ?? 0), 2);
     $pmdDisplayedDiscount = round((float)($couponTotal->value ?? 0), 2);
 
-    if ($pmdTaxIncluded && $pmdTaxPercent > 0) {
-        $pmdDisplayedTax = round($pmdDisplayedSubtotal - ($pmdDisplayedSubtotal / (1 + ($pmdTaxPercent / 100))), 2);
-    } else {
-        $pmdDisplayedTax = round((float)($taxTotal->value ?? 0), 2);
-    }
-
-    $pmdDisplayedTotal = round($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount, 2);
-
-    $pmdRateLabel = rtrim(rtrim(number_format($pmdTaxPercent, 2, '.', ''), '0'), '.');
-    $pmdTaxLabel = $pmdTaxIncluded
-        ? ('VAT included'.($pmdRateLabel !== '' ? ' ('.$pmdRateLabel.'%)' : ''))
-        : ('VAT'.($pmdRateLabel !== '' ? ' ('.$pmdRateLabel.'%)' : ''));
+    $pmdDisplayedTax = round((float)($taxTotal->value ?? 0), 2);
+    $pmdDisplayedTotal = round((float)($finalTotal->value ?? ($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount)), 2);
+    $pmdTaxLabel = $pmdTaxLabelFromTotals !== '' ? $pmdTaxLabelFromTotals : ($pmdTaxIncluded ? 'VAT included' : 'VAT');
 @endphp
 
 
@@ -575,7 +511,7 @@ TOTALS:
 
                             $__menuItemOptionGroup = collect($menuItem->menu_options ?? [])->groupBy('order_option_category');
 
-                            $__lineDisplaySubtotal = $__pmdGross($__lineSubtotal);
+                            $__lineDisplaySubtotal = round($__lineSubtotal, 2);
                             $__unitDisplayPrice = $__qty > 0
                                 ? round($__lineDisplaySubtotal / $__qty, 2)
                                 : $__lineDisplaySubtotal;
@@ -595,7 +531,7 @@ TOTALS:
                                             @foreach($__groupItems as $__opt)
                                                 @php
                                                     $__optQty = (float)($__opt->quantity ?? 1);
-                                                    $__optPrice = $__pmdGross((float)($__opt->order_option_price ?? 0));
+                                                    $__optPrice = round((float)($__opt->order_option_price ?? 0), 2);
                                                     $__optTotal = $__optQty * $__optPrice;
                                                 @endphp
 
@@ -666,9 +602,9 @@ TOTALS:
                     @if($__pmdTaxIncluded)
                         <tr>
                             <td class="no-line"></td>
-                            <td class="no-line text-left">VAT included</td>
+                            <td class="no-line text-left">{{ $__taxTotal->title ?: 'VAT included' }}</td>
                             <td class="no-line"></td>
-                            <td class="no-line text-right">({{ rtrim(rtrim(number_format((float) $__pmdReadTaxSetting('tax_percentage', 0), 2, '.', ''), '0'), '.') }}%)</td>
+                            <td class="no-line text-right">{{ currency_format((float)$__taxTotal->value) }}</td>
                         </tr>
                     @elseif($__taxTotal && (float)$__taxTotal->value > 0)
                         <tr>
