@@ -4665,14 +4665,14 @@ Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionI
         $tableName = (string)($order->order_type ?? '');
     }
 
-    $allocationMeta = pmdResolveSplitAllocationColumn();
-    $allocationColumn = $allocationMeta['column'];
-    $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
+    $allocCol = pmdResolveSplitAllocationColumn();
+    \Log::info('Split allocation column resolved', ['column' => $allocCol]);
+    $joinLeft = $allocCol === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
     $items = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-        ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
+        ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocCol)
         ->where('ti.transaction_id', (int)$transactionId)
         ->get([
-            'ti.'.$allocationColumn.' as allocation_key',
+            'ti.'.$allocCol.' as allocation_key',
             'ti.quantity_paid',
             'ti.unit_price',
             'ti.line_total',
@@ -4959,50 +4959,32 @@ Route::post('/payments/worldline/raw-card-probe', function (\Illuminate\Http\Req
 /* /PMD_WORLDLINE_PHASE1_ROUTES */
 
 if (!function_exists('pmdResolveSplitAllocationColumn')) {
-    function pmdResolveSplitAllocationColumn(): array
+    function pmdResolveSplitAllocationColumn(): string
     {
         try {
-            $connection = \Illuminate\Support\Facades\DB::connection();
-            $tableName = $connection->getTablePrefix().'order_payment_transaction_items';
-
-            $tableExists = false;
-            try {
-                $tableExists = count($connection->select("SHOW TABLES LIKE ?", [$tableName])) > 0;
-            } catch (\Throwable $e) {
-                $tableExists = false;
-            }
-
-            if (!$tableExists) {
-                return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
-            }
-
-            $columns = collect($connection->select("SHOW COLUMNS FROM `{$tableName}`"))
-                ->map(function ($row) {
-                    return (string)($row->Field ?? '');
-                })
-                ->filter()
-                ->values()
-                ->all();
+            $columns = collect(\Illuminate\Support\Facades\DB::select("SHOW COLUMNS FROM order_payment_transaction_items"))
+                ->map(fn($c) => (string)($c->Field ?? ''))
+                ->toArray();
 
             if (in_array('order_item_id', $columns, true)) {
-                return ['column' => 'order_item_id', 'mode' => 'order_menu_id'];
+                return 'order_item_id';
             }
 
             if (in_array('order_menu_id', $columns, true)) {
-                return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+                return 'order_menu_id';
             }
 
             if (in_array('menu_id', $columns, true)) {
-                return ['column' => 'menu_id', 'mode' => 'menu_id_legacy'];
+                return 'menu_id';
             }
 
-            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+            return 'order_menu_id';
         } catch (\Throwable $e) {
             \Log::warning('pmdResolveSplitAllocationColumn fallback used', [
                 'message' => $e->getMessage(),
             ]);
 
-            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+            return 'order_menu_id';
         }
     }
 }
@@ -5123,9 +5105,9 @@ Route::group([
 
         $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
             && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
-        $allocationMeta = pmdResolveSplitAllocationColumn();
-        $allocationColumn = $allocationMeta['column'];
-        $allocationMode = $allocationMeta['mode'];
+        $allocCol = pmdResolveSplitAllocationColumn();
+        \Log::info('Split allocation column resolved', ['column' => $allocCol]);
+        $allocationMode = $allocCol === 'menu_id' ? 'menu_id_legacy' : 'order_menu_id';
         $paidQtyByOrderMenu = [];
         $paidQtyByMenu = [];
 
@@ -5134,8 +5116,8 @@ Route::group([
                 ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
                 ->where('t.order_id', $order->order_id)
                 ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
-                ->selectRaw("COALESCE(ti.order_item_id, ti.order_menu_id, ti.menu_id) as alloc_key, SUM(ti.quantity_paid) as qty_paid")
-                ->groupByRaw("COALESCE(ti.order_item_id, ti.order_menu_id, ti.menu_id)")
+                ->selectRaw("ti.$allocCol as alloc_key, SUM(ti.quantity_paid) as qty_paid")
+                ->groupBy("ti.$allocCol")
                 ->get();
 
             foreach ($paidRows as $paidRow) {
@@ -5267,16 +5249,16 @@ Route::group([
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
         $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
             && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
-        $allocationMeta = pmdResolveSplitAllocationColumn();
-        $allocationColumn = $allocationMeta['column'];
-        $allocationMode = $allocationMeta['mode'];
+        $allocCol = pmdResolveSplitAllocationColumn();
+        \Log::info('Split allocation column resolved', ['column' => $allocCol]);
+        $allocationMode = $allocCol === 'menu_id' ? 'menu_id_legacy' : 'order_menu_id';
         $hasAllocOrderMenuColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id');
         $hasAllocMenuIdColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'menu_id');
         $selectedItemsPayload = collect($request->input('selected_items', []));
         $transactionId = null;
 
         try {
-            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId) {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $hasSplitTables, $selectedItemsPayload, $allocCol, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId) {
                 $lockedOrder = \Admin\Models\Orders_model::query()
                     ->where('order_id', $order->order_id)
                     ->lockForUpdate()
@@ -5295,8 +5277,8 @@ Route::group([
                         ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
                         ->where('t.order_id', $lockedOrder->order_id)
                         ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
-                        ->selectRaw("ti.{$allocationColumn} as alloc_key, SUM(ti.quantity_paid) as qty_paid")
-                        ->groupBy("ti.{$allocationColumn}")
+                        ->selectRaw("ti.{$allocCol} as alloc_key, SUM(ti.quantity_paid) as qty_paid")
+                        ->groupBy("ti.{$allocCol}")
                         ->get();
                     foreach ($paidRows as $paidRow) {
                         if ($allocationMode === 'menu_id_legacy') {
@@ -5412,7 +5394,7 @@ Route::group([
                     foreach ($allocationRows as $allocationRow) {
                         $insertRow = [
                             'transaction_id' => $transactionId,
-                            $allocationColumn => $allocationMode === 'menu_id_legacy'
+                            $allocCol => $allocationMode === 'menu_id_legacy'
                                 ? $allocationRow['menu_id']
                                 : $allocationRow['order_menu_id'],
                             'quantity_paid' => $allocationRow['quantity_paid'],
@@ -5552,17 +5534,17 @@ Route::group([
             ->orderByDesc('id')
             ->get();
         $txIds = $transactions->pluck('id')->all();
-        $allocationMeta = pmdResolveSplitAllocationColumn();
-        $allocationColumn = $allocationMeta['column'];
-        $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
+        $allocCol = pmdResolveSplitAllocationColumn();
+        \Log::info('Split allocation column resolved', ['column' => $allocCol]);
+        $joinLeft = $allocCol === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
         $itemsByTx = [];
         if (!empty($txIds)) {
             $itemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-                ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
+                ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocCol)
                 ->whereIn('ti.transaction_id', $txIds)
                 ->get([
                     'ti.transaction_id',
-                    'ti.'.$allocationColumn.' as allocation_key',
+                    'ti.'.$allocCol.' as allocation_key',
                     'ti.quantity_paid',
                     'ti.unit_price',
                     'ti.line_total',

@@ -19,11 +19,14 @@
             $pmdSplitTransactions = collect();
             $pmdSplitItemsByTx = [];
             if ($pmdHasSplitTables) {
-                $pmdAllocationColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
-                    ? 'order_menu_id'
+                $pmdAllocationColumn = function_exists('pmdResolveSplitAllocationColumn')
+                    ? pmdResolveSplitAllocationColumn()
                     : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_item_id')
                         ? 'order_item_id'
-                        : 'menu_id');
+                        : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
+                            ? 'order_menu_id'
+                            : 'menu_id'));
+                \Log::info('Split allocation column resolved', ['column' => $pmdAllocationColumn]);
                 $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
                 $pmdSplitTransactions = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
                     ->where('order_id', (int)$formModel->order_id)
