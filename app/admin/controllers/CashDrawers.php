@@ -428,11 +428,18 @@ class CashDrawers extends AdminController
             ."setlocal\r\n"
             ."set PMD_DIR=%ProgramData%\\PayMyDine\\LocalPosAgent\r\n"
             ."if not exist \"%PMD_DIR%\" mkdir \"%PMD_DIR%\"\r\n"
+            ."where node >nul 2>&1\r\n"
+            ."if %errorlevel% neq 0 (\r\n"
+            ."  echo Node.js is required. Please install Node.js 18+ then run this connector again.\r\n"
+            ."  pause\r\n"
+            ."  exit /b 1\r\n"
+            .")\r\n"
             ."powershell -Command \"Invoke-WebRequest -Uri '".$agentUrl."' -OutFile '%PMD_DIR%\\agent.js'\" >nul\r\n"
-            ."(echo BACKEND_BASE_URL={$adminBase}&echo POS_AGENT_TOKEN={$token}&echo POS_DEVICE_CODE={$deviceCode}&echo POS_PAIRING_TOKEN={$device->pairing_token}&echo POS_DISPLAY_NAME={$device->name}&echo POLL_INTERVAL_MS=2000) > \"%PMD_DIR%\\.env\"\r\n"
+            ."(echo BACKEND_BASE_URL={$adminBase}&echo POS_AGENT_TOKEN={$token}&echo POS_DEVICE_CODE={$deviceCode}&echo POS_PAIRING_TOKEN={$device->pairing_token}&echo POS_DISPLAY_NAME={$device->name}&echo POLL_INTERVAL_MS=2000&echo LOCAL_API_ENABLED=true&echo LOCAL_API_HOST=127.0.0.1&echo LOCAL_API_PORT=17877) > \"%PMD_DIR%\\.env\"\r\n"
             ."schtasks /create /tn \"PayMyDineLocalPosAgent\" /tr \"node \\\"%PMD_DIR%\\agent.js\\\"\" /sc onlogon /f >nul 2>&1\r\n"
             ."start \"PayMyDine Local Agent\" /min cmd /c \"cd /d %PMD_DIR% && node agent.js >> %PMD_DIR%\\agent.log 2>&1\"\r\n"
             ."echo PayMyDine local connector installed.\r\n"
+            ."echo Local API: http://127.0.0.1:17877/health\r\n"
             ."echo You can close this window.\r\n";
     }
 

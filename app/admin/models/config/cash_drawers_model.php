@@ -116,18 +116,6 @@ $config['form']['toolbar'] = [
             'data-request' => 'onSave',
             'data-progress-indicator' => 'admin::lang.text_saving',
         ],
-        'test_connection' => [
-            'label' => '<i class="fa fa-plug"></i> Test Connection',
-            'class' => 'btn btn-info',
-            'data-request' => 'onTestConnection',
-            'context' => ['edit'],
-        ],
-        'open_drawer' => [
-            'label' => '<i class="fa fa-unlock"></i> Open Drawer',
-            'class' => 'btn btn-success',
-            'data-request' => 'onOpenDrawer',
-            'context' => ['edit'],
-        ],
         'setup_local_pos' => [
             'label' => '<i class="fa fa-magic"></i> Set Up on This POS',
             'class' => 'btn btn-primary',

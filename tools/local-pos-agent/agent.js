@@ -3,6 +3,9 @@
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
+const os = require('os');
+const http = require('http');
+const { exec } = require('child_process');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -27,32 +30,34 @@ const POS_PAIRING_TOKEN = process.env.POS_PAIRING_TOKEN || '';
 const POS_DISPLAY_NAME = process.env.POS_DISPLAY_NAME || '';
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || '2000', 10);
 
+const LOCAL_API_ENABLED = (process.env.LOCAL_API_ENABLED || 'true').toLowerCase() !== 'false';
+const LOCAL_API_HOST = process.env.LOCAL_API_HOST || '127.0.0.1';
+const LOCAL_API_PORT = parseInt(process.env.LOCAL_API_PORT || '17877', 10);
+const DEFAULT_DRAWER_TARGET = process.env.DEFAULT_DRAWER_TARGET || '';
+const LOCAL_TEST_PRINT_TEXT = process.env.LOCAL_TEST_PRINT_TEXT || 'PayMyDine printer test';
+
+const runtime = {
+  startedAt: new Date().toISOString(),
+  lastPairAt: null,
+  lastPullAt: null,
+  lastPullError: null,
+  lastAckAt: null,
+  lastAckError: null,
+  lastLocalCommand: null,
+};
+
 if (!BACKEND_BASE_URL || !POS_AGENT_TOKEN || !POS_DEVICE_CODE) {
   console.error('Missing BACKEND_BASE_URL, POS_AGENT_TOKEN, or POS_DEVICE_CODE');
   process.exit(1);
 }
 
-async function pairDeviceIfNeeded() {
-  if (!POS_PAIRING_TOKEN) return;
-
-  const url = `${BACKEND_BASE_URL}/api/pos-agent/pair`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${POS_AGENT_TOKEN}`,
-    },
-    body: JSON.stringify({
-      pairing_token: POS_PAIRING_TOKEN,
-      device_code: POS_DEVICE_CODE,
-      display_name: POS_DISPLAY_NAME,
-    }),
+function json(res, code, payload) {
+  const body = JSON.stringify(payload);
+  res.writeHead(code, {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(body),
   });
-
-  if (!res.ok) {
-    const data = await res.text();
-    throw new Error(`Pair failed (${res.status}): ${data}`);
-  }
+  res.end(body);
 }
 
 function parseEscPos(cmd) {
@@ -96,22 +101,110 @@ function writeLocalPath(target, bytes) {
   fs.writeFileSync(target, bytes);
 }
 
+function execCommand(command) {
+  return new Promise((resolve, reject) => {
+    exec(command, { windowsHide: true, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) return reject(new Error(stderr || error.message));
+      resolve((stdout || '').trim());
+    });
+  });
+}
+
+function escapeSingleQuoted(s) {
+  return (s || '').replace(/'/g, "''");
+}
+
+async function getWindowsPrinters() {
+  const ps = "powershell -NoProfile -Command \"Get-Printer | Select-Object Name,PortName,DriverName,PrinterStatus | ConvertTo-Json -Depth 3\"";
+  const raw = await execCommand(ps);
+  if (!raw) return [];
+  const parsed = JSON.parse(raw);
+  const list = Array.isArray(parsed) ? parsed : [parsed];
+  return list.map((p) => ({
+    name: p.Name,
+    port_name: p.PortName,
+    driver_name: p.DriverName,
+    status: p.PrinterStatus,
+  }));
+}
+
+async function printTextWindows(printerName, text) {
+  const safePrinter = escapeSingleQuoted(printerName);
+  const safeText = escapeSingleQuoted(text || LOCAL_TEST_PRINT_TEXT);
+  const ps = `powershell -NoProfile -Command \"$msg='${safeText}'; $msg | Out-Printer -Name '${safePrinter}'\"`;
+  await execCommand(ps);
+}
+
+function inferTcpTargetFromPortName(portName) {
+  if (!portName) return null;
+  if (/^IP_/i.test(portName)) {
+    return `${portName.replace(/^IP_/i, '')}:9100`;
+  }
+  if (/^[\w.-]+:\d+$/.test(portName)) {
+    return portName;
+  }
+  return null;
+}
+
+async function resolveTarget({ target, printerName }) {
+  if (target) return target;
+  if (DEFAULT_DRAWER_TARGET) return DEFAULT_DRAWER_TARGET;
+  if (!printerName || process.platform !== 'win32') return null;
+
+  const printers = await getWindowsPrinters();
+  const match = printers.find((p) => p.name === printerName);
+  if (!match) return null;
+  return inferTcpTargetFromPortName(match.port_name);
+}
+
+async function executeDrawerPulse({ target, escPosCommand, printerName }) {
+  const resolvedTarget = await resolveTarget({ target, printerName });
+  if (!resolvedTarget) {
+    throw new Error('No resolved target for drawer pulse. Configure drawer target or a TCP printer port.');
+  }
+
+  const escPos = parseEscPos(escPosCommand);
+  if (isTcpTarget(resolvedTarget)) {
+    await writeTcp(resolvedTarget, escPos);
+    return { mode: 'tcp', target: resolvedTarget, bytes: escPos.length };
+  }
+
+  writeLocalPath(resolvedTarget, escPos);
+  return { mode: 'local_path', target: resolvedTarget, bytes: escPos.length };
+}
+
 async function executeHardwareCommand(command) {
   const payload = command.payload || {};
-  const target = payload.resolved_target || '';
-  const escPos = parseEscPos(payload.esc_pos_command);
+  return executeDrawerPulse({
+    target: payload.resolved_target || '',
+    escPosCommand: payload.esc_pos_command,
+    printerName: payload.printer_name || '',
+  });
+}
 
-  if (!target) {
-    throw new Error('No resolved_target provided');
+async function pairDeviceIfNeeded() {
+  if (!POS_PAIRING_TOKEN) return;
+
+  const url = `${BACKEND_BASE_URL}/api/pos-agent/pair`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${POS_AGENT_TOKEN}`,
+    },
+    body: JSON.stringify({
+      pairing_token: POS_PAIRING_TOKEN,
+      device_code: POS_DEVICE_CODE,
+      display_name: POS_DISPLAY_NAME,
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.text();
+    throw new Error(`Pair failed (${res.status}): ${data}`);
   }
 
-  if (isTcpTarget(target)) {
-    await writeTcp(target, escPos);
-    return { mode: 'tcp', target };
-  }
-
-  writeLocalPath(target, escPos);
-  return { mode: 'local_path', target };
+  runtime.lastPairAt = new Date().toISOString();
 }
 
 async function pullCommand() {
@@ -121,6 +214,8 @@ async function pullCommand() {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || `Pull failed: ${res.status}`);
+  runtime.lastPullAt = new Date().toISOString();
+  runtime.lastPullError = null;
   return data.command || null;
 }
 
@@ -138,6 +233,8 @@ async function ackCommand(commandId, status, message, result) {
     const data = await res.text();
     throw new Error(`Ack failed (${res.status}): ${data}`);
   }
+  runtime.lastAckAt = new Date().toISOString();
+  runtime.lastAckError = null;
 }
 
 async function handleCommand(command) {
@@ -149,9 +246,29 @@ async function handleCommand(command) {
 
     const result = await executeHardwareCommand(command);
     await ackCommand(command.id, 'success', 'Hardware command executed', result);
+    runtime.lastLocalCommand = {
+      source: 'queue',
+      command_id: command.id,
+      command_type: command.command_type,
+      status: 'success',
+      result,
+      at: new Date().toISOString(),
+    };
     console.log(`[OK] command=${command.id} type=${command.command_type} target=${result.target}`);
   } catch (err) {
-    await ackCommand(command.id, 'failed', err.message || 'Execution failed', {});
+    runtime.lastLocalCommand = {
+      source: 'queue',
+      command_id: command.id,
+      command_type: command.command_type,
+      status: 'failed',
+      error: err.message,
+      at: new Date().toISOString(),
+    };
+    try {
+      await ackCommand(command.id, 'failed', err.message || 'Execution failed', {});
+    } catch (ackErr) {
+      runtime.lastAckError = ackErr.message;
+    }
     console.error(`[FAIL] command=${command.id} error=${err.message}`);
   }
 }
@@ -164,17 +281,144 @@ async function loop() {
         await handleCommand(command);
       }
     } catch (err) {
+      runtime.lastPullError = err.message;
       console.error(`[POLL ERROR] ${err.message}`);
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }
 
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => {
+      data += chunk;
+      if (data.length > 1024 * 1024) {
+        reject(new Error('Request body too large'));
+      }
+    });
+    req.on('end', () => {
+      if (!data) return resolve({});
+      try {
+        resolve(JSON.parse(data));
+      } catch (e) {
+        reject(new Error('Invalid JSON body'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function startLocalApiServer() {
+  if (!LOCAL_API_ENABLED) {
+    console.log('Local API bridge disabled by LOCAL_API_ENABLED=false');
+    return;
+  }
+
+  const server = http.createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, `http://${LOCAL_API_HOST}:${LOCAL_API_PORT}`);
+
+      if (req.method === 'GET' && url.pathname === '/health') {
+        return json(res, 200, {
+          success: true,
+          agent: {
+            device_code: POS_DEVICE_CODE,
+            display_name: POS_DISPLAY_NAME,
+            hostname: os.hostname(),
+            started_at: runtime.startedAt,
+            last_pair_at: runtime.lastPairAt,
+            last_pull_at: runtime.lastPullAt,
+            last_pull_error: runtime.lastPullError,
+            last_ack_at: runtime.lastAckAt,
+            last_ack_error: runtime.lastAckError,
+            last_local_command: runtime.lastLocalCommand,
+          },
+        });
+      }
+
+      if (req.method === 'GET' && url.pathname === '/printers') {
+        const printers = process.platform === 'win32' ? await getWindowsPrinters() : [];
+        return json(res, 200, {
+          success: true,
+          printers,
+          platform: process.platform,
+          note: process.platform === 'win32' ? null : 'Printer enumeration is implemented for Windows only',
+        });
+      }
+
+      if (req.method === 'POST' && (url.pathname === '/open-drawer' || url.pathname === '/test-drawer')) {
+        const body = await readBody(req);
+        const result = await executeDrawerPulse({
+          target: body.target || body.resolved_target || '',
+          escPosCommand: body.esc_pos_command || body.escPosCommand || '27,112,0,60,120',
+          printerName: body.printer_name || body.printerName || '',
+        });
+
+        runtime.lastLocalCommand = {
+          source: 'localhost',
+          endpoint: url.pathname,
+          status: 'success',
+          result,
+          at: new Date().toISOString(),
+        };
+
+        return json(res, 200, { success: true, result });
+      }
+
+      if (req.method === 'POST' && url.pathname === '/test-print') {
+        const body = await readBody(req);
+        const printerName = body.printer_name || body.printerName;
+        if (!printerName) {
+          return json(res, 422, { success: false, message: 'printer_name is required' });
+        }
+
+        if (process.platform !== 'win32') {
+          return json(res, 422, { success: false, message: 'Test print via printer spooler is supported on Windows only' });
+        }
+
+        const text = body.text || `${LOCAL_TEST_PRINT_TEXT} - ${new Date().toISOString()}`;
+        await printTextWindows(printerName, text);
+
+        runtime.lastLocalCommand = {
+          source: 'localhost',
+          endpoint: '/test-print',
+          status: 'success',
+          printer_name: printerName,
+          at: new Date().toISOString(),
+        };
+
+        return json(res, 200, {
+          success: true,
+          result: { printer_name: printerName, text },
+        });
+      }
+
+      return json(res, 404, { success: false, message: 'Endpoint not found' });
+    } catch (err) {
+      runtime.lastLocalCommand = {
+        source: 'localhost',
+        status: 'failed',
+        error: err.message,
+        at: new Date().toISOString(),
+      };
+      return json(res, 500, { success: false, message: err.message || 'Local API error' });
+    }
+  });
+
+  server.listen(LOCAL_API_PORT, LOCAL_API_HOST, () => {
+    console.log(`Local API bridge listening at http://${LOCAL_API_HOST}:${LOCAL_API_PORT}`);
+  });
+}
+
 console.log(`Starting PayMyDine local POS agent for device_code=${POS_DEVICE_CODE}`);
+startLocalApiServer();
+
 (async () => {
   try {
     await pairDeviceIfNeeded();
   } catch (err) {
+    runtime.lastPullError = `[pair] ${err.message}`;
     console.error(`[PAIR ERROR] ${err.message}`);
   }
   await loop();
