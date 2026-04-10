@@ -5061,7 +5061,10 @@ Route::group([
         $baseOrderQuery = \Illuminate\Support\Facades\DB::table('orders')
             ->where('payment', 'qr_pay_later')
             ->when($hasSettlementColumns, function ($q) {
-                $q->where('settlement_status', '!=', 'paid');
+                $q->where(function ($settlement) {
+                    $settlement->whereNull('settlement_status')
+                        ->orWhere('settlement_status', '!=', 'paid');
+                });
             }, function ($q) {
                 $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
                     ->whereRaw('LOWER(status_name) = ?', ['paid'])
