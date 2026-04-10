@@ -15,6 +15,14 @@
             $pmdSettlementLabel = $pmdSettlementStatus !== '' ? ucfirst($pmdSettlementStatus) : 'Unpaid';
             $pmdSettlementMethod = trim((string)($formModel->settlement_method ?? ''));
             $pmdSettlementReference = trim((string)($formModel->settlement_reference ?? ''));
+            $pmdTotalsByCode = collect($formModel->getOrderTotals() ?? [])->keyBy('code');
+            $pmdSubtotal = (float) optional($pmdTotalsByCode->get('subtotal'))->value;
+            $pmdTaxTitle = (string) (optional($pmdTotalsByCode->get('tax'))->title ?? 'Tax');
+            $pmdTaxValue = (float) optional($pmdTotalsByCode->get('tax'))->value;
+            $pmdTipValue = (float) optional($pmdTotalsByCode->get('tip'))->value;
+            $pmdDiscountTitle = (string) (optional($pmdTotalsByCode->get('discount'))->title ?? 'Discount');
+            $pmdDiscountValue = (float) optional($pmdTotalsByCode->get('discount'))->value;
+            $pmdTotalValue = (float) (optional($pmdTotalsByCode->get('total'))->value ?? $pmdOrderTotal);
             $pmdHasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
             $pmdSplitTransactions = collect();
             $pmdSplitItemsByTx = [];
@@ -46,6 +54,20 @@
                 }
             }
         @endphp
+        <tr>
+            <td class="text-muted align-top">Billing Snapshot</td>
+            <td class="text-right">
+                <div>Subtotal: {{ currency_format($pmdSubtotal) }}</div>
+                <div>{{ $pmdTaxTitle }}: {{ currency_format($pmdTaxValue) }}</div>
+                @if(abs($pmdTipValue) > 0.0001)
+                    <div>Tip: {{ currency_format($pmdTipValue) }}</div>
+                @endif
+                @if(abs($pmdDiscountValue) > 0.0001)
+                    <div>{{ $pmdDiscountTitle }}: {{ currency_format($pmdDiscountValue) }}</div>
+                @endif
+                <div><strong>Total: {{ currency_format($pmdTotalValue) }}</strong></div>
+            </td>
+        </tr>
         <tr>
             <td class="text-muted">Settlement</td>
             <td class="text-right">

@@ -119,41 +119,8 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
-    $pmdTaxIncluded = $pmdTaxMode === 'included';
-
-    $pmdReadTaxSetting = $pmdReadTaxSetting ?? function ($key, $default = null) {
-        try {
-            $value = setting($key, null);
-            if ($value !== null && $value !== '') {
-                return $value;
-            }
-        } catch (\Throwable $e) {}
-
-        try {
-            $row = \Illuminate\Support\Facades\DB::table('settings')
-                ->where('item', $key)
-                ->first();
-
-            if ($row && $row->value !== null && $row->value !== '') {
-                return $row->value;
-            }
-        } catch (\Throwable $e) {}
-
-        return $default;
-    };
-
-    $pmdTaxPercent = (float) $pmdReadTaxSetting('tax_percentage', 0);
-    if ($pmdTaxPercent <= 0) {
-        $pmdTaxPercent = 50.0;
-    }
-
-    $pmdMultiplier = $pmdTaxIncluded ? (1 + ($pmdTaxPercent / 100)) : 1.0;
-
-    $pmdGross = function ($amount) use ($pmdMultiplier, $pmdTaxIncluded) {
-        $amount = (float) $amount;
-        return round($pmdTaxIncluded ? ($amount * $pmdMultiplier) : $amount, 2);
-    };
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? 'Tax');
+    $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
 
     $pmdNetSubtotal = 0.0;
     foreach (($model->getOrderMenusWithOptions() ?? []) as $__menuCalc) {
@@ -161,15 +128,12 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     }
     $pmdNetSubtotal = round($pmdNetSubtotal, 2);
 
-    $pmdDisplayedSubtotal = round($pmdGross($pmdNetSubtotal), 2);
-    $pmdDisplayedTax = round($pmdDisplayedSubtotal - $pmdNetSubtotal, 2);
+    $pmdDisplayedSubtotal = round((float)($subtotalTotal->value ?? $pmdNetSubtotal), 2);
+    $pmdDisplayedTax = round((float)($taxTotal->value ?? 0), 2);
     $pmdDisplayedTip = round((float)($tipTotal->value ?? 0), 2);
     $pmdDisplayedDiscount = round((float)($couponTotal->value ?? 0), 2);
-    $pmdDisplayedTotal = round($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount, 2);
-
-    $pmdTaxLabel = $pmdTaxIncluded
-        ? ('VAT included'.($pmdTaxPercent > 0 ? ' ('.rtrim(rtrim(number_format($pmdTaxPercent, 2, '.', ''), '0'), '.').'%)' : ''))
-        : ('VAT'.($pmdTaxPercent > 0 ? ' ('.rtrim(rtrim(number_format($pmdTaxPercent, 2, '.', ''), '0'), '.').'%)' : ''));
+    $pmdDisplayedTotal = round((float)($finalTotal->value ?? ($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount)), 2);
+    $pmdTaxLabel = $pmdTaxLabelFromTotals !== '' ? $pmdTaxLabelFromTotals : ($pmdTaxIncluded ? 'VAT included' : 'VAT');
     /* PMD_SAFE_INCLUDED_TAX_ADMIN_END */
 @endphp
 
@@ -197,25 +161,8 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
-    if (!in_array($pmdTaxMode, ['included', 'add_at_end'], true)) {
-        $pmdTaxMode = ((string) $pmdReadTaxSetting('tax_menu_price', '1') === '1') ? 'included' : 'add_at_end';
-    }
-
-    $pmdTaxIncluded = $pmdTaxMode === 'included';
-
-    $pmdTaxPercent = (float) $pmdReadTaxSetting('tax_percentage', 0);
-    if ($pmdTaxPercent <= 0) {
-        $pmdTaxPercent = 50.0;
-    }
-
-    $pmdGross = function ($amount) use ($pmdTaxIncluded, $pmdTaxPercent) {
-        $amount = (float) $amount;
-        if (!$pmdTaxIncluded || $pmdTaxPercent <= 0) {
-            return round($amount, 2);
-        }
-        return round($amount * (1 + ($pmdTaxPercent / 100)), 2);
-    };
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $pmdTaxLabel ?? 'Tax');
+    $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
 
     $displayTotalItems = 0;
     $pmdDisplayedSubtotal = 0.0;
@@ -231,32 +178,25 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                 (float)($pmdMenuItemOption->quantity ?? 0) * (float)($pmdMenuItemOption->order_option_price ?? 0),
                 2
             );
-            $pmdMenuItemOption->__pmd_display_value = $pmdGross($optValueNet);
+            $pmdMenuItemOption->__pmd_display_value = round($optValueNet, 2);
         }
 
         // IMPORTANT:
         // Frontend truth shows option price separately, but item subtotal stays the menu subtotal.
         // So DO NOT add option values again into admin line/subtotal rendering.
         $fullNetLine = $baseNetLine;
-        $fullGrossLine = $pmdGross($fullNetLine);
+        $pmdMenuItem->__pmd_display_subtotal = round($fullNetLine, 2);
+        $pmdMenuItem->__pmd_display_price = round($qty > 0 ? ($fullNetLine / $qty) : $fullNetLine, 2);
 
-        $pmdMenuItem->__pmd_display_subtotal = $fullGrossLine;
-        $pmdMenuItem->__pmd_display_price = round($qty > 0 ? ($fullGrossLine / $qty) : $fullGrossLine, 2);
-
-        $pmdDisplayedSubtotal += $fullGrossLine;
+        $pmdDisplayedSubtotal += (float)$pmdMenuItem->__pmd_display_subtotal;
     }
 
     $pmdDisplayedSubtotal = round($pmdDisplayedSubtotal, 2);
     $pmdDisplayedTip = round((float)($tipTotal->value ?? 0), 2);
     $pmdDisplayedDiscount = round((float)($couponTotal->value ?? 0), 2);
 
-    if ($pmdTaxIncluded && $pmdTaxPercent > 0) {
-        $pmdDisplayedTax = round($pmdDisplayedSubtotal - ($pmdDisplayedSubtotal / (1 + ($pmdTaxPercent / 100))), 2);
-    } else {
-        $pmdDisplayedTax = round((float)($taxTotal->value ?? 0), 2);
-    }
-
-    $pmdDisplayedTotal = round($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount, 2);
+    $pmdDisplayedTax = round((float)($taxTotal->value ?? $pmdDisplayedTax ?? 0), 2);
+    $pmdDisplayedTotal = round((float)($finalTotal->value ?? ($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount)), 2);
 
     if ($pmdIsPosImport) {
         if ($pmdPosGross !== null) {
@@ -268,10 +208,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
         }
     }
 
-    $pmdRateLabel = rtrim(rtrim(number_format($pmdTaxPercent, 2, '.', ''), '0'), '.');
-    $pmdTaxLabel = $pmdTaxIncluded
-        ? ('VAT included'.($pmdRateLabel !== '' ? ' ('.$pmdRateLabel.'%)' : ''))
-        : ('VAT'.($pmdRateLabel !== '' ? ' ('.$pmdRateLabel.'%)' : ''));
+    $pmdTaxLabel = $pmdTaxLabelFromTotals !== '' ? $pmdTaxLabelFromTotals : ($pmdTaxIncluded ? 'VAT included' : 'VAT');
 @endphp
 
 
@@ -1077,6 +1014,5 @@ function showNotification(message, type) {
     font-style: italic;
 }
 </style>
-
 
 

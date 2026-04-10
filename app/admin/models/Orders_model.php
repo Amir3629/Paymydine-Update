@@ -562,30 +562,10 @@ class Orders_model extends Model
         $data['order_menus'] = [];
         $menus = $model->getOrderMenusWithOptions();
 
-        $readTaxSetting = function ($key, $default = null) {
-            try {
-                $value = setting($key, null);
-                if ($value !== null && $value !== '') {
-                    return $value;
-                }
-            } catch (\Throwable $e) {}
-
-            try {
-                $row = \Illuminate\Support\Facades\DB::table('settings')
-                    ->where('item', $key)
-                    ->first();
-
-                if ($row && $row->value !== null && $row->value !== '') {
-                    return $row->value;
-                }
-            } catch (\Throwable $e) {}
-
-            return $default;
-        };
-
-        $pmdTaxPercent = (float) $readTaxSetting('tax_percentage', 0);
-        $pmdTaxIncluded = ((string) $readTaxSetting('tax_menu_price', '1')) === '1';
-        $pmdGrossFactor = $pmdTaxIncluded ? (1 + ($pmdTaxPercent / 100)) : 1;
+        $orderTotalsByCode = collect($model->getOrderTotals())->keyBy('code');
+        $taxTotalRow = $orderTotalsByCode->get('tax');
+        $displayTaxTitle = htmlspecialchars_decode((string) optional($taxTotalRow)->title ?: 'Tax');
+        $pmdTaxIncluded = stripos($displayTaxTitle, 'included') !== false;
 
         $displaySubtotal = 0.0;
 
@@ -595,13 +575,8 @@ class Orders_model extends Model
             $displayMenuPrice = (float) ($menu->price ?? 0);
             $displayMenuSubtotal = (float) ($menu->subtotal ?? 0);
 
-            if ($pmdTaxIncluded && $pmdTaxPercent > 0) {
-                $displayMenuPrice = round($displayMenuPrice * $pmdGrossFactor, 2);
-                $displayMenuSubtotal = round($displayMenuSubtotal * $pmdGrossFactor, 2);
-            } else {
-                $displayMenuPrice = round($displayMenuPrice, 2);
-                $displayMenuSubtotal = round($displayMenuSubtotal, 2);
-            }
+            $displayMenuPrice = round($displayMenuPrice, 2);
+            $displayMenuSubtotal = round($displayMenuSubtotal, 2);
 
             $displaySubtotal += $displayMenuSubtotal;
 
@@ -610,11 +585,7 @@ class Orders_model extends Model
                 foreach ($menuItemOptions as $menuItemOption) {
                     $displayOptionValue = (float) $menuItemOption->quantity * (float) $menuItemOption->order_option_price;
 
-                    if ($pmdTaxIncluded && $pmdTaxPercent > 0) {
-                        $displayOptionValue = round($displayOptionValue * $pmdGrossFactor, 2);
-                    } else {
-                        $displayOptionValue = round($displayOptionValue, 2);
-                    }
+                    $displayOptionValue = round($displayOptionValue, 2);
 
                     $optionData[] = $menuItemOption->quantity
                         .'&nbsp;'.lang('admin::lang.text_times').'&nbsp;'
@@ -635,20 +606,14 @@ class Orders_model extends Model
         }
 
         $data['order_totals'] = [];
-        $orderTotalsByCode = collect($model->getOrderTotals())->keyBy('code');
 
         $tipValue = round((float) optional($orderTotalsByCode->get('tip'))->value, 2);
         $discountValue = round(abs((float) optional($orderTotalsByCode->get('discount'))->value), 2);
-
-        $displayTaxValue = $pmdTaxIncluded && $pmdTaxPercent > 0
-            ? round($displaySubtotal - ($displaySubtotal / (1 + ($pmdTaxPercent / 100))), 2)
-            : round((float) optional($orderTotalsByCode->get('tax'))->value, 2);
-
-        $displayTaxTitle = $pmdTaxIncluded
-            ? ('VAT included ('.rtrim(rtrim(number_format($pmdTaxPercent, 2, '.', ''), '0'), '.').'%)')
-            : htmlspecialchars_decode(optional($orderTotalsByCode->get('tax'))->title ?? 'Tax');
-
-        $displayTotal = round(($pmdTaxIncluded ? $displaySubtotal : ($displaySubtotal + $displayTaxValue)) + $tipValue - $discountValue, 2);
+        $displayTaxValue = round((float) optional($taxTotalRow)->value, 2);
+        $displayTotal = round((float) optional($orderTotalsByCode->get('total'))->value, 2);
+        if ($displayTotal <= 0) {
+            $displayTotal = round($displaySubtotal + $tipValue - $discountValue + ($pmdTaxIncluded ? 0 : $displayTaxValue), 2);
+        }
 
         $data['order_totals'][] = [
             'order_total_title' => 'Subtotal',
