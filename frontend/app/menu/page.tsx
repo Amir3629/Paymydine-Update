@@ -491,6 +491,11 @@ interface PaymentModalProps {
   items: CartItem[];
   tableInfo?: any;
   existingOrderId?: number | null;
+  pendingSummary?: {
+    orderTotal: number;
+    settledAmount: number;
+    remainingAmount: number;
+  } | null;
 }
 
 interface ExpandingBottomToolbarProps {
@@ -520,6 +525,8 @@ type SplitBillItem = {
   price: number;
   key: string;
   quantity: number;
+  orderMenuId?: number;
+  menuId?: number;
 }
 
 // Component for individual order item with expandable options
@@ -685,7 +692,7 @@ function OrderItemWithOptions({
   )
 }
 
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary }: PaymentModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
@@ -872,7 +879,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       item: cartItem.item,
       price: cartItem.item.price || 0,
       key: `${cartItem.item.id}-${cartIndex}-${i}`,
-      quantity: 1
+      quantity: 1,
+      orderMenuId: Number((cartItem.item as any).__order_menu_id || 0) || undefined,
+      menuId: Number((cartItem.item as any).__menu_id || (cartItem.item as any).id || 0) || undefined,
     }))
   )
 
@@ -1056,9 +1065,25 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       })
       if (existingOrderId) {
         const paidMethod = orderData.payment_method
+        const selectedItemsPayload = isSplitting
+          ? Object.values(selectedItems).reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, instance) => {
+              const orderMenuId = Number(instance.orderMenuId || 0)
+              if (!orderMenuId) return acc
+              const existing = acc.find((row) => row.order_menu_id === orderMenuId)
+              if (existing) {
+                existing.quantity += Number(instance.quantity || 1)
+              } else {
+                acc.push({ order_menu_id: orderMenuId, quantity: Number(instance.quantity || 1) })
+              }
+              return acc
+            }, [])
+          : undefined
+
         const paidResponse = await apiClient.payExistingQrOrder(existingOrderId, {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
+          amount: Number(finalTotal || 0),
+          selected_items: selectedItemsPayload,
         })
 
         if (paidResponse?.success) {
@@ -1977,6 +2002,22 @@ case "cod":
 
         {/* Order Summary (prices incl. tax) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
+          {pendingSummary && (
+            <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">
+              <div className="flex justify-between">
+                <span className="muted">Total</span>
+                <span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="muted">Already paid</span>
+                <span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="muted">Remaining</span>
+                <span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span>
+              </div>
+            </div>
+          )}
           {/* Split Bill Toggle */}
           <div className="flex items-center justify-between p-3 surface-sub rounded-xl rounded-full">
             <div className="flex items-center space-x-2">
@@ -3037,6 +3078,7 @@ function MenuContent() {
   const [note, setNote] = useState("")
   const [tableInfo, setTableInfoState] = useState<any>(null)
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
+  const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const shouldHideCartSheet = !!existingOrderId
 
@@ -3184,17 +3226,24 @@ useEffect(() => {
               if (pendingQr?.success && pendingQr.data?.order_id) {
                 const pendingId = Number(pendingQr.data.order_id)
                 setExistingOrderId(pendingId)
+                setPendingSettlementSummary({
+                  orderTotal: Number((pendingQr.data as any).order_total || 0),
+                  settledAmount: Number((pendingQr.data as any).settled_amount || 0),
+                  remainingAmount: Number((pendingQr.data as any).remaining_amount || 0),
+                })
 
                 if (hydratedPendingOrderRef.current !== pendingId) {
                   clearCart()
                   pendingQr.data.items.forEach((orderItem) => {
                     const menuItem = {
-                      id: Number(orderItem.menu_id),
+                      id: Number((orderItem as any).order_menu_id || orderItem.menu_id),
                       name: String(orderItem.name),
                       description: "",
                       price: Number(orderItem.price),
                       image: "",
                       category: "Main",
+                      __order_menu_id: Number((orderItem as any).order_menu_id || 0),
+                      __menu_id: Number(orderItem.menu_id),
                     }
                     addToCart(menuItem as any, Number(orderItem.quantity || 1))
                   })
@@ -3220,6 +3269,7 @@ useEffect(() => {
                 }
               } else {
                 setExistingOrderId(null)
+                setPendingSettlementSummary(null)
                 hydratedPendingOrderRef.current = null
               }
             }
@@ -3476,6 +3526,7 @@ useEffect(() => {
         items={items}
         tableInfo={tableInfo}
         existingOrderId={existingOrderId}
+        pendingSummary={pendingSettlementSummary}
       />
       <EnhancedWaiterDialog
         isOpen={isWaiterConfirmOpen}

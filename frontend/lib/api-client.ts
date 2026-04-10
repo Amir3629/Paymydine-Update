@@ -97,6 +97,7 @@ export interface PendingQrOrderResponse {
     status_id: number;
     order_total: number;
     items: Array<{
+      order_menu_id?: number;
       menu_id: number;
       name: string;
       quantity: number;
@@ -776,7 +777,16 @@ export class ApiClient {
     }
   }
 
-  async payExistingQrOrder(orderId: number, payload: { payment_method: string; payment_reference?: string | null }) {
+  async payExistingQrOrder(
+    orderId: number,
+    payload: {
+      payment_method: string;
+      payment_reference?: string | null;
+      amount?: number | null;
+      selected_items?: Array<{ order_menu_id: number; quantity: number }>;
+      payer_label?: string | null;
+    }
+  ) {
     const endpoint = `/api/v1/orders/pay-existing`;
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -788,6 +798,9 @@ export class ApiClient {
         order_id: orderId,
         payment_method: payload.payment_method,
         payment_reference: payload.payment_reference ?? null,
+        amount: payload.amount ?? null,
+        selected_items: payload.selected_items ?? [],
+        payer_label: payload.payer_label ?? null,
       }),
     });
 

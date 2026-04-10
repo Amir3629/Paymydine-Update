@@ -4634,6 +4634,61 @@ Route::get('admin/orders/pos-bon/{id}', function ($id) {
 
 });
 
+Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionId) {
+    if (!\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
+        || !\Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items')) {
+        abort(404, 'Split receipt is not available');
+    }
+
+    $transaction = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+        ->where('id', (int)$transactionId)
+        ->first();
+
+    if (!$transaction) {
+        abort(404, 'Transaction not found');
+    }
+
+    $order = \Illuminate\Support\Facades\DB::table('orders')
+        ->where('order_id', (int)$transaction->order_id)
+        ->first();
+
+    $tableName = null;
+    if ($order && is_numeric($order->order_type ?? null)) {
+        $tableRow = \Illuminate\Support\Facades\DB::table('tables')
+            ->where('table_id', (int)$order->order_type)
+            ->first();
+        if ($tableRow) {
+            $tableName = $tableRow->table_name ?: ('Table '.$tableRow->table_no);
+        }
+    }
+    if (!$tableName) {
+        $tableName = (string)($order->order_type ?? '');
+    }
+
+    $allocationMeta = pmdResolveSplitAllocationColumn();
+    $allocationColumn = $allocationMeta['column'];
+    $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
+    $items = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
+        ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
+        ->where('ti.transaction_id', (int)$transactionId)
+        ->get([
+            'ti.'.$allocationColumn.' as allocation_key',
+            'ti.quantity_paid',
+            'ti.unit_price',
+            'ti.line_total',
+            'om.name',
+            'om.order_menu_id',
+            'om.menu_id',
+        ]);
+
+    return view('admin::orders.split_receipt', [
+        'transaction' => $transaction,
+        'order' => $order,
+        'tableName' => $tableName,
+        'items' => $items,
+    ]);
+});
+
 
 
 /* PMD_WORLDLINE_PHASE1_ROUTES */
@@ -4903,6 +4958,55 @@ Route::post('/payments/worldline/raw-card-probe', function (\Illuminate\Http\Req
 
 /* /PMD_WORLDLINE_PHASE1_ROUTES */
 
+if (!function_exists('pmdResolveSplitAllocationColumn')) {
+    function pmdResolveSplitAllocationColumn(): array
+    {
+        try {
+            $connection = \Illuminate\Support\Facades\DB::connection();
+            $tableName = $connection->getTablePrefix().'order_payment_transaction_items';
+
+            $tableExists = false;
+            try {
+                $tableExists = count($connection->select("SHOW TABLES LIKE ?", [$tableName])) > 0;
+            } catch (\Throwable $e) {
+                $tableExists = false;
+            }
+
+            if (!$tableExists) {
+                return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+            }
+
+            $columns = collect($connection->select("SHOW COLUMNS FROM `{$tableName}`"))
+                ->map(function ($row) {
+                    return (string)($row->Field ?? '');
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            if (in_array('order_item_id', $columns, true)) {
+                return ['column' => 'order_item_id', 'mode' => 'order_menu_id'];
+            }
+
+            if (in_array('order_menu_id', $columns, true)) {
+                return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+            }
+
+            if (in_array('menu_id', $columns, true)) {
+                return ['column' => 'menu_id', 'mode' => 'menu_id_legacy'];
+            }
+
+            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+        } catch (\Throwable $e) {
+            \Log::warning('pmdResolveSplitAllocationColumn fallback used', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+        }
+    }
+}
+
 // === QR PAY LATER ACTIVE API ROUTES ===
 Route::group([
     'prefix' => 'api/v1',
@@ -5013,9 +5117,75 @@ Route::group([
             ]);
         }
 
-        $items = \Illuminate\Support\Facades\DB::table('order_menus')
+        $rawItems = \Illuminate\Support\Facades\DB::table('order_menus')
             ->where('order_id', $order->order_id)
-            ->get(['menu_id', 'name', 'quantity', 'price', 'subtotal']);
+            ->get(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal']);
+
+        $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
+            && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
+        $allocationMeta = pmdResolveSplitAllocationColumn();
+        $allocationColumn = $allocationMeta['column'];
+        $allocationMode = $allocationMeta['mode'];
+        $paidQtyByOrderMenu = [];
+        $paidQtyByMenu = [];
+
+        if ($hasSplitTables) {
+            $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as t')
+                ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
+                ->where('t.order_id', $order->order_id)
+                ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
+                ->selectRaw("COALESCE(ti.order_item_id, ti.order_menu_id, ti.menu_id) as alloc_key, SUM(ti.quantity_paid) as qty_paid")
+                ->groupByRaw("COALESCE(ti.order_item_id, ti.order_menu_id, ti.menu_id)")
+                ->get();
+
+            foreach ($paidRows as $paidRow) {
+                if ($allocationMode === 'menu_id_legacy') {
+                    $paidQtyByMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                } else {
+                    $paidQtyByOrderMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                }
+            }
+        }
+
+        $items = [];
+        $computedRemainingAmount = 0.0;
+        $consumedPaidByMenu = [];
+        foreach ($rawItems as $orderItem) {
+            $orderedQty = (float)($orderItem->quantity ?? 0);
+            if ($allocationMode === 'menu_id_legacy') {
+                $menuId = (int)($orderItem->menu_id ?? 0);
+                $menuPaidTotal = (float)($paidQtyByMenu[$menuId] ?? 0);
+                $alreadyConsumed = (float)($consumedPaidByMenu[$menuId] ?? 0);
+                $paidQty = max(0, min($orderedQty, $menuPaidTotal - $alreadyConsumed));
+                $consumedPaidByMenu[$menuId] = $alreadyConsumed + $paidQty;
+            } else {
+                $paidQty = (float)($paidQtyByOrderMenu[(int)$orderItem->order_menu_id] ?? 0);
+            }
+            if ($paidQty > $orderedQty) {
+                $paidQty = $orderedQty;
+            }
+
+            $remainingQty = round(max(0, $orderedQty - $paidQty), 3);
+            if ($remainingQty <= 0) {
+                continue;
+            }
+
+            $lineSubtotal = (float)($orderItem->subtotal ?? 0);
+            $unitPrice = $orderedQty > 0
+                ? round($lineSubtotal / $orderedQty, 4)
+                : round((float)($orderItem->price ?? 0), 4);
+            $remainingSubtotal = round($unitPrice * $remainingQty, 4);
+            $computedRemainingAmount += $remainingSubtotal;
+
+            $items[] = (object)[
+                'order_menu_id' => (int)$orderItem->order_menu_id,
+                'menu_id' => (int)$orderItem->menu_id,
+                'name' => (string)$orderItem->name,
+                'quantity' => $remainingQty,
+                'price' => $unitPrice,
+                'subtotal' => $remainingSubtotal,
+            ];
+        }
 
         $orderTotal = (float)($order->order_total ?? 0);
         $settledAmount = $hasSettlementColumns
@@ -5030,6 +5200,10 @@ Route::group([
         }
 
         $remainingAmount = max(0, round($orderTotal - $settledAmount, 4));
+        if ($hasSplitTables) {
+            $remainingAmount = round($computedRemainingAmount, 4);
+            $settledAmount = max(0, round($orderTotal - $remainingAmount, 4));
+        }
         $settlementStatus = $hasSettlementColumns
             ? strtolower((string)($order->settlement_status ?? 'unpaid'))
             : ($remainingAmount <= 0.0001 ? 'paid' : 'unpaid');
@@ -5068,24 +5242,18 @@ Route::group([
             'payment_method' => 'required|string|max:50',
             'payment_reference' => 'nullable|string|max:255',
             'amount' => 'nullable|numeric|min:0.0001',
+            'payer_label' => 'nullable|string|max:191',
+            'selected_items' => 'nullable|array',
+            'selected_items.*.order_menu_id' => 'required_with:selected_items|integer',
+            'selected_items.*.quantity' => 'required_with:selected_items|numeric|min:0.001',
         ]);
 
-        $order = \Admin\Models\Orders_model::query()
-            ->where('order_id', $request->order_id)
-            ->first();
-
+        $order = \Admin\Models\Orders_model::query()->where('order_id', $request->order_id)->first();
         if (!$order) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Order not found',
-            ], 404);
+            return response()->json(['success' => false, 'error' => 'Order not found'], 404);
         }
-
-        if (strtolower((string) $order->payment) !== 'qr_pay_later') {
-            return response()->json([
-                'success' => false,
-                'error' => 'Only qr_pay_later orders can be paid through this endpoint',
-            ], 422);
+        if (strtolower((string)$order->payment) !== 'qr_pay_later') {
+            return response()->json(['success' => false, 'error' => 'Only qr_pay_later orders can be paid through this endpoint'], 422);
         }
 
         \Log::info('QR_SETTLEMENT_DEBUG pay-existing before', [
@@ -5093,125 +5261,233 @@ Route::group([
             'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
             'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
             'order_id' => $order->order_id,
-            'payload' => $request->only(['order_id', 'payment_method', 'payment_reference', 'amount']),
-            'order_before' => [
-                'order_id' => (int)$order->order_id,
-                'order_type' => (string)$order->order_type,
-                'payment' => (string)$order->payment,
-                'processed' => (int)$order->processed,
-                'status_id' => (int)$order->status_id,
-                'settlement_status' => (string)($order->settlement_status ?? ''),
-                'settled_amount' => (float)($order->settled_amount ?? 0),
-                'settlement_method' => (string)($order->settlement_method ?? ''),
-                'settlement_reference' => (string)($order->settlement_reference ?? ''),
-                'settled_at' => $order->settled_at,
-            ],
+            'payload' => $request->only(['order_id', 'payment_method', 'payment_reference', 'amount', 'selected_items']),
         ]);
-
-        $orderTotal = round((float)($order->order_total ?? 0), 4);
-        $currentSettled = round((float)($order->settled_amount ?? 0), 4);
-        if ($currentSettled < 0) {
-            $currentSettled = 0.0;
-        }
-
-        $paymentAmount = $request->filled('amount')
-            ? round((float)$request->input('amount'), 4)
-            : round(max(0, $orderTotal - $currentSettled), 4);
-
-        if ($paymentAmount <= 0 && $orderTotal > 0) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Payment amount must be greater than zero',
-            ], 422);
-        }
-
-        $newSettled = round($currentSettled + $paymentAmount, 4);
-        if ($orderTotal > 0 && $newSettled > $orderTotal) {
-            $newSettled = $orderTotal;
-        }
-
-        $remaining = max(0, round($orderTotal - $newSettled, 4));
-        $newSettlementStatus = $remaining <= 0.0001
-            ? 'paid'
-            : ($newSettled > 0 ? 'partial' : 'unpaid');
-
-        $previousSettlementStatus = strtolower((string)($order->settlement_status ?? 'unpaid'));
-        if (!in_array($previousSettlementStatus, ['unpaid', 'partial', 'paid'], true)) {
-            $previousSettlementStatus = $currentSettled > 0.0001 ? 'partial' : 'unpaid';
-        }
 
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
+        $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
+            && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
+        $allocationMeta = pmdResolveSplitAllocationColumn();
+        $allocationColumn = $allocationMeta['column'];
+        $allocationMode = $allocationMeta['mode'];
+        $hasAllocOrderMenuColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id');
+        $hasAllocMenuIdColumn = \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'menu_id');
+        $selectedItemsPayload = collect($request->input('selected_items', []));
+        $transactionId = null;
 
-        // Important: do NOT mutate operational status_id for QR settlement.
-        $order->settlement_status = $newSettlementStatus;
-        $order->settled_amount = $newSettled;
-        $order->settlement_method = $normalizedPaymentMethod;
-        if ($request->filled('payment_reference')) {
-            $order->settlement_reference = (string)$request->payment_reference;
-        }
-        if ($newSettlementStatus === 'paid') {
-            $order->settled_at = now()->format('Y-m-d H:i:s');
-            $order->processed = 1;
-        } else {
-            $order->processed = 0;
-        }
-        $order->save();
+        try {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId) {
+                $lockedOrder = \Admin\Models\Orders_model::query()
+                    ->where('order_id', $order->order_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-        \Log::info('QR_SETTLEMENT_DEBUG pay-existing after', [
-            'order_id' => (int)$order->order_id,
-            'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
-            'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
-            'order_after' => [
-                'processed' => (int)$order->processed,
-                'status_id' => (int)$order->status_id,
-                'settlement_status' => (string)($order->settlement_status ?? ''),
-                'settled_amount' => (float)($order->settled_amount ?? 0),
-                'settlement_method' => (string)($order->settlement_method ?? ''),
-                'settlement_reference' => (string)($order->settlement_reference ?? ''),
-                'settled_at' => $order->settled_at,
-            ],
-        ]);
+                $orderMenus = \Illuminate\Support\Facades\DB::table('order_menus')
+                    ->where('order_id', $lockedOrder->order_id)
+                    ->get(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal']);
+
+                $remainingByOrderMenu = [];
+                $paidQtyByOrderMenu = [];
+                $paidQtyByMenu = [];
+
+                if ($hasSplitTables) {
+                    $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as t')
+                        ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 't.id')
+                        ->where('t.order_id', $lockedOrder->order_id)
+                        ->whereNotIn('t.settlement_status', ['failed', 'cancelled'])
+                        ->selectRaw("ti.{$allocationColumn} as alloc_key, SUM(ti.quantity_paid) as qty_paid")
+                        ->groupBy("ti.{$allocationColumn}")
+                        ->get();
+                    foreach ($paidRows as $paidRow) {
+                        if ($allocationMode === 'menu_id_legacy') {
+                            $paidQtyByMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                        } else {
+                            $paidQtyByOrderMenu[(int)$paidRow->alloc_key] = (float)$paidRow->qty_paid;
+                        }
+                    }
+                }
+
+                $remainingTotal = 0.0;
+                $consumedPaidByMenu = [];
+                foreach ($orderMenus as $menuRow) {
+                    $orderedQty = (float)($menuRow->quantity ?? 0);
+                    $lineSubtotal = (float)($menuRow->subtotal ?? 0);
+                    $unitPrice = $orderedQty > 0 ? round($lineSubtotal / $orderedQty, 4) : round((float)($menuRow->price ?? 0), 4);
+                    if ($allocationMode === 'menu_id_legacy') {
+                        $menuId = (int)($menuRow->menu_id ?? 0);
+                        $menuPaidTotal = (float)($paidQtyByMenu[$menuId] ?? 0);
+                        $alreadyConsumed = (float)($consumedPaidByMenu[$menuId] ?? 0);
+                        $paidQty = max(0, min($orderedQty, $menuPaidTotal - $alreadyConsumed));
+                        $consumedPaidByMenu[$menuId] = $alreadyConsumed + $paidQty;
+                    } else {
+                        $paidQty = min($orderedQty, (float)($paidQtyByOrderMenu[(int)$menuRow->order_menu_id] ?? 0));
+                    }
+                    $remainingQty = round(max(0, $orderedQty - $paidQty), 3);
+                    if ($remainingQty > 0) {
+                        $remainingByOrderMenu[(int)$menuRow->order_menu_id] = ['row' => $menuRow, 'remaining_qty' => $remainingQty, 'unit_price' => $unitPrice];
+                        $remainingTotal += round($unitPrice * $remainingQty, 4);
+                    }
+                }
+
+                $allocationQty = [];
+                if ($selectedItemsPayload->isNotEmpty()) {
+                    foreach ($selectedItemsPayload as $itemPayload) {
+                        $menuId = (int)($itemPayload['order_menu_id'] ?? 0);
+                        $qty = round((float)($itemPayload['quantity'] ?? 0), 3);
+                        if ($menuId <= 0 || $qty <= 0) {
+                            throw new \InvalidArgumentException('Invalid selected item payload');
+                        }
+                        $allocationQty[$menuId] = round(($allocationQty[$menuId] ?? 0) + $qty, 3);
+                    }
+                } else {
+                    foreach ($remainingByOrderMenu as $menuId => $remainingInfo) {
+                        $allocationQty[$menuId] = (float)$remainingInfo['remaining_qty'];
+                    }
+                }
+
+                if (empty($allocationQty)) {
+                    throw new \InvalidArgumentException('No payable items remaining');
+                }
+
+                $allocationRows = [];
+                $calculatedAmount = 0.0;
+                foreach ($allocationQty as $menuId => $qtyToPay) {
+                    if (!isset($remainingByOrderMenu[$menuId])) {
+                        throw new \InvalidArgumentException('Selected item does not belong to order or is already paid');
+                    }
+                    $maxRemaining = (float)$remainingByOrderMenu[$menuId]['remaining_qty'];
+                    if ($qtyToPay > $maxRemaining + 0.0001) {
+                        throw new \InvalidArgumentException('Selected quantity exceeds unpaid quantity');
+                    }
+                    $unitPrice = (float)$remainingByOrderMenu[$menuId]['unit_price'];
+                    $lineTotal = round($unitPrice * $qtyToPay, 4);
+                    $allocationRows[] = [
+                        'order_menu_id' => $menuId,
+                        'menu_id' => (int)($remainingByOrderMenu[$menuId]['row']->menu_id ?? 0),
+                        'name' => (string)($remainingByOrderMenu[$menuId]['row']->name ?? ''),
+                        'quantity_paid' => $qtyToPay,
+                        'unit_price' => $unitPrice,
+                        'line_total' => $lineTotal,
+                    ];
+                    $calculatedAmount += $lineTotal;
+                }
+
+                $calculatedAmount = round($calculatedAmount, 4);
+                if ($calculatedAmount <= 0) {
+                    throw new \InvalidArgumentException('Payment amount must be greater than zero');
+                }
+                if ($request->filled('amount')) {
+                    $requestedAmount = round((float)$request->input('amount'), 4);
+                    if (abs($requestedAmount - $calculatedAmount) > 0.02) {
+                        throw new \InvalidArgumentException('Selected items amount mismatch');
+                    }
+                }
+                if ($calculatedAmount > $remainingTotal + 0.0001) {
+                    throw new \InvalidArgumentException('Cannot overpay remaining amount');
+                }
+
+                $orderTotal = round((float)($lockedOrder->order_total ?? 0), 4);
+                $currentSettled = max(0, round((float)($lockedOrder->settled_amount ?? 0), 4));
+                $newSettled = round(min($orderTotal, $currentSettled + $calculatedAmount), 4);
+                $remaining = max(0, round($orderTotal - $newSettled, 4));
+                $newSettlementStatus = $remaining <= 0.0001 ? 'paid' : 'partial';
+                $previousSettlementStatus = strtolower((string)($lockedOrder->settlement_status ?? 'unpaid'));
+                if (!in_array($previousSettlementStatus, ['unpaid', 'partial', 'paid'], true)) {
+                    $previousSettlementStatus = $currentSettled > 0.0001 ? 'partial' : 'unpaid';
+                }
+
+                if ($hasSplitTables) {
+                    $transactionId = \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insertGetId([
+                        'order_id' => (int)$lockedOrder->order_id,
+                        'payment_method' => $normalizedPaymentMethod,
+                        'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : null,
+                        'amount' => $calculatedAmount,
+                        'settlement_status' => $newSettlementStatus,
+                        'payer_label' => $request->filled('payer_label') ? (string)$request->payer_label : null,
+                        'paid_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $insertRows = [];
+                    foreach ($allocationRows as $allocationRow) {
+                        $insertRow = [
+                            'transaction_id' => $transactionId,
+                            $allocationColumn => $allocationMode === 'menu_id_legacy'
+                                ? $allocationRow['menu_id']
+                                : $allocationRow['order_menu_id'],
+                            'quantity_paid' => $allocationRow['quantity_paid'],
+                            'unit_price' => $allocationRow['unit_price'],
+                            'line_total' => $allocationRow['line_total'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        if ($hasAllocOrderMenuColumn) {
+                            $insertRow['order_menu_id'] = $allocationRow['order_menu_id'];
+                        }
+                        if ($hasAllocMenuIdColumn) {
+                            $insertRow['menu_id'] = $allocationRow['menu_id'];
+                        }
+                        $insertRows[] = $insertRow;
+                    }
+                    \Illuminate\Support\Facades\DB::table('order_payment_transaction_items')->insert($insertRows);
+                }
+
+                $lockedOrder->settlement_status = $newSettlementStatus;
+                $lockedOrder->settled_amount = $newSettled;
+                $lockedOrder->settlement_method = $normalizedPaymentMethod;
+                if ($request->filled('payment_reference')) {
+                    $lockedOrder->settlement_reference = (string)$request->payment_reference;
+                }
+                $lockedOrder->processed = $newSettlementStatus === 'paid' ? 1 : 0;
+                if ($newSettlementStatus === 'paid') {
+                    $lockedOrder->settled_at = now();
+                }
+                $lockedOrder->save();
+
+                return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows');
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            \Log::error('QR_SETTLEMENT_DEBUG pay-existing failed', [
+                'order_id' => $order->order_id,
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json(['success' => false, 'error' => 'Failed to record payment transaction'], 500);
+        }
+
+        $order = $result['lockedOrder'];
+        $previousSettlementStatus = $result['previousSettlementStatus'];
+        $newSettlementStatus = $result['newSettlementStatus'];
+        $newSettled = $result['newSettled'];
+        $remaining = $result['remaining'];
+        $paymentAmount = $result['calculatedAmount'];
+        $allocationRows = $result['allocationRows'];
 
         \Illuminate\Support\Facades\DB::table('order_totals')
             ->where('order_id', $request->order_id)
             ->where('code', 'payment_method')
-            ->update([
-                'value' => $normalizedPaymentMethod,
-            ]);
-
+            ->update(['value' => $normalizedPaymentMethod]);
         if ($request->filled('payment_reference')) {
             \Illuminate\Support\Facades\DB::table('order_totals')->insert([
                 'order_id' => $request->order_id,
                 'code' => 'payment_reference',
                 'title' => 'Payment Reference',
-                'value' => (string) $request->payment_reference,
+                'value' => (string)$request->payment_reference,
                 'priority' => 0,
             ]);
         }
 
         try {
-            $tableDisplay = null;
+            $tableDisplay = (string)($order->order_type ?? '');
             $tableId = trim((string)($order->order_type ?? ''));
             if ($tableId !== '' && is_numeric($tableId)) {
                 $table = \Illuminate\Support\Facades\DB::table('tables')->where('table_id', $tableId)->first();
-                if ($table) {
-                    $tableDisplay = (string)($table->table_name ?: ('Table '.$table->table_no));
-                }
+                if ($table) $tableDisplay = (string)($table->table_name ?: ('Table '.$table->table_no));
             }
-
-            if ($tableDisplay === null || $tableDisplay === '') {
-                $tableDisplay = (string)($order->order_type ?? '');
-            }
-
-            $notifyStatus = null;
-            if ($previousSettlementStatus === 'unpaid' && $newSettlementStatus === 'partial') {
-                $notifyStatus = 'partial_payment';
-            } elseif ($newSettlementStatus === 'paid') {
-                $notifyStatus = 'full_payment';
-            }
-
+            $notifyStatus = $newSettlementStatus === 'paid' ? 'full_payment' : 'partial_payment';
             if ($notifyStatus !== null) {
-                $notificationId = \App\Helpers\NotificationHelper::createOrderNotification([
+                \App\Helpers\NotificationHelper::createOrderNotification([
                     'tenant_id' => $order->location_id ?? 1,
                     'order_id' => $order->order_id,
                     'table_id' => is_numeric($tableId) ? (int)$tableId : null,
@@ -5220,7 +5496,7 @@ Route::group([
                     'status_name' => $newSettlementStatus === 'paid' ? 'Paid' : 'Partial',
                     'message' => $newSettlementStatus === 'paid'
                         ? sprintf(
-                            'Order #%d paid (%s, amount %0.2f).',
+                            'Order #%d fully paid (%s, paid %0.2f).',
                             (int)$order->order_id,
                             strtoupper($normalizedPaymentMethod),
                             $paymentAmount
@@ -5232,34 +5508,100 @@ Route::group([
                             $paymentAmount,
                             $remaining
                         ),
+                    'amount_paid' => $paymentAmount,
+                    'remaining_amount' => $remaining,
+                    'payment_method' => $normalizedPaymentMethod,
+                    'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : '',
                     'priority' => $newSettlementStatus === 'paid' ? 'high' : 'medium',
-                ]);
-
-                \Log::info('QR_SETTLEMENT_DEBUG pay-existing notification', [
-                    'order_id' => (int)$order->order_id,
-                    'notify_status' => $notifyStatus,
-                    'notification_id' => $notificationId,
-                    'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
-                    'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
                 ]);
             }
         } catch (\Throwable $e) {
-            \Log::warning('QR settlement notification failed', [
-                'order_id' => $order->order_id,
-                'message' => $e->getMessage(),
-            ]);
+            \Log::warning('QR settlement notification failed', ['order_id' => $order->order_id, 'message' => $e->getMessage()]);
         }
 
-        return response()->json([
-            'success' => true,
-            'order_id' => (int) $request->order_id,
-            'message' => $newSettlementStatus === 'paid'
-                ? 'Order paid successfully'
-                : 'Partial payment recorded',
+        \Log::info('QR_SETTLEMENT_DEBUG pay-existing after', [
+            'order_id' => (int)$order->order_id,
+            'transaction_id' => $transactionId,
+            'allocation_rows' => $allocationRows,
             'settlement_status' => $newSettlementStatus,
             'settled_amount' => $newSettled,
             'remaining_amount' => $remaining,
         ]);
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int)$request->order_id,
+            'transaction_id' => $transactionId ? (int)$transactionId : null,
+            'message' => $newSettlementStatus === 'paid' ? 'Order paid successfully' : 'Partial payment recorded',
+            'settlement_status' => $newSettlementStatus,
+            'settled_amount' => $newSettled,
+            'remaining_amount' => $remaining,
+            'paid_amount' => $paymentAmount,
+            'allocations' => $allocationRows,
+        ]);
+    })->withoutMiddleware([\Igniter\Cart\Middleware\Currency::class]);
+
+    Route::get('/orders/{order}/payment-transactions', function ($orderId) {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
+            || !\Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items')) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $transactions = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+            ->where('order_id', (int)$orderId)
+            ->orderByDesc('id')
+            ->get();
+        $txIds = $transactions->pluck('id')->all();
+        $allocationMeta = pmdResolveSplitAllocationColumn();
+        $allocationColumn = $allocationMeta['column'];
+        $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
+        $itemsByTx = [];
+        if (!empty($txIds)) {
+            $itemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
+                ->leftJoin('order_menus as om', $joinLeft, '=', 'ti.'.$allocationColumn)
+                ->whereIn('ti.transaction_id', $txIds)
+                ->get([
+                    'ti.transaction_id',
+                    'ti.'.$allocationColumn.' as allocation_key',
+                    'ti.quantity_paid',
+                    'ti.unit_price',
+                    'ti.line_total',
+                    'om.order_menu_id',
+                    'om.menu_id',
+                    'om.name',
+                ]);
+            foreach ($itemRows as $itemRow) {
+                $itemsByTx[(int)$itemRow->transaction_id] = $itemsByTx[(int)$itemRow->transaction_id] ?? [];
+                $itemsByTx[(int)$itemRow->transaction_id][] = $itemRow;
+            }
+        }
+
+        $data = [];
+        foreach ($transactions as $transaction) {
+            $id = (int)$transaction->id;
+            $data[] = [
+                'id' => $id,
+                'payment_method' => (string)$transaction->payment_method,
+                'payment_reference' => (string)($transaction->payment_reference ?? ''),
+                'amount' => (float)$transaction->amount,
+                'settlement_status' => (string)($transaction->settlement_status ?? ''),
+                'payer_label' => (string)($transaction->payer_label ?? ''),
+                'paid_at' => $transaction->paid_at,
+                'receipt_url' => url('admin/orders/split-receipt/'.$id),
+                'items' => array_map(function ($row) {
+                    return [
+                        'order_menu_id' => (int)($row->order_menu_id ?? 0),
+                        'menu_id' => (int)($row->menu_id ?? 0),
+                        'name' => (string)($row->name ?? ''),
+                        'quantity_paid' => (float)$row->quantity_paid,
+                        'unit_price' => (float)$row->unit_price,
+                        'line_total' => (float)$row->line_total,
+                    ];
+                }, $itemsByTx[$id] ?? []),
+            ];
+        }
+
+        return response()->json(['success' => true, 'data' => $data]);
     });
 });
 // === /QR PAY LATER ACTIVE API ROUTES ===
