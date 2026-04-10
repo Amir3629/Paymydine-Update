@@ -12,6 +12,7 @@ use Admin\Services\CashDrawerService\CashDrawerService;
 use Admin\Services\CashDrawerService\LocalPosHardwareCommandService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Cash Drawers Controller
@@ -97,23 +98,13 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        if (config('cashdrawer.local_agent_enabled')) {
-            if (!$this->hasLocalHardwareColumns()) {
-                flash()->error('Local hardware is not available for this tenant yet. Please complete the latest system update.');
-                return $this->refresh();
-            }
+        $result = CashDrawerService::testDrawer($drawer);
+        if (!$result['success'] && $this->hasLocalHardwareColumns()) {
             $availability = $this->validateLocalDeviceAvailability($drawer);
             if (!$availability['ok']) {
                 flash()->error($availability['message']);
                 return $this->refresh();
             }
-
-            $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
-                'trigger_method' => 'manual_test',
-                'requested_by' => optional(AdminAuth::user())->staff_id,
-            ]);
-        } else {
-            $result = CashDrawerService::testDrawer($drawer);
         }
 
         if ($result['success']) {
@@ -137,25 +128,17 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        if (config('cashdrawer.local_agent_enabled')) {
-            if (!$this->hasLocalHardwareColumns()) {
-                flash()->error('Local hardware is not available for this tenant yet. Please complete the latest system update.');
-                return $this->refresh();
-            }
+        $result = CashDrawerService::openDrawer($drawer, [
+            'trigger_method' => 'manual',
+            'requested_by' => optional(AdminAuth::user())->staff_id,
+        ]);
+
+        if (!$result['success'] && $this->hasLocalHardwareColumns()) {
             $availability = $this->validateLocalDeviceAvailability($drawer);
             if (!$availability['ok']) {
                 flash()->error($availability['message']);
                 return $this->refresh();
             }
-
-            $result = LocalPosHardwareCommandService::queueOpenDrawer($drawer, [
-                'trigger_method' => 'manual',
-                'requested_by' => optional(AdminAuth::user())->staff_id,
-            ]);
-        } else {
-            $result = CashDrawerService::openDrawer($drawer, [
-                'trigger_method' => 'manual',
-            ]);
         }
 
         if ($result['success']) {
@@ -473,10 +456,40 @@ class CashDrawers extends AdminController
 
         $online = method_exists($device, 'isOnline') ? $device->isOnline() : false;
         if (!$online) {
-            return ['state' => 'offline', 'message' => 'This POS terminal is offline.', 'device' => $device, 'drawer' => $drawer];
+            return array_merge([
+                'state' => 'offline',
+                'message' => 'This POS terminal is offline.',
+                'device' => $device,
+                'drawer' => $drawer,
+            ], $this->lastCommandSnapshot($drawer));
         }
 
-        return ['state' => 'online', 'message' => 'Local hardware is enabled and terminal is online.', 'device' => $device, 'drawer' => $drawer];
+        return array_merge([
+            'state' => 'online',
+            'message' => 'Local hardware is enabled and terminal is online.',
+            'device' => $device,
+            'drawer' => $drawer,
+        ], $this->lastCommandSnapshot($drawer));
+    }
+
+    protected function lastCommandSnapshot($drawer): array
+    {
+        if (!$drawer) {
+            return [];
+        }
+
+        $cmd = DB::table('pos_hardware_commands')
+            ->where('drawer_id', $drawer->drawer_id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$cmd) {
+            return [];
+        }
+
+        return [
+            'command' => $cmd,
+        ];
     }
 
     protected function hasLocalHardwareColumns(): bool

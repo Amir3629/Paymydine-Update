@@ -18,6 +18,19 @@
                 </small>
             </div>
         @endif
+        @if(!empty($status['command']))
+            <div style="margin-top:6px;">
+                <small>
+                    Queue: {{ $status['command']->status ?? 'unknown' }}
+                    @if(!empty($status['command']->queued_at))
+                        | Queued: {{ $status['command']->queued_at }}
+                    @endif
+                    @if(!empty($status['command']->completed_at))
+                        | Completed: {{ $status['command']->completed_at }}
+                    @endif
+                </small>
+            </div>
+        @endif
         @if(!empty($status['drawer']) && !empty($status['drawer']->setup_state))
             <div style="margin-top:6px;">
                 <small>Setup state: {{ $status['drawer']->setup_state }}{{ !empty($status['drawer']->setup_message) ? ' - '.$status['drawer']->setup_message : '' }}</small>
