@@ -74,7 +74,9 @@
             ? (int)$table_data->table_no
             : (int)($table_id ?? 0);
 
-        $qr_redirect_url = rtrim($frontend_url, '/') . '/table/' . $tableNumber . '?' . http_build_query([
+        $qr_redirect_url = rtrim($frontend_url, '/') . '/menu?' . http_build_query([
+            'table_no'  => $tableNumber,
+            'table_id'  => $table_data->table_id ?? $table_id ?? null,
             'location' => $location_id ?? 1,
             'guest'    => $max_capacity ?? 1,
             'date'     => $date ?? date('Y-m-d'),
@@ -112,6 +114,5 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
    </div>
 
 </div>
-
 
 

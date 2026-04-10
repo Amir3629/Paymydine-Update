@@ -183,12 +183,19 @@ class RestaurantController extends BaseController
                 ], 404);
             }
 
-            // Build tenant-aware frontend URL using the location ID passed in route
+            $tableNoOrId = (int)($table->table_no ?: $table->table_id);
+            $menuQuery = http_build_query([
+                'table_no' => $tableNoOrId,
+                'table_id' => $table->table_id,
+                'qr' => $table->qr_code,
+            ]);
+
+            // Build tenant-aware frontend URL using direct menu flow
             try {
-                $frontendUrl = buildTenantFrontendUrl($locationId, "/menu/table-{$table->table_id}");
+                $frontendUrl = buildTenantFrontendUrl($locationId, "/menu?{$menuQuery}");
             } catch (\Exception $e) {
                 // Fallback if location has no permalink_slug
-                $frontendUrl = "http://" . request()->getHost() . "/menu/table-{$table->table_id}";
+                $frontendUrl = "http://" . request()->getHost() . "/menu?{$menuQuery}";
             }
             
             return response()->json([

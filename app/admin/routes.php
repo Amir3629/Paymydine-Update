@@ -658,7 +658,9 @@ App::before(function () {
                 
             $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
                 
-            $qrUrl = rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
+            $qrUrl = rtrim($frontendUrl, '/') . '/menu?' . http_build_query([
+                'table_no' => $tableNumber,
+                'table_id' => $table->table_id,
                 'location' => $locationId,
                 'guest' => $maxCapacity,
                 'date' => $date,
