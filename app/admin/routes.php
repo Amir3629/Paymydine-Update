@@ -4962,26 +4962,30 @@ if (!function_exists('pmdResolveSplitAllocationColumn')) {
     function pmdResolveSplitAllocationColumn(): string
     {
         try {
-            $columns = collect(\Illuminate\Support\Facades\DB::select("SHOW COLUMNS FROM order_payment_transaction_items"))
+            $connection = \Illuminate\Support\Facades\DB::connection();
+            $table = $connection->getTablePrefix().'order_payment_transaction_items';
+            $columns = collect($connection->select("SHOW COLUMNS FROM `{$table}`"))
                 ->map(fn($c) => (string)($c->Field ?? ''))
                 ->toArray();
 
+            $allocCol = 'order_menu_id';
             if (in_array('order_item_id', $columns, true)) {
-                return 'order_item_id';
+                $allocCol = 'order_item_id';
+            } elseif (in_array('order_menu_id', $columns, true)) {
+                $allocCol = 'order_menu_id';
+            } elseif (in_array('menu_id', $columns, true)) {
+                $allocCol = 'menu_id';
             }
 
-            if (in_array('order_menu_id', $columns, true)) {
-                return 'order_menu_id';
-            }
+            \Log::info('ALLOC COL DEBUG', [
+                'table' => $table,
+                'column' => $allocCol,
+            ]);
 
-            if (in_array('menu_id', $columns, true)) {
-                return 'menu_id';
-            }
-
-            return 'order_menu_id';
+            return $allocCol;
         } catch (\Throwable $e) {
-            \Log::warning('pmdResolveSplitAllocationColumn fallback used', [
-                'message' => $e->getMessage(),
+            \Log::error('Split allocation column detection failed', [
+                'error' => $e->getMessage(),
             ]);
 
             return 'order_menu_id';
