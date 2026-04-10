@@ -596,9 +596,11 @@ class CashDrawers extends AdminController
             ->orderBy('id', 'desc')
             ->first();
 
-        if ($printerCommand && !empty($printerCommand->result_payload)) {
-            $payload = json_decode($printerCommand->result_payload, true);
-            $printers = is_array($payload['printers'] ?? null) ? $payload['printers'] : [];
+        if ($printerCommand && !empty($printerCommand->payload)) {
+            $payload = json_decode($printerCommand->payload, true);
+            $printers = is_array($payload['ack_result']['printers'] ?? null)
+                ? $payload['ack_result']['printers']
+                : [];
         }
 
         return [

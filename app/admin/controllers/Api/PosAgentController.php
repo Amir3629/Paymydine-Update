@@ -120,7 +120,7 @@ class PosAgentController extends Controller
                     ->where('status', 'pending')
                     ->update([
                         'status' => 'processing',
-                        'picked_at' => now(),
+                        'processed_at' => now(),
                         'updated_at' => now(),
                     ]);
 
@@ -171,9 +171,8 @@ class PosAgentController extends Controller
                 ->whereIn('status', ['processing', 'pending'])
                 ->update([
                     'status' => $status,
-                    'result_message' => $request->input('message'),
-                    'result_payload' => json_encode($request->input('result', [])),
-                    'completed_at' => now(),
+                    'message' => (string)$request->input('message', ''),
+                    'acknowledged_at' => now(),
                     'updated_at' => now(),
                 ]);
 
@@ -182,6 +181,22 @@ class PosAgentController extends Controller
             }
 
             $command = DB::table('pos_hardware_commands')->where('id', $commandId)->first();
+            if ($command) {
+                $payload = json_decode((string)($command->payload ?? '{}'), true);
+                if (!is_array($payload)) {
+                    $payload = [];
+                }
+                $payload['ack_result'] = $request->input('result', []);
+                $payload['ack_status'] = $status;
+                $payload['ack_message'] = (string)$request->input('message', '');
+                $payload['acknowledged_at'] = now()->toDateTimeString();
+
+                DB::table('pos_hardware_commands')->where('id', $commandId)->update([
+                    'payload' => json_encode($payload),
+                    'updated_at' => now(),
+                ]);
+            }
+
             if ($command && !empty($command->drawer_id) && Schema::hasTable('cash_drawers')) {
                 $update = ['updated_at' => now()];
                 if (Schema::hasColumn('cash_drawers', 'last_command_status')) {
