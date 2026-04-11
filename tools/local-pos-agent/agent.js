@@ -5,7 +5,7 @@ const net = require('net');
 const path = require('path');
 const os = require('os');
 const http = require('http');
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -120,6 +120,15 @@ function execCommand(command) {
   });
 }
 
+function execFileCommand(file, args) {
+  return new Promise((resolve, reject) => {
+    execFile(file, args, { windowsHide: true, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) return reject(new Error(stderr || error.message));
+      resolve((stdout || '').trim());
+    });
+  });
+}
+
 function escapeSingleQuoted(s) {
   return (s || '').replace(/'/g, "''");
 }
@@ -146,38 +155,81 @@ async function printTextWindows(printerName, text) {
 }
 
 async function sendRawToWindowsPrinter(printerName, bytes) {
-  const safePrinter = escapeSingleQuoted(printerName);
-  const base64 = bytes.toString('base64');
-  const script = `$printer='${safePrinter}'; `
-    + `$bytes=[Convert]::FromBase64String('${base64}'); `
-    + `$code=@\"`
-    + `using System; using System.Runtime.InteropServices; `
-    + `public class RawPrinterHelper { `
-    + `[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] public class DOCINFOA { `
-    + `[MarshalAs(UnmanagedType.LPWStr)] public string pDocName; `
-    + `[MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile; `
-    + `[MarshalAs(UnmanagedType.LPWStr)] public string pDataType; } `
-    + `[DllImport(\"winspool.drv\", SetLastError=true, CharSet=CharSet.Unicode)] public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault); `
-    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool ClosePrinter(IntPtr hPrinter); `
-    + `[DllImport(\"winspool.drv\", SetLastError=true, CharSet=CharSet.Unicode)] public static extern bool StartDocPrinter(IntPtr hPrinter, int level, DOCINFOA di); `
-    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool EndDocPrinter(IntPtr hPrinter); `
-    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool StartPagePrinter(IntPtr hPrinter); `
-    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool EndPagePrinter(IntPtr hPrinter); `
-    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten); `
-    + `public static bool SendBytesToPrinter(string printerName, byte[] bytes) { `
-    + `IntPtr h; if(!OpenPrinter(printerName, out h, IntPtr.Zero)) return false; `
-    + `var di=new DOCINFOA(); di.pDocName=\"PayMyDine Drawer Pulse\"; di.pDataType=\"RAW\"; `
-    + `if(!StartDocPrinter(h,1,di)){ClosePrinter(h); return false;} `
-    + `if(!StartPagePrinter(h)){EndDocPrinter(h); ClosePrinter(h); return false;} `
-    + `IntPtr ptr=Marshal.AllocCoTaskMem(bytes.Length); Marshal.Copy(bytes,0,ptr,bytes.Length); `
-    + `int written=0; bool ok=WritePrinter(h,ptr,bytes.Length,out written); Marshal.FreeCoTaskMem(ptr); `
-    + `EndPagePrinter(h); EndDocPrinter(h); ClosePrinter(h); `
-    + `return ok && written==bytes.Length; } }`
-    + `\"@; `
-    + `Add-Type -TypeDefinition $code -Language CSharp; `
-    + `if(-not [RawPrinterHelper]::SendBytesToPrinter($printer,$bytes)){ throw 'RAW printer write failed'; }`;
-  const command = `powershell -NoProfile -Command \"${script}\"`;
-  await execCommand(command);
+  const tmpDir = os.tmpdir();
+  const csPath = path.join(tmpDir, 'PayMyDineRawPrinterHelper.cs');
+  const binPath = path.join(tmpDir, `pmd-drawer-${Date.now()}-${Math.random().toString(16).slice(2)}.bin`);
+  const psPath = path.join(tmpDir, `pmd-drawer-${Date.now()}-${Math.random().toString(16).slice(2)}.ps1`);
+
+  const csCode = `using System;
+using System.Runtime.InteropServices;
+public static class RawPrinterHelper {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public class DOCINFOA {
+    [MarshalAs(UnmanagedType.LPWStr)] public string pDocName;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile;
+    [MarshalAs(UnmanagedType.LPWStr)] public string pDataType;
+  }
+
+  [DllImport("winspool.drv", SetLastError = true, CharSet = CharSet.Unicode)]
+  public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+  [DllImport("winspool.drv", SetLastError = true)]
+  public static extern bool ClosePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError = true, CharSet = CharSet.Unicode)]
+  public static extern bool StartDocPrinter(IntPtr hPrinter, int level, DOCINFOA di);
+  [DllImport("winspool.drv", SetLastError = true)]
+  public static extern bool EndDocPrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError = true)]
+  public static extern bool StartPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError = true)]
+  public static extern bool EndPagePrinter(IntPtr hPrinter);
+  [DllImport("winspool.drv", SetLastError = true)]
+  public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
+
+  public static bool SendBytesToPrinter(string printerName, byte[] bytes) {
+    IntPtr hPrinter;
+    if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero)) return false;
+    var doc = new DOCINFOA { pDocName = "PayMyDine Drawer Pulse", pDataType = "RAW" };
+    if (!StartDocPrinter(hPrinter, 1, doc)) { ClosePrinter(hPrinter); return false; }
+    if (!StartPagePrinter(hPrinter)) { EndDocPrinter(hPrinter); ClosePrinter(hPrinter); return false; }
+    IntPtr pUnmanagedBytes = Marshal.AllocCoTaskMem(bytes.Length);
+    try {
+      Marshal.Copy(bytes, 0, pUnmanagedBytes, bytes.Length);
+      int written = 0;
+      bool ok = WritePrinter(hPrinter, pUnmanagedBytes, bytes.Length, out written);
+      return ok && written == bytes.Length;
+    } finally {
+      Marshal.FreeCoTaskMem(pUnmanagedBytes);
+      EndPagePrinter(hPrinter);
+      EndDocPrinter(hPrinter);
+      ClosePrinter(hPrinter);
+    }
+  }
+}`;
+
+  const psScript = `param([string]$PrinterName, [string]$CsPath, [string]$BinPath)
+if (-not (Test-Path -LiteralPath $CsPath)) { throw "C# helper file missing: $CsPath" }
+if (-not (Test-Path -LiteralPath $BinPath)) { throw "RAW byte file missing: $BinPath" }
+if (-not ("RawPrinterHelper" -as [type])) { Add-Type -Path $CsPath }
+$bytes = [System.IO.File]::ReadAllBytes($BinPath)
+if (-not [RawPrinterHelper]::SendBytesToPrinter($PrinterName, $bytes)) { throw "RAW printer write failed" }`;
+
+  fs.writeFileSync(csPath, csCode, 'utf8');
+  fs.writeFileSync(binPath, bytes);
+  fs.writeFileSync(psPath, psScript, 'utf8');
+
+  try {
+    await execFileCommand('powershell', [
+      '-NoProfile',
+      '-ExecutionPolicy', 'Bypass',
+      '-File', psPath,
+      printerName,
+      csPath,
+      binPath,
+    ]);
+  } finally {
+    try { fs.unlinkSync(binPath); } catch (_) {}
+    try { fs.unlinkSync(psPath); } catch (_) {}
+  }
 }
 
 function inferTcpTargetFromPortName(portName) {
