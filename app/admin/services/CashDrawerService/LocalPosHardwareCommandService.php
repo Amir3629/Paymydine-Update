@@ -30,6 +30,22 @@ class LocalPosHardwareCommandService
         return self::queueCommand($drawer, 'test_print', $meta);
     }
 
+    public static function queueDiagnoseDrawer(Cash_drawers_model $drawer, array $meta = []): array
+    {
+        $defaultCandidates = [
+            '27,112,0,25,250',
+            '27,112,0,60,120',
+            '27,112,1,60,120',
+            '16,20,1,0,5',
+        ];
+
+        if (empty($meta['candidate_commands']) || !is_array($meta['candidate_commands'])) {
+            $meta['candidate_commands'] = $defaultCandidates;
+        }
+
+        return self::queueCommand($drawer, 'diagnose_drawer', $meta);
+    }
+
     public static function queueCustom(Cash_drawers_model $drawer, string $commandType, array $meta = []): array
     {
         return self::queueCommand($drawer, $commandType, $meta);
@@ -88,6 +104,7 @@ class LocalPosHardwareCommandService
             'meta' => $meta,
             'printer_name' => $printerName !== '' ? $printerName : null,
             'test_print_text' => $meta['test_print_text'] ?? null,
+            'candidate_commands' => $meta['candidate_commands'] ?? null,
         ];
 
         if (!Schema::hasTable('pos_hardware_commands')) {

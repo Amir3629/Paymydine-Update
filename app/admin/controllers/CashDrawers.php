@@ -255,6 +255,29 @@ class CashDrawers extends AdminController
         return $this->refresh();
     }
 
+    public function onDiagnoseDrawer($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $printerName = trim((string)post('local_printer_name', ''));
+        $result = LocalPosHardwareCommandService::queueDiagnoseDrawer($drawer, [
+            'trigger_method' => 'ui_diagnose_drawer',
+            'requested_by' => optional(AdminAuth::user())->staff_id,
+            'printer_name' => $printerName !== '' ? $printerName : null,
+        ]);
+
+        if ($result['success']) {
+            flash()->success('Drawer diagnostic command queued. Refresh in a few seconds to view detailed attempt results.');
+        } else {
+            flash()->error('Unable to queue drawer diagnostics: '.($result['message'] ?? 'Unknown error'));
+        }
+
+        return $this->refresh();
+    }
+
     /**
      * Extend form fields
      */
@@ -601,6 +624,7 @@ class CashDrawers extends AdminController
         }
 
         $printers = [];
+        $diagnosticResult = null;
         $printerCommand = DB::table('pos_hardware_commands')
             ->where('drawer_id', $drawer->drawer_id)
             ->where('command_type', 'list_printers')
@@ -615,9 +639,22 @@ class CashDrawers extends AdminController
                 : [];
         }
 
+        $diagnosticCommand = DB::table('pos_hardware_commands')
+            ->where('drawer_id', $drawer->drawer_id)
+            ->where('command_type', 'diagnose_drawer')
+            ->orderBy('id', 'desc')
+            ->first();
+        if ($diagnosticCommand && !empty($diagnosticCommand->payload)) {
+            $payload = json_decode($diagnosticCommand->payload, true);
+            if (is_array($payload['ack_result'] ?? null)) {
+                $diagnosticResult = $payload['ack_result'];
+            }
+        }
+
         return [
             'command' => $cmd,
             'localPrinters' => $printers,
+            'diagnosticResult' => $diagnosticResult,
         ];
     }
 

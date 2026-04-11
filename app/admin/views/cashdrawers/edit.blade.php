@@ -1,6 +1,7 @@
 <div class="row-fluid cash-drawer-simple-page">
     @php($status = $localHardwareStatus ?? ['state' => 'not_configured', 'message' => 'Local hardware status unavailable.'])
     @php($localPrinters = $status['localPrinters'] ?? [])
+    @php($diagnosticResult = $status['diagnosticResult'] ?? null)
 
     <div class="panel panel-default" style="margin-bottom: 15px;">
         <div class="panel-heading"><strong>Connection Status</strong></div>
@@ -55,6 +56,7 @@
                 <a class="btn btn-default" data-request="onLoadLocalPrinters"><i class="fa fa-list"></i> Load Printers</a>
                 <a class="btn btn-default" data-request="onApplyLocalPrinter" data-request-form="#local-printer-form"><i class="fa fa-link"></i> Use Selected Printer</a>
                 <a class="btn btn-info" data-request="onTestConnection" data-request-form="#local-printer-form"><i class="fa fa-plug"></i> Test Drawer</a>
+                <a class="btn btn-warning" data-request="onDiagnoseDrawer" data-request-form="#local-printer-form"><i class="fa fa-stethoscope"></i> Diagnose Drawer</a>
                 <a class="btn btn-info" data-request="onTestPrintLocal" data-request-form="#local-printer-form"><i class="fa fa-print"></i> Test Print</a>
                 <a class="btn btn-success" data-request="onOpenDrawer" data-request-form="#local-printer-form"><i class="fa fa-unlock"></i> Open Drawer</a>
             </div>
@@ -72,6 +74,16 @@
                 </select>
                 <input type="hidden" name="local_printer_target" id="local_printer_target" value="">
             </form>
+
+            @if(is_array($diagnosticResult))
+                <div class="alert alert-info" style="margin-top:10px;">
+                    <strong>Latest Drawer Diagnostic:</strong>
+                    <div>Printer: {{ $diagnosticResult['printer_name'] ?? 'n/a' }}</div>
+                    <div>Mode: {{ $diagnosticResult['mode'] ?? 'n/a' }}</div>
+                    <div>Success Index: {{ $diagnosticResult['success_index'] ?? 'none' }}</div>
+                    <div>Attempts: {{ count($diagnosticResult['attempted_commands'] ?? []) }}</div>
+                </div>
+            @endif
         </div>
     </div>
 

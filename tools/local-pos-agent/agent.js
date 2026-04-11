@@ -218,7 +218,7 @@ if (-not [RawPrinterHelper]::SendBytesToPrinter($PrinterName, $bytes)) { throw "
   fs.writeFileSync(psPath, psScript, 'utf8');
 
   try {
-    await execFileCommand('powershell', [
+    const stdout = await execFileCommand('powershell', [
       '-NoProfile',
       '-ExecutionPolicy', 'Bypass',
       '-File', psPath,
@@ -226,6 +226,7 @@ if (-not [RawPrinterHelper]::SendBytesToPrinter($PrinterName, $bytes)) { throw "
       csPath,
       binPath,
     ]);
+    return { stdout };
   } finally {
     try { fs.unlinkSync(binPath); } catch (_) {}
     try { fs.unlinkSync(psPath); } catch (_) {}
@@ -254,12 +255,29 @@ async function resolveTarget({ target, printerName }) {
   return inferTcpTargetFromPortName(match.port_name);
 }
 
-async function executeDrawerPulse({ target, escPosCommand, printerName }) {
+function bytesToArray(buffer) {
+  return Array.from(buffer.values());
+}
+
+async function executeDrawerPulse({ target, escPosCommand, printerName, commandType }) {
   const resolvedTarget = await resolveTarget({ target, printerName });
   const escPos = parseEscPos(escPosCommand);
+  const baseResult = {
+    printer_name: printerName || null,
+    command_type: commandType || null,
+    esc_pos_command: (escPosCommand || '').toString(),
+    parsed_bytes: bytesToArray(escPos),
+    byte_length: escPos.length,
+  };
+
   if (process.platform === 'win32' && printerName) {
-    await sendRawToWindowsPrinter(printerName, escPos);
-    return { mode: 'windows_raw_printer', printer_name: printerName, bytes: escPos.length };
+    const psResult = await sendRawToWindowsPrinter(printerName, escPos);
+    return {
+      ...baseResult,
+      mode: 'windows_raw_printer',
+      stdout: psResult?.stdout || '',
+      stderr: '',
+    };
   }
 
   if (!resolvedTarget) {
@@ -268,7 +286,13 @@ async function executeDrawerPulse({ target, escPosCommand, printerName }) {
 
   if (isTcpTarget(resolvedTarget)) {
     await writeTcp(resolvedTarget, escPos);
-    return { mode: 'tcp', target: resolvedTarget, bytes: escPos.length };
+    return {
+      ...baseResult,
+      mode: 'tcp',
+      target: resolvedTarget,
+      stdout: '',
+      stderr: '',
+    };
   }
 
   if (!isUsableDevicePath(resolvedTarget)) {
@@ -276,7 +300,13 @@ async function executeDrawerPulse({ target, escPosCommand, printerName }) {
   }
 
   writeLocalPath(resolvedTarget, escPos);
-  return { mode: 'local_path', target: resolvedTarget, bytes: escPos.length };
+  return {
+    ...baseResult,
+    mode: 'local_path',
+    target: resolvedTarget,
+    stdout: '',
+    stderr: '',
+  };
 }
 
 async function executeHardwareCommand(command) {
@@ -302,10 +332,45 @@ async function executeHardwareCommand(command) {
     return { mode: 'test_print', printer_name: printerName, text };
   }
 
+  if (command.command_type === 'diagnose_drawer') {
+    const candidates = Array.isArray(payload.candidate_commands)
+      ? payload.candidate_commands
+      : ['27,112,0,25,250', '27,112,0,60,120', '27,112,1,60,120', '16,20,1,0,5'];
+
+    const attempted = [];
+    let successIndex = null;
+
+    for (let i = 0; i < candidates.length; i += 1) {
+      const candidate = candidates[i];
+      try {
+        const result = await executeDrawerPulse({
+          target: payload.resolved_target || '',
+          escPosCommand: candidate,
+          printerName: payload.printer_name || payload.meta?.printer_name || '',
+          commandType: command.command_type,
+        });
+        attempted.push({ index: i, command: candidate, success: true, result });
+        successIndex = i;
+      } catch (err) {
+        attempted.push({ index: i, command: candidate, success: false, error: err.message || 'Unknown error' });
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+
+    return {
+      mode: 'drawer_diagnostics',
+      printer_name: payload.printer_name || payload.meta?.printer_name || null,
+      attempted_commands: attempted,
+      success_index: successIndex,
+      success: successIndex !== null,
+    };
+  }
+
   return executeDrawerPulse({
     target: payload.resolved_target || '',
     escPosCommand: payload.esc_pos_command,
     printerName: payload.printer_name || payload.meta?.printer_name || '',
+    commandType: command.command_type,
   });
 }
 
@@ -366,7 +431,7 @@ async function ackCommand(commandId, status, message, result) {
 
 async function handleCommand(command) {
   try {
-    if (!['open_drawer', 'test_connection', 'list_printers', 'test_print'].includes(command.command_type)) {
+    if (!['open_drawer', 'test_connection', 'list_printers', 'test_print', 'diagnose_drawer'].includes(command.command_type)) {
       await ackCommand(command.id, 'failed', `Unsupported command type: ${command.command_type}`, {});
       return;
     }
@@ -381,7 +446,7 @@ async function handleCommand(command) {
       result,
       at: new Date().toISOString(),
     };
-    console.log(`[OK] command=${command.id} type=${command.command_type} target=${result.target || result.printer_name || 'n/a'}`);
+    console.log(`[OK] command=${command.id} type=${command.command_type} target=${result.target || result.printer_name || 'n/a'} mode=${result.mode || 'n/a'} bytes=${result.byte_length || result.bytes || 'n/a'}`);
   } catch (err) {
     runtime.lastLocalCommand = {
       source: 'queue',
