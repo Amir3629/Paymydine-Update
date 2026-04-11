@@ -53,6 +53,11 @@ class LocalPosHardwareCommandService
             ];
         }
 
+        $printerDevice = null;
+        if (!empty($drawer->printer_id)) {
+            $printerDevice = Pos_devices_model::find($drawer->printer_id);
+        }
+
         $payload = [
             'drawer_id' => $drawer->drawer_id,
             'drawer_name' => $drawer->name,
@@ -67,7 +72,7 @@ class LocalPosHardwareCommandService
                 'last_seen_at' => $device->last_seen_at,
             ],
             'meta' => $meta,
-            'printer_name' => $meta['printer_name'] ?? null,
+            'printer_name' => $meta['printer_name'] ?? ($printerDevice->name ?? null),
             'test_print_text' => $meta['test_print_text'] ?? null,
         ];
 
@@ -134,7 +139,7 @@ class LocalPosHardwareCommandService
         if (!empty($drawer->printer_id)) {
             $printerDevice = Pos_devices_model::find($drawer->printer_id);
             if ($printerDevice) {
-                foreach (['device_path', 'printer_path', 'path', 'port', 'printer_name', 'name', 'ip_address', 'host'] as $field) {
+                foreach (['device_path', 'printer_path', 'path', 'port', 'printer_name', 'ip_address', 'host'] as $field) {
                     $value = $printerDevice->{$field} ?? null;
                     if (!empty($value)) {
                         return $value;

@@ -101,6 +101,16 @@ function writeLocalPath(target, bytes) {
   fs.writeFileSync(target, bytes);
 }
 
+function isUsableDevicePath(target) {
+  if (!target) return false;
+  // Unix/Linux style device path
+  if (target.startsWith('/')) return true;
+  // Windows explicit device paths / ports / absolute paths
+  if (/^(\\\\\\\\\\.\\\\|COM\\d+|LPT\\d+)/i.test(target)) return true;
+  if (/^[a-zA-Z]:[\\\\/]/.test(target)) return true;
+  return false;
+}
+
 function execCommand(command) {
   return new Promise((resolve, reject) => {
     exec(command, { windowsHide: true, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
@@ -135,6 +145,41 @@ async function printTextWindows(printerName, text) {
   await execCommand(ps);
 }
 
+async function sendRawToWindowsPrinter(printerName, bytes) {
+  const safePrinter = escapeSingleQuoted(printerName);
+  const base64 = bytes.toString('base64');
+  const script = `$printer='${safePrinter}'; `
+    + `$bytes=[Convert]::FromBase64String('${base64}'); `
+    + `$code=@\"`
+    + `using System; using System.Runtime.InteropServices; `
+    + `public class RawPrinterHelper { `
+    + `[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] public class DOCINFOA { `
+    + `[MarshalAs(UnmanagedType.LPWStr)] public string pDocName; `
+    + `[MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile; `
+    + `[MarshalAs(UnmanagedType.LPWStr)] public string pDataType; } `
+    + `[DllImport(\"winspool.drv\", SetLastError=true, CharSet=CharSet.Unicode)] public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault); `
+    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool ClosePrinter(IntPtr hPrinter); `
+    + `[DllImport(\"winspool.drv\", SetLastError=true, CharSet=CharSet.Unicode)] public static extern bool StartDocPrinter(IntPtr hPrinter, int level, DOCINFOA di); `
+    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool EndDocPrinter(IntPtr hPrinter); `
+    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool StartPagePrinter(IntPtr hPrinter); `
+    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool EndPagePrinter(IntPtr hPrinter); `
+    + `[DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten); `
+    + `public static bool SendBytesToPrinter(string printerName, byte[] bytes) { `
+    + `IntPtr h; if(!OpenPrinter(printerName, out h, IntPtr.Zero)) return false; `
+    + `var di=new DOCINFOA(); di.pDocName=\"PayMyDine Drawer Pulse\"; di.pDataType=\"RAW\"; `
+    + `if(!StartDocPrinter(h,1,di)){ClosePrinter(h); return false;} `
+    + `if(!StartPagePrinter(h)){EndDocPrinter(h); ClosePrinter(h); return false;} `
+    + `IntPtr ptr=Marshal.AllocCoTaskMem(bytes.Length); Marshal.Copy(bytes,0,ptr,bytes.Length); `
+    + `int written=0; bool ok=WritePrinter(h,ptr,bytes.Length,out written); Marshal.FreeCoTaskMem(ptr); `
+    + `EndPagePrinter(h); EndDocPrinter(h); ClosePrinter(h); `
+    + `return ok && written==bytes.Length; } }`
+    + `\"@; `
+    + `Add-Type -TypeDefinition $code -Language CSharp; `
+    + `if(-not [RawPrinterHelper]::SendBytesToPrinter($printer,$bytes)){ throw 'RAW printer write failed'; }`;
+  const command = `powershell -NoProfile -Command \"${script}\"`;
+  await execCommand(command);
+}
+
 function inferTcpTargetFromPortName(portName) {
   if (!portName) return null;
   if (/^IP_/i.test(portName)) {
@@ -159,14 +204,23 @@ async function resolveTarget({ target, printerName }) {
 
 async function executeDrawerPulse({ target, escPosCommand, printerName }) {
   const resolvedTarget = await resolveTarget({ target, printerName });
-  if (!resolvedTarget) {
-    throw new Error('No resolved target for drawer pulse. Configure drawer target or a TCP printer port.');
+  const escPos = parseEscPos(escPosCommand);
+  if (process.platform === 'win32' && printerName) {
+    await sendRawToWindowsPrinter(printerName, escPos);
+    return { mode: 'windows_raw_printer', printer_name: printerName, bytes: escPos.length };
   }
 
-  const escPos = parseEscPos(escPosCommand);
+  if (!resolvedTarget) {
+    throw new Error('No resolved target for drawer pulse. Configure drawer target or printer_name.');
+  }
+
   if (isTcpTarget(resolvedTarget)) {
     await writeTcp(resolvedTarget, escPos);
     return { mode: 'tcp', target: resolvedTarget, bytes: escPos.length };
+  }
+
+  if (!isUsableDevicePath(resolvedTarget)) {
+    throw new Error(`Invalid non-executable drawer target: ${resolvedTarget}`);
   }
 
   writeLocalPath(resolvedTarget, escPos);
@@ -275,7 +329,7 @@ async function handleCommand(command) {
       result,
       at: new Date().toISOString(),
     };
-    console.log(`[OK] command=${command.id} type=${command.command_type} target=${result.target}`);
+    console.log(`[OK] command=${command.id} type=${command.command_type} target=${result.target || result.printer_name || 'n/a'}`);
   } catch (err) {
     runtime.lastLocalCommand = {
       source: 'queue',
