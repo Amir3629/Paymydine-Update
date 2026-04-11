@@ -147,7 +147,7 @@ class CashDrawerService
      * @param int|Cash_drawers_model $drawer
      * @return array
      */
-    public static function testDrawer($drawer): array
+    public static function testDrawer($drawer, array $data = []): array
     {
         try {
             if (is_numeric($drawer)) {
@@ -163,7 +163,8 @@ class CashDrawerService
 
             if (self::shouldUseLocalAgent($drawer)) {
                 $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
-                    'trigger_method' => 'test',
+                    'trigger_method' => $data['trigger_method'] ?? 'test',
+                    'printer_name' => $data['printer_name'] ?? null,
                 ]);
 
                 self::logEvent($drawer, 'queued_test', [

@@ -98,7 +98,11 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        $result = CashDrawerService::testDrawer($drawer);
+        $printerName = trim((string)post('local_printer_name', ''));
+        $result = CashDrawerService::testDrawer($drawer, [
+            'printer_name' => $printerName !== '' ? $printerName : null,
+            'trigger_method' => 'test',
+        ]);
         if (!$result['success'] && $this->hasLocalHardwareColumns()) {
             $availability = $this->validateLocalDeviceAvailability($drawer);
             if (!$availability['ok']) {
@@ -128,9 +132,11 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
+        $printerName = trim((string)post('local_printer_name', ''));
         $result = CashDrawerService::openDrawer($drawer, [
             'trigger_method' => 'manual',
             'requested_by' => optional(AdminAuth::user())->staff_id,
+            'printer_name' => $printerName !== '' ? $printerName : null,
         ]);
 
         if (!$result['success'] && $this->hasLocalHardwareColumns()) {

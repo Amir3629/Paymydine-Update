@@ -54,9 +54,9 @@
                 <a class="btn btn-default" data-request="onCheckAgentBridge"><i class="fa fa-heartbeat"></i> Check Agent</a>
                 <a class="btn btn-default" data-request="onLoadLocalPrinters"><i class="fa fa-list"></i> Load Printers</a>
                 <a class="btn btn-default" data-request="onApplyLocalPrinter" data-request-form="#local-printer-form"><i class="fa fa-link"></i> Use Selected Printer</a>
-                <a class="btn btn-info" data-request="onTestConnection"><i class="fa fa-plug"></i> Test Drawer</a>
+                <a class="btn btn-info" data-request="onTestConnection" data-request-form="#local-printer-form"><i class="fa fa-plug"></i> Test Drawer</a>
                 <a class="btn btn-info" data-request="onTestPrintLocal" data-request-form="#local-printer-form"><i class="fa fa-print"></i> Test Print</a>
-                <a class="btn btn-success" data-request="onOpenDrawer"><i class="fa fa-unlock"></i> Open Drawer</a>
+                <a class="btn btn-success" data-request="onOpenDrawer" data-request-form="#local-printer-form"><i class="fa fa-unlock"></i> Open Drawer</a>
             </div>
 
             <form id="local-printer-form" style="margin-top:10px;">
