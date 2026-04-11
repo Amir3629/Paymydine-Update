@@ -12,6 +12,7 @@ use Admin\Services\CashDrawerService\CashDrawerService;
 use Admin\Services\CashDrawerService\LocalPosHardwareCommandService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Cash Drawers Controller
@@ -97,23 +98,17 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        if (config('cashdrawer.local_agent_enabled')) {
-            if (!$this->hasLocalHardwareColumns()) {
-                flash()->error('Local hardware is not available for this tenant yet. Please complete the latest system update.');
-                return $this->refresh();
-            }
+        $printerName = trim((string)post('local_printer_name', ''));
+        $result = CashDrawerService::testDrawer($drawer, [
+            'printer_name' => $printerName !== '' ? $printerName : null,
+            'trigger_method' => 'test',
+        ]);
+        if (!$result['success'] && $this->hasLocalHardwareColumns()) {
             $availability = $this->validateLocalDeviceAvailability($drawer);
             if (!$availability['ok']) {
                 flash()->error($availability['message']);
                 return $this->refresh();
             }
-
-            $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
-                'trigger_method' => 'manual_test',
-                'requested_by' => optional(AdminAuth::user())->staff_id,
-            ]);
-        } else {
-            $result = CashDrawerService::testDrawer($drawer);
         }
 
         if ($result['success']) {
@@ -137,25 +132,19 @@ class CashDrawers extends AdminController
             throw new \Exception('Cash drawer not found');
         }
 
-        if (config('cashdrawer.local_agent_enabled')) {
-            if (!$this->hasLocalHardwareColumns()) {
-                flash()->error('Local hardware is not available for this tenant yet. Please complete the latest system update.');
-                return $this->refresh();
-            }
+        $printerName = trim((string)post('local_printer_name', ''));
+        $result = CashDrawerService::openDrawer($drawer, [
+            'trigger_method' => 'manual',
+            'requested_by' => optional(AdminAuth::user())->staff_id,
+            'printer_name' => $printerName !== '' ? $printerName : null,
+        ]);
+
+        if (!$result['success'] && $this->hasLocalHardwareColumns()) {
             $availability = $this->validateLocalDeviceAvailability($drawer);
             if (!$availability['ok']) {
                 flash()->error($availability['message']);
                 return $this->refresh();
             }
-
-            $result = LocalPosHardwareCommandService::queueOpenDrawer($drawer, [
-                'trigger_method' => 'manual',
-                'requested_by' => optional(AdminAuth::user())->staff_id,
-            ]);
-        } else {
-            $result = CashDrawerService::openDrawer($drawer, [
-                'trigger_method' => 'manual',
-            ]);
         }
 
         if ($result['success']) {
@@ -164,6 +153,126 @@ class CashDrawers extends AdminController
                 : 'Cash drawer opened successfully!');
         } else {
             flash()->error('Failed to open drawer: ' . $result['message']);
+        }
+
+        return $this->refresh();
+    }
+
+    public function onCheckAgentBridge($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $device = $drawer->localPosDevice ?: $drawer->posDevice;
+        if (!$device) {
+            flash()->warning('No POS terminal is paired with this cash drawer yet.');
+            return $this->refresh();
+        }
+
+        if (method_exists($device, 'isOnline') && $device->isOnline()) {
+            flash()->success('Local connector is online on terminal: '.$device->name);
+        } else {
+            flash()->warning('Local connector is not online yet. Download and run the connector on the POS machine, then try again.');
+        }
+
+        return $this->refresh();
+    }
+
+    public function onLoadLocalPrinters($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $result = LocalPosHardwareCommandService::queueListPrinters($drawer, [
+            'trigger_method' => 'ui_load_printers',
+            'requested_by' => optional(AdminAuth::user())->staff_id,
+        ]);
+
+        if ($result['success']) {
+            flash()->success('Printer list request queued. Wait a few seconds, then click Refresh.');
+        } else {
+            flash()->error('Unable to request printers: '.($result['message'] ?? 'Unknown error'));
+        }
+
+        return $this->refresh();
+    }
+
+    public function onTestPrintLocal($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $printerName = trim((string)post('local_printer_name', ''));
+        if ($printerName === '') {
+            flash()->warning('Select a printer first, then click Test Print.');
+            return $this->refresh();
+        }
+
+        $result = LocalPosHardwareCommandService::queueTestPrint($drawer, [
+            'trigger_method' => 'ui_test_print',
+            'requested_by' => optional(AdminAuth::user())->staff_id,
+            'printer_name' => $printerName,
+        ]);
+
+        if ($result['success']) {
+            flash()->success('Test print command queued for printer: '.$printerName);
+        } else {
+            flash()->error('Unable to queue test print: '.($result['message'] ?? 'Unknown error'));
+        }
+
+        return $this->refresh();
+    }
+
+    public function onApplyLocalPrinter($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $printerTarget = trim((string)post('local_printer_target', ''));
+        $printerName = trim((string)post('local_printer_name', ''));
+        if ($printerTarget === '') {
+            flash()->warning('Select a printer first.');
+            return $this->refresh();
+        }
+
+        $drawer->device_path = $printerTarget;
+        $config = (array)$drawer->connection_config;
+        if ($printerName !== '') {
+            $config['windows_printer_name'] = $printerName;
+        }
+        $drawer->connection_config = $config;
+        $drawer->save();
+
+        flash()->success('Local printer target applied. Click Save to persist all other changes.');
+        return $this->refresh();
+    }
+
+    public function onDiagnoseDrawer($context = null, $recordId = null)
+    {
+        $drawer = $this->formFindModelObject($recordId);
+        if (!$drawer) {
+            throw new \Exception('Cash drawer not found');
+        }
+
+        $printerName = trim((string)post('local_printer_name', ''));
+        $result = LocalPosHardwareCommandService::queueDiagnoseDrawer($drawer, [
+            'trigger_method' => 'ui_diagnose_drawer',
+            'requested_by' => optional(AdminAuth::user())->staff_id,
+            'printer_name' => $printerName !== '' ? $printerName : null,
+        ]);
+
+        if ($result['success']) {
+            flash()->success('Drawer diagnostic command queued. Refresh in a few seconds to view detailed attempt results.');
+        } else {
+            flash()->error('Unable to queue drawer diagnostics: '.($result['message'] ?? 'Unknown error'));
         }
 
         return $this->refresh();
@@ -444,12 +553,22 @@ class CashDrawers extends AdminController
         return "@echo off\r\n"
             ."setlocal\r\n"
             ."set PMD_DIR=%ProgramData%\\PayMyDine\\LocalPosAgent\r\n"
+            ."set NODE_VERSION=v20.19.0\r\n"
+            ."set NODE_DIR=%PMD_DIR%\\runtime\\node-%NODE_VERSION%-win-x64\r\n"
+            ."set NODE_EXE=%NODE_DIR%\\node.exe\r\n"
             ."if not exist \"%PMD_DIR%\" mkdir \"%PMD_DIR%\"\r\n"
+            ."if not exist \"%PMD_DIR%\\runtime\" mkdir \"%PMD_DIR%\\runtime\"\r\n"
+            ."if not exist \"%NODE_EXE%\" (\r\n"
+            ."  echo Downloading bundled runtime...\r\n"
+            ."  powershell -NoProfile -Command \"Invoke-WebRequest -Uri 'https://nodejs.org/dist/%NODE_VERSION%/node-%NODE_VERSION%-win-x64.zip' -OutFile '%PMD_DIR%\\runtime\\node.zip'\"\r\n"
+            ."  powershell -NoProfile -Command \"Expand-Archive -Force '%PMD_DIR%\\runtime\\node.zip' '%PMD_DIR%\\runtime'\"\r\n"
+            .")\r\n"
             ."powershell -Command \"Invoke-WebRequest -Uri '".$agentUrl."' -OutFile '%PMD_DIR%\\agent.js'\" >nul\r\n"
-            ."(echo BACKEND_BASE_URL={$adminBase}&echo POS_AGENT_TOKEN={$token}&echo POS_DEVICE_CODE={$deviceCode}&echo POS_PAIRING_TOKEN={$device->pairing_token}&echo POS_DISPLAY_NAME={$device->name}&echo POLL_INTERVAL_MS=2000) > \"%PMD_DIR%\\.env\"\r\n"
-            ."schtasks /create /tn \"PayMyDineLocalPosAgent\" /tr \"node \\\"%PMD_DIR%\\agent.js\\\"\" /sc onlogon /f >nul 2>&1\r\n"
-            ."start \"PayMyDine Local Agent\" /min cmd /c \"cd /d %PMD_DIR% && node agent.js >> %PMD_DIR%\\agent.log 2>&1\"\r\n"
+            ."(echo BACKEND_BASE_URL={$adminBase}&echo POS_AGENT_TOKEN={$token}&echo POS_DEVICE_CODE={$deviceCode}&echo POS_PAIRING_TOKEN={$device->pairing_token}&echo POS_DISPLAY_NAME={$device->name}&echo POLL_INTERVAL_MS=2000&echo LOCAL_API_ENABLED=true&echo LOCAL_API_HOST=127.0.0.1&echo LOCAL_API_PORT=17877) > \"%PMD_DIR%\\.env\"\r\n"
+            ."schtasks /create /tn \"PayMyDineLocalPosAgent\" /tr \"\\\"%NODE_EXE%\\\" \\\"%PMD_DIR%\\agent.js\\\"\" /sc onlogon /f >nul 2>&1\r\n"
+            ."start \"PayMyDine Local Agent\" /min cmd /c \"cd /d %PMD_DIR% && \\\"%NODE_EXE%\\\" agent.js >> %PMD_DIR%\\agent.log 2>&1\"\r\n"
             ."echo PayMyDine local connector installed.\r\n"
+            ."echo Local API: http://127.0.0.1:17877/health\r\n"
             ."echo You can close this window.\r\n";
     }
 
@@ -473,10 +592,70 @@ class CashDrawers extends AdminController
 
         $online = method_exists($device, 'isOnline') ? $device->isOnline() : false;
         if (!$online) {
-            return ['state' => 'offline', 'message' => 'This POS terminal is offline.', 'device' => $device, 'drawer' => $drawer];
+            return array_merge([
+                'state' => 'offline',
+                'message' => 'This POS terminal is offline.',
+                'device' => $device,
+                'drawer' => $drawer,
+            ], $this->lastCommandSnapshot($drawer));
         }
 
-        return ['state' => 'online', 'message' => 'Local hardware is enabled and terminal is online.', 'device' => $device, 'drawer' => $drawer];
+        return array_merge([
+            'state' => 'online',
+            'message' => 'Local hardware is enabled and terminal is online.',
+            'device' => $device,
+            'drawer' => $drawer,
+        ], $this->lastCommandSnapshot($drawer));
+    }
+
+    protected function lastCommandSnapshot($drawer): array
+    {
+        if (!$drawer) {
+            return [];
+        }
+
+        $cmd = DB::table('pos_hardware_commands')
+            ->where('drawer_id', $drawer->drawer_id)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$cmd) {
+            return [];
+        }
+
+        $printers = [];
+        $diagnosticResult = null;
+        $printerCommand = DB::table('pos_hardware_commands')
+            ->where('drawer_id', $drawer->drawer_id)
+            ->where('command_type', 'list_printers')
+            ->where('status', 'success')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($printerCommand && !empty($printerCommand->payload)) {
+            $payload = json_decode($printerCommand->payload, true);
+            $printers = is_array($payload['ack_result']['printers'] ?? null)
+                ? $payload['ack_result']['printers']
+                : [];
+        }
+
+        $diagnosticCommand = DB::table('pos_hardware_commands')
+            ->where('drawer_id', $drawer->drawer_id)
+            ->where('command_type', 'diagnose_drawer')
+            ->orderBy('id', 'desc')
+            ->first();
+        if ($diagnosticCommand && !empty($diagnosticCommand->payload)) {
+            $payload = json_decode($diagnosticCommand->payload, true);
+            if (is_array($payload['ack_result'] ?? null)) {
+                $diagnosticResult = $payload['ack_result'];
+            }
+        }
+
+        return [
+            'command' => $cmd,
+            'localPrinters' => $printers,
+            'diagnosticResult' => $diagnosticResult,
+        ];
     }
 
     protected function hasLocalHardwareColumns(): bool

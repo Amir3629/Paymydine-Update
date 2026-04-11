@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Log;
  */
 class CashDrawerService
 {
+    protected static function shouldUseLocalAgent(Cash_drawers_model $drawer): bool
+    {
+        return !empty($drawer->local_pos_device_id) || !empty($drawer->pos_device_id);
+    }
+
     /**
      * Open cash drawer
      * @param int|Cash_drawers_model $drawer Drawer ID or model instance
@@ -42,16 +47,21 @@ class CashDrawerService
                 ];
             }
 
-            // Local POS agent execution path (physical hardware on in-store POS terminal)
-            if (config('cashdrawer.local_agent_enabled') && (!empty($drawer->local_pos_device_id) || !empty($drawer->pos_device_id))) {
+            // Local POS agent execution path (physical hardware on in-store POS terminal) - primary path
+            if (self::shouldUseLocalAgent($drawer)) {
                 $queued = LocalPosHardwareCommandService::queueOpenDrawer($drawer, $data);
                 if ($queued['success']) {
                     self::logEvent($drawer, 'queued', array_merge($data, [
                         'success' => true,
                         'response_data' => ['command_id' => $queued['command_id'] ?? null],
                     ]));
+                    return $queued;
                 }
-                return $queued;
+
+                // If local queue fails, keep direct-driver fallback only when explicitly allowed.
+                if (config('cashdrawer.local_agent_enabled', false)) {
+                    return $queued;
+                }
             }
 
             // Create driver
@@ -137,7 +147,7 @@ class CashDrawerService
      * @param int|Cash_drawers_model $drawer
      * @return array
      */
-    public static function testDrawer($drawer): array
+    public static function testDrawer($drawer, array $data = []): array
     {
         try {
             if (is_numeric($drawer)) {
@@ -149,6 +159,25 @@ class CashDrawerService
                     'success' => false,
                     'message' => 'Cash drawer not found',
                 ];
+            }
+
+            if (self::shouldUseLocalAgent($drawer)) {
+                $result = LocalPosHardwareCommandService::queueTestConnection($drawer, [
+                    'trigger_method' => $data['trigger_method'] ?? 'test',
+                    'printer_name' => $data['printer_name'] ?? null,
+                ]);
+
+                self::logEvent($drawer, 'queued_test', [
+                    'success' => $result['success'],
+                    'trigger_method' => 'test',
+                    'response_data' => [
+                        'queued' => $result['queued'] ?? false,
+                        'command_id' => $result['command_id'] ?? null,
+                    ],
+                    'error_message' => $result['success'] ? null : ($result['message'] ?? null),
+                ]);
+
+                return $result;
             }
 
             $result = CashDrawerDriverFactory::testDriver($drawer);
@@ -203,6 +232,29 @@ class CashDrawerService
                 return [
                     'success' => false,
                     'message' => 'Cash drawer not found',
+                ];
+            }
+
+            if (self::shouldUseLocalAgent($drawer)) {
+                $terminal = $drawer->localPosDevice ?: $drawer->posDevice;
+                $lastCommand = \DB::table('pos_hardware_commands')
+                    ->where('drawer_id', $drawer->drawer_id)
+                    ->orderBy('id', 'desc')
+                    ->first();
+
+                $online = $terminal && method_exists($terminal, 'isOnline') ? $terminal->isOnline() : false;
+
+                return [
+                    'success' => true,
+                    'mode' => 'local_agent',
+                    'terminal_online' => (bool)$online,
+                    'terminal_name' => $terminal->name ?? null,
+                    'last_seen_at' => $terminal->last_seen_at ?? null,
+                    'last_command_status' => $drawer->last_command_status ?? null,
+                    'last_command_message' => $drawer->last_command_message ?? null,
+                    'pending_command' => (bool)($lastCommand && in_array($lastCommand->status, ['pending', 'processing'], true)),
+                    'pending_command_status' => $lastCommand->status ?? null,
+                    'status' => $drawer->status ? 'enabled' : 'disabled',
                 ];
             }
 
