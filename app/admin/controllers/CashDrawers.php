@@ -231,12 +231,18 @@ class CashDrawers extends AdminController
         }
 
         $printerTarget = trim((string)post('local_printer_target', ''));
+        $printerName = trim((string)post('local_printer_name', ''));
         if ($printerTarget === '') {
             flash()->warning('Select a printer first.');
             return $this->refresh();
         }
 
         $drawer->device_path = $printerTarget;
+        $config = (array)$drawer->connection_config;
+        if ($printerName !== '') {
+            $config['windows_printer_name'] = $printerName;
+        }
+        $drawer->connection_config = $config;
         $drawer->save();
 
         flash()->success('Local printer target applied. Click Save to persist all other changes.');

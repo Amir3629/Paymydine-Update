@@ -57,6 +57,20 @@ class LocalPosHardwareCommandService
         if (!empty($drawer->printer_id)) {
             $printerDevice = Pos_devices_model::find($drawer->printer_id);
         }
+        $drawerConfig = (array)($drawer->connection_config ?? []);
+        $configuredPrinterName = trim((string)($drawerConfig['windows_printer_name'] ?? ''));
+        $printerName = trim((string)($meta['printer_name'] ?? ''));
+        if ($printerName === '' && $configuredPrinterName !== '') {
+            $printerName = $configuredPrinterName;
+        }
+        if (
+            $printerName === ''
+            && $printerDevice
+            && !empty($printerDevice->name)
+            && (int)$printerDevice->device_id !== (int)$targetDeviceId
+        ) {
+            $printerName = $printerDevice->name;
+        }
 
         $payload = [
             'drawer_id' => $drawer->drawer_id,
@@ -72,7 +86,7 @@ class LocalPosHardwareCommandService
                 'last_seen_at' => $device->last_seen_at,
             ],
             'meta' => $meta,
-            'printer_name' => $meta['printer_name'] ?? ($printerDevice->name ?? null),
+            'printer_name' => $printerName !== '' ? $printerName : null,
             'test_print_text' => $meta['test_print_text'] ?? null,
         ];
 
