@@ -46,8 +46,8 @@ class Charts extends BaseDashboardWidget
 
     public function loadAssets()
     {
-        // Chart.js is bundled in this backend bundle file in the active tree.
-        $this->addJs('~/app/admin/assets/js/bundle.js', 'dashboard-bundle-js');
+        // Load standalone Chart.js only (avoid backend runtime conflicts from full admin bundles).
+        $this->addJs('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', 'dashboard-chart-js');
         $this->addJs('js/charts.js', 'charts-control-js');
         $this->addCss('css/charts.css', 'charts-css');
     }
