@@ -282,7 +282,9 @@
         this.$el.removeData('ti.chartControl')
         this.chartJs = null
 
-        this.$rangeEl.daterangepicker('destroy')
+        if (this.$rangeEl && typeof this.$rangeEl.daterangepicker === 'function') {
+            this.$rangeEl.daterangepicker('destroy')
+        }
     }
 
     // FIELD CHART CONTROL PLUGIN DEFINITION
@@ -310,17 +312,6 @@
                 } catch (e) {
                     console.error('Failed to parse chart data:', e);
                 }
-            }
-            
-            // Only initialize if Chart.js is available
-            if (typeof Chart === 'undefined') {
-                console.warn('Chart.js not loaded yet, retrying chart initialization...');
-                setTimeout(function() {
-                    if (typeof Chart !== 'undefined') {
-                        $this.chartControl(option);
-                    }
-                }, 200);
-                return;
             }
             
             if (!data) $this.data('ti.chartControl', (data = new ChartControl(this, options)))

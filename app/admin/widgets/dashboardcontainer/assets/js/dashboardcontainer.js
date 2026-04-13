@@ -123,6 +123,12 @@
 
         self.ensureSortable = function () {
             var $sortableContainer = $(self.options.sortableContainer, self.$el)
+            if (!$sortableContainer.length) {
+                $sortableContainer = $('[id*="container-list"]', self.$el).first()
+            }
+            if (!$sortableContainer.length) {
+                $sortableContainer = $('.widget-container', self.$el).first()
+            }
             if (!$sortableContainer.length) return
             // Only enable when in edit mode (widget action handles visible)
             if (!self.$el.hasClass('edit-mode') && !document.body.classList.contains('edit-mode-active')) return
@@ -168,7 +174,17 @@
 
         var self = this
         var dragSourceEl = null
+        var $sortItems = $sortableContainer.find('> .col')
         var selector = self.options.sortableContainer + ' > .col'
+        if (!$sortItems.length) {
+            $sortItems = $sortableContainer.find('> .widget-item')
+            selector = '.widget-container > .widget-item'
+        }
+        if (!$sortItems.length) {
+            $sortItems = $sortableContainer.find('.widget-item')
+            selector = '.widget-item'
+        }
+        if (!$sortItems.length) return
 
         this.$el.on('dragstart.nativeSortable', selector, function (event) {
             var originalEvent = event.originalEvent || event
@@ -198,6 +214,10 @@
             var $dragSource = $(dragSourceEl)
             var $dropTarget = $(this)
 
+            if ($dragSource.parent().get(0) !== $dropTarget.parent().get(0)) {
+                $container = $dropTarget.parent()
+            }
+
             if ($dragSource.index() < $dropTarget.index()) {
                 $dropTarget.after($dragSource)
             } else {
@@ -212,13 +232,14 @@
             dragSourceEl = null
         })
 
-        $sortableContainer.find('> .col').attr('draggable', 'true')
+        $sortItems.attr('draggable', 'true')
         this._nativeSortableBound = true
     }
 
     DashboardContainer.prototype.destroyNativeSortable = function () {
         this.$el.off('.nativeSortable')
         $(this.options.sortableContainer + ' > .col', this.$el).removeAttr('draggable')
+        $('.widget-container > .widget-item, .widget-item', this.$el).removeAttr('draggable')
         this._nativeSortableBound = false
     }
 
