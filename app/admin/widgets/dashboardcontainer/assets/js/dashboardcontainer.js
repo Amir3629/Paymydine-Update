@@ -17,6 +17,7 @@
         this.options = options
         this.$el = $(element)
         this.$form = this.$el.closest('form')
+        this.$requestTarget = this.$form.length ? this.$form : this.$el
         this.$toolbar = $('[data-container-toolbar]')
         this.$dateRangeEl = $(options.dateRangeSelector, this.$toolbar)
 
@@ -71,13 +72,15 @@
 
         this.fetchWidgets()
 
-        this.$el.on('click', '[data-control="remove-widget"]', function () {
+        this.$el.on('click', '[data-control="remove-widget"]', function (event) {
+            event.preventDefault()
+            event.stopPropagation()
             var $btn = $(this)
             if (!confirm('Are you sure you want to do this?'))
                 return false;
 
             $.ti.loadingIndicator.show()
-            self.$form.request(self.options.alias + '::onRemoveWidget', {
+            self.$requestTarget.request(self.options.alias + '::onRemoveWidget', {
                 data: {
                     'alias': $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
                 }
@@ -89,7 +92,9 @@
         })
         
         // Duplicate widget handler
-        this.$el.on('click', '[data-control="duplicate-widget"]', function () {
+        this.$el.on('click', '[data-control="duplicate-widget"]', function (event) {
+            event.preventDefault()
+            event.stopPropagation()
             var $btn = $(this)
             var alias = $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
             
@@ -99,7 +104,7 @@
             }
             
             $.ti.loadingIndicator.show()
-            self.$form.request(self.options.alias + '::onDuplicateWidget', {
+            self.$requestTarget.request(self.options.alias + '::onDuplicateWidget', {
                 data: {
                     'alias': alias
                 }
@@ -114,6 +119,7 @@
 
         // Destroy existing Sortable instance before creating a new one (avoids duplicate handlers)
         self._sortableInstance = null
+        self._nativeSortableBound = false
 
         self.ensureSortable = function () {
             var $sortableContainer = $(self.options.sortableContainer, self.$el)
@@ -124,10 +130,15 @@
                 self._sortableInstance.destroy()
                 self._sortableInstance = null
             }
-            self._sortableInstance = Sortable.create($sortableContainer.get(0), {
-                handle: '.handle',
-                onSort: $.proxy(self.onSortWidgets, self)
-            })
+            if (typeof Sortable !== 'undefined' && Sortable && typeof Sortable.create === 'function') {
+                self._sortableInstance = Sortable.create($sortableContainer.get(0), {
+                    handle: '.handle',
+                    onSort: $.proxy(self.onSortWidgets, self)
+                })
+                return
+            }
+
+            self.initNativeSortable($sortableContainer)
         }
 
         $(window).on('ajaxUpdateComplete', function () {
@@ -145,10 +156,70 @@
                 self._sortableInstance.destroy()
                 self._sortableInstance = null
             }
+            self.destroyNativeSortable()
         })
 
         // Also try once after widgets load (in case ajaxUpdateComplete didn't fire)
         setTimeout(function () { self.ensureSortable() }, 150)
+    }
+
+    DashboardContainer.prototype.initNativeSortable = function ($sortableContainer) {
+        if (this._nativeSortableBound) return
+
+        var self = this
+        var dragSourceEl = null
+        var selector = self.options.sortableContainer + ' > .col'
+
+        this.$el.on('dragstart.nativeSortable', selector, function (event) {
+            var originalEvent = event.originalEvent || event
+            var handle = $(originalEvent.target).closest('.handle')
+            if (!handle.length) {
+                originalEvent.preventDefault()
+                return
+            }
+
+            dragSourceEl = this
+            originalEvent.dataTransfer.effectAllowed = 'move'
+            originalEvent.dataTransfer.setData('text/plain', 'dashboard-widget')
+            $(this).addClass('native-dragging')
+        })
+
+        this.$el.on('dragover.nativeSortable', selector, function (event) {
+            event.preventDefault()
+            var originalEvent = event.originalEvent || event
+            originalEvent.dataTransfer.dropEffect = 'move'
+        })
+
+        this.$el.on('drop.nativeSortable', selector, function (event) {
+            event.preventDefault()
+            if (!dragSourceEl || dragSourceEl === this) return
+
+            var $container = $sortableContainer
+            var $dragSource = $(dragSourceEl)
+            var $dropTarget = $(this)
+
+            if ($dragSource.index() < $dropTarget.index()) {
+                $dropTarget.after($dragSource)
+            } else {
+                $dropTarget.before($dragSource)
+            }
+
+            self.onSortWidgets()
+        })
+
+        this.$el.on('dragend.nativeSortable', selector, function () {
+            $(this).removeClass('native-dragging')
+            dragSourceEl = null
+        })
+
+        $sortableContainer.find('> .col').attr('draggable', 'true')
+        this._nativeSortableBound = true
+    }
+
+    DashboardContainer.prototype.destroyNativeSortable = function () {
+        this.$el.off('.nativeSortable')
+        $(this.options.sortableContainer + ' > .col', this.$el).removeAttr('draggable')
+        this._nativeSortableBound = false
     }
 
     DashboardContainer.prototype.initDateRange = function () {
@@ -173,7 +244,7 @@
             sortOrders.push($(this).val())
         })
 
-        this.$form.request(self.options.alias + '::onSetWidgetPriorities', {
+        this.$requestTarget.request(self.options.alias + '::onSetWidgetPriorities', {
             data: {
                 'aliases': aliases,
                 'priorities': sortOrders
