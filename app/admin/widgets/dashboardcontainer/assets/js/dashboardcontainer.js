@@ -36,18 +36,32 @@
 
     DashboardContainer.DATE_RANGE_DEFAULTS = {
         opens: 'left',
-        startDate: moment().subtract(29, 'days'),
-        endDate: moment(),
+        startDate: (typeof moment === 'function')
+            ? moment().subtract(29, 'days')
+            : new Date(Date.now() - (29 * 24 * 60 * 60 * 1000)),
+        endDate: (typeof moment === 'function')
+            ? moment()
+            : new Date(),
         timePicker: true,
         locale: {
             format: 'MM/DD/YYYY'
         },
         ranges: {
-            'Today': [moment(), moment()],
-            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-            'This Month': [moment().startOf('month'), moment().endOf('month')],
-            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            'Today': (typeof moment === 'function')
+                ? [moment(), moment()]
+                : [new Date(), new Date()],
+            'Yesterday': (typeof moment === 'function')
+                ? [moment().subtract(1, 'days'), moment().subtract(1, 'days')]
+                : [new Date(Date.now() - (24 * 60 * 60 * 1000)), new Date(Date.now() - (24 * 60 * 60 * 1000))],
+            'Last 7 Days': (typeof moment === 'function')
+                ? [moment().subtract(6, 'days'), moment()]
+                : [new Date(Date.now() - (6 * 24 * 60 * 60 * 1000)), new Date()],
+            'This Month': (typeof moment === 'function')
+                ? [moment().startOf('month'), moment().endOf('month')]
+                : [new Date(new Date().getFullYear(), new Date().getMonth(), 1), new Date()],
+            'Last Month': (typeof moment === 'function')
+                ? [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                : [new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), new Date(new Date().getFullYear(), new Date().getMonth(), 0)]
         },
         parentEl: '.dashboard-toolbar',
     }
@@ -138,6 +152,10 @@
     }
 
     DashboardContainer.prototype.initDateRange = function () {
+        if (!this.$dateRangeEl.length || typeof this.$dateRangeEl.daterangepicker !== 'function') {
+            return
+        }
+
         var options = $.extend({}, DashboardContainer.DATE_RANGE_DEFAULTS, this.$dateRangeEl.data())
         this.$dateRangeEl.daterangepicker(options, $.proxy(this.onDateRangeSelected, this))
     }

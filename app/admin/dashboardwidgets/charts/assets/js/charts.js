@@ -54,10 +54,7 @@
                 }
             },
             x: {
-                type: 'time',
-                time: {
-                    unit: 'day'
-                },
+                type: 'category',
                 gridLines: {
                     display: false
                 }
