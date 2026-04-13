@@ -174,6 +174,7 @@
 
         var self = this
         var dragSourceEl = null
+        var dragArmedEl = null
         var $sortItems = $sortableContainer.find('> .col')
         var selector = self.options.sortableContainer + ' > .col'
         if (!$sortItems.length) {
@@ -186,10 +187,24 @@
         }
         if (!$sortItems.length) return
 
+        // Arm dragging only when pressing the move handle, so normal button clicks still work.
+        this.$el.on('mousedown.nativeSortable', '.handle', function () {
+            var $item = $(this).closest(selector)
+            if (!$item.length) return
+            dragArmedEl = $item.get(0)
+            $item.attr('draggable', 'true')
+        })
+
+        this.$el.on('mouseup.nativeSortable mouseleave.nativeSortable', selector, function () {
+            if (dragArmedEl === this && dragSourceEl !== this) {
+                $(this).removeAttr('draggable')
+                dragArmedEl = null
+            }
+        })
+
         this.$el.on('dragstart.nativeSortable', selector, function (event) {
             var originalEvent = event.originalEvent || event
-            var handle = $(originalEvent.target).closest('.handle')
-            if (!handle.length) {
+            if (dragArmedEl !== this) {
                 originalEvent.preventDefault()
                 return
             }
@@ -228,11 +243,13 @@
         })
 
         this.$el.on('dragend.nativeSortable', selector, function () {
+            $(this).removeAttr('draggable')
             $(this).removeClass('native-dragging')
             dragSourceEl = null
+            dragArmedEl = null
         })
 
-        $sortItems.attr('draggable', 'true')
+        $sortItems.removeAttr('draggable')
         this._nativeSortableBound = true
     }
 
