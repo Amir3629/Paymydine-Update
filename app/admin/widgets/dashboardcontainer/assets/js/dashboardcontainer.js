@@ -261,12 +261,49 @@
     }
 
     DashboardContainer.prototype.initDateRange = function () {
-        if (!this.$dateRangeEl.length || typeof this.$dateRangeEl.daterangepicker !== 'function') {
+        if (!this.$dateRangeEl.length) {
+            return
+        }
+
+        if (typeof this.$dateRangeEl.daterangepicker !== 'function') {
+            this.initDateRangeFallback()
             return
         }
 
         var options = $.extend({}, DashboardContainer.DATE_RANGE_DEFAULTS, this.$dateRangeEl.data())
         this.$dateRangeEl.daterangepicker(options, $.proxy(this.onDateRangeSelected, this))
+    }
+
+    DashboardContainer.prototype.initDateRangeFallback = function () {
+        var self = this
+        this.$dateRangeEl.off('click.dashboardDateFallback').on('click.dashboardDateFallback', function (event) {
+            event.preventDefault()
+
+            var startDefault = $(this).data('startDate') || $(this).attr('data-start-date') || ''
+            var endDefault = $(this).data('endDate') || $(this).attr('data-end-date') || ''
+
+            var startInput = window.prompt('Start date (YYYY-MM-DD)', startDefault ? String(startDefault).slice(0, 10) : '')
+            if (!startInput) return
+            var endInput = window.prompt('End date (YYYY-MM-DD)', endDefault ? String(endDefault).slice(0, 10) : '')
+            if (!endInput) return
+
+            var start = new Date(startInput + 'T00:00:00')
+            var end = new Date(endInput + 'T23:59:59')
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) return
+
+            $('span', self.$dateRangeEl).text(startInput + ' - ' + endInput)
+            self.$dateRangeEl.attr('data-start-date', startInput).attr('data-end-date', endInput)
+
+            $('.dashboard-widgets .progress-indicator').show()
+            self.$dateRangeEl.request(self.options.alias + '::onSetDateRange', {
+                data: {
+                    start: start.toISOString(),
+                    end: end.toISOString(),
+                }
+            }).always(function () {
+                $('.dashboard-widgets .progress-indicator').attr('style', 'display: none !important;')
+            })
+        })
     }
 
     DashboardContainer.prototype.onSortWidgets = function (event) {
