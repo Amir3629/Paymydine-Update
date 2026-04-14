@@ -188,7 +188,8 @@
         slider.addClass('dashboard-range-input')
 
         var totalDays = this.totalDaysAvailable || 1
-        var defaultDays = totalDays
+        var isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches
+        var defaultDays = isMobile ? Math.min(7, totalDays) : totalDays
 
         slider.attr('min', 1)
         slider.attr('max', totalDays)

@@ -591,6 +591,79 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
   color: #202938 !important;
 }
 
+/* Fallback for browsers that don't support donut masks (shows regular stacked usage bar). */
+.widget-cache.cache-no-mask .cache-donut {
+  aspect-ratio: auto;
+  width: min(320px, 100%);
+  margin: 1rem auto !important;
+  display: block;
+}
+
+.widget-cache.cache-no-mask .cache-total-text {
+  position: static;
+  display: block;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.widget-cache.cache-no-mask .progress {
+  position: relative !important;
+  height: 25px !important;
+  border-radius: 12px !important;
+  background: #edf2f7 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+.widget-cache.cache-no-mask .progress-bar {
+  position: relative !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  transform: none !important;
+}
+
+/* Dashboard daterangepicker mobile containment */
+@media (max-width: 768px) {
+  .dashboard-toolbar .daterangepicker {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-calendar {
+    float: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-calendar.right {
+    display: none !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .ranges {
+    width: 100% !important;
+    float: none !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .ranges ul {
+    width: 100% !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-buttons {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-buttons .btn {
+    flex: 1 1 auto !important;
+  }
+}
+
 /* ============================================
    HEADER DROPDOWN MENUS - Brown/Cream Theme
    ============================================ */

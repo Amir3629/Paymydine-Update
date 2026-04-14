@@ -271,7 +271,13 @@
         }
 
         var options = $.extend({}, DashboardContainer.DATE_RANGE_DEFAULTS, this.$dateRangeEl.data())
+        if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+            options.opens = 'center'
+            options.drops = 'auto'
+            options.showDropdowns = true
+        }
         this.$dateRangeEl.daterangepicker(options, $.proxy(this.onDateRangeSelected, this))
+        this.bindMobileDateRangeViewportFix()
     }
 
     DashboardContainer.prototype.initDateRangeFallback = function () {
@@ -302,6 +308,22 @@
                 }
             }).always(function () {
                 $('.dashboard-widgets .progress-indicator').attr('style', 'display: none !important;')
+            })
+        })
+    }
+
+    DashboardContainer.prototype.bindMobileDateRangeViewportFix = function () {
+        if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return
+
+        this.$dateRangeEl.off('show.daterangepicker.dashboardFix').on('show.daterangepicker.dashboardFix', function (event, picker) {
+            var $container = picker && picker.container ? picker.container : $('.daterangepicker:visible').last()
+            if (!$container || !$container.length) return
+
+            $container.css({
+                left: '8px',
+                right: '8px',
+                width: 'auto',
+                maxWidth: (window.innerWidth - 16) + 'px'
             })
         })
     }
