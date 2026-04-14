@@ -8,6 +8,9 @@
         </span>
     <div class="progress mb-3" style="height: 25px;">
         @foreach ($cacheSizes as $cacheInfo)
+            @php
+                $cachePercent = $totalCacheSize > 0 ? round(($cacheInfo->size / $totalCacheSize) * 100, 2) : 0;
+            @endphp
             <div
                 class="progress-bar p-2"
                 role="progressbar"
@@ -17,9 +20,10 @@
                 data-cache-label="{{ $cacheInfo->label }}"
                 data-cache-size="{{ $cacheInfo->formattedSize }}"
                 aria-valuenow="{{ $cacheInfo->size }}"
+                aria-valuetext="{{ $cachePercent }}"
                 aria-valuemin="0"
                 aria-valuemax="{{ $totalCacheSize }}"
-                style="{{ 'background-color: '.$cacheInfo->color.'; width: '.$cacheInfo->size.'%' }}"
+                style="{{ 'background-color: '.$cacheInfo->color.'; width: '.$cachePercent.'%' }}"
             ><b>{{ $cacheInfo->formattedSize }}</b></div>
         @endforeach
         </div>
@@ -43,6 +47,22 @@
         const progressBars = cacheWidget.querySelectorAll('.progress-bar');
         const progressContainer = cacheWidget.querySelector('.progress');
         if (progressBars.length === 0 || !progressContainer) return;
+
+        const supportsMask = typeof CSS !== 'undefined' && (
+            CSS.supports('(-webkit-mask-image: radial-gradient(circle, #000 0%, #000 100%))') ||
+            CSS.supports('(mask-image: radial-gradient(circle, #000 0%, #000 100%))')
+        );
+
+        if (!supportsMask) {
+            cacheWidget.classList.add('cache-no-mask');
+            progressBars.forEach((bar, index) => {
+                const bluePalette = ['#203864', '#2f5496', '#4a75c3'];
+                bar.style.backgroundColor = bluePalette[index % bluePalette.length] || '#2f5496';
+                const width = parseFloat(bar.getAttribute('aria-valuetext') || '0');
+                bar.style.width = Math.max(0, Math.min(100, width)) + '%';
+            });
+            return;
+        }
 
         // Get cache data: sizes, colors, and labels
         const bluePalette = ['#203864', '#2f5496', '#4a75c3'];

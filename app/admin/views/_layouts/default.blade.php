@@ -222,9 +222,6 @@
 <!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
 <!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->
 
-<!-- Force Blue Buttons Override -->
-<script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?v={{ time() }}"></script>
-
 <!-- Folder Creation Dropdown Card -->
 <script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ time() }}"></script>
 
