@@ -738,7 +738,7 @@ Route::group([
     ];
 
     $defaultPaymentProviders = [
-        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_publishable_key' => '', 'live_publishable_key' => '', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR']],
+        ['code' => 'stripe', 'name' => 'Stripe', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['stripe'], 'config' => ['transaction_mode' => 'test', 'test_publishable_key' => '', 'live_publishable_key' => '', 'test_secret_key' => '', 'live_secret_key' => '', 'currency' => 'EUR', 'wero_enabled' => false]],
         ['code' => 'paypal', 'name' => 'PayPal', 'enabled' => true, 'supported_methods' => $providerCapabilityMatrix['paypal'], 'config' => ['transaction_mode' => 'test', 'test_client_id' => '', 'test_client_secret' => '', 'live_client_id' => '', 'live_client_secret' => '', 'brand_name' => '', 'currency' => 'EUR']],
         ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '']],
         ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
@@ -832,6 +832,7 @@ Route::group([
             'test_secret_key',
             'live_secret_key',
             'currency',
+            'wero_enabled',
         ];
         $normalizedConfig = array_intersect_key($config, array_flip($allowedKeys));
 
@@ -862,6 +863,7 @@ Route::group([
         $secretKey = (string)($mode === 'live' ? ($data['live_secret_key'] ?? '') : ($data['test_secret_key'] ?? ''));
 
         $baseReady = $providerEnabled && $publishableKey !== '' && $secretKey !== '';
+        $weroEnabledByConfig = (bool)($data['wero_enabled'] ?? false);
         $cardMethodConfigured = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'stripe'));
         $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
         $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
@@ -870,7 +872,7 @@ Route::group([
         $cardReady = $baseReady && $cardMethodConfigured;
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
-        $weroReady = $baseReady && $weroMethodConfigured;
+        $weroReady = $baseReady && $weroMethodConfigured && $weroEnabledByConfig;
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -882,6 +884,7 @@ Route::group([
             'google_pay_ready' => $googleReady,
             'wero_ready' => $weroReady,
             'any_ready' => $cardReady || $appleReady || $googleReady || $weroReady,
+            'wero_enabled_by_config' => $weroEnabledByConfig,
         ];
     };
 
@@ -1843,10 +1846,51 @@ Route::group([
                 'redirect_url' => (string)($session->url ?? ''),
                 'session_id' => (string)($session->id ?? ''),
             ]);
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            $message = (string)$e->getMessage();
+            $isUnsupportedWero = str_contains(strtolower($message), 'invalid payment_method_types')
+                || str_contains(strtolower($message), 'payment_method_types[0]');
+            $httpHeaders = method_exists($e, 'getHttpHeaders') ? (array)$e->getHttpHeaders() : [];
+            $requestId = (string)($httpHeaders['Request-Id'] ?? $httpHeaders['request-id'] ?? '');
+            \Log::warning('Wero create-session Stripe invalid request', [
+                'provider' => 'stripe',
+                'method' => 'wero',
+                'mode' => $mode,
+                'message' => $message,
+                'class' => get_class($e),
+                'stripe_code' => method_exists($e, 'getStripeCode') ? $e->getStripeCode() : null,
+                'http_status' => method_exists($e, 'getHttpStatus') ? $e->getHttpStatus() : null,
+                'param' => method_exists($e, 'getStripeParam') ? $e->getStripeParam() : null,
+                'request_id' => $requestId !== '' ? $requestId : (method_exists($e, 'getRequestId') ? $e->getRequestId() : null),
+            ]);
+
+            if ($isUnsupportedWero) {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'stripe',
+                    'method' => 'wero',
+                    'error_code' => 'wero_not_supported',
+                    'error' => 'Wero is not available for the current Stripe account or region.',
+                    'stripe_message' => $message,
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => false,
+                'provider' => 'stripe',
+                'method' => 'wero',
+                'error_code' => 'wero_invalid_request',
+                'error' => 'Stripe rejected the Wero checkout request.',
+                'stripe_message' => $message,
+            ], 422);
         } catch (\Throwable $e) {
             \Log::error('Wero create-session failed', [
+                'provider' => 'stripe',
+                'method' => 'wero',
+                'mode' => $mode ?? null,
                 'message' => $e->getMessage(),
                 'class' => get_class($e),
+                'code' => method_exists($e, 'getCode') ? $e->getCode() : null,
             ]);
 
             return response()->json([

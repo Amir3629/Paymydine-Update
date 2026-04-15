@@ -1329,6 +1329,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const startHostedRedirectCheckout = async () => {
     if (!selectedMethod || !["card", "wero"].includes(selectedMethod.code)) return
     setIsLoading(true)
+    let shouldFallbackFromWero = false
     try {
       const providerCode = selectedMethod.code === "wero" ? "wero" : (selectedProviderCode || "unknown")
       const returnUrl =
@@ -1363,6 +1364,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
       const json = await res.json()
       if (!res.ok || !json?.success || !json?.redirect_url) {
+        if (selectedMethod.code === "wero" && json?.error_code === "wero_not_supported") {
+          shouldFallbackFromWero = true
+          throw new Error("Wero is currently unavailable. Please choose another payment method.")
+        }
         throw new Error(json?.error || "Unable to start hosted checkout")
       }
 
@@ -1395,6 +1400,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         window.location.href = json.redirect_url
       }
     } catch (error) {
+      if (shouldFallbackFromWero) {
+        const fallbackMethod = visiblePaymentMethods.find(method => method.code !== "wero")
+        if (fallbackMethod?.code) {
+          setSelectedPaymentMethod(fallbackMethod.code)
+        }
+      }
       setIsLoading(false)
       toast({
         title: "Payment Failed",
