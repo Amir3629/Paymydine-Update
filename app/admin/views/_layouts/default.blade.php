@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+
+
+
     {!! get_metas() !!}
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {!! get_favicon() !!}
@@ -86,6 +89,518 @@
             background: transparent !important;
         }
     </style>
+
+
+
+
+
+
+<!-- ===== ADMIN HEADER FIRST PAINT STABILIZER ===== -->
+
+
+<!-- ===== END ADMIN HEADER FIRST PAINT STABILIZER ===== -->
+
+
+<style>
+
+</style>
+
+
+<style>
+
+</style>
+
+
+<style>
+
+</style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<style>
+/* ===== PC AVATAR LAST GAP EXACT FIX ===== */
+@media (min-width: 768px) {
+
+  /* ریشه هدر */
+  .navbar.navbar-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 32px !important;
+  }
+
+  /* ul اصلی */
+  .navbar.navbar-right > ul#menu-mainmenu,
+  .navbar.navbar-right > ul.navbar-nav {
+    display: flex !important;
+    align-items: center !important;
+    gap: 32px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+  }
+
+  /* li ها هیچ spacing اضافه نداشته باشند */
+  .navbar.navbar-right > ul#menu-mainmenu > li,
+  .navbar.navbar-right > ul.navbar-nav > li {
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* wrapper های tooltip هم spacing خراب نکنند */
+  .navbar.navbar-right .media-toolbar-tooltip-wrap {
+    display: contents !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* همه لینک‌ها و دکمه‌های واقعی */
+  .navbar.navbar-right #guide-tour-btn,
+  .navbar.navbar-right > ul#menu-mainmenu > li > a.nav-link,
+  .navbar.navbar-right > ul#menu-mainmenu > li > span > a.nav-link,
+  .navbar.navbar-right > ul.navbar-nav > li > a.nav-link,
+  .navbar.navbar-right > ul.navbar-nav > li > span > a.nav-link {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* فقط آیتم آخر: هر spacing اضافه را صفر کن */
+  .navbar.navbar-right > ul#menu-mainmenu > li:last-child,
+  .navbar.navbar-right > ul.navbar-nav > li:last-child,
+  .navbar.navbar-right > ul#menu-mainmenu > li:last-child > a,
+  .navbar.navbar-right > ul.navbar-nav > li:last-child > a,
+  .navbar.navbar-right > ul#menu-mainmenu > li:last-child .nav-link,
+  .navbar.navbar-right > ul.navbar-nav > li:last-child .nav-link,
+  .navbar.navbar-right > ul#menu-mainmenu > li:last-child img,
+  .navbar.navbar-right > ul.navbar-nav > li:last-child img {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* نوتیفیکیشن هم spacing داخلی اضافه نداشته باشد */
+  .navbar.navbar-right #notif-root,
+  .navbar.navbar-right li#notif-root,
+  .navbar.navbar-right #notif-root > a,
+  .navbar.navbar-right #notif-root > span,
+  .navbar.navbar-right #notif-root > span > a {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+/* ===== END PC AVATAR LAST GAP EXACT FIX ===== */
+</style>
+
+
+
+
+
+<style>
+/* ===== PC ONLY LAST GAP SURGICAL FIX ===== */
+@media (min-width: 768px) {
+
+  /* spacing پایه برای PC */
+  .navbar.navbar-right,
+  .navbar .navbar-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 32px !important;
+  }
+
+  .navbar.navbar-right > ul#menu-mainmenu,
+  .navbar.navbar-right > ul.navbar-nav,
+  .navbar .navbar-right > ul#menu-mainmenu,
+  .navbar .navbar-right > ul.navbar-nav {
+    display: flex !important;
+    align-items: center !important;
+    gap: 32px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+  }
+
+  .navbar.navbar-right > ul#menu-mainmenu > li,
+  .navbar.navbar-right > ul.navbar-nav > li,
+  .navbar .navbar-right > ul#menu-mainmenu > li,
+  .navbar .navbar-right > ul.navbar-nav > li {
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* لینک‌های آیکن‌ها */
+  .navbar.navbar-right > ul#menu-mainmenu > li > a.nav-link,
+  .navbar.navbar-right > ul#menu-mainmenu > li > span > a.nav-link,
+  .navbar.navbar-right > ul.navbar-nav > li > a.nav-link,
+  .navbar.navbar-right > ul.navbar-nav > li > span > a.nav-link,
+  .navbar .navbar-right > ul#menu-mainmenu > li > a.nav-link,
+  .navbar .navbar-right > ul#menu-mainmenu > li > span > a.nav-link,
+  .navbar .navbar-right > ul.navbar-nav > li > a.nav-link,
+  .navbar .navbar-right > ul.navbar-nav > li > span > a.nav-link {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* مشکل واقعی: فقط آیتم بلافاصله بعد از notif-root */
+  #menu-mainmenu > li#notif-root + li,
+  .navbar-nav > li#notif-root + li {
+    margin-left: -8px !important;
+    padding-left: 0 !important;
+  }
+
+  #menu-mainmenu > li#notif-root + li > a.nav-link,
+  #menu-mainmenu > li#notif-root + li > span > a.nav-link,
+  .navbar-nav > li#notif-root + li > a.nav-link,
+  .navbar-nav > li#notif-root + li > span > a.nav-link {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  /* اگر avatar آخرین آیتم visible باشد */
+  #menu-mainmenu > li:last-child,
+  .navbar-nav > li:last-child {
+    margin-left: -8px !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  #menu-mainmenu > li:last-child > a.nav-link,
+  #menu-mainmenu > li:last-child > span > a.nav-link,
+  .navbar-nav > li:last-child > a.nav-link,
+  .navbar-nav > li:last-child > span > a.nav-link {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* عکس آواتار هم spacing اضافه نسازد */
+  .navbar-profile-avatar,
+  .navbar .navbar-profile-avatar {
+    margin: 0 !important;
+    display: block !important;
+  }
+}
+/* ===== END PC ONLY LAST GAP SURGICAL FIX ===== */
+</style>
+
+
+<style>
+
+</style>
+
+
+<style>
+
+</style>
+
+
+<style>
+
+</style>
+
+
+<style>
+
+</style>
+
+
+
+
+<style>
+
+</style>
+
+
+
+
+
+
+
+
+
+
+
+<style id="mobile-header-one-final-fix">
+/* ===== MOBILE HEADER ONE FINAL FIX ===== */
+@media (max-width: 767.98px) {
+
+  /* root */
+  .navbar-top .navbar-right,
+  .navbar.navbar-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    min-height: 64px !important;
+    padding: 0 8px !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  /* hamburger */
+  .navbar-top .navbar-right > .navbar-toggler,
+  .navbar.navbar-right > .navbar-toggler {
+    flex: 0 0 52px !important;
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  /* the 4 right icons area */
+  .navbar-top .navbar-right > #menu-mainmenu,
+  .navbar.navbar-right > #menu-mainmenu {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    align-items: center !important;
+    justify-content: space-evenly !important;
+    gap: 0 !important;
+  }
+
+  /* neutralize old per-item hacks */
+  .navbar-top .navbar-right > #menu-mainmenu > li,
+  .navbar.navbar-right > #menu-mainmenu > li,
+  .navbar-top .navbar-nav > .nav-item,
+  .navbar-top .navbar-nav > .nav-item:not(:last-child),
+  .navbar-top .navbar-nav > .nav-item:last-child,
+  .navbar-top #notif-root,
+  .navbar-top li#notif-root,
+  .navbar-top #menu-mainmenu > li#menuitem-preview,
+  .navbar-top .mobile-profile-slot,
+  .navbar-top .mobile-guide-slot {
+    flex: 0 1 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  /* kill the bad "push last item to far right" rule */
+  .navbar-top .navbar-nav > .nav-item:last-child {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  /* hide settings on mobile */
+  .navbar-top #menu-mainmenu > li.mobile-hidden-settings,
+  .navbar.navbar-right #menu-mainmenu > li.mobile-hidden-settings {
+    display: none !important;
+  }
+
+  /* equal icon hit area */
+  .navbar-top #menu-mainmenu .nav-link,
+  .navbar-top #menu-mainmenu .dropdown-toggle,
+  .navbar-top #menu-mainmenu .navbar-tour-btn,
+  .navbar-top #menu-mainmenu .mobile-guide-slot > button,
+  .navbar.navbar-right #menu-mainmenu .nav-link,
+  .navbar.navbar-right #menu-mainmenu .dropdown-toggle,
+  .navbar.navbar-right #menu-mainmenu .navbar-tour-btn,
+  .navbar.navbar-right #menu-mainmenu .mobile-guide-slot > button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .navbar-top .navbar-profile-avatar,
+  .navbar.navbar-right .navbar-profile-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+}
+/* ===== END MOBILE HEADER ONE FINAL FIX ===== */
+</style>
+
+
+<style id="mobile-header-first-paint-guard">
+/* ===== MOBILE HEADER FIRST PAINT GUARD ===== */
+@media (max-width: 767.98px) {
+  .navbar-top .navbar-right,
+  .navbar.navbar-right {
+    visibility: hidden !important;
+  }
+
+  html.mobile-header-ready .navbar-top .navbar-right,
+  html.mobile-header-ready .navbar.navbar-right {
+    visibility: visible !important;
+  }
+}
+/* ===== END MOBILE HEADER FIRST PAINT GUARD ===== */
+</style>
+
+<script>
+/* ===== MOBILE HEADER EARLY FIRST PAINT FIX ===== */
+(function () {
+  function ensureGuideInsideMenu(menu, guideBtn) {
+    var guideLi = guideBtn ? guideBtn.closest('li') : null;
+
+    if (!guideBtn) return null;
+
+    if (!guideLi || guideLi.parentNode !== menu) {
+      guideLi = document.createElement('li');
+      guideLi.className = 'nav-item mobile-guide-slot';
+      guideLi.appendChild(guideBtn);
+      menu.appendChild(guideLi);
+    }
+
+    return guideLi;
+  }
+
+  function fixMobileHeaderEarly() {
+    if (window.innerWidth > 767) {
+      document.documentElement.classList.add('mobile-header-ready');
+      return;
+    }
+
+    var menu = document.getElementById('menu-mainmenu');
+    var preview = document.getElementById('menuitem-preview');
+    var notif = document.getElementById('notif-root');
+    var guideBtn = document.getElementById('guide-tour-btn');
+
+    if (!menu || !preview || !notif || !guideBtn) return;
+
+    var items = Array.prototype.slice.call(menu.children || []);
+    var profileLi = items.find(function (li) {
+      return li && li.querySelector && li.querySelector('.navbar-profile-avatar');
+    });
+
+    if (!profileLi) return;
+
+    var guideLi = ensureGuideInsideMenu(menu, guideBtn);
+    if (!guideLi) return;
+
+    Array.prototype.slice.call(menu.children || []).forEach(function (li) {
+      var isSettings = !!(li && li.querySelector && li.querySelector('a[aria-label="Settings"]'));
+      var keep = li === preview || li === profileLi || li === notif || li === guideLi;
+
+      if (isSettings || !keep) {
+        li.classList.add('mobile-hidden-force');
+        li.style.setProperty('display', 'none', 'important');
+      } else {
+        li.classList.remove('mobile-hidden-force');
+        li.style.removeProperty('display');
+      }
+    });
+
+    menu.innerHTML = '';
+    menu.appendChild(preview);
+    menu.appendChild(profileLi);
+    menu.appendChild(notif);
+    menu.appendChild(guideLi);
+
+    document.documentElement.classList.add('mobile-header-ready');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixMobileHeaderEarly, { once: true });
+  } else {
+    fixMobileHeaderEarly();
+  }
+
+  window.addEventListener('resize', fixMobileHeaderEarly, { passive: true });
+})();
+/* ===== END MOBILE HEADER EARLY FIRST PAINT FIX ===== */
+</script>
+
+
+<style>
+/* ===== MOBILE HEADER HIDE UNTIL STABLE ===== */
+@media (max-width: 767.98px) {
+  .navbar-top .navbar-right,
+  .navbar.navbar-right {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: none !important;
+  }
+
+  html.mobile-header-stable .navbar-top .navbar-right,
+  html.mobile-header-stable .navbar.navbar-right {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+/* ===== END MOBILE HEADER HIDE UNTIL STABLE ===== */
+</style>
+
+<script>
+/* ===== MOBILE HEADER HIDE UNTIL STABLE ===== */
+(function () {
+  function revealWhenStable() {
+    if (window.innerWidth > 767) {
+      document.documentElement.classList.add('mobile-header-stable');
+      return;
+    }
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        document.documentElement.classList.add('mobile-header-stable');
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', revealWhenStable, { once: true });
+  } else {
+    revealWhenStable();
+  }
+
+  window.addEventListener('load', revealWhenStable, { once: true });
+})();
+ /* ===== END MOBILE HEADER HIDE UNTIL STABLE ===== */
+</script>
+
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -222,9 +737,6 @@
 <!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
 <!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->
 
-<!-- Force Blue Buttons Override -->
-<script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?v={{ time() }}"></script>
-
 <!-- Folder Creation Dropdown Card -->
 <script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ time() }}"></script>
 
@@ -317,6 +829,18 @@
     setTimeout(initGuideTourButton, 1000);
 })();
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
 
 </body>
 </html>

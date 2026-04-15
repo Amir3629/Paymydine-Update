@@ -591,6 +591,79 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
   color: #202938 !important;
 }
 
+/* Fallback for browsers that don't support donut masks (shows regular stacked usage bar). */
+.widget-cache.cache-no-mask .cache-donut {
+  aspect-ratio: auto;
+  width: min(320px, 100%);
+  margin: 1rem auto !important;
+  display: block;
+}
+
+.widget-cache.cache-no-mask .cache-total-text {
+  position: static;
+  display: block;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.widget-cache.cache-no-mask .progress {
+  position: relative !important;
+  height: 25px !important;
+  border-radius: 12px !important;
+  background: #edf2f7 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+.widget-cache.cache-no-mask .progress-bar {
+  position: relative !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  transform: none !important;
+}
+
+/* Dashboard daterangepicker mobile containment */
+@media (max-width: 768px) {
+  .dashboard-toolbar .daterangepicker {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-calendar {
+    float: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-calendar.right {
+    display: none !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .ranges {
+    width: 100% !important;
+    float: none !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .ranges ul {
+    width: 100% !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-buttons {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-toolbar .daterangepicker .drp-buttons .btn {
+    flex: 1 1 auto !important;
+  }
+}
+
 /* ============================================
    HEADER DROPDOWN MENUS - Brown/Cream Theme
    ============================================ */
@@ -1190,4 +1263,271 @@ body:has(.daterangepicker:visible) .profile-dropdown-menu .dropdown-item[style*=
 #notification-list::-webkit-scrollbar-thumb:hover,
 #notification-panel::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #202938 0%, #364a63 100%) !important;
+}
+
+
+/* ===== Dashboard daterangepicker mobile stable final ===== */
+@media (max-width: 768px) {
+  body .daterangepicker,
+  body .daterangepicker.show-calendar,
+  body .daterangepicker.ti-visible.open-active,
+  body .daterangepicker.show-calendar.ti-visible,
+  body .daterangepicker.show-calendar.open-active,
+  body .daterangepicker.openscenter,
+  body .daterangepicker.opensleft,
+  body .daterangepicker.opensright,
+  body .daterangepicker.drop-up {
+    position: fixed !important;
+    top: 72px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    transform: none !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    z-index: 999999 !important;
+  }
+
+  body .daterangepicker .ranges {
+    display: none !important;
+  }
+
+  body .daterangepicker .drp-calendar.left {
+    display: none !important;
+  }
+
+  body .daterangepicker .drp-calendar.right,
+  body .daterangepicker .drp-calendar.single {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    float: none !important;
+  }
+
+  body .daterangepicker .calendar-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  body .daterangepicker .calendar-table table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    margin: 0 auto !important;
+  }
+
+  body .daterangepicker th,
+  body .daterangepicker td {
+    width: 14.28% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 8px 0 !important;
+    text-align: center !important;
+    font-size: 13px !important;
+    box-sizing: border-box !important;
+  }
+
+  body .daterangepicker td.available,
+  body .daterangepicker td.in-range,
+  body .daterangepicker td.start-date,
+  body .daterangepicker td.end-date,
+  body .daterangepicker td.active {
+    border-radius: 10px !important;
+  }
+
+  body .daterangepicker .monthselect,
+  body .daterangepicker .yearselect {
+    font-size: 12px !important;
+    max-width: 44% !important;
+  }
+
+  body .daterangepicker .drp-buttons {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    padding: 12px 8px 14px !important;
+  }
+
+  body .daterangepicker .drp-selected {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    order: 1 !important;
+  }
+
+  body .daterangepicker .cancelBtn,
+  body .daterangepicker .applyBtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: min(220px, 100%) !important;
+    max-width: 220px !important;
+    margin: 0 !important;
+  }
+
+  body .daterangepicker .cancelBtn {
+    order: 2 !important;
+  }
+
+  body .daterangepicker .applyBtn {
+    order: 3 !important;
+  }
+
+  body .daterangepicker .cancelBtn[style],
+  body .daterangepicker .applyBtn[style],
+  body .daterangepicker .drp-selected[style] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    left: auto !important;
+    right: auto !important;
+  }
+}
+
+/* ===== Dashboard daterangepicker mobile visual cleanup ===== */
+@media (max-width: 768px) {
+  body .daterangepicker .calendar-table table {
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 2px !important;
+    width: 100% !important;
+  }
+
+  body .daterangepicker .calendar-table tbody td,
+  body .daterangepicker .calendar-table thead th {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    padding: 0 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    font-size: 13px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body .daterangepicker .calendar-table tbody td.available,
+  body .daterangepicker .calendar-table tbody td.off,
+  body .daterangepicker .calendar-table tbody td.in-range,
+  body .daterangepicker .calendar-table tbody td.active,
+  body .daterangepicker .calendar-table tbody td.start-date,
+  body .daterangepicker .calendar-table tbody td.end-date {
+    background-clip: padding-box !important;
+  }
+
+  body .daterangepicker .calendar-table tbody td.in-range {
+    border-radius: 8px !important;
+  }
+
+  body .daterangepicker .calendar-table tbody td.active,
+  body .daterangepicker .calendar-table tbody td.start-date,
+  body .daterangepicker .calendar-table tbody td.end-date {
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+  }
+
+  body .daterangepicker .calendar-table thead th {
+    height: 34px !important;
+    line-height: 34px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+  }
+
+  body .daterangepicker .monthselect,
+  body .daterangepicker .yearselect {
+    height: 34px !important;
+    font-size: 12px !important;
+    padding: 2px 6px !important;
+  }
+}
+
+/* ===== Dashboard daterangepicker equal day cells mobile fix ===== */
+@media (max-width: 768px) {
+  body .daterangepicker .calendar-table table.table-condensed {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: separate !important;
+    border-spacing: 6px !important;
+  }
+
+  /* ردیف نام روزها */
+  body .daterangepicker .calendar-table thead tr:nth-child(2) th {
+    width: calc(100% / 7) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    text-align: center !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 0 !important;
+    height: 34px !important;
+    line-height: 34px !important;
+  }
+
+  /* فقط سلول‌های روز */
+  body .daterangepicker .calendar-table tbody td {
+    width: calc(100% / 7) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    padding: 0 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    font-size: 13px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+  }
+
+  /* هدر ماه/سال را خراب نکن */
+  body .daterangepicker .calendar-table thead tr:first-child th {
+    width: auto !important;
+  }
+
+  body .daterangepicker .calendar-table thead tr:first-child th.month {
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  body .daterangepicker .monthselect,
+  body .daterangepicker .yearselect {
+    max-width: 46% !important;
+    height: 36px !important;
+    font-size: 12px !important;
+    padding: 2px 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ظاهر روزهای عادی */
+  body .daterangepicker .calendar-table tbody td.available,
+  body .daterangepicker .calendar-table tbody td.off {
+    border-radius: 10px !important;
+  }
+
+  /* بازه انتخابی */
+  body .daterangepicker .calendar-table tbody td.in-range {
+    border-radius: 10px !important;
+  }
+
+  /* شروع/پایان/فعال */
+  body .daterangepicker .calendar-table tbody td.active,
+  body .daterangepicker .calendar-table tbody td.start-date,
+  body .daterangepicker .calendar-table tbody td.end-date {
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+  }
 }

@@ -113,12 +113,9 @@ class DashboardContainer extends BaseWidget
 
     public function loadAssets()
     {
-        $this->addJs('~/app/admin/formwidgets/repeater/assets/vendor/sortablejs/Sortable.min.js', 'sortable-js');
-        $this->addJs('~/app/admin/formwidgets/repeater/assets/vendor/sortablejs/jquery-sortable.js', 'jquery-sortable-js');
-
-        $this->addJs('~/app/admin/assets/src/js/vendor/moment.min.js', 'moment-js');
-        $this->addJs('~/app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.js', 'daterangepicker-js');
-        $this->addCss('~/app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.css', 'daterangepicker-css');
+        $this->addJs('https://cdn.jsdelivr.net/npm/moment@2.30.1/min/moment.min.js', 'dashboard-moment-js');
+        $this->addJs('https://cdn.jsdelivr.net/npm/daterangepicker@3.1/daterangepicker.min.js', 'dashboard-daterangepicker-js');
+        $this->addCss('https://cdn.jsdelivr.net/npm/daterangepicker@3.1/daterangepicker.css', 'dashboard-daterangepicker-css');
 
         // Use full path to ensure JavaScript file loads
         $this->addCss('~/app/admin/widgets/dashboardcontainer/assets/css/dashboardcontainer.css', 'dashboardcontainer-css');

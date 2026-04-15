@@ -1,0 +1,73 @@
+1776238484a:1:{s:37:"localbox/control_local_info.blade.php";a:5:{s:8:"fileName";s:37:"localbox/control_local_info.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:1580:"
+@if (!$locationCurrentSchedule->isOpen())
+    <span class="slotospanclosed">
+        @lang('igniter.cart::default.text_is_closed')
+    </span>    
+@else
+    @foreach($locationOrderTypes as $orderType) 
+    @if ($location->orderTypeIsDelivery() and $orderType->getLabel() == sprintf(lang('igniter.local::default.text_delivery')) )
+            <span class="slotospan" style="color: var(--heading);">
+                @if ($orderType->getLeadTime())
+                    {!! sprintf(lang('igniter.local::default.text_in_min'), $orderType->getLeadTime()) !!}
+                @endif
+            </span>
+            <div class="slotodesctwo">
+                <span class="mt-desc slotodesc">
+                    <span class="slotospantwo">
+                        @lang('igniter.local::default.text_delivery_time') 
+                    </span>
+                </span>
+            </div>  
+        @elseif ($location->orderTypeIsCollection() and $orderType->getLabel() == sprintf(lang('igniter.local::default.text_collection')))
+            <span class="slotospan">
+                @if ($orderType->getLeadTime())
+                    {!! sprintf(lang('igniter.local::default.text_in_min'), $orderType->getLeadTime()) !!}
+                @endif
+            </span>
+            <div class="slotodesctwo">
+                <span class="mt-desc slotodesc">
+                    <span class="slotospantwo">
+                        @lang('igniter.local::default.text_collection_time')  
+                    </span>
+                </span>
+            </div>
+        @endif
+    @endforeach
+@endif
+";s:6:"markup";s:1580:"
+@if (!$locationCurrentSchedule->isOpen())
+    <span class="slotospanclosed">
+        @lang('igniter.cart::default.text_is_closed')
+    </span>    
+@else
+    @foreach($locationOrderTypes as $orderType) 
+    @if ($location->orderTypeIsDelivery() and $orderType->getLabel() == sprintf(lang('igniter.local::default.text_delivery')) )
+            <span class="slotospan" style="color: var(--heading);">
+                @if ($orderType->getLeadTime())
+                    {!! sprintf(lang('igniter.local::default.text_in_min'), $orderType->getLeadTime()) !!}
+                @endif
+            </span>
+            <div class="slotodesctwo">
+                <span class="mt-desc slotodesc">
+                    <span class="slotospantwo">
+                        @lang('igniter.local::default.text_delivery_time') 
+                    </span>
+                </span>
+            </div>  
+        @elseif ($location->orderTypeIsCollection() and $orderType->getLabel() == sprintf(lang('igniter.local::default.text_collection')))
+            <span class="slotospan">
+                @if ($orderType->getLeadTime())
+                    {!! sprintf(lang('igniter.local::default.text_in_min'), $orderType->getLeadTime()) !!}
+                @endif
+            </span>
+            <div class="slotodesctwo">
+                <span class="mt-desc slotodesc">
+                    <span class="slotospantwo">
+                        @lang('igniter.local::default.text_collection_time')  
+                    </span>
+                </span>
+            </div>
+        @endif
+    @endforeach
+@endif
+";s:4:"code";N;}}

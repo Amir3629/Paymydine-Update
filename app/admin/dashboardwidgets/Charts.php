@@ -46,8 +46,8 @@ class Charts extends BaseDashboardWidget
 
     public function loadAssets()
     {
-        $this->addJs('~/app/admin/dashboardwidgets/charts/assets/vendor/chartjs/Chart.min.js', 'chart-js');
-        $this->addJs('~/app/admin/dashboardwidgets/charts/assets/vendor/chartjs/chartjs-adapter-moment.min.js', 'chart-adapter-js');
+        // Load standalone Chart.js only (avoid backend runtime conflicts from full admin bundles).
+        $this->addJs('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', 'dashboard-chart-js');
         $this->addJs('js/charts.js', 'charts-control-js');
         $this->addCss('css/charts.css', 'charts-css');
     }
@@ -130,4 +130,3 @@ class Charts extends BaseDashboardWidget
         ];
     }
 }
-

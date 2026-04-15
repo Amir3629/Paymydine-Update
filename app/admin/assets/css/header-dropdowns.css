@@ -1016,3 +1016,451 @@ a i {
     display: inline-block !important;
   }
 }
+
+
+
+
+
+
+/* ===== MOBILE HEADER REAL BALANCE FIX ===== */
+@media (max-width: 767.98px) {
+
+  /* ریشه هدر = 5 ستون مساوی */
+  .navbar-top .navbar-right,
+  .navbar.navbar-right {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  /* همبرگری = ستون 1 */
+  .navbar-top .navbar-right > .navbar-toggler,
+  .navbar.navbar-right > .navbar-toggler {
+    grid-column: 1 !important;
+    justify-self: center !important;
+    align-self: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  /* منوی اصلی = ستون‌های 2 تا 5 */
+  .navbar-top .navbar-right > #menu-mainmenu,
+  .navbar.navbar-right > #menu-mainmenu {
+    grid-column: 2 / 6 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* پیش‌فرض: آیتم‌های منو در موبایل مخفی شوند */
+  .navbar-top #menu-mainmenu > li,
+  .navbar.navbar-right #menu-mainmenu > li {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  /* storefront = ستون 1 داخل menu => ستون 2 کل هدر */
+  .navbar-top #menu-mainmenu > #menuitem-preview,
+  .navbar.navbar-right #menu-mainmenu > #menuitem-preview {
+    display: flex !important;
+    grid-column: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* profile = ستون 2 داخل menu => ستون 3 کل هدر = وسط */
+  .navbar-top #menu-mainmenu > li:has(.navbar-profile-avatar),
+  .navbar.navbar-right #menu-mainmenu > li:has(.navbar-profile-avatar) {
+    display: flex !important;
+    grid-column: 2 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* notif = ستون 3 داخل menu => ستون 4 کل هدر */
+  .navbar-top #menu-mainmenu > #notif-root,
+  .navbar.navbar-right #menu-mainmenu > #notif-root {
+    display: flex !important;
+    grid-column: 3 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* guide = ستون 4 داخل menu => ستون 5 کل هدر */
+  .navbar-top #menu-mainmenu > li:has(#guide-tour-btn),
+  .navbar.navbar-right #menu-mainmenu > li:has(#guide-tour-btn) {
+    display: flex !important;
+    grid-column: 4 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* settings و آیتم‌های اضافی مزاحم نشوند */
+  .navbar-top #menu-mainmenu > li.mobile-hidden-settings,
+  .navbar-top #menu-mainmenu > li:has(a[aria-label="Settings"]),
+  .navbar.navbar-right #menu-mainmenu > li.mobile-hidden-settings,
+  .navbar.navbar-right #menu-mainmenu > li:has(a[aria-label="Settings"]) {
+    display: none !important;
+  }
+
+  .navbar-top #menu-mainmenu .nav-link,
+  .navbar-top #menu-mainmenu .dropdown-toggle,
+  .navbar-top #menu-mainmenu .navbar-tour-btn,
+  .navbar-top #menu-mainmenu button,
+  .navbar.navbar-right #menu-mainmenu .nav-link,
+  .navbar.navbar-right #menu-mainmenu .dropdown-toggle,
+  .navbar.navbar-right #menu-mainmenu .navbar-tour-btn,
+  .navbar.navbar-right #menu-mainmenu button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  .navbar-top .navbar-profile-avatar,
+  .navbar.navbar-right .navbar-profile-avatar,
+  .navbar-top #menu-mainmenu img.rounded-circle,
+  .navbar.navbar-right #menu-mainmenu img.rounded-circle {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    display: block !important;
+    margin: 0 auto !important;
+    object-fit: cover !important;
+  }
+}
+/* ===== END MOBILE HEADER REAL BALANCE FIX ===== */
+
+
+/* ===== MOBILE HEADER PROFILE MIDDLE SWAP FINAL ===== */
+@media (max-width: 767.98px) {
+
+  /* root */
+  .navbar-top .navbar-right,
+  .navbar.navbar-right {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+    position: relative !important;
+    overflow: visible !important;
+  }
+
+  /* hamburger = global col 1 */
+  .navbar-top .navbar-right > .navbar-toggler,
+  .navbar.navbar-right > .navbar-toggler {
+    grid-column: 1 !important;
+    justify-self: center !important;
+    align-self: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  /* menu = global cols 2..5 */
+  .navbar-top .navbar-right > #menu-mainmenu,
+  .navbar.navbar-right > #menu-mainmenu {
+    grid-column: 2 / 6 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+  }
+
+  /* همه li ها reset */
+  .navbar-top #menu-mainmenu > li,
+  .navbar.navbar-right #menu-mainmenu > li {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  /* settings hide */
+  .navbar-top #menu-mainmenu > li.mobile-hidden-settings,
+  .navbar-top #menu-mainmenu > li:has(a[aria-label="Settings"]),
+  .navbar.navbar-right #menu-mainmenu > li.mobile-hidden-settings,
+  .navbar.navbar-right #menu-mainmenu > li:has(a[aria-label="Settings"]) {
+    display: none !important;
+  }
+
+  /* storefront = menu col 1 => global col 2 */
+  .navbar-top #menu-mainmenu > #menuitem-preview,
+  .navbar.navbar-right #menu-mainmenu > #menuitem-preview {
+    display: flex !important;
+    grid-column: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* profile = menu col 2 => global col 3 = وسط */
+  .navbar-top #menu-mainmenu > li:has(.navbar-profile-avatar),
+  .navbar.navbar-right #menu-mainmenu > li:has(.navbar-profile-avatar),
+  .navbar-top #menu-mainmenu > li.mobile-profile-slot,
+  .navbar.navbar-right #menu-mainmenu > li.mobile-profile-slot {
+    display: flex !important;
+    grid-column: 2 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* notif = menu col 3 => global col 4 */
+  .navbar-top #menu-mainmenu > #notif-root,
+  .navbar.navbar-right #menu-mainmenu > #notif-root {
+    display: flex !important;
+    grid-column: 3 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* guide = menu col 4 => global col 5 */
+  .navbar-top #menu-mainmenu > li:has(#guide-tour-btn),
+  .navbar.navbar-right #menu-mainmenu > li:has(#guide-tour-btn),
+  .navbar-top #menu-mainmenu > li.mobile-guide-slot,
+  .navbar.navbar-right #menu-mainmenu > li.mobile-guide-slot {
+    display: flex !important;
+    grid-column: 4 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* clickable icon size */
+  .navbar-top #menu-mainmenu .nav-link,
+  .navbar-top #menu-mainmenu .dropdown-toggle,
+  .navbar-top #menu-mainmenu .navbar-tour-btn,
+  .navbar-top #menu-mainmenu button,
+  .navbar.navbar-right #menu-mainmenu .nav-link,
+  .navbar.navbar-right #menu-mainmenu .dropdown-toggle,
+  .navbar.navbar-right #menu-mainmenu .navbar-tour-btn,
+  .navbar.navbar-right #menu-mainmenu button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  .navbar-top .navbar-profile-avatar,
+  .navbar.navbar-right .navbar-profile-avatar,
+  .navbar-top #menu-mainmenu img.rounded-circle,
+  .navbar.navbar-right #menu-mainmenu img.rounded-circle {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    display: block !important;
+    margin: 0 auto !important;
+    object-fit: cover !important;
+  }
+}
+/* ===== END MOBILE HEADER PROFILE MIDDLE SWAP FINAL ===== */
+
+
+
+/* ===== FINAL MOBILE HEADER REAL MOBILE CSS ===== */
+@media (max-width: 767.98px) {
+
+  .navbar-top .navbar-right,
+  .navbar.navbar-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    box-sizing: border-box !important;
+    gap: 0 !important;
+  }
+
+  .navbar-top .navbar-right > .navbar-toggler,
+  .navbar.navbar-right > .navbar-toggler {
+    flex: 0 0 52px !important;
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  .navbar-top .navbar-right > #menu-mainmenu,
+  .navbar.navbar-right > #menu-mainmenu {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-evenly !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    gap: 0 !important;
+  }
+
+  .navbar-top #menu-mainmenu > li,
+  .navbar.navbar-right #menu-mainmenu > li {
+    flex: 0 1 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+  }
+
+  .navbar-top #menu-mainmenu > li.mobile-hidden-force,
+  .navbar.navbar-right #menu-mainmenu > li.mobile-hidden-force {
+    display: none !important;
+  }
+
+  .navbar-top #menu-mainmenu .nav-link,
+  .navbar-top #menu-mainmenu .dropdown-toggle,
+  .navbar-top #menu-mainmenu .navbar-tour-btn,
+  .navbar.navbar-right #menu-mainmenu .nav-link,
+  .navbar.navbar-right #menu-mainmenu .dropdown-toggle,
+  .navbar.navbar-right #menu-mainmenu .navbar-tour-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .navbar-top .navbar-profile-avatar,
+  .navbar.navbar-right .navbar-profile-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  .navbar-top #guide-tour-btn,
+  .navbar.navbar-right #guide-tour-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+/* ===== END FINAL MOBILE HEADER REAL MOBILE CSS ===== */
+

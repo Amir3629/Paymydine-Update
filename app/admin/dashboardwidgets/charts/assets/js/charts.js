@@ -54,10 +54,7 @@
                 }
             },
             x: {
-                type: 'time',
-                time: {
-                    unit: 'day'
-                },
+                type: 'category',
                 gridLines: {
                     display: false
                 }
@@ -74,6 +71,11 @@
     }
 
     ChartControl.prototype.initChartJs = function () {
+        if (typeof Chart === 'undefined') {
+            this.renderFallbackChart()
+            return
+        }
+
         var chartOptions = (this.options.type === 'line') ? ChartControl.LINE_TYPE_OPTIONS : ChartControl.PIE_TYPE_OPTIONS
         this.options.options = $.extend({}, this.options.options, chartOptions)
         this.originalData = null
@@ -82,6 +84,63 @@
 
         this.captureDataRange()
         this.initTimeRangeSlider()
+    }
+
+    ChartControl.prototype.renderFallbackChart = function () {
+        var canvasEl = this.$el.find('canvas').get(0)
+        if (!canvasEl) return
+
+        var ctx = canvasEl.getContext('2d')
+        if (!ctx) return
+
+        var datasets = (this.options.data && this.options.data.datasets) || []
+        var allPoints = []
+
+        datasets.forEach(function (dataset) {
+            ;(dataset.data || []).forEach(function (point) {
+                if (point && point.y !== null && point.y !== undefined) {
+                    allPoints.push(Number(point.y) || 0)
+                }
+            })
+        })
+
+        var maxY = Math.max(1, allPoints.length ? Math.max.apply(null, allPoints) : 1)
+        var width = canvasEl.width || canvasEl.clientWidth || 600
+        var height = canvasEl.height || canvasEl.clientHeight || 260
+        var padding = 24
+
+        ctx.clearRect(0, 0, width, height)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, width, height)
+
+        ctx.strokeStyle = '#e5e7eb'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(padding, padding)
+        ctx.lineTo(padding, height - padding)
+        ctx.lineTo(width - padding, height - padding)
+        ctx.stroke()
+
+        datasets.forEach(function (dataset, index) {
+            var points = (dataset.data || []).map(function (point) {
+                return Number(point && point.y !== undefined ? point.y : point) || 0
+            })
+            if (!points.length) return
+
+            var color = dataset.borderColor || dataset.backgroundColor || ['#202938', '#2f5496', '#64b5f6'][index % 3]
+            ctx.strokeStyle = color
+            ctx.lineWidth = 2
+            ctx.beginPath()
+
+            points.forEach(function (value, i) {
+                var x = padding + ((width - (padding * 2)) * (points.length === 1 ? 0 : (i / (points.length - 1))))
+                var y = (height - padding) - ((height - (padding * 2)) * (value / maxY))
+                if (i === 0) ctx.moveTo(x, y)
+                else ctx.lineTo(x, y)
+            })
+
+            ctx.stroke()
+        })
     }
 
     ChartControl.prototype.captureDataRange = function () {
@@ -129,7 +188,8 @@
         slider.addClass('dashboard-range-input')
 
         var totalDays = this.totalDaysAvailable || 1
-        var defaultDays = totalDays
+        var isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches
+        var defaultDays = isMobile ? Math.min(7, totalDays) : totalDays
 
         slider.attr('min', 1)
         slider.attr('max', totalDays)
@@ -223,7 +283,9 @@
         this.$el.removeData('ti.chartControl')
         this.chartJs = null
 
-        this.$rangeEl.daterangepicker('destroy')
+        if (this.$rangeEl && typeof this.$rangeEl.daterangepicker === 'function') {
+            this.$rangeEl.daterangepicker('destroy')
+        }
     }
 
     // FIELD CHART CONTROL PLUGIN DEFINITION
@@ -251,17 +313,6 @@
                 } catch (e) {
                     console.error('Failed to parse chart data:', e);
                 }
-            }
-            
-            // Only initialize if Chart.js is available
-            if (typeof Chart === 'undefined') {
-                console.warn('Chart.js not loaded yet, retrying chart initialization...');
-                setTimeout(function() {
-                    if (typeof Chart !== 'undefined') {
-                        $this.chartControl(option);
-                    }
-                }, 200);
-                return;
             }
             
             if (!data) $this.data('ti.chartControl', (data = new ChartControl(this, options)))

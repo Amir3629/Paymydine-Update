@@ -1,0 +1,25 @@
+1776238484a:1:{s:29:"localSearch/default.blade.php";a:5:{s:8:"fileName";s:29:"localSearch/default.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:359:"<div id="local-box" class="local-box-fluid">
+    @if ($hideSearch)
+        <a
+            class="btn btn-block btn-primary"
+            href="{{ restaurant_url($menusPage) }}"
+        >@lang('igniter.local::default.text_find')</a>
+    @else
+        <div id="local-search-container">
+            @partial('@container')
+        </div>
+    @endif        
+</div>
+";s:6:"markup";s:359:"<div id="local-box" class="local-box-fluid">
+    @if ($hideSearch)
+        <a
+            class="btn btn-block btn-primary"
+            href="{{ restaurant_url($menusPage) }}"
+        >@lang('igniter.local::default.text_find')</a>
+    @else
+        <div id="local-search-container">
+            @partial('@container')
+        </div>
+    @endif        
+</div>
+";s:4:"code";N;}}

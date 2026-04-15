@@ -1,0 +1,37 @@
+1776238484a:1:{s:25:"booking/default.blade.php";a:5:{s:8:"fileName";s:25:"booking/default.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:459:"<div
+    data-control="booking"
+>
+    @if ($__SELF__->pickerStep == 'info')
+        @partial('@info')
+
+        @partial('@booking_form')
+
+    @elseif ($__SELF__->pickerStep == 'timeslot')
+        <h1 class="h3">@lang('igniter.reservation::default.text_time_heading')</h1>
+
+        @partial('@timeslot')
+    @else
+        <h1 class="text-white h3 p-2">@lang('igniter.reservation::default.text_heading')</h1>
+
+        @partial('@picker_form')
+    @endif
+</div>
+";s:6:"markup";s:459:"<div
+    data-control="booking"
+>
+    @if ($__SELF__->pickerStep == 'info')
+        @partial('@info')
+
+        @partial('@booking_form')
+
+    @elseif ($__SELF__->pickerStep == 'timeslot')
+        <h1 class="h3">@lang('igniter.reservation::default.text_time_heading')</h1>
+
+        @partial('@timeslot')
+    @else
+        <h1 class="text-white h3 p-2">@lang('igniter.reservation::default.text_heading')</h1>
+
+        @partial('@picker_form')
+    @endif
+</div>
+";s:4:"code";N;}}
