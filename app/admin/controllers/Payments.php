@@ -23,7 +23,7 @@ class Payments extends \Admin\Classes\AdminController
      * - What is actually implemented end-to-end in this codebase today.
      * - This must be used for assignable dropdown/validation.
      */
-    protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'paypal', 'cod'];
+    protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod'];
     protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square'];
 
     public $implement = [
@@ -508,8 +508,9 @@ class Payments extends \Admin\Classes\AdminController
             'card' => ['name' => 'Card', 'priority' => 1, 'provider_code' => 'stripe'],
             'apple_pay' => ['name' => 'Apple Pay', 'priority' => 2, 'provider_code' => 'stripe'],
             'google_pay' => ['name' => 'Google Pay', 'priority' => 3, 'provider_code' => 'stripe'],
-            'paypal' => ['name' => 'PayPal', 'priority' => 4, 'provider_code' => 'paypal'],
-            'cod' => ['name' => 'Cash', 'priority' => 5, 'provider_code' => null],
+            'wero' => ['name' => 'Wero', 'priority' => 4, 'provider_code' => 'stripe'],
+            'paypal' => ['name' => 'PayPal', 'priority' => 5, 'provider_code' => 'paypal'],
+            'cod' => ['name' => 'Cash', 'priority' => 6, 'provider_code' => null],
         ];
 
         $providerClassMap = $this->resolveProviderGatewayClasses();
@@ -535,14 +536,18 @@ class Payments extends \Admin\Classes\AdminController
             foreach ($payload as $k => $v) {
                 $row->{$k} = $v;
             }
-            $meta = is_array($row->meta) ? $row->meta : [];
+            $meta = is_array($row->meta) ? $row->meta : (is_string($row->meta) ? (json_decode($row->meta, true) ?: []) : []);
             $currentProviderCode = $row->provider_code
                 ?? ($meta['provider_code'] ?? null)
                 ?? $cfg['provider_code'];
             $meta['provider_code'] = $currentProviderCode;
             $meta['supported_providers'] = $meta['supported_providers'] ?? Payments_model::supportedProvidersForMethod($code);
-            $row->meta = $meta;
-            $row->provider_code = $currentProviderCode;
+            if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'meta')) {
+                $row->meta = json_encode($meta, JSON_UNESCAPED_UNICODE);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'provider_code')) {
+                $row->provider_code = $currentProviderCode;
+            }
             $row->save();
         }
     }
@@ -601,7 +606,7 @@ class Payments extends \Admin\Classes\AdminController
     protected function getPaymentProviderSettings(): array
     {
         $defaults = [
-            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
+            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'wero']],
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],

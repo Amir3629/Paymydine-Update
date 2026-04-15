@@ -41,7 +41,7 @@ class Payments_model extends Model
 
     public $timestamps = true;
 
-    protected $casts = [];
+    protected $casts = ['meta' => 'array'];
 
     protected $jsonable = [];
 
@@ -53,6 +53,7 @@ class Payments_model extends Model
         'card' => ['stripe', 'worldline'],
         'apple_pay' => ['stripe'],
         'google_pay' => ['stripe'],
+        'wero' => ['stripe'],
         'paypal' => ['paypal', 'stripe'],
         'cod' => [],
         'cash' => [],
