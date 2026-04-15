@@ -5,6 +5,7 @@ const KNOWN = new Set([
   "stripe",
   "google_pay",
   "apple_pay",
+  "wero",
   "square",
   "authorizenetaim",
   "sumup",
@@ -51,6 +52,7 @@ const CODE_ALIASES: Record<string, string> = {
   paypalexpress: "paypal",
   sum_up: "sumup",
   sumup: "sumup",
+  wero_pay: "wero",
 }
 
 export function iconForPayment(code: string): string {
@@ -59,6 +61,7 @@ export function iconForPayment(code: string): string {
 
   if (!KNOWN.has(key)) return makePath("/images/payments/default.svg")
   if (key === "sumup") return sumupThemeIcon()
+  if (key === "wero") return makePath("/images/payments/stripe.png")
 
   const ext = PNG_ONLY.has(key) ? "png" : "svg"
   return makePath(`/images/payments/${key}.${ext}`)
