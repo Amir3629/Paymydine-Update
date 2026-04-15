@@ -1464,3 +1464,419 @@ a i {
 }
 /* ===== END FINAL MOBILE HEADER REAL MOBILE CSS ===== */
 
+
+
+
+/* ===== HIDE DESKTOP HAMBURGER ONLY ===== */
+@media (min-width: 768px) {
+  .navbar-top .navbar-toggler,
+  .navbar.navbar-right > .navbar-toggler,
+  .navbar-top .navbar-right > .navbar-toggler,
+  button.navbar-toggler[data-bs-target="#navSidebar"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+}
+/* ===== END HIDE DESKTOP HAMBURGER ONLY ===== */
+
+
+
+
+/* ===== FIX DESKTOP GUIDE BUTTON JUMP ===== */
+@media (min-width: 768px) {
+
+  /* کانتینر هدر از اول پایدار بماند */
+  .navbar-top .navbar-right,
+  .navbar.navbar-right {
+    align-items: center !important;
+  }
+
+  /* خود دکمه گاید: اندازه و جای کاملاً ثابت از اولین paint */
+  #guide-tour-btn,
+  .navbar-tour-btn,
+  .navbar-top #guide-tour-btn.navbar-tour-btn,
+  .navbar.navbar-right #guide-tour-btn.navbar-tour-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+
+    flex: 0 0 44px !important;
+    box-sizing: border-box !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+
+    line-height: 1 !important;
+    vertical-align: middle !important;
+
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* خود آیکن هم اندازه‌ی ثابت داشته باشد */
+  #guide-tour-btn > i,
+  .navbar-tour-btn > i,
+  #guide-tour-btn .fa,
+  .navbar-tour-btn .fa {
+    display: inline-block !important;
+    width: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+
+    line-height: 18px !important;
+    font-size: 18px !important;
+    text-align: center !important;
+
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* hover باعث layout shift نشود */
+  .navbar-tour-btn:hover,
+  #guide-tour-btn:hover,
+  .navbar-tour-btn:focus,
+  #guide-tour-btn:focus,
+  .navbar-tour-btn:active,
+  #guide-tour-btn:active {
+    transform: none !important;
+    margin: 0 !important;
+  }
+}
+/* ===== END FIX DESKTOP GUIDE BUTTON JUMP ===== */
+
+
+
+
+/* ===== FIX ZOOM BUTTONS CENTER + HIDE MOBILE CONTROLS ===== */
+
+/* 1) دکمه‌های زوم دقیقاً وسط شوند */
+.zoom-controls {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.zoom-controls .zoom-btn,
+#zoom-in,
+#zoom-out,
+#reset-zoom {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+
+  width: 72px !important;
+  min-width: 72px !important;
+  max-width: 72px !important;
+
+  height: 72px !important;
+  min-height: 72px !important;
+  max-height: 72px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.zoom-controls .zoom-btn > i,
+#zoom-in > i,
+#zoom-out > i,
+#reset-zoom > i,
+.zoom-controls .zoom-btn .fa,
+#zoom-in .fa,
+#zoom-out .fa,
+#reset-zoom .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 20px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+}
+
+/* اگر خود دکمه‌ها border radius و frame دارند، محتوا دقیق وسط بماند */
+.zoom-controls .zoom-btn::before,
+.zoom-controls .zoom-btn::after {
+  pointer-events: none !important;
+}
+
+/* 2) در موبایل کل header-controls کامل حذف شود */
+@media (max-width: 767.98px) {
+  .header-controls,
+  #header-controls,
+  .header-controls .zoom-controls,
+  .header-controls #edit-layout-btn,
+  .header-controls #move-table-btn {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+  }
+
+  /* مطمئن شو لایه مخفی روی جدول‌ها ننشیند */
+  .header-controls,
+  #header-controls {
+    position: absolute !important;
+    z-index: -1 !important;
+  }
+}
+
+/* 3) در دسکتاپ دکمه‌ها پایدار بمانند */
+@media (min-width: 768px) {
+  .header-controls,
+  #header-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .zoom-level-indicator {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* ===== END FIX ZOOM BUTTONS CENTER + HIDE MOBILE CONTROLS ===== */
+
+
+
+
+/* ===== FIX ZOOM BUTTONS NORMAL + MOBILE MOVE TABLE ===== */
+
+/* desktop/tablet: zoom buttons normal size and perfectly centered */
+.zoom-controls {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.zoom-controls .zoom-btn,
+#zoom-in,
+#zoom-out,
+#reset-zoom {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.zoom-controls .zoom-btn > i,
+#zoom-in > i,
+#zoom-out > i,
+#reset-zoom > i,
+.zoom-controls .zoom-btn .fa,
+#zoom-in .fa,
+#zoom-out .fa,
+#reset-zoom .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 16px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  position: static !important;
+  transform: none !important;
+}
+
+.zoom-level-indicator {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+}
+
+/* keep desktop header controls aligned nicely */
+@media (min-width: 768px) {
+  .header-controls,
+  #header-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  #edit-layout-btn,
+  #move-table-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* mobile behavior */
+@media (max-width: 767.98px) {
+
+  .header-controls,
+  #header-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  /* hide zoom controls on mobile */
+  .zoom-controls,
+  .header-controls .zoom-controls,
+  #header-controls .zoom-controls,
+  #zoom-in,
+  #zoom-out,
+  #reset-zoom,
+  #zoom-level {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* hide Edit Layout on mobile */
+  #edit-layout-btn {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* keep Move Table visible and usable on mobile */
+  #move-table-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 99999 !important;
+
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 16px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+  }
+
+  #move-table-btn i {
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* make sure hidden controls do not block tapping tables */
+  .header-controls .zoom-controls,
+  #edit-layout-btn {
+    position: absolute !important;
+    z-index: -1 !important;
+  }
+}
+
+/* ===== END FIX ZOOM BUTTONS NORMAL + MOBILE MOVE TABLE ===== */
+

@@ -210,4 +210,10 @@
   'System\\Controllers\\currencies' => 'app/system/controllers/Currencies.php',
   'System\\Controllers\\countries' => 'app/system/controllers/Countries.php',
   'Admin\\FormWidgets\\Repeater' => 'app/admin/formwidgets/Repeater.php',
+  'Admin\\Models\\Assignable_logs_model' => 'app/admin/models/Assignable_logs_model.php',
+  'System\\Helpers\\ViewHelper' => 'app/system/helpers/ViewHelper.php',
+  'System\\Models\\Mail_themes_model' => 'app/system/models/Mail_themes_model.php',
+  'System\\Actions\\SettingsModel' => 'app/system/actions/SettingsModel.php',
+  'Main\\Models\\Image_tool_model' => 'app/main/models/Image_tool_model.php',
+  'Admin\\Helpers\\PosMenuNormalizer' => 'app/admin/helpers/PosMenuNormalizer.php',
 );
