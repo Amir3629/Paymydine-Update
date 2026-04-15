@@ -712,7 +712,7 @@ Route::group([
     $methodProviderMatrix = \Admin\Models\Payments_model::supportedProviderMatrix();
 
     $providerCapabilityMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
+        'stripe' => ['card', 'apple_pay', 'google_pay', 'wero', 'paypal'],
         'paypal' => ['paypal'],
         'worldline' => ['card'],
         'sumup' => ['card'],
@@ -732,8 +732,9 @@ Route::group([
         ['code' => 'card', 'name' => 'Card', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 1],
         ['code' => 'apple_pay', 'name' => 'Apple Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 2],
         ['code' => 'google_pay', 'name' => 'Google Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 3],
-        ['code' => 'paypal', 'name' => 'PayPal', 'provider_code' => 'paypal', 'enabled' => true, 'priority' => 4],
-        ['code' => 'cod', 'name' => 'Cash', 'provider_code' => null, 'enabled' => true, 'priority' => 5],
+        ['code' => 'wero', 'name' => 'Wero', 'provider_code' => 'stripe', 'enabled' => false, 'priority' => 4],
+        ['code' => 'paypal', 'name' => 'PayPal', 'provider_code' => 'paypal', 'enabled' => true, 'priority' => 5],
+        ['code' => 'cod', 'name' => 'Cash', 'provider_code' => null, 'enabled' => true, 'priority' => 6],
     ];
 
     $defaultPaymentProviders = [
@@ -776,7 +777,7 @@ Route::group([
                 $supportedMethods = $meta['supported_methods'] ?? null;
                 if (!is_array($supportedMethods) || empty($supportedMethods)) {
                     $supportedMethods = [
-                        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
+                        'stripe' => ['card', 'apple_pay', 'google_pay', 'wero', 'paypal'],
                         'paypal' => ['paypal'],
                         'worldline' => ['card'],
                         'sumup' => ['card'],
@@ -795,7 +796,7 @@ Route::group([
     };
 
     $loadMethodRecordsFromPayments = function () {
-        $methodCodes = ['card', 'apple_pay', 'google_pay', 'paypal', 'cod'];
+        $methodCodes = ['card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod'];
         return \Admin\Models\Payments_model::query()
             ->whereIn('code', $methodCodes)
             ->get()
@@ -858,10 +859,12 @@ Route::group([
         $cardMethodConfigured = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'stripe'));
         $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
         $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
+        $weroMethodConfigured = (bool)(($methods->get('wero')['enabled'] ?? false) && (($methods->get('wero')['provider_code'] ?? null) === 'stripe'));
 
         $cardReady = $baseReady && $cardMethodConfigured;
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
+        $weroReady = $baseReady && $weroMethodConfigured;
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -871,7 +874,8 @@ Route::group([
             'card_ready' => $cardReady,
             'apple_pay_ready' => $appleReady,
             'google_pay_ready' => $googleReady,
-            'any_ready' => $cardReady || $appleReady || $googleReady,
+            'wero_ready' => $weroReady,
+            'any_ready' => $cardReady || $appleReady || $googleReady || $weroReady,
         ];
     };
 
@@ -935,6 +939,9 @@ Route::group([
                         return false;
                     }
                     if ($methodCode === 'google_pay' && !($stripeReadiness['google_pay_ready'] ?? false)) {
+                        return false;
+                    }
+                    if ($methodCode === 'wero' && !($stripeReadiness['wero_ready'] ?? false)) {
                         return false;
                     }
                 }
@@ -1082,7 +1089,7 @@ Route::group([
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
             ? $availableProviderCodesForMethod
             : fn (string $methodCode): array => [];
-        $stripeMethodCodes = ['card', 'apple_pay', 'google_pay'];
+        $stripeMethodCodes = ['card', 'apple_pay', 'google_pay', 'wero'];
         $hasActiveStripeMethod = collect($stripeMethodCodes)->contains(function ($methodCode) use ($methods, $providers, $resolveAvailableProviders) {
             if (!$methods->has($methodCode)) {
                 return false;
@@ -1140,6 +1147,7 @@ Route::group([
                 'card' => (bool)($readiness['card_ready'] ?? false),
                 'apple_pay' => (bool)($readiness['apple_pay_ready'] ?? false),
                 'google_pay' => (bool)($readiness['google_pay_ready'] ?? false),
+                'wero' => (bool)($readiness['wero_ready'] ?? false),
             ],
         ], 200);
     });
@@ -1717,6 +1725,171 @@ Route::group([
             ], 200);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'provider' => 'square', 'error' => $e->getMessage()], 500);
+        }
+    });
+
+    Route::post('/payments/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveStripeRuntimeReadiness) {
+        $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
+        $weroMethod = (array)$runtimeMethods->get('wero', []);
+        if (empty($weroMethod)) {
+            return response()->json(['success' => false, 'error' => 'Wero method is disabled'], 422);
+        }
+
+        $providerCode = (string)($weroMethod['provider_code'] ?? '');
+        if ($providerCode !== 'stripe') {
+            return response()->json(['success' => false, 'error' => 'Wero is only available through Stripe in this integration'], 422);
+        }
+
+        $stripeReadiness = $resolveStripeRuntimeReadiness();
+        if (!($stripeReadiness['wero_ready'] ?? false)) {
+            return response()->json(['success' => false, 'error' => 'Stripe Wero configuration is not ready'], 503);
+        }
+
+        $payload = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|string|size:3',
+            'return_url' => 'required|url',
+            'cancel_url' => 'nullable|url',
+            'items' => 'nullable|array',
+            'customer_email' => 'nullable|email',
+        ]);
+
+        $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
+        if (!$payment) {
+            return response()->json(['success' => false, 'error' => 'Stripe not configured'], 404);
+        }
+
+        $data = is_array($payment->data ?? null) ? (array)$payment->data : [];
+        $mode = (string)($data['transaction_mode'] ?? 'test');
+        $secretKey = $mode === 'live'
+            ? (string)($data['live_secret_key'] ?? '')
+            : (string)($data['test_secret_key'] ?? '');
+
+        if ($secretKey === '') {
+            return response()->json(['success' => false, 'error' => 'Stripe secret key not configured'], 503);
+        }
+
+        try {
+            \Stripe\Stripe::setApiKey($secretKey);
+            $currency = strtolower((string)$payload['currency']);
+            $amountMinor = (int)round(((float)$payload['amount']) * 100);
+            $cancelUrl = (string)($payload['cancel_url'] ?? $payload['return_url']);
+            $successUrl = (string)$payload['return_url'];
+            $successUrl .= (str_contains($successUrl, '?') ? '&' : '?').'session_id={CHECKOUT_SESSION_ID}';
+
+            $lineItems = collect((array)($payload['items'] ?? []))
+                ->filter(fn ($item) => is_array($item))
+                ->map(function ($item) use ($currency) {
+                    $qty = max(1, (int)($item['quantity'] ?? 1));
+                    $unitAmountMinor = (int)round(((float)($item['price'] ?? 0)) * 100);
+                    if ($unitAmountMinor <= 0) {
+                        return null;
+                    }
+
+                    return [
+                        'price_data' => [
+                            'currency' => $currency,
+                            'product_data' => [
+                                'name' => (string)($item['name'] ?? 'Paymydine item'),
+                            ],
+                            'unit_amount' => $unitAmountMinor,
+                        ],
+                        'quantity' => $qty,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            if (empty($lineItems)) {
+                $lineItems = [[
+                    'price_data' => [
+                        'currency' => $currency,
+                        'product_data' => ['name' => 'Paymydine order'],
+                        'unit_amount' => $amountMinor,
+                    ],
+                    'quantity' => 1,
+                ]];
+            }
+
+            $session = \Stripe\Checkout\Session::create([
+                'mode' => 'payment',
+                'success_url' => $successUrl,
+                'cancel_url' => $cancelUrl,
+                'payment_method_types' => ['wero'],
+                'line_items' => $lineItems,
+                'customer_email' => (string)($payload['customer_email'] ?? ''),
+                'metadata' => [
+                    'provider' => 'stripe',
+                    'payment_method' => 'wero',
+                ],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'stripe',
+                'method' => 'wero',
+                'redirect_url' => (string)($session->url ?? ''),
+                'session_id' => (string)($session->id ?? ''),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Wero create-session failed', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage() ?: 'Failed to create Wero checkout session',
+            ], 500);
+        }
+    });
+
+    Route::post('/payments/wero/checkout-status', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'session_id' => 'required|string',
+        ]);
+
+        $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
+        if (!$payment) {
+            return response()->json(['success' => false, 'provider' => 'stripe', 'method' => 'wero', 'error' => 'Stripe not configured'], 404);
+        }
+        $data = is_array($payment->data ?? null) ? (array)$payment->data : [];
+        $mode = (string)($data['transaction_mode'] ?? 'test');
+        $secretKey = $mode === 'live'
+            ? (string)($data['live_secret_key'] ?? '')
+            : (string)($data['test_secret_key'] ?? '');
+        if ($secretKey === '') {
+            return response()->json(['success' => false, 'provider' => 'stripe', 'method' => 'wero', 'error' => 'Stripe secret key not configured'], 503);
+        }
+
+        try {
+            \Stripe\Stripe::setApiKey($secretKey);
+            $session = \Stripe\Checkout\Session::retrieve((string)$payload['session_id']);
+            $paymentStatus = strtolower((string)($session->payment_status ?? ''));
+            $isPaid = $paymentStatus === 'paid';
+            $paymentIntentId = (string)($session->payment_intent ?? '');
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'stripe',
+                'method' => 'wero',
+                'session_id' => (string)$payload['session_id'],
+                'is_paid' => $isPaid,
+                'payment_status' => $paymentStatus,
+                'payment_intent_id' => $paymentIntentId !== '' ? $paymentIntentId : null,
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('Wero checkout-status failed', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'provider' => 'stripe',
+                'method' => 'wero',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     });
 
@@ -2758,7 +2931,7 @@ return response()->json([
                 'total_amount' => 'required|numeric|min:0',
                 'tip_amount' => 'nullable|numeric|min:0',
                 'coupon_discount' => 'nullable|numeric|min:0',
-                'payment_method' => 'required|in:cash,cod,card,paypal,stripe,apple_pay,google_pay',
+                'payment_method' => 'required|in:cash,cod,card,paypal,stripe,apple_pay,google_pay,wero',
                 'stripe_payment_intent_id' => 'nullable|string|max:255',
             ];
 
@@ -2771,7 +2944,7 @@ return response()->json([
             }
 
             $validationRules['payment_provider'] = 'nullable|string|in:stripe,paypal,worldline,sumup,square';
-            $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,paypal,cod,cash,stripe';
+            $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,wero,paypal,cod,cash,stripe';
             $validationRules['payment_reference'] = 'nullable|string|max:255';
 
             $request->validate($validationRules);
@@ -2784,7 +2957,7 @@ return response()->json([
             }
 
             $normalizedPaymentMethod = match ($frontendPaymentMethod) {
-                'stripe', 'apple_pay', 'google_pay' => 'card',
+                'stripe', 'apple_pay', 'google_pay', 'wero' => 'card',
                 'paypal' => 'paypal',
                 'cod' => 'cash',
                 'cash' => 'cash',
@@ -2799,7 +2972,7 @@ return response()->json([
                 'normalized_payment_method' => $normalizedPaymentMethod,
             ]);
 
-            $isStripeWalletMethod = in_array($frontendPaymentMethodRaw, ['stripe', 'apple_pay', 'google_pay'], true);
+            $isStripeWalletMethod = in_array($frontendPaymentMethodRaw, ['stripe', 'apple_pay', 'google_pay', 'wero'], true);
             $isStripeCardMethod = $frontendPaymentMethodRaw === 'card' && $frontendPaymentProvider === 'stripe';
             $mustVerifyStripe = $isStripeWalletMethod || $isStripeCardMethod;
             if ($isStripeWalletMethod && $frontendPaymentProvider !== 'stripe') {

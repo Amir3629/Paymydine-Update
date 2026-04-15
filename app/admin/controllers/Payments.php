@@ -23,7 +23,7 @@ class Payments extends \Admin\Classes\AdminController
      * - What is actually implemented end-to-end in this codebase today.
      * - This must be used for assignable dropdown/validation.
      */
-    protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'paypal', 'cod'];
+    protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod'];
     protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square'];
 
     public $implement = [
@@ -508,8 +508,9 @@ class Payments extends \Admin\Classes\AdminController
             'card' => ['name' => 'Card', 'priority' => 1, 'provider_code' => 'stripe'],
             'apple_pay' => ['name' => 'Apple Pay', 'priority' => 2, 'provider_code' => 'stripe'],
             'google_pay' => ['name' => 'Google Pay', 'priority' => 3, 'provider_code' => 'stripe'],
-            'paypal' => ['name' => 'PayPal', 'priority' => 4, 'provider_code' => 'paypal'],
-            'cod' => ['name' => 'Cash', 'priority' => 5, 'provider_code' => null],
+            'wero' => ['name' => 'Wero', 'priority' => 4, 'provider_code' => 'stripe'],
+            'paypal' => ['name' => 'PayPal', 'priority' => 5, 'provider_code' => 'paypal'],
+            'cod' => ['name' => 'Cash', 'priority' => 6, 'provider_code' => null],
         ];
 
         $providerClassMap = $this->resolveProviderGatewayClasses();
@@ -601,7 +602,7 @@ class Payments extends \Admin\Classes\AdminController
     protected function getPaymentProviderSettings(): array
     {
         $defaults = [
-            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
+            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'wero']],
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],

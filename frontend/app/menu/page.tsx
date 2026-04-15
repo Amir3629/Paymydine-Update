@@ -804,7 +804,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   )
 
   const visiblePaymentMethods = useMemo(() => {
-    const allowed = new Set(["card", "apple_pay", "google_pay", "paypal", "cod"])
+    const allowed = new Set(["card", "apple_pay", "google_pay", "wero", "paypal", "cod"])
     return (paymentMethods || []).filter((method) => allowed.has(method.code))
   }, [paymentMethods])
 
@@ -949,7 +949,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     const selectedProviderCodeForSubmit = (selectedMethodForSubmit as any)?.provider_code || null
     const isStripeMethodForSubmit =
       selectedProviderCodeForSubmit === "stripe" &&
-      (selectedPaymentMethod === "card" || selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay")
+      (selectedPaymentMethod === "card" || selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay" || selectedPaymentMethod === "wero")
 
     if (isStripeMethodForSubmit && !stripePaymentIntentId) {
       toast({
@@ -1326,11 +1326,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     tableNumber: stripeResolvedTableNumber || 0,
   }
 
-  const startHostedCardCheckout = async () => {
-    if (!selectedMethod || selectedMethod.code !== "card") return
+  const startHostedRedirectCheckout = async () => {
+    if (!selectedMethod || !["card", "wero"].includes(selectedMethod.code)) return
     setIsLoading(true)
     try {
-      const providerCode = selectedProviderCode || "unknown"
+      const providerCode = selectedMethod.code === "wero" ? "wero" : (selectedProviderCode || "unknown")
       const returnUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerCode)}`
@@ -1340,7 +1340,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? window.location.href
           : "/menu"
 
-      const res = await fetch('/api/v1/payments/card/create-session', {
+      const checkoutEndpoint = selectedMethod.code === "wero"
+        ? "/api/v1/payments/wero/create-session"
+        : "/api/v1/payments/card/create-session"
+      const res = await fetch(checkoutEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1380,6 +1383,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             created_at: Date.now(),
           }))
         }
+        if (providerCode === "wero" && json?.session_id) {
+          localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
+            session_id: String(json.session_id),
+            created_at: Date.now(),
+          }))
+        }
       }
 
       if (typeof window !== "undefined") {
@@ -1400,13 +1409,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (typeof window === "undefined") return
       const params = new URLSearchParams(window.location.search)
       const provider = params.get("payment_return_provider")
-      if (!["worldline", "sumup", "square"].includes(provider || "")) return
+      if (!["worldline", "sumup", "square", "wero"].includes(provider || "")) return
 
       const pendingKey = provider === "worldline"
         ? "pmd_worldline_pending_checkout"
         : provider === "sumup"
           ? "pmd_sumup_pending_checkout"
-          : "pmd_square_pending_checkout"
+          : provider === "square"
+            ? "pmd_square_pending_checkout"
+            : "pmd_wero_pending_checkout"
       const pendingRaw = localStorage.getItem(pendingKey)
       if (!pendingRaw) return
       let pending: any = null
@@ -1420,12 +1431,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         ? { hosted_checkout_id: String(pending?.hosted_checkout_id || "") }
         : provider === "sumup"
           ? { checkout_id: String(pending?.checkout_id || "") }
-          : { payment_link_id: String(pending?.payment_link_id || "") }
+          : provider === "square"
+            ? { payment_link_id: String(pending?.payment_link_id || "") }
+            : { session_id: String(pending?.session_id || params.get("session_id") || "") }
       const verificationUrl = provider === "worldline"
         ? "/api/v1/payments/worldline/checkout-status"
         : provider === "sumup"
           ? "/api/v1/payments/sumup/checkout-status"
-          : "/api/v1/payments/square/checkout-status"
+          : provider === "square"
+            ? "/api/v1/payments/square/checkout-status"
+            : "/api/v1/payments/wero/checkout-status"
 
       const requiredValue = Object.values(verificationPayload)[0]
       if (!requiredValue) return
@@ -1632,7 +1647,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </div>
               <Button
                 type="button"
-                onClick={startHostedCardCheckout}
+                onClick={startHostedRedirectCheckout}
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
               >
@@ -1864,6 +1879,48 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           </motion.div>
         )
 
+      case "wero":
+        return (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-3 overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToMethods}
+                className="p-2 h-9 w-9"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <img
+                  src={iconForPayment("wero")}
+                  alt="Wero"
+                  width={36}
+                  height={22}
+                  className="object-contain"
+                />
+                <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Wero"}</span>
+              </div>
+            </div>
+            <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
+              You will be redirected to a secure Wero checkout powered by Stripe.
+            </div>
+            <Button
+              type="button"
+              onClick={startHostedRedirectCheckout}
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
+            >
+              {isLoading ? "Opening Wero..." : "Pay with Wero"}
+            </Button>
+          </motion.div>
+        )
+
 case "cod":
         return (
           <motion.div
@@ -1914,7 +1971,7 @@ case "cod":
     // to submit/place the order directly.
     // Payment must happen only through StripeCardForm:
     // create-intent -> confirmCardPayment -> onPaymentComplete -> handlePayment(transactionId)
-    if (["card", "paypal"].includes(selectedMethod.code)) {
+    if (["card", "wero", "paypal"].includes(selectedMethod.code)) {
       return null
     }
 
@@ -1950,7 +2007,7 @@ case "cod":
       }
     }
 
-    if (selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay") {
+    if (selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay" || selectedPaymentMethod === "wero") {
       return null
     }
 
@@ -2253,7 +2310,7 @@ case "cod":
             </div>
           </div>
 
-          {selectedPaymentMethod && ["card","apple_pay","google_pay","paypal","cod"].includes(selectedPaymentMethod) && (
+          {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
             <div className="pt-3">
               {renderPaymentForm()}
             </div>

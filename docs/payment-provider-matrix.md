@@ -1,6 +1,6 @@
 # Payment Provider Production Readiness Audit
 
-Last updated: 2026-04-03
+Last updated: 2026-04-15
 
 This file audits **real runtime status in this repo**, not theoretical capability alone.
 
@@ -17,6 +17,7 @@ This file audits **real runtime status in this repo**, not theoretical capabilit
 | stripe | card | fully_implemented_and_runtime_wired | `frontend/app/menu/page.tsx` Stripe card form; `frontend/components/payment/secure-payment-form.tsx` StripeCardForm; `app/admin/routes.php` `/api/v1/payments/stripe/create-intent` | none critical in app flow | Stripe account active, API keys, currency support | yes | merchant must enable card acceptance in Stripe account | yes |
 | stripe | apple_pay | fully_implemented_and_runtime_wired | `frontend/app/menu/page.tsx` WalletStripePay for `apple_pay`; `/api/v1/payments/stripe/create-intent` | none critical in app flow | Apple Pay enabled for Stripe, domain verification, compatible device/browser | yes | Apple merchant/domain setup in Stripe | yes |
 | stripe | google_pay | fully_implemented_and_runtime_wired | `frontend/app/menu/page.tsx` WalletStripePay for `google_pay`; `/api/v1/payments/stripe/create-intent` | none critical in app flow | Google Pay enabled/eligible in Stripe, supported browser/device | yes | Google Pay activation in Stripe context | yes |
+| stripe | wero | fully_implemented_and_runtime_wired | `frontend/app/menu/page.tsx` Wero redirect flow; `/api/v1/payments/wero/create-session`; `/api/v1/payments/wero/checkout-status` | none critical in redirect-verify-submit flow | Stripe account with Wero enabled for the merchant, supported market/currency | yes | Wero must be enabled in Stripe dashboard + merchant eligibility | yes |
 | stripe | paypal | unsupported_by_provider | none | provider does not expose PayPal as Stripe method in this app architecture | n/a | n/a | n/a | no |
 | stripe | cod | unsupported_by_provider | none | COD is intentionally provider-less | n/a | n/a | n/a | no |
 | paypal | card | partially_implemented_but_not_safe_for_admin_assignment | `frontend/app/menu/page.tsx` has PayPal card rendering path; `frontend/components/payment/secure-payment-form.tsx` supports `paypalFundingSource="card"`; `/api/v1/payments/paypal/create-order` + capture | not marked implemented in backend matrix; no dedicated advanced card-fields eligibility contract checks; region/merchant capability variance high | PayPal Advanced Checkout card eligibility + account approval | partially | may require advanced card product enablement beyond API keys | no |
@@ -44,6 +45,7 @@ This file audits **real runtime status in this repo**, not theoretical capabilit
 - `card` -> `stripe`, `worldline`, `sumup`, `square`
 - `apple_pay` -> `stripe`
 - `google_pay` -> `stripe`
+- `wero` -> `stripe`
 - `paypal` -> `paypal`
 - `cod` -> provider-less only
 
