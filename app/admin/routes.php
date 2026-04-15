@@ -802,10 +802,16 @@ Route::group([
             ->get()
             ->map(function ($row) {
                 $meta = is_array($row->data ?? null) ? (array)$row->data : [];
+                $fallbackProviderByMethod = [
+                    'wero' => 'stripe',
+                ];
+                $resolvedProvider = $row->provider_code
+                    ?? ($meta['provider_code'] ?? null)
+                    ?? ($fallbackProviderByMethod[(string)$row->code] ?? null);
                 return [
                     'code' => (string)$row->code,
                     'name' => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
-                    'provider_code' => $row->provider_code ?? ($meta['provider_code'] ?? null),
+                    'provider_code' => $resolvedProvider,
                     'enabled' => (bool)$row->status,
                     'priority' => (int)($row->priority ?? 0),
                 ];
@@ -1735,7 +1741,7 @@ Route::group([
             return response()->json(['success' => false, 'error' => 'Wero method is disabled'], 422);
         }
 
-        $providerCode = (string)($weroMethod['provider_code'] ?? '');
+        $providerCode = (string)($weroMethod['provider_code'] ?? 'stripe');
         if ($providerCode !== 'stripe') {
             return response()->json(['success' => false, 'error' => 'Wero is only available through Stripe in this integration'], 422);
         }
@@ -1812,18 +1818,23 @@ Route::group([
                 ]];
             }
 
-            $session = \Stripe\Checkout\Session::create([
+            $checkoutPayload = [
                 'mode' => 'payment',
                 'success_url' => $successUrl,
                 'cancel_url' => $cancelUrl,
                 'payment_method_types' => ['wero'],
                 'line_items' => $lineItems,
-                'customer_email' => (string)($payload['customer_email'] ?? ''),
                 'metadata' => [
                     'provider' => 'stripe',
                     'payment_method' => 'wero',
                 ],
-            ]);
+            ];
+            $customerEmail = trim((string)($payload['customer_email'] ?? ''));
+            if ($customerEmail !== '') {
+                $checkoutPayload['customer_email'] = $customerEmail;
+            }
+
+            $session = \Stripe\Checkout\Session::create($checkoutPayload);
 
             return response()->json([
                 'success' => true,
