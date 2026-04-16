@@ -61,7 +61,7 @@ export function iconForPayment(code: string): string {
 
   if (!KNOWN.has(key)) return makePath("/images/payments/default.svg")
   if (key === "sumup") return sumupThemeIcon()
-  if (key === "wero") return makePath("/images/payments/stripe.png")
+  if (key === "wero") return makePath("/images/payments/default.svg")
 
   const ext = PNG_ONLY.has(key) ? "png" : "svg"
   return makePath(`/images/payments/${key}.${ext}`)

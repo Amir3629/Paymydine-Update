@@ -1923,7 +1923,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </div>
             </div>
             <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-              You will be redirected to a secure Wero checkout powered by Stripe.
+              You will be redirected to a secure Wero checkout powered by {selectedMethod?.provider_code === "worldline" ? "Worldline" : "Stripe"}.
             </div>
             <Button
               type="button"
@@ -2389,6 +2389,11 @@ case "cod":
                               width={40}
                               height={22}
                               className="object-contain"
+                              onError={(event) => {
+                                const target = event.currentTarget
+                                if (target.src.includes('/images/payments/default.svg')) return
+                                target.src = '/images/payments/default.svg'
+                              }}
                             />
                           ) : (
                             <img
