@@ -273,10 +273,6 @@ class WorldlineHostedCheckoutService
         $locale = (string)($payload['locale'] ?? 'en_GB');
         $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
         $merchantCustomerId = (string)($payload['merchant_customer_id'] ?? ('PMD-' . substr((string) Str::uuid(), 0, 12)));
-        $restrictToProducts = array_values(array_filter(array_map(
-            fn ($v) => (int)$v,
-            is_array($payload['restrict_to_products'] ?? null) ? (array)$payload['restrict_to_products'] : []
-        ), fn (int $v) => $v > 0));
 
         if ($amountMinor <= 0) {
             throw new \RuntimeException('amount_minor must be > 0');
@@ -300,26 +296,6 @@ class WorldlineHostedCheckoutService
         $specific = new HostedCheckoutSpecificInput();
         $specific->returnUrl = $returnUrl;
         $specific->locale = $locale;
-        if (!empty($restrictToProducts)) {
-            if (
-                class_exists(\Worldline\Connect\Sdk\V1\Domain\PaymentProductFiltersHostedCheckout::class)
-                && class_exists(\Worldline\Connect\Sdk\V1\Domain\PaymentProductFilter::class)
-            ) {
-                $paymentProductFilter = new \Worldline\Connect\Sdk\V1\Domain\PaymentProductFilter();
-                $paymentProductFilter->products = $restrictToProducts;
-
-                $paymentProductFilters = new \Worldline\Connect\Sdk\V1\Domain\PaymentProductFiltersHostedCheckout();
-                $paymentProductFilters->restrictTo = $paymentProductFilter;
-
-                $specific->paymentProductFilters = $paymentProductFilters;
-            } else {
-                $specific->paymentProductFilters = (object)[
-                    'restrictTo' => (object)[
-                        'products' => $restrictToProducts,
-                    ],
-                ];
-            }
-        }
 
         $body = new CreateHostedCheckoutRequest();
         $body->order = $order;
@@ -332,7 +308,6 @@ class WorldlineHostedCheckoutService
             'locale' => $locale,
             'country_code' => $countryCode,
             'merchant_customer_id' => $merchantCustomerId,
-            'restrict_to_products' => $restrictToProducts,
         ];
         $sdkPayloadDebug = [
             'order' => [
@@ -350,9 +325,6 @@ class WorldlineHostedCheckoutService
             'hostedCheckoutSpecificInput' => [
                 'returnUrl' => $returnUrl,
                 'locale' => $locale,
-                'paymentProductFilters' => !empty($restrictToProducts)
-                    ? ['restrictTo' => ['products' => $restrictToProducts]]
-                    : null,
             ],
         ];
         \Log::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [

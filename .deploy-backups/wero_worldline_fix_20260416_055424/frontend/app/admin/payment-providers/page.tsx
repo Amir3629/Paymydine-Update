@@ -27,7 +27,6 @@ const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string;
     { key: "test_secret_key", label: "Test Secret Key", type: "password" },
     { key: "live_secret_key", label: "Live Secret Key", type: "password" },
     { key: "currency", label: "Currency" },
-    { key: "wero_enabled", label: "Enable Wero (true/false)" },
   ],
   paypal: [
     { key: "transaction_mode", label: "Mode", options: ["test", "live"] },
@@ -44,8 +43,6 @@ const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string;
     { key: "api_key_id", label: "API Key ID" },
     { key: "secret_api_key", label: "Secret API Key", type: "password" },
     { key: "webhook_secret", label: "Webhook Secret", type: "password" },
-    { key: "wero_enabled", label: "Enable Wero (true/false)" },
-    { key: "wero_payment_product_id", label: "Wero Payment Product ID" },
   ],
   sumup: [
     { key: "access_token", label: "Access Token", type: "password" },
