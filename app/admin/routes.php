@@ -847,7 +847,23 @@ Route::group([
         $payment->save();
     };
 
-    $resolveStripeRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentMethods, $defaultPaymentProviders, $loadMethodRecordsFromPayments): array {
+    $persistStripeWeroCapabilityStatus = function (string $status, ?string $message = null): void {
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'stripe')->first();
+        if (!$payment) {
+            return;
+        }
+
+        $existing = method_exists($payment, 'getConfigData') ? $payment->getConfigData() : [];
+        $existing['wero_capability_status'] = strtolower(trim($status)) ?: 'unknown';
+        $existing['wero_capability_checked_at'] = gmdate('c');
+        if ($message !== null) {
+            $existing['wero_capability_message'] = mb_substr($message, 0, 500);
+        }
+        $payment->setConfigData($existing);
+        $payment->save();
+    };
+
+    $resolveStripeRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentMethods, $defaultPaymentProviders, $loadMethodRecordsFromPayments, $persistStripeWeroCapabilityStatus): array {
         $methodsFromDb = $loadMethodRecordsFromPayments();
         $methods = $methodsFromDb->count() > 0
             ? $methodsFromDb
@@ -864,15 +880,50 @@ Route::group([
 
         $baseReady = $providerEnabled && $publishableKey !== '' && $secretKey !== '';
         $weroEnabledByConfig = (bool)($data['wero_enabled'] ?? false);
+        $weroCapabilityStatus = strtolower((string)($data['wero_capability_status'] ?? 'unknown'));
+        $weroCapabilityCheckedAt = strtotime((string)($data['wero_capability_checked_at'] ?? ''));
         $cardMethodConfigured = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'stripe'));
         $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
         $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
         $weroMethodConfigured = (bool)(($methods->get('wero')['enabled'] ?? false) && (($methods->get('wero')['provider_code'] ?? null) === 'stripe'));
 
+        $shouldProbeWeroCapability = $baseReady
+            && $weroEnabledByConfig
+            && (
+                $weroCapabilityStatus === ''
+                || $weroCapabilityStatus === 'unknown'
+                || !$weroCapabilityCheckedAt
+                || ($weroCapabilityCheckedAt < (time() - 86400))
+            );
+        if ($shouldProbeWeroCapability) {
+            try {
+                \Stripe\Stripe::setApiKey($secretKey);
+                \Stripe\Checkout\Session::create([
+                    'mode' => 'setup',
+                    'payment_method_types' => ['wero'],
+                    'success_url' => url('/').'/?wero_capability_probe=success',
+                    'cancel_url' => url('/').'/?wero_capability_probe=cancel',
+                ]);
+                $weroCapabilityStatus = 'supported';
+                $persistStripeWeroCapabilityStatus('supported');
+            } catch (\Stripe\Exception\InvalidRequestException $e) {
+                $probeMessage = (string)$e->getMessage();
+                $probeLower = strtolower($probeMessage);
+                $weroCapabilityStatus = (
+                    str_contains($probeLower, 'invalid payment_method_types')
+                    || str_contains($probeLower, 'payment_method_types[0]')
+                ) ? 'unsupported' : 'unknown';
+                $persistStripeWeroCapabilityStatus($weroCapabilityStatus, $probeMessage);
+            } catch (\Throwable $e) {
+                $weroCapabilityStatus = 'unknown';
+                $persistStripeWeroCapabilityStatus('unknown', $e->getMessage());
+            }
+        }
+
         $cardReady = $baseReady && $cardMethodConfigured;
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
-        $weroReady = $baseReady && $weroMethodConfigured && $weroEnabledByConfig;
+        $weroReady = $baseReady && $weroMethodConfigured && $weroEnabledByConfig && $weroCapabilityStatus === 'supported';
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -885,6 +936,7 @@ Route::group([
             'wero_ready' => $weroReady,
             'any_ready' => $cardReady || $appleReady || $googleReady || $weroReady,
             'wero_enabled_by_config' => $weroEnabledByConfig,
+            'wero_capability_status' => $weroCapabilityStatus,
         ];
     };
 
@@ -1737,7 +1789,7 @@ Route::group([
         }
     });
 
-    Route::post('/payments/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveStripeRuntimeReadiness) {
+    Route::post('/payments/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveStripeRuntimeReadiness, $persistStripeWeroCapabilityStatus) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
@@ -1838,6 +1890,7 @@ Route::group([
             }
 
             $session = \Stripe\Checkout\Session::create($checkoutPayload);
+            $persistStripeWeroCapabilityStatus('supported');
 
             return response()->json([
                 'success' => true,
@@ -1865,6 +1918,7 @@ Route::group([
             ]);
 
             if ($isUnsupportedWero) {
+                $persistStripeWeroCapabilityStatus('unsupported', $message);
                 return response()->json([
                     'success' => false,
                     'provider' => 'stripe',

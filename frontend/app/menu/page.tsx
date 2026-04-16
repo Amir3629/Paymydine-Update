@@ -1401,10 +1401,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
     } catch (error) {
       if (shouldFallbackFromWero) {
-        const fallbackMethod = visiblePaymentMethods.find(method => method.code !== "wero")
-        if (fallbackMethod?.code) {
-          setSelectedPaymentMethod(fallbackMethod.code)
-        }
+        setSelectedPaymentMethod(null)
       }
       setIsLoading(false)
       toast({
