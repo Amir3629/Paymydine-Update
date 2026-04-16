@@ -53,7 +53,7 @@ class Payments_model extends Model
         'card' => ['stripe', 'worldline'],
         'apple_pay' => ['stripe'],
         'google_pay' => ['stripe'],
-        'wero' => ['stripe'],
+        'wero' => ['stripe', 'worldline'],
         'paypal' => ['paypal', 'stripe'],
         'cod' => [],
         'cash' => [],

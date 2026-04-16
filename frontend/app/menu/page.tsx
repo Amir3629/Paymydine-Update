@@ -1331,7 +1331,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
-      const providerCode = selectedMethod.code === "wero" ? "wero" : (selectedProviderCode || "unknown")
+      const providerCode = selectedMethod.code === "wero"
+        ? (selectedProviderCode === "worldline" ? "worldline" : "wero")
+        : (selectedProviderCode || "unknown")
       const returnUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerCode)}`
@@ -1342,7 +1344,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           : "/menu"
 
       const checkoutEndpoint = selectedMethod.code === "wero"
-        ? "/api/v1/payments/wero/create-session"
+        ? (selectedProviderCode === "worldline"
+          ? "/api/v1/payments/worldline/wero/create-session"
+          : "/api/v1/payments/wero/create-session")
         : "/api/v1/payments/card/create-session"
       const res = await fetch(checkoutEndpoint, {
         method: 'POST',
@@ -1364,7 +1368,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
       const json = await res.json()
       if (!res.ok || !json?.success || !json?.redirect_url) {
-        if (selectedMethod.code === "wero" && json?.error_code === "wero_not_supported") {
+        if (
+          selectedMethod.code === "wero" &&
+          (json?.error_code === "wero_not_supported" || json?.error_code === "wero_unavailable")
+        ) {
           shouldFallbackFromWero = true
           throw new Error("Wero is currently unavailable. Please choose another payment method.")
         }
