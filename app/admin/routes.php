@@ -863,6 +863,20 @@ Route::group([
         $payment->save();
     };
 
+    $persistWorldlineWeroCapabilityStatus = function (string $status, ?string $message = null) use ($loadJsonSetting, $defaultPaymentProviders, $saveJsonSetting): void {
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $worldline = (array)$providers->get('worldline', []);
+        $config = is_array($worldline['config'] ?? null) ? (array)$worldline['config'] : [];
+        $config['wero_capability_status'] = strtolower(trim($status)) ?: 'unknown';
+        $config['wero_capability_checked_at'] = gmdate('c');
+        if ($message !== null) {
+            $config['wero_capability_message'] = mb_substr($message, 0, 500);
+        }
+        $worldline['config'] = $config;
+        $providers->put('worldline', $worldline);
+        $saveJsonSetting('payment_providers', $providers->values()->all());
+    };
+
     $toBool = function ($value): bool {
         if (is_bool($value)) {
             return $value;
@@ -942,7 +956,10 @@ Route::group([
         $cardReady = $baseReady && $cardMethodConfigured;
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
-        $weroReady = $baseReady && $weroMethodConfigured && $weroEnabledByConfig && $weroCapabilityStatus === 'supported';
+        $weroReady = $baseReady
+            && $weroMethodConfigured
+            && $weroEnabledByConfig
+            && $weroCapabilityStatus !== 'unsupported';
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -995,6 +1012,8 @@ Route::group([
         $inlineReadiness = $resolveWorldlineInlineReadiness();
         $weroEnabled = $toBool($worldlineConfig['wero_enabled'] ?? false);
         $weroPaymentProductId = (int)($worldlineConfig['wero_payment_product_id'] ?? 0);
+        $weroCapabilityStatus = strtolower((string)($worldlineConfig['wero_capability_status'] ?? 'unknown'));
+        $weroCapabilityMessage = (string)($worldlineConfig['wero_capability_message'] ?? '');
 
         return [
             'provider' => 'worldline',
@@ -1002,7 +1021,13 @@ Route::group([
             'inline_ready' => (bool)($inlineReadiness['ready'] ?? false),
             'wero_enabled' => $weroEnabled,
             'wero_payment_product_id' => $weroPaymentProductId,
-            'ready' => $providerEnabled && (bool)($inlineReadiness['ready'] ?? false) && $weroEnabled && $weroPaymentProductId > 0,
+            'wero_capability_status' => $weroCapabilityStatus,
+            'wero_capability_message' => $weroCapabilityMessage,
+            'ready' => $providerEnabled
+                && (bool)($inlineReadiness['ready'] ?? false)
+                && $weroEnabled
+                && $weroPaymentProductId > 0
+                && $weroCapabilityStatus !== 'unsupported',
         ];
     };
 
@@ -1847,7 +1872,7 @@ Route::group([
         }
     });
 
-    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness) {
+    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
@@ -1889,7 +1914,6 @@ Route::group([
                 'locale' => (string)($payload['locale'] ?? 'de_DE'),
                 'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
                 'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? ('PMD-WERO-'.substr(sha1((string)microtime(true)), 0, 12))),
-                'restrict_to_products' => [(int)($worldlineWeroReadiness['wero_payment_product_id'] ?? 0)],
             ]);
 
             $redirectUrl = (string)($result['redirect_url'] ?? '');
@@ -1903,6 +1927,8 @@ Route::group([
                 ], 502);
             }
 
+            $persistWorldlineWeroCapabilityStatus('supported');
+
             return response()->json([
                 'success' => true,
                 'provider' => 'worldline',
@@ -1911,22 +1937,70 @@ Route::group([
                 'hosted_checkout_id' => (string)($result['hosted_checkout_id'] ?? ''),
             ]);
         } catch (\Throwable $e) {
+            $statusCode = method_exists($e, 'getStatusCode') ? (int)$e->getStatusCode() : null;
+            $providerErrorId = method_exists($e, 'getErrorId') ? (string)$e->getErrorId() : null;
+            $responseBody = method_exists($e, 'getResponseBody') ? (string)$e->getResponseBody() : '';
+            $errorMessage = (string)$e->getMessage();
+            $errorLower = strtolower($errorMessage.' '.$responseBody);
+            $errorCode = 'wero_create_session_failed';
+            $humanMessage = 'Worldline Wero checkout is currently unavailable. Please try again later.';
+            $httpCode = 502;
+
+            if (str_contains($errorLower, 'config') || str_contains($errorLower, 'credential') || str_contains($errorLower, 'merchant') || str_contains($errorLower, 'not found')) {
+                $errorCode = 'wero_provider_configuration_invalid';
+                $humanMessage = 'Worldline Wero is not configured correctly for this restaurant.';
+            } elseif (str_contains($errorLower, 'validation') || str_contains($errorLower, 'invalid') || str_contains($errorLower, 'unprocessable')) {
+                $errorCode = 'wero_provider_validation_failed';
+                $humanMessage = 'Worldline rejected the Wero checkout request due to provider-side validation.';
+                $persistWorldlineWeroCapabilityStatus('unsupported', $errorMessage);
+            } elseif ($statusCode === 401 || $statusCode === 403) {
+                $errorCode = 'wero_provider_not_authorized';
+                $humanMessage = 'Worldline credentials are not authorized for Wero on this merchant account.';
+                $httpCode = 503;
+            } elseif ($statusCode >= 500) {
+                $errorCode = 'wero_provider_temporarily_unavailable';
+                $humanMessage = 'Worldline is temporarily unavailable. Please try again shortly.';
+                $httpCode = 503;
+            } elseif ($statusCode > 0) {
+                $httpCode = max(400, min(599, $statusCode));
+            }
+
+            $diagnostics = [];
+            try {
+                if (isset($svc)) {
+                    $diagnostics = $svc->getConfigForDiagnostics();
+                }
+            } catch (\Throwable $diagError) {
+                $diagnostics = [];
+            }
+
             \Log::error('Worldline Wero create-session failed', [
                 'provider' => 'worldline',
                 'method' => 'wero',
+                'host' => request()->getHost(),
+                'tenant_database' => $diagnostics['tenant_database'] ?? null,
+                'config_id' => $diagnostics['config_id'] ?? null,
+                'environment' => $diagnostics['environment'] ?? null,
+                'payment_product_filters_included' => false,
                 'message' => $e->getMessage(),
                 'class' => get_class($e),
                 'code' => method_exists($e, 'getCode') ? $e->getCode() : null,
-                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
-                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+                'statusCode' => $statusCode,
+                'provider_error_id' => $providerErrorId,
+                'responseBody' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
+                'resolved_error_code' => $errorCode,
             ]);
             return response()->json([
                 'success' => false,
                 'provider' => 'worldline',
                 'method' => 'wero',
-                'error_code' => 'wero_create_session_failed',
-                'error' => 'Failed to create Worldline Wero checkout session.',
-            ], 500);
+                'error_code' => $errorCode,
+                'error' => $humanMessage,
+                'details' => [
+                    'provider_error_id' => $providerErrorId ?: null,
+                    'provider_status' => $statusCode,
+                ],
+            ], $httpCode);
         }
     });
 
