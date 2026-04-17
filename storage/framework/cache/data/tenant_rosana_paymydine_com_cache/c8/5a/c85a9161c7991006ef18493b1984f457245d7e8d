@@ -1,0 +1,57 @@
+1776401441a:1:{s:21:"local/menus.blade.php";a:12:{s:8:"fileName";s:21:"local/menus.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:1112:"---
+title: 'main::lang.local.menus.title'
+permalink: '/:location?local/menus/:category?'
+description: ''
+layout: local
+'[localReview]':
+    pageLimit: 2
+    sort: 'created_at asc'
+'[localMenu]':
+    isGrouped: 1
+    collapseCategoriesAfter: 51.0
+    menusPerPage: 50.0
+    showMenuImages: 1
+    menuImageWidth: 450.0
+    menuImageHeight: 450.0
+    menuCategoryWidth: 1240.0
+    menuCategoryHeight: 256.0
+    defaultLocationParam: local
+    localNotFoundPage: home
+    hideMenuSearch: 0
+    forceRedirect: 1
+'[localList]':
+---
+<div class="nav-breadcrumb d-block mt-4">
+    
+    <a href="{{ page_url('local/menus') }}">{{ $locationCurrent->location_name }}</a>&nbsp;
+    <span>
+        <i class="poco-icon-angle-right"></i>&nbsp;
+    </span>
+    <a href="{{ page_url('local/gallery') }}">@lang('admin::lang.locations.text_tab_gallery')</a>&nbsp;
+</div>
+<div id="thumb-wrap">
+    @partial('localReview::review_menu')
+</div>
+<div class="border-bottom px-3 d-flex d-lg-none">
+    @partial('categories::mobile')
+</div>
+<div class="box-divider d-block"></div>
+    @component('localMenu')
+    @partial('locations_modal')";s:6:"markup";s:587:"
+<div class="nav-breadcrumb d-block mt-4">
+    
+    <a href="{{ page_url('local/menus') }}">{{ $locationCurrent->location_name }}</a>&nbsp;
+    <span>
+        <i class="poco-icon-angle-right"></i>&nbsp;
+    </span>
+    <a href="{{ page_url('local/gallery') }}">@lang('admin::lang.locations.text_tab_gallery')</a>&nbsp;
+</div>
+<div id="thumb-wrap">
+    @partial('localReview::review_menu')
+</div>
+<div class="border-bottom px-3 d-flex d-lg-none">
+    @partial('categories::mobile')
+</div>
+<div class="box-divider d-block"></div>
+    @component('localMenu')
+    @partial('locations_modal')";s:4:"code";N;s:5:"title";s:28:"main::lang.local.menus.title";s:9:"permalink";s:33:"/:location?local/menus/:category?";s:11:"description";s:0:"";s:6:"layout";s:5:"local";s:13:"[localReview]";a:2:{s:9:"pageLimit";i:2;s:4:"sort";s:14:"created_at asc";}s:11:"[localMenu]";a:12:{s:9:"isGrouped";i:1;s:23:"collapseCategoriesAfter";d:51;s:12:"menusPerPage";d:50;s:14:"showMenuImages";i:1;s:14:"menuImageWidth";d:450;s:15:"menuImageHeight";d:450;s:17:"menuCategoryWidth";d:1240;s:18:"menuCategoryHeight";d:256;s:20:"defaultLocationParam";s:5:"local";s:17:"localNotFoundPage";s:4:"home";s:14:"hideMenuSearch";i:0;s:13:"forceRedirect";i:1;}s:11:"[localList]";N;}}

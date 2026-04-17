@@ -972,16 +972,32 @@ Route::group([
         }
     };
 
-    $resolveWorldlineWeroReadiness = function () use ($loadJsonSetting, $defaultPaymentProviders, $resolveWorldlineInlineReadiness, $toBool): array {
+    $resolveWorldlineWeroReadiness = function () use ($loadJsonSetting, $defaultPaymentProviders, $resolveWorldlineInlineReadiness, $toBool, $loadProviderConfigFromPayments, $loadProviderRecordsFromPayments): array {
         $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
-        $worldlineProvider = (array)$providers->get('worldline', []);
-        $providerEnabled = (bool)($worldlineProvider['enabled'] ?? false);
-        $worldlineConfig = is_array($worldlineProvider['config'] ?? null) ? (array)$worldlineProvider['config'] : [];
+        $providerRecords = $loadProviderRecordsFromPayments();
+
+        $storedWorldlineProvider = (array)$providers->get('worldline', []);
+        $liveWorldlineRecord = (array)$providerRecords->get('worldline', []);
+        $liveWorldlineConfig = $loadProviderConfigFromPayments('worldline');
+
+        $providerEnabled = array_key_exists('enabled', $liveWorldlineRecord)
+            ? (bool)$liveWorldlineRecord['enabled']
+            : (bool)($storedWorldlineProvider['enabled'] ?? false);
+
+        $worldlineConfig = [];
+        if (is_array($storedWorldlineProvider['config'] ?? null)) {
+            $worldlineConfig = (array)$storedWorldlineProvider['config'];
+        }
+        if (is_array($liveWorldlineConfig) && !empty($liveWorldlineConfig)) {
+            $worldlineConfig = array_replace($worldlineConfig, $liveWorldlineConfig);
+        }
+
+        $inlineReadiness = $resolveWorldlineInlineReadiness();
         $weroEnabled = $toBool($worldlineConfig['wero_enabled'] ?? false);
         $weroPaymentProductId = (int)($worldlineConfig['wero_payment_product_id'] ?? 0);
-        $inlineReadiness = $resolveWorldlineInlineReadiness();
 
         return [
+            'provider' => 'worldline',
             'provider_enabled' => $providerEnabled,
             'inline_ready' => (bool)($inlineReadiness['ready'] ?? false),
             'wero_enabled' => $weroEnabled,
@@ -3206,10 +3222,11 @@ return response()->json([
                 'normalized_payment_method' => $normalizedPaymentMethod,
             ]);
 
-            $isStripeWalletMethod = in_array($frontendPaymentMethodRaw, ['stripe', 'apple_pay', 'google_pay', 'wero'], true);
+            $isStripeWalletMethod = in_array($frontendPaymentMethodRaw, ['stripe', 'apple_pay', 'google_pay'], true);
+            $isStripeWeroMethod = $frontendPaymentMethodRaw === 'wero' && $frontendPaymentProvider === 'stripe';
             $isStripeCardMethod = $frontendPaymentMethodRaw === 'card' && $frontendPaymentProvider === 'stripe';
-            $mustVerifyStripe = $isStripeWalletMethod || $isStripeCardMethod;
-            if ($isStripeWalletMethod && $frontendPaymentProvider !== 'stripe') {
+            $mustVerifyStripe = $isStripeWalletMethod || $isStripeWeroMethod || $isStripeCardMethod;
+            if (($isStripeWalletMethod || $isStripeWeroMethod) && $frontendPaymentProvider !== 'stripe') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Stripe payment verification failed: invalid provider for selected method',

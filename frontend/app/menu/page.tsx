@@ -1757,9 +1757,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <img
                   src={iconForPayment(selectedPaymentMethod || "card")}
                   alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
-                  width={32}
-                  height={20}
-                  className="object-contain"
+                  width={method.code === "wero" ? 56 : 42}
+                  height={method.code === "wero" ? 32 : 24}
+                  className="object-contain scale-125"
                 />
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
               </div>
@@ -1915,15 +1915,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <img
                   src={iconForPayment("wero")}
                   alt="Wero"
-                  width={36}
-                  height={22}
-                  className="object-contain"
+                  width={22}
+                  height={14}
+                  className="object-contain w-14 h-5"
                 />
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Wero"}</span>
               </div>
             </div>
             <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-              You will be redirected to a secure Wero checkout powered by Stripe.
+              {selectedProviderCode === "worldline"
+                ? "You will be redirected to a secure Wero checkout powered by Worldline."
+                : "You will be redirected to a secure Wero checkout powered by Stripe."}
             </div>
             <Button
               type="button"
@@ -2400,25 +2402,9 @@ case "cod":
                                     : iconForPayment(method.code)
                               }
                               alt={method.name}
-                              width={
-                                method.code === "cod"
-                                  ? 30
-                                  : method.code === "paypal"
-                                    ? 30
-                                    : method.code === "apple_pay" || method.code === "google_pay"
-                                      ? 50
-                                      : 42
-                              }
-                              height={
-                                method.code === "cod"
-                                  ? 16
-                                  : method.code === "paypal"
-                                    ? 16
-                                    : method.code === "apple_pay" || method.code === "google_pay"
-                                      ? 26
-                                      : 24
-                              }
-                              className="object-contain"
+                              width={method.code === "wero" ? 50 : method.code === "cod" ? 30 : method.code === "paypal" ? 30 : method.code === "apple_pay" || method.code === "google_pay" ? 50 : 42}
+                              height={method.code === "wero" ? 28 : method.code === "apple_pay" || method.code === "google_pay" ? 28 : 24}
+                              className={method.code === "wero" ? "object-contain scale-110" : "object-contain"}
                             />
                           )}
                         </Button>

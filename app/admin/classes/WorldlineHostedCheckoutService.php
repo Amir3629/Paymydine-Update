@@ -273,10 +273,9 @@ class WorldlineHostedCheckoutService
         $locale = (string)($payload['locale'] ?? 'en_GB');
         $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
         $merchantCustomerId = (string)($payload['merchant_customer_id'] ?? ('PMD-' . substr((string) Str::uuid(), 0, 12)));
-        $restrictToProducts = array_values(array_filter(array_map(
-            fn ($v) => (int)$v,
-            is_array($payload['restrict_to_products'] ?? null) ? (array)$payload['restrict_to_products'] : []
-        ), fn (int $v) => $v > 0));
+        $restrictToProducts = [];
+        // NOTE: Worldline Wero currently fails validation when paymentProductFilters/restrictTo
+        // is sent for this tenant/config. Keep it disabled until merchant-side payload is confirmed.
 
         if ($amountMinor <= 0) {
             throw new \RuntimeException('amount_minor must be > 0');
@@ -373,7 +372,7 @@ class WorldlineHostedCheckoutService
         ]);
 
         try {
-            $response = $merchantClient->hostedcheckouts()->create($this->pmdNormalizeCreatePaymentRequest($body));
+            $response = $merchantClient->hostedcheckouts()->create($body);
         } catch (\Throwable $e) {
             try {
                 \Log::error('PMD WORLDLINE create-payment exception', [
@@ -1073,6 +1072,16 @@ $normalizedRequest = $this->pmdNormalizeCreatePaymentRequest($request);
         }
 
         $request = new \Worldline\Connect\Sdk\V1\Domain\CreatePaymentRequest();
+        return $request->fromObject($body);
+    }
+
+    private function pmdNormalizeCreateHostedCheckoutRequest($body): \Worldline\Connect\Sdk\V1\Domain\CreateHostedCheckoutRequest
+    {
+        if (is_array($body)) {
+            $body = (object) $body;
+        }
+
+        $request = new \Worldline\Connect\Sdk\V1\Domain\CreateHostedCheckoutRequest();
         return $request->fromObject($body);
     }
 
