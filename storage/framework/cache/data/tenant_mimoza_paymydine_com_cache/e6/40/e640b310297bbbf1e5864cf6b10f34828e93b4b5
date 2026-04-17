@@ -1,4 +1,4 @@
-1776403458a:1:{s:27:"payregister/sumup.blade.php";a:5:{s:8:"fileName";s:27:"payregister/sumup.blade.php";s:5:"mTime";i:1776403430;s:7:"content";s:182:"<div class="alert alert-info">
+1776421042a:1:{s:27:"payregister/sumup.blade.php";a:5:{s:8:"fileName";s:27:"payregister/sumup.blade.php";s:5:"mTime";i:1776421008;s:7:"content";s:182:"<div class="alert alert-info">
     <strong>SumUp</strong><br>
     This gateway uses SumUp checkout/payment API.<br>
     Fill merchant code, API keys, and return/webhook URLs.
