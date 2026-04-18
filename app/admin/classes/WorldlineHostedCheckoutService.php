@@ -18,6 +18,11 @@ use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 
 class WorldlineHostedCheckoutService
 {
+    protected function paymentLogger(): PaymentProviderLogger
+    {
+        return app(PaymentProviderLogger::class);
+    }
+
     protected function sanitizeForLogs(array $payload): array
     {
         $sanitized = [];
@@ -332,7 +337,7 @@ class WorldlineHostedCheckoutService
                 'paymentProductFilters' => null,
             ],
         ];
-        \Log::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
+        $this->paymentLogger()->info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
             'host' => $cfg['host'] ?? null,
             'tenant_database' => $cfg['tenant_database'] ?? null,
             'config_id' => $cfg['config_id'] ?? null,
@@ -358,7 +363,7 @@ class WorldlineHostedCheckoutService
                 || str_contains($errorLower, 'invalid')
                 || str_contains($errorLower, 'unprocessable');
             try {
-                \Log::error('PMD WORLDLINE create-payment exception', [
+                $this->paymentLogger()->error('PMD WORLDLINE create-payment exception', [
                     'class' => get_class($e),
                     'message' => $e->getMessage(),
                     'code' => $e->getCode(),
@@ -367,11 +372,11 @@ class WorldlineHostedCheckoutService
                     'errors' => method_exists($e, 'getErrors') ? $e->getErrors() : null,
                 ]);
             } catch (\Throwable $logErr) {
-                \Log::error('PMD WORLDLINE exception logging failed', [
+                $this->paymentLogger()->error('PMD WORLDLINE exception logging failed', [
                     'message' => $logErr->getMessage(),
                 ]);
             }
-            \Log::error('WORLDLINE HOSTED CHECKOUT CREATE FAILED', [
+            $this->paymentLogger()->error('WORLDLINE HOSTED CHECKOUT CREATE FAILED', [
                 'host' => $cfg['host'] ?? null,
                 'tenant_database' => $cfg['tenant_database'] ?? null,
                 'config_id' => $cfg['config_id'] ?? null,
@@ -392,7 +397,7 @@ class WorldlineHostedCheckoutService
         $rawResponse = json_decode(json_encode($response), true);
         $rawResponse = is_array($rawResponse) ? $rawResponse : [];
 
-        \Log::info('WORLDLINE HOSTED CHECKOUT RAW RESPONSE', [
+        $this->paymentLogger()->info('WORLDLINE HOSTED CHECKOUT RAW RESPONSE', [
             'host' => $cfg['host'] ?? null,
             'tenant_database' => $cfg['tenant_database'] ?? null,
             'config_id' => $cfg['config_id'] ?? null,
@@ -403,7 +408,7 @@ class WorldlineHostedCheckoutService
         ]);
 
         $redirectCandidates = $this->collectRedirectCandidates($response, $rawResponse);
-        \Log::info('WORLDLINE HOSTED CHECKOUT REDIRECT FIELD CANDIDATES', [
+        $this->paymentLogger()->info('WORLDLINE HOSTED CHECKOUT REDIRECT FIELD CANDIDATES', [
             'host' => $cfg['host'] ?? null,
             'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
             'candidates' => $this->sanitizeForLogs($redirectCandidates),
@@ -419,7 +424,7 @@ class WorldlineHostedCheckoutService
                 break;
             }
         }
-        \Log::info('WORLDLINE HOSTED CHECKOUT FINAL REDIRECT DECISION', [
+        $this->paymentLogger()->info('WORLDLINE HOSTED CHECKOUT FINAL REDIRECT DECISION', [
             'host' => $cfg['host'] ?? null,
             'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
             'selected_source' => $redirectSource,
