@@ -2,6 +2,7 @@
 
 namespace Admin\Classes;
 
+use Admin\Classes\PaymentLogger;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -270,12 +271,13 @@ class WorldlineHostedCheckoutService
         $amountMinor = (int)($payload['amount_minor'] ?? 0);
         $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
         $returnUrl = (string)($payload['return_url'] ?? url('/order-placed'));
+        $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
         $locale = (string)($payload['locale'] ?? 'en_GB');
         $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
         $merchantCustomerId = (string)($payload['merchant_customer_id'] ?? ('PMD-' . substr((string) Str::uuid(), 0, 12)));
+        $paymentMethod = strtolower(trim((string)($payload['payment_method'] ?? 'card')));
+        $paymentProductId = (int)($payload['payment_product_id'] ?? 0);
         $paymentProductFiltersIncluded = false;
-        // NOTE: paymentProductFilters/restrictTo is intentionally disabled for hosted checkout
-        // because this tenant currently fails provider-side validation when it is included.
 
         if ($amountMinor <= 0) {
             throw new \RuntimeException('amount_minor must be > 0');
@@ -299,18 +301,31 @@ class WorldlineHostedCheckoutService
         $specific = new HostedCheckoutSpecificInput();
         $specific->returnUrl = $returnUrl;
         $specific->locale = $locale;
+        $specific->showResultPage = false;
 
         $body = new CreateHostedCheckoutRequest();
         $body->order = $order;
         $body->hostedCheckoutSpecificInput = $specific;
 
+        if ($paymentMethod === 'wero' && $paymentProductId > 0) {
+            $specific->paymentProductFilters = (object)[
+                'restrictTo' => (object)[
+                    'products' => [$paymentProductId],
+                ],
+            ];
+            $paymentProductFiltersIncluded = true;
+        }
+
         $requestMeta = [
             'amount_minor' => $amountMinor,
             'currency' => $currency,
             'return_url' => $returnUrl,
+            'cancel_url' => $cancelUrl,
             'locale' => $locale,
             'country_code' => $countryCode,
             'merchant_customer_id' => $merchantCustomerId,
+            'payment_method' => $paymentMethod,
+            'payment_product_id' => $paymentProductId,
             'payment_product_filters_included' => $paymentProductFiltersIncluded,
         ];
         $sdkPayloadDebug = [
@@ -329,10 +344,15 @@ class WorldlineHostedCheckoutService
             'hostedCheckoutSpecificInput' => [
                 'returnUrl' => $returnUrl,
                 'locale' => $locale,
-                'paymentProductFilters' => null,
+                'showResultPage' => false,
+                'paymentProductFilters' => $paymentProductFiltersIncluded
+                    ? ['restrictTo' => ['products' => [$paymentProductId]]]
+                    : null,
             ],
         ];
-        \Log::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
+        PaymentLogger::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
+            'provider' => 'worldline',
+            'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'tenant_database' => $cfg['tenant_database'] ?? null,
             'config_id' => $cfg['config_id'] ?? null,
@@ -357,31 +377,15 @@ class WorldlineHostedCheckoutService
             $providerValidationFailure = str_contains($errorLower, 'validation')
                 || str_contains($errorLower, 'invalid')
                 || str_contains($errorLower, 'unprocessable');
-            try {
-                \Log::error('PMD WORLDLINE create-payment exception', [
-                    'class' => get_class($e),
-                    'message' => $e->getMessage(),
-                    'code' => $e->getCode(),
-                    'trace_top' => substr($e->getTraceAsString(), 0, 4000),
-                    'response_body' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
-                    'errors' => method_exists($e, 'getErrors') ? $e->getErrors() : null,
-                ]);
-            } catch (\Throwable $logErr) {
-                \Log::error('PMD WORLDLINE exception logging failed', [
-                    'message' => $logErr->getMessage(),
-                ]);
-            }
-            \Log::error('WORLDLINE HOSTED CHECKOUT CREATE FAILED', [
+            PaymentLogger::exception('WORLDLINE HOSTED CHECKOUT CREATE FAILED', $e, [
+                'provider' => 'worldline',
+                'payment_method' => $paymentMethod,
                 'host' => $cfg['host'] ?? null,
                 'tenant_database' => $cfg['tenant_database'] ?? null,
                 'config_id' => $cfg['config_id'] ?? null,
                 'merchant_id' => $cfg['merchant_id'] ?? null,
                 'environment' => $this->getEnvironment($cfg),
                 'request_meta' => $requestMeta,
-                'exception_class' => get_class($e),
-                'message' => $e->getMessage(),
-                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
-                'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
                 'responseBody' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
                 'provider_validation_failure' => $providerValidationFailure,
                 'origin' => $e->getFile().':'.$e->getLine(),
@@ -392,7 +396,9 @@ class WorldlineHostedCheckoutService
         $rawResponse = json_decode(json_encode($response), true);
         $rawResponse = is_array($rawResponse) ? $rawResponse : [];
 
-        \Log::info('WORLDLINE HOSTED CHECKOUT RAW RESPONSE', [
+        PaymentLogger::info('WORLDLINE HOSTED CHECKOUT RAW RESPONSE', [
+            'provider' => 'worldline',
+            'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'tenant_database' => $cfg['tenant_database'] ?? null,
             'config_id' => $cfg['config_id'] ?? null,
@@ -403,7 +409,9 @@ class WorldlineHostedCheckoutService
         ]);
 
         $redirectCandidates = $this->collectRedirectCandidates($response, $rawResponse);
-        \Log::info('WORLDLINE HOSTED CHECKOUT REDIRECT FIELD CANDIDATES', [
+        PaymentLogger::info('WORLDLINE HOSTED CHECKOUT REDIRECT FIELD CANDIDATES', [
+            'provider' => 'worldline',
+            'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
             'candidates' => $this->sanitizeForLogs($redirectCandidates),
@@ -419,7 +427,9 @@ class WorldlineHostedCheckoutService
                 break;
             }
         }
-        \Log::info('WORLDLINE HOSTED CHECKOUT FINAL REDIRECT DECISION', [
+        PaymentLogger::info('WORLDLINE HOSTED CHECKOUT FINAL REDIRECT DECISION', [
+            'provider' => 'worldline',
+            'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
             'selected_source' => $redirectSource,
