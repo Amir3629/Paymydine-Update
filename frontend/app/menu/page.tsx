@@ -1332,11 +1332,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     let shouldFallbackFromWero = false
     try {
       const providerCode = selectedMethod.code === "wero"
-        ? (selectedProviderCode === "worldline" ? "worldline" : "wero")
+        ? (selectedProviderCode === "worldline" ? "worldline" : "stripe")
         : (selectedProviderCode || "unknown")
+      const providerReturnCode = providerCode === "worldline" ? "worldline" : "wero"
       const returnUrl =
         typeof window !== "undefined"
-          ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerCode)}`
+          ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerReturnCode)}`
           : "/menu"
       const cancelUrl =
         typeof window !== "undefined"
@@ -1375,12 +1376,19 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           shouldFallbackFromWero = true
           throw new Error("Wero is currently unavailable. Please choose another payment method.")
         }
+        if (selectedMethod.code === "wero") {
+          const providerLabel = selectedProviderCode === "worldline" ? "Worldline" : "Stripe"
+          throw new Error(json?.error || `${providerLabel} Wero checkout is currently unavailable. Please choose another payment method.`)
+        }
         throw new Error(json?.error || "Unable to start hosted checkout")
       }
 
       if (typeof window !== "undefined") {
-        if (providerCode === "worldline") {
-          throw new Error("Worldline card payments use inline encrypted flow from the checkout form")
+        if (providerCode === "worldline" && json?.hosted_checkout_id) {
+          localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
+            hosted_checkout_id: String(json.hosted_checkout_id),
+            created_at: Date.now(),
+          }))
         }
         if (providerCode === "sumup" && json?.checkout_id) {
           localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
@@ -1395,7 +1403,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             created_at: Date.now(),
           }))
         }
-        if (providerCode === "wero" && json?.session_id) {
+        if (providerCode === "stripe" && json?.session_id) {
           localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
             session_id: String(json.session_id),
             created_at: Date.now(),
@@ -1915,9 +1923,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <img
                   src={iconForPayment("wero")}
                   alt="Wero"
-                  width={22}
-                  height={14}
-                  className="object-contain w-14 h-5"
+                  width={40}
+                  height={22}
+                  className="object-contain w-10 h-6"
                 />
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Wero"}</span>
               </div>
@@ -2403,8 +2411,8 @@ case "cod":
                               }
                               alt={method.name}
                               width={method.code === "wero" ? 50 : method.code === "cod" ? 30 : method.code === "paypal" ? 30 : method.code === "apple_pay" || method.code === "google_pay" ? 50 : 42}
-                              height={method.code === "wero" ? 28 : method.code === "apple_pay" || method.code === "google_pay" ? 28 : 24}
-                              className={method.code === "wero" ? "object-contain scale-110" : "object-contain"}
+                              height={method.code === "wero" ? 29 : method.code === "apple_pay" || method.code === "google_pay" ? 28 : 24}
+                              className="object-contain"
                             />
                           )}
                         </Button>

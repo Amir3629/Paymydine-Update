@@ -273,9 +273,9 @@ class WorldlineHostedCheckoutService
         $locale = (string)($payload['locale'] ?? 'en_GB');
         $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
         $merchantCustomerId = (string)($payload['merchant_customer_id'] ?? ('PMD-' . substr((string) Str::uuid(), 0, 12)));
-        $restrictToProducts = [];
-        // NOTE: Worldline Wero currently fails validation when paymentProductFilters/restrictTo
-        // is sent for this tenant/config. Keep it disabled until merchant-side payload is confirmed.
+        $paymentProductFiltersIncluded = false;
+        // NOTE: paymentProductFilters/restrictTo is intentionally disabled for hosted checkout
+        // because this tenant currently fails provider-side validation when it is included.
 
         if ($amountMinor <= 0) {
             throw new \RuntimeException('amount_minor must be > 0');
@@ -299,26 +299,6 @@ class WorldlineHostedCheckoutService
         $specific = new HostedCheckoutSpecificInput();
         $specific->returnUrl = $returnUrl;
         $specific->locale = $locale;
-        if (!empty($restrictToProducts)) {
-            if (
-                class_exists(\Worldline\Connect\Sdk\V1\Domain\PaymentProductFiltersHostedCheckout::class)
-                && class_exists(\Worldline\Connect\Sdk\V1\Domain\PaymentProductFilter::class)
-            ) {
-                $paymentProductFilter = new \Worldline\Connect\Sdk\V1\Domain\PaymentProductFilter();
-                $paymentProductFilter->products = $restrictToProducts;
-
-                $paymentProductFilters = new \Worldline\Connect\Sdk\V1\Domain\PaymentProductFiltersHostedCheckout();
-                $paymentProductFilters->restrictTo = $paymentProductFilter;
-
-                $specific->paymentProductFilters = $paymentProductFilters;
-            } else {
-                $specific->paymentProductFilters = (object)[
-                    'restrictTo' => (object)[
-                        'products' => $restrictToProducts,
-                    ],
-                ];
-            }
-        }
 
         $body = new CreateHostedCheckoutRequest();
         $body->order = $order;
@@ -331,7 +311,7 @@ class WorldlineHostedCheckoutService
             'locale' => $locale,
             'country_code' => $countryCode,
             'merchant_customer_id' => $merchantCustomerId,
-            'restrict_to_products' => $restrictToProducts,
+            'payment_product_filters_included' => $paymentProductFiltersIncluded,
         ];
         $sdkPayloadDebug = [
             'order' => [
@@ -349,9 +329,7 @@ class WorldlineHostedCheckoutService
             'hostedCheckoutSpecificInput' => [
                 'returnUrl' => $returnUrl,
                 'locale' => $locale,
-                'paymentProductFilters' => !empty($restrictToProducts)
-                    ? ['restrictTo' => ['products' => $restrictToProducts]]
-                    : null,
+                'paymentProductFilters' => null,
             ],
         ];
         \Log::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
@@ -374,13 +352,18 @@ class WorldlineHostedCheckoutService
         try {
             $response = $merchantClient->hostedcheckouts()->create($body);
         } catch (\Throwable $e) {
+            $responseBody = method_exists($e, 'getResponseBody') ? (string)$e->getResponseBody() : '';
+            $errorLower = strtolower((string)$e->getMessage().' '.$responseBody);
+            $providerValidationFailure = str_contains($errorLower, 'validation')
+                || str_contains($errorLower, 'invalid')
+                || str_contains($errorLower, 'unprocessable');
             try {
                 \Log::error('PMD WORLDLINE create-payment exception', [
                     'class' => get_class($e),
                     'message' => $e->getMessage(),
                     'code' => $e->getCode(),
                     'trace_top' => substr($e->getTraceAsString(), 0, 4000),
-                    'response_body' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+                    'response_body' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
                     'errors' => method_exists($e, 'getErrors') ? $e->getErrors() : null,
                 ]);
             } catch (\Throwable $logErr) {
@@ -399,7 +382,8 @@ class WorldlineHostedCheckoutService
                 'message' => $e->getMessage(),
                 'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
                 'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
-                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+                'responseBody' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
+                'provider_validation_failure' => $providerValidationFailure,
                 'origin' => $e->getFile().':'.$e->getLine(),
             ]);
             throw $e;
