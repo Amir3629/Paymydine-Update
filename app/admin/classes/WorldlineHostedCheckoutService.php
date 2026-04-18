@@ -307,15 +307,6 @@ class WorldlineHostedCheckoutService
         $body->order = $order;
         $body->hostedCheckoutSpecificInput = $specific;
 
-        if ($paymentMethod === 'wero' && $paymentProductId > 0) {
-            $specific->paymentProductFilters = (object)[
-                'restrictTo' => (object)[
-                    'products' => [$paymentProductId],
-                ],
-            ];
-            $paymentProductFiltersIncluded = true;
-        }
-
         $requestMeta = [
             'amount_minor' => $amountMinor,
             'currency' => $currency,
@@ -345,9 +336,7 @@ class WorldlineHostedCheckoutService
                 'returnUrl' => $returnUrl,
                 'locale' => $locale,
                 'showResultPage' => false,
-                'paymentProductFilters' => $paymentProductFiltersIncluded
-                    ? ['restrictTo' => ['products' => [$paymentProductId]]]
-                    : null,
+                'paymentProductFilters' => null,
             ],
         ];
         PaymentLogger::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [

@@ -995,6 +995,35 @@ Route::group([
         ];
     };
 
+    $resolveWorldlineWeroProductId = function (array $worldlineWeroReadiness, array $diagnostics = []): array {
+        $configuredProductId = (int)($worldlineWeroReadiness['wero_payment_product_id'] ?? 0);
+        $environment = strtolower((string)($diagnostics['environment'] ?? ''));
+        $apiEndpoint = strtolower((string)($diagnostics['api_endpoint'] ?? ''));
+        $isGlobalCollect = str_contains($apiEndpoint, 'connect.worldline-solutions.com');
+        $expectedGlobalCollectProductId = 809;
+
+        $effectiveProductId = $configuredProductId;
+        $reason = 'configured';
+
+        if ($effectiveProductId <= 0 && $isGlobalCollect) {
+            $effectiveProductId = $expectedGlobalCollectProductId;
+            $reason = 'defaulted_for_globalcollect';
+        }
+
+        if ($isGlobalCollect && $effectiveProductId !== $expectedGlobalCollectProductId) {
+            $effectiveProductId = $expectedGlobalCollectProductId;
+            $reason = 'normalized_to_globalcollect_ideal_wero_809';
+        }
+
+        return [
+            'configured_product_id' => $configuredProductId,
+            'effective_product_id' => $effectiveProductId,
+            'reason' => $reason,
+            'is_globalcollect' => $isGlobalCollect,
+            'environment' => $environment,
+        ];
+    };
+
     $isProviderReadyForMethod = function (string $providerCode, string $methodCode, array $stripeReadiness, array $worldlineReadiness, array $worldlineWeroReadiness): array {
         if ($providerCode === 'stripe') {
             $readinessByMethod = [
@@ -1983,7 +2012,7 @@ Route::group([
         }
     });
 
-    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus) {
+    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus, $resolveWorldlineWeroProductId) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
@@ -2018,6 +2047,22 @@ Route::group([
 
         try {
             $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $diagnostics = $svc->getConfigForDiagnostics();
+            $productIdResolution = $resolveWorldlineWeroProductId($worldlineWeroReadiness, $diagnostics);
+            if (($productIdResolution['reason'] ?? '') !== 'configured') {
+                \Admin\Classes\PaymentLogger::warning('Worldline Wero payment product id adjusted', [
+                    'provider' => 'worldline',
+                    'payment_method' => 'wero',
+                    'request_meta' => [
+                        'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
+                        'effective_product_id' => $productIdResolution['effective_product_id'] ?? null,
+                        'reason' => $productIdResolution['reason'] ?? null,
+                        'is_globalcollect' => $productIdResolution['is_globalcollect'] ?? null,
+                        'environment' => $productIdResolution['environment'] ?? null,
+                    ],
+                ]);
+            }
+
             $result = $svc->createHostedCheckout([
                 'amount_minor' => (int)round(((float)$payload['amount']) * 100),
                 'currency' => strtoupper((string)$payload['currency']),
@@ -2027,7 +2072,7 @@ Route::group([
                 'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
                 'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? ('PMD-WERO-'.substr(sha1((string)microtime(true)), 0, 12))),
                 'payment_method' => 'wero',
-                'payment_product_id' => (int)($worldlineWeroReadiness['wero_payment_product_id'] ?? 0),
+                'payment_product_id' => (int)($productIdResolution['effective_product_id'] ?? 0),
             ]);
 
             $redirectUrl = (string)($result['redirect_url'] ?? '');
@@ -2080,12 +2125,12 @@ Route::group([
             }
 
             $diagnostics = [];
-            try {
-                if (isset($svc)) {
+            if (isset($svc)) {
+                try {
                     $diagnostics = $svc->getConfigForDiagnostics();
+                } catch (\Throwable $diagError) {
+                    $diagnostics = [];
                 }
-            } catch (\Throwable $diagError) {
-                $diagnostics = [];
             }
 
             \Admin\Classes\PaymentLogger::exception('Worldline Wero create-session failed', $e, [

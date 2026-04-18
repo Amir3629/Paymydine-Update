@@ -1331,8 +1331,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
+      const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
       const providerCode = selectedMethod.code === "wero"
-        ? (selectedProviderCode === "worldline" ? "worldline" : "stripe")
+        ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : "stripe")
         : (selectedProviderCode || "unknown")
       const providerReturnCode = providerCode === "worldline" ? "worldline" : "wero"
       const returnUrl =
@@ -1345,7 +1346,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           : "/menu"
 
       const checkoutEndpoint = selectedMethod.code === "wero"
-        ? (selectedProviderCode === "worldline"
+        ? (selectedProviderCodeForCheckout === "worldline"
           ? "/api/v1/payments/worldline/wero/create-session"
           : "/api/v1/payments/wero/create-session")
         : "/api/v1/payments/card/create-session"
@@ -1367,8 +1368,20 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         }),
       })
 
-      const json = await res.json()
+      const rawBody = await res.text()
+      let json: any = null
+      try {
+        json = rawBody ? JSON.parse(rawBody) : null
+      } catch {
+        json = null
+      }
+
       if (!res.ok || !json?.success || !json?.redirect_url) {
+        const providerLabel = providerCode === "worldline" ? "Worldline" : "Stripe"
+        const normalizedErrorMessage = json?.error
+          || (rawBody && rawBody.length < 1000 ? rawBody : "")
+          || `${providerLabel} checkout failed with HTTP ${res.status}`
+
         if (
           selectedMethod.code === "wero" &&
           (json?.error_code === "wero_not_supported" || json?.error_code === "wero_unavailable")
@@ -1377,10 +1390,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           throw new Error("Wero is currently unavailable. Please choose another payment method.")
         }
         if (selectedMethod.code === "wero") {
-          const providerLabel = selectedProviderCode === "worldline" ? "Worldline" : "Stripe"
-          throw new Error(json?.error || `${providerLabel} Wero checkout is currently unavailable. Please choose another payment method.`)
+          throw new Error(
+            `${providerLabel} Wero error${json?.error_code ? ` (${json.error_code})` : ""}: ${normalizedErrorMessage}`
+          )
         }
-        throw new Error(json?.error || "Unable to start hosted checkout")
+        throw new Error(normalizedErrorMessage || "Unable to start hosted checkout")
       }
 
       if (typeof window !== "undefined") {

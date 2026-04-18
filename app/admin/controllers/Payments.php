@@ -508,7 +508,7 @@ class Payments extends \Admin\Classes\AdminController
             'card' => ['name' => 'Card', 'priority' => 1, 'provider_code' => 'stripe'],
             'apple_pay' => ['name' => 'Apple Pay', 'priority' => 2, 'provider_code' => 'stripe'],
             'google_pay' => ['name' => 'Google Pay', 'priority' => 3, 'provider_code' => 'stripe'],
-            'wero' => ['name' => 'Wero', 'priority' => 4, 'provider_code' => 'stripe'],
+            'wero' => ['name' => 'Wero', 'priority' => 4, 'provider_code' => 'worldline'],
             'paypal' => ['name' => 'PayPal', 'priority' => 5, 'provider_code' => 'paypal'],
             'cod' => ['name' => 'Cash', 'priority' => 6, 'provider_code' => null],
         ];
@@ -606,9 +606,9 @@ class Payments extends \Admin\Classes\AdminController
     protected function getPaymentProviderSettings(): array
     {
         $defaults = [
-            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'wero']],
+            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
-            ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card']],
+            ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card', 'wero']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],
             ['code' => 'square', 'name' => 'Square', 'supported_methods' => ['card']],
         ];
