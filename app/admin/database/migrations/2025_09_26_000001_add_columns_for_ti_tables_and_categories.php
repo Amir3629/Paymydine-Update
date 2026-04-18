@@ -18,19 +18,18 @@ return new class extends Migration {
         // Unique index, but only after de-duplicating
         if (Schema::hasColumn('tables','table_no')) {
             // de-dupe safely (ignore if none)
-            DB::statement(<<<'SQL'
-UPDATE ti_tables t
-JOIN (
-    SELECT t1.table_id
-    FROM ti_tables t1
-    JOIN ti_tables t2
-      ON t1.table_no = t2.table_no
-     AND t1.table_no IS NOT NULL
-     AND t1.table_id > t2.table_id
-) dup ON dup.table_id = t.table_id
-SET t.table_no = NULL
-SQL
-);
+            DB::statement("
+                WITH d AS (
+                  SELECT table_no, table_id,
+                         ROW_NUMBER() OVER (PARTITION BY table_no ORDER BY table_id) rn
+                  FROM {$p}tables
+                  WHERE table_no IS NOT NULL
+                )
+                UPDATE {$p}tables t
+                JOIN d ON d.table_id = t.table_id
+                SET t.table_no = NULL
+                WHERE d.rn > 1
+            ");
             // add unique index if missing
             $exists = DB::select("SHOW INDEX FROM {$p}tables WHERE Key_name='idx_tables_table_no'");
             if (empty($exists)) {

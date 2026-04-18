@@ -13,10 +13,6 @@ class CreateTableNotesTable extends Migration
      */
     public function up()
     {
-        if (Schema::hasTable('table_notes')) {
-            return;
-        }
-
         Schema::create('table_notes', function (Blueprint $table) {
             $table->id('note_id');
             $table->unsignedBigInteger('table_id');

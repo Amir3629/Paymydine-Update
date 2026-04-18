@@ -11,7 +11,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/currency"
-import { getMenuImageUrl } from "@/lib/api-client"
 import type { TranslationKey } from "@/lib/translations"
 
 export function CartSheet() {
@@ -32,6 +31,7 @@ export function CartSheet() {
       return
     }
     toggleCart()
+    router.push('/checkout')
   }
 
   return (
@@ -66,7 +66,7 @@ export function CartSheet() {
                     >
                       <div className="relative w-14 h-14 flex-shrink-0">
                         <OptimizedImage
-                          src={getMenuImageUrl(item.image) || "/placeholder.svg"}
+                          src={item.image || "/placeholder.svg"}
                           alt={itemName}
                           fill
                           className="object-contain rounded-xl"

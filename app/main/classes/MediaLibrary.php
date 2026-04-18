@@ -19,7 +19,7 @@ class MediaLibrary
 {
     use Singleton;
 
-    protected static $cacheKey = 'main.media.contents.v2';
+    protected static $cacheKey = 'main.media.contents';
 
     protected $storageDisk;
 
@@ -52,12 +52,8 @@ class MediaLibrary
         $this->config = $config;
     }
 
-    public function listFolderContents($fullPath, $methodName, $recursive = false, $bypassCache = false)
+    public function listFolderContents($fullPath, $methodName, $recursive = false)
     {
-        if ($bypassCache) {
-            return $this->scanFolderContents($fullPath, $methodName, $recursive);
-        }
-
         $cached = Cache::get(self::$cacheKey, false);
         $cached = $cached ? @unserialize(@base64_decode($cached)) : [];
 
@@ -128,8 +124,7 @@ class MediaLibrary
 
         $fullPath = $this->getMediaPath($path);
 
-        $bypassCache = is_array($options) && !empty($options['bypassCache']);
-        $files = $this->listFolderContents($fullPath, 'files', false, $bypassCache);
+        $files = $this->listFolderContents($fullPath, 'files');
 
         $this->sortFiles($files, $sortBy);
 

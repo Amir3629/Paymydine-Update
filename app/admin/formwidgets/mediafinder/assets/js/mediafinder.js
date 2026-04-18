@@ -88,7 +88,7 @@
 
     MediaFinder.prototype.onClickFindButton = function (event) {
         var self = this,
-            $button = $(event.target).closest('.find-button') || $(event.target),
+            $button = $(event.target),
             $findValue = $('[data-find-value]', $button.closest('.media-finder'))
 
         if ($.ti.mediaManager === undefined) {
@@ -114,26 +114,18 @@
                 }
 
                 items = self.extractItemData(items)
-                if (!items.length) {
-                    this.hide()
-                    return
-                }
 
-                // Preview first
-                self.updateFinder($button, items)
-
-                // Attachment fields: save image now (platform design – image is stored when you choose it)
                 if (self.options.useAttachment) {
                     $.ti.loadingIndicator.show()
-                    $.request(self.options.alias + '::onAddAttachment', {
-                        data: { items: items }
+                    $.request(self.options.alias+'::onAddAttachment', {
+                        data: {items: items}
                     }).done(function (response) {
-                        if (response && response.length) {
-                            self.updateFinder($button, response)
-                        }
+                        self.updateFinder($button, response)
                     }).always(function () {
                         $.ti.loadingIndicator.hide()
                     })
+                } else {
+                    self.updateFinder($button, items)
                 }
 
                 this.hide()
@@ -151,28 +143,12 @@
 
     MediaFinder.prototype.extractItemData = function (items) {
         var itemsToAttach = []
-        var $items = $(items)
-        // Selectonic returns .media-item; the .media-thumb inside has data-media-item* attributes
-        var $els = $items.find('[data-media-item-path], [data-media-item-url], [data-media-item]')
-        if (!$els.length) $els = $items.filter('[data-media-item-path], [data-media-item-url], [data-media-item]')
-        if (!$els.length) $els = $items
-        $els.each(function () {
-            var el = $(this)
-            var data = el.data('mediaItemData')
-            if (!data) {
-                var path = el.attr('data-media-item-path')
-                var url = el.attr('data-media-item-url')
-                if (!path && !url) return
-                data = {
-                    path: path || el.attr('data-media-item-name') || '',
-                    publicUrl: url || '',
-                    fileType: (el.attr('data-media-item-file-type') || 'image').toLowerCase(),
-                    name: el.attr('data-media-item-name') || ''
-                }
-            }
-            if (data && (data.publicUrl || data.path)) itemsToAttach.push(data)
+
+        $(items).find('[data-media-item-path]').each(function () {
+            itemsToAttach.push($(this).data('mediaItemData'))
         })
-        return itemsToAttach
+
+        return itemsToAttach;
     }
 
     MediaFinder.prototype.removeMediaItem = function ($element) {
@@ -182,18 +158,17 @@
     }
 
     MediaFinder.prototype.updateFinder = function ($element, items) {
-        if (!items || !items.length) return
         var item,
             $listElement = this.$container.closest('.image-list'),
             $finderElement = $element.closest('.media-finder'),
             isPopulated = $('[data-find-value]', $finderElement).val(),
-            templateEl = this.$template || (this.$el.find && this.$el.find('[data-image-template]')[0]),
-            templateHtml = templateEl ? templateEl.innerHTML : null
-        if (!templateHtml) return
-        var $template = $(templateHtml)
-        item = items[0]
-        this.populateValue(item, $template)
-        $finderElement.html($template.html())
+            $template = $(this.$template.innerHTML)
+
+        if (isPopulated || !this.options.isMulti) {
+            item = items[0];
+            this.populateValue(item, $template)
+            $finderElement.html($template.html())
+        }
 
         if (!$listElement)
             return;
@@ -211,32 +186,17 @@
             $findName = $template.find('[data-find-name]'),
             $findImage = $template.find('[data-find-image]'),
             $findFile = $template.find('[data-find-file]'),
-            $findValue = $template.find('[data-find-value]'),
-            publicUrl = item.publicUrl || item.url || '',
-            path = item.path || item.name || ''
+            $findValue = $template.find('[data-find-value]')
 
-        if ($findIdentifier.length) $findIdentifier.val(item.identifier || '')
+        if ($findIdentifier.length) $findIdentifier.val(item.identifier)
         if ($findName.length) {
-            $findName.text(path)
-            // Grid mode: icon-container already shows filename on hover - no tooltip (avoids duplicate)
-            var isGridMode = this.$el.attr('data-mode') === 'grid'
-            if (!isGridMode) {
-                $findName.attr('title', path)
-            } else {
-                $findName.removeAttr('title').attr('data-no-tooltip', '1')
-            }
+            $findName.text(item.path)
+            // Set title attribute for tooltip to show full filename
+            $findName.attr('title', item.path)
         }
-        if ($findImage.length) {
-            $findImage.attr('src', publicUrl)
-            var fileType = (item.fileType || 'image').toLowerCase()
-            if (fileType === 'image' && publicUrl) {
-                $findImage.show().closest('.img-cover').find('.media-icon').hide()
-            } else {
-                $findImage.hide().closest('.img-cover').find('.media-icon').show()
-            }
-        }
-        if ($findFile.length) $findFile.removeClass('fa-file').addClass('fa-' + (item.fileType || 'file'))
-        if ($findValue.length) $findValue.val(path)
+        if ($findImage.length) $findImage.attr('src', item.publicUrl)
+        if ($findFile.length) $findFile.removeClass('fa-file').addClass('fa-'+item.fileType)
+        if ($findValue.length) $findValue.val(item.path)
     }
 
     MediaFinder.DEFAULTS = {

@@ -26,16 +26,6 @@ class RJ11PrinterDriver implements CashDrawerDriverInterface
     public function connect(): bool
     {
         try {
-            if (empty($this->printerPath)) {
-                $this->lastError = 'Printer device path is empty';
-                $this->lastError = $this->lastError ?: 'No writable printer device/path found for RJ11 cash drawer';
-            return false;
-            }
-
-            if (strpos($this->printerPath, '/') !== 0 && strpos($this->printerPath, 'dev/') !== 0) {
-                $this->lastError = 'Resolved printer path is not a valid filesystem/device path: '.$this->printerPath;
-                return false;
-            }
             // For RJ11 drawers, connection is through the printer
             // We'll open the printer connection when needed
             $this->connected = true;

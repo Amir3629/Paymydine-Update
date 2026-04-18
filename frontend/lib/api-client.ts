@@ -55,57 +55,27 @@ export interface MenuResponse {
 }
 
 export interface OrderRequest {
-  table_id: string | null;
-  table_name?: string;
-  location_id?: number;
-  is_codier?: boolean;
+  table_id: string;
   items: {
     menu_id: number;
     name: string;
     quantity: number;
     price: number;
     special_instructions?: string;
-    options?: Record<string, string>;
   }[];
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
-  payment_method: 'cash' | 'card' | 'paypal' | 'qr_pay_later';
-  payment_method_raw?: string;
-  payment_provider?: string;
-  payment_reference?: string;
+  payment_method: 'cod' | 'card' | 'paypal';
   total_amount: number;
-  coupon_code?: string | null;
-  coupon_discount?: number;
   tip_amount?: number;
   special_instructions?: string;
-  stripe_payment_intent_id?: string;
 }
 
 export interface OrderResponse {
   success: boolean;
   message: string;
   order_id?: number;
-}
-
-export interface PendingQrOrderResponse {
-  success: boolean;
-  data?: {
-    order_id: number;
-    table_id: string;
-    payment: string;
-    status_id: number;
-    order_total: number;
-    items: Array<{
-      order_menu_id?: number;
-      menu_id: number;
-      name: string;
-      quantity: number;
-      price: number;
-      subtotal: number;
-    }>;
-  } | null;
-  error?: string;
 }
 
 export interface RestaurantInfo {
@@ -133,21 +103,7 @@ export interface OrderStatusResponse {
 export interface PaymentMethod {
   code: string;
   name: string;
-  priority?: number;
-  provider_code?: string | null;
-  enabled?: boolean;
-}
-
-export interface WorldlineInlineSessionResponse {
-  success: boolean;
-  session?: {
-    clientSessionId: string;
-    customerId: string;
-    clientApiUrl: string;
-    assetUrl: string;
-    environment?: string;
-  };
-  error?: string;
+  priority: number;
 }
 
 // Fallback data for offline mode - No default food items
@@ -175,55 +131,6 @@ const multiTenantConfig = MultiTenantConfig.getInstance();
 
 // API Client Class
 import type { ThemeSettings } from '@/store/theme-store'
-
-
-// SAFE_JSON_START
-const normalizeForJson = (value: any, seen = new WeakSet()): any => {
-  if (value == null) return value
-
-  const t = typeof value
-  if (t === "string" || t === "number" || t === "boolean") return value
-  if (t === "bigint") return value.toString()
-  if (t === "function" || t === "symbol") return undefined
-
-  if (value instanceof Date) return value.toISOString()
-
-  if (typeof window !== "undefined") {
-    if (
-      value === window ||
-      value === document ||
-      value instanceof Event ||
-      value instanceof Element ||
-      value instanceof Node
-    ) {
-      return undefined
-    }
-  }
-
-  if (typeof value !== "object") return value
-  if (seen.has(value)) return undefined
-  seen.add(value)
-
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => normalizeForJson(item, seen))
-      .filter((item) => item !== undefined)
-  }
-
-  const out: Record<string, any> = {}
-  for (const key of Object.keys(value)) {
-    try {
-      const normalized = normalizeForJson((value as Record<string, any>)[key], seen)
-      if (normalized !== undefined) out[key] = normalized
-    } catch {
-      // Skip unreadable / cross-origin properties
-    }
-  }
-  return out
-}
-
-const safeJsonStringify = (value: any) => JSON.stringify(normalizeForJson(value) ?? null)
-// SAFE_JSON_END
 
 export class ApiClient {
   private baseURL: string;
@@ -309,8 +216,7 @@ export class ApiClient {
   async getMenuItems(categoryId?: number): Promise<{ success: boolean; data: MenuItem[] }> {
     try {
       const menuResponse = await this.getMenu();
-      let items = (menuResponse?.data?.items ?? menuResponse?.data ?? []);
-      if (!Array.isArray(items)) items = [];
+      let items = menuResponse.data.items || [];
       
       if (categoryId) {
         items = items.filter(item => item.category_id === categoryId);
@@ -324,7 +230,7 @@ export class ApiClient {
       console.log('Using fallback menu items due to API error:', error);
       return {
         success: true,
-        data: (fallbackMenuData?.data?.items ?? fallbackMenuData?.data ?? [])
+        data: fallbackMenuData.data.items || []
       };
     }
   }
@@ -335,31 +241,16 @@ export class ApiClient {
       const response = await fetch(endpoint);
       
       if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        console.error('[PMD /orders error body]', errorText);
-        throw new Error(`HTTP ${response.status} ${response.statusText}: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      const rawMethods = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : null);
-      if (!rawMethods) {
+      if (!data.success || !Array.isArray(data.data)) {
         return [];
       }
-
-      const normalized = rawMethods.map((method: any, index: number) => {
-        const legacyCode = String(method?.code || "").toLowerCase();
-        const code = legacyCode === "stripe" ? "card" : legacyCode;
-        const fallbackName = code === "card" ? "Card" : String(method?.name || code);
-        return {
-          code,
-          name: String(method?.name || fallbackName),
-          priority: Number(method?.priority ?? index + 1),
-          provider_code: method?.provider_code ?? null,
-          enabled: method?.enabled ?? true,
-        } as PaymentMethod;
-      });
-
-      return normalized.sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0));
+      
+      // Ensure stable order (backend already orders by priority, but be defensive)
+      return [...data.data].sort((a, b) => a.priority - b.priority);
     } catch (error) {
       console.error('Failed to fetch payment methods:', error);
       return [];
@@ -375,28 +266,11 @@ export class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: safeJsonStringify(order),
+        body: JSON.stringify(order),
       });
       
       if (!response.ok) {
-        const responseText = await response.text().catch(() => '');
-        let parsedBody: any = null;
-        try {
-          parsedBody = responseText ? JSON.parse(responseText) : null;
-        } catch {
-          parsedBody = null;
-        }
-
-        console.error('[PMD submitOrder non-200]', {
-          status: response.status,
-          body: parsedBody ?? responseText,
-        });
-
-        const apiMessage = parsedBody?.message || parsedBody?.error || `HTTP error! status: ${response.status}`;
-        const error = new Error(apiMessage) as Error & { status?: number; details?: Record<string, string[]> };
-        error.status = response.status;
-        error.details = parsedBody?.details;
-        throw error;
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
@@ -405,45 +279,6 @@ export class ApiClient {
       console.error('Order submission failed:', error);
       throw error; // Force the error instead of using mock response
     }
-  }
-
-  async createWorldlineInlineSession(amount: number, currency: string): Promise<WorldlineInlineSessionResponse> {
-    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/session');
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, currency }),
-    });
-    return response.json();
-  }
-
-  async createWorldlineInlinePayment(payload: {
-    amount: number;
-    currency: string;
-    paymentProductId: number;
-    encryptedCustomerInput: string;
-    encodedClientMetaInfo?: string;
-    cardholderName?: string;
-    email?: string;
-    phone?: string;
-  }): Promise<any> {
-    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/create-payment');
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return response.json();
-  }
-
-  async verifyWorldlineInlinePayment(paymentId: string): Promise<any> {
-    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/verify');
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payment_id: paymentId }),
-    });
-    return response.json();
   }
 
   // Removed duplicate method - using the one below instead
@@ -497,7 +332,7 @@ export class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: safeJsonStringify({ table_id: safeTableId, message: safeMessage }),
+        body: JSON.stringify({ table_id: safeTableId, message: safeMessage }),
       });
       
       if (!response.ok) {
@@ -531,7 +366,7 @@ export class ApiClient {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: safeJsonStringify(body),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -556,7 +391,7 @@ export class ApiClient {
   }): Promise<{ ok?: boolean; success?: boolean; message: string; id?: number }> {
     try {
       const endpoint = this.envConfig.getApiEndpoint('/valet-request');
-      const body = safeJsonStringify(Object.fromEntries(
+      const body = JSON.stringify(Object.fromEntries(
         Object.entries(input).filter(([, v]) => v !== undefined)
       ));
       const response = await fetch(endpoint, {
@@ -639,7 +474,7 @@ export class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: safeJsonStringify({ code, subtotal }),
+        body: JSON.stringify({ code, subtotal }),
       });
       
       if (!res.ok) {
@@ -697,7 +532,7 @@ export class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: safeJsonStringify({
+        body: JSON.stringify({
           order_id: orderId,
           status_id: statusId
         })
@@ -766,51 +601,6 @@ export class ApiClient {
     }
   }
 
-  async getPendingQrOrderByTable(tableId: string): Promise<PendingQrOrderResponse> {
-    try {
-      const endpoint = `/api/v1/orders/pending-qr?table_id=${encodeURIComponent(tableId)}`;
-      const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
-      return await response.json();
-    } catch (error) {
-      console.error('Pending QR order fetch failed:', error);
-      return { success: false, error: 'Failed to fetch pending QR order' };
-    }
-  }
-
-  async payExistingQrOrder(
-    orderId: number,
-    payload: {
-      payment_method: string;
-      payment_reference?: string | null;
-      amount?: number | null;
-      selected_items?: Array<{ order_menu_id: number; quantity: number }>;
-      payer_label?: string | null;
-    }
-  ) {
-    const endpoint = `/api/v1/orders/pay-existing`;
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: safeJsonStringify({
-        order_id: orderId,
-        payment_method: payload.payment_method,
-        payment_reference: payload.payment_reference ?? null,
-        amount: payload.amount ?? null,
-        selected_items: payload.selected_items ?? [],
-        payer_label: payload.payer_label ?? null,
-      }),
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data?.error || data?.message || 'Failed to pay existing order');
-    }
-    return data;
-  }
-
   async getThemeSettings(): Promise<{ success: boolean; data: any }> {
     try {
       // Always hit same-origin to avoid port mismatch (proxy keeps URL on 8000)
@@ -844,7 +634,7 @@ export class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: safeJsonStringify(settings)
+        body: JSON.stringify(settings)
       });
       
       if (!response.ok) {
@@ -885,7 +675,7 @@ export class ApiClient {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify(tableData),
+        body: JSON.stringify(tableData),
       });
       const data = await response.json();
       return data;
@@ -900,7 +690,7 @@ export class ApiClient {
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ table_id: tableId, ...tableData }),
+        body: JSON.stringify({ table_id: tableId, ...tableData }),
       });
       const data = await response.json();
       return data;
@@ -928,7 +718,7 @@ export class ApiClient {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: safeJsonStringify({ table_id: tableId }),
+        body: JSON.stringify({ table_id: tableId }),
       });
       const data = await response.json();
       return data;
@@ -951,34 +741,3 @@ export class ApiClient {
 
 // Export singleton instance
 export const apiClient = new ApiClient();
-
-
-
-
-// --- Added for image rendering in Menu/Cart components ---
-// Some components import getMenuImageUrl from "@/lib/api-client".
-// This helper returns a usable image URL (or empty string if missing).
-export function getMenuImageUrl(image: string | null | undefined): string {
-  if (!image) return ""
-  const s = String(image).trim()
-  if (!s) return ""
-
-  // If already absolute URL, return as-is
-  if (/^https?:\/\//i.test(s)) return s
-
-  // Normalize slashes
-  const clean = s.replace(/^\/+/, "")
-
-  // If it already looks like a known public path, keep it
-  if (
-    clean.startsWith("storage/") ||
-    clean.startsWith("uploads/") ||
-    clean.startsWith("images/") ||
-    clean.startsWith("media/")
-  ) {
-    return "/" + clean
-  }
-
-  // Default: many setups expose uploaded images under /storage/...
-  return "/storage/" + clean
-}

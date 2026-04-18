@@ -1,10 +1,4 @@
-const clean = (v: any) => {
-  if (!v) return null;
-  if (v === "undefined") return null;
-  if (v === "null") return null;
-  return v;
-};
-
+// frontend/lib/table-home-util.ts
 import { getSavedHome } from "@/lib/table-home";
 import { stickySearch } from "@/lib/sticky-query";
 
@@ -21,24 +15,11 @@ export function getHomeHrefFallback(opts?: {
   const saved = getSavedHome();
   if (saved) return saved;
 
-  const tableNo = opts?.tableInfo?.table_no;
-  const tableId = opts?.tableInfo?.table_id;
-
-  const validTableNo =
-    tableNo !== undefined && tableNo !== null && tableNo !== ""
-      ? String(tableNo)
-      : null;
-
-  const validTableId =
-    tableId !== undefined && tableId !== null && tableId !== ""
-      ? String(tableId)
-      : null;
-
   const p =
     opts?.pathParam ??
     opts?.tableInfo?.path_table ??
-    validTableNo ??
-    validTableId;
+    (opts?.tableInfo?.table_no != null ? String(opts.tableInfo.table_no) : null) ??
+    (opts?.tableInfo?.table_id != null ? String(opts.tableInfo.table_id) : null);
 
   return (p ? `/table/${p}` : "/") + stickySearch();
 }

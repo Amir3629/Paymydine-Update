@@ -122,13 +122,9 @@ body .form-group .media-finder .grid > a:not(.find-button):not(.blank-cover):not
    ======================================== */
 
 .media-finder .grid .blank-cover {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  overflow: hidden !important;
-  padding: 0 !important;
+  position: relative;
+  overflow: hidden;
+  padding-top: 100%;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -141,7 +137,8 @@ body .form-group .media-finder .grid > a:not(.find-button):not(.blank-cover):not
 }
 
 .media-finder .grid .blank-cover:hover {
-  /* hover background overridden below to match filled card; no transform – grid handles lift */
+  background: #e5ebf7 !important; /* Slightly darker ice white on hover */
+  transform: scale(1.02);
 }
 
 body .page-content .media-finder .grid .blank-cover i,
@@ -173,22 +170,19 @@ body .form-group .media-finder .grid .blank-cover i,
   transform: translate(-50%, -50%) scale(1.1);
 }
 
-/* Blank card = same as filled card: same gradient as .grid / .img-cover area */
+/* NUCLEAR: Override any inline styles for blank-cover background and plus icon color */
 html body .media-finder .grid .blank-cover,
 html body .media-finder .grid .find-button.blank-cover,
 html body .media-finder .grid a.blank-cover {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
-  background-color: transparent !important;
-  border-radius: 14px !important;
-  border: none !important;
-  box-shadow: none !important;
+  background: #f1f4fb !important; /* Ice white - override everything */
+  background-color: #f1f4fb !important;
 }
 
 html body .media-finder .grid .blank-cover:hover,
 html body .media-finder .grid .find-button.blank-cover:hover,
 html body .media-finder .grid a.blank-cover:hover {
-  background: linear-gradient(135deg, #f1f4fb 0%, #f8f9fa 100%) !important;
-  background-color: transparent !important;
+  background: #e5ebf7 !important; /* Slightly darker ice white on hover */
+  background-color: #e5ebf7 !important;
 }
 
 html body .media-finder .grid .blank-cover i,
@@ -397,7 +391,7 @@ html body .add-item-btn:hover {
   -moz-box-shadow: none !important;
 }
 
-/* Form controls - modern inputs (include SlimSelect dropdown .ss-main so it matches) */
+/* Form controls - modern inputs */
 .form-control,
 input[type="text"],
 input[type="email"],
@@ -405,8 +399,7 @@ input[type="number"],
 input[type="password"],
 textarea,
 select,
-.form-select,
-.ss-main {
+.form-select {
   border-radius: 12px !important;
   border: 2px solid #e5e9f2 !important;
   padding: 12px 16px !important;
@@ -418,36 +411,6 @@ select,
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
   height: auto !important;
   min-height: 48px !important;
-}
-
-/* SlimSelect dropdown: same width and alignment as other form fields */
-.control-selectlist,
-.form-group .control-selectlist {
-  width: 100% !important;
-  max-width: 100% !important;
-  display: block !important;
-}
-.ss-main {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  box-sizing: border-box !important;
-}
-.ss-main .ss-values {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  align-items: center !important;
-}
-.ss-main .ss-values .ss-single,
-.ss-main .ss-values .ss-placeholder {
-  margin: 0 !important;
-  padding: 0 !important;
-  font-size: 15px !important;
-  line-height: 1.5 !important;
-  align-items: center !important;
-  width: 100% !important;
 }
 
 /* Test Sound button - match select field height and rounded shape */
@@ -1089,25 +1052,35 @@ input[type="radio"]:checked {
   transform: none !important;
 }
 
-/* UNIFIED: All toolbar buttons same style - no exceptions */
+/* Force new folder button to be white - override ANY green gradient from custom-fixes.css */
 .media-toolbar button[data-media-control="new-folder"],
 .media-toolbar button.btn-default[data-media-control="new-folder"],
 .media-toolbar [data-media-control="new-folder"].btn-default,
 .media-toolbar .toolbar-action button[data-media-control="new-folder"],
 .media-toolbar .toolbar-action .btn:first-child[data-media-control="new-folder"],
 .media-toolbar .toolbar-action .btn-group button[data-media-control="new-folder"],
-.media-toolbar .toolbar-action .btn-group .btn[data-media-control="new-folder"],
+.media-toolbar .toolbar-action .btn-group .btn[data-media-control="new-folder"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-width: 2px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+  color: #364a63 !important;
+  display: inline-flex !important;
+}
+
+/* Override custom-fixes.css green gradient rule for media toolbar buttons */
 .media-toolbar .toolbar-action .btn:first-child:not(.btn-ice),
 .media-toolbar .toolbar-action .btn-group .btn:first-child,
 .media-toolbar .toolbar-action .btn-group button:first-child {
-  background: rgb(241, 244, 251) !important;
-  background-color: rgb(241, 244, 251) !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
   background-image: none !important;
-  border: 1px solid rgb(201, 210, 227) !important;
-  border-color: rgb(201, 210, 227) !important;
-  border-width: 1px !important;
-  box-shadow: none !important;
-  color: rgb(32, 41, 56) !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  color: #364a63 !important;
 }
 
 /* Fix filter/sort buttons - hide text, match display exactly */
@@ -1123,20 +1096,24 @@ input[type="radio"]:checked {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Search input: same style as buttons - unified */
+/* Fix search input border-radius - override Bootstrap input-group completely */
 .media-toolbar .input-group .form-control[data-media-control="search"],
 .media-toolbar .form-control[data-media-control="search"],
 .media-toolbar .input-group > .form-control[data-media-control="search"],
-.media-toolbar .input-group > :not(:first-child):not(.dropdown-menu):not(.dropdown-toggle):not(.btn).form-control[data-media-control="search"],
-.media-toolbar .search-input-inner-wrapper .form-control[data-media-control="search"] {
+.media-toolbar .input-group > :not(:first-child):not(.dropdown-menu):not(.dropdown-toggle):not(.btn).form-control[data-media-control="search"] {
   border-radius: 10px !important;
   -webkit-border-radius: 10px !important;
-  border: 1px solid rgb(201, 210, 227) !important;
-  border-color: rgb(201, 210, 227) !important;
-  border-width: 1px !important;
-  background: rgb(241, 244, 251) !important;
-  background-color: rgb(241, 244, 251) !important;
-  box-shadow: none !important;
+  -moz-border-radius: 10px !important;
+  border-top-left-radius: 10px !important;
+  border-top-right-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+  border: 2px solid #e5e9f2 !important;
+  border-color: #e5e9f2 !important;
+  border-left: 2px solid #e5e9f2 !important;
+  border-right: 2px solid #e5e9f2 !important;
+  border-top: 2px solid #e5e9f2 !important;
+  border-bottom: 2px solid #e5e9f2 !important;
 }
 
 /* Override Bootstrap input-group rules that remove left border-radius */
@@ -3812,142 +3789,4 @@ html body .settings-card-link--about .card.settings-card--about {
   min-height: 100% !important;
   display: flex !important;
   align-items: center !important;
-}
-
-/* ========================================
-   NAVBAR TOOLTIP WRAPPERS & PROFILE AVATAR
-   ======================================== */
-
-/* Tooltip wrappers in navbar - inline-flex so layout is not broken */
-.navbar-top .media-toolbar-tooltip-wrap,
-.navbar .media-toolbar-tooltip-wrap {
-  display: inline-flex !important;
-}
-
-/* Profile avatar in navbar - fixed 32x32px */
-.navbar-top .navbar-profile-avatar,
-.navbar .nav-item.dropdown .navbar-profile-avatar {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
-  max-width: 32px !important;
-  max-height: 32px !important;
-  object-fit: cover !important;
-}
-
-/* Loading bar: when loaded, allow clicks to pass through (don't block folder-create-input etc) */
-.bar-loading-indicator.loaded,
-.bar-loading-indicator.loaded .bar,
-.bar-loading-indicator.loaded .bar-loaded {
-  pointer-events: none !important;
-}
-
-/* Media toolbar input-group: allow clicks (override pointer-events:none that blocks Filter/Sort dropdowns) */
-.media-toolbar .input-group {
-  pointer-events: auto !important;
-}
-
-/* Remove focus frame around entire input-group when search is focused - only the search input shows focus */
-html body .media-manager .media-toolbar .input-group:focus-within {
-  box-shadow: none !important;
-  outline: none !important;
-  border: none !important;
-  transform: none !important;
-}
-
-/* ========================================
-   MEDIA TOOLBAR - UNIFIED ALL ITEMS (highest priority)
-   Every button, dropdown, upload, search = same bg, border, shadow, hover
-   ======================================== */
-html body .media-manager .media-toolbar .btn,
-html body .media-manager .media-toolbar label.btn,
-html body .media-manager .media-toolbar .btn-group .btn,
-html body .media-manager .media-toolbar .input-group .btn,
-html body .media-manager .media-toolbar .dropdown-toggle,
-html body .media-manager .media-toolbar a.btn,
-html body .media-manager .media-toolbar a.dropdown-toggle,
-html body .media-manager .media-toolbar .btn-primary,
-html body .media-manager .media-toolbar .btn-default,
-html body .media-manager .media-toolbar .btn-danger,
-html body .media-manager .media-toolbar button[data-media-control],
-html body .media-manager .media-toolbar label[data-media-control="upload"],
-html body .media-manager .media-toolbar .dz-clickable,
-html body .media-manager .media-toolbar .form-control[data-media-control="search"],
-html body .media-manager .media-toolbar .search-input-inner-wrapper .form-control {
-  background: rgb(241, 244, 251) !important;
-  background-color: rgb(241, 244, 251) !important;
-  background-image: none !important;
-  border: 1px solid rgb(201, 210, 227) !important;
-  border-width: 1px !important;
-  border-color: rgb(201, 210, 227) !important;
-  box-shadow: none !important;
-  color: rgb(32, 41, 56) !important;
-  transform: none !important;
-}
-html body .media-manager .media-toolbar .btn:hover,
-html body .media-manager .media-toolbar label.btn:hover,
-html body .media-manager .media-toolbar .btn-group .btn:hover,
-html body .media-manager .media-toolbar .input-group .btn:hover,
-html body .media-manager .media-toolbar .dropdown-toggle:hover,
-html body .media-manager .media-toolbar a.btn:hover,
-html body .media-manager .media-toolbar a.dropdown-toggle:hover,
-html body .media-manager .media-toolbar .btn:focus,
-html body .media-manager .media-toolbar label.btn:focus,
-html body .media-manager .media-toolbar .btn-group .btn:focus,
-html body .media-manager .media-toolbar .input-group .btn:focus,
-html body .media-manager .media-toolbar .dropdown-toggle:focus,
-html body .media-manager .media-toolbar .btn-primary:hover,
-html body .media-manager .media-toolbar .btn-default:hover,
-html body .media-manager .media-toolbar .btn-danger:hover,
-html body .media-manager .media-toolbar button[data-media-control]:hover,
-html body .media-manager .media-toolbar label[data-media-control="upload"]:hover,
-html body .media-manager .media-toolbar .dz-clickable:hover,
-html body .media-manager .media-toolbar .form-control[data-media-control="search"]:hover,
-html body .media-manager .media-toolbar .form-control[data-media-control="search"]:focus,
-html body .media-manager .media-toolbar .search-input-inner-wrapper .form-control:hover,
-html body .media-manager .media-toolbar .search-input-inner-wrapper .form-control:focus {
-  background: rgb(233, 236, 243) !important;
-  background-color: rgb(233, 236, 243) !important;
-  background-image: none !important;
-  border-color: rgb(201, 210, 227) !important;
-  box-shadow: none !important;
-  color: rgb(32, 41, 56) !important;
-  transform: none !important;
-}
-/* Inline styles on upload (Dropzone adds them) - override */
-html body .media-manager .media-toolbar button[data-media-control="upload"][style],
-html body .media-manager .media-toolbar .btn-primary.dz-clickable[style],
-html body .media-manager .media-toolbar label[data-media-control="upload"][style] {
-  background: rgb(241, 244, 251) !important;
-  background-color: rgb(241, 244, 251) !important;
-  border: 1px solid rgb(201, 210, 227) !important;
-  box-shadow: none !important;
-}
-html body .media-manager .media-toolbar button[data-media-control="upload"][style]:hover,
-html body .media-manager .media-toolbar .btn-primary.dz-clickable[style]:hover,
-html body .media-manager .media-toolbar label[data-media-control="upload"][style]:hover {
-  background: rgb(233, 236, 243) !important;
-  background-color: rgb(233, 236, 243) !important;
-  border-color: rgb(201, 210, 227) !important;
-  box-shadow: none !important;
-}
-/* Input-group: Filter, Sort, Search - same hover as all others, no special group-hover effect */
-html body .media-manager .media-toolbar .input-group .dropdown-toggle:hover,
-html body .media-manager .media-toolbar .input-group a.dropdown-toggle:hover,
-html body .media-manager .media-toolbar .input-group .form-control[data-media-control="search"]:hover {
-  background: rgb(233, 236, 243) !important;
-  background-color: rgb(233, 236, 243) !important;
-  border-color: rgb(201, 210, 227) !important;
-  box-shadow: none !important;
-}
-/* When input-group is hovered, non-hovered items keep default (not white) */
-html body .media-manager .media-toolbar .input-group:hover .btn:not(:hover),
-html body .media-manager .media-toolbar .input-group:hover .dropdown-toggle:not(:hover),
-html body .media-manager .media-toolbar .input-group:hover a.dropdown-toggle:not(:hover),
-html body .media-manager .media-toolbar .input-group:hover .form-control[data-media-control="search"]:not(:hover) {
-  background: rgb(241, 244, 251) !important;
-  background-color: rgb(241, 244, 251) !important;
-  border-color: rgb(201, 210, 227) !important;
-  box-shadow: none !important;
 }

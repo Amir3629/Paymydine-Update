@@ -8,29 +8,22 @@ import { Logo } from "@/components/logo"
 import { Car, Utensils } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useSearchParams, useParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { EnvironmentConfig } from "@/lib/environment-config"
 import { setSavedHome } from "@/lib/table-home"
 import { stickySearch } from "@/lib/sticky-query"
 import { applyTheme } from "@/lib/theme-system"
-import { ApiClient } from "@/lib/api-client"
 
 const MotionLink = motion.create(Link)
 
 export default function TableHomePage({ params }: { params: { table_id: string } }) {
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
-  const { setTableInfo, clearCart } = useCartStore()
-  const router = useRouter()
+  const { setTableInfo } = useCartStore()
   const searchParams = useSearchParams()
   
   // ✅ Don't use React's experimental `use(...)` here; this is a client file.
-  const routeParams = useParams<{ table_id: string }>()
-  const pathParam =
-    String(routeParams?.table_id || params?.table_id || "").trim() ||
-    (typeof window !== "undefined"
-      ? window.location.pathname.split("/").filter(Boolean)[1] || ""
-      : "")
+  const pathParam = params.table_id; // <-- the path segment (e.g. "9")
   
   const qr = searchParams.get("qr")
   const [table, setTable] = useState<any>(null)
@@ -95,61 +88,15 @@ export default function TableHomePage({ params }: { params: { table_id: string }
           res = await fetch(fb).then(r => r.json())
         }
         if (!cancelled && res?.success) {
-          console.info("[PMD QR entry] scanned table context", {
-            route_table: pathParam,
-            resolved_table_id: res.data?.table_id ?? null,
-            resolved_table_no: res.data?.table_no ?? null,
-            qr: qr ?? null,
-          })
-
           setTable(res.data)
-          const resolvedTableId = String(res.data.table_id)
           setTableInfo({
-            table_id: resolvedTableId,
+            table_id: String(res.data.table_id),
             table_no: res.data.table_no,
             table_name: res.data.table_name,
             location_id: res.data.location_id,
             qr_code: res.data.qr_code,
             path_table: pathParam,          // keep original path for navigation
           })
-
-          const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId)
-          console.info("[PMD QR entry] pending-qr response", {
-            table_id: resolvedTableId,
-            has_pending_order: !!pending?.data?.order_id,
-            pending_order_id: pending?.data?.order_id ?? null,
-            success: pending?.success ?? false,
-          })
-          if (!cancelled && pending?.success && pending?.data?.order_id) {
-            console.info("[PMD QR entry] branch chosen: pending->menu", {
-              table_id: resolvedTableId,
-              pending_order_id: pending.data.order_id,
-            })
-            const menuUrl = new URL('/menu', window.location.origin)
-            menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
-            menuUrl.searchParams.set('table_id', resolvedTableId)
-            menuUrl.searchParams.set('table', String(res.data.table_no || pathParam))
-            if (qr) menuUrl.searchParams.set('qr', qr)
-            menuUrl.searchParams.set('pending_order_id', String(pending.data.order_id))
-            router.replace(`${menuUrl.pathname}${menuUrl.search}`)
-            return
-          } else if (!cancelled) {
-            console.info("[PMD QR entry] branch chosen: no-pending->stay-table-home", {
-              table_id: resolvedTableId,
-              table_no: res.data?.table_no ?? null,
-            })
-
-            // Clear stale pending cart state from prior scans/sessions
-            clearCart()
-            try {
-              const cartState = useCartStore.getState() as any
-              if (cartState?.isCartOpen === true) {
-                useCartStore.setState({ isCartOpen: false })
-              }
-            } catch (e) {
-              console.error("[PMD QR entry] failed to close stale cart drawer", e)
-            }
-          }
         }
       } catch (e) {
         console.error('Failed to fetch table info:', e)
@@ -162,7 +109,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
       cancelled = true
     }
     // ✅ Fix dependency to use pathParam instead of undefined table_id
-  }, [pathParam, qr, router, setTableInfo])
+  }, [pathParam, qr, setTableInfo])
 
   const cardStyles = "relative flex flex-col items-center backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border w-72 h-56 justify-center surface-sub"
   const iconContainerStyles = "rounded-full p-6 mb-6"

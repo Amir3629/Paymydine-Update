@@ -263,57 +263,9 @@ class MediaFinder extends BaseFormWidget
             $media->save();
 
             $item['identifier'] = $media->getKey();
-            // Include publicUrl and fileType so the frontend can show the preview immediately
-            $item['publicUrl'] = $media->getThumb($this->thumbOptions);
-            $item['fileType'] = $this->getMediaFileType($media);
         }
 
         return $items;
-    }
-
-    /**
-     * Create (or replace) the attachment for this field from a media library path.
-     * Called on form save when useAttachment is true so selection is only saved when the user clicks Save.
-     *
-     * @param string $path Media library path (e.g. from data-find-value).
-     * @param \Igniter\Flame\Database\Model|null $model Model to attach to (uses widget model if null).
-     * @return void
-     */
-    public function addAttachmentFromPath($path, $model = null)
-    {
-        $path = strip_tags(trim($path, '/'));
-        if (!strlen($path)) {
-            return;
-        }
-        $model = $model ?: $this->model;
-        if (!$model || !in_array(HasMedia::class, class_uses_recursive(get_class($model)))) {
-            return;
-        }
-        if (!array_key_exists($this->fieldName, $model->mediable())) {
-            return;
-        }
-        if (!$model->exists) {
-            return;
-        }
-        $manager = MediaLibrary::instance();
-        $existingMedia = $model->getMedia($this->fieldName);
-        if ($existingMedia->isNotEmpty()) {
-            $existingMedia->each->delete();
-        }
-        $name = basename($path);
-        try {
-            $raw = $manager->get($path, true);
-        } catch (\Throwable $e) {
-            \Log::warning('MediaFinder addAttachmentFromPath: MediaLibrary::get failed', [
-                'path' => $path,
-                'field' => $this->fieldName,
-                'message' => $e->getMessage(),
-            ]);
-            return;
-        }
-        $media = $model->newMediaInstance();
-        $media->addFromRaw($raw, $name, $this->fieldName);
-        $media->save();
     }
 
     public function getLoadValue()
@@ -335,8 +287,20 @@ class MediaFinder extends BaseFormWidget
     public function getSaveValue($value)
     {
         if ($this->useAttachment || $this->formField->disabled || $this->formField->hidden) {
+            \Log::info('MediaFinder getSaveValue: Returning NO_SAVE_DATA', [
+                'field' => $this->fieldName,
+                'useAttachment' => $this->useAttachment,
+                'disabled' => $this->formField->disabled,
+                'hidden' => $this->formField->hidden
+            ]);
             return FormField::NO_SAVE_DATA;
         }
+
+        \Log::info('MediaFinder getSaveValue: Returning value', [
+            'field' => $this->fieldName,
+            'value' => $value,
+            'type' => gettype($value)
+        ]);
         return $value;
     }
 

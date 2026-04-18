@@ -1,8 +1,3 @@
-.media-finder {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-}
 .media-finder .grid {
   background: linear-gradient(135deg, rgb(248, 249, 250) 0%, rgb(255, 255, 255) 100%);
   border-radius: 16px;
@@ -58,63 +53,38 @@
   transform: translate(-50%, -50%);
 }
 
-/* Blank card: same look as filled card (same background as .grid / .img-cover area) */
 .media-finder .grid .blank-cover {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: auto !important;
   z-index: 10 !important;
   cursor: pointer !important;
-  background: linear-gradient(135deg, rgb(248, 249, 250) 0%, rgb(255, 255, 255) 100%) !important;
-  border-radius: 14px !important;
-  border: none !important;
-  box-shadow: none !important;
+  background: rgb(241, 244, 251) !important;
+  border-radius: 16px;
 }
 .media-finder .grid .blank-cover:hover {
-  background: linear-gradient(135deg, rgb(241, 244, 251) 0%, rgb(248, 249, 250) 100%) !important;
+  background: rgb(229, 235, 247) !important;
 }
 .media-finder .grid .blank-cover i {
-  position: relative !important;
-  font-size: 48px !important;
-  color: rgb(54, 74, 99) !important;
-  transition: all 0.3s ease;
-  font-weight: 300;
+	position: relative;
+	font-size: 48px;
+	color: rgb(54, 74, 99) !important;
+	transition: all 0.3s ease;
+	font-weight: 300;
 }
 .media-finder .grid .blank-cover:hover i {
-  color: rgb(32, 41, 56) !important;
-  transform: scale(1.1);
+	color: rgb(32, 41, 56) !important;
+	transform: scale(1.1);
 }
 .grid .icon-container {
 	display: none;
-}
-/* Filename below image frame - always visible under the grid */
-.media-finder .icon-container-below {
-	display: block;
-	margin-top: 8px;
-	text-align: center;
-	width: 100%;
-	max-width: 160px;
-}
-.media-finder .icon-container-below span {
-	background: rgba(255, 255, 255, 0.95) !important;
-	padding: 6px 12px !important;
-	border-radius: 8px !important;
-	font-size: 12px !important;
-	color: #1f2937 !important;
-	word-wrap: break-word;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-	display: inline-block;
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 /* Remove button - always visible when image is selected */
 .grid .find-remove-button {
@@ -173,8 +143,7 @@
 	z-index: 10 !important;
 	cursor: pointer !important;
 }
-/* Legacy icon-container inside grid - kept for backwards compat, icon-container-below is primary */
-.grid:hover .icon-container:not(.icon-container-below) {
+.grid:hover .icon-container {
 	display: block;
 	top: 40%;
 	text-align: center;
@@ -182,7 +151,7 @@
 	width: 100%;
 	z-index: 9;
 }
-.grid:hover .icon-container:not(.icon-container-below) span {
+.grid:hover .icon-container span {
   background-color: var(--bs-gray-100);
   padding: 3px 5px;
   word-wrap: break-word;

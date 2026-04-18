@@ -120,35 +120,6 @@ class Settings extends \Admin\Classes\AdminController
         $this->formBeforeSave($model);
 
         $saveData = $this->formWidget->getSaveData();
-
-        // PMD FIX: force logo fields from raw request hidden inputs
-        $rawSettingInput = (array)request()->input('setting', []);
-
-        if (array_key_exists('site_logo', $rawSettingInput)) {
-            $saveData['site_logo'] = $rawSettingInput['site_logo'];
-        }
-
-        if (array_key_exists('favicon_logo', $rawSettingInput)) {
-            $saveData['favicon_logo'] = $rawSettingInput['favicon_logo'];
-        }
-
-        \Log::info('PMD_SETTINGS_LOGO_DEBUG', [
-            'site_logo' => $saveData['site_logo'] ?? null,
-            'dashboard_logo' => $saveData['dashboard_logo'] ?? null,
-            'favicon_logo' => $saveData['favicon_logo'] ?? null,
-            'raw_site_logo' => $rawSettingInput['site_logo'] ?? null,
-            'raw_dashboard_logo' => $rawSettingInput['dashboard_logo'] ?? null,
-            'raw_favicon_logo' => $rawSettingInput['favicon_logo'] ?? null,
-        ]);
-
-        // PMD FIX: force logo fields from raw request so site_logo does not get overwritten
-        $rawSettingInput = (array)request()->input('setting', []);
-        if (array_key_exists('site_logo', $rawSettingInput)) {
-            $saveData['site_logo'] = $rawSettingInput['site_logo'];
-        }
-        if (array_key_exists('favicon_logo', $rawSettingInput)) {
-            $saveData['favicon_logo'] = $rawSettingInput['favicon_logo'];
-        }
         
         // CRITICAL: Ensure site_name and site_email are never empty or null
         // If they're empty in form data, prevent saving empty values that could cause defaults to be applied

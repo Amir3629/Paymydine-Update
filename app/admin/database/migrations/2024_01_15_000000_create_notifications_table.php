@@ -13,10 +13,6 @@ class CreateNotificationsTable extends Migration
      */
     public function up()
     {
-        if (Schema::hasTable('notifications')) {
-            return;
-        }
-
         Schema::create('notifications', function (Blueprint $table) {
             $table->id('notification_id');
             $table->unsignedBigInteger('tenant_id');

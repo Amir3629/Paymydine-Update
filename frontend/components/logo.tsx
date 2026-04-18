@@ -19,23 +19,13 @@ import { buildTablePath } from '@/lib/table-url';
 import { stickySearch } from '@/lib/sticky-query';
 import { getHomeHrefFallback } from '@/lib/table-home-util';
 
-type SettingsResponse = {
-  site_logo?: string | null;
-  site_name?: string | null;
-  favicon_logo?: string | null;
-  data?: {
-    site_logo?: string | null;
-    site_name?: string | null;
-    favicon_logo?: string | null;
-  } | null;
-};
+type SettingsResponse = { site_logo?: string | null; site_name?: string | null };
 
-const toBackendAssetUrl = (rel?: string | null) => {
+const toUploadsUrl = (rel?: string | null) => {
   if (!rel) return '';
-  if (/^https?:\/\//i.test(rel)) return rel;
+  const BASE = EnvironmentConfig.getInstance().backendBaseUrl(); // e.g. http://127.0.0.1:8000
   const normalized = rel.startsWith('/') ? rel : `/${rel}`;
-  const base = window.location.origin.replace(/\/$/, '');
-  return `${base}/api-server-multi-tenant.php/api/v1/images?file=${encodeURIComponent(normalized)}`;
+  return `${BASE.replace(/\/$/, '')}/assets/media/uploads${normalized}`;
 };
 
 // FIXED: Create a component that uses useSearchParams
@@ -56,15 +46,13 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
     (async () => {
       try {
         const res = await fetch(
-          `${EnvironmentConfig.getInstance().backendBaseUrl().replace(/\/$/, '')}/api-server-multi-tenant.php/api/v1/settings`,
+          `${EnvironmentConfig.getInstance().backendBaseUrl().replace(/\/$/, '')}/api/v1/settings`,
           { credentials: 'omit', cache: 'no-store' }
         );
         if (!res.ok) throw new Error(`settings ${res.status}`);
         const json: SettingsResponse = await res.json();
-        const siteName = json?.site_name || json?.data?.site_name || 'Restaurant';
-        const siteLogo = json?.site_logo || json?.data?.site_logo || '';
-        setApiRestaurantName(siteName);
-        if (siteLogo) setLogoUrl(toBackendAssetUrl(siteLogo));
+        setApiRestaurantName(json.site_name || 'Restaurant');
+        if (json.site_logo) setLogoUrl(toUploadsUrl(json.site_logo));
       } catch (e) {
         console.warn('Logo: falling back to /images/logo.png', e);
       }
@@ -72,65 +60,29 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
   }, [])
   
   // Check if we're on main homepage or table home page
-  const isRoot = pathname === "/"
-  const isMainHomePage = isRoot
+  const isMainHomePage = pathname === "/"
   const isTableHomePage = pathname.match(/^\/table\/\d+$/) // Matches /table/28, /table/31, etc.
   const isHomePage = isMainHomePage || isTableHomePage
-  
-  // Delivery detection: no table context and not on a table route
-  const isTableRoute = pathname.startsWith("/table/")
-  const isCashier = tableInfo?.is_cashier || false
-  const isDeliveryMode = !tableInfo && !isTableRoute && !isCashier
   
   // FIXED: Get table number from cart store first (API data), then URL path, then fallbacks
   const pathTableId = pathname.match(/^\/table\/(\d+)$/)?.[1]
   const urlTableId = searchParams.get('table')
-  const urlTableNo = searchParams.get('table_no')
+  const isCashier = tableInfo?.is_cashier || false
   
-  // Display: Cashier → Delivery (when no table + not table route) → table logic
-  const explicitTableNumber =
-    tableNumber != null && String(tableNumber).trim() !== '' && String(tableNumber).trim() !== 'undefined' && String(tableNumber).trim() !== 'null'
-      ? String(tableNumber).trim()
-      : null
-
-  const storeTableNo =
-    tableInfo?.table_no != null && String(tableInfo.table_no).trim() !== ''
-      ? String(tableInfo.table_no).trim()
-      : null
-
-  const searchTableNo =
-    urlTableNo != null && String(urlTableNo).trim() !== '' && urlTableNo !== 'undefined' && urlTableNo !== 'null'
-      ? String(urlTableNo).trim()
-      : null
-
-  const searchTableId =
-    urlTableId != null && String(urlTableId).trim() !== '' && urlTableId !== 'undefined' && urlTableId !== 'null'
-      ? String(urlTableId).trim()
-      : null
-
-  const pathTableDisplay =
-    pathTableId != null && String(pathTableId).trim() !== ''
-      ? String(pathTableId).trim()
-      : null
-
-  const fallbackCmsTable =
-    cmsSettings?.tableNumber != null && String(cmsSettings.tableNumber).trim() !== ''
-      ? String(cmsSettings.tableNumber).trim()
-      : null
-
-  const resolvedDisplayTable =
-    explicitTableNumber ||
-    storeTableNo ||
-    searchTableNo ||
-    pathTableDisplay ||
-    searchTableId ||
-    fallbackCmsTable
-
-  const displayTableNumber = isCashier
-    ? 'Cashier'
-    : isDeliveryMode
-      ? 'Delivery'
-      : (resolvedDisplayTable ? `Table ${resolvedDisplayTable}` : 'Table')
+  // FIXED: Determine display table number with proper fallback chain
+  const displayTableNumber = (
+    // 1. If cashier mode, show "Cashier"
+    isCashier ? 'Cashier' :
+    // 2. If we have table info from API, use that
+    (tableInfo?.table_name) ||
+    // 3. If we have table ID from URL path, use that
+    (pathTableId ? `Table ${pathTableId}` : null) ||
+    // 4. If we have table ID from URL params, use that
+    (urlTableId ? `Table ${urlTableId}` : null) ||
+    // 5. Fallback to CMS settings
+    `Table ${cmsSettings.tableNumber}` || 
+    "Table 7"
+  )
   
   // Use theme settings from admin panel, fallback to CMS settings
   const restaurantName = (themeSettings as any).restaurant_name || cmsSettings.appName || 'PayMyDine'

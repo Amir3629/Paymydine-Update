@@ -96,14 +96,6 @@ class Orders extends \Admin\Classes\AdminController
         $paymentMethods = Payments_model::isEnabled()
             ->orderBy('priority')
             ->get(['code', 'name', 'priority']);
-        $paymentMethods = $paymentMethods->map(function ($method) {
-            $method->code = strtolower((string)$method->code);
-            $method->name = trim((string)$method->name) !== ''
-                ? trim((string)$method->name)
-                : ucwords(str_replace('_', ' ', (string)$method->code));
-
-            return $method;
-        })->values();
         
         // Load tax settings
         $settings = DB::table('settings')->get()->keyBy('item');
@@ -111,7 +103,6 @@ class Orders extends \Admin\Classes\AdminController
             'enabled' => ($settings['tax_mode']->value ?? '0') === '1',
             'percentage' => floatval($settings['tax_percentage']->value ?? '0'),
             'menu_price' => intval($settings['tax_menu_price']->value ?? '1'),
-            'menuPrice' => intval($settings['tax_menu_price']->value ?? '1'),
         ];
         
         // Check if editing existing order
@@ -348,202 +339,97 @@ class Orders extends \Admin\Classes\AdminController
         return $this->asExtension('Admin\Actions\FormController')->edit_onDelete($context, $recordId);
     }
 
-
-
     public function invoice($context, $recordId = null)
     {
-        $recordId = (int)$recordId;
+        $model = $this->formFindModelObject($recordId);
 
-        $model = null;
-
-        try {
-            $model = \Admin\Models\Orders_model::query()
-                ->where('order_id', $recordId)
-                ->first();
-        } catch (\Throwable $e) {
-            $model = null;
-        }
-
-        if (!$model) {
-            foreach (['tenant', 'mysql'] as $__pmdConn) {
-                try {
-                    $candidate = \Admin\Models\Orders_model::on($__pmdConn)
-                        ->where('order_id', $recordId)
-                        ->first();
-
-                    if ($candidate) {
-                        $model = $candidate;
-                        break;
-                    }
-                } catch (\Throwable $e) {
-                }
-            }
-        }
-
-        if (!$model) {
-            foreach ([null, 'tenant', 'mysql'] as $__pmdConn) {
-                try {
-                    $db = $__pmdConn
-                        ? \Illuminate\Support\Facades\DB::connection($__pmdConn)
-                        : \Illuminate\Support\Facades\DB::connection();
-
-                    $row = $db->table('orders')->where('order_id', $recordId)->first();
-
-                    if ($row) {
-                        $model = new \Admin\Models\Orders_model();
-                        $model->forceFill((array)$row);
-                        $model->exists = true;
-                        if ($__pmdConn) {
-                            $model->setConnection($__pmdConn);
-                        }
-                        break;
-                    }
-                } catch (\Throwable $e) {
-                }
-            }
-        }
-
-        if (!$model) {
-            return response(
-                '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice not found</title></head><body style="font-family:Arial,sans-serif;padding:40px;background:#f7f7f7;color:#222"><div style="max-width:760px;margin:0 auto;background:#fff;border:1px solid #ddd;padding:24px;border-radius:8px"><h2 style="margin-top:0">Invoice not found</h2><p>Order ID #'.e($recordId).' was not found in current, tenant, or mysql connections.</p></div></body></html>',
-                404
-            );
-        }
-
-        try {
-            $needsFinalize = !in_array((string)($model->fiskaly_status ?? ''), ['finished', 'skipped'], true);
-
-            if ($needsFinalize) {
-                $itemsCount = 0;
-                try {
-                    $itemsCount = (int)\Illuminate\Support\Facades\DB::connection($model->getConnectionName() ?: config('database.default'))
-                        ->table('order_menus')
-                        ->where('order_id', $recordId)
-                        ->count();
-                } catch (\Throwable $e) {
-                    try {
-                        $itemsCount = (int)\Illuminate\Support\Facades\DB::table('order_menus')
-                            ->where('order_id', $recordId)
-                            ->count();
-                    } catch (\Throwable $e2) {
-                        $itemsCount = 0;
-                    }
-                }
-
-                if ($itemsCount > 0) {
-                    try {
-                        app(\Admin\Services\Fiskaly\FiskalySignDeService::class)
-                            ->finalizeOrder($model, ($model->location_id ?? 1), null, null);
-                    } catch (\Throwable $__pmdFinalizeEx) {
-                        \Log::warning('[PMD invoice FORCED] failed', [
-                            'order_id' => $recordId,
-                            'message' => $__pmdFinalizeEx->getMessage(),
-                        ]);
-                    }
-
-                    try {
-                        $fresh = \Admin\Models\Orders_model::on($model->getConnectionName() ?: config('database.default'))
-                            ->where('order_id', $recordId)
-                            ->first();
-
-                        if ($fresh) {
-                            $model = $fresh;
-                        }
-                    } catch (\Throwable $e) {
-                    }
-                }
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('[PMD invoice FORCED] outer warning', [
-                'order_id' => $recordId,
-                'message' => $e->getMessage(),
-            ]);
-        }
+        if (!$model->hasInvoice())
+            throw new ApplicationException(lang('admin::lang.orders.alert_invoice_not_generated'));
 
         $this->vars['model'] = $model;
+
         $this->suppressLayout = true;
     }
 
-
-
-
-
     public function edit_onSendInvoiceEmail($context, $recordId = null)
     {
-        $recordId = (int)$recordId;
-        $model = null;
-
-        try {
-            $model = \Admin\Models\Orders_model::query()
-                ->where('order_id', $recordId)
-                ->first();
-        } catch (\Throwable $e) {
-            $model = null;
-        }
-
-        if (!$model) {
-            foreach (['tenant', 'mysql'] as $__pmdConn) {
-                try {
-                    $candidate = \Admin\Models\Orders_model::on($__pmdConn)
-                        ->where('order_id', $recordId)
-                        ->first();
-
-                    if ($candidate) {
-                        $model = $candidate;
-                        break;
-                    }
-                } catch (\Throwable $e) {
-                }
-            }
-        }
-
-        if (!$model) {
-            flash()->error('Order not found.')->now();
-            return $this->redirectBack();
-        }
+        $model = $this->formFindModelObject($recordId);
 
         if (!$model->hasInvoice()) {
             flash()->error('Invoice not generated for this order.')->now();
             return $this->redirectBack();
         }
 
+        // Get customer email
         $customerEmail = $model->email;
+        
         if (empty($customerEmail)) {
             flash()->error('Customer email not found for this order.')->now();
             return $this->redirectBack();
         }
 
+        // Get restaurant email from location
         $locationEmail = $model->location->location_email ?? setting('site_email');
+        
         if (empty($locationEmail)) {
             flash()->error('Restaurant email not configured. Please configure it in Settings > Locations.')->now();
             return $this->redirectBack();
         }
 
         try {
-            $invoiceHtml = view('admin::orders.invoice', ['model' => $model])->render();
-
-            \Mail::send([], [], function ($message) use ($customerEmail, $locationEmail, $model, $invoiceHtml) {
-                $message->from($locationEmail, setting('site_name'));
-                $message->to($customerEmail);
-                $message->subject('Invoice for Order #' . $model->order_id);
-                $message->setBody($invoiceHtml, 'text/html');
+            // Generate invoice HTML - render the invoice view
+            $invoiceHtml = View::make('orders.invoice', ['model' => $model])->render();
+            
+            // Build email body
+            $emailBody = $this->buildInvoiceEmailBody($model);
+            
+            // Get location info
+            $locationName = $model->location->location_name ?? setting('site_name');
+            $invoiceFileName = 'Invoice-' . $model->invoice_number . '.html';
+            
+            // Send email using Mail::raw() method
+            Mail::raw('', function ($message) use ($customerEmail, $model, $locationEmail, $locationName, $invoiceHtml, $invoiceFileName, $emailBody) {
+                $swiftMessage = $message->getSwiftMessage();
+                $swiftMessage->setBody($emailBody, 'text/html');
+                
+                // Create attachment from data using Swift_Attachment constructor
+                $attachment = new \Swift_Attachment($invoiceHtml, $invoiceFileName, 'text/html');
+                $swiftMessage->attach($attachment);
+                
+                $message->to($customerEmail, $model->customer_name)
+                    ->from($locationEmail, $locationName)
+                    ->replyTo($locationEmail, $locationName)
+                    ->subject('Invoice for Order #' . $model->order_id . ' - ' . $locationName);
             });
 
-            flash()->success('Invoice email sent successfully.')->now();
-        } catch (\Throwable $e) {
-            \Log::error('Failed sending invoice email', [
+            flash()->success('Invoice sent successfully to ' . $customerEmail . '!')->now();
+        } catch (\Exception $e) {
+            Log::error('Failed to send invoice email', [
                 'order_id' => $model->order_id,
+                'email' => $customerEmail,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-
-            flash()->error('Failed to send invoice email: '.$e->getMessage())->now();
+            
+            flash()->error('Failed to send invoice email: ' . $e->getMessage())->now();
         }
 
         return $this->redirectBack();
     }
 
-
-
+    protected function buildInvoiceEmailBody($model)
+    {
+        $locationName = $model->location->location_name ?? setting('site_name');
+        $locationAddress = $model->location ? format_address($model->location->getAddress()) : '';
+        $locationPhone = $model->location->location_telephone ?? '';
+        
+        return View::make('orders.invoice_email_body', [
+            'model' => $model,
+            'locationName' => $locationName,
+            'locationAddress' => $locationAddress,
+            'locationPhone' => $locationPhone,
+        ])->render();
+    }
 
     public function listExtendQuery($query)
     {
@@ -876,3 +762,4 @@ class Orders extends \Admin\Classes\AdminController
     }
 
 }
+

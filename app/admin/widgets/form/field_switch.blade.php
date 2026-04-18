@@ -28,6 +28,6 @@
         <label
             class="form-check-label"
             for="{{ $field->getId() }}"
-        >{{ $field->value == 1 ? lang($on) : lang($off) }}</label>
+        >@lang($off)/@lang($on)</label>
     </div>
 </div>

@@ -13,41 +13,24 @@ class TenantHelper
      */
     public static function tenantCachePrefix(): string
     {
-        try {
-            if (app()->has('request')) {
-                $tenant = app('request')->attributes->get('tenant');
-                if ($tenant && isset($tenant->database)) {
-                    return "tenant:{$tenant->database}:";
-                }
-            }
-        } catch (\Throwable $e) {
-            // No request in CLI/queue
+        $request = app('request');
+        $tenant = $request->attributes->get('tenant');
+        
+        // If tenant is available from the middleware, use its database name
+        if ($tenant && isset($tenant->database)) {
+            return "tenant:{$tenant->database}:";
         }
-
-        // Fallback: current default DB (tenant after restoreTenantByDatabase, or main)
+        
+        // Fallback to current database name
         try {
             $database = DB::connection()->getDatabaseName();
             return "db:{$database}:";
         } catch (\Exception $e) {
+            // Last resort fallback
             return "unknown:";
         }
     }
     
-    /**
-     * Get a segment for tenant-specific storage paths (e.g. logs, combiner, temp).
-     * Returns the tenant database name when in tenant context, 'main' otherwise.
-     */
-    public static function tenantStorageSegment(): string
-    {
-        try {
-            $database = DB::connection()->getDatabaseName();
-            $mainDb = config('database.connections.mysql.database', 'paymydine');
-            return ($database && $database !== $mainDb) ? $database : 'main';
-        } catch (\Throwable $e) {
-            return 'main';
-        }
-    }
-
     /**
      * Generate a tenant-scoped cache key
      * 

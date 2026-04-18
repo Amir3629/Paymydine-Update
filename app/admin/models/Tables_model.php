@@ -5,33 +5,32 @@ namespace Admin\Models;
 use Admin\Traits\Locationable;
 use Igniter\Flame\Database\Model;
 use Igniter\Flame\Database\Traits\Sortable;
-use Illuminate\Support\Str;
+use Illuminate\Support\Str; 
 
+/**
+ * Tables Model Class
+ */
 class Tables_model extends Model
 {
-
-    
-
-    
-
     use Locationable;
     use Sortable;
 
     const LOCATIONABLE_RELATION = 'locations';
+
     const SORT_ORDER = 'priority';
 
     /**
-     * @var string
+     * @var string The database table name
      */
     protected $table = 'tables';
 
     /**
-     * @var string
+     * @var string The database table primary key
      */
     protected $primaryKey = 'table_id';
 
     protected $casts = [
-        'table_no' => 'string',
+        'table_no' => 'integer',
         'min_capacity' => 'integer',
         'max_capacity' => 'integer',
         'extra_capacity' => 'integer',
@@ -43,7 +42,6 @@ class Tables_model extends Model
     protected $fillable = [
         'table_no',
         'table_name',
-        'pos_table_label',
         'min_capacity',
         'max_capacity',
         'extra_capacity',
@@ -67,6 +65,11 @@ class Tables_model extends Model
             ->dropdown('display_name');
     }
 
+    /**
+     * Scope a query to only include enabled location
+     *
+     * @return $this
+     */
     public function scopeIsEnabled($query)
     {
         return $query->where('table_status', 1);
@@ -78,47 +81,42 @@ class Tables_model extends Model
             ->where('max_capacity', '>=', $noOfGuests);
     }
 
+
+
+        /**
+     * Function to generate the unique ID with the required format
+     * ms-{sequential_number}-{random_string}
+     */
     public function generateUniqueId()
     {
         $prefix = 'ms';
         $sequentialNumber = $this->getNextSequentialNumber();
-        $randomString = Str::random(6);
-
-        return $prefix.$sequentialNumber.$randomString;
-    }
-
-    public function getNextSequentialNumber()
-    {
-        $latestRecord = self::latest('table_id')->first();
-
-        return $latestRecord ? ((int)$latestRecord->table_id + 1) : 1;
+        $randomString = Str::random(6); // Generate a random 5 character alphanumeric string
+        return $prefix . $sequentialNumber.$randomString;
     }
 
     /**
-     * Normal PayMyDine logic:
-     * - cashier => Cashier
-     * - pure digits => Table X
-     * - any other text => keep as-is
+     * Get the next sequential number for the ID
+     */
+    public function getNextSequentialNumber()
+    {
+        // Get the latest table_id and increment it
+        $latestRecord = self::latest('table_id')->first();
+        return $latestRecord ? $latestRecord->table_id + 1 : 1; // Start from 1 if no records exist
+    }
+
+    /**
+     * Normalize admin input:
+     *  - "cashier" (any case) becomes "Cashier"
+     *  - pure digits ("2", "02") are stored as "Table 2"
+     *  - anything else is kept as-is (legacy/custom)
      */
     public function setTableNameAttribute($value)
     {
         $trimmed = trim((string)$value);
-
-        if ($trimmed === '') {
-            $this->attributes['table_name'] = $trimmed;
-            return;
-        }
-
-        if (strtolower($trimmed) === 'cashier') {
-            $this->attributes['table_name'] = 'Cashier';
-            return;
-        }
-
-        if (ctype_digit($trimmed)) {
-            $this->attributes['table_name'] = 'Table '.((int)$trimmed);
-            return;
-        }
-
+        if ($trimmed === '') { $this->attributes['table_name'] = $trimmed; return; }
+        if (strtolower($trimmed) === 'cashier') { $this->attributes['table_name'] = 'Cashier'; return; }
+        if (ctype_digit($trimmed)) { $this->attributes['table_name'] = 'Table '.((int)$trimmed); return; }
         $this->attributes['table_name'] = $trimmed;
     }
 
@@ -127,109 +125,36 @@ class Tables_model extends Model
         parent::boot();
 
         static::saving(function ($model) {
-            $posLabel = trim((string)($model->pos_table_label ?? ''));
+            // normalize table_no
+            $model->table_no = (int)($model->table_no ?? 0);
 
-            // POS synced tables:
-            // keep table_name as received from POS
-            // and store same label into table_no
-            if ($posLabel !== '') {
-                $model->table_no = $posLabel;
+            // preserve explicit "cashier" table names
+            $isCashier = is_string($model->table_name) && trim(strtolower($model->table_name)) === 'cashier';
 
-                if (trim((string)($model->table_name ?? '')) === '') {
-                    $model->table_name = $posLabel;
+            if (!$isCashier) {
+                // When number is valid, force table_name to match "Table {no}"
+                if ($model->table_no > 0) {
+                    $model->table_name = 'Table '.$model->table_no;
                 }
-
-                if (empty($model->qr_code)) {
-                    $model->qr_code = $model->generateUniqueId();
-                }
-
-                return;
             }
 
-            // Normal PayMyDine logic
-            if (trim((string)($model->pos_table_label ?? '')) === '') {
-                $model->table_no = (int)($model->table_no ?? 0);
-            }
-
-            $isCashier = is_string($model->table_name)
-                && trim(strtolower($model->table_name)) === 'cashier';
-
-            if (trim((string)($model->pos_table_label ?? '')) === '' && !$isCashier && $model->table_no > 0) {
-                $model->table_name = 'Table '.$model->table_no;
-            }
-
+            // Ensure qr_code exists
             if (empty($model->qr_code)) {
                 $model->qr_code = $model->generateUniqueId();
             }
         });
 
         static::created(function ($model) {
-            $posLabel = trim((string)($model->pos_table_label ?? ''));
-
-            // POS synced tables: do not auto-generate numeric fallback
-            if ($posLabel !== '') {
-                return;
-            }
-
-            if (trim((string)($model->pos_table_label ?? '')) === '' && (int)$model->table_no <= 0) {
+            // If created without a number, default table_no to table_id then sync name once
+            if ((int)$model->table_no <= 0) {
                 $model->table_no = (int)$model->table_id;
-
-                if (trim(strtolower((string)$model->table_name)) !== 'cashier') {
+                if (trim(strtolower($model->table_name)) !== 'cashier') {
                     $model->table_name = 'Table '.$model->table_no;
                 }
-
                 $model->saveQuietly();
             }
         });
     }
 
-    protected function beforeDelete()
-    {
-        $normalizedName = strtolower(trim((string)($this->table_name ?? '')));
-        if (in_array($normalizedName, ['cashier', 'delivery'], true)) {
-            abort(403, 'Default tables cannot be deleted');
-        }
-    }
-
-
-    
-
-
-
-    // PMD_POS_TABLE_LABEL_REAL_FINAL
-    public function getTableNoAttribute($value)
-    {
-        if (!empty($this->attributes['pos_table_label'])) {
-            return $this->attributes['pos_table_label'];
-        }
-
-        return $value;
-    }
-
-
-
-    public function filterFields($fields)
-    {
-        $posLabel = trim((string)($this->pos_table_label ?? ''));
-
-        if ($posLabel === '') {
-            return;
-        }
-
-        if (is_array($fields) && isset($fields['table_no'])) {
-            $field = $fields['table_no'];
-            $field->value = $posLabel;
-            $field->disabled = true;
-            $field->type = 'text';
-            $field->comment = 'POS/custom table: exact label shown here. Internal table_no remains unchanged.';
-        }
-        elseif (is_object($fields) && isset($fields->table_no)) {
-            $field = $fields->table_no;
-            $field->value = $posLabel;
-            $field->disabled = true;
-            $field->type = 'text';
-            $field->comment = 'POS/custom table: exact label shown here. Internal table_no remains unchanged.';
-        }
-    }
 
 }

@@ -31,13 +31,3 @@ api.interceptors.response.use(
 );
 
 export default api; 
-
-export async function getPaymentMethodsPublic() {
-  const res = await fetch("/api/payment-methods", {
-    cache: "no-store",
-  })
-  if (!res.ok) {
-    throw new Error(`Failed to fetch payment methods: ${res.status}`)
-  }
-  return res.json()
-}

@@ -24,13 +24,6 @@ class Cash_drawers_model extends Model
         'name',
         'location_id',
         'pos_device_id',
-        'local_pos_device_id',
-        'local_mapping_invalid',
-        'last_command_status',
-        'last_command_message',
-        'setup_state',
-        'setup_message',
-        'setup_completed_at',
         'connection_type',
         'device_path',
         'printer_id',
@@ -52,8 +45,6 @@ class Cash_drawers_model extends Model
     protected $casts = [
         'location_id' => 'integer',
         'pos_device_id' => 'integer',
-        'local_pos_device_id' => 'integer',
-        'local_mapping_invalid' => 'boolean',
         'printer_id' => 'integer',
         'network_port' => 'integer',
         'serial_baud_rate' => 'integer',
@@ -67,7 +58,6 @@ class Cash_drawers_model extends Model
         'belongsTo' => [
             'location' => ['Admin\Models\Locations_model', 'foreignKey' => 'location_id'],
             'posDevice' => ['Admin\Models\Pos_devices_model', 'foreignKey' => 'pos_device_id'],
-            'localPosDevice' => ['Admin\Models\Pos_devices_model', 'foreignKey' => 'local_pos_device_id'],
         ],
         'hasMany' => [
             'logs' => ['Admin\Models\Cash_drawer_logs_model', 'foreignKey' => 'drawer_id'],

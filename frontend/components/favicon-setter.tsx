@@ -12,7 +12,7 @@ export function FaviconSetter() {
     const setFavicon = async () => {
       try {
         const res = await fetch(
-          `${EnvironmentConfig.getInstance().backendBaseUrl().replace(/\/$/, '')}/api-server-multi-tenant.php/api/v1/settings`,
+          `${EnvironmentConfig.getInstance().backendBaseUrl().replace(/\/$/, '')}/api/v1/settings`,
           { credentials: 'omit', cache: 'no-store' }
         )
         
@@ -22,7 +22,7 @@ export function FaviconSetter() {
         }
         
         const json = await res.json()
-        const faviconPath = (json?.favicon_logo || json?.data?.favicon_logo);
+        const faviconPath = json.favicon_logo
         
         if (!faviconPath) {
           // No favicon set, keep default or remove

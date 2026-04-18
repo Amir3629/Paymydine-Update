@@ -111,7 +111,6 @@ return [
         'alert_file_exists' => 'File/Folder already exists',
         'alert_file_not_writable' => 'Permission denied: File is not writable.',
         'alert_file_not_found' => 'Permission denied or file not found',
-        'alert_file_too_big' => 'File is too large. Maximum allowed size is %s KB. Increase the limit in Media settings or ensure PHP upload_max_filesize and post_max_size are at least this size.',
         'alert_extension_not_allowed' => 'File extension is not allowed.',
         'alert_permission' => 'Warning: You do not have permission to %s, contact system administrator.',
         'alert_new_folder_disabled' => 'Creating new folder is disabled, check image/media manager settings.',

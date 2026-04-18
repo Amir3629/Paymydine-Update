@@ -6,7 +6,6 @@ use Admin\Classes\Allocator;
 use Admin\Models\Assignable_logs_model;
 use Admin\Models\Staff_groups_model;
 use Admin\Traits\Assignable;
-use App\Helpers\TenantContextHelper;
 use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,62 +17,50 @@ class AllocateAssignable implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** @var string Tenant database name */
-    public $tenantDatabase;
-
-    /** @var int Assignable log ID */
-    public $assignableLogId;
-
-    /** @var int */
-    public $tries = 3;
+    /**
+     * @var \Admin\Models\Assignable_logs_model
+     */
+    public $assignableLog;
 
     /**
-     * @param string $tenantDatabase Tenant database name (from main DB tenants table)
-     * @param int $assignableLogId Assignable log primary key
+     * @var int
      */
-    public function __construct(string $tenantDatabase, int $assignableLogId)
+    public $tries = 3;
+
+    public function __construct(Assignable_logs_model $assignableLog)
     {
-        $this->tenantDatabase = $tenantDatabase;
-        $this->assignableLogId = $assignableLogId;
+        $this->assignableLog = $assignableLog->withoutRelations();
     }
 
     public function handle()
     {
-        TenantContextHelper::restoreTenantByDatabase($this->tenantDatabase);
-
-        $assignableLog = Assignable_logs_model::find($this->assignableLogId);
-        if (!$assignableLog) {
-            return;
-        }
-
         $lastAttempt = $this->attempts() >= $this->tries;
 
         try {
-            if ($assignableLog->assignee_id) {
+            if ($this->assignableLog->assignee_id)
                 return;
-            }
 
-            if (!in_array(Assignable::class, class_uses_recursive(get_class($assignableLog->assignable)))) {
+            if (!in_array(Assignable::class, class_uses_recursive(get_class($this->assignableLog->assignable))))
                 return;
-            }
 
-            if (!$assignableLog->assignee_group instanceof Staff_groups_model) {
+            if (!$this->assignableLog->assignee_group instanceof Staff_groups_model)
                 return;
-            }
 
-            Allocator::addSlot($assignableLog->getKey());
+            Allocator::addSlot($this->assignableLog->getKey());
 
-            $assignee = $assignableLog->assignee_group->findAvailableAssignee();
-            if (!$assignee) {
+            if (!$assignee = $this->assignableLog->assignee_group->findAvailableAssignee())
                 throw new Exception(lang('admin::lang.staff_groups.alert_no_available_assignee'));
-            }
 
-            $assignableLog->assignable->assignTo($assignee);
+            $this->assignableLog->assignable->assignTo($assignee);
 
-            Allocator::removeSlot($assignableLog->getKey());
-        } catch (Exception $exception) {
+            Allocator::removeSlot($this->assignableLog->getKey());
+
+            return;
+        }
+        catch (Exception $exception) {
             if (!$lastAttempt) {
                 $waitInSeconds = $this->waitInSecondsAfterAttempt($this->attempts());
+
                 $this->release($waitInSeconds);
             }
         }
@@ -88,6 +75,7 @@ class AllocateAssignable implements ShouldQueue
         if ($attempt > 3) {
             return 1000;
         }
+
         return 10 ** $attempt;
     }
 }

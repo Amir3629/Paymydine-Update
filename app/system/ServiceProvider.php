@@ -29,9 +29,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Validator;
-use App\Helpers\TenantContextHelper;
 use Main\Classes\Customer;
 use System\Classes\ErrorHandler;
 use System\Classes\ExtensionManager;
@@ -400,12 +398,8 @@ class ServiceProvider extends AppServiceProvider
                 Classes\UpdateManager::instance()->requestUpdateList(true);
             })->name('System Updates Checker')->cron('0 */12 * * *')->evenInMaintenanceMode();
 
-            // Cleanup activity log (per-tenant)
-            $schedule->call(function () {
-                TenantContextHelper::eachTenant(function () {
-                    Artisan::call('activitylog:cleanup');
-                });
-            })->name('Activity Log Cleanup')->daily();
+            // Cleanup activity log
+            $schedule->command('activitylog:cleanup')->name('Activity Log Cleanup')->daily();
         });
     }
 

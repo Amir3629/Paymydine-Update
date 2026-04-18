@@ -1,140 +1,38 @@
 @php
-    $pmdOrderCommentRaw = (string) ($model->comment ?? '');
-    $pmdIsPosImport = stripos($pmdOrderCommentRaw, 'ready2order') !== false
-        || stripos($pmdOrderCommentRaw, 'r2o-invoice') !== false
-        || stripos($pmdOrderCommentRaw, 'Imported from ready2order') !== false;
-
-    $pmdPosMeta = ['gross' => null, 'net' => null, 'vat' => null];
-    if ($pmdIsPosImport && $pmdOrderCommentRaw !== '') {
-        foreach (array_keys($pmdPosMeta) as $key) {
-            if (preg_match('/'.$key.'=([^|]+)/u', $pmdOrderCommentRaw, $m)) {
-                $pmdPosMeta[$key] = trim($m[1]);
-            }
+    $orderTotals = $model->getOrderTotals();
+    // Service fees are intentionally excluded from the bill display
+    $taxTotal = $orderTotals->firstWhere('code', 'tax');
+    $tipTotal = $orderTotals->firstWhere('code', 'tip');
+    $couponTotal = $orderTotals->firstWhere('code', 'coupon');
+    $subtotalTotal = $orderTotals->firstWhere('code', 'subtotal');
+    $finalTotal = $orderTotals->firstWhere('code', 'total') ?? $orderTotals->firstWhere('code', 'order_total');
+    
+    // Calculate subtotal and item count from actual menu items (more reliable)
+    $calculatedSubtotal = 0;
+    $calculatedTotalItems = 0;
+    foreach($model->getOrderMenusWithOptions() as $menuItem) {
+        $calculatedSubtotal += $menuItem->subtotal;
+        $calculatedTotalItems += $menuItem->quantity;
+    }
+    
+    // Always use calculated subtotal from displayed items for accuracy
+    // This ensures the subtotal matches what's actually shown in the bill
+    $displaySubtotal = $calculatedSubtotal;
+    
+    // Use calculated item count (always more reliable than database value)
+    $displayTotalItems = $calculatedTotalItems;
+    
+    // Get coupon code from order_totals title if available
+    $couponCode = null;
+    if ($couponTotal) {
+        $couponTitle = $couponTotal->title ?? '';
+        // Try to extract coupon code from title (e.g., "Coupon (TEST20251126122405)" or "TEST20251126122405")
+        if (preg_match('/\(([^)]+)\)/', $couponTitle, $matches)) {
+            $couponCode = $matches[1];
+        } elseif (preg_match('/^([A-Z0-9]+)$/', trim($couponTitle), $matches)) {
+            $couponCode = $matches[1];
         }
     }
-
-    $pmdPosGross = isset($pmdPosMeta['gross']) && $pmdPosMeta['gross'] !== null ? (float) $pmdPosMeta['gross'] : null;
-    $pmdPosVat   = isset($pmdPosMeta['vat']) && $pmdPosMeta['vat'] !== null ? (float) $pmdPosMeta['vat'] : null;
-
-    $pmdPosLineTotals = [];
-    if ($pmdIsPosImport && $pmdOrderCommentRaw !== '') {
-        if (preg_match_all('/item_total_([0-9]+)=([^|]+)/u', $pmdOrderCommentRaw, $m, PREG_SET_ORDER)) {
-            foreach ($m as $row) {
-                $pmdPosLineTotals[(int)$row[1]] = (float)trim($row[2]);
-            }
-        }
-    }
-@endphp
-
-@php
-if (!function_exists('pmdR2oOptionLabels')) {
-    function pmdR2oOptionLabels($raw) {
-        if ($raw === null || $raw === '') return [];
-
-        if (is_string($raw)) {
-            $decoded = json_decode($raw, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $raw = $decoded;
-            } else {
-                return [];
-            }
-        }
-
-        $out = [];
-
-        $walk = function ($value) use (&$walk, &$out) {
-            if (is_array($value)) {
-                foreach ($value as $k => $v) {
-                    $kk = (string)$k;
-
-                    if (in_array($kk, ['id','value','price','qty','quantity','menu_id','option_id','option_value_id'])) {
-                        continue;
-                    }
-
-                    if (in_array($kk, ['name','label','title']) && is_scalar($v)) {
-                        $txt = trim((string)$v);
-                        if ($txt !== '') $out[] = $txt;
-                        continue;
-                    }
-
-                    $walk($v);
-                }
-                return;
-            }
-
-            if (is_scalar($value)) {
-                $txt = trim((string)$value);
-                if ($txt !== '' && !is_numeric($txt)) {
-                    $out[] = $txt;
-                }
-            }
-        };
-
-        $walk($raw);
-
-        $out = array_values(array_unique(array_filter($out, function ($x) {
-            $x = trim((string)$x);
-            return $x !== '' && mb_strlen($x) > 1;
-        })));
-
-        return $out;
-    }
-}
-
-if (!function_exists('pmdR2oShownLineTotal')) {
-    function pmdR2oShownLineTotal($menuItem) {
-        if (isset($menuItem->subtotal) && $menuItem->subtotal !== null) {
-            return round((float)$menuItem->subtotal, 2);
-        }
-
-        return round(((float)($menuItem->price ?? 0) * (int)($menuItem->quantity ?? 0)), 2);
-    }
-}
-
-if (!function_exists('pmdR2oShownUnitPrice')) {
-    function pmdR2oShownUnitPrice($menuItem) {
-        $qty = max(1, (int)($menuItem->quantity ?? 1));
-        $line = pmdR2oShownLineTotal($menuItem);
-        return round($line / $qty, 2);
-    }
-}
-@endphp
-
-
-
-@php
-    /* PMD_SAFE_INCLUDED_TAX_ADMIN_START */
-    $displayTotalItems = 0;
-    foreach (($model->getOrderMenusWithOptions() ?? []) as $__menuCount) {
-        $displayTotalItems += (int)($__menuCount->quantity ?? 0);
-    }
-
-    $orderTotals = collect($model->getOrderTotals() ?? []);
-
-    $subtotalTotal = $subtotalTotal ?? $orderTotals->firstWhere('code', 'subtotal');
-    $taxTotal = $taxTotal ?? $orderTotals->firstWhere('code', 'tax');
-    $tipTotal = $tipTotal ?? $orderTotals->firstWhere('code', 'tip');
-    $finalTotal = $finalTotal ?? $orderTotals->firstWhere('code', 'total');
-    $discountTotal = $discountTotal ?? $orderTotals->firstWhere('code', 'discount');
-    $couponTotal = $couponTotal ?? $discountTotal ?? null;
-    $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
-
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? 'Tax');
-    $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
-
-    $pmdNetSubtotal = 0.0;
-    foreach (($model->getOrderMenusWithOptions() ?? []) as $__menuCalc) {
-        $pmdNetSubtotal += (float)($__menuCalc->subtotal ?? 0);
-    }
-    $pmdNetSubtotal = round($pmdNetSubtotal, 2);
-
-    $pmdDisplayedSubtotal = round((float)($subtotalTotal->value ?? $pmdNetSubtotal), 2);
-    $pmdDisplayedTax = round((float)($taxTotal->value ?? 0), 2);
-    $pmdDisplayedTip = round((float)($tipTotal->value ?? 0), 2);
-    $pmdDisplayedDiscount = round((float)($couponTotal->value ?? 0), 2);
-    $pmdDisplayedTotal = round((float)($finalTotal->value ?? ($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount)), 2);
-    $pmdTaxLabel = $pmdTaxLabelFromTotals !== '' ? $pmdTaxLabelFromTotals : ($pmdTaxIncluded ? 'VAT included' : 'VAT');
-    /* PMD_SAFE_INCLUDED_TAX_ADMIN_END */
 @endphp
 
 <div class="order-bill-container">
@@ -147,79 +45,11 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
             </tr>
         </thead>
         <tbody>
-            
-@php
-    /* PMD_CANONICAL_GROSS_DISPLAY_V3 */
-    $orderTotals = collect($model->getOrderTotals() ?? []);
-    $pmdMenus = collect($model->getOrderMenusWithOptions() ?? []);
-
-    $subtotalTotal = $subtotalTotal ?? $orderTotals->firstWhere('code', 'subtotal');
-    $taxTotal = $taxTotal ?? $orderTotals->firstWhere('code', 'tax');
-    $tipTotal = $tipTotal ?? $orderTotals->firstWhere('code', 'tip');
-    $finalTotal = $finalTotal ?? $orderTotals->firstWhere('code', 'total');
-    $discountTotal = $discountTotal ?? $orderTotals->firstWhere('code', 'discount');
-    $couponTotal = $couponTotal ?? $discountTotal ?? null;
-    $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
-
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $pmdTaxLabel ?? 'Tax');
-    $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
-
-    $displayTotalItems = 0;
-    $pmdDisplayedSubtotal = 0.0;
-
-    foreach ($pmdMenus as $pmdMenuItem) {
-        $qty = max(1, (int)($pmdMenuItem->quantity ?? 1));
-        $displayTotalItems += $qty;
-
-        $baseNetLine = round((float)($pmdMenuItem->subtotal ?? 0), 2);
-
-        foreach (($pmdMenuItem->menu_options ?? []) as $pmdMenuItemOption) {
-            $optValueNet = round(
-                (float)($pmdMenuItemOption->quantity ?? 0) * (float)($pmdMenuItemOption->order_option_price ?? 0),
-                2
-            );
-            $pmdMenuItemOption->__pmd_display_value = round($optValueNet, 2);
-        }
-
-        // IMPORTANT:
-        // Frontend truth shows option price separately, but item subtotal stays the menu subtotal.
-        // So DO NOT add option values again into admin line/subtotal rendering.
-        $fullNetLine = $baseNetLine;
-        $pmdMenuItem->__pmd_display_subtotal = round($fullNetLine, 2);
-        $pmdMenuItem->__pmd_display_price = round($qty > 0 ? ($fullNetLine / $qty) : $fullNetLine, 2);
-
-        $pmdDisplayedSubtotal += (float)$pmdMenuItem->__pmd_display_subtotal;
-    }
-
-    $pmdDisplayedSubtotal = round($pmdDisplayedSubtotal, 2);
-    $pmdDisplayedTip = round((float)($tipTotal->value ?? 0), 2);
-    $pmdDisplayedDiscount = round((float)($couponTotal->value ?? 0), 2);
-
-    $pmdDisplayedTax = round((float)($taxTotal->value ?? $pmdDisplayedTax ?? 0), 2);
-    $pmdDisplayedTotal = round((float)($finalTotal->value ?? ($pmdDisplayedSubtotal + $pmdDisplayedTip + $pmdDisplayedDiscount)), 2);
-
-    if ($pmdIsPosImport) {
-        if ($pmdPosGross !== null) {
-            $pmdDisplayedSubtotal = round($pmdPosGross, 2);
-            $pmdDisplayedTotal = round($pmdPosGross, 2);
-        }
-        if ($pmdPosVat !== null) {
-            $pmdDisplayedTax = round($pmdPosVat, 2);
-        }
-    }
-
-    $pmdTaxLabel = $pmdTaxLabelFromTotals !== '' ? $pmdTaxLabelFromTotals : ($pmdTaxIncluded ? 'VAT included' : 'VAT');
-@endphp
-
-
-@foreach($pmdMenus as $menuItem)
+            @foreach($model->getOrderMenusWithOptions() as $menuItem)
                 <tr>
                     <td>
                         <div class="order-bill-item-name">{{ $menuItem->name }}</div>
-                        @php
-                                    $menuItemOptionGroup = $menuItem->menu_options->groupBy('order_option_category');
-                                    $__pmdOptionLabels = pmdR2oOptionLabels($menuItem->option_values ?? null);
-                                @endphp
+                        @php $menuItemOptionGroup = $menuItem->menu_options->groupBy('order_option_category') @endphp
                         @if($menuItemOptionGroup->isNotEmpty())
                             <div class="order-bill-item-options">
                                 @foreach($menuItemOptionGroup as $menuItemOptionGroupName => $menuItemOptions)
@@ -229,8 +59,8 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                                                 <span class="order-bill-option-qty">{{ $menuItemOption->quantity }}x</span>
                                             @endif
                                             <span class="order-bill-option-name">{{ $menuItemOption->order_option_name }}</span>
-                                            @if((float)($menuItemOption->__pmd_display_value ?? $menuItemOption->order_option_price ?? 0) > 0)
-                                                <span class="order-bill-option-price">+{{ currency_format($menuItemOption->__pmd_display_value ?? 0) }}</span>
+                                            @if($menuItemOption->order_option_price > 0)
+                                                <span class="order-bill-option-price">+{{ currency_format($menuItemOption->quantity * $menuItemOption->order_option_price) }}</span>
                                             @endif
                                         </div>
                                     @endforeach
@@ -254,17 +84,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                     </td>
                     <!-- Remove the PRICE column entirely -->
                     <td class="order-bill-total text-right">
-                        <span class="item-subtotal" id="subtotal-{{ $menuItem->order_menu_id }}">
-                            @if($pmdIsPosImport)
-                                @php
-                                    $pmdPosIndex = $loop->index + 1;
-                                    $pmdForcedLine = $pmdPosLineTotals[$pmdPosIndex] ?? round(((float)($menuItem->price ?? 0) * (int)($menuItem->quantity ?? 0)), 2);
-                                @endphp
-                                {{ currency_format($pmdForcedLine) }}
-                            @else
-                                {{ currency_format($menuItem->__pmd_display_subtotal ?? 0) }}
-                            @endif
-                        </span>
+                        <span class="item-subtotal" id="subtotal-{{ $menuItem->order_menu_id }}">{{ currency_format($menuItem->subtotal) }}</span>
                     </td>
                 </tr>
             @endforeach
@@ -277,38 +97,26 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                         <span class="order-bill-subtotal-note">({{ $displayTotalItems }} item{{ $displayTotalItems > 1 ? 's' : '' }})</span>
                     @endif
                 </td>
-                <td></td>
-                <td class="total-value text-right">{{ currency_format($pmdDisplayedSubtotal) }}</td>
+                <td></td>  <!-- Changed from colspan="2" to just empty td for QTY column -->
+                <td class="total-value text-right">{{ currency_format($displaySubtotal) }}</td>
             </tr>
-
-            @if($pmdTaxIncluded)
+            
+            @if($taxTotal && $taxTotal->value > 0)
                 <tr>
-                    <td class="total-label order-bill-tax">VAT included</td>
+                    <td class="total-label order-bill-tax">Tax</td>
                     <td></td>
-                    <td class="total-value order-bill-tax text-right">
-                        @if($pmdIsPosImport)
-                            {{ currency_format($pmdPosVat ?? 0) }}
-                        @else
-                            {{ $pmdTaxLabel ?? 'VAT included' }}
-                        @endif
-                    </td>
-                </tr>
-            @elseif($taxTotal && (float)$taxTotal->value > 0)
-                <tr>
-                    <td class="total-label order-bill-tax">{{ $taxTotal->title ?? 'VAT' }}</td>
-                    <td></td>
-                    <td class="total-value order-bill-tax text-right">{{ currency_format((float)$taxTotal->value) }}</td>
+                    <td class="total-value order-bill-tax text-right">{{ currency_format($taxTotal->value) }}</td>
                 </tr>
             @endif
-
+            
             @if($tipTotal && $tipTotal->value > 0)
                 <tr>
                     <td class="total-label order-bill-tip">Tip</td>
                     <td></td>
-                    <td class="total-value order-bill-tip text-right">{{ currency_format($pmdDisplayedTip) }}</td>
+                    <td class="total-value order-bill-tip text-right">{{ currency_format($tipTotal->value) }}</td>
                 </tr>
             @endif
-
+            
             @if($couponTotal && $couponTotal->value != 0)
                 <tr>
                     <td class="total-label order-bill-discount">
@@ -323,12 +131,12 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                     </td>
                 </tr>
             @endif
-
+            
             @if($finalTotal)
                 <tr class="final-total">
                     <td class="total-label">Total</td>
                     <td></td>
-                    <td class="total-value text-right" id="order-final-total">@if($pmdIsPosImport) {{ currency_format($pmdPosGross ?? 0) }} @else {{ currency_format($finalTotal->value ?? 0) }} @endif</td>
+                    <td class="total-value text-right" id="order-final-total">{{ currency_format($finalTotal->value) }}</td>
                 </tr>
             @endif
         </tfoot>
@@ -988,7 +796,7 @@ window.addItemToOrder = addItemToOrder;
 function formatCurrency(amount) {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount)) return '$0.00';
-    return '€' + numAmount.toFixed(2);
+    return '$' + numAmount.toFixed(2);
 }
 
 /**
@@ -1004,15 +812,3 @@ function showNotification(message, type) {
     }
 }
 </script>
-
-<style>
-.order-bill-tax-included-note-row td {
-    font-size: 13px !important;
-    opacity: 0.9;
-}
-.order-bill-tax-included-note {
-    font-style: italic;
-}
-</style>
-
-

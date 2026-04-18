@@ -8,10 +8,6 @@ class CreateNotificationsTableSimple extends Migration
 {
     public function up()
     {
-        if (Schema::hasTable('notifications')) {
-            return;
-        }
-
         Schema::create('notifications', function (Blueprint $table) {
             $table->increments('notification_id');
             $table->integer('tenant_id')->unsigned(); // Explicit tenant_id

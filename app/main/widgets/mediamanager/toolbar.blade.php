@@ -6,13 +6,11 @@
                     class="dropdown mr-2"
                     data-control="folder-tree-dropdown"
                 >
-                    <span title="Folders" class="media-toolbar-tooltip-wrap">
                     <button
                         type="button"
                         class="btn btn-default dropdown-toggle"
                         data-bs-toggle="dropdown"
                     ><i class="fa fa-ellipsis-h"></i></button>
-                    </span>
                     <div
                         id="{{ $this->getId('folder-tree') }}"
                         data-control="folder-tree"
@@ -21,29 +19,19 @@
                 </div>
                 <button
                     class="btn btn-default" type="button"
-                    data-media-control="refresh"
-                    title="Refresh">
+                    data-media-control="refresh">
                     <i class="fa fa-refresh"></i>
                 </button>
             </div>
 
             <div class="btn-group">
                 @if ($this->getSetting('uploads'))
-                    <label
-                        class="btn btn-primary media-upload-label"
-                        data-media-control="upload"
-                        title="@lang('main::lang.media_manager.button_upload')"
-                        style="position:relative; overflow:visible; margin:0; cursor:pointer;">
-                        <i class="fa fa-upload"></i>
-                        <input
-                            type="file"
-                            multiple
-                            data-media-upload-input="true"
-                            class="dz-hidden-input media-upload-input"
-                            style="position:absolute; clip:rect(0,0,0,0); width:1px; height:1px; margin:-1px; padding:0; border:0; overflow:hidden;"
-                            accept=""
-                        >
-                    </label>
+                    <button
+                        type="button" class="btn btn-primary"
+                        data-media-control="upload">
+                        <i class="fa fa-upload"></i>&nbsp;&nbsp;
+                        @lang('main::lang.media_manager.button_upload')
+                    </button>
                 @endif
             </div>
 
@@ -74,18 +62,15 @@
             </div>
 
             <div class="input-group">
-                <span title="@lang('main::lang.media_manager.text_filter_by')" class="media-toolbar-tooltip-wrap">
                 <div class="dropdown mr-2">
-                    <a class="btn btn-default dropdown-toggle" role="button" data-bs-toggle="dropdown">
+                    <a class="btn btn-default dropdown-toggle" role="button" data-bs-toggle="dropdown" title="Filter">
                         <i class="fa fa-filter"></i> <i class="caret"></i>
                     </a>
                     {!! $this->makePartial('mediamanager/filters', ['filterBy', $filterBy]) !!}
                 </div>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.text_sort_by')" class="media-toolbar-tooltip-wrap">
                 <div class="dropdown mr-2">
-                    <a class="btn btn-default dropdown-toggle" role="button" data-bs-toggle="dropdown">
+                    <a class="btn btn-default dropdown-toggle" role="button" data-bs-toggle="dropdown" title="Sort">
                         @if (isset($sortBy[1]) && $sortBy[1] === 'ascending')
                             <i class="fa fa-sort-amount-asc"></i> <i class="caret"></i>
                         @else
@@ -94,11 +79,8 @@
                     </a>
                     {!! $this->makePartial('mediamanager/sorting', ['sortBy', $sortBy]) !!}
                 </div>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.text_filter_search')" class="media-toolbar-tooltip-wrap">
                 {!! $this->makePartial('mediamanager/search') !!}
-                </span>
             </div>
         </div>
 

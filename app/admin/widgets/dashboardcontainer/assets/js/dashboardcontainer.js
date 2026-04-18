@@ -17,7 +17,6 @@
         this.options = options
         this.$el = $(element)
         this.$form = this.$el.closest('form')
-        this.$requestTarget = this.$form.length ? this.$form : this.$el
         this.$toolbar = $('[data-container-toolbar]')
         this.$dateRangeEl = $(options.dateRangeSelector, this.$toolbar)
 
@@ -37,32 +36,18 @@
 
     DashboardContainer.DATE_RANGE_DEFAULTS = {
         opens: 'left',
-        startDate: (typeof moment === 'function')
-            ? moment().subtract(29, 'days')
-            : new Date(Date.now() - (29 * 24 * 60 * 60 * 1000)),
-        endDate: (typeof moment === 'function')
-            ? moment()
-            : new Date(),
+        startDate: moment().subtract(29, 'days'),
+        endDate: moment(),
         timePicker: true,
         locale: {
             format: 'MM/DD/YYYY'
         },
         ranges: {
-            'Today': (typeof moment === 'function')
-                ? [moment(), moment()]
-                : [new Date(), new Date()],
-            'Yesterday': (typeof moment === 'function')
-                ? [moment().subtract(1, 'days'), moment().subtract(1, 'days')]
-                : [new Date(Date.now() - (24 * 60 * 60 * 1000)), new Date(Date.now() - (24 * 60 * 60 * 1000))],
-            'Last 7 Days': (typeof moment === 'function')
-                ? [moment().subtract(6, 'days'), moment()]
-                : [new Date(Date.now() - (6 * 24 * 60 * 60 * 1000)), new Date()],
-            'This Month': (typeof moment === 'function')
-                ? [moment().startOf('month'), moment().endOf('month')]
-                : [new Date(new Date().getFullYear(), new Date().getMonth(), 1), new Date()],
-            'Last Month': (typeof moment === 'function')
-                ? [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-                : [new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), new Date(new Date().getFullYear(), new Date().getMonth(), 0)]
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],
+            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
         },
         parentEl: '.dashboard-toolbar',
     }
@@ -72,15 +57,13 @@
 
         this.fetchWidgets()
 
-        this.$el.on('click', '[data-control="remove-widget"]', function (event) {
-            event.preventDefault()
-            event.stopPropagation()
+        this.$el.on('click', '[data-control="remove-widget"]', function () {
             var $btn = $(this)
             if (!confirm('Are you sure you want to do this?'))
                 return false;
 
             $.ti.loadingIndicator.show()
-            self.$requestTarget.request(self.options.alias + '::onRemoveWidget', {
+            self.$form.request(self.options.alias + '::onRemoveWidget', {
                 data: {
                     'alias': $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
                 }
@@ -92,9 +75,7 @@
         })
         
         // Duplicate widget handler
-        this.$el.on('click', '[data-control="duplicate-widget"]', function (event) {
-            event.preventDefault()
-            event.stopPropagation()
+        this.$el.on('click', '[data-control="duplicate-widget"]', function () {
             var $btn = $(this)
             var alias = $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
             
@@ -104,7 +85,7 @@
             }
             
             $.ti.loadingIndicator.show()
-            self.$requestTarget.request(self.options.alias + '::onDuplicateWidget', {
+            self.$form.request(self.options.alias + '::onDuplicateWidget', {
                 data: {
                     'alias': alias
                 }
@@ -119,16 +100,9 @@
 
         // Destroy existing Sortable instance before creating a new one (avoids duplicate handlers)
         self._sortableInstance = null
-        self._nativeSortableBound = false
 
         self.ensureSortable = function () {
             var $sortableContainer = $(self.options.sortableContainer, self.$el)
-            if (!$sortableContainer.length) {
-                $sortableContainer = $('[id*="container-list"]', self.$el).first()
-            }
-            if (!$sortableContainer.length) {
-                $sortableContainer = $('.widget-container', self.$el).first()
-            }
             if (!$sortableContainer.length) return
             // Only enable when in edit mode (widget action handles visible)
             if (!self.$el.hasClass('edit-mode') && !document.body.classList.contains('edit-mode-active')) return
@@ -136,15 +110,10 @@
                 self._sortableInstance.destroy()
                 self._sortableInstance = null
             }
-            if (typeof Sortable !== 'undefined' && Sortable && typeof Sortable.create === 'function') {
-                self._sortableInstance = Sortable.create($sortableContainer.get(0), {
-                    handle: '.handle',
-                    onSort: $.proxy(self.onSortWidgets, self)
-                })
-                return
-            }
-
-            self.initNativeSortable($sortableContainer)
+            self._sortableInstance = Sortable.create($sortableContainer.get(0), {
+                handle: '.handle',
+                onSort: $.proxy(self.onSortWidgets, self)
+            })
         }
 
         $(window).on('ajaxUpdateComplete', function () {
@@ -162,222 +131,15 @@
                 self._sortableInstance.destroy()
                 self._sortableInstance = null
             }
-            self.destroyNativeSortable()
         })
 
         // Also try once after widgets load (in case ajaxUpdateComplete didn't fire)
         setTimeout(function () { self.ensureSortable() }, 150)
     }
 
-    DashboardContainer.prototype.initNativeSortable = function ($sortableContainer) {
-        if (this._nativeSortableBound) return
-
-        var self = this
-        var dragSourceEl = null
-        var dragArmedEl = null
-        var $sortItems = $sortableContainer.find('> .col')
-        var selector = self.options.sortableContainer + ' > .col'
-        if (!$sortItems.length) {
-            $sortItems = $sortableContainer.find('> .widget-item')
-            selector = '.widget-container > .widget-item'
-        }
-        if (!$sortItems.length) {
-            $sortItems = $sortableContainer.find('.widget-item')
-            selector = '.widget-item'
-        }
-        if (!$sortItems.length) return
-
-        // Arm dragging only when pressing the move handle, so normal button clicks still work.
-        this.$el.on('mousedown.nativeSortable', '.handle', function () {
-            var $item = $(this).closest(selector)
-            if (!$item.length) return
-            dragArmedEl = $item.get(0)
-            $item.attr('draggable', 'true')
-        })
-
-        this.$el.on('mouseup.nativeSortable mouseleave.nativeSortable', selector, function () {
-            if (dragArmedEl === this && dragSourceEl !== this) {
-                $(this).removeAttr('draggable')
-                dragArmedEl = null
-            }
-        })
-
-        this.$el.on('dragstart.nativeSortable', selector, function (event) {
-            var originalEvent = event.originalEvent || event
-            if (dragArmedEl !== this) {
-                originalEvent.preventDefault()
-                return
-            }
-
-            dragSourceEl = this
-            originalEvent.dataTransfer.effectAllowed = 'move'
-            originalEvent.dataTransfer.setData('text/plain', 'dashboard-widget')
-            $(this).addClass('native-dragging')
-        })
-
-        this.$el.on('dragover.nativeSortable', selector, function (event) {
-            event.preventDefault()
-            var originalEvent = event.originalEvent || event
-            originalEvent.dataTransfer.dropEffect = 'move'
-        })
-
-        this.$el.on('drop.nativeSortable', selector, function (event) {
-            event.preventDefault()
-            if (!dragSourceEl || dragSourceEl === this) return
-
-            var $container = $sortableContainer
-            var $dragSource = $(dragSourceEl)
-            var $dropTarget = $(this)
-
-            if ($dragSource.parent().get(0) !== $dropTarget.parent().get(0)) {
-                $container = $dropTarget.parent()
-            }
-
-            if ($dragSource.index() < $dropTarget.index()) {
-                $dropTarget.after($dragSource)
-            } else {
-                $dropTarget.before($dragSource)
-            }
-
-            self.onSortWidgets()
-        })
-
-        this.$el.on('dragend.nativeSortable', selector, function () {
-            $(this).removeAttr('draggable')
-            $(this).removeClass('native-dragging')
-            dragSourceEl = null
-            dragArmedEl = null
-        })
-
-        $sortItems.removeAttr('draggable')
-        this._nativeSortableBound = true
-    }
-
-    DashboardContainer.prototype.destroyNativeSortable = function () {
-        this.$el.off('.nativeSortable')
-        $(this.options.sortableContainer + ' > .col', this.$el).removeAttr('draggable')
-        $('.widget-container > .widget-item, .widget-item', this.$el).removeAttr('draggable')
-        this._nativeSortableBound = false
-    }
-
-    
-    function isMobileDashboardDateRange() {
-        return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-    }
-
-    function cleanupDashboardDateRangePicker() {
-        jQuery('.daterangepicker').removeClass('ti-visible open-active show-calendar show-ranges opensleft opensright openscenter drop-up').hide();
-    }
-
-    function buildDashboardDateRangeOptions(startDate, endDate, localeFormat) {
-        var isMobile = isMobileDashboardDateRange();
-
-        var options = {
-            startDate: startDate,
-            endDate: endDate,
-            autoUpdateInput: false,
-            alwaysShowCalendars: false,
-            showCustomRangeLabel: true,
-            linkedCalendars: true,
-            opens: isMobile ? 'center' : 'left',
-            drops: isMobile ? 'down' : 'auto',
-            locale: {
-                format: localeFormat || 'MM/DD/YYYY',
-                cancelLabel: 'Cancel',
-                applyLabel: 'Apply',
-                customRangeLabel: 'Custom Range'
-            },
-            ranges: isMobile ? undefined : {
-                'Today': [moment(), moment()],
-                'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-                'This Month': [moment().startOf('month'), moment().endOf('month')],
-                'Last Month': [
-                    moment().subtract(1, 'month').startOf('month'),
-                    moment().subtract(1, 'month').endOf('month')
-                ]
-            }
-        };
-
-        if (isMobile) {
-            options.singleDatePicker = false;
-            options.showDropdowns = false;
-            options.timePicker = false;
-        } else {
-            options.showDropdowns = true;
-        }
-
-        return options;
-    }
-
-DashboardContainer.prototype.initDateRange = function () {
-        cleanupDashboardDateRangePicker();
-
-        if (!this.$dateRangeEl.length) {
-            return
-        }
-
-        if (typeof this.$dateRangeEl.daterangepicker !== 'function') {
-            this.initDateRangeFallback()
-            return
-        }
-
+    DashboardContainer.prototype.initDateRange = function () {
         var options = $.extend({}, DashboardContainer.DATE_RANGE_DEFAULTS, this.$dateRangeEl.data())
-        if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
-            options.opens = 'center'
-            options.drops = 'auto'
-            options.showDropdowns = true
-        }
         this.$dateRangeEl.daterangepicker(options, $.proxy(this.onDateRangeSelected, this))
-        this.bindMobileDateRangeViewportFix()
-    }
-
-    DashboardContainer.prototype.initDateRangeFallback = function () {
-        var self = this
-        this.$dateRangeEl.off('click.dashboardDateFallback').on('click.dashboardDateFallback', function (event) {
-            event.preventDefault()
-
-            var startDefault = $(this).data('startDate') || $(this).attr('data-start-date') || ''
-            var endDefault = $(this).data('endDate') || $(this).attr('data-end-date') || ''
-
-            var startInput = window.prompt('Start date (YYYY-MM-DD)', startDefault ? String(startDefault).slice(0, 10) : '')
-            if (!startInput) return
-            var endInput = window.prompt('End date (YYYY-MM-DD)', endDefault ? String(endDefault).slice(0, 10) : '')
-            if (!endInput) return
-
-            var start = new Date(startInput + 'T00:00:00')
-            var end = new Date(endInput + 'T23:59:59')
-            if (isNaN(start.getTime()) || isNaN(end.getTime())) return
-
-            $('span', self.$dateRangeEl).text(startInput + ' - ' + endInput)
-            self.$dateRangeEl.attr('data-start-date', startInput).attr('data-end-date', endInput)
-
-            $('.dashboard-widgets .progress-indicator').show()
-            self.$dateRangeEl.request(self.options.alias + '::onSetDateRange', {
-                data: {
-                    start: start.toISOString(),
-                    end: end.toISOString(),
-                }
-            }).always(function () {
-                $('.dashboard-widgets .progress-indicator').attr('style', 'display: none !important;')
-            })
-        })
-    }
-
-    DashboardContainer.prototype.bindMobileDateRangeViewportFix = function () {
-        if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return
-
-        this.$dateRangeEl.off('show.daterangepicker.dashboardFix').on('show.daterangepicker.dashboardFix', function (event, picker) {
-            var $container = picker && picker.container ? picker.container : $('.daterangepicker:visible').last()
-            if (!$container || !$container.length) return
-
-            $container.css({
-                left: '8px',
-                right: '8px',
-                width: 'auto',
-                maxWidth: (window.innerWidth - 16) + 'px'
-            })
-        })
     }
 
     DashboardContainer.prototype.onSortWidgets = function (event) {
@@ -393,7 +155,7 @@ DashboardContainer.prototype.initDateRange = function () {
             sortOrders.push($(this).val())
         })
 
-        this.$requestTarget.request(self.options.alias + '::onSetWidgetPriorities', {
+        this.$form.request(self.options.alias + '::onSetWidgetPriorities', {
             data: {
                 'aliases': aliases,
                 'priorities': sortOrders

@@ -247,8 +247,7 @@ class FormController extends ControllerAction
         $this->controller->formBeforeSave($model);
         $this->controller->formBeforeCreate($model);
 
-        $saveData = $this->formWidget->getSaveData();
-        $modelsToSave = $this->prepareModelsToSave($model, $saveData);
+        $modelsToSave = $this->prepareModelsToSave($model, $this->formWidget->getSaveData());
 
         $this->validateFormRequest($model);
 
@@ -260,8 +259,6 @@ class FormController extends ControllerAction
                 $modelToSave->save();
             }
         });
-
-        $this->formWidget->processDeferredAttachments($model, $saveData);
 
         $this->controller->formAfterSave($model);
         $this->controller->formAfterCreate($model);
@@ -300,8 +297,7 @@ class FormController extends ControllerAction
         $this->controller->formBeforeSave($model);
         $this->controller->formBeforeUpdate($model);
 
-        $saveData = $this->formWidget->getSaveData();
-        $modelsToSave = $this->prepareModelsToSave($model, $saveData);
+        $modelsToSave = $this->prepareModelsToSave($model, $this->formWidget->getSaveData());
 
         $this->validateFormRequest($model);
 
@@ -313,8 +309,6 @@ class FormController extends ControllerAction
                 $modelToSave->save();
             }
         });
-
-        $this->formWidget->processDeferredAttachments($model, $saveData);
 
         $this->controller->formAfterSave($model);
         $this->controller->formAfterUpdate($model);

@@ -1,4 +1,3 @@
-
 <table class="order-details-table">
     <tbody>
         @if($formModel->payment_method)
@@ -7,127 +6,13 @@
                 <td class="text-right">{{ $formModel->payment_method->name }}</td>
             </tr>
         @endif
-        @php
-            $pmdSettlementStatus = (string)($formModel->settlement_status ?? '');
-            $pmdSettledAmount = (float)($formModel->settled_amount ?? 0);
-            $pmdOrderTotal = (float)($formModel->order_total ?? 0);
-            $pmdRemainingAmount = max(0, $pmdOrderTotal - $pmdSettledAmount);
-            $pmdSettlementLabel = $pmdSettlementStatus !== '' ? ucfirst($pmdSettlementStatus) : 'Unpaid';
-            $pmdSettlementMethod = trim((string)($formModel->settlement_method ?? ''));
-            $pmdSettlementReference = trim((string)($formModel->settlement_reference ?? ''));
-            $pmdTotalsByCode = collect($formModel->getOrderTotals() ?? [])->keyBy('code');
-            $pmdSubtotal = (float) optional($pmdTotalsByCode->get('subtotal'))->value;
-            $pmdTaxTitle = (string) (optional($pmdTotalsByCode->get('tax'))->title ?? 'Tax');
-            $pmdTaxValue = (float) optional($pmdTotalsByCode->get('tax'))->value;
-            $pmdTipValue = (float) optional($pmdTotalsByCode->get('tip'))->value;
-            $pmdDiscountTitle = (string) (optional($pmdTotalsByCode->get('discount'))->title ?? 'Discount');
-            $pmdDiscountValue = (float) optional($pmdTotalsByCode->get('discount'))->value;
-            $pmdTotalValue = (float) (optional($pmdTotalsByCode->get('total'))->value ?? $pmdOrderTotal);
-            $pmdHasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
-            $pmdSplitTransactions = collect();
-            $pmdSplitItemsByTx = [];
-            if ($pmdHasSplitTables) {
-                $pmdAllocationColumn = function_exists('pmdResolveSplitAllocationColumn')
-                    ? pmdResolveSplitAllocationColumn()
-                    : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_item_id')
-                        ? 'order_item_id'
-                        : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
-                            ? 'order_menu_id'
-                            : 'menu_id'));
-                \Log::info('Split allocation column resolved', ['column' => $pmdAllocationColumn]);
-                $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
-                $pmdSplitTransactions = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
-                    ->where('order_id', (int)$formModel->order_id)
-                    ->orderByDesc('id')
-                    ->get();
-                $pmdTxIds = $pmdSplitTransactions->pluck('id')->all();
-                if (!empty($pmdTxIds)) {
-                    $pmdItemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
-                        ->leftJoin('order_menus as om', $pmdJoinLeft, '=', 'ti.'.$pmdAllocationColumn)
-                        ->whereIn('ti.transaction_id', $pmdTxIds)
-                        ->get(['ti.transaction_id', 'ti.quantity_paid', 'ti.unit_price', 'ti.line_total', 'om.name', 'om.menu_id', 'om.order_menu_id']);
-                    foreach ($pmdItemRows as $pmdItemRow) {
-                        $txId = (int)$pmdItemRow->transaction_id;
-                        $pmdSplitItemsByTx[$txId] = $pmdSplitItemsByTx[$txId] ?? [];
-                        $pmdSplitItemsByTx[$txId][] = $pmdItemRow;
-                    }
-                }
-            }
-        @endphp
-        <tr>
-            <td class="text-muted align-top">Billing Snapshot</td>
-            <td class="text-right">
-                <div>Subtotal: {{ currency_format($pmdSubtotal) }}</div>
-                <div>{{ $pmdTaxTitle }}: {{ currency_format($pmdTaxValue) }}</div>
-                @if(abs($pmdTipValue) > 0.0001)
-                    <div>Tip: {{ currency_format($pmdTipValue) }}</div>
-                @endif
-                @if(abs($pmdDiscountValue) > 0.0001)
-                    <div>{{ $pmdDiscountTitle }}: {{ currency_format($pmdDiscountValue) }}</div>
-                @endif
-                <div><strong>Total: {{ currency_format($pmdTotalValue) }}</strong></div>
-            </td>
-        </tr>
-        <tr>
-            <td class="text-muted">Settlement</td>
-            <td class="text-right">
-                {{ $pmdSettlementLabel }} ({{ currency_format($pmdSettledAmount) }} / {{ currency_format($pmdOrderTotal) }}, Remaining {{ currency_format($pmdRemainingAmount) }})
-                @if($pmdSettlementMethod !== '')
-                    <div class="text-muted" style="font-size:12px;">Method: {{ strtoupper($pmdSettlementMethod) }}</div>
-                @endif
-                @if($pmdSettlementReference !== '')
-                    <div class="text-muted" style="font-size:12px;">Reference: {{ $pmdSettlementReference }}</div>
-                @endif
-            </td>
-        </tr>
-        @if($pmdHasSplitTables && $pmdSplitTransactions->count() > 0)
-            <tr>
-                <td class="text-muted align-top">Split Payments</td>
-                <td class="text-right">
-                    <div style="text-align:left;">
-                        @foreach($pmdSplitTransactions as $pmdTx)
-                            <div style="border:1px solid #eceef4;border-radius:10px;padding:8px 10px;margin-bottom:8px;">
-                                <div style="display:flex;justify-content:space-between;gap:10px;">
-                                    <div>
-                                        <strong>#{{ (int)$pmdTx->id }}</strong>
-                                        · {{ strtoupper((string)$pmdTx->payment_method) }}
-                                        · {{ currency_format((float)$pmdTx->amount) }}
-                                    </div>
-                                    <a href="{{ url('admin/orders/split-receipt/'.(int)$pmdTx->id) }}" target="_blank">Receipt</a>
-                                </div>
-                                <div class="text-muted" style="font-size:12px;margin-top:2px;">
-                                    Status: {{ ucfirst((string)($pmdTx->settlement_status ?? 'partial')) }}
-                                    @if(!empty($pmdTx->payment_reference))
-                                        · Ref: {{ $pmdTx->payment_reference }}
-                                    @endif
-                                    · Paid: {{ $pmdTx->paid_at ?: $pmdTx->created_at }}
-                                </div>
-                                @if(!empty($pmdSplitItemsByTx[(int)$pmdTx->id]))
-                                    <ul style="margin:6px 0 0 18px;padding:0;font-size:12px;">
-                                        @foreach($pmdSplitItemsByTx[(int)$pmdTx->id] as $pmdTxItem)
-                                            <li>
-                                                {{ $pmdTxItem->name ?: ('Menu #'.$pmdTxItem->menu_id) }}
-                                                × {{ rtrim(rtrim(number_format((float)$pmdTxItem->quantity_paid, 3, '.', ''), '0'), '.') }}
-                                                = {{ currency_format((float)$pmdTxItem->line_total) }}
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                </td>
-            </tr>
-        @endif
         <tr>
             <td class="text-muted">@lang('admin::lang.orders.label_invoice')</td>
             <td class="text-right">
                 @if ($formModel->hasInvoice())
                     <a
                         class="font-weight-bold"
-                        href="{{ (((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
-? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
-: admin_url('orders/invoice/'.$formModel->order_id) }}"
+                        href="{{ admin_url('orders/invoice/'.$formModel->order_id) }}"
                         target="_blank"
                     >{{ $formModel->invoice_number }}</a>
                 @else
@@ -210,15 +95,15 @@
 }
 
 /* Invoice number link stays GREEN - highest specificity */
-.order-details-table td.text-right a[href*="/orders/pos-invoice/"][target="_blank"],
-.order-details-table td.text-right a.font-weight-bold[href*="/orders/pos-invoice/"],
-.order-details-table td.text-right a[href*="/orders/pos-invoice/"] {
+.order-details-table td.text-right a[href*="/orders/invoice/"][target="_blank"],
+.order-details-table td.text-right a.font-weight-bold[href*="/orders/invoice/"],
+.order-details-table td.text-right a[href*="/orders/invoice/"] {
     color: #364a63 !important;
 }
 
-.order-details-table td.text-right a[href*="/orders/pos-invoice/"][target="_blank"]:hover,
-.order-details-table td.text-right a.font-weight-bold[href*="/orders/pos-invoice/"]:hover,
-.order-details-table td.text-right a[href*="/orders/pos-invoice/"]:hover {
+.order-details-table td.text-right a[href*="/orders/invoice/"][target="_blank"]:hover,
+.order-details-table td.text-right a.font-weight-bold[href*="/orders/invoice/"]:hover,
+.order-details-table td.text-right a[href*="/orders/invoice/"]:hover {
     color: #364a63 !important;
 }
 
@@ -365,37 +250,6 @@
     // Force on page transitions
     document.addEventListener('pageContentLoaded', function() {
         setTimeout(forceSendInvoiceIconColor, 100);
-    });
-})();
-</script>
-
-
-<script>
-(function() {
-    function replaceApiClientLabel() {
-        document.querySelectorAll('.order-details-table td.text-right').forEach(function(el) {
-            var t = (el.textContent || '').trim();
-            if (t === 'API Client') {
-                el.textContent = 'ready2order POS';
-            }
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', replaceApiClientLabel);
-    } else {
-        replaceApiClientLabel();
-    }
-
-    setTimeout(replaceApiClientLabel, 100);
-    setTimeout(replaceApiClientLabel, 500);
-    setTimeout(replaceApiClientLabel, 1000);
-
-    const obs = new MutationObserver(replaceApiClientLabel);
-    obs.observe(document.body, {childList: true, subtree: true});
-
-    document.addEventListener('ajaxUpdate', function() {
-        setTimeout(replaceApiClientLabel, 100);
     });
 })();
 </script>

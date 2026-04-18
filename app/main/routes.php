@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__.'/routes_sumup.php';
 
 // Helper function to get menu item options
 if (!function_exists('getMenuItemOptions')) {
@@ -49,13 +48,6 @@ if (!function_exists('getMenuItemOptions')) {
         return $options;
         
     } catch (\Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
         // Return empty array if there's an error fetching options
         return [];
     }
@@ -73,6 +65,9 @@ App::before(function () {
     Route::group([
         'middleware' => ['web'],
     ], function () {
+        // Load Gift Card routes
+        require __DIR__ . '/routes_gift_cards.php';
+        
         // Register Assets Combiner routes
         Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 
@@ -88,42 +83,149 @@ App::before(function () {
             });
 
             // Direct media serving route for TastyIgniter attachments
+            // IMPORTANT: This must be registered before any catch-all routes
             Route::get('/media/{path}', function ($path) {
                 // Remove any query parameters
                 $path = explode('?', $path)[0];
                 
-                // First try the direct path (as stored in database)
+                // Log for debugging
+                \Log::info('Media route called', [
+                    'path' => $path,
+                    'request_uri' => request()->getRequestUri(),
+                    'full_url' => request()->fullUrl()
+                ]);
+                
+                // First try the direct path (as stored in database - could be disk-based path like "68f/701/a0e/68f701a0e.jpg")
                 $mediaPath = base_path('assets/media/attachments/public/' . $path);
                 
                 if (!file_exists($mediaPath)) {
-                    // If not found, search recursively for the filename
+                    // If path looks like a disk hash (9+ chars), try constructing the proper path
                     $filename = basename($path);
-                    $searchPath = base_path('assets/media/attachments/public');
+                    $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
                     
-                    $foundPath = null;
-                    $iterator = new RecursiveIteratorIterator(
-                        new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
-                    );
-                    
-                    foreach ($iterator as $file) {
-                        if ($file->getFilename() === $filename) {
-                            $foundPath = $file->getPathname();
-                            break;
+                    // If filename looks like a disk hash (9+ alphanumeric chars), try disk-based structure
+                    if (strlen($pathWithoutExt) >= 9 && ctype_alnum($pathWithoutExt)) {
+                        $disk = $pathWithoutExt;
+                        $p1 = substr($disk, 0, 3);
+                        $p2 = substr($disk, 3, 3);
+                        $p3 = substr($disk, 6, 3);
+                        
+                        // First try with original extension from filename
+                        $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                        if ($originalExt) {
+                            $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $originalExt);
+                            if (file_exists($candidate)) {
+                                $mediaPath = $candidate;
+                            }
+                        }
+                        
+                        // If not found, try other extensions
+                        if (!file_exists($mediaPath)) {
+                            $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                            foreach ($extensions as $ext) {
+                                $candidate = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/' . $disk . '.' . $ext);
+                                if (file_exists($candidate)) {
+                                    $mediaPath = $candidate;
+                                    break;
+                                }
+                            }
                         }
                     }
                     
-                    if ($foundPath) {
-                        $mediaPath = $foundPath;
+                    // If still not found, search recursively for files containing the disk name
+                    if (!file_exists($mediaPath) && strlen($pathWithoutExt) >= 9) {
+                        $searchPath = base_path('assets/media/attachments/public');
+                        $foundPath = null;
+                        $disk = $pathWithoutExt;
+                        
+                        // First, try the constructed path with all extensions (faster than full recursive search)
+                        $p1 = substr($disk, 0, 3);
+                        $p2 = substr($disk, 3, 3);
+                        $p3 = substr($disk, 6, 3);
+                        $constructedDir = $searchPath . $p1 . '/' . $p2 . '/' . $p3 . '/';
+                        
+                        if (is_dir($constructedDir)) {
+                            // First try original extension
+                            $originalExt = pathinfo($filename, PATHINFO_EXTENSION);
+                            if ($originalExt) {
+                                $candidate = $constructedDir . $disk . '.' . $originalExt;
+                                if (file_exists($candidate)) {
+                                    $foundPath = $candidate;
+                                }
+                            }
+                            
+                            // If not found, try other extensions
+                            if (!$foundPath) {
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                foreach ($extensions as $ext) {
+                                    $candidate = $constructedDir . $disk . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $foundPath = $candidate;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // If still not found, do full recursive search
+                        if (!$foundPath) {
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                            );
+                            
+                            foreach ($iterator as $file) {
+                                if ($file->isFile()) {
+                                    $fileBasename = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+                                    // Check if filename matches the disk name exactly
+                                    if ($fileBasename === $disk) {
+                                        $foundPath = $file->getPathname();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if ($foundPath) {
+                            $mediaPath = $foundPath;
+                        }
+                    }
+                    
+                    // Last resort: search by exact filename match
+                    if (!file_exists($mediaPath)) {
+                        $searchPath = base_path('assets/media/attachments/public');
+                        $foundPath = null;
+                        $iterator = new RecursiveIteratorIterator(
+                            new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
+                        );
+                        
+                        foreach ($iterator as $file) {
+                            if ($file->getFilename() === $filename) {
+                                $foundPath = $file->getPathname();
+                                break;
+                            }
+                        }
+                        
+                        if ($foundPath) {
+                            $mediaPath = $foundPath;
+                        }
                     }
                 }
                 
                 if (file_exists($mediaPath)) {
                     $mimeType = mime_content_type($mediaPath);
+                    \Log::debug('Media file found', ['path' => $mediaPath, 'mime' => $mimeType]);
                     return response()->file($mediaPath, [
                         'Content-Type' => $mimeType,
                         'Cache-Control' => 'public, max-age=31536000'
                     ]);
                 } else {
+                    // Log what we tried
+                    \Log::warning('Media file not found', [
+                        'requested_path' => $path,
+                        'searched_path' => $mediaPath,
+                        'base_path' => base_path('assets/media/attachments/public')
+                    ]);
+                    
                     // Fallback to pasta.png if image not found
                     $fallbackPath = public_path('images/pasta.png');
                     if (file_exists($fallbackPath)) {
@@ -132,7 +234,7 @@ App::before(function () {
                             'Cache-Control' => 'public, max-age=31536000'
                         ]);
                     } else {
-                        abort(404);
+                        abort(404, "Image not found: {$path}");
                     }
                 }
             })->where('path', '.*');
@@ -154,70 +256,12 @@ App::before(function () {
             
             // API v1 routes  
             // Note: Must use full class name in App::before() context (middleware aliases not yet registered)
-            
-Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class])->group(function () {
-                
-                // ================================
-                // COMPAT endpoints (frontend needs)
-                // No tenant hardcoding; DetectTenant already applied
-                // ================================
-
-                Route::get('/settings-wrapped', function () {
-                    try {
-                        $conn = DB::connection('tenant');
-                        $settings = $conn->table('settings')->get()->keyBy('item');
-                        $payload = [
-                            'site_name'        => optional($settings->get('site_name'))->value ?? 'PayMyDine',
-                            'site_logo'        => optional($settings->get('site_logo'))->value ?? '',
-                            'favicon_logo'     => optional($settings->get('favicon_logo'))->value ?? (optional($settings->get('site_logo'))->value ?? ''),
-                            'default_currency' => optional($settings->get('default_currency'))->value ?? (optional($settings->get('default_currency_id'))->value ?? 'USD'),
-                            'default_language' => optional($settings->get('default_language'))->value ?? 'en',
-                            'order_prefix'     => optional($settings->get('invoice_prefix'))->value ?? '#',
-                            'guest_order'      => optional($settings->get('guest_order'))->value ?? '1',
-                        ];
-                        return response()->json(['success' => true, 'data' => $payload]);
-                    } catch (\Throwable $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
-                        return response()->json(['success' => false, 'error' => 'Settings not found'], 404);
-                    }
-                });
-
-                Route::get('/tax-settings', function () {
-                    try {
-                        $conn = DB::connection('tenant');
-                        $settings = $conn->table('settings')->get()->keyBy('item');
-                        $tax_mode       = optional($settings->get('tax_mode'))->value ?? optional($settings->get('tax_enabled'))->value ?? '0';
-                        $tax_percentage = optional($settings->get('tax_percentage'))->value ?? '0';
-                        $tax_menu_price = optional($settings->get('tax_menu_price'))->value ?? '1';
-                        return response()->json(['success' => true, 'data' => [
-                            'tax_mode' => (string)$tax_mode,
-                            'tax_percentage' => (string)$tax_percentage,
-                            'tax_menu_price' => (string)$tax_menu_price,
-                        ]]);
-                    } catch (\Throwable $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
-                        return response()->json(['success' => false, 'error' => 'Tax settings not found'], 404);
-                    }
-                });
-
-// Menu endpoints
+            Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class])->group(function () {
+                // Menu endpoints
                 Route::get('/menu', function () {
                     try {
-                        // DetectTenant has set default connection to tenant; use it explicitly for menu + combos
-                        $conn = DB::connection('tenant');
-                        $p = $conn->getTablePrefix();
+                        // Get menu items with categories (matching old API structure)
+                        $p = DB::connection()->getTablePrefix();
                         $query = "
                             SELECT 
                                 m.menu_id as id,
@@ -225,7 +269,8 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 m.menu_description as description,
                                 CAST(m.menu_price AS DECIMAL(10,2)) as price,
                                 COALESCE(c.name, 'Main') as category_name,
-                                ma.name as image
+                                ma.name as image,
+                                ma.disk as image_disk
                             FROM {$p}menus m
                             LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                             LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
@@ -236,25 +281,65 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             ORDER BY c.priority ASC, m.menu_name ASC
                         ";
                         
-                        $items = $conn->select($query);
+                        $items = DB::select($query);
                         
-                        // Convert prices to float, fix image paths, add options, mark as non-combo
+                        // Convert prices to float, fix image paths, and add options
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
-                            if ($item->image) {
-                                // If image exists, construct the relative URL for Next.js proxy
+                            
+                            // CRITICAL FIX: The 'disk' column contains "media" (wrong value),
+                            // but the actual hash is in the 'name' column (e.g., "6776d4adbca7d884450237.webp")
+                            // Extract hash from name column if disk is invalid
+                            $hash = null;
+                            if ($item->image_disk && strlen($item->image_disk) >= 9 && $item->image_disk !== 'media') {
+                                // Valid disk hash
+                                $hash = $item->image_disk;
+                            } elseif ($item->image) {
+                                // Extract hash from name (format: "6776d4adbca7d884450237.webp")
+                                $nameWithoutExt = pathinfo($item->image, PATHINFO_FILENAME);
+                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
+                                    $hash = $nameWithoutExt;
+                                }
+                            }
+                            
+                            if ($hash && strlen($hash) >= 9) {
+                                // Use hash-based path (proper TastyIgniter storage format)
+                                $p1 = substr($hash, 0, 3);
+                                $p2 = substr($hash, 3, 3);
+                                $p3 = substr($hash, 6, 3);
+                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                $resolved = null;
+                                foreach ($extensions as $ext) {
+                                    $candidate = $basePath . $hash . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
+                                        break;
+                                    }
+                                }
+                                if ($resolved) {
+                                    $item->image = "/api/media/" . $resolved;
+                                } else {
+                                    // File not found, use name directly (route handler will search)
+                                    $item->image = "/api/media/" . $item->image;
+                                }
+                            } elseif ($item->image) {
+                                // If image exists but no valid hash, use name directly
                                 $item->image = "/api/media/" . $item->image;
                             } else {
                                 // Use default image if none exists
                                 $item->image = '/images/pasta.png';
                             }
+                            
+                            // Mark as regular menu item (not a combo)
                             $item->isCombo = false;
                             $item->comboId = null;
-                            // Fetch menu options for this item (uses default connection = tenant)
+                            
+                            // Fetch menu options for this item
                             $item->options = getMenuItemOptions($item->id);
                         }
                         
-                        // Get combos from menu_combos on tenant DB (same connection as menu items)
+                        // Get combos from menu_combos table
                         $combosQuery = "
                             SELECT 
                                 mc.combo_id as id,
@@ -262,7 +347,8 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 mc.combo_description as description,
                                 CAST(mc.combo_price AS DECIMAL(10,2)) as price,
                                 'Combos' as category_name,
-                                ma.name as image
+                                ma.name as image,
+                                ma.disk as image_disk
                             FROM {$p}menu_combos mc
                             LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos' 
                                 AND ma.attachment_id = mc.combo_id 
@@ -270,32 +356,70 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             WHERE mc.combo_status = 1
                             ORDER BY mc.combo_priority ASC, mc.combo_name ASC
                         ";
-                        $combos = $conn->select($combosQuery);
+                        
+                        $combos = DB::select($combosQuery);
+                        
+                        // Format combos same as menu items
                         foreach ($combos as &$combo) {
                             $combo->price = (float)$combo->price;
-                            if ($combo->image) {
+                            
+                            // CRITICAL FIX: Extract hash from name column if disk is invalid
+                            $hash = null;
+                            if ($combo->image_disk && strlen($combo->image_disk) >= 9 && $combo->image_disk !== 'media') {
+                                $hash = $combo->image_disk;
+                            } elseif ($combo->image) {
+                                $nameWithoutExt = pathinfo($combo->image, PATHINFO_FILENAME);
+                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
+                                    $hash = $nameWithoutExt;
+                                }
+                            }
+                            
+                            if ($hash && strlen($hash) >= 9) {
+                                $p1 = substr($hash, 0, 3);
+                                $p2 = substr($hash, 3, 3);
+                                $p3 = substr($hash, 6, 3);
+                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                $resolved = null;
+                                foreach ($extensions as $ext) {
+                                    $candidate = $basePath . $hash . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
+                                        break;
+                                    }
+                                }
+                                if ($resolved) {
+                                    $combo->image = "/api/media/" . $resolved;
+                                } else {
+                                    $combo->image = "/api/media/" . $combo->image;
+                                }
+                            } elseif ($combo->image) {
                                 $combo->image = "/api/media/" . $combo->image;
                             } else {
                                 $combo->image = '/images/pasta.png';
                             }
+                            
+                            // Mark as combo
                             $combo->isCombo = true;
                             $combo->comboId = $combo->id;
+                            
+                            // Combos don't have options (they're pre-configured)
                             $combo->options = [];
-                            $combo->is_stock_out = false;
-                            $combo->available = true;
                         }
+                        
+                        // Merge combos with regular menu items
                         $allItems = array_merge($items, $combos);
                         
-                        // Get all enabled categories (tenant DB)
+                        // Get all enabled categories
                         $categoriesQuery = "
                             SELECT category_id as id, name, priority 
                             FROM {$p}categories 
                             WHERE status = 1 
                             ORDER BY priority ASC, name ASC
                         ";
-                        $categories = $conn->select($categoriesQuery);
+                        $categories = DB::select($categoriesQuery);
                         
-                        // Add "Combos" category if we have combos and it doesn't exist
+                        // Add "Combos" category if it doesn't exist and we have combos
                         if (count($combos) > 0) {
                             $hasCombosCategory = false;
                             foreach ($categories as $cat) {
@@ -322,19 +446,13 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         ]);
 
                     } catch (\Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
                         return response()->json([
                             'success' => false,
                             'error' => 'Failed to fetch menu',
                             'message' => $e->getMessage()
                         ], 500);
-                    }                });
+                    }
+                });
 
                 // Table info endpoint
                 Route::get('/table-info', function () {
@@ -389,13 +507,6 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             ]
                         ]);
                     } catch (Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
                         return response()->json([
                             'success' => false,
                             'error' => 'Internal server error: ' . $e->getMessage()
@@ -403,7 +514,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     }
                 });
 
-                function syncOrderToPOS($orderId)
+               function syncOrderToPOS($orderId)
                 {
                     try {
                         $order = DB::table('orders')->where('order_id', $orderId)->first();
@@ -423,10 +534,11 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
 
                         // Recriar payloads
                         $squarePayload     = formatOrderForSquareAPI($order, $items);
-                        $cloverPayload     = formatOrderForCloverAPI($order, $items);
-                        $lightspeedPayload = formatOrderForLightspeedAPI($order, $items);
+                        \Log::info('Square Payload', ['payload' => $squarePayload]);
+                        // $cloverPayload     = formatOrderForCloverAPI($order, $items);
+                        // $lightspeedPayload = formatOrderForLightspeedAPI($order, $items);
 
-                        $baseUrl = 'https://api.ready2order.com/v1';
+                        $baseUrl = 'https://pay-my-dine-api-pos.onrender.com';
 
                         foreach ($configs as $config) {
 
@@ -439,23 +551,6 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             $url = null;
                             $payload = null;
 
-                            // PMD_ORACLE_SIMPHONY_PUSH_GUARD
-                            if ($posCode === 'oracle_simphony') {
-                                $isOraclePlaceholder =
-                                    ($config->url ?? '') === 'https://placeholder.oracle.simphony.api'
-                                    || ($config->username ?? '') === 'CLIENT_ID_PLACEHOLDER'
-                                    || ($config->access_token ?? '') === 'CLIENT_SECRET_PLACEHOLDER'
-                                    || ($config->id_application ?? '') === 'ORACLE_ORG_OR_GATEWAY_PLACEHOLDER';
-
-                                if ($isOraclePlaceholder) {
-                                    \Log::warning('API: Oracle Simphony push skipped - placeholder config', [
-                                        'order_id' => $orderId,
-                                        'config_id' => $config->config_id ?? null,
-                                    ]);
-                                    continue;
-                                }
-                            }
-
                             switch ($posCode) {
                                 case 'square':
                                     $url = "$baseUrl/api/pos/square/order/create";
@@ -463,7 +558,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                     break;
 
                                 case 'clover':
-                                    $url = "$baseUrl/api/pos/clover/order/create";
+                                    $url = "$baseUrl/api/pos/clover/order";
                                     if (!empty($config->id_application)) {
                                         $url .= '?merchantId=' . urlencode($config->id_application);
                                     }
@@ -471,50 +566,12 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                     break;
 
                                 case 'lightspeed':
-                                    $url = "$baseUrl/api/pos/lightspeed/order/create";
+                                    $url = "$baseUrl/api/pos/lightspeed/order";
                                     if (!empty($config->id_application)) {
                                         $url .= '?domainPrefix=' . urlencode($config->id_application);
                                     }
                                     $payload = $lightspeedPayload;
                                     break;
-
-
-                                // PMD_HELLOCASH_SYNC_ORDER_START
-                                case 'hellocash':
-                                // PMD_HYPERSOFT_SYNC_ORDER_START
-                                case 'hypersoft':
-                                    $baseUrl = trim((string)($config->url ?? ''));
-                                    $cusToken = trim((string)($config->username ?? ''));
-                                    $authToken = trim((string)($config->access_token ?? ''));
-
-                                    $isPlaceholder =
-                                        $baseUrl === '' ||
-                                        str_contains($baseUrl, 'placeholder.hypersoft') ||
-                                        $cusToken === '' ||
-                                        $cusToken === 'CUS_TOKEN_PLACEHOLDER' ||
-                                        $authToken === '' ||
-                                        $authToken === 'AUTH_TOKEN_PLACEHOLDER';
-
-                                    if ($isPlaceholder) {
-                                        \Log::warning('API: Hypersoft sync skipped - placeholder config', [
-                                            'order_id' => $orderId,
-                                            'pos' => 'hypersoft',
-                                            'config_id' => $config->config_id ?? null,
-                                        ]);
-                                        continue 2;
-                                    }
-
-                                    \Log::warning('API: Hypersoft sync skipped - live connector not finalized yet', [
-                                        'order_id' => $orderId,
-                                        'pos' => 'hypersoft',
-                                        'config_id' => $config->config_id ?? null,
-                                    ]);
-                                    continue 2;
-
-                                    $url = rtrim(($config->url ?? 'https://api.hellocash.business/api/v1'), '/') . '/invoices';
-                                    $payload = formatOrderForHelloCashAPI($order, $items, $config);
-                                    break;
-                                // PMD_HELLOCASH_SYNC_ORDER_END
 
                                 default:
                                     continue 2;
@@ -533,13 +590,6 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         }
 
                     } catch (\Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
                         \Log::error('API: POS sync failed', [
                             'order_id' => $orderId,
                             'error'    => $e->getMessage()
@@ -547,65 +597,11 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     }
                 }
 
-
-                // PMD_HELLOCASH_FORMATTER_START
-                function formatOrderForHelloCashAPI($order, $items, $config)
-                {
-                    $cashierId = trim((string)($config->username ?? ''));
-
-                    if ($cashierId === '') {
-                        throw new \RuntimeException('helloCash requires cashier_id in pos_configs.username');
-                    }
-
-                    $helloItems = collect($items)->map(function ($item) {
-                        $name = trim((string)($item->name ?? 'POS Item'));
-
-                        $quantity = (float)($item->quantity ?? 1);
-                        if ($quantity <= 0) {
-                            $quantity = 1;
-                        }
-
-                        $price = round((float)($item->price ?? 0), 2);
-
-                        $taxRate = null;
-                        foreach (['tax_rate', 'tax', 'vat', 'menu_tax', 'item_tax_rate'] as $field) {
-                            if (isset($item->$field) && $item->$field !== null && $item->$field !== '') {
-                                $taxRate = (string)$item->$field;
-                                break;
-                            }
-                        }
-
-                        if ($taxRate === null) {
-                            $taxRate = '19';
-                        }
-
-                        return [
-                            'item_name'     => $name,
-                            'item_quantity' => number_format($quantity, 3, '.', ''),
-                            'item_price'    => number_format($price, 2, '.', ''),
-                            'item_taxRate'  => (string)$taxRate,
-                        ];
-                    })->filter(function ($row) {
-                        return trim((string)($row['item_name'] ?? '')) !== '';
-                    })->values()->toArray();
-
-                    if (empty($helloItems)) {
-                        throw new \RuntimeException('helloCash payload has no items');
-                    }
-
-                    return [
-                        'invoice_testMode' => true,
-                        'cashier_id'       => $cashierId,
-                        'items'            => $helloItems,
-                    ];
-                }
-                // PMD_HELLOCASH_FORMATTER_END
-
                 function formatOrderForSquareAPI($order, $items)
                 {
                     return [
                         'order_id' => $order->order_id,
-                        'location_id' => null,
+                        'location_id' => $order->location_id,
                         'customer' => [
                             'name'  => $order->first_name,
                             'email' => $order->email,
@@ -639,9 +635,12 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         ],
                         'line_items' => collect($items)->map(function ($item) {
                             return [
-                                'name'     => $item->name,
-                                'price'    => intval($item->price * 100),
-                                'quantity' => (int) $item->quantity,
+                                'name'  => $item->name,
+                                'price' => intval($item->price * 100),
+                                'unitQty' => [
+                                    'unit'     => 'UNIT',
+                                    'quantity' => (int)$item->quantity,
+                                ],
                             ];
                         })->toArray(),
                         'created_at' => now()->toIso8601String(),
@@ -659,9 +658,8 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             ],
                             'register_sale_products' => collect($items)->map(function ($item) {
                                 return [
-                                    'name'        => $item->name,
-                                    'quantity'    => (int)$item->quantity,
-                                    'price'       => (float)$item->price,
+                                    'quantity' => (int)$item->quantity,
+                                    'price'    => (float)$item->price,
                                     'price_total' => $item->quantity * $item->price,
                                 ];
                             })->toArray(),
@@ -672,8 +670,392 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 }
                 
                 // Orders endpoint
+                Route::post('/orders', function () {
+                    try {
+                        $input = request()->all();
+                        
+                        // Validate required fields
+                        if (empty($input['table_id']) || empty($input['items']) || empty($input['customer_name'])) {
+                            return response()->json([
+                                'success' => false,
+                                'error' => 'Missing required fields: table_id, items, customer_name'
+                            ], 400);
+                        }
+                        
+                        // Insert order
+                        $orderId = DB::table('orders')->insertGetId([
+                            'customer_id' => 1, // Default customer
+                            'first_name' => $input['customer_name'],
+                            'last_name' => '',
+                            'email' => $input['customer_email'] ?? '',
+                            'telephone' => $input['customer_phone'] ?? '',
+                            'location_id' => $input['location_id'] ?? 1,
+                            'cart' => json_encode($input['items']),
+                            'total_items' => count($input['items']),
+                            'comment' => $input['special_instructions'] ?? '',
+                            'payment' => $input['payment_method'] ?? 'cash',
+                            'order_type' => $input['table_id'], // Store actual table_id instead of 'dine_in'
+                            'order_time' => now()->format('H:i:s'),
+                            'order_date' => now()->format('Y-m-d'),
+                            'order_total' => $input['total_amount'],
+                            'status_id' => 1, // Received status
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                            'order_time_is_asap' => 1,
+                            'ms_order_type' => 'dine_in'
+                        ]);
+                        
+                        // Insert order menu items
+                        foreach ($input['items'] as $item) {
+                            // Calculate total price including options
+                            $itemTotal = $item['price'] * $item['quantity'];
+                            
+                            // Insert order menu item
+                            $orderMenuId = DB::table('order_menus')->insertGetId([
+                                'order_id' => $orderId,
+                                'menu_id' => $item['menu_id'],
+                                'name' => $item['name'],
+                                'quantity' => $item['quantity'],
+                                'price' => $item['price'],
+                                'subtotal' => $itemTotal,
+                                'option_values' => '',
+                                'comment' => ''
+                            ]);
+                            
+                            // Process selected options and add their prices
+                            if (!empty($item['options'])) {
+                                foreach ($item['options'] as $optionType => $optionValueId) {
+                                    // Get option details from menu options
+                                    $optionValue = DB::table('menu_option_values')
+                                        ->where('option_value_id', $optionValueId)
+                                        ->first();
+                                    
+                                    if ($optionValue) {
+                                        // Get the menu option ID for this option type
+                                        $menuOption = DB::table('menu_item_options')
+                                            ->where('menu_id', $item['menu_id'])
+                                            ->where('option_id', function($query) use ($optionType) {
+                                                $query->select('option_id')
+                                                      ->from('menu_options')
+                                                      ->where('option_name', $optionType);
+                                            })
+                                            ->first();
+                                        
+                                        if ($menuOption) {
+                                            // Insert into order_menu_options table
+                                            DB::table('order_menu_options')->insert([
+                                                'order_id' => $orderId,
+                                                'menu_id' => $item['menu_id'],
+                                                'order_option_name' => $optionValue->value,
+                                                'order_option_price' => $optionValue->price,
+                                                'order_menu_id' => $orderMenuId,
+                                                'order_menu_option_id' => $menuOption->menu_option_id,
+                                                'menu_option_value_id' => $optionValueId,
+                                                'quantity' => $item['quantity']
+                                            ]);
+                                            
+                                            $itemTotal += $optionValue->price * $item['quantity'];
+                                        }
+                                    }
+                                }
+                                
+                                // Update the subtotal with option prices
+                                DB::table('order_menus')
+                                    ->where('order_menu_id', $orderMenuId)
+                                    ->update(['subtotal' => $itemTotal]);
+                            }
+                        }
+                        
+                        // Calculate actual subtotal from items and options
+                        $subtotal = 0;
+                        foreach ($input['items'] as $item) {
+                            $itemTotal = $item['price'] * $item['quantity'];
+                            
+                            // Add option prices if they exist
+                            if (!empty($item['options'])) {
+                                foreach ($item['options'] as $optionType => $optionValueId) {
+                                    $optionValue = DB::table('menu_option_values')
+                                        ->where('option_value_id', $optionValueId)
+                                        ->first();
+                                    
+                                    if ($optionValue) {
+                                        $itemTotal += $optionValue->price * $item['quantity'];
+                                    }
+                                }
+                            }
+                            
+                            $subtotal += $itemTotal;
+                        }
+                        
+                        // Get service percentage from location settings (fallback to 10%)
+                        $servicePercentage = 0.10; // Default fallback
+                        if (isset($input['location_id'])) {
+                            $serviceSetting = DB::table('location_options')
+                                ->where('location_id', $input['location_id'])
+                                ->where('item', 'service_charge_percentage')
+                                ->first();
+                            
+                            if ($serviceSetting && isset($serviceSetting->value)) {
+                                $serviceData = json_decode($serviceSetting->value, true);
+                                if (isset($serviceData['value'])) {
+                                    $servicePercentage = floatval($serviceData['value']) / 100;
+                                }
+                            }
+                        }
+                        
+                        $serviceFee = $subtotal * $servicePercentage;
+                        $tipAmount = $input['tip_amount'] ?? 0;
+                        
+                        // Handle coupon discount
+                        $couponDiscount = 0;
+                        $couponId = null;
+                        $couponCode = null;
+                        
+                        if (!empty($input['coupon_code']) && isset($input['coupon_discount']) && $input['coupon_discount'] > 0) {
+                            $couponDiscount = floatval($input['coupon_discount']);
+                            $couponCode = $input['coupon_code'];
+                            
+                            // Get coupon ID from database
+                            $coupon = DB::table('ti_igniter_coupons')
+                                ->where('code', $couponCode)
+                                ->first();
+                            
+                            if ($coupon) {
+                                $couponId = $coupon->coupon_id;
+                            }
+                        }
+                        
+                        $total = $subtotal + $serviceFee + $tipAmount - $couponDiscount;
+                        
+                        DB::table('order_totals')->insert([
+                            'order_id' => $orderId,
+                            'code' => 'subtotal',
+                            'title' => 'Subtotal',
+                            'value' => $subtotal,
+                            'priority' => 1,
+                            'is_summable' => 1
+                        ]);
+                        
+                        if ($serviceFee > 0) {
+                            DB::table('order_totals')->insert([
+                                'order_id' => $orderId,
+                                'code' => 'service',
+                                'title' => 'Service (' . round($servicePercentage * 100) . '%)',
+                                'value' => $serviceFee,
+                                'priority' => 2,
+                                'is_summable' => 1
+                            ]);
+                        }
+                        
+                        if ($tipAmount > 0) {
+                            DB::table('order_totals')->insert([
+                                'order_id' => $orderId,
+                                'code' => 'tip',
+                                'title' => 'Tip',
+                                'value' => $tipAmount,
+                                'priority' => 3,
+                                'is_summable' => 1
+                            ]);
+                        }
+                        
+                        // Store payment method
+                        $paymentMethod = $input['payment_method'] ?? 'cash';
+                        DB::table('order_totals')->insert([
+                            'order_id' => $orderId,
+                            'code' => 'payment_method',
+                            'title' => 'Payment Method',
+                            'value' => $paymentMethod,
+                            'priority' => 0
+                        ]);
+                        
+                        // Save coupon discount to order_totals
+                        if ($couponDiscount > 0) {
+                            DB::table('order_totals')->insert([
+                                'order_id' => $orderId,
+                                'code' => 'coupon',
+                                'title' => 'Coupon (' . $couponCode . ')',
+                                'value' => -$couponDiscount, // Negative value for discount
+                                'priority' => 3.5,
+                                'is_summable' => 1
+                            ]);
+                            
+                            // Save coupon history
+                            if ($couponId) {
+                                try {
+                                    DB::table('ti_igniter_coupons_history')->insert([
+                                        'coupon_id' => $couponId,
+                                        'order_id' => $orderId,
+                                        'customer_id' => 1, // Default customer, can be updated if customer tracking is added
+                                        'code' => $couponCode,
+                                        'min_total' => $coupon->min_total ?? null,
+                                        'amount' => $couponDiscount,
+                                        'status' => 1,
+                                        'created_at' => now(),
+                                        'updated_at' => now()
+                                    ]);
+                                    
+                                    \Log::info('Coupon history saved', [
+                                        'coupon_id' => $couponId,
+                                        'order_id' => $orderId,
+                                        'code' => $couponCode,
+                                        'discount' => $couponDiscount
+                                    ]);
+                                } catch (\Exception $e) {
+                                    \Log::error('Failed to save coupon history', [
+                                        'error' => $e->getMessage(),
+                                        'coupon_id' => $couponId,
+                                        'order_id' => $orderId
+                                    ]);
+                                }
+                            }
+                        }
+                        
+                        DB::table('order_totals')->insert([
+                            'order_id' => $orderId,
+                            'code' => 'total',
+                            'title' => 'Total',
+                            'value' => $total,
+                            'priority' => 4,
+                            'is_summable' => 0
+                        ]);
+                        
+                        \Log::info('API: Order submitted', ['order_id' => $orderId]);
+                        
+                        syncOrderToPOS($orderId);
+
+                        \Log::info('API: Order sync to POS initiated', ['order_id' => $orderId]);
+                        
+                        // Open cash drawer if payment is cash
+                        if (\App\Helpers\CashDrawerHelper::shouldOpenDrawer($paymentMethod)) {
+                            try {
+                                $locationId = $input['location_id'] ?? 1;
+                                \App\Helpers\CashDrawerHelper::openDrawerForOrder($orderId, $locationId, $paymentMethod);
+                            } catch (\Exception $e) {
+                                // Log error but don't fail the order
+                                \Log::error('Cash Drawer: Failed to open drawer after order creation', [
+                                    'order_id' => $orderId,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
+                        
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Order submitted successfully',
+                            'order_id' => $orderId,
+                            'breakdown' => [
+                                'subtotal' => round($subtotal, 2),
+                                'service' => round($serviceFee, 2),
+                                'service_percentage' => round($servicePercentage * 100, 1),
+                                'tip' => round($tipAmount, 2),
+                                'coupon_discount' => round($couponDiscount, 2),
+                                'total' => round($total, 2)
+                            ]
+                        ]);
+                        
+                    } catch (Exception $e) {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'Failed to submit order: ' . $e->getMessage()
+                        ], 500);
+                    }
+                });
                 
-                // Single source of truth for menu: see Route::get('/menu', ...) at top of this v1 group (with DetectTenant + combos).
+                // Menu endpoints
+                Route::get('/menu', function () {
+                    try {
+                        // Get menu items with categories (matching old API structure)
+                        $p = DB::connection()->getTablePrefix();
+                        $query = "
+                            SELECT 
+                                m.menu_id as id,
+                                m.menu_name as name,
+                                m.menu_description as description,
+                                CAST(m.menu_price AS DECIMAL(10,2)) as price,
+                                COALESCE(c.name, 'Main') as category_name,
+                                ma.name as image,
+                                ma.disk as image_disk
+                            FROM {$p}menus m
+                            LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
+                            LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
+                            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus' 
+                                AND ma.attachment_id = m.menu_id 
+                                AND ma.tag = 'thumb'
+                            WHERE m.menu_status = 1
+                            ORDER BY c.priority ASC, m.menu_name ASC
+                        ";
+                        
+                        $items = DB::select($query);
+                        
+                        // Convert prices to float, fix image paths, and add options
+                        foreach ($items as &$item) {
+                            $item->price = (float)$item->price;
+                            
+                            // CRITICAL FIX: Extract hash from name column if disk is invalid
+                            $hash = null;
+                            if ($item->image_disk && strlen($item->image_disk) >= 9 && $item->image_disk !== 'media') {
+                                $hash = $item->image_disk;
+                            } elseif ($item->image) {
+                                $nameWithoutExt = pathinfo($item->image, PATHINFO_FILENAME);
+                                if (strlen($nameWithoutExt) >= 9 && ctype_alnum($nameWithoutExt)) {
+                                    $hash = $nameWithoutExt;
+                                }
+                            }
+                            
+                            if ($hash && strlen($hash) >= 9) {
+                                $p1 = substr($hash, 0, 3);
+                                $p2 = substr($hash, 3, 3);
+                                $p3 = substr($hash, 6, 3);
+                                $basePath = base_path('assets/media/attachments/public/' . $p1 . '/' . $p2 . '/' . $p3 . '/');
+                                $extensions = ['webp', 'jpg', 'jpeg', 'png'];
+                                $resolved = null;
+                                foreach ($extensions as $ext) {
+                                    $candidate = $basePath . $hash . '.' . $ext;
+                                    if (file_exists($candidate)) {
+                                        $resolved = $p1 . '/' . $p2 . '/' . $p3 . '/' . $hash . '.' . $ext;
+                                        break;
+                                    }
+                                }
+                                if ($resolved) {
+                                    $item->image = "/api/media/" . $resolved;
+                                } else {
+                                    $item->image = "/api/media/" . $item->image;
+                                }
+                            } elseif ($item->image) {
+                                $item->image = "/api/media/" . $item->image;
+                            } else {
+                                $item->image = '/images/pasta.png';
+                            }
+                            
+                            // Fetch menu options for this item
+                            $item->options = getMenuItemOptions($item->id);
+                        }
+                        
+                        // Get all enabled categories
+                        $categoriesQuery = "
+                            SELECT category_id as id, name, priority 
+                            FROM {$p}categories 
+                            WHERE status = 1 
+                            ORDER BY priority ASC, name ASC
+                        ";
+                        $categories = DB::select($categoriesQuery);
+                        
+                        return response()->json([
+                            'success' => true,
+                            'data' => [
+                                'items' => $items,
+                                'categories' => $categories
+                            ]
+                        ]);
+
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'Failed to fetch menu',
+                            'message' => $e->getMessage()
+                        ], 500);
+                    }
+                });
 
                 Route::get('/categories', function () {
                     try {
@@ -688,13 +1070,6 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             'data' => $categories
                         ]);
                     } catch (\Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
                         return response()->json([
                             'success' => false,
                             'error' => 'Failed to fetch categories',
@@ -851,14 +1226,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 try {
                     $candidate = DB::table($t['name'])->where('code', $t['code'])->select('data')->first();
                     if ($candidate && !empty($candidate->data)) { $row = $candidate; break; }
-                } catch (Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]); /* table may not exist, keep trying */ }
+                } catch (Exception $e) { /* table may not exist, keep trying */ }
             }
 
             if ($row && !empty($row->data)) {
@@ -914,13 +1282,6 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     ],
                 ]);
             } catch (Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
                 return response()->json([
                     'success' => true,
                     'data' => [
@@ -990,13 +1351,6 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     ]
                 ]);
             } catch (Exception $e) {
-                \Log::error('PMD_ORDER_DEBUG exception', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'payload_all' => request()->all(),
-                    'raw' => request()->getContent(),
-                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to validate coupon: ' . $e->getMessage()
@@ -1023,7 +1377,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
         });
 
         // Catch-all: proxy all paths to Next when frontend-theme is active, otherwise run TI controller
-        Route::any('{slug?}', function ($slug = null) {
+        Route::any('{slug}', function ($slug) {
             $active = params('default_themes.main', config('system.defaultTheme'));
             if ($active === 'frontend-theme') {
                 $path = '/'.ltrim($slug ?? '', '/');
@@ -1036,7 +1390,6 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     '/simple-theme',
                     '/tax-settings',
                     '/validate-coupon',
-                    '/orders',
                 ];
                 foreach ($exclusions as $ex) {
                     if ($path === $ex || strpos($path, rtrim($ex,'/').'/') === 0) {
@@ -1071,231 +1424,3 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
     });
 });
 // Updated: Thu Aug 21 22:21:44 CEST 2025
-
-
-/* PMD_WORLDLINE_PUBLIC_API_ROUTES */
-Route::get('/api/v1/payments/worldline/debug-config', function () {
-    try {
-        $svc = new \Admin\Classes\WorldlineHostedCheckoutService();
-        $cfg = $svc->getConfig();
-
-        return response()->json([
-            'ok' => true,
-            'provider' => 'worldline',
-            'environment' => $svc->getEnvironment($cfg),
-            'config_id' => $cfg['config_id'],
-            'merchant_id_present' => !empty($cfg['merchant_id']),
-            'api_key_id_present' => !empty($cfg['api_key_id']),
-            'secret_api_key_present' => !empty($cfg['secret_api_key']),
-            'webhook_secret_present' => !empty($cfg['webhook_secret']),
-            'api_endpoint' => $cfg['api_endpoint'],
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('WORLDLINE DEBUG CONFIG ERROR (PUBLIC API)', [
-            'message' => $e->getMessage(),
-        ]);
-
-        return response()->json([
-            'ok' => false,
-            'provider' => 'worldline',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-});
-
-Route::post('/api/v1/payments/worldline/create-hosted-checkout', function (\Illuminate\Http\Request $request) {
-    try {
-        $svc = new \Admin\Classes\WorldlineHostedCheckoutService();
-
-        $payload = [
-            'amount_minor' => (int) $request->input('amount_minor', 0),
-            'currency' => (string) $request->input('currency', 'EUR'),
-            'return_url' => (string) $request->input('return_url', url('/order-placed')),
-            'locale' => (string) $request->input('locale', 'en_GB'),
-            'country_code' => (string) $request->input('country_code', 'DE'),
-            'merchant_customer_id' => (string) $request->input('merchant_customer_id', 'PMD-MIMOZA-TEST'),
-        ];
-
-        \Log::info('WORLDLINE CREATE HOSTED CHECKOUT HIT (PUBLIC API)', [
-            'payload' => $payload,
-            'host' => request()->getHost(),
-        ]);
-
-        $result = $svc->createHostedCheckout($payload);
-
-        \Log::info('WORLDLINE CREATE HOSTED CHECKOUT OK (PUBLIC API)', $result);
-
-        return response()->json([
-            'ok' => true,
-            'provider' => 'worldline',
-            'redirect_url' => $result['redirect_url'],
-            'hosted_checkout_id' => $result['hosted_checkout_id'],
-            'environment' => $result['environment'],
-            'meta' => $result['request_meta'],
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('WORLDLINE CREATE HOSTED CHECKOUT ERROR (PUBLIC API)', [
-            'message' => $e->getMessage(),
-            'class' => get_class($e),
-            'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
-            'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
-            'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'ok' => false,
-            'provider' => 'worldline',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-});
-
-Route::match(['GET','POST'], '/api/v1/worldline/webhook', function (\Illuminate\Http\Request $request) {
-    try {
-        \Log::info('WORLDLINE WEBHOOK HIT (PUBLIC API)', [
-            'host' => request()->getHost(),
-            'headers' => $request->headers->all(),
-            'payload' => $request->all(),
-            'raw' => $request->getContent(),
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'provider' => 'worldline',
-            'message' => 'Webhook received and logged. Signature verification comes in phase 2.',
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('WORLDLINE WEBHOOK ERROR (PUBLIC API)', [
-            'message' => $e->getMessage(),
-        ]);
-
-        return response()->json([
-            'ok' => false,
-            'provider' => 'worldline',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-});
-/* /PMD_WORLDLINE_PUBLIC_API_ROUTES */
-
-
-
-
-Route::get('/api/v1/payments/worldline/auth-diagnostic', function () {
-    try {
-        $svc = new \Admin\Classes\WorldlineHostedCheckoutService();
-        $diag = $svc->getConfigForDiagnostics();
-
-        \Log::info('WORLDLINE AUTH DIAGNOSTIC', $diag);
-
-        return response()->json([
-            'ok' => true,
-            'provider' => 'worldline',
-            'diagnostic' => $diag,
-            'note' => 'If hosted checkout still returns authorization error, the endpoint is reachable but the credential set is not accepted for this merchant/environment combination.',
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('WORLDLINE AUTH DIAGNOSTIC ERROR', [
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'ok' => false,
-            'provider' => 'worldline',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-});
-
-
-
-Route::get('/api/v1/payments/worldline/status/{hostedCheckoutId}', function ($hostedCheckoutId) {
-    try {
-        $svc = new \Admin\Classes\WorldlineHostedCheckoutService();
-        $result = $svc->getHostedCheckoutStatus((string)$hostedCheckoutId);
-
-        \Log::info('WORLDLINE STATUS CHECK', $result);
-
-        return response()->json([
-            'ok' => true,
-            'provider' => 'worldline',
-            'result' => $result,
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('WORLDLINE STATUS CHECK ERROR', [
-            'message' => $e->getMessage(),
-            'class' => get_class($e),
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'ok' => false,
-            'provider' => 'worldline',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-});
-
-Route::get('/api/v1/payments/worldline/return', function (\Illuminate\Http\Request $request) {
-    try {
-        $svc = new \Admin\Classes\WorldlineHostedCheckoutService();
-
-        $hostedCheckoutId = (string)$request->query('hostedCheckoutId', '');
-        $returnMac = (string)$request->query('RETURNMAC', '');
-
-        if ($hostedCheckoutId === '') {
-            return response()->json([
-                'ok' => false,
-                'provider' => 'worldline',
-                'error' => 'Missing hostedCheckoutId on return URL',
-            ], 422);
-        }
-
-        $host = request()->getHost();
-        $saved = $svc->getCheckoutSession($host, $hostedCheckoutId);
-
-        if (!$saved) {
-            return response()->json([
-                'ok' => false,
-                'provider' => 'worldline',
-                'error' => 'Hosted checkout session not found locally',
-                'hosted_checkout_id' => $hostedCheckoutId,
-            ], 404);
-        }
-
-        $savedReturnMac = (string)($saved['return_mac'] ?? '');
-        $returnMacMatches = $savedReturnMac !== '' && $returnMac !== '' && hash_equals($savedReturnMac, $returnMac);
-
-        $status = $svc->getHostedCheckoutStatus($hostedCheckoutId);
-
-        \Log::info('WORLDLINE RETURN HANDLER', [
-            'host' => $host,
-            'hosted_checkout_id' => $hostedCheckoutId,
-            'return_mac_matches' => $returnMacMatches,
-            'status' => $status,
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'provider' => 'worldline',
-            'hosted_checkout_id' => $hostedCheckoutId,
-            'return_mac_matches' => $returnMacMatches,
-            'saved_session' => $saved,
-            'status_result' => $status,
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('WORLDLINE RETURN HANDLER ERROR', [
-            'message' => $e->getMessage(),
-            'class' => get_class($e),
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'ok' => false,
-            'provider' => 'worldline',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-});

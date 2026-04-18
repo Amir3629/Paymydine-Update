@@ -13,10 +13,6 @@ class CreateValetRequestsTable extends Migration
      */
     public function up()
     {
-        if (Schema::hasTable('valet_requests')) {
-            return;
-        }
-
         Schema::create('valet_requests', function (Blueprint $table) {
             $table->id('request_id');
             $table->unsignedBigInteger('table_id');

@@ -580,39 +580,6 @@ class Form extends BaseWidget
     }
 
     /**
-     * After model save: create media attachments from path values submitted by MediaFinder (useAttachment) fields.
-     * This allows "save on form submit" instead of "save on select".
-     *
-     * @param \Igniter\Flame\Database\Model $model
-     * @param array $saveData
-     * @return void
-     */
-    /**
-     * After model save: create media attachments from path values (MediaFinder with useAttachment).
-     * Path is read from saveData; if missing, falls back to request (e.g. Menu.thumb) so it works
-     * regardless of how getSaveData() structures the data.
-     */
-    public function processDeferredAttachments($model, array $saveData)
-    {
-        foreach ($this->formWidgets as $field => $widget) {
-            if (!($widget instanceof \Admin\FormWidgets\MediaFinder) || empty($widget->useAttachment)) {
-                continue;
-            }
-            $parts = name_to_array($field);
-            $value = $this->dataArrayGet($saveData, $parts);
-            // Fallback: read from request by full field name (e.g. Menu[thumb] → Menu.thumb)
-            if ((!is_string($value) || !strlen(trim($value))) && $widget->formField !== null) {
-                $fullName = $widget->formField->getName();
-                $dotKey = str_replace(['[', ']'], ['.', ''], $fullName);
-                $value = request()->input($dotKey);
-            }
-            if (is_string($value) && strlen(trim($value))) {
-                $widget->addAttachmentFromPath(trim($value), $model);
-            }
-        }
-    }
-
-    /**
      * Get all the registered fields for the instance.
      * @return array
      */

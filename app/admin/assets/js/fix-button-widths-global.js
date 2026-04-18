@@ -15,14 +15,6 @@
 
 (function() {
     'use strict';
-
-    if (window.location.pathname.includes('/admin/media_manager')) {
-        return; // Skip on media manager - buttons have their own styling
-    }
-
-    if (window.location.pathname.includes('/admin/cash_drawers')) {
-        return; // Skip on cash drawers to keep primary action buttons in natural form layout
-    }
     
     /**
      * Apply consistent button styles
@@ -64,14 +56,6 @@
         
         // Helper function to check if button should be excluded (regular action buttons)
         function shouldExcludeButton(button) {
-            // EXCLUDE rich editor (Summernote) toolbar - it has its own 38px styling
-            if (button.closest('.note-toolbar') || button.closest('.note-editor')) {
-                return true;
-            }
-            // EXCLUDE all media manager toolbar buttons - they have their own styling
-            if (button.closest('.media-manager') || button.closest('.media-toolbar') || button.closest('#mediamanager-toolbar')) {
-                return true;
-            }
             // EXCLUDE Choose button in media manager - it should be normal size
             if (button.getAttribute('data-control') === 'media-choose') {
                 return true;
@@ -169,10 +153,6 @@
         }
         
         allButtons.forEach(button => {
-            // Skip rich editor toolbar - it has its own 38px styling
-            if (button.closest('.note-toolbar') || button.closest('.note-editor')) {
-                return;
-            }
             // CRITICAL: Skip .btn-primary buttons entirely - they should have width: auto
             if (button.classList.contains('btn-primary') && !button.classList.contains('btn-edit')) {
                 return; // Skip all regular action buttons

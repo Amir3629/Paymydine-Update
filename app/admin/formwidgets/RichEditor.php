@@ -56,7 +56,6 @@ class RichEditor extends BaseFormWidget
         $this->addJs('vendor/summernote/summernote-bs5.min.js', 'summernote-js');
         $this->addCss('css/richeditor.css', 'richeditor-css');
         $this->addJs('js/richeditor.js', 'richeditor-js');
-        $this->addJs('js/richeditor-dropdown-fix.js', 'richeditor-dropdown-fix-js');
     }
 
     /**

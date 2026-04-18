@@ -5,9 +5,9 @@
 /* Toast container - top-right position */
 .notification-toast-container {
   position: fixed;
-  top: 100px;
+  top: 80px;
   right: 20px;
-  z-index: 999997;
+  z-index: 99999;
   pointer-events: none;
 }
 
@@ -19,8 +19,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 8px 12px;
   margin-bottom: 8px;
-  min-width: min(300px, 90vw);
-  max-width: 90vw;
+  min-width: 300px;
+  max-width: 340px;
   pointer-events: all;
   position: relative;
   overflow: hidden;
@@ -79,26 +79,21 @@
   line-height: 1;
 }
 
-/* Close button: always dark so it’s visible on light toast; never turn white */
-.notification-toast-close,
-.notification-toast-close i,
-.notification-toast-close .fa-times {
-  background: transparent !important;
-  border: none !important;
-  color: #374151 !important;
-  font-size: 14px !important;
-  cursor: pointer !important;
-  padding: 0 4px !important;
-  border-radius: 4px !important;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease !important;
-  line-height: 1 !important;
+.notification-toast-close {
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
 }
 
-.notification-toast-close:hover,
-.notification-toast-close:hover i,
-.notification-toast-close:hover .fa-times {
-  background: rgba(0, 0, 0, 0.06) !important;
-  color: #111827 !important;
+.notification-toast-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000000;
   transform: scale(1.1);
 }
 
@@ -176,7 +171,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .notification-toast-container {
-    top: 100px;
+    top: 60px;
     right: 10px;
     left: 10px;
   }
@@ -210,86 +205,5 @@
 
 .bell-glow {
   animation: bellGlow 1s ease-out;
-}
-
-
-
-
-/* =========================================================
-   PMD V3 - TOAST SAFE WIDTH
-   ========================================================= */
-
-@media (max-width: 767.98px) {
-  .notification-toast-container {
-    left: 10px !important;
-    right: 10px !important;
-    width: auto !important;
-    max-width: calc(100vw - 20px) !important;
-  }
-
-  .notification-toast {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-}
-
-
-
-
-/* =========================================================
-   PMD V4 - TOAST COMPACT MODE
-   ========================================================= */
-
-.notification-toast {
-  border-radius: 14px !important;
-}
-
-.notification-toast-header {
-  min-height: 44px !important;
-}
-
-@media (max-width: 991.98px) {
-  .notification-toast-container {
-    top: 76px !important;
-    left: auto !important;
-    right: 12px !important;
-    width: min(340px, calc(100vw - 24px)) !important;
-    max-width: calc(100vw - 24px) !important;
-  }
-
-  .notification-toast {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  .notification-toast-header,
-  .notification-toast-body {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .notification-toast-container {
-    top: 72px !important;
-    right: 10px !important;
-    left: 10px !important;
-    width: auto !important;
-    max-width: calc(100vw - 20px) !important;
-  }
-
-  .notification-toast {
-    box-shadow: 0 8px 20px rgba(0,0,0,.12) !important;
-  }
-
-  .notification-toast-header {
-    min-height: 40px !important;
-  }
-
-  .notification-toast-close {
-    min-width: 36px !important;
-    min-height: 36px !important;
-  }
 }
 

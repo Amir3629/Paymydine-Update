@@ -37,51 +37,6 @@ $config['list']['toolbar'] = [
     ],
 ];
 
-$config['list']['bulkActions'] = [
-    'status' => [
-        'label' => 'lang:admin::lang.list.actions.label_status',
-        'type' => 'dropdown',
-        'class' => 'btn btn-light',
-        'statusColumn' => 'combo_status',
-        'menuItems' => [
-            'enable' => [
-                'label' => 'lang:admin::lang.list.actions.label_enable',
-                'type' => 'button',
-                'class' => 'dropdown-item',
-            ],
-            'disable' => [
-                'label' => 'lang:admin::lang.list.actions.label_disable',
-                'type' => 'button',
-                'class' => 'dropdown-item text-danger',
-            ],
-        ],
-    ],
-    'stockout' => [
-        'label' => 'Stock Out',
-        'type' => 'dropdown',
-        'class' => 'btn btn-light',
-        'widget' => 'Admin\BulkActionWidgets\StockOut',
-        'stockOutColumn' => 'is_stock_out',
-        'menuItems' => [
-            'mark' => [
-                'label' => 'Stock Out',
-                'type' => 'button',
-                'class' => 'dropdown-item text-warning',
-            ],
-            'restore' => [
-                'label' => 'Stock In',
-                'type' => 'button',
-                'class' => 'dropdown-item text-success',
-            ],
-        ],
-    ],
-    'delete' => [
-        'label' => 'lang:admin::lang.button_delete',
-        'class' => 'btn btn-light text-danger',
-        'data-request-confirm' => 'lang:admin::lang.alert_warning_confirm',
-    ],
-];
-
 $config['list']['columns'] = [
     'edit' => [
         'type' => 'button',

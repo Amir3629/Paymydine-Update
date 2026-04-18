@@ -18,8 +18,6 @@ import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/currency"
 import { ApiClient, type PaymentMethod } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
-import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout"
-import WorldlineGridLauncher from "@/components/payment/worldline-grid-launcher"
 
 interface PaymentFlowProps {
   isOpen: boolean
@@ -157,31 +155,7 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
   useEffect(() => {
     const api = new ApiClient();
     api.getPaymentMethods()
-      .then((methods) => {
-        const list = Array.isArray(methods) ? [...methods] : []
-        const exists = list.some((m: any) => String(m?.code || "").toLowerCase() === "worldline")
-        if (!exists) {
-          list.push({
-            id: "worldline",
-            code: "worldline",
-            name: "Worldline",
-            title: "Worldline",
-            label: "Worldline",
-            enabled: true,
-          } as any)
-        }
-        setPaymentMethods(list)
-      })
-      .catch(() => {
-        setPaymentMethods([{
-          id: "worldline",
-          code: "worldline",
-          name: "Worldline",
-          title: "Worldline",
-          label: "Worldline",
-          enabled: true,
-        } as any])
-      })
+      .then(setPaymentMethods)
       .finally(() => setLoadingPayments(false));
   }, [])
 
@@ -191,18 +165,6 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
     if (!selectedMethod) return null
 
     switch (selectedMethod.code) {
-      case "worldline":
-        return <WorldlineGridLauncher />
-
-      case "sumup":
-        return (
-          <SumUpHostedCheckout
-            currency={merchantSettings?.currency || "EUR"}
-            description="PayMyDine SumUp hosted checkout"
-            className="w-full"
-          />
-        );
-
       case "stripe":
       case "authorizenetaim":
         return (
@@ -452,7 +414,6 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
         case "apple_pay":
         case "google_pay":
         case "cod":
-        case "worldline":
           return true
         default:
           return false
@@ -471,8 +432,6 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
           return `Pay with ${selectedMethod.name}`
         case "cod":
           return "Confirm Cash Payment"
-        case "worldline":
-          return "Continue with Worldline"
         default:
           return "Pay"
       }
@@ -686,28 +645,6 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
                       </motion.div>
                     ))
                   )}
-
-                  <motion.div
-                    key="worldline-explicit-button"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    data-pmd-worldline-grid-button="1"
-                  >
-                    <Button
-                      variant="outline"
-                      className="h-14 w-20 rounded-2xl shadow-sm flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--theme-input, #121923)', borderColor: 'var(--theme-menu-item-border, #223042)' }}
-                      onClick={() => handlePaymentMethodSelect("worldline")}
-                    >
-                      <img
-                        src="/images/payments/worldline.svg"
-                        alt="Worldline"
-                        width={40}
-                        height={20}
-                        className="object-contain"
-                      />
-                    </Button>
-                  </motion.div>
                 </div>
               </motion.div>
             ) : (
@@ -726,23 +663,7 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
 
         {/* Fixed Payment Button at Bottom */}
         <AnimatePresence>
-          {selectedPaymentMethod === "worldline" && (
-              <div data-pmd-worldline-hard-fallback="1" className="w-full mt-4">
-                <WorldlineGridLauncher />
-              </div>
-          )}
-
-          {selectedPaymentMethod === "sumup" && (
-              <div data-pmd-sumup-hard-fallback="1" className="w-full mt-4">
-                <SumUpHostedCheckout
-                  currency="EUR"
-                  description="PayMyDine SumUp hosted checkout"
-                  className="w-full"
-                />
-              </div>
-            )}
-
-            {selectedPaymentMethod && (
+          {selectedPaymentMethod && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

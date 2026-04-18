@@ -237,12 +237,7 @@ class NotificationHelper
                 'order_id' => $data['order_id'],
                 'status' => $data['status'],
                 'status_name' => $data['status_name'],
-                'timestamp' => now()->toISOString(),
-                'message' => (string)($data['message'] ?? ''),
-                'amount_paid' => isset($data['amount_paid']) ? (float)$data['amount_paid'] : null,
-                'remaining_amount' => isset($data['remaining_amount']) ? (float)$data['remaining_amount'] : null,
-                'payment_method' => (string)($data['payment_method'] ?? ''),
-                'payment_reference' => (string)($data['payment_reference'] ?? ''),
+                'timestamp' => now()->toISOString()
             ];
 
             // Create more descriptive title based on status
@@ -251,10 +246,7 @@ class NotificationHelper
                 'preparation' => 'Order in Preparation', 
                 'ready' => 'Order Ready',
                 'delivered' => 'Order Delivered',
-                'cancelled' => 'Order Cancelled',
-                'partial_payment' => 'Order Partially Paid',
-                'full_payment' => 'Order Fully Paid',
-                'paid' => 'Order Fully Paid',
+                'cancelled' => 'Order Cancelled'
             ];
             
             $statusMessage = $statusMessages[$data['status']] ?? 'Order Status Updated';

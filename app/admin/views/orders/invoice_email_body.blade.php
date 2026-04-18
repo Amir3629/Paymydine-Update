@@ -44,8 +44,6 @@
         <p><strong>Order Date:</strong> {{ $model->order_date->format('F d, Y') }}</p>
         
         <p>You can open the attached invoice file in your browser and print or save it as PDF.</p>
-
-        <p>The attached invoice may also contain German Fiskaly / TSE receipt information for fiscal compliance.</p>
         
         <p>If you have any questions about your order, please don't hesitate to contact us.</p>
     </div>

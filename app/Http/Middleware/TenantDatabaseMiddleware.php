@@ -6,70 +6,58 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Log;
 
 class TenantDatabaseMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        $subdomain = $this->extractTenantFromDomain($request);
-
-        if (!$subdomain) {
+        // Get tenant from domain
+        $tenant = $this->extractTenantFromDomain($request);
+        
+        if ($tenant) {
+            // Find tenant in main database
+            $tenantInfo = DB::connection('mysql')->table('ti_tenants')
+                ->where('domain', $tenant . '.paymydine.com')
+                ->where('status', 'active')
+                ->first();
+            
+            if ($tenantInfo) {
+                // Switch to tenant database
+                Config::set('database.connections.mysql.database', $tenantInfo->database);
+                
+                // Reconnect with new database
+                DB::purge('mysql');
+                DB::reconnect('mysql');
+                
+                // Store tenant info in request for later use
+                $request->attributes->set('tenant', $tenantInfo);
+            } else {
+                // Tenant not found or inactive
+                return response()->json(['error' => 'Restaurant not found or inactive'], 404);
+            }
+        } else {
+            // No tenant detected from domain
             return response()->json(['error' => 'Invalid domain'], 400);
         }
-
-        // landlord DB = mysql connection using paymydine
-        // logical table name "tenants" => Laravel prefix should resolve to ti_tenants
-        $tenantInfo = DB::connection('mysql')->table('tenants')
-            ->where('domain', $subdomain . '.paymydine.com')
-            ->where('status', 'active')
-            ->first();
-
-        if (!$tenantInfo || empty($tenantInfo->database)) {
-            return response()->json(['error' => 'Restaurant not found or inactive'], 404);
-        }
-
-        // switch only dedicated tenant connection
-        Config::set('database.connections.tenant.database', $tenantInfo->database);
-        Config::set('database.connections.tenant.host', $tenantInfo->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')));
-        Config::set('database.connections.tenant.port', $tenantInfo->db_port ?? env('TENANT_DB_PORT', env('DB_PORT')));
-        Config::set('database.connections.tenant.username', $tenantInfo->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')));
-        Config::set('database.connections.tenant.password', $tenantInfo->db_pass ?? env('TENANT_DB_PASSWORD', env('DB_PASSWORD')));
-
-        DB::purge('tenant');
-        DB::reconnect('tenant');
-        DB::setDefaultConnection('tenant');
-
-        $request->attributes->set('tenant', $tenantInfo);
-        app()->instance('tenant', $tenantInfo);
-
-        Log::info('[TenantDatabaseMiddleware] switched tenant connection', [
-            'host' => $request->getHost(),
-            'subdomain' => $subdomain,
-            'tenant_domain' => $tenantInfo->domain ?? null,
-            'tenant_db' => $tenantInfo->database ?? null,
-        ]);
-
+        
         return $next($request);
     }
-
-    private function extractTenantFromDomain(Request $request): ?string
+    
+    private function extractTenantFromDomain(Request $request)
     {
         $hostname = $request->getHost();
-        if (!$hostname) {
-            return null;
-        }
-
         $parts = explode('.', $hostname);
-
+        
+        // Extract subdomain (e.g., "rosana" from "rosana.paymydine.com")
         if (count($parts) >= 3 && $parts[1] === 'paymydine') {
             return $parts[0];
         }
-
+        
+        // For development/testing, also check for localhost patterns
         if (count($parts) >= 2 && $parts[0] !== 'www') {
             return $parts[0];
         }
-
+        
         return null;
     }
-}
+} 

@@ -1,6 +1,5 @@
 "use client"
-export const dynamic = "force-dynamic";
-import { useEffect, Suspense } from "react"
+import { useEffect, use, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { MultiTenantConfig } from "@/lib/multi-tenant-config"
 
@@ -49,7 +48,7 @@ function TableMenuContent({ table_id }: { table_id: string }) {
 }
 
 export default function TenantTableMenu({ params }: { params: Promise<{ table_id: string }> }) {
-  const { table_id } = params
+  const { table_id } = use(params)
   
   return (
     <Suspense fallback={

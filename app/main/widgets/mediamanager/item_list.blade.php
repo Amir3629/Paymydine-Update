@@ -1,7 +1,3 @@
-@if ($this->getSetting('uploads'))
-    {!! $this->makePartial('mediamanager/uploader') !!}
-@endif
-
 <input type="hidden" data-media-type="current-folder" value="{{ $currentFolder }}"/>
 
 @if ($items)

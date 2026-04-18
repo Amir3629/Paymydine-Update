@@ -15,7 +15,6 @@ import { useToast } from "./ui/use-toast"
 import type { TranslationKey } from "@/lib/translations"
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/currency"
-import WorldlineHostedCheckout from "@/components/payment/worldline-hosted-checkout"
 import { PaymentData, PaymentResult, paymentService } from "@/lib/payment-service"
 import { StripeCardForm } from "./secure-payment-form"
 import { PayPalForm } from "./secure-payment-form"
@@ -24,7 +23,6 @@ import { GooglePayButton } from "./secure-payment-form"
 import { CashPaymentForm } from "./secure-payment-form"
 import { ApiClient, type PaymentMethod } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
-import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout"
 
 interface SecurePaymentFlowProps {
   isOpen: boolean
@@ -53,76 +51,14 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
   const [isInitialized, setIsInitialized] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loadingPayments, setLoadingPayments] = useState(true)
-  const [stripeConfig, setStripeConfig] = useState<{ publishableKey: string; mode: string } | null>(null)
-  const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
-  const [paypalConfig, setPaypalConfig] = useState<{ enabled: boolean; clientId: string; currency: string; countryCode: string } | null>(null)
-  const [worldlineEnabled, setWorldlineEnabled] = useState(false)
 
-  // Fetch Stripe config from Laravel (tenant keys from DB)
-
-  // Fetch public payment config from Laravel (NO CMS / NO secrets)
-  useEffect(() => {
-    if (!isOpen) return
-    let cancelled = false
-
-    fetch('/api/v1/payments/config-public')
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return
-        setPaypalConfig({
-          enabled: !!data?.paypalEnabled,
-          clientId: data?.paypalClientId || '',
-          currency: data?.currency || 'EUR',
-          countryCode: data?.countryCode || 'DE',
-        })
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPaypalConfig({
-            enabled: false,
-            clientId: '',
-            currency: 'EUR',
-            countryCode: 'DE',
-          })
-        }
-      })
-
-    return () => { cancelled = true }
-  }, [isOpen])
-
-
-  useEffect(() => {
-    if (!isOpen) return
-    let cancelled = false
-    fetch('/api/v1/payments/stripe/config')
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return
-        if (data?.success && data.publishableKey != null) {
-          setStripeConfig({ publishableKey: data.publishableKey || '', mode: data.mode || 'test' })
-          setStripeConfigError(null)
-        } else {
-          setStripeConfig({ publishableKey: '', mode: 'test' })
-          setStripeConfigError(data?.error || 'Stripe config unavailable')
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setStripeConfig(null)
-          setStripeConfigError('Failed to load Stripe configuration')
-        }
-      })
-    return () => { cancelled = true }
-  }, [isOpen])
-
-  // Initialize payment service (use Stripe key from API when available)
+  // Initialize payment service
   useEffect(() => {
     const initializePayment = async () => {
       try {
-        const stripeKey = stripeConfig?.publishableKey ?? merchantSettings.stripePublishableKey ?? ''
         await paymentService.initialize({
-          stripePublishableKey: stripeKey,
-          paypalClientId: paypalConfig?.clientId || '',
+          stripePublishableKey: merchantSettings.stripePublishableKey,
+          paypalClientId: merchantSettings.paypalClientId,
           environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
         })
         setIsInitialized(true)
@@ -139,7 +75,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
     if (isOpen && !isInitialized) {
       initializePayment()
     }
-  }, [isOpen, isInitialized, merchantSettings, stripeConfig?.publishableKey, paypalConfig?.clientId, toast])
+  }, [isOpen, isInitialized, merchantSettings, toast])
 
   // Flatten allItems into individual item instances
   const allItemInstances: ItemInstance[] = allItems.flatMap((cartItem, cartIndex) =>
@@ -169,7 +105,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
   // Create payment data
   const paymentData: PaymentData = {
     amount: finalTotal,
-    currency: merchantSettings.currency || 'EUR',
+    currency: merchantSettings.currency || 'USD',
     items: itemsToPay.map(inst => ({
       id: inst.item.id,
       name: inst.item.name,
@@ -260,56 +196,24 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
     }
 
     switch (selectedMethod.code) {
-      case "sumup":
-        return (
-          <SumUpHostedCheckout
-            currency={merchantSettings?.currency || "EUR"}
-            description="PayMyDine SumUp hosted checkout"
-            className="w-full"
-          />
-        );
-
       case "stripe":
       case "authorizenetaim":
-        if (stripeConfigError || (stripeConfig && !stripeConfig.publishableKey)) {
-          return (
-            <div className="rounded-xl p-4 bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <span>
-                {stripeConfigError || 'Stripe is not configured for this store. Please add your Stripe keys in the admin panel.'}
-              </span>
-            </div>
-          )
-        }
-        if (!stripeConfig) {
-          return (
-            <div className="text-paydine-elegant-gray text-sm py-4">Loading Stripe...</div>
-          )
-        }
         return (
-          <Elements stripe={loadStripe(stripeConfig.publishableKey)}>
+          <Elements stripe={loadStripe(merchantSettings.stripePublishableKey)}>
             <StripeCardForm {...commonProps} />
           </Elements>
         )
+
       case "paypal":
-      case "paypalexpress":
-        if (!paypalConfig?.enabled || !paypalConfig?.clientId) {
-          return (
-            <div className="rounded-xl p-4 bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm">
-              PayPal is not configured for this restaurant.
-            </div>
-          )
-        }
         return (
           <PayPalScriptProvider options={{
-            clientId: paypalConfig.clientId,
-            currency: paypalConfig.currency || merchantSettings.currency || 'EUR',
+            clientId: merchantSettings.paypalClientId,
+            currency: merchantSettings.currency || 'USD',
             intent: 'capture',
           }}>
             <PayPalForm {...commonProps} />
           </PayPalScriptProvider>
         )
-
 
       case "apple_pay":
         return <ApplePayButton {...commonProps} />
@@ -466,29 +370,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
             </div>
           )}
 
-
-          {worldlineEnabled ? (
-            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="mb-3">
-                <h3 className="text-base font-semibold text-white">Worldline</h3>
-                <p className="text-xs text-white/70">
-                  You will be redirected to the secure Worldline checkout page.
-                </p>
-              </div>
-
-              <WorldlineHostedCheckout
-                amount={finalTotal}
-                currency={merchantSettings?.currency || "EUR"}
-                countryCode={paypalConfig?.countryCode || "DE"}
-                merchantCustomerId="PMD-CHECKOUT-LIVE"
-                returnUrl={`${typeof window !== "undefined" ? window.location.origin : "https://mimoza.paymydine.com"}/worldline-return`}
-                buttonLabel={`Pay ${formatCurrency(finalTotal)} with Worldline`}
-                className="w-full rounded-xl px-4 py-3 font-semibold bg-paydine-champagne text-black hover:opacity-90"
-              />
-            </div>
-          ) : null}
-
-          {/* Order Summary (prices incl. tax) */}
+          {/* Order Summary */}
           <div className="bg-paydine-rose-beige/20 rounded-2xl p-3 space-y-1 border border-paydine-champagne/20">
             <div className="flex justify-between text-xs text-gray-600">
               <span>{t("subtotal")}</span>

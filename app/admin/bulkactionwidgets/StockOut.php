@@ -55,12 +55,12 @@ class StockOut extends BaseBulkActionWidget
             try {
                 $action = ($stockOutAction === 'mark') ? 'stock_out' : 'stock_in';
                 
-                // Convert to objects for notification helper (menus have menu_id/menu_name, combos have combo_id/combo_name)
+                // Convert to objects for notification helper
                 $menuItems = [];
                 foreach ($records as $record) {
                     $menuItems[] = (object)[
-                        'menu_id' => $record->menu_id ?? $record->combo_id ?? null,
-                        'menu_name' => $record->menu_name ?? $record->combo_name ?? 'Item'
+                        'menu_id' => $record->menu_id,
+                        'menu_name' => $record->menu_name
                     ];
                 }
                 

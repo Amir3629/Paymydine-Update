@@ -36,19 +36,6 @@ html body ul.form-nav.nav-tabs li.nav-item[role="presentation"] .nav-link.active
   border-color: rgb(54, 74, 99) !important;
 }
 
-/* Kitchendisplay / KDS open button: center the icon in the button */
-a.btn[href*="kitchendisplay"] {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-}
-a.btn[href*="kitchendisplay"] i {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
 /* Ensure non-active tabs have NO visible border */
 html body .form-nav.nav-tabs .nav-link:not(.active),
 html body .form-nav.nav-tabs .nav-item .nav-link:not(.active),
@@ -104,167 +91,21 @@ button[data-bs-toggle="modal"][data-bs-target*="setup-modal"] i,
   display: inline-block;
 }
 
-/* =====================================================
-   PROGRESS INDICATOR BUTTONS - SINGLE CANONICAL SIZE
-   Prevents size flash on load: one rule set, no competing CSS/JS.
-   High specificity so it wins over .toolbar-action .btn and other later CSS.
-   ===================================================== */
-.toolbar-action .progress-indicator-container .btn,
-.toolbar-action .progress-indicator-container .btn-outline-secondary,
-.toolbar-action .progress-indicator-container .btn-primary,
-.toolbar-action .progress-indicator-container a.btn,
-.toolbar-action .progress-indicator-container button.btn,
-.progress-indicator-container .btn,
-.progress-indicator-container .btn-outline-secondary,
-.progress-indicator-container .btn-primary,
-.progress-indicator-container a.btn,
-.progress-indicator-container button.btn,
-.progress-indicator-container [data-request="onSave"],
-.progress-indicator-container .btn-primary[data-request="onSave"],
-.progress-indicator-container .btn-group .btn,
-.progress-indicator-container .btn-group [data-request="onSave"] {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  width: auto !important;
-  flex: 0 0 auto !important;
-  flex-grow: 0 !important;
-  flex-shrink: 0 !important;
-  flex-basis: auto !important;
-  height: 40px !important;
-  min-height: 40px !important;
-  padding: 0.55rem 1.75rem !important;
-  line-height: 1.3 !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-  box-sizing: border-box !important;
-}
-
-/* Back button only: square (icon-only), white icon from first paint to avoid flash */
-.toolbar-action .progress-indicator-container > .btn-outline-secondary,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary,
-.progress-indicator-container > .btn-outline-secondary,
-.progress-indicator-container > a.btn-outline-secondary {
-  width: 40px !important;
-  min-width: 40px !important;
-  padding: 0 !important;
-  color: #ffffff !important;
-  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
-  border: 1px solid #364a63 !important;
-  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
-}
-.progress-indicator-container > .btn-outline-secondary i,
-.progress-indicator-container > a.btn-outline-secondary i,
-.toolbar-action .progress-indicator-container > .btn-outline-secondary i,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary i {
-  color: #ffffff !important;
-}
-/* Back button: same hover/focus/active effect as Save (primary) button */
-.toolbar-action .progress-indicator-container > .btn-outline-secondary:hover,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary:hover,
-.progress-indicator-container > .btn-outline-secondary:hover,
-.progress-indicator-container > a.btn-outline-secondary:hover {
-  color: #ffffff !important;
-  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
-  background-color: #526484 !important;
-  border: 1px solid #526484 !important;
-  border-color: #526484 !important;
-  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.4) !important;
-}
-.toolbar-action .progress-indicator-container > .btn-outline-secondary:focus,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary:focus,
-.progress-indicator-container > .btn-outline-secondary:focus,
-.progress-indicator-container > a.btn-outline-secondary:focus {
-  color: #ffffff !important;
-  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
-  background-color: #364a63 !important;
-  border: 1px solid #526484 !important;
-  border-color: #526484 !important;
-  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.4), 0 0 0 0.25rem rgba(54, 74, 99, 0.25) !important;
-}
-.toolbar-action .progress-indicator-container > .btn-outline-secondary:active,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary:active,
-.progress-indicator-container > .btn-outline-secondary:active,
-.progress-indicator-container > a.btn-outline-secondary:active {
-  color: #ffffff !important;
-  background: linear-gradient(135deg, #2a3a4e 0%, #364a63 100%) !important;
-  background-color: #364a63 !important;
-  border: 1px solid #364a63 !important;
-  border-color: #364a63 !important;
-  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.35) !important;
-}
-.progress-indicator-container > .btn-outline-secondary:hover i,
-.progress-indicator-container > .btn-outline-secondary:focus i,
-.progress-indicator-container > .btn-outline-secondary:active i,
-.progress-indicator-container > a.btn-outline-secondary:hover i,
-.progress-indicator-container > a.btn-outline-secondary:focus i,
-.progress-indicator-container > a.btn-outline-secondary:active i,
-.toolbar-action .progress-indicator-container > .btn-outline-secondary:hover i,
-.toolbar-action .progress-indicator-container > .btn-outline-secondary:focus i,
-.toolbar-action .progress-indicator-container > .btn-outline-secondary:active i,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary:hover i,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary:focus i,
-.toolbar-action .progress-indicator-container > a.btn-outline-secondary:active i {
-  color: #ffffff !important;
-}
-
-/* Toolbar Delete button: ice/white button like others, ONLY the icon is red. Exclude languages edit. */
-.progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *),
-.toolbar-action .progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *) {
-  background: #f1f4fb !important;
-  background-color: #f1f4fb !important;
-  border: 2px solid #c9d2e3 !important;
-  color: #202938 !important;
-  box-shadow: none !important;
-}
-.progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *):hover,
-.toolbar-action .progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *):hover,
-.progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *):focus,
-.toolbar-action .progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *):focus {
-  background: #e8ecf5 !important;
-  background-color: #e8ecf5 !important;
-  border-color: #c9d2e3 !important;
-  color: #202938 !important;
-}
-/* Only the trash icon is red */
-.progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *) i,
-.toolbar-action .progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *) i {
-  color: #dc3545 !important;
-}
-.progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *):hover i,
-.progress-indicator-container [data-request="onDelete"]:not(.toolbar-languages-edit-right *):focus i {
-  color: #dc3545 !important;
-}
-
 /* Fix Save button width - prevent stretching in btn-group (like system_logs page buttons) */
-/* Toolbar primary buttons (Save, New, etc.): same size as modal footer - 110px min-width, 0.55rem 1.75rem */
+/* Override Bootstrap's .btn-group > .btn { flex: 1 1 auto } rule for Save buttons */
 .btn-group [data-request="onSave"],
 .btn-group .btn-primary[data-request="onSave"],
 .btn-group .btn[data-request="onSave"],
 .progress-indicator-container [data-request="onSave"],
-.progress-indicator-container .btn-primary[data-request="onSave"],
-.progress-indicator-container .btn-group [data-request="onSave"],
-.progress-indicator-container .btn-group button[data-request="onSave"],
-.progress-indicator-container > .btn-primary,
-.progress-indicator-container > a.btn-primary,
-.toolbar-action .progress-indicator-container > .btn-primary,
-.toolbar-action .progress-indicator-container > a.btn-primary {
+.progress-indicator-container .btn-primary[data-request="onSave"] {
   flex: 0 0 auto !important;
   flex-grow: 0 !important;
   flex-shrink: 0 !important;
   flex-basis: auto !important;
   width: auto !important;
-  min-width: 110px !important;
-  padding: 0.55rem 1.75rem !important;
-  height: 40px !important;
-  min-height: 40px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-sizing: border-box !important;
-  border-width: 2px !important;
-  text-align: center !important;
 }
 
 /* Fix btn-group to be inline inside progress-indicator-container - prevents new line */
@@ -286,148 +127,8 @@ div.progress-indicator-container div.btn-group,
   clear: none !important;
 }
 
-/* Save loading: no gray overlay on toolbar - keep background transparent so only spinner shows */
-.toolbar-action .progress-indicator-container.in-progress .progress-indicator,
-.progress-indicator-container.in-progress .progress-indicator {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.toolbar-action .progress-indicator-container.in-progress .progress-indicator.is-opaque,
-.progress-indicator-container.in-progress .progress-indicator.is-opaque {
-  background: transparent !important;
-}
-
-/* Remove white left-to-right shine on hover from toolbar primary buttons */
-.progress-indicator-container .btn-primary::before,
-.toolbar-action .progress-indicator-container .btn-primary::before {
-  display: none !important;
-  content: none !important;
-}
-
-/* Force NO green on toolbar / progress-indicator primary - solid blue only, 2px border */
-html body .toolbar-action .btn-primary,
-html body .toolbar-action .progress-indicator-container .btn-primary,
-html body .progress-indicator-container .btn-primary,
-.toolbar-action .btn-primary,
-.toolbar-action .progress-indicator-container .btn-primary,
-.progress-indicator-container .btn-primary,
-.toolbar-action .btn-primary[data-request="onSave"],
-.progress-indicator-container .btn-primary[data-request="onSave"] {
-  --bs-primary-rgb: 54, 74, 99 !important;
-  --bs-btn-focus-shadow-rgb: 54, 74, 99 !important;
-  background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
-  background-color: #364a63 !important;
-  border: 2px solid #364a63 !important;
-  border-color: #364a63 !important;
-  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.35) !important;
-  color: #ffffff !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-html body .toolbar-action .btn-primary:hover,
-html body .toolbar-action .progress-indicator-container .btn-primary:hover,
-html body .progress-indicator-container .btn-primary:hover,
-.toolbar-action .btn-primary:hover,
-.toolbar-action .progress-indicator-container .btn-primary:hover,
-.progress-indicator-container .btn-primary:hover,
-.toolbar-action .btn-primary[data-request="onSave"]:hover,
-.progress-indicator-container .btn-primary[data-request="onSave"]:hover {
-  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
-  background-color: #526484 !important;
-  border-color: #526484 !important;
-  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.4) !important;
-  color: #ffffff !important;
-  transform: translateY(-1px) !important;
-}
-html body .toolbar-action .btn-primary:focus,
-html body .toolbar-action .progress-indicator-container .btn-primary:focus,
-.toolbar-action .btn-primary:focus,
-.toolbar-action .progress-indicator-container .btn-primary:focus,
-.progress-indicator-container .btn-primary:focus,
-.toolbar-action .btn-primary[data-request="onSave"]:focus,
-.progress-indicator-container .btn-primary[data-request="onSave"]:focus {
-  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
-  background-color: #364a63 !important;
-  border-color: #526484 !important;
-  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.4), 0 0 0 0.25rem rgba(54, 74, 99, 0.25) !important;
-  color: #ffffff !important;
-  transform: translateY(-1px) !important;
-}
-html body .toolbar-action .btn-primary:active,
-html body .toolbar-action .progress-indicator-container .btn-primary:active,
-.toolbar-action .btn-primary:active,
-.toolbar-action .progress-indicator-container .btn-primary:active,
-.progress-indicator-container .btn-primary:active,
-.toolbar-action .btn-primary[data-request="onSave"]:active,
-.progress-indicator-container .btn-primary[data-request="onSave"]:active {
-  background: linear-gradient(135deg, #2a3a4e 0%, #364a63 100%) !important;
-  background-color: #364a63 !important;
-  border-color: #364a63 !important;
-  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.35) !important;
-  color: #ffffff !important;
-  transform: translateY(0) !important;
-}
-
-/* Toolbar default/ice buttons (Combo, POS Devices List, etc.): same size as primary (110px), same hover effect */
-.progress-indicator-container .btn-default,
-.progress-indicator-container > a.btn-default,
-.progress-indicator-container .btn-group .btn-default,
-.toolbar-action .progress-indicator-container .btn-default,
-.toolbar-action .progress-indicator-container .btn-group .btn-default {
-  min-width: 110px !important;
-  padding: 0.55rem 1.75rem !important;
-  height: 40px !important;
-  min-height: 40px !important;
-  border-width: 2px !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-.progress-indicator-container .btn-default:hover,
-.progress-indicator-container > a.btn-default:hover,
-.progress-indicator-container .btn-group .btn-default:hover,
-.toolbar-action .progress-indicator-container .btn-default:hover {
-  background: #e9ecf3 !important;
-  background-color: #e9ecf3 !important;
-  border-color: #c9d2e3 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-  transform: translateY(-1px) !important;
-}
-.progress-indicator-container .btn-default:focus,
-.progress-indicator-container > a.btn-default:focus,
-.toolbar-action .progress-indicator-container .btn-default:focus {
-  background: #e9ecf3 !important;
-  background-color: #e9ecf3 !important;
-  border-color: #c9d2e3 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 0.2rem rgba(201, 210, 227, 0.35) !important;
-  transform: translateY(-1px) !important;
-}
-.progress-indicator-container .btn-default:active,
-.progress-indicator-container > a.btn-default:active,
-.toolbar-action .progress-indicator-container .btn-default:active {
-  background: #e0e4ed !important;
-  background-color: #e0e4ed !important;
-  border-color: #c9d2e3 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
-  transform: translateY(0) !important;
-}
-
-/* btn-add-widget, btn-close-modal - same size as toolbar (110px) */
-.btn-add-widget,
-.btn-close-modal {
-  min-width: 110px !important;
-  padding: 0.55rem 1.75rem !important;
-}
-
-/* Mail Templates Page - One button left (New), two buttons right (Layouts, Partials) */
-/* When layout class is set by JS, use flex-start so first link's margin-right:auto pushes the rest right */
-.toolbar-mail-templates-layout.progress-indicator-container,
-.toolbar-action .toolbar-mail-templates-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
+/* Mail Templates Page - Position Layouts and Partials buttons on the right side */
+/* Make toolbar-action use flexbox with space-between to separate left and right buttons */
 .toolbar-action .progress-indicator-container {
   display: flex !important;
   justify-content: space-between !important;
@@ -437,194 +138,60 @@ html body .toolbar-action .progress-indicator-container .btn-primary:active,
   gap: 10px !important;
 }
 
-/* Mail templates: left side (New button only) */
-.toolbar-mail-templates-layout > a[href*="mail_templates/create"] {
+/* Left side buttons group (New button) - stays on left */
+.toolbar-action .progress-indicator-container > a[href*="mail_templates/create"] {
   margin-right: auto !important;
   margin-left: 0 !important;
 }
 
-/* Mail templates: right-side group (Layouts + Partials) - JS wraps these in .toolbar-mail-templates-right */
-.toolbar-mail-templates-layout .toolbar-mail-templates-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
+/* Right side buttons group (Layouts and Partials) - moved to right */
+.toolbar-action .progress-indicator-container > a[href*="mail_layouts"] {
   margin-left: auto !important;
+  margin-right: 10px !important;
 }
 
-/* Mail templates edit page - Delete button on the right (JS wraps in .toolbar-mail-templates-edit-right) */
-.toolbar-mail-templates-edit-layout.progress-indicator-container,
-.toolbar-action .toolbar-mail-templates-edit-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
-.toolbar-mail-templates-edit-layout .toolbar-mail-templates-edit-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  margin-left: auto !important;
-}
-
-/* System Logs Page - Refresh on left, Empty Logs + Request Logs grouped on the right (JS wraps in .toolbar-system-logs-right) */
-.toolbar-system-logs-layout.progress-indicator-container,
-.toolbar-action .toolbar-system-logs-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
-/* Keep Refresh (first child) pinned to the left - no auto margins so it never centers */
-.toolbar-system-logs-layout > a[href*="system_logs"]:first-child {
+.toolbar-action .progress-indicator-container > a[href*="mail_partials"] {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
 
-/* Right group must stick to the end */
-.toolbar-system-logs-layout .toolbar-system-logs-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
+/* System Logs Page - Refresh button stays on left, Empty Logs and Request Logs go to right */
+/* Refresh button stays on left */
+.toolbar-action .progress-indicator-container > a[href*="system_logs"]:first-child,
+.toolbar-action .progress-indicator-container > a[href="system_logs"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+/* Empty Logs button - move to right */
+.toolbar-action .progress-indicator-container > button[data-request="onEmptyLog"],
+.toolbar-action .progress-indicator-container > a[data-request="onEmptyLog"],
+.toolbar-action .progress-indicator-container > button[data-request*="onEmptyLog"] {
   margin-left: auto !important;
+  margin-right: 10px !important;
+}
+
+/* Request Logs button - move to right next to Empty Logs */
+.toolbar-action .progress-indicator-container > a[href*="request_logs"] {
+  margin-left: 0 !important;
   margin-right: 0 !important;
 }
 
-/* Menus page - New button on the left, Combo in .toolbar-menus-right on the right */
-.toolbar-menus-layout.progress-indicator-container,
-.toolbar-action .toolbar-menus-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
+/* Staffs Page - Position Groups and Roles buttons on the right side */
+/* Create button stays on left, Groups and Roles go to right */
+.toolbar-action .progress-indicator-container > a[href*="staffs/create"] {
+  margin-right: auto !important;
+  margin-left: 0 !important;
 }
 
-.toolbar-menus-layout .toolbar-menus-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
+.toolbar-action .progress-indicator-container > a[href*="staff_groups"] {
   margin-left: auto !important;
+  margin-right: 10px !important;
 }
 
-/* Staffs Page - One button left (New), Groups + Roles grouped on the right (JS wraps in .toolbar-staffs-right) */
-.toolbar-staffs-layout.progress-indicator-container,
-.toolbar-action .toolbar-staffs-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
-.toolbar-staffs-layout .toolbar-staffs-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  margin-left: auto !important;
-}
-
-/* POS configs edit page - Back + Save on left, all other buttons on the right (JS wraps in .toolbar-pos-configs-edit-right) */
-.toolbar-pos-configs-edit-layout.progress-indicator-container,
-.toolbar-action .toolbar-pos-configs-edit-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
-.toolbar-pos-configs-edit-layout .toolbar-pos-configs-edit-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  margin-left: auto !important;
-  flex-wrap: wrap !important;
-}
-
-/* Staffs edit page - Delete (and Impersonate) on the right (JS wraps in .toolbar-staffs-edit-right) */
-.toolbar-staffs-edit-layout.progress-indicator-container,
-.toolbar-action .toolbar-staffs-edit-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
-.toolbar-staffs-edit-layout .toolbar-staffs-edit-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  margin-left: auto !important;
-}
-
-/* Languages edit page - Check for updates + Delete on the right, both ice/white (JS wraps in .toolbar-languages-edit-right) */
-.toolbar-languages-edit-layout.progress-indicator-container,
-.toolbar-action .toolbar-languages-edit-layout.progress-indicator-container {
-  justify-content: flex-start !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
-.toolbar-languages-edit-layout .toolbar-languages-edit-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  margin-left: auto !important;
-}
-
-/* Keep Check for updates and Delete in ice/white on languages edit - no color change on hover/focus/active */
-.toolbar-languages-edit-right .btn,
-.toolbar-languages-edit-right button,
-.toolbar-languages-edit-right a.btn {
-  background: #f1f4fb !important;
-  background-color: #f1f4fb !important;
-  border: 2px solid #c9d2e3 !important;
-  color: #202938 !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-.toolbar-languages-edit-right .btn:hover,
-.toolbar-languages-edit-right .btn:focus,
-.toolbar-languages-edit-right .btn:active,
-.toolbar-languages-edit-right button:hover,
-.toolbar-languages-edit-right button:focus,
-.toolbar-languages-edit-right button:active,
-.toolbar-languages-edit-right a.btn:hover,
-.toolbar-languages-edit-right a.btn:focus,
-.toolbar-languages-edit-right a.btn:active {
-  background: #f1f4fb !important;
-  background-color: #f1f4fb !important;
-  border: 2px solid #c9d2e3 !important;
-  color: #202938 !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-.toolbar-languages-edit-right .btn i,
-.toolbar-languages-edit-right button i,
-.toolbar-languages-edit-right a.btn i {
-  color: #202938 !important;
-}
-.toolbar-languages-edit-right .btn:hover i,
-.toolbar-languages-edit-right .btn:focus i,
-.toolbar-languages-edit-right .btn:active i,
-.toolbar-languages-edit-right button:hover i,
-.toolbar-languages-edit-right a.btn:hover i {
-  color: #202938 !important;
+.toolbar-action .progress-indicator-container > a[href*="staff_roles"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* =====================================================
@@ -1010,28 +577,9 @@ button[data-control="media-choose"] .fa,
 }
 
 /* =====================================================
-   btn-group-toggle radio buttons - GLOBAL (modals, settings, forms)
-   Ensure clickable, visible, same style as geocoder/ Nominatim
+   SETTINGS PAGE - Fix btn-group-toggle radio buttons
+   Ensure checked/active state is visible
    ===================================================== */
-
-/* Ensure ALL btn-group-toggle labels are clickable, visible, round (like settings page) */
-html body .btn-group-toggle label.btn,
-html body .btn-group-toggle .btn,
-.btn-group-toggle label.btn,
-.btn-group-toggle .btn {
-  pointer-events: auto !important;
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 10 !important;
-  border-radius: 12px !important;
-  padding: 0.4rem 1rem !important;
-}
-.btn-group-toggle .btn-check:checked + .btn,
-.btn-group-toggle .btn-check:checked + label.btn {
-  color: rgb(255, 255, 255) !important;
-}
 
 /* Active/Checked state for toggle button groups - INSTANT color change (no delay) */
 /* Override ALL possible transitions - maximum specificity */
@@ -1049,7 +597,6 @@ html body .btn-group-toggle input[type="radio"]:checked + .btn,
   color: rgb(255, 255, 255) !important;
   box-shadow: rgba(31, 43, 58, 0.3) 0px 4px 15px !important;
   z-index: 2 !important;
-  border-radius: 12px !important;
   /* COMPLETELY REMOVE ALL TRANSITIONS - instant change */
   transition: none !important;
   transition-property: none !important;
@@ -1101,7 +648,6 @@ html body .btn-group-toggle input[type="radio"]:checked + .btn *,
   border-color: rgb(201, 210, 227) !important;
   color: rgb(32, 41, 56) !important;
   box-shadow: none !important;
-  border-radius: 12px !important;
   /* Keep transitions for unchecked buttons (hover effects) */
   transition: background 0.15s ease, border-color 0.15s ease !important;
 }
@@ -1365,94 +911,65 @@ html body .btn-group-toggle input[type="radio"]:checked + label.btn {
 }
 
 /* =====================================================
-   ALL PAGES - Toolbar order: LEFT 1 Back, 2 New, 3 Save. RIGHT all other buttons.
+   ALL EDIT PAGES - Group Save button with Back button on left
+   Delete button on right side
    ===================================================== */
 
-.progress-indicator-container,
-.toolbar-action .progress-indicator-container {
-  justify-content: flex-start !important;
+/* Use space-between to separate left and right groups */
+.progress-indicator-container {
+  justify-content: space-between !important; /* Left group and right group */
   align-items: center !important;
   flex-wrap: wrap !important;
-  gap: 10px !important;
 }
 
-/* 1) Back - first on left */
+/* Back button on left */
 .progress-indicator-container > .btn-outline-secondary,
 .progress-indicator-container > a.btn-outline-secondary {
-  margin-right: 0 !important;
+  margin-right: 10px !important;
   margin-left: 0 !important;
-  order: 1 !important;
-  flex-shrink: 0 !important;
+  order: 1 !important; /* Ensure Back button is first */
 }
 
-/* 2) New (primary create link) - second on left */
-.progress-indicator-container > a.btn-primary[href*="create"] {
-  order: 2 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  flex-shrink: 0 !important;
-}
-
-/* btn-group that contains New (create link) - second on left */
-.progress-indicator-container > .btn-group:has(a.btn-primary[href*="create"]) {
-  order: 2 !important;
+/* btn-group containing Save button - right after Back button */
+.progress-indicator-container > .btn-group {
+  order: 2 !important; /* Right after Back button */
   margin-left: 0 !important;
   margin-right: 0 !important;
   display: inline-flex !important;
-  flex-shrink: 0 !important;
 }
 
-/* 3) Save - third on left */
-.progress-indicator-container > [data-request="onSave"]:not(.btn-group),
-.progress-indicator-container > button[data-request="onSave"]:not(.btn-group) {
-  order: 3 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  flex-shrink: 0 !important;
-}
-
-/* btn-group that contains Save (and no create link) - third on left */
-.progress-indicator-container > .btn-group:has([data-request="onSave"]):not(:has(a.btn-primary[href*="create"])) {
-  order: 3 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  display: inline-flex !important;
-  flex-shrink: 0 !important;
-}
-
+/* Save button inside btn-group (left side) */
 .progress-indicator-container > .btn-group [data-request="onSave"],
 .progress-indicator-container > .btn-group button[data-request="onSave"] {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
 
-/* Right side: bulk container + all other buttons */
-#toolbar-bulk-container {
-  order: 10 !important;
-  margin-left: auto !important;
+/* Save button directly in container (if not in btn-group) */
+.progress-indicator-container > [data-request="onSave"]:not(.btn-group),
+.progress-indicator-container > button[data-request="onSave"]:not(.btn-group) {
+  order: 2 !important;
+  margin-left: 0 !important;
   margin-right: 0 !important;
-  flex-shrink: 0 !important;
 }
 
-.progress-indicator-container > .btn-group:not(:has([data-request="onSave"])):not(:has(a.btn-primary[href*="create"])),
-.progress-indicator-container > .btn-default,
-.progress-indicator-container > a.btn-default,
+/* Delete button on RIGHT side */
 .progress-indicator-container > .btn-danger,
 .progress-indicator-container > a.btn-danger,
-.progress-indicator-container > button.btn-danger {
-  order: 10 !important;
-  margin-left: auto !important;
-  margin-right: 0 !important;
-  flex-shrink: 0 !important;
-}
-
-/* Other direct children - right side */
-.progress-indicator-container > *:not(.btn-outline-secondary):not(a.btn-outline-secondary):not(.btn-group):not([data-request="onSave"]):not(button[data-request="onSave"]):not(a.btn-primary[href*="create"]):not(.btn-danger):not(button.btn-danger):not(input):not(#toolbar-bulk-container) {
-  order: 10 !important;
-  margin-left: auto !important;
+.progress-indicator-container > button.btn-danger,
+.progress-indicator-container > .btn-danger[data-request="onDelete"] {
+  order: 10 !important; /* High order to push to right */
+  margin-left: auto !important; /* Push to right side */
   margin-right: 0 !important;
 }
 
+/* All other elements go to right side after Delete */
+.progress-indicator-container > *:not(.btn-outline-secondary):not(.btn-group):not([data-request="onSave"]):not(.btn-danger):not(button.btn-danger):not(input) {
+  order: 11 !important;
+  margin-left: 10px !important; /* Space between right-side buttons */
+}
+
+/* Hidden inputs should not affect layout */
 .progress-indicator-container > input[type="hidden"] {
   display: none !important;
   order: 999 !important;
@@ -1572,26 +1089,6 @@ a.settings-card-link .card-body {
   min-height: 100% !important;
   display: flex !important;
   align-items: center !important;
-}
-
-/* Remove ALL hover effects from settings cards - card and icon stay static */
-.settings-card-link:hover,
-.settings-card-link:focus,
-.settings-card-link:hover .card,
-.settings-card-link:focus .card,
-.settings-card-link:hover .card.bg-light,
-.settings-card-link:focus .card.bg-light,
-.settings-card-link--about:hover .settings-card--about,
-.settings-card-link--about:focus .settings-card--about,
-.settings-card-link:hover .about-card__icon,
-.settings-card-link:focus .about-card__icon,
-.settings-card-link:hover .card.bg-light .about-card__icon,
-.settings-card-link:focus .card.bg-light .about-card__icon,
-.settings-card-link:hover .card.settings-card--about .about-card__icon,
-.settings-card-link:focus .card.settings-card--about .about-card__icon {
-  transform: none !important;
-  scale: 1 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Repeater remove buttons - ONLY size effect on hover, no color/background changes */
@@ -1819,11 +1316,6 @@ html body .input-group > .input-group-text:first-child {
   -moz-border-radius: 12px 0 0 12px !important;
 }
 
-/* When focused, show focus frame on left edge (input-group-text) - Slug/permalink fields */
-html body .input-group:focus-within > .input-group-text:first-child {
-  border-left: 1px solid #364a63 !important;
-}
-
 /* When input is after input-group-text, remove left border-radius */
 html body .input-group > .input-group-text + .form-control,
 html body .input-group > .input-group-text + input {
@@ -1884,93 +1376,4 @@ html body .repeater-item-handle div.btn:hover i {
   /* Icon should not transform separately - button handles the scale */
   transform: none !important;
   color: inherit !important;
-}
-
-/* ===== List table: bulk-actions row gap and black edge fix ===== */
-/* When a row checkbox is selected, the bulk-actions row appears; this keeps it
-   compact (no 65px gap) and removes the harsh black line above the data rows. */
-.list-table .bulk-actions td.bulk-actions-cell,
-.list-table .bulk-actions td.w-100.pb-0 {
-  padding-top: 0.25rem !important;
-  padding-bottom: 0.25rem !important;
-}
-.list-table .table > tbody {
-  border-top: 1px solid transparent !important;
-}
-
-/* Completely hide bulk-actions row in list tables (override .bulk-actions:not(.hide) ) */
-html body .list-table .table .bulk-actions,
-html body .list-table .bulk-actions.hide,
-html body .list-table .bulk-actions:not(.hide) {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  line-height: 0 !important;
-  font-size: 0 !important;
-}
-
-/* Rich editor toolbar - override admin.css .btn 40px and .btn-lg 48px to 38px, same rounded corners */
-html body .note-editor .note-toolbar .btn,
-html body .note-editor .note-toolbar .note-btn,
-html body .note-editor .note-toolbar button,
-html body .note-editor .note-toolbar .btn-lg,
-html body .note-editor .note-toolbar .dropdown-toggle {
-  height: 38px !important;
-  min-height: 38px !important;
-  max-height: 38px !important;
-  border-radius: 10px !important;
-}
-
-/* =====================================================
-   DROPDOWN FIELDS (.ss-main) – same size as .form-control
-   Match height, width, padding and font to text inputs
-   ===================================================== */
-:root {
-  --ss-main-height: 40px !important;
-}
-/* Wrapper so dropdown container is full width like input container */
-html body .control-selectlist,
-html body .form-group .control-selectlist {
-  width: 100% !important;
-  max-width: 100% !important;
-  display: block !important;
-}
-html body .ss-main {
-  width: 100% !important;
-  min-width: 0 !important;
-  height: 40px !important;
-  min-height: 40px !important;
-  max-height: 40px !important;
-  padding: 8px 12px !important;
-  line-height: 22px !important;
-  font-size: 15px !important;
-  box-sizing: border-box !important;
-  display: flex !important;
-  align-items: center !important;
-}
-html body .ss-main .ss-values {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  align-items: center !important;
-}
-html body .ss-main .ss-values .ss-single,
-html body .ss-main .ss-values .ss-placeholder {
-  margin: 0 !important;
-  padding: 0 !important;
-  line-height: 22px !important;
-  font-size: 15px !important;
-  align-items: center !important;
-  width: 100% !important;
-}
-/* Ensure dropdown takes full width in any form wrapper */
-html body .form-group .ss-main,
-html body .control-group .ss-main,
-html body .field-group .ss-main,
-html body .control-selectlist .ss-main {
-  width: 100% !important;
-  max-width: 100% !important;
 }

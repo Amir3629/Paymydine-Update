@@ -46,11 +46,8 @@ class PushNotificationManager {
         const toast = this.createToast(notification);
         this.container.appendChild(toast);
 
-        const isFlash = notification._flash === true;
-        if (!isFlash) {
-            this.shakeBell();
-            this.playNotificationSound();
-        }
+        // Shake bell icon
+        this.shakeBell();
 
         // Auto-dismiss after 5 seconds
         const dismissTimer = setTimeout(() => {
@@ -72,23 +69,9 @@ class PushNotificationManager {
             clearTimeout(dismissTimer);
             this.flyToBell(toast);
         });
-    }
 
-    /**
-     * Show a one-off flash/confirmation message in the same toast card.
-     * Only for the current user, once; NOT saved to notification history.
-     * @param {string} message - Message text (e.g. "Dashboard widgets updated successfully.")
-     * @param {string} level - 'success' | 'danger' | 'warning' | 'info'
-     */
-    showFlash(message, level) {
-        const statusMap = { success: 'completed', danger: 'cancelled', warning: 'preparation', info: 'ready' };
-        this.show({
-            message: message,
-            type: level || 'success',
-            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-            statusName: statusMap[level] || 'completed',
-            _flash: true
-        });
+        // Play sound (optional)
+        this.playNotificationSound();
     }
 
     createToast(notification) {

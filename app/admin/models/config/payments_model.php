@@ -1,5 +1,4 @@
 <?php
-
 $config['list']['filter'] = [
     'search' => [
         'prompt' => 'lang:admin::lang.payments.text_filter_search',
@@ -10,18 +9,20 @@ $config['list']['filter'] = [
             'label' => 'lang:admin::lang.text_filter_status',
             'type' => 'switch',
             'conditions' => 'status = :filtered',
-            'onText' => 'lang:admin::lang.text_enabled',
-            'offText' => 'lang:admin::lang.text_disabled',
         ],
     ],
 ];
 
 $config['list']['toolbar'] = [
-    'buttons' => [],
+    'buttons' => [
+        // 'create' button removed on purpose
+    ],
 ];
 
+// Force-disable checkboxes and bulk actions
 $config['list']['showCheckboxes'] = false;
 $config['list']['bulkActions'] = [];
+
 
 $config['list']['columns'] = [
     'edit' => [
@@ -41,21 +42,15 @@ $config['list']['columns'] = [
         'label' => 'lang:admin::lang.label_description',
         'searchable' => true,
     ],
-    'provider_code' => [
-        'label' => 'Provider',
-        'type' => 'text',
-    ],
     'status' => [
         'label' => 'lang:admin::lang.label_status',
         'type' => 'switch',
-        'onText' => 'lang:admin::lang.text_enabled',
-        'offText' => 'lang:admin::lang.text_disabled',
     ],
     'is_default' => [
         'label' => 'lang:admin::lang.payments.label_default',
         'type' => 'switch',
-        'onText' => 'lang:admin::lang.text_yes',
-        'offText' => 'lang:admin::lang.text_no',
+        'onText' => 'admin::lang.text_yes',
+        'offText' => 'admin::lang.text_no',
     ],
     'updated_at' => [
         'label' => 'lang:admin::lang.column_date_updated',
@@ -65,6 +60,7 @@ $config['list']['columns'] = [
         'label' => 'lang:admin::lang.column_id',
         'invisible' => true,
     ],
+
 ];
 
 $config['form']['toolbar'] = [
@@ -82,6 +78,7 @@ $config['form']['toolbar'] = [
             'data-request' => 'onSave',
             'data-progress-indicator' => 'admin::lang.text_saving',
         ],
+        // NOTE: Delete button intentionally removed for safety.
     ],
 ];
 
@@ -103,39 +100,31 @@ $config['form']['fields'] = [
         'type' => 'number',
         'span' => 'right',
         'cssClass' => 'flex-width',
-        'default' => 10,
+        'default' => 999,
     ],
     'code' => [
         'label' => 'lang:admin::lang.payments.label_code',
         'type' => 'text',
         'span' => 'right',
         'cssClass' => 'flex-width',
-        'readOnly' => false,
-        'disabled' => false,
     ],
     'description' => [
-        'label' => 'lang:admin::lang.label_description',
-        'type' => 'textarea',
-        'span' => 'left',
-        'disabled' => false,
+        'label'    => 'lang:admin::lang.label_description',
+        'type'     => 'textarea',
+        'disabled' => true,
+        'span'     => 'left',
     ],
     'is_default' => [
         'label' => 'lang:admin::lang.payments.label_default',
         'type' => 'switch',
         'span' => 'right',
         'cssClass' => 'flex-width',
-        'onText' => 'lang:admin::lang.text_yes',
-        'offText' => 'lang:admin::lang.text_no',
-        'disabled' => false,
     ],
     'status' => [
         'label' => 'lang:admin::lang.label_status',
         'type' => 'switch',
         'span' => 'right',
         'cssClass' => 'flex-width',
-        'onText' => 'lang:admin::lang.text_enabled',
-        'offText' => 'lang:admin::lang.text_disabled',
-        'disabled' => false,
     ],
 ];
 

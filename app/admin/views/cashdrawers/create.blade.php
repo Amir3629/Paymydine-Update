@@ -1,4 +1,4 @@
-<div class="row-fluid cash-drawer-simple-page">
+<div class="row-fluid">
     {!! form_open([
         'id'     => 'edit-form',
         'role'   => 'form',

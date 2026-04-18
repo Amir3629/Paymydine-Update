@@ -22,16 +22,6 @@ class SetupSettings extends FormRequest
             'location_order' => lang('system::lang.settings.label_location_order'),
             'invoice_prefix' => lang('system::lang.settings.label_invoice_prefix'),
             'invoice_logo' => lang('system::lang.settings.label_invoice_logo'),
-            'invoice_receipt_mode' => lang('system::lang.settings.label_invoice_receipt_mode'),
-            'invoice_paper_width' => lang('system::lang.settings.label_invoice_paper_width'),
-            'invoice_auto_print_after_paid' => lang('system::lang.settings.label_invoice_auto_print_after_paid'),
-            'invoice_auto_print_dialog' => lang('system::lang.settings.label_invoice_auto_print_dialog'),
-            'invoice_show_logo' => lang('system::lang.settings.label_invoice_show_logo'),
-            'invoice_show_qr' => lang('system::lang.settings.label_invoice_show_qr'),
-            'invoice_show_fiskaly' => lang('system::lang.settings.label_invoice_show_fiskaly'),
-            'invoice_compact_mode' => lang('system::lang.settings.label_invoice_compact_mode'),
-            'invoice_font_size_preset' => lang('system::lang.settings.label_invoice_font_size_preset'),
-            'invoice_print_hint' => lang('system::lang.settings.label_invoice_print_hint'),
         ];
     }
 
@@ -48,9 +38,6 @@ class SetupSettings extends FormRequest
             'guest_order' => ['required', 'integer'],
             'location_order' => ['required', 'integer'],
             'invoice_logo' => ['string'],
-            'invoice_paper_width' => ['nullable', 'in:80mm,a4'],
-            'invoice_font_size_preset' => ['nullable', 'in:small,normal'],
-            'invoice_print_hint' => ['nullable', 'string'],
         ];
     }
 }

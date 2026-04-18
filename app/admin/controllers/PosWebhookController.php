@@ -15,7 +15,7 @@ use App\Helpers\NotificationHelper;
 
 class PosWebhookController extends Controller
 {
-    private string $urlPosAPI = 'https://api.ready2order.com/v1';
+    private string $urlPosAPI = 'https://pay-my-dine-api-pos.onrender.com';
     // private string $urlPosAPI = 'https://6fbebe8a021d.ngrok-free.app';
 
     /**

@@ -25,8 +25,6 @@
     }
 
     function applyGreenButtonBase(element) {
-        // Never overwrite while hovered/focused so hover effect stays until mouse out
-        if (element.matches && (element.matches(':hover') || document.activeElement === element)) return;
         element.style.setProperty('background', GREEN_BUTTON_BASE_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_BASE_GRADIENT, 'important');
         element.style.setProperty('border', '1px solid #364a63', 'important'); // Dark blue border instead of green
@@ -35,9 +33,9 @@
         element.style.setProperty('box-shadow', '0 6px 16px rgba(54, 74, 99, 0.25)', 'important'); // Dark blue shadow instead of green
         element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
         element.style.setProperty('transform', 'translateY(0)', 'important');
-        element.style.setProperty('min-width', '110px', 'important');
+        element.style.setProperty('min-width', '90px', 'important');
         element.style.setProperty('width', 'auto', 'important');
-        element.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+        element.style.setProperty('padding', '0.4rem 0.9rem', 'important');
         element.style.setProperty('display', 'inline-block', 'important');
         element.style.setProperty('text-align', 'center', 'important');
         // Fix full-width issue: prevent button from growing in btn-group
@@ -97,9 +95,9 @@
             this.style.setProperty('background', '#f1f4fb', 'important');
             this.style.setProperty('border', '1px solid #c9d2e3', 'important');
             this.style.setProperty('color', '#202938', 'important');
-            this.style.setProperty('width', '110px', 'important');
-            this.style.setProperty('min-width', '110px', 'important');
-            this.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+            this.style.setProperty('width', '90px', 'important');
+            this.style.setProperty('min-width', '90px', 'important');
+            this.style.setProperty('padding', '0.4rem 0.9rem', 'important');
             this.style.setProperty('border-radius', '12px', 'important');
             this.style.setProperty('display', 'inline-block', 'important');
             this.style.setProperty('text-align', 'center', 'important');
@@ -151,7 +149,7 @@
     $(document).render(function (event) {
         var context = event && event.target ? event.target : document;
 
-        $('a[title], span[title], button[title], label[title]', document).not('[data-bs-toggle]').not('[data-no-tooltip]').tooltip({placement: 'bottom'});
+        $('a[title], span[title], button[title]', document).not('[data-bs-toggle]').tooltip({placement: 'bottom'});
         $('.alert', document).alert();
 
         applyDeleteIconColor(context);

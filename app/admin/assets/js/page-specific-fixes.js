@@ -249,8 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let fixedCount = 0;
         
         buttons.forEach((btn) => {
-            if (btn.closest && btn.closest('.notification-toast')) return;
-            if (btn.classList && btn.classList.contains('notification-toast-close')) return;
             const computedStyle = window.getComputedStyle(btn);
             const bgColor = computedStyle.backgroundColor;
             const textColor = computedStyle.color;
@@ -381,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================
     
     function fixImageUploadFields() {
-        // Blank-cover: let CSS control appearance (same as filled card) – strip ALL inline background so nothing overrides
+        // Find all blank-cover elements (empty image upload fields)
         const blankCovers = document.querySelectorAll(
             '.media-finder .grid .blank-cover, ' +
             '.media-finder .grid .find-button.blank-cover, ' +
@@ -389,17 +387,37 @@ document.addEventListener('DOMContentLoaded', function() {
         );
         
         blankCovers.forEach((cover) => {
-            cover.style.removeProperty('background');
-            cover.style.removeProperty('background-color');
-            cover.style.removeProperty('background-image');
-            cover.style.removeProperty('background-position');
-            cover.style.removeProperty('background-size');
-            cover.style.removeProperty('background-repeat');
-            cover.style.removeProperty('background-attachment');
-            cover.style.removeProperty('background-origin');
-            cover.style.removeProperty('background-clip');
-            var plusIcon = cover.querySelector('i.fa-plus, .fa-plus, i[class*="fa-plus"]');
-            if (plusIcon) plusIcon.style.removeProperty('color');
+            // Set ice white background
+            cover.style.setProperty('background', '#f1f4fb', 'important');
+            cover.style.setProperty('background-color', '#f1f4fb', 'important');
+            
+            // Find plus icon inside
+            const plusIcon = cover.querySelector('i.fa-plus, .fa-plus, i[class*="fa-plus"]');
+            if (plusIcon) {
+                // Set dark blue color (override inline styles)
+                plusIcon.style.setProperty('color', '#202938', 'important');
+            }
+        });
+        
+        // Also fix on hover
+        blankCovers.forEach((cover) => {
+            cover.addEventListener('mouseenter', function() {
+                this.style.setProperty('background', '#e5ebf7', 'important');
+                this.style.setProperty('background-color', '#e5ebf7', 'important');
+                const plusIcon = this.querySelector('i.fa-plus, .fa-plus, i[class*="fa-plus"]');
+                if (plusIcon) {
+                    plusIcon.style.setProperty('color', '#364a63', 'important');
+                }
+            });
+            
+            cover.addEventListener('mouseleave', function() {
+                this.style.setProperty('background', '#f1f4fb', 'important');
+                this.style.setProperty('background-color', '#f1f4fb', 'important');
+                const plusIcon = this.querySelector('i.fa-plus, .fa-plus, i[class*="fa-plus"]');
+                if (plusIcon) {
+                    plusIcon.style.setProperty('color', '#202938', 'important');
+                }
+            });
         });
         
         // Fix image grid hover - remove green colors
@@ -425,11 +443,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Run immediately
     fixImageUploadFields();
     
-    // Run after delays so we win over other scripts that set inline styles (e.g. at 100, 500, 1000, 2000ms)
+    // Run after delays to catch dynamically added elements
     setTimeout(fixImageUploadFields, 100);
     setTimeout(fixImageUploadFields, 500);
     setTimeout(fixImageUploadFields, 1000);
-    setTimeout(fixImageUploadFields, 2500);
     
     // Watch for new image upload fields
     const imageFieldObserver = new MutationObserver(function(mutations) {
@@ -496,10 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'rgb(11, 184, 122)': 'rgb(82, 100, 132)',
             'rgb(15, 157, 88)': 'rgb(54, 74, 99)',
             'rgb(12, 125, 71)': 'rgb(54, 74, 99)',
-            'rgb(10, 168, 104)': 'rgb(82, 100, 132)',
-            'rgba(8, 129, 94': 'rgba(54, 74, 99',
-            'rgba(6, 107, 82': 'rgba(54, 74, 99',
-            'rgba(15, 157, 88': 'rgba(54, 74, 99'
+            'rgb(10, 168, 104)': 'rgb(82, 100, 132)'
         };
         
         let fixedCount = 0;
@@ -508,11 +522,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const secondaryButtons = document.querySelectorAll('.btn-secondary, button.btn-secondary, a.btn-secondary');
         secondaryButtons.forEach((btn) => {
             if (btn.closest && btn.closest('#addGeneralStaffNoteModal')) return;
-            if (btn.closest && btn.closest('#adminConfirmModal')) return;
-            if (btn.closest && btn.closest('.notification-toast')) return;
-            if (btn.classList && btn.classList.contains('notification-toast-close')) return;
-            // Never overwrite style while hovered/focused so hover effect stays until mouse out
-            if (btn.matches && (btn.matches(':hover') || document.activeElement === btn)) return;
             const computedStyle = window.getComputedStyle(btn);
             const bgColor = computedStyle.backgroundColor;
             const borderColor = computedStyle.borderColor;
@@ -544,9 +553,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         allElements.forEach((el) => {
             if (el.closest && el.closest('#addGeneralStaffNoteModal')) return;
-            if (el.closest && el.closest('#adminConfirmModal')) return;
-            if (el.closest && el.closest('.notification-toast')) return;
-            if (el.matches && (el.matches(':hover') || document.activeElement === el)) return;
             const style = el.getAttribute('style');
             if (!style) return;
             
@@ -745,131 +751,209 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(hideProgressIndicatorText, 500);
     
     // ============================================
-    // REBUILD btn-group-toggle - match settings page exactly (Kilometers, Geocoder)
-    // Removes old labels, rebuilds with correct structure and styles
+    // FIX: Instant color change for toggle button groups
+    // Remove all transitions when buttons are checked
     // ============================================
-    function rebuildBtnGroupToggle(container) {
-        var root = container || document;
-        var groups = root.querySelectorAll('.btn-group.btn-group-toggle.bg-light');
-        var DARK = 'rgb(32, 41, 56)';
-        var WHITE = 'rgb(255, 255, 255)';
-        var baseStyle = 'pointer-events: auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important; transition: none 0s ease 0s !important; border-radius: 12px !important; padding: 0.4rem 1rem !important;';
-
-        groups.forEach(function(group) {
-            var radios = group.querySelectorAll('input[type="radio"].btn-check');
-            if (!radios.length) return;
-
-            function syncColors() {
-                radios.forEach(function(r) {
-                    var lbl = group.querySelector('label[for="' + r.id + '"]');
-                    if (lbl) lbl.style.setProperty('color', r.checked ? WHITE : DARK, 'important');
-                });
-            }
-
-            radios.forEach(function(radio) {
-                var label = group.querySelector('label[for="' + radio.id + '"]');
-                if (!label || label.tagName !== 'LABEL') return;
-
-                label.removeAttribute('data-btn-toggle-fixed');
-                label.removeAttribute('style');
-                label.className = 'btn btn-light text-nowrap';
-                label.style.cssText = baseStyle + (radio.checked ? ' color: rgb(255, 255, 255) !important;' : ' color: rgb(32, 41, 56) !important;');
-
-                if (!radio.dataset.rebuildDone) {
-                    radio.dataset.rebuildDone = '1';
-                    radio.addEventListener('change', syncColors, { passive: true });
-                    label.addEventListener('click', function() { setTimeout(syncColors, 0); }, { passive: true });
-                }
+    function forceInstantToggleButtonColors() {
+        // Find all toggle button groups
+        const toggleGroups = document.querySelectorAll('.btn-group-toggle');
+        
+        toggleGroups.forEach(group => {
+            const radioInputs = group.querySelectorAll('input[type="radio"]');
+            
+            radioInputs.forEach(radio => {
+                const label = group.querySelector(`label[for="${radio.id}"]`);
+                if (!label) return;
+                
+                // Remove all transitions from label
+                label.style.setProperty('transition', 'none', 'important');
+                label.style.setProperty('transition-property', 'none', 'important');
+                label.style.setProperty('transition-duration', '0s', 'important');
+                label.style.setProperty('transition-delay', '0s', 'important');
+                label.style.setProperty('-webkit-transition', 'none', 'important');
+                label.style.setProperty('-moz-transition', 'none', 'important');
+                label.style.setProperty('-o-transition', 'none', 'important');
+                
+                // Force instant color change on click
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Instantly change color - no delay
+                        label.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                        label.style.setProperty('transition', 'none', 'important');
+                        
+                        // Also change all child elements instantly
+                        const children = label.querySelectorAll('*');
+                        children.forEach(child => {
+                            child.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                            child.style.setProperty('transition', 'none', 'important');
+                        });
+                    }
+                }, { passive: true });
+                
+                // Also handle on click for immediate feedback
+                label.addEventListener('click', function() {
+                    if (radio.checked) {
+                        // Force instant color change
+                        this.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                        this.style.setProperty('transition', 'none', 'important');
+                        
+                        const children = this.querySelectorAll('*');
+                        children.forEach(child => {
+                            child.style.setProperty('color', 'rgb(255, 255, 255)', 'important');
+                            child.style.setProperty('transition', 'none', 'important');
+                        });
+                    }
+                }, { passive: true });
             });
         });
     }
     
+    // Run immediately and on DOM ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() { rebuildBtnGroupToggle(document); });
+        document.addEventListener('DOMContentLoaded', forceInstantToggleButtonColors);
     } else {
-        rebuildBtnGroupToggle(document);
+        forceInstantToggleButtonColors();
     }
-    setTimeout(function() { rebuildBtnGroupToggle(document); }, 100);
-    setTimeout(function() { rebuildBtnGroupToggle(document); }, 500);
-
-    document.addEventListener('shown.bs.modal', function(e) {
-        var modal = e.target;
-        if (modal && modal.classList && modal.classList.contains('modal')) {
-            rebuildBtnGroupToggle(modal);
-            setTimeout(function() { rebuildBtnGroupToggle(modal); }, 200);
-            setTimeout(function() { rebuildBtnGroupToggle(modal); }, 400);
-        }
-    });
-
-    document.addEventListener('pageContentLoaded', function() {
-        rebuildBtnGroupToggle(document);
-    });
-
+    
+    // Also run after a delay to catch dynamically loaded content
+    setTimeout(forceInstantToggleButtonColors, 100);
+    setTimeout(forceInstantToggleButtonColors, 500);
+    
     // ============================================
     // FIX: Lock Save Button Width - Prevent Size Changes
     // Keep save button at fixed 90px width
     // ============================================
     
-    // Save button: only force-button-alignment touches it (page-specific-fixes never touches Save - stopped vibration).
-    // Back button: we set square size and install hooks here.
+    // Freeze button styles - EXACTLY like other buttons in progress-indicator-container
     function protectButtonStyles(button) {
         if (!button || button.dataset.styleLocked) return;
-        if (button.matches && (button.matches(':hover') || document.activeElement === button)) return;
         
         button.dataset.styleLocked = 'true';
-        const isBack = button.closest('.progress-indicator-container') && button.matches('.btn-outline-secondary');
-        if (!isBack) return;
+        const isSaveOrBack = button.matches('[data-request="onSave"]') || 
+                             (button.closest('.progress-indicator-container') && button.matches('.btn-outline-secondary'));
         
-        // Back: set square dimensions and install hooks
-        const criticalStyles = 'display:inline-flex!important;width:40px!important;min-width:40px!important;padding:0!important;';
+        if (!isSaveOrBack) return; // Only protect Save and Back buttons
+        
+        // EXACT same styles as other working buttons - width: auto, padding: 0.55rem 1.75rem
+        const criticalStyles = 'display:inline-flex!important;width:auto!important;padding:0.55rem 1.75rem!important;';
         const baseStyles = 'align-items:center!important;justify-content:center!important;text-align:center!important;line-height:1.3!important;white-space:nowrap!important;height:40px!important;min-height:40px!important;box-sizing:border-box!important;vertical-align:middle!important;';
+        
+        // Store current non-critical styles (colors, borders, etc) before locking
         const currentStyle = button.getAttribute('style') || '';
+        
+        // Set all styles at once - critical styles first, then existing styles
         button.style.cssText = criticalStyles + baseStyles + currentStyle;
         
+        // Intercept setAttribute to prevent style changes to critical properties
         const originalSetAttribute = button.setAttribute.bind(button);
         button.setAttribute = function(name, value) {
             if (name === 'style') {
+                // Allow style to be set, but immediately restore critical properties
                 originalSetAttribute(name, value);
+                // Force critical styles back IMMEDIATELY - SAME as other working buttons
                 this.style.setProperty('display', 'inline-flex', 'important');
+                this.style.setProperty('width', 'auto', 'important');
+                this.style.setProperty('padding', '0.55rem 1.75rem', 'important');
                 this.style.setProperty('align-items', 'center', 'important');
                 this.style.setProperty('justify-content', 'center', 'important');
+                this.style.setProperty('height', '40px', 'important');
+                this.style.setProperty('min-height', '40px', 'important');
                 this.style.setProperty('line-height', '1.3', 'important');
                 this.style.setProperty('white-space', 'nowrap', 'important');
                 this.style.setProperty('box-sizing', 'border-box', 'important');
-                this.style.setProperty('width', '40px', 'important');
-                this.style.setProperty('min-width', '40px', 'important');
-                this.style.setProperty('padding', '0', 'important');
-                this.style.setProperty('height', '40px', 'important');
-                this.style.setProperty('min-height', '40px', 'important');
             } else {
                 originalSetAttribute(name, value);
             }
         };
         
+        // Intercept style.setProperty to ONLY block display: inline-block
         const originalSetProperty = button.style.setProperty.bind(button.style);
         button.style.setProperty = function(property, value, priority) {
+            // ONLY block display: inline-block - let everything else through
             if (property === 'display' && (value === 'inline-block' || value === 'block')) {
                 return originalSetProperty('display', 'inline-flex', 'important');
-            }
-            if (property === 'width' || property === 'min-width' || property === 'padding') {
-                if (property === 'width' || property === 'min-width') return originalSetProperty(property, '40px', 'important');
-                if (property === 'padding') return originalSetProperty('padding', '0', 'important');
             }
             return originalSetProperty(property, value, priority);
         };
     }
     
     function lockSaveButtonWidth() {
-        // Only protect Back buttons - never touch Save (force-button-alignment owns it; any touch here caused vibration)
+        // Find all save buttons AND back buttons
+        const saveButtons = document.querySelectorAll(
+            '[data-request="onSave"], .btn-primary[data-request="onSave"], ' +
+            '.toolbar .btn-primary[data-request="onSave"], .toolbar-action .btn-primary[data-request="onSave"], ' +
+            '.progress-indicator-container .btn-primary[data-request="onSave"]'
+        );
+        
         const backButtons = document.querySelectorAll(
             '.progress-indicator-container .btn-outline-secondary'
         );
-        backButtons.forEach((btn) => {
+        
+        const allButtons = [...saveButtons, ...backButtons];
+        
+        allButtons.forEach((btn) => {
+            // Protect button FIRST - this locks styles EXACTLY like other buttons
             protectButtonStyles(btn);
+            
+            // protectButtonStyles already sets all the critical styles
+            // No need to modify styles again - that causes re-renders!
         });
     }
     
-    /* Button size is defined once in custom-fixes.css (progress-indicator-container) - no injected style to avoid size flash on load */
+    // INJECT CSS RULES to lock button styles at CSS level (can't be overridden easily)
+    (function() {
+        const styleId = 'save-back-button-lock-styles';
+        if (document.getElementById(styleId)) return; // Already injected
+        
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            /* LOCK Save and Back buttons - SAME as other buttons in progress-indicator-container */
+            /* Prevent Save buttons from stretching in btn-group (like system_logs page buttons) */
+            .btn-group [data-request="onSave"],
+            .btn-group .btn-primary[data-request="onSave"],
+            .btn-group .btn[data-request="onSave"],
+            .progress-indicator-container [data-request="onSave"],
+            .progress-indicator-container .btn-primary[data-request="onSave"],
+            [data-request="onSave"].btn-primary,
+            .progress-indicator-container .btn-outline-secondary {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+                width: auto !important;
+                flex: 0 0 auto !important;
+                flex-grow: 0 !important;
+                flex-shrink: 0 !important;
+                flex-basis: auto !important;
+                height: 40px !important;
+                min-height: 40px !important;
+                padding: 0.55rem 1.75rem !important;
+                line-height: 1.3 !important;
+                vertical-align: middle !important;
+                white-space: nowrap !important;
+                box-sizing: border-box !important;
+            }
+            
+            /* Fix btn-group to be inline inside progress-indicator-container - prevents new line */
+            div.progress-indicator-container > div.btn-group,
+            div.progress-indicator-container div.btn-group,
+            .progress-indicator-container > .btn-group,
+            .progress-indicator-container .btn-group {
+                display: inline-flex !important;
+                vertical-align: middle !important;
+                margin: 0 !important;
+                margin-left: 0 !important;
+                margin-right: 10px !important;
+                width: auto !important;
+                flex: 0 0 auto !important;
+                flex-shrink: 0 !important;
+                float: none !important;
+                clear: none !important;
+            }
+        `;
+        document.head.appendChild(style);
+    })();
     
     // Run immediately to protect buttons
     lockSaveButtonWidth();
@@ -931,14 +1015,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     btn.closest('.progress-indicator-container') && btn.matches('.btn-outline-secondary')
                 );
                 
-                if (isBackButton) {
+                if (isSaveButton || isBackButton) {
+                    // Protect the button - locks styles EXACTLY like other buttons
                     protectButtonStyles(btn);
+                    
+                    // Force correct styles immediately - SAME as other buttons
                     btn.style.setProperty('display', 'inline-flex', 'important');
-                    btn.style.setProperty('width', '40px', 'important');
-                    btn.style.setProperty('min-width', '40px', 'important');
-                    btn.style.setProperty('padding', '0', 'important');
+                    btn.style.setProperty('width', 'auto', 'important');
+                    btn.style.setProperty('padding', '0.55rem 1.75rem', 'important');
                 }
-                /* Save: skip - restore only in setAttribute when something else overwrites; observer writes caused vibration */
             }
             if (mutation.addedNodes.length) {
                 mutation.addedNodes.forEach(function(node) {
@@ -967,9 +1052,11 @@ document.addEventListener('DOMContentLoaded', function() {
         subtree: true
     });
     
-    // Protect Back buttons when found (Save is never touched here)
+    // Protect buttons immediately when found
     setTimeout(function() {
-        document.querySelectorAll('.progress-indicator-container .btn-outline-secondary').forEach(protectButtonStyles);
+        const saveButtons = document.querySelectorAll('[data-request="onSave"], .progress-indicator-container .btn-primary[data-request="onSave"]');
+        const backButtons = document.querySelectorAll('.progress-indicator-container .btn-outline-secondary');
+        [...saveButtons, ...backButtons].forEach(protectButtonStyles);
     }, 0);
     
     // DON'T run periodically - protectButtonStyles handles everything

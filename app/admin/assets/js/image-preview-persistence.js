@@ -39,7 +39,7 @@
     // Save values to localStorage when form is submitted
     function saveValuesToStorage() {
         var values = {};
-        var fields = ['dashboard_logo', 'favicon_logo'];
+        var fields = ['site_logo', 'dashboard_logo', 'favicon_logo'];
         var stored = getValuesFromStorage();
         var hasChanges = false;
         
@@ -250,7 +250,7 @@
         console.log('🔧 Restoring previews with values from localStorage:', values);
         
         // Also check current page inputs - but prioritize form inputs over localStorage
-        var fields = ['dashboard_logo', 'favicon_logo'];
+        var fields = ['site_logo', 'dashboard_logo', 'favicon_logo'];
         var formValues = {};
         
         fields.forEach(function(field) {
@@ -646,7 +646,7 @@
     
     // Ensure all MediaFinder inputs have proper name attributes and values before form submission
     function ensureAllMediaFinderInputsReady() {
-        var fields = ['dashboard_logo', 'favicon_logo'];
+        var fields = ['site_logo', 'dashboard_logo', 'favicon_logo'];
         var allReady = true;
         var fixed = 0;
         
@@ -809,7 +809,7 @@
                 ensureAllMediaFinderInputsReady();
                 
                 // Fields to check
-                var fields = ['dashboard_logo', 'favicon_logo'];
+                var fields = ['site_logo', 'dashboard_logo', 'favicon_logo'];
                 
                 // Intercept the actual data being sent
                 if (settings.data) {

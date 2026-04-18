@@ -87,9 +87,9 @@ if (!empty($imgSrcDashboard)) {
     <nav class="navbar navbar-top navbar-expand navbar-fixed-top" role="navigation">
         <div class="container-fluid">
             <div class="navbar-brand" style="height:63px;">
-                <a class="logo" href="{{ admin_url('dashboard') }}" style="margin-left: 28px; margin-top: 12px;">
+                <a class="logo" href="{{ admin_url('dashboard') }}">
                     @if(!empty($imgSrcDashboard))
-                        <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" style="max-height: 105px; max-width: 400px; object-fit: contain;">
+                        <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" style="max-height: 50px; max-width: 200px; object-fit: contain;">
                     @endif
                     <i class="logo-svg"></i>
                 </a>

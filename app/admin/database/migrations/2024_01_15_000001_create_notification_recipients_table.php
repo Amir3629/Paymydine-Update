@@ -13,37 +13,23 @@ class CreateNotificationRecipientsTable extends Migration
      */
     public function up()
     {
-        if (Schema::hasTable('notification_recipients')) {
-            return;
-        }
-
         Schema::create('notification_recipients', function (Blueprint $table) {
             $table->id('recipient_id');
-
-            // Exact match with current real tables:
-            // ti_notifications.id      => int(11) signed
-            // ti_staffs.staff_id       => bigint unsigned
-            $table->integer('notification_id');
+            $table->unsignedBigInteger('notification_id');
             $table->unsignedBigInteger('staff_id');
-
             $table->string('role', 50);
             $table->enum('status', ['unread', 'read', 'dismissed'])->default('unread');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
-
+            
+            // Indexes
             $table->unique(['notification_id', 'staff_id']);
             $table->index(['staff_id', 'status']);
             $table->index('notification_id');
-
-            $table->foreign('notification_id')
-                ->references('id')
-                ->on('notifications')
-                ->onDelete('cascade');
-
-            $table->foreign('staff_id')
-                ->references('staff_id')
-                ->on('staffs')
-                ->onDelete('cascade');
+            
+            // Foreign keys
+            $table->foreign('notification_id')->references('notification_id')->on('ti_notifications')->onDelete('cascade');
+            $table->foreign('staff_id')->references('staff_id')->on('ti_staffs')->onDelete('cascade');
         });
     }
 
@@ -54,6 +40,6 @@ class CreateNotificationRecipientsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('notification_recipients');
+        Schema::dropIfExists('ti_notification_recipients');
     }
 }

@@ -932,12 +932,6 @@ if (window.jQuery.request !== undefined)
         var options = $.extend({}, FlashMessage.DEFAULTS, options),
             $element = $(el)
 
-        // Use push-notification toast for one-off messages (no top alert, not saved to history)
-        if ($element.length === 0 && window.pushNotif && typeof window.pushNotif.showFlash === 'function' && options.text) {
-            window.pushNotif.showFlash(options.text, options.class || 'success')
-            return
-        }
-
         $('body > p.flash-message').remove()
 
         if ($element.length === 0) {
@@ -1003,23 +997,9 @@ if (window.jQuery.request !== undefined)
 
     $(document).render(function () {
         $('[data-control="flash-message"]').each(function (index, element) {
-            var $el = $(element)
-            var messageText = $el.text().trim() || (element.innerText || '').trim()
-            var level = 'success'
-            if ($el.hasClass('alert-danger')) level = 'danger'
-            else if ($el.hasClass('alert-warning')) level = 'warning'
-            else if ($el.hasClass('alert-info')) level = 'info'
-
-            if (window.pushNotif && typeof window.pushNotif.showFlash === 'function') {
-                setTimeout(function () {
-                    window.pushNotif.showFlash(messageText, level)
-                    $el.remove()
-                }, (index + 1) * 300)
-            } else {
-                setTimeout(function () {
-                    $.ti.flashMessage($el.data(), element)
-                }, (index + 1) * 500)
-            }
+            setTimeout(function () {
+                $.ti.flashMessage($(element).data(), element)
+            }, (index + 1) * 500)
         })
 
         $('[data-control="flash-overlay"]').each(function (index, element) {
@@ -1436,7 +1416,6 @@ if (window.jQuery.request !== undefined)
     var REFERENCE_MODAL_GRADIENT = 'linear-gradient(135deg, rgb(31, 43, 58) 0%, rgb(54, 74, 99) 100%)';
 
     function applyGreenButtonBase(element) {
-        if (element.matches && (element.matches(':hover') || document.activeElement === element)) return;
         var isWidgetModalSave = $(element).hasClass('btn-add-widget');
         if (isWidgetModalSave) {
             element.style.setProperty('background', REFERENCE_MODAL_GRADIENT, 'important');
@@ -1460,15 +1439,15 @@ if (window.jQuery.request !== undefined)
         }
         element.style.setProperty('background', GREEN_BUTTON_BASE_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_BASE_GRADIENT, 'important');
-        element.style.setProperty('border', '2px solid #364a63', 'important');
-        element.style.setProperty('border-color', '#364a63', 'important');
+        element.style.setProperty('border', '1px solid #0c7d47', 'important');
+        element.style.setProperty('border-color', '#0c7d47', 'important');
         element.style.setProperty('color', '#ffffff', 'important');
-        element.style.setProperty('box-shadow', '0 4px 15px rgba(31, 43, 58, 0.3)', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.25)', 'important');
         element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
         element.style.setProperty('transform', 'translateY(0)', 'important');
-        element.style.setProperty('min-width', '110px', 'important');
+        element.style.setProperty('min-width', '90px', 'important');
         element.style.setProperty('width', 'auto', 'important');
-        element.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+        element.style.setProperty('padding', '0.4rem 0.9rem', 'important');
         element.style.setProperty('display', 'inline-block', 'important');
         element.style.setProperty('text-align', 'center', 'important');
         element.style.removeProperty('align-items');
@@ -1488,7 +1467,7 @@ if (window.jQuery.request !== undefined)
         element.style.setProperty('background', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('background-image', GREEN_BUTTON_HOVER_GRADIENT, 'important');
         element.style.setProperty('transform', 'translateY(-1px)', 'important');
-        element.style.setProperty('box-shadow', '0 6px 16px rgba(31, 43, 58, 0.4)', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(15, 157, 88, 0.35)', 'important');
     }
 
     function handleGreenButtonLeave(event) {
@@ -1580,7 +1559,7 @@ if (window.jQuery.request !== undefined)
     $(document).render(function (event) {
         var context = event && event.target ? event.target : document;
 
-        $('a[title], span[title], button[title], label[title]', document).not('[data-bs-toggle]').not('[data-no-tooltip]').tooltip({placement: 'bottom'});
+        $('a[title], span[title], button[title]', document).not('[data-bs-toggle]').tooltip({placement: 'bottom'});
         $('.alert', document).alert();
 
         applyDeleteIconColor(context);
@@ -1751,11 +1730,8 @@ if (window.jQuery.request !== undefined)
 
         var $buttons = $container.find('.drp-buttons');
         if ($buttons.length) {
-            $buttons.css({
-                'display': 'flex',
-                'flex-wrap': 'nowrap',
-                'grid-template-columns': ''
-            });
+            $buttons.css('display', 'grid');
+            $buttons.css('grid-template-columns', '1fr auto auto');
         }
     }
 
@@ -1853,68 +1829,6 @@ if (window.jQuery.request !== undefined)
         }
     }
 
-    function fixDaterangepickerVisibleMonth(picker) {
-        if (!picker || !picker.leftCalendar || !picker.rightCalendar) return;
-        var focusDate = (picker.endDate && picker.endDate.isValid())
-            ? picker.endDate.clone()
-            : (picker.startDate && picker.startDate.isValid())
-                ? picker.startDate.clone()
-                : null;
-        if (!focusDate) return;
-        var baseMonth = focusDate.startOf('month');
-        picker.leftCalendar.month = baseMonth.clone();
-        picker.rightCalendar.month = baseMonth.clone();
-        if (typeof picker.updateCalendars === 'function') picker.updateCalendars();
-    }
-
-    function centerDaterangepickerRangeAndFooter(picker) {
-        var $container = picker && picker.container ? picker.container : $('.daterangepicker.show-calendar, .daterangepicker.ti-visible').last();
-        if (!$container.length) return;
-        $container.find('.ranges').css({
-            'display': 'flex',
-            'flex-direction': 'column',
-            'align-items': 'center',
-            'margin-left': '32px'
-        });
-        $container.find('.ranges ul').css({
-            'display': 'flex',
-            'flex-direction': 'column',
-            'width': 'auto',
-            'min-width': '140px',
-            'margin-left': '0',
-            'margin-right': '0'
-        });
-        $container.find('.ranges li').css({
-            'display': 'flex',
-            'align-items': 'center',
-            'justify-content': 'center',
-            'min-height': '44px',
-            'height': '44px',
-            'padding': '0 16px',
-            'box-sizing': 'border-box'
-        });
-        $container.find('.drp-buttons').css({
-            'display': 'flex',
-            'flex-wrap': 'nowrap',
-            'align-items': 'center'
-        });
-        $container.find('.drp-buttons .cancelBtn, .drp-buttons .applyBtn').css({
-            'flex-shrink': '0',
-            'white-space': 'nowrap'
-        });
-        var cancelEl = $container.find('.drp-buttons .cancelBtn').get(0);
-        if (cancelEl && cancelEl.style) {
-            cancelEl.style.setProperty('margin-left', '40px', 'important');
-        }
-        $container.find('.drp-buttons .drp-selected').css({
-            'display': 'inline-flex',
-            'align-items': 'center',
-            'min-height': '38px',
-            'align-self': 'center',
-            'padding': '0 12px 0 0'
-        });
-    }
-
     $(document).on('show.daterangepicker', function (event, picker) {
         // AGGRESSIVE FIX: Completely disable profile dropdown when calendar opens
         var $profileDropdown = $('.profile-dropdown-menu');
@@ -1953,20 +1867,12 @@ if (window.jQuery.request !== undefined)
             });
         }, 10);
         
-        fixDaterangepickerVisibleMonth(picker);
         enforceSingleCalendarLayout(picker);
         ensureRangePickerArrows(picker);
-        centerDaterangepickerRangeAndFooter(picker);
         setTimeout(function () {
-            fixDaterangepickerVisibleMonth(picker);
             enforceSingleCalendarLayout(picker);
             ensureRangePickerArrows(picker);
-            centerDaterangepickerRangeAndFooter(picker);
         }, 50);
-        setTimeout(function () {
-            fixDaterangepickerVisibleMonth(picker);
-            centerDaterangepickerRangeAndFooter(picker);
-        }, 120);
     });
     
     // When calendar closes, restore profile dropdown functionality

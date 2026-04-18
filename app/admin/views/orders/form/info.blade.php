@@ -1,4 +1,3 @@
-
 <style>
 /* Override parent container constraints - make it full width */
 .form-group.span-left.partial-field,
@@ -1020,35 +1019,6 @@ div.toolbar-action a.btn-send-invoice {
         font-size: 10px !important;
     }
 }
-
-.invoice-icon-btn {
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    min-height: 42px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: 8px !important;
-    text-decoration: none !important;
-    border: 1px solid #d9e2ef !important;
-    background: #fff8e8 !important;
-    color: #364a63 !important;
-    margin-right: 6px !important;
-    transition: all .15s ease-in-out !important;
-}
-.invoice-icon-btn:hover,
-.invoice-icon-btn:focus {
-    background: #ffefc2 !important;
-    color: #1f2d3d !important;
-    text-decoration: none !important;
-}
-.invoice-icon-btn i {
-    font-size: 16px !important;
-    line-height: 1 !important;
-    margin: 0 !important;
-}
-
 </style>
 
 <div class="order-info-header">
@@ -1128,29 +1098,12 @@ div.toolbar-action a.btn-send-invoice {
             <div class="invoice-buttons-container">
             <a
                 class="invoice-icon-btn"
-                href="{{ (((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
-? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
-: admin_url('orders/invoice/'.$formModel->order_id) }}"
+                href="{{ admin_url('orders/invoice/'.$formModel->order_id) }}"
                 target="_blank"
                 title="View Invoice"
             >
                 <i class="fa fa-file-text"></i>
             </a>
-            @if(
-                (int)($formModel->is_imported_ready2order ?? 0) === 1 ||
-                stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false ||
-                stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false
-            )
-            <a
-                class="invoice-icon-btn"
-                href="{{ preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdBon) ? admin_url('orders/pos-bon/'.$formModel->order_id).'?invoice_id='.($__pmdBon[1] ?? '') : admin_url('orders/pos-invoice/'.$formModel->order_id) }}"
-                target="_blank"
-                aria-label="View Bon 80mm"
-                title="View Bon 80mm"
-            >
-                <i class="fa fa-receipt"></i>
-            </a>
-            @endif
             <a
                 class="send-invoice-icon-btn"
                 role="button"

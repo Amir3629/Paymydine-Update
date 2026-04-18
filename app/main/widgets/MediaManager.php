@@ -83,12 +83,7 @@ class MediaManager extends BaseWidget
         $this->vars['isPopup'] = $this->popupLoaded;
         $this->vars['selectMode'] = $this->selectMode;
         $this->vars['selectItem'] = $this->selectItem;
-        // max_size is in KB; convert to MB for Dropzone. Enforce at least 2 MB so uploads aren't blocked by a tiny saved value.
-        $maxSizeKb = (int) $this->getSetting('max_size', 30720);
-        $minKb = 2048;
-        $phpMaxKb = $this->getPhpUploadMaxSizeKb();
-        $effectiveMaxKb = $maxSizeKb > 0 ? max($minKb, min($maxSizeKb, $phpMaxKb ?: PHP_INT_MAX)) : max($minKb, $phpMaxKb);
-        $this->vars['maxUploadSize'] = max(2, round($effectiveMaxKb / 1024, 2));
+        $this->vars['maxUploadSize'] = round($this->getSetting('max_size', 380) / 1024, 2);
         $this->vars['allowedExtensions'] = $this->getMediaLibrary()->getAllowedExtensions();
         $this->vars['chooseButton'] = $this->chooseButton;
         $this->vars['chooseButtonText'] = $this->chooseButtonText;
@@ -174,24 +169,12 @@ class MediaManager extends BaseWidget
         $this->setCurrentFolder($path);
         $this->prepareVars();
 
-        $response = [
+        return [
             '#'.$this->getId('item-list') => $this->makePartial('mediamanager/item_list'),
             '#'.$this->getId('folder-tree') => $this->makePartial('mediamanager/folder_tree'),
             '#'.$this->getId('breadcrumb') => $this->makePartial('mediamanager/breadcrumb'),
             '#'.$this->getId('statusbar') => $this->makePartial('mediamanager/statusbar'),
         ];
-
-        // Debug: log to Laravel log for media manager refresh
-        $mediaLib = $this->getMediaLibrary();
-        $fullPath = $mediaLib->getMediaPath($path ?? $this->getCurrentFolder());
-        \Log::info('[MediaManager] onGoToFolder', [
-            'path' => $path,
-            'resetCache' => post('resetCache'),
-            'totalItems' => $this->vars['totalItems'] ?? 0,
-            'fullPath' => $fullPath,
-        ]);
-
-        return $response;
     }
 
     public function onLoadPopup()
@@ -480,11 +463,7 @@ class MediaManager extends BaseWidget
 
     protected function listFolderItems($folder, $sortBy, $filter)
     {
-        $options = is_array($filter) ? $filter : ['search' => $filter, 'filter' => 'all'];
-        if (post('resetCache') || request()->has('resetCache')) {
-            $options['bypassCache'] = true;
-        }
-        return $this->getMediaLibrary()->fetchFiles($folder, $sortBy, $options);
+        return $this->getMediaLibrary()->fetchFiles($folder, $sortBy, $filter);
     }
 
     protected function getFolderList()
@@ -604,18 +583,6 @@ class MediaManager extends BaseWidget
 
             $uploadedFile = Request::file('file_data');
 
-            // Check PHP upload errors first (e.g. file exceeds upload_max_filesize) so user sees the real reason
-            if (!$uploadedFile->isValid())
-                throw new ApplicationException($uploadedFile->getErrorMessage());
-
-            // Use same effective limit as frontend: at least 2 MB so tiny saved values (e.g. 300 KB) don't block uploads
-            $maxSizeKb = (int) $this->getSetting('max_size', 30720);
-            $minKb = 2048; // 2 MB
-            $phpMaxKb = $this->getPhpUploadMaxSizeKb();
-            $effectiveMaxKb = $maxSizeKb > 0 ? max($minKb, min($maxSizeKb, $phpMaxKb)) : min($minKb, $phpMaxKb);
-            if ($effectiveMaxKb > 0 && $uploadedFile->getSize() > $effectiveMaxKb * 1024)
-                throw new ApplicationException(sprintf(lang('main::lang.media_manager.alert_file_too_big'), $effectiveMaxKb));
-
             $fileName = $uploadedFile->getClientOriginalName();
 
             if (!$path = $mediaLibrary->validatePath(Request::get('path')))
@@ -631,18 +598,15 @@ class MediaManager extends BaseWidget
             if (!$mediaLibrary->isAllowedExtension($fileName))
                 throw new ApplicationException(lang('main::lang.media_manager.alert_extension_not_allowed'));
 
+            if (!$uploadedFile->isValid())
+                throw new ApplicationException($uploadedFile->getErrorMessage());
+
             $mediaLibrary->put(
                 $filePath,
                 File::get($uploadedFile->getRealPath())
             );
 
             $mediaLibrary->resetCache();
-
-            \Log::info('[MediaManager] file uploaded', [
-                'path' => $path,
-                'filePath' => $filePath,
-                'fullPath' => $mediaLibrary->getMediaPath($filePath),
-            ]);
 
             $this->fireSystemEvent('media.file.upload', [$filePath, $uploadedFile]);
 
@@ -658,47 +622,16 @@ class MediaManager extends BaseWidget
         exit;
     }
 
-    /**
-     * Get PHP upload_max_filesize (and post_max_size) in KB. Uses the smaller of the two.
-     */
-    protected function getPhpUploadMaxSizeKb()
-    {
-        $upload = ini_get('upload_max_filesize');
-        $post = ini_get('post_max_size');
-        $toBytes = function ($val) {
-            if ($val === false || $val === '') return 0;
-            $val = trim($val);
-            $n = (float) $val;
-            $u = strtoupper(substr($val, -1));
-            if ($u === 'G') return (int) ($n * 1024 * 1024 * 1024);
-            if ($u === 'M') return (int) ($n * 1024 * 1024);
-            if ($u === 'K') return (int) ($n * 1024);
-            return (int) $n;
-        };
-        $uploadBytes = $toBytes($upload);
-        $postBytes = $toBytes($post);
-        $limit = $uploadBytes;
-        if ($postBytes > 0 && ($limit <= 0 || $postBytes < $limit)) {
-            $limit = $postBytes;
-        }
-        return $limit > 0 ? (int) ceil($limit / 1024) : 0;
-    }
-
     protected function validateFileName($name)
     {
-        if (!is_string($name) || trim($name) === '') {
+        if (!preg_match('/^[0-9a-z@\.\s_\-]+$/i', $name)) {
             return false;
         }
-        // Allow common filename characters; only disallow path/security risks
-        if (strpos($name, "\0") !== false
-            || strpos($name, '/') !== false
-            || strpos($name, '\\') !== false
-            || strpos($name, '..') !== false) {
+
+        if (strpos($name, '..') !== false) {
             return false;
         }
-        if (strlen($name) > 255) {
-            return false;
-        }
+
         return true;
     }
 

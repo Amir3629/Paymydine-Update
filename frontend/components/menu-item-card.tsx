@@ -11,7 +11,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/currency"
 import type { TranslationKey } from "@/lib/translations"
 import { OptimizedImage } from "@/components/ui/optimized-image"
-import { getMenuImageUrl } from "@/lib/api-client"
 import { truncateText } from "@/lib/utils"
 
 interface MenuItemCardProps {
@@ -58,7 +57,7 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
     >
       <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
         <OptimizedImage
-          src={getMenuImageUrl(item.image) || "/placeholder.svg"}
+          src={item.image || "/placeholder.svg"}
           alt={itemName}
           fill
           className="object-contain transition-transform duration-500 ease-in-out group-hover:scale-110"

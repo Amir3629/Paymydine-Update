@@ -1,26 +1,3 @@
-
-
-
-<style>
-
-</style>
-
-<style>
-
-</style>
-
-<style>
-
-</style>
-
-<style>
-
-</style>
-
-<style>
-
-</style>
-
 @php
   // Derive current admin locationId (pick what your page already has; default to 1)
   $locationId = $locationId ?? 1;
@@ -348,313 +325,6 @@
 }
 </style>
 
-
-<style>
-/* ===== CLEAN MOBILE ORDERS ROWS UI ===== */
-@media (max-width: 767.98px) {
-  #mobile-orders-rows-ui {
-    display: block !important;
-    width: auto !important;
-    max-width: 560px !important;
-    margin: 12px auto 16px auto !important;
-    padding: 0 12px !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-orders-head {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 10px !important;
-    margin-bottom: 12px !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-orders-title {
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #202938 !important;
-    margin: 0 !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-orders-sort-btn {
-    border: 1px solid rgb(201, 210, 227) !important;
-    background: rgb(241, 244, 251) !important;
-    color: rgb(32, 41, 56) !important;
-    border-radius: 12px !important;
-    min-height: 40px !important;
-    height: 40px !important;
-    padding: 0 16px !important;
-    font-weight: 600 !important;
-    white-space: nowrap !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-row {
-    background: #fff !important;
-    border: 1px solid #d9dee7 !important;
-    border-radius: 18px !important;
-    padding: 18px !important;
-    margin: 0 auto 14px auto !important;
-    box-shadow: 0 3px 12px rgba(0,0,0,.05) !important;
-    max-width: 100% !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-row-top {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-name {
-    font-size: 18px !important;
-    line-height: 1.25 !important;
-    font-weight: 700 !important;
-    color: #202938 !important;
-    margin: 0 0 8px 0 !important;
-    text-align: left !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-meta {
-    font-size: 13px !important;
-    color: #6b7280 !important;
-    margin: 0 !important;
-    text-align: left !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-status {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 38px !important;
-    padding: 0 16px !important;
-    border-radius: 999px !important;
-    border: 1px solid rgb(201, 210, 227) !important;
-    background: rgb(241, 244, 251) !important;
-    color: rgb(32, 41, 56) !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    white-space: nowrap !important;
-    flex: 0 0 auto !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-actions {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    margin-top: 18px !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-btn {
-    min-width: 210px !important;
-    max-width: 100% !important;
-    min-height: 52px !important;
-    height: 52px !important;
-    padding: 0 24px !important;
-    border-radius: 18px !important;
-    border: 1px solid #364a63 !important;
-    background: #364a63 !important;
-    color: #fff !important;
-    font-size: 16px !important;
-    font-weight: 700 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    box-shadow: 0 4px 10px rgba(54,74,99,.18) !important;
-  }
-
-  #mobile-orders-rows-ui .mobile-table-btn:hover,
-  #mobile-orders-rows-ui .mobile-table-btn:focus,
-  #mobile-orders-rows-ui .mobile-table-btn:active {
-    background: #364a63 !important;
-    color: #fff !important;
-    border-color: #364a63 !important;
-  }
-
-  .table-selection,
-  #table-grid,
-  .table-grid-container,
-  .table-grid,
-  .working-area-indicator,
-  .grid-overlay,
-  .table-item,
-  .table-circle,
-  .table-status,
-  .table-number,
-  .table-capacity,
-  .cashier-option {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-
-  .order-form {
-    display: none !important;
-  }
-}
-/* ===== END CLEAN MOBILE ORDERS ROWS UI ===== */
-</style>
-
-<script>
-(function () {
-  function isMobileOrdersRowsUI() {
-    return /^\/admin\/orders\/create(?:\/)?$/.test(window.location.pathname) &&
-           window.matchMedia('(max-width: 767.98px)').matches;
-  }
-
-  function txt(el) {
-    return ((el && el.textContent) || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function findItems() {
-    return Array.from(document.querySelectorAll('.table-item')).filter(function (el) {
-      if (el.classList.contains('cashier-option')) return false;
-      var t = txt(el);
-      return !!t;
-    });
-  }
-
-  function getStatus(raw) {
-    if (/received/i.test(raw)) return 'Received';
-    if (/reserved/i.test(raw)) return 'Reserved';
-    if (/occupied/i.test(raw)) return 'Occupied';
-    return 'Available';
-  }
-
-  function getName(el, index) {
-    var raw = txt(el);
-    var name =
-      txt(el.querySelector('.table-number')) ||
-      raw.split(/Available|Received|Reserved|Occupied/i)[0].trim();
-
-    name = name.replace(/\s{2,}/g, ' ').trim();
-    if (!name) name = 'Table ' + (index + 1);
-    return name;
-  }
-
-  function ensureWrap() {
-    let wrap = document.getElementById('mobile-orders-rows-ui');
-    if (wrap) return wrap;
-
-    wrap = document.createElement('div');
-    wrap.id = 'mobile-orders-rows-ui';
-
-    var host =
-      document.querySelector('.page-header')?.parentNode ||
-      document.querySelector('.row-fluid')?.parentNode ||
-      document.querySelector('.page-content') ||
-      document.querySelector('.content') ||
-      document.querySelector('.container-fluid') ||
-      document.body;
-
-    if (document.querySelector('.page-header') && document.querySelector('.page-header').nextSibling) {
-      document.querySelector('.page-header').parentNode.insertBefore(wrap, document.querySelector('.page-header').nextSibling);
-    } else {
-      host.appendChild(wrap);
-    }
-
-    return wrap;
-  }
-
-  function buildRows() {
-    const existing = document.getElementById('mobile-orders-rows-ui');
-    if (!isMobileOrdersRowsUI()) {
-      if (existing) existing.remove();
-      return;
-    }
-
-    const items = findItems();
-    if (!items.length) return;
-
-    const wrap = ensureWrap();
-    wrap.innerHTML = '';
-
-    const head = document.createElement('div');
-    head.className = 'mobile-orders-head';
-
-    const title = document.createElement('h3');
-    title.className = 'mobile-orders-title';
-    title.textContent = 'Tables';
-
-    const sortBtnReal = document.getElementById('edit-layout-btn');
-    if (sortBtnReal) {
-      const sortBtn = document.createElement('button');
-      sortBtn.type = 'button';
-      sortBtn.className = 'mobile-orders-sort-btn';
-      sortBtn.textContent = 'Edit Sorting';
-      sortBtn.addEventListener('click', function () {
-        sortBtnReal.click();
-      });
-      head.appendChild(title);
-      head.appendChild(sortBtn);
-    } else {
-      head.appendChild(title);
-    }
-
-    wrap.appendChild(head);
-
-    items.forEach(function (el, index) {
-      const raw = txt(el);
-      const tableNo = el.getAttribute('data-table-no') || String(index + 1);
-      const tableId = el.getAttribute('data-table-id') || '';
-      const name = getName(el, index);
-      const status = getStatus(raw);
-
-      const row = document.createElement('div');
-      row.className = 'mobile-table-row';
-
-      row.innerHTML = `
-        <div class="mobile-table-row-top">
-          <div>
-            <div class="mobile-table-name">${name}</div>
-            <div class="mobile-table-meta">Table No: ${tableNo}${tableId ? ' · ID: ' + tableId : ''}</div>
-          </div>
-          <div class="mobile-table-status">${status}</div>
-        </div>
-        <div class="mobile-table-actions">
-          <button type="button" class="mobile-table-btn">Select Table</button>
-        </div>
-      `;
-
-      row.querySelector('.mobile-table-btn').addEventListener('click', function () {
-        el.style.removeProperty('display');
-        el.style.removeProperty('visibility');
-        el.style.removeProperty('opacity');
-        el.click();
-      });
-
-      wrap.appendChild(row);
-    });
-
-    console.log('CLEAN mobile rows built:', wrap.querySelectorAll('.mobile-table-row').length);
-  }
-
-  function runRowsBuild() {
-    clearTimeout(window.__mobileRowsUiTimer);
-    window.__mobileRowsUiTimer = setTimeout(buildRows, 80);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', runRowsBuild);
-  } else {
-    runRowsBuild();
-  }
-
-  window.addEventListener('load', runRowsBuild);
-  window.addEventListener('resize', runRowsBuild);
-
-  const mo = new MutationObserver(function () {
-    runRowsBuild();
-  });
-
-  document.addEventListener('DOMContentLoaded', function () {
-    if (document.body) {
-      mo.observe(document.body, { childList: true, subtree: true });
-    }
-  });
-})();
-</script>
-
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <!-- Standard Admin Page Header -->
@@ -791,8 +461,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $telephone = '1234567890';
     $location_id = 1;
     $address_id = 1;
-    $payment = strtolower((string)($_POST['payment_method'] ?? 'cod'));
-    $isQrPayLater = ($payment === 'qr_pay_later');
+    $payment = $_POST['payment_method'] ?? 'cod';
     
     // Get tax, tip, and coupon from POST
     $tax_amount = floatval($_POST['tax_amount'] ?? 0);
@@ -806,7 +475,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_agent = $_SERVER['HTTP_USER_AGENT'];
     $invoice_prefix = 'INV-2025-00';
     $order_time_is_asap = 1;
-    $processed = $isQrPayLater ? 0 : 1;
+    $processed = 1;
     $status_updated_at = date('Y-m-d H:i:s');
     $assignee_updated_at = date('Y-m-d H:i:s');
     $invoice_date = date('Y-m-d H:i:s');
@@ -814,32 +483,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check if updating existing order
     $existing_order_id = isset($_POST['order_id']) ? (int)$_POST['order_id'] : null;
     $is_updating = $existing_order_id && $existing_order_id > 0;
-
-    if ($isQrPayLater && !empty($table_id)) {
-        $paidStatusId = (int)(DB::table('statuses')
-            ->whereRaw('LOWER(status_name) = ?', ['paid'])
-            ->value('status_id') ?? 10);
-        $hasSettlementStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status');
-
-        $duplicateQuery = DB::table('orders')
-            ->where('order_type', (string)$table_id)
-            ->where('payment', 'qr_pay_later')
-            ->when($hasSettlementStatusColumn, function ($q) {
-                $q->where('settlement_status', '!=', 'paid');
-            }, function ($q) use ($paidStatusId) {
-                $q->where('status_id', '!=', $paidStatusId);
-            });
-
-        if ($is_updating) {
-            $duplicateQuery->where('order_id', '!=', $existing_order_id);
-        }
-
-        $duplicateOrder = $duplicateQuery->orderByDesc('order_id')->first();
-        if ($duplicateOrder) {
-            echo '<div id="notification"><div class="alert alert-danger flash-message animated fadeInDown alert-dismissible show" data-allow-dismiss="true" role="alert">Pending QR Payment order already exists for this table (Order #' . (int)$duplicateOrder->order_id . ').<button type="button" class="btn-close" data-bs-dismiss="alert" aria-hidden="true"></button></div></div>';
-            exit;
-        }
-    }
     
     if ($is_updating) {
         // Update existing order
@@ -1166,15 +809,6 @@ foreach ($menu_ids as $key => $menu_id) {
             'value' => $final_total,
             'is_summable' => 0,
         ];
-
-        $orderTotals[] = [
-            'order_id' => $last_order_id,
-            'code' => 'payment_method',
-            'title' => 'Payment Method',
-            'priority' => 6,
-            'value' => $payment,
-            'is_summable' => 0,
-        ];
         
         DB::table('order_totals')->insert($orderTotals);
     }
@@ -1227,26 +861,8 @@ foreach ($menu_ids as $key => $menu_id) {
     <?php
 $statuses = DB::table('statuses')->where('status_name', 'Paid')->first();
 $status_id = $statuses ? $statuses->status_id : 10; // Default to 10 if no 'Paid' status found
-$hasSettlementStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status');
 $unavailableTables = DB::table('orders')
-    ->where(function ($q) use ($status_id, $hasSettlementStatusColumn) {
-        $q->where(function ($sub) use ($status_id) {
-            $sub->where('payment', '!=', 'qr_pay_later')
-                ->where('status_id', '!=', $status_id);
-        });
-
-        if ($hasSettlementStatusColumn) {
-            $q->orWhere(function ($sub) {
-                $sub->where('payment', 'qr_pay_later')
-                    ->where('settlement_status', '!=', 'paid');
-            });
-        } else {
-            $q->orWhere(function ($sub) use ($status_id) {
-                $sub->where('payment', 'qr_pay_later')
-                    ->where('status_id', '!=', $status_id);
-            });
-        }
-    })
+    ->where('status_id', '!=', $status_id)
     ->pluck('order_type')
     ->toArray();
 ?>
@@ -1288,16 +904,7 @@ $unavailableTables = DB::table('orders')
                         // Get actual order status for this table from the admin orders panel
                         $tableOrder = DB::table('orders')
                             ->where('order_type', $row->table_name)
-                            ->where(function ($q) use ($hasSettlementStatusColumn) {
-                                if ($hasSettlementStatusColumn) {
-                                    $q->where(function ($sub) {
-                                        $sub->where('payment', '!=', 'qr_pay_later')
-                                            ->orWhere('settlement_status', '!=', 'paid');
-                                    });
-                                } else {
-                                    $q->where('status_id', '!=', 10); // Legacy fallback
-                                }
-                            })
+                            ->where('status_id', '!=', 10) // Exclude paid orders (status 10)
                             ->orderBy('created_at', 'desc')
                             ->first();
                         
@@ -1580,16 +1187,11 @@ $unavailableTables = DB::table('orders')
                     <div class="payment-method-section" id="payment-method-section" style="display: none;">
                         <h5 style="margin-bottom: 10px; font-weight: 600;">Payment Method</h5>
                         <div class="payment-methods-grid" id="payment-methods-grid">
-                            @php
-                                $hasQrPayLaterMethod = isset($paymentMethods) && $paymentMethods->contains(function ($m) {
-                                    return ($m->code ?? null) === 'qr_pay_later';
-                                });
-                            @endphp
                             @if(isset($paymentMethods) && $paymentMethods->count() > 0)
                                 @foreach($paymentMethods as $method)
                                     <label class="payment-method-option">
                                         <input type="radio" name="payment_method_radio" value="{{ $method->code }}" 
-                                               {{ (($existingOrder->payment ?? 'cod') === $method->code || (!isset($existingOrder) && $method->code === 'cod')) ? 'checked' : '' }}>
+                                               {{ $method->code === 'cod' ? 'checked' : '' }}>
                                         <span class="payment-method-label">{{ $method->name }}</span>
                                     </label>
                                 @endforeach
@@ -1597,13 +1199,6 @@ $unavailableTables = DB::table('orders')
                                 <label class="payment-method-option">
                                     <input type="radio" name="payment_method_radio" value="cod" checked>
                                     <span class="payment-method-label">Cash on Delivery</span>
-                                </label>
-                            @endif
-                            @if(!$hasQrPayLaterMethod)
-                                <label class="payment-method-option">
-                                    <input type="radio" name="payment_method_radio" value="qr_pay_later"
-                                           {{ ($existingOrder->payment ?? '') === 'qr_pay_later' ? 'checked' : '' }}>
-                                    <span class="payment-method-label">QR Payment</span>
                                 </label>
                             @endif
                         </div>
@@ -4001,7 +3596,7 @@ document.addEventListener("DOMContentLoaded", function () {
             };
 
             // State variables
-            let selectedPaymentMethod = document.getElementById('payment-method-input')?.value || 'cod';
+            let selectedPaymentMethod = 'cod';
             let tipPercentage = 0;
             let customTipAmount = 0;
             let appliedCoupon = null;
@@ -4093,11 +3688,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Payment method selection
             const paymentMethodRadios = document.querySelectorAll('input[name="payment_method_radio"]');
-            paymentMethodRadios.forEach(radio => {
-                if (radio.value === selectedPaymentMethod) {
-                    radio.checked = true;
-                }
-            });
             paymentMethodRadios.forEach(radio => {
                 radio.addEventListener('change', function() {
                     selectedPaymentMethod = this.value;

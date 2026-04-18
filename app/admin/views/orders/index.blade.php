@@ -78,6 +78,19 @@
     }
     
     
+    /* Status dropdown items with colors */
+    .status-dropdown-item {
+        border-radius: 4px !important;
+        cursor: pointer !important;
+        display: block !important;
+        text-decoration: none !important;
+    }
+    
+    .status-dropdown-item:hover {
+        transform: translateX(2px) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+    
     /* History toggle styles - instant, no effects */
     .order-row.hide-row {
         display: none !important;
@@ -380,155 +393,106 @@
         color: rgb(32, 41, 56) !important; /* Dark text - NOT white when active */
     }
     
-    /* Orders status panel – مستطيل: horizontal bar, all buttons in one row */
-    .orders-status-panel {
-        position: fixed;
-        z-index: 100000;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        align-items: stretch;
-        gap: 0;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.1);
-        border: 1px solid #e5e9f2;
-        padding: 6px;
-        overflow: hidden;
+    /* ============================================
+       CRITICAL FIX: Status Dropdown Z-Index
+       DROPDOWN MUST ALWAYS BE ABOVE EVERYTHING!
+       ============================================ */
+    /* Force status dropdown menus to appear above EVERYTHING - MAXIMUM z-index */
+    .list-table .dropdown-menu,
+    .list-table .dropdown-menu.show,
+    .list-table td .dropdown-menu,
+    .list-table td .dropdown-menu.show,
+    .list-table .list-col-name-status-name .dropdown-menu,
+    .list-table .list-col-name-status-name .dropdown-menu.show,
+    .list-table [class*="status"] .dropdown-menu,
+    .list-table [class*="status"] .dropdown-menu.show,
+    .list-table .dropdown.show .dropdown-menu,
+    .list-table .dropdown.show .dropdown-menu.show {
+        z-index: 99999 !important;
+        position: absolute !important;
+        background-color: #ffffff !important;
+        background: #ffffff !important;
+        opacity: 1 !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+        border: 1px solid #e5e9f2 !important;
+        pointer-events: auto !important;
     }
-    .orders-status-option {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        white-space: nowrap;
-        padding: 10px 14px;
-        margin: 0;
-        border: none;
-        border-radius: 0;
-        background: transparent;
-        color: #5c6370;
-        font-weight: 500;
-        font-size: 13px;
-        cursor: pointer;
-        transition: color 0.15s ease;
-        text-decoration: none;
-        line-height: 1.3;
-        border-bottom: 2px solid #d0d3d9;
+    
+    /* When dropdown is open, disable row hover effects to prevent "jumping" */
+    /* IMPORTANT: Do NOT disable pointer-events - it blocks scrolling! */
+    body.dropdown-open .list-table tbody tr:hover {
+        transform: none !important;
+        box-shadow: none !important;
+        transition: none !important;
     }
-    .orders-status-option:hover {
-        color: #2d3139;
-        border-bottom-color: #9ca0a8;
+    
+    /* Disable hover transitions on rows when dropdown is open */
+    body.dropdown-open .list-table tbody tr {
+        transition: background-color 0.2s ease !important;
     }
-    .orders-status-option:not(:last-child) {
-        margin-right: 8px;
+    
+    /* Ensure scrolling still works */
+    body.dropdown-open,
+    body.dropdown-open .page-wrapper,
+    body.dropdown-open .list-table,
+    body.dropdown-open .table-responsive,
+    body.dropdown-open .list-table tbody {
+        overflow: auto !important;
+        overflow-y: auto !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Prevent parent containers from clipping dropdowns (but keep scrolling on table-responsive) */
+    .list-table table,
+    .list-table tbody,
+    .list-table tr,
+    .list-table td,
+    .list-table .list-col-name-status-name,
+    .list-table [class*="status"],
+    .list-table .dropdown {
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+    }
+    
+    /* Keep scrolling enabled on main containers */
+    .table-responsive {
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Ensure page wrapper and body can scroll */
+    .page-wrapper,
+    body.dropdown-open,
+    html {
+        overflow: auto !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Always allow scrolling on body */
+    body {
+        overflow-y: auto !important;
+    }
+    
+    /* Ensure dropdown container doesn't interfere */
+    .list-table .list-col-name-status-name .dropdown,
+    .list-table td[class*="status"] .dropdown {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    /* Smart positioning for bottom rows - open upward */
+    .list-table .dropdown-menu.dropdown-menu-top {
+        top: auto !important;
+        bottom: 100% !important;
+        margin-top: 0 !important;
+        margin-bottom: 4px !important;
+        transform-origin: bottom center !important;
     }
 </style>
 
 <div class="row-fluid">
     {!! $this->renderList() !!}
-
-
-<!-- PMD_R2O_ORDERS_TABLE_NAME_FIX_START -->
-<script>
-(function () {
-    function getOrderIdFromRow(tr) {
-        try {
-            var tds = tr.querySelectorAll('td');
-            if (!tds || tds.length < 5) return null;
-
-            var idCell = tds[2];
-            if (!idCell) return null;
-
-            var txt = (idCell.innerText || idCell.textContent || '').trim();
-            if (/^\d+$/.test(txt)) return txt;
-
-            var link = tr.querySelector('a[href*="/admin/orders/edit/"]');
-            if (link) {
-                var m = link.getAttribute('href').match(/\/admin\/orders\/edit\/(\d+)/);
-                if (m) return m[1];
-            }
-        } catch (e) {}
-
-        return null;
-    }
-
-    function getTableCellFromRow(tr) {
-        try {
-            var tds = tr.querySelectorAll('td');
-            if (!tds || tds.length < 5) return null;
-            return tds[4];
-        } catch (e) {
-            return null;
-        }
-    }
-
-    function applyMap(data) {
-        if (!data || !data.orders) return;
-
-        var rows = document.querySelectorAll('table tbody tr');
-        rows.forEach(function (tr) {
-            var orderId = getOrderIdFromRow(tr);
-            if (!orderId) return;
-
-            var rowData = data.orders[String(orderId)];
-            if (!rowData || !rowData.table_name) return;
-
-            var cell = getTableCellFromRow(tr);
-            if (!cell) return;
-
-            var current = (cell.innerText || cell.textContent || '').trim();
-            if (current === rowData.table_name) return;
-
-            cell.textContent = rowData.table_name;
-            cell.setAttribute('data-r2o-table-fixed', '1');
-        });
-    }
-
-    function loadAndApply() {
-        fetch("{{ url('r2o_order_table_names_ajax.php') }}", {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            credentials: 'same-origin'
-        })
-        .then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-        })
-        .then(function (data) {
-            applyMap(data);
-        })
-        .catch(function (err) {
-            console.log('R2O table name fix skipped:', err.message);
-        });
-    }
-
-    function init() {
-        loadAndApply();
-        setTimeout(loadAndApply, 500);
-        setTimeout(loadAndApply, 1500);
-        setTimeout(loadAndApply, 3000);
-
-        var target = document.querySelector('table tbody') || document.body;
-        if (!target) return;
-
-        var obs = new MutationObserver(function () {
-            loadAndApply();
-        });
-
-        obs.observe(target, {
-            childList: true,
-            subtree: true
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
-})();
-</script>
-<!-- PMD_R2O_ORDERS_TABLE_NAME_FIX_END -->
-
 </div>
 
 <script>
@@ -660,97 +624,267 @@
 </script>
 
 <script>
-// Orders status panel: open floating panel on trigger click, no in-table dropdown
+// ============================================
+// FORCE STATUS DROPDOWNS TO ALWAYS BE ON TOP
+// This ensures dropdowns are ABOVE EVERYTHING
+// ============================================
 (function() {
     'use strict';
-    let panelEl = null;
-
-    function closePanel() {
-        if (panelEl && panelEl.parentNode) {
-            panelEl.parentNode.removeChild(panelEl);
-            panelEl = null;
-        }
-        document.removeEventListener('click', outsideClick);
+    
+    function forceDropdownZIndex() {
+        // Find all status dropdown menus
+        const dropdowns = document.querySelectorAll('.list-table .dropdown-menu');
+        
+        dropdowns.forEach(function(dropdown) {
+            // Force maximum z-index using inline styles (highest priority)
+            dropdown.style.setProperty('z-index', '99999', 'important');
+            dropdown.style.setProperty('position', 'absolute', 'important');
+            
+            // Ensure solid white background to block background content
+            if (dropdown.classList.contains('show')) {
+                dropdown.style.setProperty('background-color', '#ffffff', 'important');
+                dropdown.style.setProperty('background', '#ffffff', 'important');
+                dropdown.style.setProperty('opacity', '1', 'important');
+            }
+            
+            // Prevent parent clipping (but skip scroll containers)
+            let parent = dropdown.parentElement;
+            let level = 0;
+            while (parent && parent !== document.body && level < 10) {
+                // Skip scroll containers - they need to keep their overflow
+                const isScrollContainer = parent.classList.contains('table-responsive') || 
+                                          parent.classList.contains('page-wrapper') ||
+                                          parent.tagName === 'BODY' ||
+                                          parent.tagName === 'HTML';
+                
+                if (!isScrollContainer) {
+                    parent.style.setProperty('overflow', 'visible', 'important');
+                    parent.style.setProperty('overflow-x', 'visible', 'important');
+                    parent.style.setProperty('overflow-y', 'visible', 'important');
+                }
+                parent = parent.parentElement;
+                level++;
+            }
+        });
     }
-
-    function outsideClick(e) {
-        if (panelEl && !panelEl.contains(e.target) && !e.target.closest('.orders-status-trigger')) {
-            closePanel();
-        }
-    }
-
-    function openPanel(trigger) {
-        closePanel();
-        var optionsJson = trigger.getAttribute('data-options') || '[]';
-        var options = [];
-        try {
-            options = JSON.parse(optionsJson.replace(/\\u0022/g, '"').replace(/\\u0027/g, "'"));
-        } catch (err) {
-            return;
-        }
-        if (!options.length) return;
-
-        var recordId = trigger.getAttribute('data-record-id');
-        var rect = trigger.getBoundingClientRect();
-        var panel = document.createElement('div');
-        panel.className = 'orders-status-panel';
-        panel.setAttribute('role', 'menu');
-
-        options.forEach(function(opt) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'orders-status-option';
-            btn.setAttribute('role', 'menuitem');
-            var c = opt.color || '#6c757d';
-            btn.style.borderBottomColor = c;
-            btn.textContent = opt.name;
-            btn.dataset.recordId = recordId;
-            btn.dataset.statusId = String(opt.id);
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var form = document.querySelector('form[data-request]') || document.querySelector('.list-table') && document.querySelector('.list-table').closest('form');
-                if (form && typeof jQuery !== 'undefined' && jQuery(form).request) {
-                    jQuery(form).request('onUpdateStatus', {
-                        data: { recordId: recordId, statusId: opt.id }
+    
+    function watchForDropdownOpen() {
+        // Watch for when dropdowns open using MutationObserver
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    if (target.classList && target.classList.contains('dropdown-menu')) {
+                        if (target.classList.contains('show')) {
+                            // Dropdown just opened - force z-index immediately
+                            target.style.setProperty('z-index', '99999', 'important');
+                            target.style.setProperty('position', 'absolute', 'important');
+                            target.style.setProperty('background-color', '#ffffff', 'important');
+                            target.style.setProperty('background', '#ffffff', 'important');
+                            target.style.setProperty('opacity', '1', 'important');
+                            target.style.setProperty('box-shadow', '0 8px 24px rgba(0, 0, 0, 0.2)', 'important');
+                            
+                            // SMART POSITIONING: Check if dropdown fits below, if not open upward
+                            setTimeout(function() {
+                                const button = target.previousElementSibling || target.parentElement.querySelector('button');
+                                if (button) {
+                                    const buttonRect = button.getBoundingClientRect();
+                                    const dropdownRect = target.getBoundingClientRect();
+                                    const viewportHeight = window.innerHeight;
+                                    const dropdownHeight = dropdownRect.height || 200; // Estimate if not rendered yet
+                                    
+                                    // Check if dropdown would go off-screen at bottom
+                                    const spaceBelow = viewportHeight - buttonRect.bottom;
+                                    const spaceAbove = buttonRect.top;
+                                    
+                                    if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+                                        // Not enough space below, open upward
+                                        target.classList.add('dropdown-menu-top');
+                                        target.style.setProperty('top', 'auto', 'important');
+                                        target.style.setProperty('bottom', '100%', 'important');
+                                        target.style.setProperty('margin-bottom', '4px', 'important');
+                                        target.style.setProperty('margin-top', '0', 'important');
+                                    } else {
+                                        // Normal opening downward
+                                        target.classList.remove('dropdown-menu-top');
+                                        target.style.setProperty('top', '100%', 'important');
+                                        target.style.setProperty('bottom', 'auto', 'important');
+                                        target.style.setProperty('margin-top', '4px', 'important');
+                                        target.style.setProperty('margin-bottom', '0', 'important');
+                                    }
+                                    
+                                    // Also ensure it doesn't go off right edge
+                                    const viewportWidth = window.innerWidth;
+                                    if (dropdownRect.right > viewportWidth) {
+                                        const overflow = dropdownRect.right - viewportWidth;
+                                        const currentLeft = parseInt(target.style.left) || 0;
+                                        target.style.setProperty('left', (currentLeft - overflow - 10) + 'px', 'important');
+                                    }
+                                }
+                            }, 10);
+                            
+                            // Also force on parent containers (but skip scroll containers)
+                            let parent = target.parentElement;
+                            let level = 0;
+                            while (parent && parent !== document.body && level < 10) {
+                                // Skip scroll containers - they need to keep their overflow
+                                const isScrollContainer = parent.classList.contains('table-responsive') || 
+                                                          parent.classList.contains('page-wrapper') ||
+                                                          parent.tagName === 'BODY' ||
+                                                          parent.tagName === 'HTML';
+                                
+                                if (!isScrollContainer) {
+                                    parent.style.setProperty('overflow', 'visible', 'important');
+                                    parent.style.setProperty('overflow-x', 'visible', 'important');
+                                    parent.style.setProperty('overflow-y', 'visible', 'important');
+                                }
+                                parent = parent.parentElement;
+                                level++;
+                            }
+                            
+                            // Disable row hover effects to prevent "jumping"
+                            // IMPORTANT: Do NOT disable pointer-events - it blocks scrolling!
+                            document.body.classList.add('dropdown-open');
+                        } else {
+                            // Dropdown closed - re-enable row hover effects
+                            const openDropdowns = document.querySelectorAll('.list-table .dropdown-menu.show');
+                            if (openDropdowns.length === 0) {
+                                document.body.classList.remove('dropdown-open');
+                            }
+                        }
+                    }
+                }
+                
+                // Check for newly added dropdowns
+                if (mutation.addedNodes) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList && node.classList.contains('dropdown-menu')) {
+                            node.style.setProperty('z-index', '99999', 'important');
+                            node.style.setProperty('position', 'absolute', 'important');
+                        }
                     });
                 }
-                closePanel();
             });
-            panel.appendChild(btn);
+            
+            // Re-apply to all dropdowns
+            forceDropdownZIndex();
         });
-
-        document.body.appendChild(panel);
-        panelEl = panel;
-
-        var panelRect = panel.getBoundingClientRect();
-        var viewportH = window.innerHeight;
-        var viewportW = window.innerWidth;
-        var top = rect.bottom + 6;
-        var left = rect.left;
-        if (top + panelRect.height > viewportH - 10) {
-            top = rect.top - panelRect.height - 6;
-        }
-        if (left + panelRect.width > viewportW - 10) {
-            left = viewportW - panelRect.width - 10;
-        }
-        if (left < 10) left = 10;
-        panel.style.top = top + 'px';
-        panel.style.left = left + 'px';
-
-        setTimeout(function() {
-            document.addEventListener('click', outsideClick);
-        }, 0);
+        
+        // Observe the entire document for changes
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class']
+        });
     }
-
-    document.addEventListener('click', function(e) {
-        var trigger = e.target.closest('.orders-status-trigger');
-        if (trigger) {
-            e.preventDefault();
-            e.stopPropagation();
-            openPanel(trigger);
+    
+    // Initialize immediately
+    forceDropdownZIndex();
+    
+    // Watch for dropdown opens
+    watchForDropdownOpen();
+    
+    // Also listen for Bootstrap dropdown events
+    document.addEventListener('show.bs.dropdown', function(e) {
+        const dropdown = e.target.querySelector('.dropdown-menu');
+        if (dropdown) {
+            dropdown.style.setProperty('z-index', '99999', 'important');
+            dropdown.style.setProperty('position', 'absolute', 'important');
+            dropdown.style.setProperty('background-color', '#ffffff', 'important');
+            dropdown.style.setProperty('background', '#ffffff', 'important');
+            
+            // Disable row hover effects (but keep scrolling enabled)
+            document.body.classList.add('dropdown-open');
         }
     });
+    
+    // Smart positioning when dropdown is fully shown
+    document.addEventListener('shown.bs.dropdown', function(e) {
+        const dropdown = e.target.querySelector('.dropdown-menu');
+        const button = e.target.querySelector('button') || e.target;
+        
+        if (dropdown && button) {
+            setTimeout(function() {
+                const buttonRect = button.getBoundingClientRect();
+                const dropdownRect = dropdown.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const viewportWidth = window.innerWidth;
+                const dropdownHeight = dropdownRect.height;
+                const dropdownWidth = dropdownRect.width;
+                
+                // Check space below and above
+                const spaceBelow = viewportHeight - buttonRect.bottom;
+                const spaceAbove = buttonRect.top;
+                
+                // If not enough space below and more space above, open upward
+                if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+                    dropdown.classList.add('dropdown-menu-top');
+                    dropdown.style.setProperty('top', 'auto', 'important');
+                    dropdown.style.setProperty('bottom', '100%', 'important');
+                    dropdown.style.setProperty('margin-bottom', '4px', 'important');
+                    dropdown.style.setProperty('margin-top', '0', 'important');
+                    dropdown.style.setProperty('transform-origin', 'bottom center', 'important');
+                } else {
+                    // Normal opening downward
+                    dropdown.classList.remove('dropdown-menu-top');
+                    dropdown.style.setProperty('top', '100%', 'important');
+                    dropdown.style.setProperty('bottom', 'auto', 'important');
+                    dropdown.style.setProperty('margin-top', '4px', 'important');
+                    dropdown.style.setProperty('margin-bottom', '0', 'important');
+                    dropdown.style.setProperty('transform-origin', 'top center', 'important');
+                }
+                
+                // Check if dropdown goes off right edge of viewport
+                if (dropdownRect.right > viewportWidth) {
+                    const overflow = dropdownRect.right - viewportWidth;
+                    const currentLeft = parseInt(dropdown.style.left) || 0;
+                    dropdown.style.setProperty('left', (currentLeft - overflow - 10) + 'px', 'important');
+                }
+                
+                // Check if dropdown goes off left edge
+                if (dropdownRect.left < 0) {
+                    dropdown.style.setProperty('left', '0px', 'important');
+                }
+            }, 10);
+        }
+    });
+    
+    document.addEventListener('hide.bs.dropdown', function(e) {
+        // Check if any dropdowns are still open
+        setTimeout(function() {
+            const openDropdowns = document.querySelectorAll('.list-table .dropdown-menu.show');
+            if (openDropdowns.length === 0) {
+                document.body.classList.remove('dropdown-open');
+            }
+        }, 100);
+    });
+    
+    // Click outside to close dropdown and re-enable rows
+    document.addEventListener('click', function(e) {
+        const dropdown = e.target.closest('.dropdown-menu');
+        const dropdownToggle = e.target.closest('[data-toggle="dropdown"], [data-bs-toggle="dropdown"]');
+        
+        if (!dropdown && !dropdownToggle) {
+            setTimeout(function() {
+                const openDropdowns = document.querySelectorAll('.list-table .dropdown-menu.show');
+                if (openDropdowns.length === 0) {
+                    document.body.classList.remove('dropdown-open');
+                }
+            }, 100);
+        }
+    });
+    
+    // Re-apply on page updates
+    document.addEventListener('ajaxUpdate', function() {
+        setTimeout(forceDropdownZIndex, 100);
+        setTimeout(forceDropdownZIndex, 500);
+    });
+    
+    // Re-apply periodically (just in case)
+    setInterval(forceDropdownZIndex, 1000);
+    
+    console.log('✅ Status dropdown z-index enforcer active - dropdowns will ALWAYS be on top!');
 })();
 </script>
 
@@ -829,73 +963,4 @@
     console.log('✅ Large edit button enforcer active - edit buttons will be 2x bigger!');
 })();
 </script>
-
-
-
-{{-- PMD ORDER TABLE NAME LOOKUP START --}}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    function collectOrderIds() {
-        const ids = [];
-        document.querySelectorAll('a[href*="/admin/orders/edit/"]').forEach(function (a) {
-            const m = a.getAttribute('href').match(/\/admin\/orders\/edit\/(\d+)/);
-            if (m) ids.push(parseInt(m[1], 10));
-        });
-        return Array.from(new Set(ids)).filter(Boolean);
-    }
-
-    function findRowByOrderId(orderId) {
-        const link = document.querySelector('a[href*="/admin/orders/edit/' + orderId + '"]');
-        return link ? link.closest('tr') : null;
-    }
-
-    function setTableCell(row, value) {
-        if (!row) return;
-
-        const cells = row.querySelectorAll('td');
-        if (!cells || cells.length < 5) return;
-
-        // معمولا ستون table name حدودا cell شماره 4 است
-        // اگر ساختار کمی فرق کرد، fallback داریم
-        let target = cells[4] || null;
-
-        if (!target) {
-            for (const td of cells) {
-                const text = (td.innerText || '').trim();
-                if (text === 'Table' || text === '—' || /^Table\s+\d+$/i.test(text)) {
-                    target = td;
-                    break;
-                }
-            }
-        }
-
-        if (target) {
-            target.textContent = value;
-        }
-    }
-
-    const ids = collectOrderIds();
-    if (!ids.length) return;
-
-    fetch('/order_table_name_lookup_ajax.php?ids=' + ids.join(','), {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data || !data.success || !data.orders) return;
-
-        Object.keys(data.orders).forEach(function (orderId) {
-            const row = findRowByOrderId(orderId);
-            if (!row) return;
-
-            const item = data.orders[orderId];
-            if (!item || !item.table_name) return;
-
-            setTableCell(row, item.table_name);
-        });
-    })
-    .catch(() => {});
-});
-</script>
-{{-- PMD ORDER TABLE NAME LOOKUP END --}}
 

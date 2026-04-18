@@ -13,10 +13,6 @@ class CreateWaiterCallsTable extends Migration
      */
     public function up()
     {
-        if (Schema::hasTable('waiter_calls')) {
-            return;
-        }
-
         Schema::create('waiter_calls', function (Blueprint $table) {
             $table->id('call_id');
             $table->unsignedBigInteger('table_id');

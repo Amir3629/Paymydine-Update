@@ -6,63 +6,58 @@
     <div class="sidebar-preview-placeholder-container">
         <div class="sidebar-preview-toolbar">
             <div class="btn-group btn-group-sm">
-                <span title="@lang('main::lang.media_manager.button_cancel')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-default"
                     data-media-control="cancel-selection"
-                    aria-label="@lang('main::lang.media_manager.button_cancel')">
+                    aria-label="@lang('main::lang.media_manager.button_cancel')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_cancel')">
                     <i class="fa fa-times text-danger"></i>
                 </button>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.button_rename')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-default"
                     data-media-control="rename-item"
                     data-swal-title="@lang('main::lang.media_manager.text_file_name')"
                     aria-label="@lang('main::lang.media_manager.button_rename')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_rename')"
                     {{ !$this->getSetting('rename') ? 'disabled' : '' }}>
                     <i class="fa fa-pencil"></i>
                 </button>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.button_move')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-default"
                     data-media-control="move-item"
                     data-swal-title="@lang('main::lang.media_manager.text_move_destination_folder')"
                     aria-label="@lang('main::lang.media_manager.button_move')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_move')"
                     {{ !$this->getSetting('move') ? 'disabled' : '' }}>
                     <i class="fa fa-folder-open"></i>
                 </button>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.button_copy')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-default"
                     data-media-control="copy-item"
                     data-swal-title="@lang('main::lang.media_manager.text_copy_destination_folder')"
                     aria-label="@lang('main::lang.media_manager.button_copy')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_copy')"
                     {{ !$this->getSetting('copy') ? 'disabled' : '' }}>
                     <i class="fa fa-clipboard"></i>
                 </button>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.button_delete')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-danger"
                     data-media-control="delete-item"
                     data-swal-confirm="@lang('admin::lang.alert_warning_confirm')"
                     aria-label="@lang('main::lang.media_manager.button_delete')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_delete')"
                     {{ !$this->getSetting('delete') ? 'disabled' : '' }}>
                     <i class="fa fa-trash"></i>
                 </button>
-                </span>
             </div>
         </div>
         <div class="sidebar-preview-placeholder">
@@ -95,51 +90,47 @@
     <div class="sidebar-preview-placeholder-container">
         <div class="sidebar-preview-toolbar">
             <div class="btn-group btn-group-sm">
-                <span title="@lang('main::lang.media_manager.button_cancel')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-default"
                     data-media-control="cancel-selection"
-                    aria-label="@lang('main::lang.media_manager.button_cancel')">
+                    aria-label="@lang('main::lang.media_manager.button_cancel')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_cancel')">
                     <i class="fa fa-times text-danger"></i>
                 </button>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.button_move')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-default"
                     data-media-control="move-item"
                     data-swal-title="@lang('main::lang.media_manager.text_move_destination_folder')"
                     aria-label="@lang('main::lang.media_manager.button_move')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_move')"
                     {{ !$this->getSetting('move') ? 'disabled' : '' }}>
                     <i class="fa fa-folder-open"></i>
                 </button>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.button_copy')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-default"
                     data-media-control="copy-item"
                     data-swal-title="@lang('main::lang.media_manager.text_copy_destination_folder')"
                     aria-label="@lang('main::lang.media_manager.button_copy')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_copy')"
                     {{ !$this->getSetting('copy') ? 'disabled' : '' }}>
                     <i class="fa fa-clipboard"></i>
                 </button>
-                </span>
 
-                <span title="@lang('main::lang.media_manager.button_delete')" class="media-toolbar-tooltip-wrap">
                 <button
                     type="button"
                     class="btn btn-outline-danger"
                     data-media-control="delete-item"
                     data-swal-confirm="@lang('admin::lang.alert_warning_confirm')"
                     aria-label="@lang('main::lang.media_manager.button_delete')"
+                    data-bs-original-title="@lang('main::lang.media_manager.button_delete')"
                     {{ !$this->getSetting('delete') ? 'disabled' : '' }}>
                     <i class="fa fa-trash"></i>
                 </button>
-                </span>
             </div>
         </div>
         <div class="sidebar-preview-placeholder">

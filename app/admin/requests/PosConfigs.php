@@ -25,7 +25,7 @@ class PosConfigs extends FormRequest
             'url' => ['required', 'string', 'max:255'],
             'username' => ['nullable', 'string', 'max:128'],
             'password' => ['nullable', 'string', 'max:128'],
-            'access_token' => ['nullable', 'string', 'max:2048'],
+            'access_token' => ['nullable', 'string', 'max:255'],
             'id_application' => ['nullable', 'string', 'max:128'],
         ];
     }

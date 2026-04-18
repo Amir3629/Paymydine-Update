@@ -137,11 +137,10 @@ function toggleEditMode() {
         if (typeof jQuery !== 'undefined' && dashboardContainer) {
             jQuery(dashboardContainer).trigger('dashboard-edit-mode-exited');
         }
-
-        // Show confirmation in push-notification toast (only when Save is clicked, not from widget layout edit)
-        if (window.pushNotif && typeof window.pushNotif.showFlash === 'function') {
-            window.pushNotif.showFlash('Dashboard widgets updated successfully.', 'success');
-        }
+        
+        // Trigger save - this will save the current widget positions
+        // The dashboard container already has auto-save functionality
+        console.log('Layout saved');
     }
 }
 

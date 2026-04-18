@@ -25,7 +25,6 @@ class Menu_combos_model extends Model
         'combo_price',
         'location_id',
         'combo_status',
-        'is_stock_out',
         'combo_priority',
         'thumb',
     ];
@@ -36,7 +35,6 @@ class Menu_combos_model extends Model
         'combo_price' => 'float',
         'location_id' => 'integer',
         'combo_status' => 'boolean',
-        'is_stock_out' => 'boolean',
         'combo_priority' => 'integer',
     ];
     

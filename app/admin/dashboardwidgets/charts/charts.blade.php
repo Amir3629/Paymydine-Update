@@ -7,8 +7,8 @@
         data-type="{{ $chartType }}"
         data-data='@json($chartData)'
     >
-        <div id="{{ $this->alias }}-widget" class="chart-canvas chart-{{ name_to_id($chartType) }} chart-{{ name_to_id($this->alias) }}">
-            <canvas id="{{ $this->alias }}-canvas"></canvas>
+        <div class="chart-canvas chart-{{ name_to_id($chartType) }} chart-{{ name_to_id($this->alias) }}">
+            <canvas id="{{ $this->alias }}"></canvas>
         </div>
         
         <!-- Time Range Slider - Continuous from 7 to 90 days -->

@@ -62,14 +62,9 @@
             }
         });
         
-        // Also fix input-group focus-within (skip media toolbar - no frame around Filter/Sort/Search)
+        // Also fix input-group focus-within
         const inputGroups = document.querySelectorAll('.input-group');
         inputGroups.forEach(group => {
-            if (group.closest('.media-manager .media-toolbar')) {
-                group.style.removeProperty('box-shadow');
-                group.style.removeProperty('transition');
-                return;
-            }
             const hasFocus = group.matches(':focus-within');
             const computedStyle = window.getComputedStyle(group);
             

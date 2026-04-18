@@ -11,8 +11,7 @@
 
     var MediaManager = function (element, options) {
         this.$el = $(element)
-        var $form = this.$el.closest('form')
-        this.$form = $form.length ? $form : this.$el
+        this.$form = this.$el.closest('form')
 
         this.options = options
 
@@ -207,7 +206,6 @@
     MediaManager.prototype.afterNavigate = function () {
         this.initScroll()
         this.initUploader()
-        this._bindUploadInputIfNeeded()
         this.initSelectonic()
         this.initFolderTree()
         this.selectFirstItem()
@@ -215,15 +213,10 @@
     }
 
     MediaManager.prototype.refresh = function () {
-        var pathVal = this.$el.find('[data-media-type="current-folder"]').val()
         var data = {
-            path: pathVal || '/',
-            resetCache: 1,
-            resetSearch: 0
+            path: this.$el.find('[data-media-type="current-folder"]').val()
         }
-        if (typeof console !== 'undefined' && console.log) {
-            console.log('[MediaManager] refresh called, path:', pathVal || '/')
-        }
+
         this.execNavigationRequest('onGoToFolder', data)
     }
 
@@ -239,32 +232,13 @@
             this.releaseNavigationAjax()
         }
 
-        var self = this
-        var handlerName = this.options.alias + '::' + handler
-        if (typeof console !== 'undefined' && console.log) {
-            console.log('[MediaManager] execNavigationRequest', handlerName, 'element:', element?.length ?? 0, 'data:', data)
-        }
-
         $.ti.loadingIndicator.show()
-        this.navigationAjax = $.request(handlerName, {
+        this.navigationAjax = element.request(this.options.alias+'::'+handler, {
             data: data
         }).always(function () {
             $.ti.loadingIndicator.hide()
-        }).done(function () {
-            if (typeof console !== 'undefined' && console.log) {
-                console.log('[MediaManager] request DONE - calling afterNavigate')
-            }
-            self.afterNavigate()
-        }).fail(function (jqXHR, textStatus, errorThrown) {
-            if (typeof console !== 'undefined' && console.log) {
-                console.error('[MediaManager] request FAILED', jqXHR.status, textStatus, errorThrown, jqXHR.responseText)
-            }
-            if (jqXHR.status !== 0 && jqXHR.status !== 'abort') {
-                $.ti.flashMessage && $.ti.flashMessage({ class: 'danger', text: 'Failed to refresh media list. Please refresh the page.' })
-            }
-        }).always(function () {
-            self.releaseNavigationAjax()
-        })
+        }).done($.proxy(this.afterNavigate, this))
+            .always($.proxy(this.releaseNavigationAjax, this))
     }
 
     MediaManager.prototype.releaseNavigationAjax = function () {
@@ -324,27 +298,6 @@
             template = container.querySelector('[data-media-multi-selection-template]').innerHTML
             previewContainer.innerHTML = template
         }
-
-        this._initSidebarTooltips(previewContainer)
-    }
-
-    MediaManager.prototype._initSidebarTooltips = function (previewContainer) {
-        if (!previewContainer) return
-        var wraps = previewContainer.querySelectorAll('.media-toolbar-tooltip-wrap[title]')
-        for (var i = 0; i < wraps.length; i++) {
-            var el = wraps[i]
-            var title = el.getAttribute('title')
-            if (!title) continue
-            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-                var inst = bootstrap.Tooltip.getInstance(el)
-                if (inst) inst.dispose()
-                try {
-                    new bootstrap.Tooltip(el, { placement: 'top' })
-                } catch (e) {}
-            } else if (typeof $ !== 'undefined' && $.fn.tooltip && !$(el).data('bs.tooltip')) {
-                $(el).tooltip({ placement: 'top' })
-            }
-        }
     }
 
     MediaManager.prototype.updateStatusBar = function () {
@@ -360,20 +313,8 @@
 
     MediaManager.prototype.initUploader = function () {
         var $uploader = $('[data-control="media-upload"]', this.$mediaListElement)
-        if (!$uploader.length)
+        if (!$uploader.length || this.dropzone)
             return
-
-        var uploaderEl = $uploader.get(0)
-        if (uploaderEl && uploaderEl.dropzone) {
-            try {
-                uploaderEl.dropzone.destroy()
-            } catch (e) {}
-            uploaderEl.dropzone = null
-        }
-        if (this.dropzone) {
-            try { this.dropzone.destroy() } catch (e) {}
-            this.dropzone = null
-        }
 
         var dropzoneOptions = {
             url: this.options.url,
@@ -381,7 +322,7 @@
             paramName: 'file_data',
             addRemoveLinks: true,
             maxFilesize: this.options.maxUploadSize, // MB
-            clickable: false,
+            clickable: this.$el.find('[data-media-control="upload"]').get(0),
             dictInvalidFileType: this.options.extensionNotAllowed,
             dictFileTooBig: 'The uploaded file exceeds the max size allowed.',
             accept: $.proxy(this.checkUploadAllowedType, this),
@@ -398,45 +339,6 @@
         this.dropzone.on('error', $.proxy(this.uploadError, this))
         this.dropzone.on('sending', $.proxy(this.uploadSending, this))
         this.dropzone.on('queuecomplete', $.proxy(this.uploadQueueComplete, this))
-
-        this._bindUploadInputIfNeeded()
-    }
-
-    MediaManager.prototype._bindUploadInputIfNeeded = function () {
-        var $uploadBtn = this.$el.find('[data-media-control="upload"]')
-        var $input = this.$el.find('input[data-media-upload-input="true"]')
-
-        if (!$input.length && $uploadBtn.length) {
-            var input = document.createElement('input')
-            input.type = 'file'
-            input.multiple = true
-            input.setAttribute('data-media-upload-input', 'true')
-            input.className = 'dz-hidden-input media-upload-input'
-            input.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;pointer-events:auto;margin:0;padding:0;border:0;'
-            $uploadBtn.get(0).appendChild(input)
-            $input = $(input)
-        }
-
-        if ($input.length && this.dropzone && !$input.data('media-upload-bound')) {
-            var self = this
-            var acceptStr = this.options.allowedExtensions.length
-                ? '.' + this.options.allowedExtensions.join(',.')
-                : ''
-            $input.attr('accept', acceptStr)
-
-            var changeHandler = function () {
-                var files = this.files
-                if (files && files.length) {
-                    for (var i = 0; i < files.length; i++) {
-                        self.dropzone.addFile(files[i])
-                    }
-                    this.value = ''
-                }
-            }
-            $input.off('change.mediaUpload').on('change.mediaUpload', changeHandler)
-            $input.data('media-upload-bound', true)
-            this._uploadInputChangeHandler = changeHandler
-        }
     }
 
     MediaManager.prototype.showUploadZone = function () {
@@ -454,11 +356,6 @@
     }
 
     MediaManager.prototype.destroyUploader = function () {
-        var $input = this.$el.find('input[data-media-upload-input="true"]')
-        if ($input.length) {
-            $input.off('change.mediaUpload')
-            $input.removeData('media-upload-bound')
-        }
         if (!this.dropzone)
             return
 
@@ -480,17 +377,13 @@
 
     MediaManager.prototype.uploadQueueComplete = function () {
         var status = false;
+
         $.each(this.dropzone.getAcceptedFiles(), function () {
             if (this.status === 'success')
                 status = true
         })
-        if (typeof console !== 'undefined' && console.log) {
-            console.log('[MediaManager] uploadQueueComplete - hasSuccess:', status, 'calling refresh')
-        }
-        if (status) {
-            var self = this;
-            setTimeout(function () { self.refresh(); }, 400);
-        }
+
+        if (status) this.refresh()
     }
 
     //
@@ -513,11 +406,7 @@
         var $folderTreeDropdown = this.$el.find('[data-control="folder-tree-dropdown"]'),
             $folderTree = this.$folderTreeElement.find('.folder-tree')
 
-        try {
-            $folderTreeDropdown.find('[data-bs-toggle="dropdown"]').dropdown('hide')
-        } catch (e) {
-            /* Bootstrap dropdown _menu may be null after DOM refresh - ignore */
-        }
+        $folderTreeDropdown.find('[data-bs-toggle="dropdown"]').dropdown('hide')
 
         var treeOptions = {
             data: $folderTree[0].getAttribute('data-tree-data'),

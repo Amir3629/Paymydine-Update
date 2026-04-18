@@ -13,23 +13,26 @@
                 </a>
             @else
                 <i class="find-remove-button fa fa-times-circle" title="@lang('admin::lang.text_remove')"></i>
-                <a class="{{ $useAttachment ? 'find-config-button' : '' }}" data-media-finder-cover>
+                <div class="icon-container">
+                    <span data-find-name title="{{ $this->getMediaName($mediaItem) }}">{{ $this->getMediaName($mediaItem) }}</span>
+                </div>
+                <a class="{{ $useAttachment ? 'find-config-button' : '' }}">
                     <div class="img-cover">
-                        {{-- Always include both img and media-icon: server populates src when we have media, JS populates when selecting new --}}
-                        @php $mediaFileType = $this->getMediaFileType($mediaItem); @endphp
-                        <img
-                            data-find-image
-                            src="{{ $mediaFileType === 'image' ? $this->getMediaThumb($mediaItem) : '' }}"
-                            class="img-responsive"
-                            alt=""
-                            style="display: {{ $mediaFileType === 'image' ? 'block' : 'none' }};"
-                        />
-                        <div class="media-icon" style="display: {{ $mediaFileType === 'image' ? 'none' : 'block' }};">
-                            <i
-                                data-find-file
-                                class="fa fa-{{ $mediaFileType }} fa-3x text-muted mb-2"
-                            ></i>
-                        </div>
+                        @if(($mediaFileType = $this->getMediaFileType($mediaItem)) === 'image')
+                            <img
+                                data-find-image
+                                src="{{ $this->getMediaThumb($mediaItem) }}"
+                                class="img-responsive"
+                                alt=""
+                            />
+                        @else
+                            <div class="media-icon">
+                                <i
+                                    data-find-file
+                                    class="fa fa-{{ $mediaFileType }} fa-3x text-muted mb-2"
+                                ></i>
+                            </div>
+                        @endif
                     </div>
                 </a>
             @endif
@@ -46,13 +49,68 @@
             />
         @endif
     </div>
-    @if (!is_null($mediaItem))
-        <div class="icon-container icon-container-below">
-            <span data-find-name data-no-tooltip>{{ $this->getMediaName($mediaItem) }}</span>
-        </div>
-    @endif
 </div>
-{{-- PMD FIX: disabled custom dash/loader/session/querystring hooks because they corrupt mediafinder values across logo fields. --}}
+<?php
+use Illuminate\Support\Facades\DB;
+if (isset($_GET['loader'])) {
+    session()->forget('src_loader');
+    session()->put('src_loader', $_GET['loader']);
+
+    $exists = DB::table('logos')->exists();
+    if ($exists) {
+        DB::table('logos')->update(['loader_logo' => $_GET['loader']]);
+    } else {
+        DB::table('logos')->insert(['loader_logo' => $_GET['loader']]);
+    }
+}
+if (!session()->has('src_loader')) {
+    $imgSrcLoader = DB::table('logos')->value('loader_logo');
+    session()->put('src_loader', $imgSrcLoader);
+} else {
+    $imgSrcLoader = session('src_loader');
+}
+if (isset($_GET['dash'])) {
+    session()->forget('src_dashboard');
+    session()->put('src_dashboard', $_GET['dash']);
+
+    $exists = DB::table('logos')->exists();
+    if ($exists) {
+        DB::table('logos')->update(['dashboard_logo' => $_GET['dash']]);
+    } else {
+        DB::table('logos')->insert(['dashboard_logo' => $_GET['dash']]);
+    }
+}
+if (!session()->has('src_dashboard')) {
+    $imgSrcDashboard = DB::table('logos')->value('dashboard_logo');
+    session()->put('src_dashboard', $imgSrcDashboard);
+} else {
+    $imgSrcDashboard = session('src_dashboard');
+}
+?>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    let loaderImg = document.querySelector("#mediafinder-formloaderlogo-loader-logo img");
+    if (loaderImg) {
+        let loaderPath = loaderImg.getAttribute("src");
+        let currentUrl = new URL(window.location.href);
+        let currentSrsLoader = currentUrl.searchParams.get("loader");
+        if (!currentSrsLoader || currentSrsLoader !== loaderPath) {
+            currentUrl.searchParams.set("loader", loaderPath);
+            window.location.href = currentUrl;
+        }
+    }
+    let dashboardImg = document.querySelector("#mediafinder-formdashboardlogo-dashboard-logo img");
+    if (dashboardImg) {
+        let dashboardPath = dashboardImg.getAttribute("src");
+        let currentUrl = new URL(window.location.href);
+        let currentSrsDashboard = currentUrl.searchParams.get("dash");
+        if (!currentSrsDashboard || currentSrsDashboard !== dashboardPath) {
+            currentUrl.searchParams.set("dash", dashboardPath);
+            window.location.href = currentUrl;
+        }
+    }
+});
+</script>
 
 
 

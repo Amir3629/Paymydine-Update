@@ -11,11 +11,23 @@ $config['list']['filter'] = [
             'type' => 'switch',
             'conditions' => 'status = :filtered',
         ],
+        'connection_type' => [
+            'label' => 'Connection Type',
+            'type' => 'select',
+            'conditions' => 'connection_type = :filtered',
+            'options' => [
+                'rj11_printer' => 'RJ11/Printer-Driven',
+                'usb' => 'USB Direct Connection',
+                'serial' => 'Serial (RS-232)',
+                'network' => 'Network/Ethernet (IP)',
+                'integrated' => 'Integrated Printer+Drawer',
+            ],
+        ],
         'location' => [
             'label' => 'Location',
             'type' => 'selectlist',
             'scope' => 'whereHasLocation',
-            'modelClass' => 'Admin\\Models\\Locations_model',
+            'modelClass' => 'Admin\Models\Locations_model',
             'nameFrom' => 'location_name',
             'locationAware' => true,
         ],
@@ -42,7 +54,7 @@ $config['list']['columns'] = [
         ],
     ],
     'name' => [
-        'label' => 'Drawer Name',
+        'label' => 'Name',
         'type' => 'text',
         'searchable' => true,
     ],
@@ -53,51 +65,29 @@ $config['list']['columns'] = [
         'searchable' => true,
         'locationAware' => true,
     ],
-    'terminal' => [
-        'label' => 'POS Terminal',
+    'connection_type' => [
+        'label' => 'Connection Type',
         'type' => 'text',
-        'formatter' => function ($record) {
-            return optional($record->localPosDevice)->name
-                ?: optional($record->posDevice)->name
-                ?: 'Not configured';
+        'formatter' => function ($record, $column, $value) {
+            $types = \Admin\Models\Cash_drawers_model::getConnectionTypeOptions();
+            return $types[$value] ?? $value;
         },
     ],
-    'printer' => [
-        'label' => 'Printer Device',
+    'device_path' => [
+        'label' => 'Device Path',
         'type' => 'text',
-        'formatter' => function ($record) {
-            if (!empty($record->printer_id)) {
-                $printer = \Admin\Models\Pos_devices_model::find($record->printer_id);
-                if ($printer) {
-                    return $printer->name;
-                }
-            }
-
-            return !empty($record->device_path) ? $record->device_path : 'Not configured';
-        },
-    ],
-    'connection_health' => [
-        'label' => 'Connection Status',
-        'type' => 'text',
-        'formatter' => function ($record) {
-            if ($record->last_command_status === 'success') {
-                return 'Online';
-            }
-
-            if ($record->last_command_status === 'failed') {
-                return 'Issue';
-            }
-
-            return optional($record->localPosDevice)->isOnline() ? 'Online' : 'Unknown';
-        },
     ],
     'status' => [
-        'label' => 'Enabled',
+        'label' => 'Status',
         'type' => 'switch',
     ],
     'auto_open_on_cash' => [
-        'label' => 'Auto-open on Cash',
+        'label' => 'Auto-Open on Cash',
         'type' => 'switch',
+    ],
+    'created_at' => [
+        'label' => 'lang:admin::lang.column_date_added',
+        'type' => 'datetime',
     ],
 ];
 
@@ -116,10 +106,16 @@ $config['form']['toolbar'] = [
             'data-request' => 'onSave',
             'data-progress-indicator' => 'admin::lang.text_saving',
         ],
-        'setup_local_pos' => [
-            'label' => '<i class="fa fa-magic"></i> Set Up on This POS',
-            'class' => 'btn btn-primary',
-            'data-request' => 'onSetupOnThisPos',
+        'test_connection' => [
+            'label' => '<i class="fa fa-plug"></i> Test Connection',
+            'class' => 'btn btn-info',
+            'data-request' => 'onTestConnection',
+            'context' => ['edit'],
+        ],
+        'open_drawer' => [
+            'label' => '<i class="fa fa-unlock"></i> Open Drawer',
+            'class' => 'btn btn-success',
+            'data-request' => 'onOpenDrawer',
             'context' => ['edit'],
         ],
         'delete' => [
@@ -141,6 +137,7 @@ $config['form']['fields'] = [
         'type' => 'text',
         'span' => 'left',
         'required' => true,
+        'comment' => 'Enter a descriptive name for this cash drawer',
     ],
     'location_id' => [
         'label' => 'Location',
@@ -148,44 +145,13 @@ $config['form']['fields'] = [
         'span' => 'right',
         'options' => 'getLocationOptions',
         'locationAware' => true,
+        'comment' => 'Select the location this drawer belongs to',
     ],
-    'status' => [
-        'label' => 'Enabled',
-        'type' => 'switch',
-        'span' => 'left',
-        'default' => true,
-    ],
-    'local_pos_device_id' => [
-        'label' => 'Local POS Terminal',
-        'type' => 'select',
-        'span' => 'right',
-    ],
-    'printer_id' => [
-        'label' => 'Printer Device',
-        'type' => 'select',
-        'span' => 'left',
-    ],
-    'auto_open_on_cash' => [
-        'label' => 'Auto-open on Cash Payment',
-        'type' => 'switch',
-        'span' => 'right',
-        'default' => true,
-    ],
-    'test_on_save' => [
-        'label' => 'Test Connection on Save',
-        'type' => 'switch',
-        'span' => 'left',
-        'default' => true,
-    ],
-
-    // Advanced / technical only
     'connection_type' => [
         'label' => 'Connection Type',
         'type' => 'select',
         'span' => 'left',
         'required' => true,
-        'default' => 'rj11_printer',
-        'accordion' => 'Advanced / Technical Settings',
         'options' => [
             'rj11_printer' => 'RJ11/Printer-Driven (Most Common)',
             'usb' => 'USB Direct Connection',
@@ -193,16 +159,35 @@ $config['form']['fields'] = [
             'network' => 'Network/Ethernet (IP)',
             'integrated' => 'Integrated Printer+Drawer',
         ],
+        'comment' => 'How is the drawer connected?',
+    ],
+    'status' => [
+        'label' => 'Status',
+        'type' => 'switch',
+        'span' => 'right',
+        'default' => true,
+        'comment' => 'Enable or disable this cash drawer',
     ],
     'device_path' => [
         'label' => 'Device Path / Printer Name',
         'type' => 'text',
         'span' => 'left',
-        'accordion' => 'Advanced / Technical Settings',
+        'comment' => 'Printer name (Windows), COM port, USB path, or IP address',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
             'condition' => 'value[rj11_printer,usb,serial]',
+        ],
+    ],
+    'printer_id' => [
+        'label' => 'Printer Device',
+        'type' => 'select',
+        'span' => 'right',
+        'comment' => 'Select printer if using RJ11 connection',
+        'trigger' => [
+            'action' => 'show',
+            'field' => 'connection_type',
+            'condition' => 'value[rj11_printer]',
         ],
     ],
     'esc_pos_command' => [
@@ -210,7 +195,7 @@ $config['form']['fields'] = [
         'type' => 'text',
         'span' => 'left',
         'default' => '27,112,0,60,120',
-        'accordion' => 'Advanced / Technical Settings',
+        'comment' => 'ESC/POS command to open drawer (format: 27,112,0,60,120)',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -221,12 +206,12 @@ $config['form']['fields'] = [
         'label' => 'Voltage',
         'type' => 'select',
         'span' => 'right',
-        'accordion' => 'Advanced / Technical Settings',
         'options' => [
             '12V' => '12V',
             '24V' => '24V',
         ],
         'default' => '12V',
+        'comment' => 'Drawer solenoid voltage (12V or 24V)',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -237,7 +222,7 @@ $config['form']['fields'] = [
         'label' => 'IP Address',
         'type' => 'text',
         'span' => 'left',
-        'accordion' => 'Advanced / Technical Settings',
+        'comment' => 'IP address of network cash drawer',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -248,8 +233,8 @@ $config['form']['fields'] = [
         'label' => 'Port',
         'type' => 'number',
         'span' => 'right',
-        'accordion' => 'Advanced / Technical Settings',
         'default' => 9100,
+        'comment' => 'Network port (default: 9100)',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -260,7 +245,7 @@ $config['form']['fields'] = [
         'label' => 'Serial Port',
         'type' => 'text',
         'span' => 'left',
-        'accordion' => 'Advanced / Technical Settings',
+        'comment' => 'COM port (Windows) or /dev/tty* (Linux/Mac)',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -271,8 +256,8 @@ $config['form']['fields'] = [
         'label' => 'Baud Rate',
         'type' => 'number',
         'span' => 'right',
-        'accordion' => 'Advanced / Technical Settings',
         'default' => 9600,
+        'comment' => 'Serial communication baud rate',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -283,7 +268,7 @@ $config['form']['fields'] = [
         'label' => 'USB Vendor ID',
         'type' => 'text',
         'span' => 'left',
-        'accordion' => 'Advanced / Technical Settings',
+        'comment' => 'USB vendor ID (optional, for device identification)',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -294,7 +279,7 @@ $config['form']['fields'] = [
         'label' => 'USB Product ID',
         'type' => 'text',
         'span' => 'right',
-        'accordion' => 'Advanced / Technical Settings',
+        'comment' => 'USB product ID (optional, for device identification)',
         'trigger' => [
             'action' => 'show',
             'field' => 'connection_type',
@@ -302,10 +287,31 @@ $config['form']['fields'] = [
         ],
     ],
     'pos_device_id' => [
-        'label' => 'Legacy POS Device Mapping',
+        'label' => 'POS Device',
         'type' => 'select',
         'span' => 'left',
-        'accordion' => 'Advanced / Technical Settings',
+        'comment' => 'Link to specific POS device (optional)',
+    ],
+    'auto_open_on_cash' => [
+        'label' => 'Auto-Open on Cash Payment',
+        'type' => 'switch',
+        'span' => 'right',
+        'default' => true,
+        'comment' => 'Automatically open drawer when cash payment is processed',
+    ],
+    'test_on_save' => [
+        'label' => 'Test Connection on Save',
+        'type' => 'switch',
+        'span' => 'left',
+        'default' => true,
+        'comment' => 'Test drawer connection when saving',
+    ],
+    'description' => [
+        'label' => 'Description',
+        'type' => 'textarea',
+        'span' => 'full',
+        'rows' => 3,
+        'comment' => 'Optional description or notes',
     ],
 ];
 

@@ -83,15 +83,12 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
     const menuResponse = await apiClient.getMenu()
     
     // Convert API items to frontend format
-    const rawItems = (menuResponse?.data?.items ?? menuResponse?.data ?? []);
-    const safeItems = Array.isArray(rawItems) ? rawItems : [];
-    const menuItems: MenuItem[] = safeItems.map(apiItem => 
+    const menuItems: MenuItem[] = menuResponse.data.items?.map(apiItem => 
       convertApiMenuItem(apiItem, apiItem.category_name)
     ) || []
     
     // FIXED: Get category names directly from API response
-    const catsResp = await apiClient.getCategories();
-    const categoryNames = (catsResp?.data ?? []).map((c: any) => c.category_name ?? c.name).filter(Boolean);
+    const categoryNames = menuResponse.data.categories?.map((cat: any) => cat.name) || []
     
     // Group items by category
     const categoryGroups: Record<string, MenuItem[]> = {}
@@ -107,8 +104,9 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
     
     return { categories, menuItems, categoryNames }
   } catch (error) {
-    console.error('Failed to fetch menu data from API:', error)
-    return { categories: [], menuItems: [], categoryNames: [] }
+    console.error('Failed to fetch menu data from API, using fallback data:', error)
+    // Return static fallback data if API fails
+    return { categories: [], menuItems: menuData, categoryNames: [] }
   }
 }
 
@@ -117,8 +115,8 @@ export async function getCategories(): Promise<string[]> {
     const apiResponse = await apiClient.getCategories()
     return apiResponse.data.map(cat => cat.name)
   } catch (error) {
-    console.error('Failed to fetch categories from API:', error)
-    return []
+    console.error('Failed to fetch categories from API, using fallback:', error)
+    return categories
   }
 }
 
@@ -127,8 +125,8 @@ export async function getMenuItems(categoryId?: number): Promise<MenuItem[]> {
     const apiResponse = await apiClient.getMenuItems(categoryId)
     return apiResponse.data.map(apiItem => convertApiMenuItem(apiItem))
   } catch (error) {
-    console.error('Failed to fetch menu items from API:', error)
-    return []
+    console.error('Failed to fetch menu items from API, using fallback:', error)
+    return menuData.filter(item => !categoryId || item.category_id === categoryId)
   }
 }
 
@@ -147,7 +145,7 @@ export async function getRestaurantInfo() {
       email: 'info@paymydine.com',
       status: 'active',
       settings: {
-        currency: 'EUR',
+        currency: 'USD',
         timezone: 'UTC',
         delivery_enabled: false,
         pickup_enabled: true
@@ -156,6 +154,7 @@ export async function getRestaurantInfo() {
   }
 }
 
-// Empty defaults – menu and categories come from API (admin) only
+// Keep original static data as fallback
 export const categories: string[] = []
+
 export const menuData: MenuItem[] = []

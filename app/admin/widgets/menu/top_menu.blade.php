@@ -16,18 +16,15 @@
         @if ($item->itemName === 'settings')
             <!-- Frontend Notifications Bell (positioned after settings gear) -->
             <li class="nav-item dropdown" id="notif-root">
-              <span title="Notifications" class="media-toolbar-tooltip-wrap">
               <a href="#" id="notifDropdown"
                  class="nav-link dropdown-toggle"
                  data-toggle="dropdown" 
                  aria-haspopup="true" 
                  aria-expanded="false" 
-                 role="button"
-                 aria-label="Notifications">
+                 role="button">
                 <i class="fa fa-bell" id="bell-icon" style="color: #6c757d;"></i>
                 <span id="notification-count" class="badge badge-danger d-none" style="position: absolute; top: 5px; right: 5px; font-size: 9px; padding: 1px 4px; border-radius: 8px;">0</span>
               </a>
-              </span>
 
               <div class="dropdown-menu dropdown-menu-right p-0 shadow"
                    id="notification-panel"
@@ -46,10 +43,10 @@
                     </div>
                   </div>
                   <div class="d-flex align-items-center gap-2" style="flex-shrink: 0; margin-left: auto;">
-                    <button id="notif-note-btn" class="btn btn-light btn-sm" type="button" title="Add General Staff Note" aria-label="Add General Staff Note">
+                    <button id="notif-note-btn" class="btn btn-light btn-sm" type="button" title="Add General Staff Note">
                       {{ __('Note') }}
                     </button>
-                  <a id="notif-history-link" class="btn btn-light btn-sm" href="{{ url('/admin/history') }}" title="View History" aria-label="View History">
+                  <a id="notif-history-link" class="btn btn-light btn-sm" href="{{ url('/admin/history') }}">
                     {{ __('History') }}
                   </a>
                   </div>

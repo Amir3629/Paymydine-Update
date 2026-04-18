@@ -64,17 +64,9 @@ $config['list']['columns'] = [
     ],
     'access_token' => [
         'label' => 'lang:admin::lang.label_access_token_pos',
-        'type' => 'textarea',
-        'span' => 'full',
-        'attributes' => [
-            'rows' => 6,
-            'style' => 'font-family:monospace; word-break:break-all;',
-            'spellcheck' => 'false',
-            'autocomplete' => 'off',
-            'autocorrect' => 'off',
-            'autocapitalize' => 'off',
-        ],
-        'comment' => 'Paste the full account access token here',
+        'type' => 'text',
+        'searchable' => true,
+        'invisible' => true,
     ],
     'id_application' => [
          'label' => 'lang:admin::lang.label_id_application_pos',
@@ -166,17 +158,8 @@ $config['form']['fields'] = [
     ],
      'access_token' => [
         'label' => 'lang:admin::lang.label_access_token_pos',
-        'type' => 'textarea',
-        'span' => 'full',
-        'attributes' => [
-            'rows' => 6,
-            'style' => 'font-family:monospace; word-break:break-all;',
-            'spellcheck' => 'false',
-            'autocomplete' => 'off',
-            'autocorrect' => 'off',
-            'autocapitalize' => 'off',
-        ],
-        'comment' => 'Paste the full account access token here',
+        'type' => 'text',
+        'span' => 'right',
     ],
      'id_application' => [
         'label' => 'lang:admin::lang.label_id_application_pos',

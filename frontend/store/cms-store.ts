@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
-import { type MenuItem } from "@/lib/data"
+import { menuData, type MenuItem } from "@/lib/data"
 import { apiClient } from "@/lib/api-client"
 
 type CmsSettings = {
@@ -65,7 +65,6 @@ type CmsState = {
   updateTipSettings: (newSettings: Partial<TipSettings>) => void
   updateTaxSettings: (newSettings: Partial<TaxSettings>) => void
   loadTaxSettings: () => Promise<void>
-  loadMerchantSettings: () => Promise<void>
   validateCoupon: (code: string, subtotal: number) => Promise<{ success: boolean; message?: string }>
   removeCoupon: () => void
   updateMerchantSettings: (newSettings: Partial<MerchantSettings>) => void
@@ -109,7 +108,7 @@ const initialMerchantSettings: MerchantSettings = {
   bankAccountNumber: "",
   bankRoutingNumber: "",
   bankName: "",
-  currency: "EUR",
+  currency: "USD",
   countryCode: "US",
 }
 
@@ -117,7 +116,7 @@ export const useCmsStore = create<CmsState>()(
   persist(
     (set, get) => ({
       settings: initialSettings,
-      menuItems: [],
+      menuItems: menuData,
       paymentOptions: initialPaymentOptions,
       tipSettings: initialTipSettings,
       taxSettings: initialTaxSettings,
@@ -147,51 +146,6 @@ export const useCmsStore = create<CmsState>()(
         set((state) => ({
           taxSettings: { ...state.taxSettings, ...newSettings },
         })),
-
-      loadMerchantSettings: async () => {
-        try {
-          console.log('🔄 CMS Store: Loading merchant settings from backend...')
-          const res: any = await apiClient.getSettings()
-          const payload: any = res?.data ?? res
-          const data: any = payload?.data ?? payload
-
-          const get = (...keys: string[]) => {
-            for (const k of keys) {
-              const v = data?.[k]
-              if (v !== undefined && v !== null && v !== "") return v
-            }
-            return undefined
-          }
-
-          const newMs = {
-            businessName: get("businessName", "business_name", "restaurant_name", "name") || "PayMyDine Restaurant",
-            accountId: get("accountId", "account_id", "restaurant_id", "tenant", "slug") || "",
-            stripeSecretKey: get("stripeSecretKey", "stripe_secret_key") || "",
-            stripePublishableKey: get("stripePublishableKey", "stripe_publishable_key", "stripe_key") || "",
-            paypalClientId: get("paypalClientId", "paypal_client_id", "paypal_clientid") || "",
-            paypalClientSecret: get("paypalClientSecret", "paypal_client_secret", "paypal_secret") || "",
-            bankAccountNumber: get("bankAccountNumber", "bank_account_number") || "",
-            bankRoutingNumber: get("bankRoutingNumber", "bank_routing_number") || "",
-            bankName: get("bankName", "bank_name") || "",
-            currency: get("currency", "currency_code") || "EUR",
-            countryCode: get("countryCode", "country_code") || "US",
-          }
-
-          console.log("✅ CMS Store: Merchant settings loaded:", {
-            paypalClientIdPresent: !!newMs.paypalClientId,
-            currency: newMs.currency,
-            businessName: newMs.businessName,
-          })
-
-          set((state) => ({
-            merchantSettings: { ...state.merchantSettings, ...newMs },
-            isInitialized: true,
-          }))
-        } catch (error) {
-          console.error('❌ CMS Store: Failed to load merchant settings:', error)
-        }
-      },
-
       loadTaxSettings: async () => {
         try {
           console.log('🔄 CMS Store: Loading tax settings from backend...')
@@ -264,16 +218,8 @@ export const useCmsStore = create<CmsState>()(
     }),
     {
       name: "paymydine-cms-storage",
-      version: 2,
-      // Never persist menuItems – menu must come from API (admin) only
-      partialize: (state) => ({
-        ...state,
-        menuItems: [],
-      }),
+      version: 1,
       migrate: (persistedState: any, version: number) => {
-        if (persistedState?.state) {
-          persistedState.state.menuItems = []
-        }
         // Migrate tip settings from old [10, 15, 20] to new [0, 5, 10]
         if (persistedState?.state?.tipSettings) {
           const currentPercentages = persistedState.state.tipSettings.percentages || []

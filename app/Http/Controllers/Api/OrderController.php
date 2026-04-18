@@ -15,12 +15,6 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        \Log::info('PMD_API_ORDER_STORE_ENTER', [
-            'payload' => $request->all(),
-            'raw' => $request->getContent(),
-            'connection_default' => DB::getDefaultConnection(),
-        ]);
-
         $validator = Validator::make($request->all(), [
             'customer_name' => 'required|string|max:255',
             'customer_email' => 'nullable|email',
@@ -33,22 +27,13 @@ class OrderController extends Controller
             'items.*.name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
-            'items.*.options' => 'nullable',
             'total_amount' => 'required|numeric|min:0',
             'tip_amount' => 'nullable|numeric|min:0',
-            'tax_amount' => 'nullable|numeric|min:0',
-            'coupon_code' => 'nullable|string|max:255',
-            'coupon_discount' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,cod,card,paypal',
+            'payment_method' => 'required|string|in:cash,card,paypal',
             'special_instructions' => 'nullable|string|max:500'
         ]);
 
         if ($validator->fails()) {
-            \Log::warning('PMD_API_ORDER_STORE_VALIDATION_FAIL', [
-                'errors' => $validator->errors()->toArray(),
-                'payload' => $request->all(),
-            ]);
-
             return response()->json([
                 'error' => 'Validation failed',
                 'errors' => $validator->errors()
@@ -58,311 +43,116 @@ class OrderController extends Controller
         try {
             DB::beginTransaction();
 
+            // Generate order number
             $orderNumber = $this->generateOrderNumber();
-            $tableId = $request->table_id;
 
-            if (!$tableId) {
-                $orderType = 'delivery';
-            } elseif ($tableId === 'cashier') {
-                $orderType = 'cashier';
-            } else {
-                $orderType = $tableId;
-            }
-
-            $expectedTotal  = round((float) $request->total_amount, 2);
-            $tipAmount      = round((float) ($request->tip_amount ?? 0), 2);
-            $couponDiscount = round((float) ($request->coupon_discount ?? 0), 2);
-
+            // Create main order record
             $orderId = DB::table('orders')->insertGetId([
                 'order_id' => $orderNumber,
                 'customer_name' => $request->customer_name,
                 'email' => $request->customer_email,
                 'telephone' => $request->customer_phone,
-                'location_id' => $request->location_id ?? 1,
-                'table_id' => $tableId,
-                'order_type' => $orderType,
-                'order_total' => $expectedTotal,
+                'location_id' => $request->location_id ?? 1, // Use provided location or default
+                'table_id' => $request->table_id,
+                'order_type' => $request->table_id, // Store actual table_id instead of 'dine_in'
+                'order_total' => $request->total_amount,
                 'order_date' => now(),
                 'order_time' => now()->format('H:i:s'),
-                'status_id' => 1,
+                'status_id' => 1, // Pending status
                 'assignee_id' => null,
                 'comment' => $request->special_instructions,
-                'processed' => 1,
+                'processed' => 0,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
 
-            \Log::info('PMD_API_ORDER_STORE_ORDER_CREATED', [
-                'order_id' => $orderId,
-                'expected_total' => $expectedTotal,
-            ]);
-
-            $computedSubtotal = 0.00;
-
-            foreach ($request->items as $idx => $item) {
-                $menuId = (int) $item['menu_id'];
-                $qty = (int) $item['quantity'];
-                $basePrice = round((float) $item['price'], 2);
-
+            // Create order items
+            foreach ($request->items as $item) {
+                // Verify menu item exists
                 $menuItem = DB::table('menus')
-                    ->where('menu_id', $menuId)
+                    ->where('menu_id', $item['menu_id'])
                     ->where('menu_status', 1)
                     ->first();
 
                 if (!$menuItem) {
-                    throw new \Exception("Menu item with ID {$menuId} not found");
+                    throw new \Exception("Menu item with ID {$item['menu_id']} not found");
                 }
 
-                $baseSubtotal = round($basePrice * $qty, 2);
-
-                $orderMenuId = DB::table('order_menus')->insertGetId([
+                DB::table('order_menus')->insert([
                     'order_id' => $orderId,
-                    'menu_id' => $menuId,
+                    'menu_id' => $item['menu_id'],
                     'name' => $item['name'],
-                    'quantity' => $qty,
-                    'price' => $basePrice,
-                    'subtotal' => $baseSubtotal,
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                    'subtotal' => $item['price'] * $item['quantity'],
                     'comment' => $item['special_instructions'] ?? '',
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
 
-                $optionsPayload = $item['options'] ?? [];
-                $optionIds = [];
-
-                if (is_array($optionsPayload)) {
-                    foreach ($optionsPayload as $k => $v) {
-                        if (is_array($v)) {
-                            foreach ($v as $vv) {
-                                if (is_numeric($vv)) {
-                                    $optionIds[] = (int) $vv;
-                                } elseif (is_array($vv) && isset($vv['id']) && is_numeric($vv['id'])) {
-                                    $optionIds[] = (int) $vv['id'];
-                                } elseif (is_array($vv) && isset($vv['option_value_id']) && is_numeric($vv['option_value_id'])) {
-                                    $optionIds[] = (int) $vv['option_value_id'];
-                                }
-                            }
-                        } else {
-                            if (is_numeric($v)) {
-                                $optionIds[] = (int) $v;
-                            } elseif (is_array($v) && isset($v['id']) && is_numeric($v['id'])) {
-                                $optionIds[] = (int) $v['id'];
-                            } elseif (is_array($v) && isset($v['option_value_id']) && is_numeric($v['option_value_id'])) {
-                                $optionIds[] = (int) $v['option_value_id'];
-                            }
-                        }
-                    }
-                }
-
-                $optionIds = array_values(array_unique(array_filter($optionIds)));
-
-                $lineOptionTotal = 0.00;
-
-                foreach ($optionIds as $optionValueId) {
-                    $optionRow = DB::table('menu_option_values as mov')
-                        ->leftJoin('menu_item_option_values as miov', function ($join) use ($menuId) {
-                            $join->on('miov.option_value_id', '=', 'mov.option_value_id')
-                                 ->where('miov.menu_id', '=', $menuId);
-                        })
-                        ->leftJoin('menu_item_options as mio', function ($join) use ($menuId) {
-                            $join->on('mio.option_id', '=', 'mov.option_id')
-                                 ->where('mio.menu_id', '=', $menuId);
-                        })
-                        ->where('mov.option_value_id', $optionValueId)
-                        ->select([
-                            'mov.option_value_id',
-                            'mov.option_id',
-                            'mov.value',
-                            DB::raw('COALESCE(miov.new_price, mov.price, 0) as effective_price'),
-                            'mio.menu_option_id',
-                        ])
-                        ->first();
-
-                    if (!$optionRow) {
-                        \Log::warning('PMD_API_ORDER_STORE_OPTION_NOT_FOUND', [
-                            'order_id' => $orderId,
-                            'menu_id' => $menuId,
-                            'option_value_id' => $optionValueId,
-                        ]);
-                        continue;
-                    }
-
-                    $effectivePrice = round((float) $optionRow->effective_price, 2);
-                    $lineOptionTotal += round($effectivePrice * $qty, 2);
-
-                    DB::table('order_menu_options')->insert([
-                        'order_id' => $orderId,
-                        'menu_id' => $menuId,
-                        'quantity' => $qty,
-                        'order_menu_id' => $orderMenuId,
-                        'order_option_name' => $optionRow->value,
-                        'order_option_price' => $effectivePrice,
-                        'menu_option_value_id' => $optionRow->option_value_id,
-                        'order_menu_option_id' => $optionRow->menu_option_id ?: $optionRow->option_id,
-                    ]);
-                }
-
-                $finalLineSubtotal = round($baseSubtotal + $lineOptionTotal, 2);
-
-                DB::table('order_menus')
-                    ->where('order_menu_id', $orderMenuId)
-                    ->update([
-                        'subtotal' => $finalLineSubtotal,
-                        'updated_at' => now()
-                    ]);
-
-                $computedSubtotal += $finalLineSubtotal;
-
+                // Update stock if tracked
                 if ($menuItem->stock_qty !== null) {
                     DB::table('menus')
-                        ->where('menu_id', $menuId)
-                        ->decrement('stock_qty', $qty);
+                        ->where('menu_id', $item['menu_id'])
+                        ->decrement('stock_qty', $item['quantity']);
                 }
-
-                \Log::info('PMD_API_ORDER_STORE_ITEM_DONE', [
-                    'order_id' => $orderId,
-                    'menu_id' => $menuId,
-                    'qty' => $qty,
-                    'base_price' => $basePrice,
-                    'base_subtotal' => $baseSubtotal,
-                    'line_option_total' => $lineOptionTotal,
-                    'final_line_subtotal' => $finalLineSubtotal,
-                    'option_ids' => $optionIds,
-                ]);
             }
 
-            $computedSubtotal = round($computedSubtotal, 2);
-
-            $derivedTax = $request->filled('tax_amount')
-                ? round((float) $request->tax_amount, 2)
-                : round($expectedTotal - $computedSubtotal - $tipAmount + $couponDiscount, 2);
-
-            if (abs($derivedTax) < 0.01) {
-                $derivedTax = 0.00;
-            }
-
-            $orderTotals = [
-                [
-                    'order_id' => $orderId,
-                    'code' => 'subtotal',
-                    'title' => 'Subtotal',
-                    'value' => $computedSubtotal,
-                    'priority' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-            ];
-
-            if ($derivedTax > 0) {
-                $orderTotals[] = [
-                    'order_id' => $orderId,
-                    'code' => 'tax',
-                    'title' => 'Tax',
-                    'value' => $derivedTax,
-                    'priority' => 2,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-
-            if ($tipAmount > 0) {
-                $orderTotals[] = [
+            // Store tip amount if provided
+            if ($request->tip_amount && $request->tip_amount > 0) {
+                DB::table('order_totals')->insert([
                     'order_id' => $orderId,
                     'code' => 'tip',
                     'title' => 'Tip',
-                    'value' => $tipAmount,
-                    'priority' => 3,
+                    'value' => $request->tip_amount,
+                    'priority' => 0,
                     'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                    'updated_at' => now()
+                ]);
             }
 
-            if ($couponDiscount > 0) {
-                $title = 'Discount';
-                if (!empty($request->coupon_code)) {
-                    $title .= ' (' . $request->coupon_code . ')';
-                }
-
-                $orderTotals[] = [
-                    'order_id' => $orderId,
-                    'code' => 'coupon',
-                    'title' => $title,
-                    'value' => -$couponDiscount,
-                    'priority' => 4,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-
-            $normalizedPaymentMethod = strtolower((string)$request->payment_method) === 'cod'
-                ? 'cash'
-                : (string)$request->payment_method;
-
-            $orderTotals[] = [
+            // Store payment method
+            DB::table('order_totals')->insert([
                 'order_id' => $orderId,
                 'code' => 'payment_method',
                 'title' => 'Payment Method',
-                'value' => $normalizedPaymentMethod,
-                'priority' => 98,
+                'value' => $request->payment_method,
+                'priority' => 0,
                 'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            $orderTotals[] = [
-                'order_id' => $orderId,
-                'code' => 'total',
-                'title' => 'Total',
-                'value' => $expectedTotal,
-                'priority' => 99,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            DB::table('order_totals')->insert($orderTotals);
-
-            DB::table('orders')
-                ->where('order_id', $orderId)
-                ->update([
-                    'order_total' => $expectedTotal,
-                    'updated_at' => now()
-                ]);
+                'updated_at' => now()
+            ]);
 
             DB::commit();
 
-            \Log::info('PMD_API_ORDER_STORE_SUCCESS', [
-                'order_id' => $orderId,
-                'computed_subtotal' => $computedSubtotal,
-                'derived_tax' => $derivedTax,
-                'tip_amount' => $tipAmount,
-                'coupon_discount' => $couponDiscount,
-                'expected_total' => $expectedTotal,
-            ]);
-
-            try {
-                if (\App\Helpers\SettingsHelper::areNewOrderNotificationsEnabled()) {
-                    $notificationData = [
-                        'tenant_id' => $request->location_id ?? 1,
-                        'order_id' => $orderId,
-                        'table_id' => $request->table_id,
-                        'status' => 'received',
-                        'status_name' => 'Received',
-                        'message' => 'New order received',
-                        'priority' => 'high'
-                    ];
-
-                    if ($request->has('table_name') && !empty($request->table_name)) {
-                        $notificationData['table_name'] = $request->table_name;
-                    }
-
-                    NotificationHelper::createOrderNotification($notificationData);
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Failed to create order notification', [
+        // Create notification for new order (only if new order notifications are enabled)
+        try {
+            if (\App\Helpers\SettingsHelper::areNewOrderNotificationsEnabled()) {
+                $notificationData = [
+                    'tenant_id' => $request->location_id ?? 1,
                     'order_id' => $orderId,
-                    'error' => $e->getMessage()
-                ]);
+                    'table_id' => $request->table_id,
+                    'status' => 'received',
+                    'status_name' => 'Received',
+                    'message' => 'New order received',
+                    'priority' => 'high'
+                ];
+                
+                // Include table_name if available in request to avoid DB lookup
+                if ($request->has('table_name') && !empty($request->table_name)) {
+                    $notificationData['table_name'] = $request->table_name;
+                }
+                
+                NotificationHelper::createOrderNotification($notificationData);
             }
+        } catch (\Exception $e) {
+            // Log notification error but don't fail the order
+            \Log::warning('Failed to create order notification', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+        }
 
+            // Return success response matching the expected format
             return response()->json([
                 'success' => true,
                 'order_id' => $orderId,
@@ -371,14 +161,7 @@ class OrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-
-            \Log::error('PMD_API_ORDER_STORE_EXCEPTION', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'payload' => $request->all(),
-            ]);
-
+            
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to create order',
@@ -387,6 +170,9 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Get order by ID
+     */
     public function show($orderId)
     {
         try {

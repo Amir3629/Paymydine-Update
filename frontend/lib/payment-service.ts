@@ -98,10 +98,6 @@ export class StripePaymentProcessor {
   private stripe: Stripe | null = null
   
   async initialize(publishableKey: string): Promise<void> {
-    if (!publishableKey || !publishableKey.trim()) {
-      this.stripe = null
-      return
-    }
     this.stripe = await loadStripe(publishableKey)
   }
   
@@ -111,14 +107,14 @@ export class StripePaymentProcessor {
     }
     
     try {
-      // Create payment intent via Laravel (tenant secret in backend only)
-      const response = await fetch('/api/v1/payments/stripe/create-intent', {
+      // Create payment intent on backend
+      const response = await fetch('/api/payments/create-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: paymentData.amount,
+          amount: Math.round(paymentData.amount * 100), // Convert to cents
           currency: paymentData.currency,
           restaurantId: paymentData.restaurantId,
           items: paymentData.items,
@@ -126,12 +122,12 @@ export class StripePaymentProcessor {
           tableNumber: paymentData.tableNumber,
         }),
       })
-
-      const data = await response.json()
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to create payment intent')
+      
+      const { clientSecret } = await response.json()
+      
+      if (!clientSecret) {
+        throw new Error('Failed to create payment intent')
       }
-      const { clientSecret } = data
       
       // Confirm payment with Stripe
       const { error, paymentIntent } = await this.stripe.confirmCardPayment(clientSecret, {
@@ -217,8 +213,8 @@ export class ApplePayProcessor {
       }
       
       const paymentRequest = {
-        countryCode: (paymentData as any).countryCode || 'DE',
-        currencyCode: (paymentData.currency || 'EUR').toUpperCase(),
+        countryCode: 'US',
+        currencyCode: paymentData.currency,
         supportedNetworks: ['visa', 'masterCard', 'amex'],
         merchantCapabilities: ['supports3DS'],
         total: {
@@ -340,7 +336,7 @@ export class GooglePayProcessor {
         transactionInfo: {
           totalPriceStatus: 'FINAL',
           totalPrice: paymentData.amount.toFixed(2),
-          currencyCode: (paymentData.currency || 'EUR').toUpperCase(),
+          currencyCode: paymentData.currency,
         },
         merchantInfo: {
           merchantId: paymentData.restaurantId,

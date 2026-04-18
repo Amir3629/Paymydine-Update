@@ -24,6 +24,10 @@
                 </div>
 
                 <div id="{{ $this->getId('item-list') }}" class="media-list-container">
+                    @if ($this->getSetting('uploads'))
+                        {!! $this->makePartial('mediamanager/uploader') !!}
+                    @endif
+
                     {!! $this->makePartial('mediamanager/item_list') !!}
                 </div>
             </div>

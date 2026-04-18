@@ -97,7 +97,7 @@ export const translations = {
 
     // Payment
     confirmPayment: "Confirm Payment",
-    subtotal: "Subtotal (incl. tax)",
+    subtotal: "Subtotal",
     service: "Service (10%)",
     tax: "Tax",
     coupon: "Coupon",
@@ -115,7 +115,7 @@ export const translations = {
     cvc: "CVC",
     processing: "Processing...",
     payNow: "Pay Now",
-    orderSummary: "Order Summary (prices incl. tax)",
+    orderSummary: "Order Summary",
 
     // Modals
     details: "Details",

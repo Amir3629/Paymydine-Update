@@ -346,22 +346,3 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgb(242, 195, 195) rgba(242, 195, 195, 0.05);
 }
-
-/* ============================= */
-/* DARK THEME PAYMENT ICON FIX  */
-/* ============================= */
-
-html.theme-dark img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]),
-.theme-dark img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
-  filter: brightness(0) invert(1);
-}
-
-
-/* ============================= */
-/* FORCE DARK THEME PAYMENT FIX */
-/* ============================= */
-
-html[class*="dark"] img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]),
-body[class*="dark"] img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
-  filter: brightness(0) invert(1) !important;
-}

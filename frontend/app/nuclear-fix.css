@@ -76,14 +76,3 @@
   background: unset !important;
   background-color: unset !important;
 }
-/* ===== modern-dark stronger override ===== */
-html[data-theme="modern-dark"],
-html[data-theme="modern-dark"] body,
-html[data-theme="modern-dark"] .page--home,
-html[data-theme="modern-dark"] .page--menu,
-html[data-theme="modern-dark"] .page--home .min-h-screen,
-html[data-theme="modern-dark"] .page--menu .min-h-screen,
-html[data-theme="modern-dark"] .bg-theme-background {
-  background: #0A0E12 !important;
-  background-color: #0A0E12 !important;
-}

@@ -33,27 +33,6 @@ class Pos_devices_model extends Model
      */
     public $timestamps = true;
 
-    protected $casts = [
-        'is_local_terminal' => 'boolean',
-        'last_seen_at' => 'datetime',
-        'capabilities' => 'array',
-        'platform_info' => 'array',
-    ];
-
-    protected $fillable = [
-        'name',
-        'code',
-        'device_type',
-        'description',
-        'is_local_terminal',
-        'device_code',
-        'pairing_token',
-        'device_status',
-        'last_seen_at',
-        'capabilities',
-        'platform_info',
-    ];
-
     /**
      * Get dropdown options
      * @return array
@@ -75,20 +54,6 @@ class Pos_devices_model extends Model
             ->map(function ($model) {
                 return [$model->name, $model->description];
             });
-    }
-
-    public function scopeLocalTerminal($query)
-    {
-        return $query->where('is_local_terminal', true);
-    }
-
-    public function isOnline(): bool
-    {
-        if (empty($this->last_seen_at)) {
-            return false;
-        }
-
-        return now()->diffInMinutes($this->last_seen_at) <= 2;
     }
 
     public function getImageUrl()

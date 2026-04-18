@@ -8,7 +8,6 @@ import { Car, Utensils } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { applyTheme } from "@/lib/theme-system"
-import { useCartStore } from "@/store/cart-store"
 
 const MotionLink = motion.create(Link)
 
@@ -123,12 +122,6 @@ function HomePageContent() {
 
 // FIXED: Main component with Suspense wrapper
 export default function HomePage() {
-  const clearTableContext = useCartStore((s) => s.clearTableContext)
-
-  useEffect(() => {
-    clearTableContext()
-  }, [clearTableContext])
-
   // Safety net: Force theme application on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {

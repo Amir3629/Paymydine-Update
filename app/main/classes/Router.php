@@ -5,7 +5,6 @@ namespace Main\Classes;
 use Igniter\Flame\Router\Router as FlameRouter;
 use Igniter\Flame\Support\Facades\File;
 use Igniter\Flame\Support\RouterHelper;
-use App\Helpers\TenantHelper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -301,8 +300,7 @@ class Router
      */
     protected function getCacheKey($keyName)
     {
-        $baseKey = md5($this->theme->getPath()).$keyName.Lang::getLocale();
-        return TenantHelper::scopedCacheKey($baseKey);
+        return md5($this->theme->getPath()).$keyName.Lang::getLocale();
     }
 
     /**

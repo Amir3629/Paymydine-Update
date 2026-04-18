@@ -4,7 +4,6 @@ import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
 import { X } from "lucide-react"
 import type { MenuItem } from "@/lib/data"
-import { getMenuImageUrl } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { useLanguageStore } from "@/store/language-store"
 import type { TranslationKey } from "@/lib/translations"
@@ -52,7 +51,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
               {/* Small image */}
               <div className="relative w-28 h-28 mx-auto mb-6">
                 <OptimizedImage
-                  src={getMenuImageUrl(item.image) || "/placeholder.svg"}
+                  src={item.image || "/placeholder.svg"}
                   alt={itemName}
                   fill
                   className="object-cover rounded-2xl"

@@ -21,7 +21,6 @@ use System\Libraries\Assets;
 use System\Models\Settings_model;
 use Illuminate\Support\Facades\Route;
 use Admin\Controllers\SuperAdminController;
-use App\Helpers\TenantContextHelper;
 
 class ServiceProvider extends AppServiceProvider
 {
@@ -67,7 +66,6 @@ class ServiceProvider extends AppServiceProvider
         });
         if ($this->app->runningInAdmin()) {
             $this->registerSystemSettings();
-            $this->registerFiskalySettingsBridge();
             $this->registerPermissions();
             $this->registerDashboardWidgets();
             $this->registerBulkActionWidgets();
@@ -853,122 +851,8 @@ class ServiceProvider extends AppServiceProvider
             }
 
             $schedule->call(function () {
-                TenantContextHelper::eachTenant(function () {
-                    Classes\UserState::clearExpiredStatus();
-                });
+                Classes\UserState::clearExpiredStatus();
             })->name('Clear user custom away status')->withoutOverlapping(5)->runInBackground()->everyMinute();
-        });
-    }
-
-
-    protected function registerFiskalySettingsBridge()
-    {
-        \Event::listen('admin.settings.beforeSave', function ($settings, $data) {
-            \Log::info('FISKALY_DEBUG beforeSave fired', [
-                'settings' => $settings,
-                'data' => $data,
-            ]);
-            if ($settings !== 'fiskaly') {
-                \Log::info('[FISKALY_SETTINGS_DEBUG] entering saveSettings', [
-                    'settings' => $settings,
-                    'default_connection' => \DB::getDefaultConnection(),
-                    'tenant_bound' => app()->bound('tenant'),
-                    'tenant_domain' => app()->bound('tenant') ? optional(app('tenant'))->domain : null,
-                    'tenant_database' => app()->bound('tenant') ? optional(app('tenant'))->database : null,
-                    'request_data_keys' => array_keys((array)$data),
-                ]);
-                \Log::info('FISKALY_DEBUG beforeSave skipped - settings mismatch', [
-                    'settings' => $settings,
-                ]);
-                return;
-            }
-
-            $existing = \DB::connection(app()->bound('tenant') ? 'tenant' : \DB::getDefaultConnection())->table('fiskaly_configs')->where('location_id', 1)->first();
-            $existingMeta = json_decode($existing->meta ?? '{}', true);
-            if (!is_array($existingMeta)) {
-                $existingMeta = [];
-            }
-
-            if (!empty($data['fiskaly_admin_pin'])) {
-                $existingMeta['admin_pin'] = $data['fiskaly_admin_pin'];
-            }
-
-            if (!empty($data['fiskaly_time_admin_pin'])) {
-                $existingMeta['time_admin_pin'] = $data['fiskaly_time_admin_pin'];
-            }
-
-            \Log::info('FISKALY_DEBUG beforeSave writing row', [
-                'location_id' => 1,
-                'environment' => $data['fiskaly_environment'] ?? 'test',
-                'api_key' => $data['fiskaly_api_key'] ?? null,
-                'api_secret' => $data['fiskaly_api_secret'] ?? null,
-                'organization_id' => $data['fiskaly_organization_id'] ?? null,
-                'tss_id' => $data['fiskaly_tss_id'] ?? null,
-                'client_id' => $data['fiskaly_client_id'] ?? null,
-                'cash_register_id' => $data['fiskaly_cash_register_id'] ?? null,
-                'is_enabled' => !empty($data['fiskaly_is_enabled']) ? 1 : 0,
-                'meta' => $existingMeta,
-            ]);
-
-            \DB::connection(app()->bound('tenant') ? 'tenant' : \DB::getDefaultConnection())->table('fiskaly_configs')->updateOrInsert(
-                ['location_id' => 1],
-                [
-                    'provider' => 'fiskaly',
-                    'environment' => $data['fiskaly_environment'] ?? 'test',
-                    'api_key' => $data['fiskaly_api_key'] ?? null,
-                    'api_secret' => $data['fiskaly_api_secret'] ?? null,
-                    'organization_id' => $data['fiskaly_organization_id'] ?? null,
-                    'tss_id' => $data['fiskaly_tss_id'] ?? null,
-                    'client_id' => $data['fiskaly_client_id'] ?? null,
-                    'cash_register_id' => $data['fiskaly_cash_register_id'] ?? null,
-                    'is_enabled' => !empty($data['fiskaly_is_enabled']) ? 1 : 0,
-                    'meta' => json_encode($existingMeta),
-                    'updated_at' => now(),
-                    'created_at' => $existing->created_at ?? now(),
-                ]
-            );
-        });
-
-        \Event::listen('admin.settings.beforeLoad', function ($settings, &$data) {
-            \Log::info('FISKALY_DEBUG beforeLoad fired', [
-                'settings' => $settings,
-            ]);
-            if ($settings !== 'fiskaly') {
-                return;
-            }
-
-            $row = \DB::connection(app()->bound('tenant') ? 'tenant' : \DB::getDefaultConnection())->table('fiskaly_configs')->where('location_id', 1)->first();
-
-            \Log::info('FISKALY_DEBUG beforeLoad db row', [
-                'row' => (array) $row,
-            ]);
-            if (!$row) {
-                return;
-            }
-
-            $meta = json_decode($row->meta ?? '{}', true);
-            if (!is_array($meta)) {
-                $meta = [];
-            }
-
-            \Log::info('[FISKALY_SETTINGS_DEBUG] loading fiskaly settings', [
-                'default_connection' => \DB::getDefaultConnection(),
-                'tenant_bound' => app()->bound('tenant'),
-                'tenant_domain' => app()->bound('tenant') ? optional(app('tenant'))->domain : null,
-                'tenant_database' => app()->bound('tenant') ? optional(app('tenant'))->database : null,
-                'row_found' => (bool)$row,
-            ]);
-
-            $data['fiskaly_environment'] = $row->environment ?? 'test';
-            $data['fiskaly_api_key'] = $row->api_key ?? '';
-            $data['fiskaly_api_secret'] = $row->api_secret ?? '';
-            $data['fiskaly_organization_id'] = $row->organization_id ?? '';
-            $data['fiskaly_tss_id'] = $row->tss_id ?? '';
-            $data['fiskaly_client_id'] = $row->client_id ?? '';
-            $data['fiskaly_cash_register_id'] = $row->cash_register_id ?? '';
-            $data['fiskaly_is_enabled'] = $row->is_enabled ?? 0;
-            $data['fiskaly_admin_pin'] = $meta['admin_pin'] ?? '';
-            $data['fiskaly_time_admin_pin'] = $meta['time_admin_pin'] ?? '';
         });
     }
 
@@ -1028,34 +912,22 @@ class ServiceProvider extends AppServiceProvider
                 ],
                 'biometric_devices' => [
                     'label' => 'Biometric Devices',
-                    'description' => 'Configure biometric devices, attendance tracking and staff authentication',
+                    'description' => 'Manage biometric devices and staff attendance',
                     'icon' => 'fa fa-fingerprint',
-                    'priority' => 92,
-                    'permission' => ['Site.Settings'],
-                    'url' => admin_url('settings/edit/biometric_devices'),
+                    'priority' => 15,
+                    'permission' => ['Admin.BiometricDevices'],
+                    'url' => admin_url('biometric_devices'),
                     'form' => '~/app/admin/models/config/biometric_devices_settings',
                 ],
-
                 'cash_drawers' => [
                     'label' => 'Cash Drawers',
                     'description' => 'Configure and manage cash drawer devices for POS systems',
-                    'icon' => 'fa fa-money-bill-wave',
-                    'priority' => 93,
-                    'permission' => ['Site.Settings'],
+                    'icon' => 'fa fa-money',
+                    'priority' => 12,
+                    'permission' => ['Admin.CashDrawers'],
                     'url' => admin_url('cash_drawers'),
                     'form' => '~/app/admin/models/config/cash_drawers_settings',
                 ],
-
-                'fiskaly' => [
-                    'label' => 'Fiskaly / TSE',
-                    'description' => 'Configure Fiskaly SIGN DE / German TSE settings for this restaurant',
-                    'icon' => 'fa fa-receipt',
-                    'priority' => 94,
-                    'permission' => ['Site.Settings'],
-                    'url' => admin_url('settings/edit/fiskaly'),
-                    'form' => '~/app/admin/models/config/fiskaly_settings',
-                ],
-
             ]);
         });
     }
