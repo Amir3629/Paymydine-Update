@@ -2180,6 +2180,14 @@ Route::group([
         ], 200);
     });
 
+    Route::get('/payments/worldline/wero/availability-last', function () use ($loadWorldlineWeroDebug) {
+        return response()->json([
+            'success' => true,
+            'host' => request()->getHost(),
+            'availability' => $loadWorldlineWeroDebug(),
+        ], 200);
+    });
+
     Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus, $resolveWorldlineWeroProductId, $persistWorldlineWeroDebug, $extractWorldlineExceptionDetails) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
@@ -2264,7 +2272,22 @@ Route::group([
             $persistWorldlineWeroDebug([
                 'updated_at' => gmdate('c'),
                 'host' => request()->getHost(),
+                'tenant_database' => $diagnostics['tenant_database'] ?? null,
+                'merchant_id' => $diagnostics['merchant_id'] ?? null,
+                'environment' => $diagnostics['environment'] ?? null,
                 'phase' => 'success',
+                'payment_method' => 'wero',
+                'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
+                'effective_product_id' => $productIdResolution['effective_product_id'] ?? null,
+                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                'currency' => strtoupper((string)$payload['currency']),
+                'locale' => (string)($payload['locale'] ?? 'de_DE'),
+                'provider_error_id' => null,
+                'upstream_code' => null,
+                'provider_exception' => [
+                    'errors' => [],
+                ],
+                'resolved_error_code' => null,
                 'request_payload' => [
                     'amount' => (float)$payload['amount'],
                     'currency' => strtoupper((string)$payload['currency']),
@@ -2317,13 +2340,22 @@ Route::group([
             $upstreamErrors = (array)($providerException['errors'] ?? []);
             $upstreamError = is_array($upstreamErrors[0] ?? null) ? (array)$upstreamErrors[0] : [];
             $upstreamCode = (string)($upstreamError['code'] ?? '');
+            $upstreamErrorId = strtoupper((string)($upstreamError['id'] ?? ''));
             $propertyName = (string)($upstreamError['propertyName'] ?? '');
             $errorCode = 'worldline_internal_exception';
             $humanMessage = 'Worldline Wero checkout is currently unavailable. Please try again later.';
             $httpCode = 502;
             $allowStripeFallback = false;
 
-            if (
+            $isNoPaymentProductsAvailable = $upstreamErrorId === 'NO_PAYMENT_PRODUCTS_AVAILABLE' || $upstreamCode === '1406';
+
+            if ($isNoPaymentProductsAvailable) {
+                $errorCode = 'wero_product_not_available';
+                $humanMessage = 'Wero is not available for this Worldline merchant / payment product configuration.';
+                $httpCode = 422;
+                $allowStripeFallback = false;
+                $persistWorldlineWeroCapabilityStatus('unsupported', $humanMessage);
+            } elseif (
                 str_contains($errorLower, 'toobject()')
                 || str_contains($errorLower, 'hostedcheckoutspecificinput')
                 || str_contains($errorLower, 'paymentproductfilters')
@@ -2391,9 +2423,26 @@ Route::group([
             $persistWorldlineWeroDebug([
                 'updated_at' => gmdate('c'),
                 'host' => request()->getHost(),
+                'tenant_database' => $diagnostics['tenant_database'] ?? null,
+                'merchant_id' => $diagnostics['merchant_id'] ?? null,
+                'environment' => $diagnostics['environment'] ?? null,
                 'phase' => 'error',
+                'payment_method' => 'wero',
+                'configured_product_id' => isset($productIdResolution) ? ($productIdResolution['configured_product_id'] ?? null) : null,
+                'effective_product_id' => isset($productIdResolution) ? ($productIdResolution['effective_product_id'] ?? null) : null,
+                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                'currency' => strtoupper((string)($payload['currency'] ?? 'EUR')),
+                'locale' => (string)($payload['locale'] ?? 'de_DE'),
+                'provider_error_id' => $providerErrorId ?: null,
+                'upstream_code' => $upstreamCode !== '' ? $upstreamCode : null,
                 'resolved_error_code' => $errorCode,
-                'provider_exception' => $providerException,
+                'provider_exception' => [
+                    'httpStatusCode' => $providerException['httpStatusCode'] ?? null,
+                    'errorId' => $providerException['errorId'] ?? null,
+                    'category' => $providerException['category'] ?? null,
+                    'errors' => $upstreamErrors,
+                    'raw_response_body' => $providerException['raw_response_body'] ?? null,
+                ],
             ]);
             return response()->json([
                 'success' => false,
