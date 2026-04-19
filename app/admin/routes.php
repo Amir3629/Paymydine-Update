@@ -2197,6 +2197,12 @@ Route::group([
             $responseBody = method_exists($e, 'getResponseBody') ? (string)$e->getResponseBody() : '';
             $errorMessage = (string)$e->getMessage();
             $errorLower = strtolower($errorMessage.' '.$responseBody);
+            $upstreamPayload = json_decode($responseBody, true);
+            $upstreamError = is_array($upstreamPayload['errors'][0] ?? null)
+                ? (array)$upstreamPayload['errors'][0]
+                : (is_array($upstreamPayload) ? $upstreamPayload : []);
+            $upstreamCode = (string)($upstreamError['code'] ?? $upstreamError['errorCode'] ?? '');
+            $propertyName = (string)($upstreamError['propertyName'] ?? '');
             $errorCode = 'worldline_internal_exception';
             $humanMessage = 'Worldline Wero checkout is currently unavailable. Please try again later.';
             $httpCode = 502;
@@ -2217,6 +2223,14 @@ Route::group([
                 $errorCode = 'worldline_request_validation_failed';
                 $humanMessage = 'Worldline rejected the Wero checkout request due to provider-side validation.';
                 $persistWorldlineWeroCapabilityStatus('unsupported', $errorMessage);
+            } elseif ($statusCode >= 400 && $statusCode < 500) {
+                $errorCode = 'worldline_request_validation_failed';
+                $humanMessage = 'Worldline rejected the Wero checkout request due to request-field validation.';
+                $httpCode = max(400, min(499, (int)$statusCode ?: 422));
+                if (strtolower($upstreamCode) === '21000220' || str_contains(strtolower($propertyName), 'merchantcustomerid')) {
+                    $errorCode = 'worldline_merchant_customer_id_invalid';
+                    $humanMessage = 'Worldline rejected merchantCustomerId length/format.';
+                }
             } elseif ($statusCode === 401 || $statusCode === 403) {
                 $errorCode = 'worldline_invalid_credentials_or_entitlement';
                 $humanMessage = 'Worldline credentials are not authorized for Wero on this merchant account.';
@@ -2270,7 +2284,13 @@ Route::group([
                 'details' => [
                     'provider_error_id' => $providerErrorId ?: null,
                     'provider_status' => $statusCode,
+                    'property_name' => $propertyName !== '' ? $propertyName : null,
+                    'upstream_code' => $upstreamCode !== '' ? $upstreamCode : null,
                 ],
+                'provider_status' => $statusCode,
+                'provider_error_id' => $providerErrorId ?: null,
+                'property_name' => $propertyName !== '' ? $propertyName : null,
+                'upstream_code' => $upstreamCode !== '' ? $upstreamCode : null,
             ], $httpCode);
         }
     });

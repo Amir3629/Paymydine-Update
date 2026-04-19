@@ -19,6 +19,25 @@ use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 
 class WorldlineHostedCheckoutService
 {
+    protected function normalizeMerchantCustomerId(?string $candidate, string $seed): string
+    {
+        $value = strtoupper(preg_replace('/[^A-Z0-9_\-]/i', '', (string)$candidate) ?? '');
+        if ($value === '') {
+            $value = 'PMD'.substr(sha1($seed), 0, 12);
+        }
+
+        // Keep conservatively short for Worldline constraints.
+        if (strlen($value) > 20) {
+            $value = substr($value, 0, 20);
+        }
+
+        if ($value === '') {
+            $value = 'PMD'.substr(sha1('fallback-'.$seed), 0, 12);
+        }
+
+        return $value;
+    }
+
     protected function buildHostedCheckoutPaymentProductFilters(int $paymentProductId): ?object
     {
         if ($paymentProductId <= 0) {
@@ -308,7 +327,10 @@ class WorldlineHostedCheckoutService
         $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
         $locale = (string)($payload['locale'] ?? 'en_GB');
         $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
-        $merchantCustomerId = (string)($payload['merchant_customer_id'] ?? ('PMD-' . substr((string) Str::uuid(), 0, 12)));
+        $merchantCustomerId = $this->normalizeMerchantCustomerId(
+            (string)($payload['merchant_customer_id'] ?? ''),
+            $requestId
+        );
         $paymentMethod = strtolower(trim((string)($payload['payment_method'] ?? 'card')));
         $paymentProductId = (int)($payload['payment_product_id'] ?? 0);
         $paymentProductFiltersIncluded = false;
@@ -356,6 +378,7 @@ class WorldlineHostedCheckoutService
             'locale' => $locale,
             'country_code' => $countryCode,
             'merchant_customer_id' => $merchantCustomerId,
+            'merchant_customer_id_length' => strlen($merchantCustomerId),
             'payment_method' => $paymentMethod,
             'payment_product_id' => $paymentProductId,
             'payment_product_filters_included' => $paymentProductFiltersIncluded,
