@@ -2202,7 +2202,15 @@ Route::group([
             $httpCode = 502;
             $allowStripeFallback = false;
 
-            if (str_contains($errorLower, 'config') || str_contains($errorLower, 'credential') || str_contains($errorLower, 'merchant') || str_contains($errorLower, 'not found')) {
+            if (
+                str_contains($errorLower, 'toobject()')
+                || str_contains($errorLower, 'hostedcheckoutspecificinput')
+                || str_contains($errorLower, 'paymentproductfilters')
+            ) {
+                $errorCode = 'worldline_sdk_object_construction_failed';
+                $humanMessage = 'Worldline Wero request object construction failed before provider authorization.';
+                $httpCode = 500;
+            } elseif (str_contains($errorLower, 'config') || str_contains($errorLower, 'credential') || str_contains($errorLower, 'merchant') || str_contains($errorLower, 'not found')) {
                 $errorCode = 'worldline_provider_configuration_invalid';
                 $humanMessage = 'Worldline Wero is not configured correctly for this restaurant.';
             } elseif (str_contains($errorLower, 'validation') || str_contains($errorLower, 'invalid') || str_contains($errorLower, 'unprocessable')) {

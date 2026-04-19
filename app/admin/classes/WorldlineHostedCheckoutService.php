@@ -19,6 +19,39 @@ use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 
 class WorldlineHostedCheckoutService
 {
+    protected function buildHostedCheckoutPaymentProductFilters(int $paymentProductId): ?object
+    {
+        if ($paymentProductId <= 0) {
+            return null;
+        }
+
+        $filtersClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\PaymentProductFiltersHostedCheckout';
+        $restrictClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\PaymentProductFilter';
+
+        if (!class_exists($filtersClass) || !class_exists($restrictClass)) {
+            return null;
+        }
+
+        try {
+            $filters = new $filtersClass();
+            $restrict = new $restrictClass();
+            $restrict->products = [$paymentProductId];
+            $filters->restrictTo = $restrict;
+            return $filters;
+        } catch (\Throwable $e) {
+            PaymentLogger::warning('WORLDLINE PAYMENT PRODUCT FILTER BUILD FAILED', [
+                'provider' => 'worldline',
+                'payment_method' => 'wero',
+                'payment_product_id' => $paymentProductId,
+                'filters_class' => $filtersClass,
+                'restrict_class' => $restrictClass,
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+            ]);
+            return null;
+        }
+    }
+
     protected function sanitizeForLogs(array $payload): array
     {
         $sanitized = [];
@@ -304,11 +337,11 @@ class WorldlineHostedCheckoutService
         $specific->locale = $locale;
         $specific->showResultPage = false;
         if ($paymentProductId > 0) {
-            $paymentProductFilters = new \stdClass();
-            $paymentProductFilters->restrictTo = new \stdClass();
-            $paymentProductFilters->restrictTo->products = [$paymentProductId];
-            $specific->paymentProductFilters = $paymentProductFilters;
-            $paymentProductFiltersIncluded = true;
+            $paymentProductFilters = $this->buildHostedCheckoutPaymentProductFilters($paymentProductId);
+            if ($paymentProductFilters !== null) {
+                $specific->paymentProductFilters = $paymentProductFilters;
+                $paymentProductFiltersIncluded = true;
+            }
         }
 
         $body = new CreateHostedCheckoutRequest();
@@ -326,6 +359,7 @@ class WorldlineHostedCheckoutService
             'payment_method' => $paymentMethod,
             'payment_product_id' => $paymentProductId,
             'payment_product_filters_included' => $paymentProductFiltersIncluded,
+            'payment_product_filters_class' => $paymentProductFiltersIncluded ? get_class($specific->paymentProductFilters) : null,
             'request_id' => $requestId,
         ];
         $sdkPayloadDebug = [
