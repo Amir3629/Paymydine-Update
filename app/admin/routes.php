@@ -1094,7 +1094,7 @@ Route::group([
             'ready' => $providerEnabled
                 && (bool)($inlineReadiness['ready'] ?? false)
                 && $weroEnabled
-                && $weroCapabilityStatus !== 'unsupported',
+                && $weroPaymentProductId > 0,
         ];
     };
 
@@ -2180,16 +2180,42 @@ Route::group([
         ], 200);
     });
 
+    Route::get('/payments/worldline/wero/availability-last', function () use ($loadWorldlineWeroDebug) {
+        return response()->json([
+            'success' => true,
+            'host' => request()->getHost(),
+            'availability' => $loadWorldlineWeroDebug(),
+        ], 200);
+    });
+
     Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus, $resolveWorldlineWeroProductId, $persistWorldlineWeroDebug, $extractWorldlineExceptionDetails) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
-            return response()->json(['success' => false, 'provider' => 'worldline', 'method' => 'wero', 'error_code' => 'wero_unavailable', 'error' => 'Wero method is disabled'], 422);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'method' => 'wero',
+                'error_code' => 'wero_unavailable',
+                'resolved_error_code' => 'wero_unavailable',
+                'allow_fallback' => false,
+                'display_message' => 'Wero is currently unavailable. Please choose another payment method.',
+                'error' => 'Wero method is disabled',
+            ], 422);
         }
 
         $providerCode = (string)($weroMethod['provider_code'] ?? '');
         if ($providerCode !== 'worldline') {
-            return response()->json(['success' => false, 'provider' => 'worldline', 'method' => 'wero', 'error_code' => 'wero_provider_mismatch', 'error' => 'Wero is not configured for Worldline on this tenant'], 422);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'method' => 'wero',
+                'error_code' => 'wero_provider_mismatch',
+                'resolved_error_code' => 'wero_provider_mismatch',
+                'allow_fallback' => false,
+                'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
+                'error' => 'Wero is not configured for Worldline on this tenant',
+            ], 422);
         }
 
         $worldlineWeroReadiness = $resolveWorldlineWeroReadiness();
@@ -2201,6 +2227,8 @@ Route::group([
                 'error_code' => 'wero_not_supported',
                 'resolved_error_code' => 'wero_not_supported',
                 'allow_fallback' => false,
+                'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
+                'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
                 'error' => 'Wero is not available for the current Worldline configuration.',
             ], 503);
         }
@@ -2240,6 +2268,8 @@ Route::group([
                     'error_code' => 'worldline_provider_configuration_invalid',
                     'resolved_error_code' => 'worldline_provider_configuration_invalid',
                     'allow_fallback' => false,
+                    'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
+                    'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
                     'error' => 'Worldline Wero payment product id is missing or invalid in provider configuration.',
                     'details' => [
                         'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
@@ -2264,7 +2294,22 @@ Route::group([
             $persistWorldlineWeroDebug([
                 'updated_at' => gmdate('c'),
                 'host' => request()->getHost(),
+                'tenant_database' => $diagnostics['tenant_database'] ?? null,
+                'merchant_id' => $diagnostics['merchant_id'] ?? null,
+                'environment' => $diagnostics['environment'] ?? null,
                 'phase' => 'success',
+                'payment_method' => 'wero',
+                'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
+                'effective_product_id' => $productIdResolution['effective_product_id'] ?? null,
+                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                'currency' => strtoupper((string)$payload['currency']),
+                'locale' => (string)($payload['locale'] ?? 'de_DE'),
+                'provider_error_id' => null,
+                'upstream_code' => null,
+                'provider_exception' => [
+                    'errors' => [],
+                ],
+                'resolved_error_code' => null,
                 'request_payload' => [
                     'amount' => (float)$payload['amount'],
                     'currency' => strtoupper((string)$payload['currency']),
@@ -2286,6 +2331,12 @@ Route::group([
                     'provider' => 'worldline',
                     'method' => 'wero',
                     'error_code' => 'wero_redirect_missing',
+                    'resolved_error_code' => 'wero_redirect_missing',
+                    'allow_fallback' => false,
+                    'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
+                    'resolved_error_code' => 'wero_redirect_missing',
+                    'allow_fallback' => false,
+                    'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
                     'error' => 'Worldline Wero checkout URL is missing.',
                 ], 502);
             }
@@ -2317,13 +2368,22 @@ Route::group([
             $upstreamErrors = (array)($providerException['errors'] ?? []);
             $upstreamError = is_array($upstreamErrors[0] ?? null) ? (array)$upstreamErrors[0] : [];
             $upstreamCode = (string)($upstreamError['code'] ?? '');
+            $upstreamErrorId = strtoupper((string)($upstreamError['id'] ?? ''));
             $propertyName = (string)($upstreamError['propertyName'] ?? '');
             $errorCode = 'worldline_internal_exception';
             $humanMessage = 'Worldline Wero checkout is currently unavailable. Please try again later.';
             $httpCode = 502;
             $allowStripeFallback = false;
 
-            if (
+            $isNoPaymentProductsAvailable = $upstreamErrorId === 'NO_PAYMENT_PRODUCTS_AVAILABLE' || $upstreamCode === '1406';
+
+            if ($isNoPaymentProductsAvailable) {
+                $errorCode = 'wero_product_not_available';
+                $humanMessage = 'Wero is not available for this Worldline merchant / payment product configuration.';
+                $httpCode = 422;
+                $allowStripeFallback = false;
+                $persistWorldlineWeroCapabilityStatus('unsupported', $humanMessage);
+            } elseif (
                 str_contains($errorLower, 'toobject()')
                 || str_contains($errorLower, 'hostedcheckoutspecificinput')
                 || str_contains($errorLower, 'paymentproductfilters')
@@ -2391,9 +2451,26 @@ Route::group([
             $persistWorldlineWeroDebug([
                 'updated_at' => gmdate('c'),
                 'host' => request()->getHost(),
+                'tenant_database' => $diagnostics['tenant_database'] ?? null,
+                'merchant_id' => $diagnostics['merchant_id'] ?? null,
+                'environment' => $diagnostics['environment'] ?? null,
                 'phase' => 'error',
+                'payment_method' => 'wero',
+                'configured_product_id' => isset($productIdResolution) ? ($productIdResolution['configured_product_id'] ?? null) : null,
+                'effective_product_id' => isset($productIdResolution) ? ($productIdResolution['effective_product_id'] ?? null) : null,
+                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                'currency' => strtoupper((string)($payload['currency'] ?? 'EUR')),
+                'locale' => (string)($payload['locale'] ?? 'de_DE'),
+                'provider_error_id' => $providerErrorId ?: null,
+                'upstream_code' => $upstreamCode !== '' ? $upstreamCode : null,
                 'resolved_error_code' => $errorCode,
-                'provider_exception' => $providerException,
+                'provider_exception' => [
+                    'httpStatusCode' => $providerException['httpStatusCode'] ?? null,
+                    'errorId' => $providerException['errorId'] ?? null,
+                    'category' => $providerException['category'] ?? null,
+                    'errors' => $upstreamErrors,
+                    'raw_response_body' => $providerException['raw_response_body'] ?? null,
+                ],
             ]);
             return response()->json([
                 'success' => false,
@@ -2427,7 +2504,14 @@ Route::group([
         $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
-            return response()->json(['success' => false, 'error' => 'Wero method is disabled'], 422);
+            return response()->json([
+                'success' => false,
+                'error_code' => 'wero_unavailable',
+                'resolved_error_code' => 'wero_unavailable',
+                'allow_fallback' => false,
+                'display_message' => 'Wero is currently unavailable. Please choose another payment method.',
+                'error' => 'Wero method is disabled',
+            ], 422);
         }
 
         $providerCode = strtolower((string)($weroMethod['provider_code'] ?? 'stripe'));

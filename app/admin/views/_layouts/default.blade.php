@@ -842,5 +842,100 @@
 
 
 
+
+<script id="pmd-wero-global-handler">
+(function () {
+  if (window.__PMD_WERO_HANDLER_INSTALLED__) return;
+  window.__PMD_WERO_HANDLER_INSTALLED__ = true;
+
+  function showWeroMessage(msg) {
+    var text = msg || 'Wero is currently unavailable. Please choose another payment method.';
+    try {
+      if (window.Toastify) {
+        Toastify({ text: text, duration: 5000, close: true, gravity: 'top', position: 'right' }).showToast();
+        return;
+      }
+    } catch (e) {}
+    try {
+      if (window.Swal && typeof window.Swal.fire === 'function') {
+        window.Swal.fire({ icon: 'warning', title: 'Payment unavailable', text: text });
+        return;
+      }
+    } catch (e) {}
+    alert(text);
+  }
+
+  function disableBusyState() {
+    try {
+      document.querySelectorAll('[data-payment-submit],[data-checkout-submit],button[type="submit"]').forEach(function(btn) {
+        btn.disabled = false;
+        btn.classList.remove('is-loading', 'loading', 'disabled');
+      });
+    } catch (e) {}
+  }
+
+  function hideWeroOptions() {
+    try {
+      document.querySelectorAll('[data-payment-method="wero"],[value="wero"],.payment-method-wero,.wero-option').forEach(function(el) {
+        var row = el.closest('label,.payment-method,.payment-option,.form-check,.list-group-item') || el;
+        if (row) row.style.opacity = '0.5';
+      });
+    } catch (e) {}
+  }
+
+  async function inspectResponse(response) {
+    try {
+      var url = response && response.url ? response.url : '';
+      if (!url || url.indexOf('/payments/worldline/wero/create-session') === -1) return response;
+
+      if (response.status === 422 || response.status === 503) {
+        var clone = response.clone();
+        var data = await clone.json().catch(function(){ return {}; });
+        var msg = data.display_message || data.error || 'Wero is currently unavailable. Please choose another payment method.';
+        showWeroMessage(msg);
+        disableBusyState();
+        hideWeroOptions();
+      }
+    } catch (e) {}
+    return response;
+  }
+
+  if (window.fetch) {
+    var _fetch = window.fetch;
+    window.fetch = function() {
+      return _fetch.apply(this, arguments).then(inspectResponse);
+    };
+  }
+
+  if (window.XMLHttpRequest) {
+    var OriginalXHR = window.XMLHttpRequest;
+    function WrappedXHR() {
+      var xhr = new OriginalXHR();
+      var _open = xhr.open;
+      xhr.open = function(method, url) {
+        xhr.__pmd_url = url || '';
+        return _open.apply(xhr, arguments);
+      };
+      xhr.addEventListener('load', function() {
+        try {
+          if ((xhr.status === 422 || xhr.status === 503) &&
+              xhr.__pmd_url &&
+              xhr.__pmd_url.indexOf('/payments/worldline/wero/create-session') !== -1) {
+            var data = {};
+            try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) {}
+            var msg = data.display_message || data.error || 'Wero is currently unavailable. Please choose another payment method.';
+            showWeroMessage(msg);
+            disableBusyState();
+            hideWeroOptions();
+          }
+        } catch (e) {}
+      });
+      return xhr;
+    }
+    window.XMLHttpRequest = WrappedXHR;
+  }
+})();
+</script>
+
 </body>
 </html>
