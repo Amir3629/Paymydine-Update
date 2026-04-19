@@ -2084,8 +2084,13 @@ Route::group([
                 'success' => true,
                 'provider' => 'worldline',
                 'method' => 'wero',
+                'payment_method' => 'wero',
                 'resolved_error_code' => null,
                 'allow_fallback' => false,
+                'fallback' => false,
+                'fallback_candidate' => null,
+                'original_provider' => 'worldline',
+                'actual_provider' => 'worldline',
                 'redirect_url' => $redirectUrl,
                 'hosted_checkout_id' => (string)($result['hosted_checkout_id'] ?? ''),
             ]);
@@ -2155,6 +2160,7 @@ Route::group([
                 'error_code' => $errorCode,
                 'resolved_error_code' => $errorCode,
                 'allow_fallback' => $allowStripeFallback,
+                'fallback_candidate' => $allowStripeFallback ? ['provider' => 'stripe', 'method' => 'ideal'] : null,
                 'request_id' => $requestId,
                 'error' => $humanMessage,
                 'details' => [
@@ -2207,6 +2213,15 @@ Route::group([
         }
 
         try {
+            \Admin\Classes\PaymentLogger::info('Stripe fallback Wero session requested', [
+                'provider' => 'stripe',
+                'payment_method' => 'ideal',
+                'request_meta' => [
+                    'fallback_from_worldline' => $fallbackFromWorldline,
+                    'requested_method' => 'wero',
+                    'configured_runtime_provider' => $providerCode,
+                ],
+            ]);
             \Stripe\Stripe::setApiKey($secretKey);
             $currency = strtolower((string)$payload['currency']);
             $amountMinor = (int)round(((float)$payload['amount']) * 100);
@@ -2307,6 +2322,9 @@ Route::group([
                 'method' => 'ideal',
                 'requested_method' => 'wero',
                 'fallback' => true,
+                'fallback_provider' => 'stripe',
+                'fallback_method' => 'ideal',
+                'original_provider' => 'worldline',
                 'redirect_url' => (string)($session->url ?? ''),
                 'session_id' => (string)($session->id ?? ''),
             ]);

@@ -1383,7 +1383,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           "worldline_invalid_credentials_or_entitlement",
           "worldline_session_unavailable",
         ].includes(resolvedErrorCode)
-        const fallbackAllowed = Boolean(json?.allow_fallback) || fallbackAllowedByCode || res.status >= 502
+        const fallbackAllowed = Boolean(json?.allow_fallback) || fallbackAllowedByCode
         const normalizedErrorMessage = json?.error
           || (rawBody && rawBody.length < 1000 ? rawBody : "")
           || `${providerLabel} checkout failed with HTTP ${res.status}`
@@ -1397,13 +1397,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         }
         if (selectedMethod.code === "wero") {
           if (providerCode === "worldline" && fallbackAllowed) {
+            const fallbackReturnUrl = returnUrl.includes("payment_return_provider=")
+              ? returnUrl.replace(/payment_return_provider=[^&]*/i, "payment_return_provider=wero")
+              : `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}payment_return_provider=wero`
             const fallbackRes = await fetch("/api/v1/payments/wero/create-session", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 amount: finalTotal,
                 currency: (merchantSettings?.currency || "EUR"),
-                return_url: returnUrl,
+                return_url: fallbackReturnUrl,
                 cancel_url: cancelUrl,
                 customer_email: paymentFormData.email || "",
                 fallback_method: "ideal",
@@ -1425,6 +1428,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             }
 
             if (fallbackRes.ok && fallbackJson?.success && fallbackJson?.redirect_url) {
+              console.info("[WERO_FALLBACK]", {
+                original_provider: "worldline",
+                fallback_provider: String(fallbackJson?.fallback_provider || "stripe"),
+                fallback_method: String(fallbackJson?.fallback_method || "ideal"),
+                resolved_error_code: resolvedErrorCode,
+              })
               if (typeof window !== "undefined" && fallbackJson?.session_id) {
                 localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
                   session_id: String(fallbackJson.session_id),
