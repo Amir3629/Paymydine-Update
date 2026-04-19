@@ -944,12 +944,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
-  const handlePayment = async (stripePaymentIntentId?: string) => {
-    const selectedMethodForSubmit = visiblePaymentMethods.find(method => method.code === selectedPaymentMethod)
-    const selectedProviderCodeForSubmit = (selectedMethodForSubmit as any)?.provider_code || null
+  const handlePayment = async (
+    stripePaymentIntentId?: string,
+    forcedPaymentContext?: { method_code?: string | null; provider_code?: string | null }
+  ) => {
+    const effectiveMethodCode = forcedPaymentContext?.method_code || selectedPaymentMethod
+    const selectedMethodForSubmit = visiblePaymentMethods.find(method => method.code === effectiveMethodCode)
+    const selectedProviderCodeForSubmit = forcedPaymentContext?.provider_code || (selectedMethodForSubmit as any)?.provider_code || null
     const isStripeMethodForSubmit =
       selectedProviderCodeForSubmit === "stripe" &&
-      (selectedPaymentMethod === "card" || selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay" || selectedPaymentMethod === "wero")
+      (effectiveMethodCode === "card" || effectiveMethodCode === "apple_pay" || effectiveMethodCode === "google_pay" || effectiveMethodCode === "wero")
 
     if (isStripeMethodForSubmit && !stripePaymentIntentId) {
       toast({
@@ -1033,13 +1037,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         customer_phone: String(paymentFormData.phone || ""),
         customer_email: String(paymentFormData.email || ""),
         payment_method: (
-          selectedPaymentMethod === "cod"
+          effectiveMethodCode === "cod"
             ? "cash"
-            : selectedPaymentMethod === "paypal"
+            : effectiveMethodCode === "paypal"
               ? "paypal"
               : "card"
         ) as 'cash' | 'paypal' | 'card',
-        payment_method_raw: selectedPaymentMethod || undefined,
+        payment_method_raw: effectiveMethodCode || undefined,
         payment_provider: selectedProviderCodeForSubmit || undefined,
         payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
         stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
@@ -1449,6 +1453,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               if (typeof window !== "undefined" && fallbackJson?.session_id) {
                 localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
                   session_id: String(fallbackJson.session_id),
+                  method_code: "wero",
+                  provider_code: "stripe",
                   created_at: Date.now(),
                 }))
               }
@@ -1470,6 +1476,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         if (providerCode === "worldline" && json?.hosted_checkout_id) {
           localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
             hosted_checkout_id: String(json.hosted_checkout_id),
+            method_code: selectedMethod.code,
+            provider_code: providerCode,
             created_at: Date.now(),
           }))
         }
@@ -1489,6 +1497,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         if (providerCode === "stripe" && json?.session_id) {
           localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
             session_id: String(json.session_id),
+            method_code: selectedMethod.code,
+            provider_code: providerCode,
             created_at: Date.now(),
           }))
         }
@@ -1569,8 +1579,23 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         const json = await res.json().catch(() => ({}))
         if (res.ok && json?.success && json?.is_paid) {
           localStorage.removeItem(pendingKey)
-          const txId = String(json?.payment_id || json?.transaction_code || json?.order_id || requiredValue)
-          await handlePayment(txId)
+          const txId = String(
+            json?.payment_intent_id
+            || json?.payment_id
+            || json?.transaction_code
+            || json?.order_id
+            || requiredValue
+          )
+          const forcedMethodCode = pending?.method_code
+            ? String(pending.method_code)
+            : (provider === "wero" ? "wero" : "card")
+          const forcedProviderCode = pending?.provider_code
+            ? String(pending.provider_code)
+            : String(json?.provider || (provider === "wero" ? "stripe" : provider))
+          await handlePayment(txId, {
+            method_code: forcedMethodCode,
+            provider_code: forcedProviderCode,
+          })
           params.delete("payment_return_provider")
           const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`
           window.history.replaceState({}, "", next)

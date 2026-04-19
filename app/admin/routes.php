@@ -3431,7 +3431,21 @@ return response()->json([
         $hasStripePaymentIntentId = trim((string)$request->input('stripe_payment_intent_id', '')) !== '';
 
         try {
-            $methodConfigByCode = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
+            $methodRows = \Admin\Models\Payments_model::query()
+                ->whereIn('code', ['card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod'])
+                ->get()
+                ->mapWithKeys(function ($row) {
+                    $data = is_array($row->data ?? null) ? (array)$row->data : [];
+                    return [
+                        (string)$row->code => [
+                            'provider_code' => strtolower((string)($row->provider_code ?? ($data['provider_code'] ?? ''))),
+                            'enabled' => (bool)$row->status,
+                        ],
+                    ];
+                });
+            $methodConfigByCode = $methodRows->count() > 0
+                ? $methodRows
+                : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
             if ($normalizedPaymentProvider === '') {
                 $normalizedPaymentProvider = strtolower((string)($methodConfigByCode->get($normalizedPaymentMethodRaw)['provider_code']
                     ?? $methodConfigByCode->get($normalizedPaymentMethod)['provider_code']
