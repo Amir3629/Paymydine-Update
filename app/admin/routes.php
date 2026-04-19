@@ -1103,8 +1103,8 @@ Route::group([
         $environment = strtolower((string)($diagnostics['environment'] ?? ''));
         $apiEndpoint = strtolower((string)($diagnostics['api_endpoint'] ?? ''));
         $isGlobalCollect = str_contains($apiEndpoint, 'connect.worldline-solutions.com');
-        $effectiveProductId = $configuredProductId;
-        $reason = $effectiveProductId > 0 ? 'configured' : 'missing';
+        $effectiveProductId = $configuredProductId > 0 ? $configuredProductId : 809;
+        $reason = $configuredProductId > 0 ? 'configured' : 'default_809';
 
         return [
             'configured_product_id' => $configuredProductId,
@@ -2180,6 +2180,16 @@ Route::group([
         ], 200);
     });
 
+    Route::get('/payments/worldline/wero/availability-last', function () use ($loadWorldlineWeroDebug) {
+        $debug = $loadWorldlineWeroDebug();
+        return response()->json([
+            'success' => true,
+            'host' => request()->getHost(),
+            'availability' => is_array($debug) ? ($debug['availability'] ?? null) : null,
+            'updated_at' => is_array($debug) ? ($debug['updated_at'] ?? null) : null,
+        ], 200);
+    });
+
     Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus, $resolveWorldlineWeroProductId, $persistWorldlineWeroDebug, $extractWorldlineExceptionDetails) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
@@ -2219,32 +2229,58 @@ Route::group([
             $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
             $diagnostics = $svc->getConfigForDiagnostics();
             $productIdResolution = $resolveWorldlineWeroProductId($worldlineWeroReadiness, $diagnostics);
-            if (($productIdResolution['reason'] ?? '') !== 'configured') {
-                \Admin\Classes\PaymentLogger::warning('Worldline Wero payment product id adjusted', [
+            $availabilityCountryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
+            $availabilityCurrencyCode = strtoupper((string)($payload['currency'] ?? 'EUR'));
+            $availability = $svc->discoverAvailablePaymentProducts($availabilityCountryCode, $availabilityCurrencyCode);
+            $availabilityProductIds = array_values(array_unique(array_map('intval', (array)($availability['product_ids'] ?? []))));
+            sort($availabilityProductIds);
+            $availabilityContains809 = in_array(809, $availabilityProductIds, true);
+
+            $weroDiagnostics = [
+                'configured_wero_payment_product_id' => (int)($productIdResolution['configured_product_id'] ?? 0),
+                'resolved_effective_product_id' => (int)($productIdResolution['effective_product_id'] ?? 0),
+                'availability_country_code' => $availabilityCountryCode,
+                'availability_currency_code' => $availabilityCurrencyCode,
+                'availability_product_ids' => $availabilityProductIds,
+                'availability_contains_809' => $availabilityContains809,
+                'availability_request_attempted' => (bool)($availability['attempted'] ?? false),
+                'fail_fast_reason' => null,
+            ];
+            \Admin\Classes\PaymentLogger::info('Worldline Wero availability diagnostics', [
+                'provider' => 'worldline',
+                'payment_method' => 'wero',
+                'request_meta' => $weroDiagnostics,
+            ]);
+
+            if (!$availabilityContains809) {
+                $weroDiagnostics['fail_fast_reason'] = 'worldline_wero_not_available_for_merchant';
+                \Admin\Classes\PaymentLogger::warning('Worldline Wero availability guard blocked create-session', [
                     'provider' => 'worldline',
                     'payment_method' => 'wero',
-                    'request_meta' => [
-                        'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
-                        'effective_product_id' => $productIdResolution['effective_product_id'] ?? null,
-                        'reason' => $productIdResolution['reason'] ?? null,
-                        'is_globalcollect' => $productIdResolution['is_globalcollect'] ?? null,
-                        'environment' => $productIdResolution['environment'] ?? null,
-                        'note' => 'No runtime product-id rewrite is applied. Configure/verify product id in Worldline merchant settings.',
-                    ],
+                    'request_meta' => $weroDiagnostics,
+                ]);
+
+                $persistWorldlineWeroDebug([
+                    'updated_at' => gmdate('c'),
+                    'host' => request()->getHost(),
+                    'phase' => 'availability_blocked',
+                    'availability' => $weroDiagnostics,
                 ]);
 
                 return response()->json([
                     'success' => false,
                     'provider' => 'worldline',
                     'method' => 'wero',
-                    'error_code' => 'worldline_provider_configuration_invalid',
-                    'resolved_error_code' => 'worldline_provider_configuration_invalid',
+                    'error_code' => 'worldline_wero_not_available_for_merchant',
+                    'resolved_error_code' => 'worldline_wero_not_available_for_merchant',
                     'allow_fallback' => false,
-                    'error' => 'Worldline Wero payment product id is missing or invalid in provider configuration.',
+                    'error' => 'Worldline Wero is not available for this merchant/currency/country context.',
                     'details' => [
-                        'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
-                        'effective_product_id' => $productIdResolution['effective_product_id'] ?? null,
-                        'environment' => $productIdResolution['environment'] ?? null,
+                        'available_product_ids' => $availabilityProductIds,
+                        'configured_product_id' => (int)($productIdResolution['configured_product_id'] ?? 0),
+                        'resolved_effective_product_id' => (int)($productIdResolution['effective_product_id'] ?? 0),
+                        'availability_country_code' => $availabilityCountryCode,
+                        'availability_currency_code' => $availabilityCurrencyCode,
                     ],
                 ], 422);
             }
@@ -2265,6 +2301,7 @@ Route::group([
                 'updated_at' => gmdate('c'),
                 'host' => request()->getHost(),
                 'phase' => 'success',
+                'availability' => $weroDiagnostics,
                 'request_payload' => [
                     'amount' => (float)$payload['amount'],
                     'currency' => strtoupper((string)$payload['currency']),
