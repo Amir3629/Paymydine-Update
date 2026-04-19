@@ -586,6 +586,91 @@ class WorldlineHostedCheckoutService
         ];
     }
 
+    public function discoverAvailablePaymentProducts(string $countryCode, string $currencyCode): array
+    {
+        $cfg = $this->getConfig();
+        $merchantClient = $this->makeMerchantClient($cfg);
+        $countryCode = strtoupper(trim($countryCode));
+        $currencyCode = strtoupper(trim($currencyCode));
+
+        $paramsClass = 'Worldline\\Connect\\Sdk\\V1\\Merchant\\Products\\GetPaymentProductsParams';
+        $paymentProducts = [];
+        $attempted = false;
+
+        $productsClient = null;
+        if (is_object($merchantClient)) {
+            if (method_exists($merchantClient, 'products')) {
+                $productsClient = $merchantClient->products();
+            } elseif (method_exists($merchantClient, 'product')) {
+                $productsClient = $merchantClient->product();
+            }
+        }
+
+        if (!is_object($productsClient) || !method_exists($productsClient, 'paymentproducts')) {
+            return [
+                'attempted' => false,
+                'country_code' => $countryCode,
+                'currency_code' => $currencyCode,
+                'product_ids' => [],
+                'raw' => [],
+            ];
+        }
+
+        $attempted = true;
+        $response = null;
+        if (class_exists($paramsClass)) {
+            $params = new $paramsClass();
+            $params->countryCode = $countryCode;
+            $params->currencyCode = $currencyCode;
+            $response = $productsClient->paymentproducts($params);
+        } else {
+            $response = $productsClient->paymentproducts([
+                'countryCode' => $countryCode,
+                'currencyCode' => $currencyCode,
+            ]);
+        }
+
+        $raw = json_decode(json_encode($response), true);
+        $raw = is_array($raw) ? $raw : [];
+
+        if (isset($raw['paymentProducts']) && is_array($raw['paymentProducts'])) {
+            $paymentProducts = $raw['paymentProducts'];
+        } elseif (isset($raw['paymentproducts']) && is_array($raw['paymentproducts'])) {
+            $paymentProducts = $raw['paymentproducts'];
+        } elseif (is_array($raw)) {
+            $paymentProducts = $raw;
+        }
+
+        $productIds = [];
+        foreach ($paymentProducts as $product) {
+            $product = is_array($product) ? $product : [];
+            $id = (int)($product['id'] ?? 0);
+            if ($id > 0) {
+                $productIds[] = $id;
+            }
+        }
+        $productIds = array_values(array_unique($productIds));
+        sort($productIds);
+
+        PaymentLogger::info('WORLDLINE PAYMENT PRODUCTS DISCOVERED', [
+            'provider' => 'worldline',
+            'component' => 'WorldlineHostedCheckoutService',
+            'merchant_id' => $cfg['merchant_id'] ?? null,
+            'environment' => $this->getEnvironment($cfg),
+            'country_code' => $countryCode,
+            'currency_code' => $currencyCode,
+            'product_ids' => $productIds,
+        ]);
+
+        return [
+            'attempted' => $attempted,
+            'country_code' => $countryCode,
+            'currency_code' => $currencyCode,
+            'product_ids' => $productIds,
+            'raw' => $this->sanitizeForLogs($raw),
+        ];
+    }
+
     public function createInlinePayment(array $payload): array
     {
         $cfg = $this->getConfig();
