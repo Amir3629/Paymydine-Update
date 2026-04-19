@@ -712,7 +712,7 @@ Route::group([
     $methodProviderMatrix = \Admin\Models\Payments_model::supportedProviderMatrix();
 
     $providerCapabilityMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay', 'wero', 'paypal'],
+        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'],
         'paypal' => ['paypal'],
         'worldline' => ['card', 'wero'],
         'sumup' => ['card'],
@@ -732,7 +732,7 @@ Route::group([
         ['code' => 'card', 'name' => 'Card', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 1],
         ['code' => 'apple_pay', 'name' => 'Apple Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 2],
         ['code' => 'google_pay', 'name' => 'Google Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 3],
-        ['code' => 'wero', 'name' => 'Wero', 'provider_code' => 'stripe', 'enabled' => false, 'priority' => 4],
+        ['code' => 'wero', 'name' => 'Wero', 'provider_code' => 'worldline', 'enabled' => false, 'priority' => 4],
         ['code' => 'paypal', 'name' => 'PayPal', 'provider_code' => 'paypal', 'enabled' => true, 'priority' => 5],
         ['code' => 'cod', 'name' => 'Cash', 'provider_code' => null, 'enabled' => true, 'priority' => 6],
     ];
@@ -777,7 +777,7 @@ Route::group([
                 $supportedMethods = $meta['supported_methods'] ?? null;
                 if (!is_array($supportedMethods) || empty($supportedMethods)) {
                     $supportedMethods = [
-                        'stripe' => ['card', 'apple_pay', 'google_pay', 'wero', 'paypal'],
+                        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
                         'paypal' => ['paypal'],
                         'worldline' => ['card', 'wero'],
                         'sumup' => ['card'],
@@ -802,16 +802,18 @@ Route::group([
             ->get()
             ->map(function ($row) {
                 $meta = is_array($row->data ?? null) ? (array)$row->data : [];
-                $fallbackProviderByMethod = [
-                    'wero' => 'stripe',
-                ];
-                $resolvedProvider = $row->provider_code
-                    ?? ($meta['provider_code'] ?? null)
-                    ?? ($fallbackProviderByMethod[(string)$row->code] ?? null);
+                $supportedProviders = array_values(array_filter(array_map(
+                    fn ($provider) => strtolower(trim((string)$provider)),
+                    is_array($meta['supported_providers'] ?? null)
+                        ? $meta['supported_providers']
+                        : \Admin\Models\Payments_model::supportedProvidersForMethod((string)$row->code)
+                ), fn (string $provider) => $provider !== ''));
+                $resolvedProvider = $row->provider_code ?? ($meta['provider_code'] ?? null);
                 return [
                     'code' => (string)$row->code,
                     'name' => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
                     'provider_code' => $resolvedProvider,
+                    'supported_providers' => $supportedProviders,
                     'enabled' => (bool)$row->status,
                     'priority' => (int)($row->priority ?? 0),
                 ];
@@ -912,54 +914,19 @@ Route::group([
         $secretKey = (string)($mode === 'live' ? ($data['live_secret_key'] ?? '') : ($data['test_secret_key'] ?? ''));
 
         $baseReady = $providerEnabled && $publishableKey !== '' && $secretKey !== '';
-        $weroEnabledByConfig = $toBool($data['wero_enabled'] ?? false);
-        $weroCapabilityStatus = strtolower((string)($data['wero_capability_status'] ?? 'unknown'));
-        $weroCapabilityCheckedAt = strtotime((string)($data['wero_capability_checked_at'] ?? ''));
         $cardMethodConfigured = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'stripe'));
         $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
         $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
         $weroMethodConfigured = (bool)(($methods->get('wero')['enabled'] ?? false) && (($methods->get('wero')['provider_code'] ?? null) === 'stripe'));
 
-        $shouldProbeWeroCapability = $baseReady
-            && $weroEnabledByConfig
-            && (
-                $weroCapabilityStatus === ''
-                || $weroCapabilityStatus === 'unknown'
-                || !$weroCapabilityCheckedAt
-                || ($weroCapabilityCheckedAt < (time() - 86400))
-            );
-        if ($shouldProbeWeroCapability) {
-            try {
-                \Stripe\Stripe::setApiKey($secretKey);
-                \Stripe\Checkout\Session::create([
-                    'mode' => 'setup',
-                    'payment_method_types' => ['wero'],
-                    'success_url' => url('/').'/?wero_capability_probe=success',
-                    'cancel_url' => url('/').'/?wero_capability_probe=cancel',
-                ]);
-                $weroCapabilityStatus = 'supported';
-                $persistStripeWeroCapabilityStatus('supported');
-            } catch (\Stripe\Exception\InvalidRequestException $e) {
-                $probeMessage = (string)$e->getMessage();
-                $probeLower = strtolower($probeMessage);
-                $weroCapabilityStatus = (
-                    str_contains($probeLower, 'invalid payment_method_types')
-                    || str_contains($probeLower, 'payment_method_types[0]')
-                ) ? 'unsupported' : 'unknown';
-                $persistStripeWeroCapabilityStatus($weroCapabilityStatus, $probeMessage);
-            } catch (\Throwable $e) {
-                $weroCapabilityStatus = 'unknown';
-                $persistStripeWeroCapabilityStatus('unknown', $e->getMessage());
-            }
-        }
-
         $cardReady = $baseReady && $cardMethodConfigured;
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
-        $weroReady = $baseReady
-            && $weroMethodConfigured
-            && $weroEnabledByConfig
-            && $weroCapabilityStatus !== 'unsupported';
+        $weroReady = $baseReady && $weroMethodConfigured;
+        $persistStripeWeroCapabilityStatus(
+            $weroReady ? 'fallback_only' : 'unconfigured',
+            'Stripe Wero path uses iDEAL fallback (payment_method_types=["ideal"]).'
+        );
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -971,8 +938,8 @@ Route::group([
             'google_pay_ready' => $googleReady,
             'wero_ready' => $weroReady,
             'any_ready' => $cardReady || $appleReady || $googleReady || $weroReady,
-            'wero_enabled_by_config' => $weroEnabledByConfig,
-            'wero_capability_status' => $weroCapabilityStatus,
+            'wero_enabled_by_config' => $weroReady,
+            'wero_capability_status' => $weroReady ? 'fallback_only' : 'unconfigured',
         ];
     };
 
@@ -1023,15 +990,68 @@ Route::group([
             'wero_payment_product_id' => $weroPaymentProductId,
             'wero_capability_status' => $weroCapabilityStatus,
             'wero_capability_message' => $weroCapabilityMessage,
+            'runtime_session_status' => 'unknown',
             'ready' => $providerEnabled
                 && (bool)($inlineReadiness['ready'] ?? false)
                 && $weroEnabled
-                && $weroPaymentProductId > 0
                 && $weroCapabilityStatus !== 'unsupported',
         ];
     };
 
-    $resolveRuntimeMethodCollection = function () use (
+    $resolveWorldlineWeroProductId = function (array $worldlineWeroReadiness, array $diagnostics = []): array {
+        $configuredProductId = (int)($worldlineWeroReadiness['wero_payment_product_id'] ?? 0);
+        $environment = strtolower((string)($diagnostics['environment'] ?? ''));
+        $apiEndpoint = strtolower((string)($diagnostics['api_endpoint'] ?? ''));
+        $isGlobalCollect = str_contains($apiEndpoint, 'connect.worldline-solutions.com');
+        $effectiveProductId = $configuredProductId;
+        $reason = $effectiveProductId > 0 ? 'configured' : 'missing';
+
+        return [
+            'configured_product_id' => $configuredProductId,
+            'effective_product_id' => $effectiveProductId,
+            'reason' => $reason,
+            'is_globalcollect' => $isGlobalCollect,
+            'environment' => $environment,
+        ];
+    };
+
+    $isProviderReadyForMethod = function (string $providerCode, string $methodCode, array $stripeReadiness, array $worldlineReadiness, array $worldlineWeroReadiness): array {
+        if ($providerCode === 'stripe') {
+            $readinessByMethod = [
+                'card' => (bool)($stripeReadiness['card_ready'] ?? false),
+                'apple_pay' => (bool)($stripeReadiness['apple_pay_ready'] ?? false),
+                'google_pay' => (bool)($stripeReadiness['google_pay_ready'] ?? false),
+                'paypal' => (bool)($stripeReadiness['any_ready'] ?? false),
+                'wero' => false,
+            ];
+            return [
+                'ready' => (bool)($readinessByMethod[$methodCode] ?? false),
+                'reason' => $methodCode === 'wero'
+                    ? 'stripe_does_not_support_native_wero'
+                    : 'stripe_method_readiness',
+            ];
+        }
+
+        if ($providerCode === 'worldline') {
+            if ($methodCode === 'wero') {
+                return [
+                    'ready' => (bool)($worldlineWeroReadiness['ready'] ?? false),
+                    'reason' => 'worldline_wero_readiness',
+                ];
+            }
+
+            if ($methodCode === 'card') {
+                return [
+                    'ready' => (bool)($worldlineReadiness['ready'] ?? false),
+                    'reason' => 'worldline_card_readiness',
+                ];
+            }
+        }
+
+        return ['ready' => true, 'reason' => 'generic_provider_readiness'];
+    };
+
+    $resolveRuntimeMethodCollection = function (bool $withTrace = false) use (
         $defaultPaymentMethods,
         $defaultPaymentProviders,
         $loadJsonSetting,
@@ -1040,7 +1060,8 @@ Route::group([
         $resolveWorldlineInlineReadiness,
         $resolveWorldlineWeroReadiness,
         $loadMethodRecordsFromPayments,
-        $loadProviderRecordsFromPayments
+        $loadProviderRecordsFromPayments,
+        $isProviderReadyForMethod
     ) {
         $methodsFromDb = $loadMethodRecordsFromPayments();
         $providersFromDb = $loadProviderRecordsFromPayments();
@@ -1057,57 +1078,167 @@ Route::group([
             ? $methodsFromDb->values()
             : collect($loadJsonSetting('payment_methods', $defaultPaymentMethods));
 
-        return collect($sourceMethods)
-            ->where('enabled', true)
-            ->filter(function ($m) use ($providersByCode, $resolveAvailableProviders, $stripeReadiness, $worldlineReadiness, $worldlineWeroReadiness) {
-                $methodCode = (string)($m['code'] ?? '');
-                $providerCode = $m['provider_code'] ?? null;
-                if ($methodCode === 'cod') {
-                    return empty($providerCode);
+        $trace = [];
+        $availableMethods = collect();
+
+        foreach (collect($sourceMethods)->sortBy('priority')->values() as $m) {
+            $methodCode = (string)($m['code'] ?? '');
+            $isEnabled = (bool)($m['enabled'] ?? false);
+            $configuredProvider = $m['provider_code'] ?? null;
+            $supportedProviders = array_values(array_unique(array_filter(array_map(
+                fn ($provider) => strtolower(trim((string)$provider)),
+                is_array($m['supported_providers'] ?? null) && !empty($m['supported_providers'])
+                    ? (array)$m['supported_providers']
+                    : $resolveAvailableProviders($methodCode)
+            ), fn (string $provider) => $provider !== '')));
+
+            if ($methodCode === 'cod') {
+                if ($isEnabled) {
+                    $availableMethods->push([
+                        'code' => $methodCode,
+                        'name' => (string)$m['name'],
+                        'provider_code' => null,
+                        'priority' => (int)($m['priority'] ?? 0),
+                    ]);
                 }
-                if (!$providerCode || !$providersByCode->has($providerCode)) {
-                    return false;
+                $trace[] = [
+                    'method' => $methodCode,
+                    'included' => $isEnabled,
+                    'reason' => $isEnabled ? 'cash_payment_no_provider_required' : 'method_disabled',
+                ];
+                continue;
+            }
+
+            if (!$isEnabled) {
+                $trace[] = ['method' => $methodCode, 'included' => false, 'reason' => 'method_disabled'];
+                continue;
+            }
+
+            $candidateProviders = [];
+            if ($configuredProvider) {
+                $candidateProviders[] = strtolower((string)$configuredProvider);
+            }
+            foreach ($supportedProviders as $supportedProvider) {
+                if (!in_array($supportedProvider, $candidateProviders, true)) {
+                    $candidateProviders[] = $supportedProvider;
                 }
-                $provider = (array)$providersByCode->get($providerCode, []);
+            }
+            $inclusionReasons = [];
+            $selectedProvider = null;
+            foreach ($candidateProviders as $candidateProvider) {
+                if (!in_array($candidateProvider, $resolveAvailableProviders($methodCode), true)) {
+                    $inclusionReasons[] = "{$candidateProvider}:not_supported_for_method";
+                    continue;
+                }
+                if (!$providersByCode->has($candidateProvider)) {
+                    $inclusionReasons[] = "{$candidateProvider}:provider_not_configured";
+                    continue;
+                }
+
+                $provider = (array)$providersByCode->get($candidateProvider, []);
                 if (!($provider['enabled'] ?? false)) {
-                    return false;
+                    $inclusionReasons[] = "{$candidateProvider}:provider_disabled";
+                    continue;
                 }
-                if ((string)$providerCode === 'stripe') {
-                    if ($methodCode === 'card' && !($stripeReadiness['card_ready'] ?? false)) {
-                        return false;
-                    }
-                    if ($methodCode === 'apple_pay' && !($stripeReadiness['apple_pay_ready'] ?? false)) {
-                        return false;
-                    }
-                    if ($methodCode === 'google_pay' && !($stripeReadiness['google_pay_ready'] ?? false)) {
-                        return false;
-                    }
-                    if ($methodCode === 'wero' && !($stripeReadiness['wero_ready'] ?? false)) {
-                        return false;
-                    }
+
+                $providerReadiness = $isProviderReadyForMethod(
+                    $candidateProvider,
+                    $methodCode,
+                    $stripeReadiness,
+                    $worldlineReadiness,
+                    $worldlineWeroReadiness
+                );
+
+                if (!($providerReadiness['ready'] ?? false)) {
+                    $inclusionReasons[] = "{$candidateProvider}:".(string)($providerReadiness['reason'] ?? 'provider_not_ready');
+                    continue;
                 }
-                if ((string)$providerCode === 'worldline' && $methodCode === 'card' && !($worldlineReadiness['ready'] ?? false)) {
-                    return false;
-                }
-                if ((string)$providerCode === 'worldline' && $methodCode === 'wero' && !($worldlineWeroReadiness['ready'] ?? false)) {
-                    return false;
-                }
-                return in_array((string)$providerCode, $resolveAvailableProviders($methodCode), true);
-            })
-            ->sortBy('priority')
-            ->values()
-            ->map(fn ($m) => [
-                'code' => $m['code'],
-                'name' => $m['name'],
-                'provider_code' => $m['provider_code'] ?? null,
+
+                $selectedProvider = $candidateProvider;
+                break;
+            }
+
+            if ($selectedProvider === null) {
+                $trace[] = [
+                    'method' => $methodCode,
+                    'included' => false,
+                    'reason' => 'no_provider_ready',
+                    'configured_provider' => $configuredProvider,
+                    'selected_provider' => null,
+                    'supported_providers' => $supportedProviders,
+                    'fallback_allowed' => false,
+                    'fallback_reason' => null,
+                    'source_of_truth' => 'payment_methods.provider_code+supported_providers',
+                    'candidate_diagnostics' => $inclusionReasons,
+                ];
+                continue;
+            }
+
+            $availableMethods->push([
+                'code' => $methodCode,
+                'name' => (string)$m['name'],
+                'provider_code' => $selectedProvider,
                 'priority' => (int)($m['priority'] ?? 0),
             ]);
+            $trace[] = [
+                'method' => $methodCode,
+                'included' => true,
+                'reason' => 'provider_ready',
+                'selected_provider' => $selectedProvider,
+                'configured_provider' => $configuredProvider,
+                'supported_providers' => $supportedProviders,
+                'fallback_allowed' => false,
+                'fallback_reason' => null,
+                'source_of_truth' => 'payment_methods.provider_code+supported_providers',
+            ];
+        }
+
+        $methods = $availableMethods->values();
+        if ($withTrace) {
+            return [
+                'methods' => $methods,
+                'trace' => $trace,
+                'readiness' => [
+                    'stripe' => $stripeReadiness,
+                    'worldline_card' => $worldlineReadiness,
+                    'worldline_wero' => $worldlineWeroReadiness,
+                ],
+            ];
+        }
+
+        return $methods;
     };
 
     // === Payments (read-only) ===
     Route::get('/payments', function () use ($resolveRuntimeMethodCollection) {
-        $methods = $resolveRuntimeMethodCollection();
+        $methods = $resolveRuntimeMethodCollection(false);
         return response()->json($methods, 200);
+    });
+
+    Route::get('/payments/debug/availability-trace', function () use ($resolveRuntimeMethodCollection) {
+        $resolution = $resolveRuntimeMethodCollection(true);
+
+        \Admin\Classes\PaymentLogger::info('Payment availability trace generated', [
+            'provider' => 'internal',
+            'payment_method' => 'all',
+            'request_meta' => [
+                'path' => request()->path(),
+                'query' => request()->query(),
+            ],
+            'response_meta' => [
+                'method_count' => count($resolution['methods'] ?? []),
+                'trace_count' => count($resolution['trace'] ?? []),
+            ],
+            'trace' => $resolution['trace'] ?? [],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'host' => request()->getHost(),
+            'methods' => $resolution['methods'] ?? [],
+            'trace' => $resolution['trace'] ?? [],
+            'readiness' => $resolution['readiness'] ?? [],
+        ], 200);
     });
 
     Route::get('/payment-methods-admin', function () use ($defaultPaymentMethods, $loadJsonSetting) {
@@ -1872,8 +2003,8 @@ Route::group([
         }
     });
 
-    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus) {
-        $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
+    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus, $resolveWorldlineWeroProductId) {
+        $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
             return response()->json(['success' => false, 'provider' => 'worldline', 'method' => 'wero', 'error_code' => 'wero_unavailable', 'error' => 'Wero method is disabled'], 422);
@@ -1891,6 +2022,8 @@ Route::group([
                 'provider' => 'worldline',
                 'method' => 'wero',
                 'error_code' => 'wero_not_supported',
+                'resolved_error_code' => 'wero_not_supported',
+                'allow_fallback' => false,
                 'error' => 'Wero is not available for the current Worldline configuration.',
             ], 503);
         }
@@ -1907,13 +2040,33 @@ Route::group([
 
         try {
             $svc = app(\Admin\Classes\WorldlineHostedCheckoutService::class);
+            $diagnostics = $svc->getConfigForDiagnostics();
+            $productIdResolution = $resolveWorldlineWeroProductId($worldlineWeroReadiness, $diagnostics);
+            if (($productIdResolution['reason'] ?? '') !== 'configured') {
+                \Admin\Classes\PaymentLogger::warning('Worldline Wero payment product id adjusted', [
+                    'provider' => 'worldline',
+                    'payment_method' => 'wero',
+                    'request_meta' => [
+                        'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
+                        'effective_product_id' => $productIdResolution['effective_product_id'] ?? null,
+                        'reason' => $productIdResolution['reason'] ?? null,
+                        'is_globalcollect' => $productIdResolution['is_globalcollect'] ?? null,
+                        'environment' => $productIdResolution['environment'] ?? null,
+                        'note' => 'No runtime product-id rewrite is applied. Configure/verify product id in Worldline merchant settings.',
+                    ],
+                ]);
+            }
+
             $result = $svc->createHostedCheckout([
                 'amount_minor' => (int)round(((float)$payload['amount']) * 100),
                 'currency' => strtoupper((string)$payload['currency']),
                 'return_url' => (string)$payload['return_url'],
+                'cancel_url' => (string)($payload['cancel_url'] ?? $payload['return_url']),
                 'locale' => (string)($payload['locale'] ?? 'de_DE'),
                 'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
                 'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? ('PMD-WERO-'.substr(sha1((string)microtime(true)), 0, 12))),
+                'payment_method' => 'wero',
+                'payment_product_id' => (int)($productIdResolution['effective_product_id'] ?? 0),
             ]);
 
             $redirectUrl = (string)($result['redirect_url'] ?? '');
@@ -1933,50 +2086,61 @@ Route::group([
                 'success' => true,
                 'provider' => 'worldline',
                 'method' => 'wero',
+                'payment_method' => 'wero',
+                'resolved_error_code' => null,
+                'allow_fallback' => false,
+                'fallback' => false,
+                'fallback_candidate' => null,
+                'original_provider' => 'worldline',
+                'actual_provider' => 'worldline',
                 'redirect_url' => $redirectUrl,
                 'hosted_checkout_id' => (string)($result['hosted_checkout_id'] ?? ''),
             ]);
         } catch (\Throwable $e) {
+            $requestId = (string)\Illuminate\Support\Str::uuid();
             $statusCode = method_exists($e, 'getStatusCode') ? (int)$e->getStatusCode() : null;
             $providerErrorId = method_exists($e, 'getErrorId') ? (string)$e->getErrorId() : null;
             $responseBody = method_exists($e, 'getResponseBody') ? (string)$e->getResponseBody() : '';
             $errorMessage = (string)$e->getMessage();
             $errorLower = strtolower($errorMessage.' '.$responseBody);
-            $errorCode = 'wero_create_session_failed';
+            $errorCode = 'worldline_internal_exception';
             $humanMessage = 'Worldline Wero checkout is currently unavailable. Please try again later.';
             $httpCode = 502;
+            $allowStripeFallback = false;
 
             if (str_contains($errorLower, 'config') || str_contains($errorLower, 'credential') || str_contains($errorLower, 'merchant') || str_contains($errorLower, 'not found')) {
-                $errorCode = 'wero_provider_configuration_invalid';
+                $errorCode = 'worldline_provider_configuration_invalid';
                 $humanMessage = 'Worldline Wero is not configured correctly for this restaurant.';
             } elseif (str_contains($errorLower, 'validation') || str_contains($errorLower, 'invalid') || str_contains($errorLower, 'unprocessable')) {
-                $errorCode = 'wero_provider_validation_failed';
+                $errorCode = 'worldline_request_validation_failed';
                 $humanMessage = 'Worldline rejected the Wero checkout request due to provider-side validation.';
                 $persistWorldlineWeroCapabilityStatus('unsupported', $errorMessage);
             } elseif ($statusCode === 401 || $statusCode === 403) {
-                $errorCode = 'wero_provider_not_authorized';
+                $errorCode = 'worldline_invalid_credentials_or_entitlement';
                 $humanMessage = 'Worldline credentials are not authorized for Wero on this merchant account.';
                 $httpCode = 503;
+                $allowStripeFallback = true;
             } elseif ($statusCode >= 500) {
-                $errorCode = 'wero_provider_temporarily_unavailable';
+                $errorCode = 'worldline_session_unavailable';
                 $humanMessage = 'Worldline is temporarily unavailable. Please try again shortly.';
                 $httpCode = 503;
+                $allowStripeFallback = true;
             } elseif ($statusCode > 0) {
                 $httpCode = max(400, min(599, $statusCode));
             }
 
             $diagnostics = [];
-            try {
-                if (isset($svc)) {
+            if (isset($svc)) {
+                try {
                     $diagnostics = $svc->getConfigForDiagnostics();
+                } catch (\Throwable $diagError) {
+                    $diagnostics = [];
                 }
-            } catch (\Throwable $diagError) {
-                $diagnostics = [];
             }
 
-            \Log::error('Worldline Wero create-session failed', [
+            \Admin\Classes\PaymentLogger::exception('Worldline Wero create-session failed', $e, [
                 'provider' => 'worldline',
-                'method' => 'wero',
+                'payment_method' => 'wero',
                 'host' => request()->getHost(),
                 'tenant_database' => $diagnostics['tenant_database'] ?? null,
                 'config_id' => $diagnostics['config_id'] ?? null,
@@ -1989,12 +2153,17 @@ Route::group([
                 'provider_error_id' => $providerErrorId,
                 'responseBody' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
                 'resolved_error_code' => $errorCode,
+                'request_id' => $requestId,
             ]);
             return response()->json([
                 'success' => false,
                 'provider' => 'worldline',
                 'method' => 'wero',
                 'error_code' => $errorCode,
+                'resolved_error_code' => $errorCode,
+                'allow_fallback' => $allowStripeFallback,
+                'fallback_candidate' => $allowStripeFallback ? ['provider' => 'stripe', 'method' => 'ideal'] : null,
+                'request_id' => $requestId,
                 'error' => $humanMessage,
                 'details' => [
                     'provider_error_id' => $providerErrorId ?: null,
@@ -2005,21 +2174,19 @@ Route::group([
     });
 
     Route::post('/payments/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveStripeRuntimeReadiness, $persistStripeWeroCapabilityStatus) {
-        $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
+        $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
             return response()->json(['success' => false, 'error' => 'Wero method is disabled'], 422);
         }
 
         $providerCode = (string)($weroMethod['provider_code'] ?? 'stripe');
-        if ($providerCode !== 'stripe') {
-            return response()->json(['success' => false, 'error' => 'Wero is only available through Stripe in this integration'], 422);
+        $fallbackFromWorldline = filter_var($request->input('fallback_from_worldline', false), FILTER_VALIDATE_BOOLEAN);
+        if ($providerCode !== 'stripe' && !$fallbackFromWorldline) {
+            return response()->json(['success' => false, 'error' => 'Wero is not configured for Stripe on this tenant'], 422);
         }
 
-        $stripeReadiness = $resolveStripeRuntimeReadiness();
-        if (!($stripeReadiness['wero_ready'] ?? false)) {
-            return response()->json(['success' => false, 'error' => 'Stripe Wero configuration is not ready'], 503);
-        }
+        $resolveStripeRuntimeReadiness();
 
         $payload = $request->validate([
             'amount' => 'required|numeric|min:0.01',
@@ -2028,6 +2195,8 @@ Route::group([
             'cancel_url' => 'nullable|url',
             'items' => 'nullable|array',
             'customer_email' => 'nullable|email',
+            'fallback_method' => 'nullable|string|in:ideal',
+            'fallback_from_worldline' => 'nullable|boolean',
         ]);
 
         $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
@@ -2046,6 +2215,15 @@ Route::group([
         }
 
         try {
+            \Admin\Classes\PaymentLogger::info('Stripe fallback Wero session requested', [
+                'provider' => 'stripe',
+                'payment_method' => 'ideal',
+                'request_meta' => [
+                    'fallback_from_worldline' => $fallbackFromWorldline,
+                    'requested_method' => 'wero',
+                    'configured_runtime_provider' => $providerCode,
+                ],
+            ]);
             \Stripe\Stripe::setApiKey($secretKey);
             $currency = strtolower((string)$payload['currency']);
             $amountMinor = (int)round(((float)$payload['amount']) * 100);
@@ -2088,15 +2266,41 @@ Route::group([
                 ]];
             }
 
+            $fallbackMethod = strtolower((string)($payload['fallback_method'] ?? ''));
+            if ($fallbackMethod === '') {
+                $fallbackMethod = 'ideal';
+            }
+
+            if ($fallbackMethod !== 'ideal') {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'stripe',
+                    'method' => 'wero',
+                    'error_code' => 'stripe_fallback_method_invalid',
+                    'error' => 'Unsupported Stripe fallback method.',
+                ], 422);
+            }
+
+            if ($currency !== 'eur') {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'stripe',
+                    'method' => 'wero',
+                    'error_code' => 'stripe_fallback_currency_invalid',
+                    'error' => 'Stripe iDEAL fallback requires EUR currency.',
+                ], 422);
+            }
+
             $checkoutPayload = [
                 'mode' => 'payment',
                 'success_url' => $successUrl,
                 'cancel_url' => $cancelUrl,
-                'payment_method_types' => ['wero'],
+                'payment_method_types' => ['ideal'],
                 'line_items' => $lineItems,
                 'metadata' => [
                     'provider' => 'stripe',
-                    'payment_method' => 'wero',
+                    'payment_method' => 'ideal',
+                    'requested_method' => 'wero',
                 ],
             ];
             $customerEmail = trim((string)($payload['customer_email'] ?? ''));
@@ -2110,7 +2314,12 @@ Route::group([
             return response()->json([
                 'success' => true,
                 'provider' => 'stripe',
-                'method' => 'wero',
+                'method' => 'ideal',
+                'requested_method' => 'wero',
+                'fallback' => $fallbackFromWorldline,
+                'fallback_provider' => 'stripe',
+                'fallback_method' => 'ideal',
+                'original_provider' => $fallbackFromWorldline ? 'worldline' : 'stripe',
                 'redirect_url' => (string)($session->url ?? ''),
                 'session_id' => (string)($session->id ?? ''),
             ]);

@@ -1331,8 +1331,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
+      const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
       const providerCode = selectedMethod.code === "wero"
-        ? (selectedProviderCode === "worldline" ? "worldline" : "stripe")
+        ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : "stripe")
         : (selectedProviderCode || "unknown")
       const providerReturnCode = providerCode === "worldline" ? "worldline" : "wero"
       const returnUrl =
@@ -1345,7 +1346,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           : "/menu"
 
       const checkoutEndpoint = selectedMethod.code === "wero"
-        ? (selectedProviderCode === "worldline"
+        ? (selectedProviderCodeForCheckout === "worldline"
           ? "/api/v1/payments/worldline/wero/create-session"
           : "/api/v1/payments/wero/create-session")
         : "/api/v1/payments/card/create-session"
@@ -1367,8 +1368,26 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         }),
       })
 
-      const json = await res.json()
+      const rawBody = await res.text()
+      let json: any = null
+      try {
+        json = rawBody ? JSON.parse(rawBody) : null
+      } catch {
+        json = null
+      }
+
       if (!res.ok || !json?.success || !json?.redirect_url) {
+        const providerLabel = providerCode === "worldline" ? "Worldline" : "Stripe"
+        const resolvedErrorCode = String(json?.resolved_error_code || json?.error_code || "").toLowerCase()
+        const fallbackAllowedByCode = [
+          "worldline_invalid_credentials_or_entitlement",
+          "worldline_session_unavailable",
+        ].includes(resolvedErrorCode)
+        const fallbackAllowed = Boolean(json?.allow_fallback) || fallbackAllowedByCode
+        const normalizedErrorMessage = json?.error
+          || (rawBody && rawBody.length < 1000 ? rawBody : "")
+          || `${providerLabel} checkout failed with HTTP ${res.status}`
+
         if (
           selectedMethod.code === "wero" &&
           (json?.error_code === "wero_not_supported" || json?.error_code === "wero_unavailable")
@@ -1377,10 +1396,62 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           throw new Error("Wero is currently unavailable. Please choose another payment method.")
         }
         if (selectedMethod.code === "wero") {
-          const providerLabel = selectedProviderCode === "worldline" ? "Worldline" : "Stripe"
-          throw new Error(json?.error || `${providerLabel} Wero checkout is currently unavailable. Please choose another payment method.`)
+          if (providerCode === "worldline" && fallbackAllowed) {
+            const fallbackReturnUrl = returnUrl.includes("payment_return_provider=")
+              ? returnUrl.replace(/payment_return_provider=[^&]*/i, "payment_return_provider=wero")
+              : `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}payment_return_provider=wero`
+            const fallbackRes = await fetch("/api/v1/payments/wero/create-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                amount: finalTotal,
+                currency: (merchantSettings?.currency || "EUR"),
+                return_url: fallbackReturnUrl,
+                cancel_url: cancelUrl,
+                customer_email: paymentFormData.email || "",
+                fallback_method: "ideal",
+                fallback_from_worldline: true,
+                items: itemsToPay.map((item: any) => ({
+                  id: String(item.item.id),
+                  name: item.item.name,
+                  quantity: Number(item.quantity || 1),
+                  price: Number(item.price || 0),
+                })),
+              }),
+            })
+            const fallbackRawBody = await fallbackRes.text()
+            let fallbackJson: any = null
+            try {
+              fallbackJson = fallbackRawBody ? JSON.parse(fallbackRawBody) : null
+            } catch {
+              fallbackJson = null
+            }
+
+            if (fallbackRes.ok && fallbackJson?.success && fallbackJson?.redirect_url) {
+              console.info("[WERO_FALLBACK]", {
+                original_provider: "worldline",
+                fallback_provider: String(fallbackJson?.fallback_provider || "stripe"),
+                fallback_method: String(fallbackJson?.fallback_method || "ideal"),
+                resolved_error_code: resolvedErrorCode,
+              })
+              if (typeof window !== "undefined" && fallbackJson?.session_id) {
+                localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
+                  session_id: String(fallbackJson.session_id),
+                  created_at: Date.now(),
+                }))
+              }
+              if (typeof window !== "undefined") {
+                window.location.href = String(fallbackJson.redirect_url)
+              }
+              return
+            }
+          }
+
+          throw new Error(
+            `${providerLabel} Wero error${resolvedErrorCode ? ` (${resolvedErrorCode})` : ""}: ${normalizedErrorMessage}`
+          )
         }
-        throw new Error(json?.error || "Unable to start hosted checkout")
+        throw new Error(normalizedErrorMessage || "Unable to start hosted checkout")
       }
 
       if (typeof window !== "undefined") {
