@@ -19,6 +19,73 @@ use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 
 class WorldlineHostedCheckoutService
 {
+    protected function normalizeMerchantCustomerId(?string $candidate, string $seed, bool $strictWero = false): string
+    {
+        $value = strtoupper((string)$candidate);
+
+        if ($strictWero) {
+            $value = preg_replace('/[^A-Z0-9]/', '', $value) ?? '';
+            $value = preg_replace('/^(PMDWERO|WERO|PMD)+/', '', $value) ?? '';
+            if ($value === '') {
+                $value = strtoupper(substr(sha1($seed), 0, 10));
+            }
+            if (strlen($value) > 10) {
+                $value = substr($value, 0, 10);
+            }
+
+            return $value;
+        }
+
+        $value = preg_replace('/[^A-Z0-9_\-]/', '', $value) ?? '';
+        if ($value === '') {
+            $value = 'PMD'.substr(sha1($seed), 0, 12);
+        }
+
+        // Keep conservatively short for Worldline constraints.
+        if (strlen($value) > 20) {
+            $value = substr($value, 0, 20);
+        }
+
+        if ($value === '') {
+            $value = 'PMD'.substr(sha1('fallback-'.$seed), 0, 12);
+        }
+
+        return $value;
+    }
+
+    protected function buildHostedCheckoutPaymentProductFilters(int $paymentProductId): ?object
+    {
+        if ($paymentProductId <= 0) {
+            return null;
+        }
+
+        $filtersClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\PaymentProductFiltersHostedCheckout';
+        $restrictClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\PaymentProductFilter';
+
+        if (!class_exists($filtersClass) || !class_exists($restrictClass)) {
+            return null;
+        }
+
+        try {
+            $filters = new $filtersClass();
+            $restrict = new $restrictClass();
+            $restrict->products = [$paymentProductId];
+            $filters->restrictTo = $restrict;
+            return $filters;
+        } catch (\Throwable $e) {
+            PaymentLogger::warning('WORLDLINE PAYMENT PRODUCT FILTER BUILD FAILED', [
+                'provider' => 'worldline',
+                'payment_method' => 'wero',
+                'payment_product_id' => $paymentProductId,
+                'filters_class' => $filtersClass,
+                'restrict_class' => $restrictClass,
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+            ]);
+            return null;
+        }
+    }
+
     protected function sanitizeForLogs(array $payload): array
     {
         $sanitized = [];
@@ -275,8 +342,13 @@ class WorldlineHostedCheckoutService
         $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
         $locale = (string)($payload['locale'] ?? 'en_GB');
         $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
-        $merchantCustomerId = (string)($payload['merchant_customer_id'] ?? ('PMD-' . substr((string) Str::uuid(), 0, 12)));
         $paymentMethod = strtolower(trim((string)($payload['payment_method'] ?? 'card')));
+        $rawMerchantCustomerId = (string)($payload['merchant_customer_id'] ?? '');
+        $merchantCustomerId = $this->normalizeMerchantCustomerId(
+            $rawMerchantCustomerId,
+            $requestId,
+            $paymentMethod === 'wero'
+        );
         $paymentProductId = (int)($payload['payment_product_id'] ?? 0);
         $paymentProductFiltersIncluded = false;
 
@@ -303,6 +375,13 @@ class WorldlineHostedCheckoutService
         $specific->returnUrl = $returnUrl;
         $specific->locale = $locale;
         $specific->showResultPage = false;
+        if ($paymentProductId > 0) {
+            $paymentProductFilters = $this->buildHostedCheckoutPaymentProductFilters($paymentProductId);
+            if ($paymentProductFilters !== null) {
+                $specific->paymentProductFilters = $paymentProductFilters;
+                $paymentProductFiltersIncluded = true;
+            }
+        }
 
         $body = new CreateHostedCheckoutRequest();
         $body->order = $order;
@@ -315,10 +394,15 @@ class WorldlineHostedCheckoutService
             'cancel_url' => $cancelUrl,
             'locale' => $locale,
             'country_code' => $countryCode,
+            'raw_merchant_customer_id' => $rawMerchantCustomerId,
+            'normalized_merchant_customer_id' => $merchantCustomerId,
+            'normalized_merchant_customer_id_length' => strlen($merchantCustomerId),
             'merchant_customer_id' => $merchantCustomerId,
+            'merchant_customer_id_length' => strlen($merchantCustomerId),
             'payment_method' => $paymentMethod,
             'payment_product_id' => $paymentProductId,
             'payment_product_filters_included' => $paymentProductFiltersIncluded,
+            'payment_product_filters_class' => $paymentProductFiltersIncluded ? get_class($specific->paymentProductFilters) : null,
             'request_id' => $requestId,
         ];
         $sdkPayloadDebug = [
@@ -338,7 +422,9 @@ class WorldlineHostedCheckoutService
                 'returnUrl' => $returnUrl,
                 'locale' => $locale,
                 'showResultPage' => false,
-                'paymentProductFilters' => null,
+                'paymentProductFilters' => $paymentProductFiltersIncluded
+                    ? ['restrictTo' => ['products' => [$paymentProductId]]]
+                    : null,
             ],
         ];
         PaymentLogger::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
