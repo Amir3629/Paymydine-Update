@@ -19,9 +19,24 @@ use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 
 class WorldlineHostedCheckoutService
 {
-    protected function normalizeMerchantCustomerId(?string $candidate, string $seed): string
+    protected function normalizeMerchantCustomerId(?string $candidate, string $seed, bool $strictWero = false): string
     {
-        $value = strtoupper(preg_replace('/[^A-Z0-9_\-]/i', '', (string)$candidate) ?? '');
+        $value = strtoupper((string)$candidate);
+
+        if ($strictWero) {
+            $value = preg_replace('/[^A-Z0-9]/', '', $value) ?? '';
+            $value = preg_replace('/^(PMDWERO|WERO|PMD)+/', '', $value) ?? '';
+            if ($value === '') {
+                $value = 'W'.strtoupper(substr(sha1($seed), 0, 11));
+            }
+            if (strlen($value) > 12) {
+                $value = substr($value, 0, 12);
+            }
+
+            return $value;
+        }
+
+        $value = preg_replace('/[^A-Z0-9_\-]/', '', $value) ?? '';
         if ($value === '') {
             $value = 'PMD'.substr(sha1($seed), 0, 12);
         }
@@ -327,11 +342,13 @@ class WorldlineHostedCheckoutService
         $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
         $locale = (string)($payload['locale'] ?? 'en_GB');
         $countryCode = strtoupper((string)($payload['country_code'] ?? 'DE'));
-        $merchantCustomerId = $this->normalizeMerchantCustomerId(
-            (string)($payload['merchant_customer_id'] ?? ''),
-            $requestId
-        );
         $paymentMethod = strtolower(trim((string)($payload['payment_method'] ?? 'card')));
+        $rawMerchantCustomerId = (string)($payload['merchant_customer_id'] ?? '');
+        $merchantCustomerId = $this->normalizeMerchantCustomerId(
+            $rawMerchantCustomerId,
+            $requestId,
+            $paymentMethod === 'wero'
+        );
         $paymentProductId = (int)($payload['payment_product_id'] ?? 0);
         $paymentProductFiltersIncluded = false;
 
@@ -377,6 +394,9 @@ class WorldlineHostedCheckoutService
             'cancel_url' => $cancelUrl,
             'locale' => $locale,
             'country_code' => $countryCode,
+            'raw_merchant_customer_id' => $rawMerchantCustomerId,
+            'normalized_merchant_customer_id' => $merchantCustomerId,
+            'normalized_merchant_customer_id_length' => strlen($merchantCustomerId),
             'merchant_customer_id' => $merchantCustomerId,
             'merchant_customer_id_length' => strlen($merchantCustomerId),
             'payment_method' => $paymentMethod,

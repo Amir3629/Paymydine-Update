@@ -2286,11 +2286,13 @@ Route::group([
                     'provider_status' => $statusCode,
                     'property_name' => $propertyName !== '' ? $propertyName : null,
                     'upstream_code' => $upstreamCode !== '' ? $upstreamCode : null,
+                    'response_body' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
                 ],
                 'provider_status' => $statusCode,
                 'provider_error_id' => $providerErrorId ?: null,
                 'property_name' => $propertyName !== '' ? $propertyName : null,
                 'upstream_code' => $upstreamCode !== '' ? $upstreamCode : null,
+                'response_body' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
             ], $httpCode);
         }
     });
