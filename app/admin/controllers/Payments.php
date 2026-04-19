@@ -352,17 +352,12 @@ class Payments extends \Admin\Classes\AdminController
         if (in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode()) {
             $providerCode = post('provider_code', post('Payment.provider_code'));
             $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
-
-            if ((string)$model->code === 'wero') {
-                $providerCode = 'worldline';
-            }
-
             $this->validateProviderCompatibility((string)$model->code, $providerCode);
 
             $data = $model->getConfigData();
             $data['provider_code'] = $providerCode;
-            if ((string)$model->code === 'wero') {
-                $data['supported_providers'] = ['worldline'];
+            if ((string)$model->code === 'wero' && !isset($data['supported_providers'])) {
+                $data['supported_providers'] = ['stripe', 'worldline'];
             }
             $model->setConfigData($data);
             $model->provider_code = $providerCode;
@@ -548,14 +543,8 @@ class Payments extends \Admin\Classes\AdminController
             $currentProviderCode = $row->provider_code
                 ?? ($meta['provider_code'] ?? null)
                 ?? $cfg['provider_code'];
-            if ($code === 'wero') {
-                $currentProviderCode = 'worldline';
-            }
             $meta['provider_code'] = $currentProviderCode;
             $meta['supported_providers'] = $meta['supported_providers'] ?? Payments_model::supportedProvidersForMethod($code);
-            if ($code === 'wero') {
-                $meta['supported_providers'] = ['worldline'];
-            }
             if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'meta')) {
                 $row->meta = json_encode($meta, JSON_UNESCAPED_UNICODE);
             }
@@ -620,7 +609,7 @@ class Payments extends \Admin\Classes\AdminController
     protected function getPaymentProviderSettings(): array
     {
         $defaults = [
-            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
+            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'wero']],
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card', 'wero']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],

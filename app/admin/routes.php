@@ -712,7 +712,7 @@ Route::group([
     $methodProviderMatrix = \Admin\Models\Payments_model::supportedProviderMatrix();
 
     $providerCapabilityMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
+        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'],
         'paypal' => ['paypal'],
         'worldline' => ['card', 'wero'],
         'sumup' => ['card'],
@@ -917,13 +917,15 @@ Route::group([
         $cardMethodConfigured = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'stripe'));
         $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
         $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
+        $weroMethodConfigured = (bool)(($methods->get('wero')['enabled'] ?? false) && (($methods->get('wero')['provider_code'] ?? null) === 'stripe'));
 
         $cardReady = $baseReady && $cardMethodConfigured;
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
+        $weroReady = $baseReady && $weroMethodConfigured;
         $persistStripeWeroCapabilityStatus(
-            'unsupported',
-            'Stripe Checkout does not support payment_method_types=["wero"] in this integration; Wero is served through Worldline.'
+            $weroReady ? 'fallback_only' : 'unconfigured',
+            'Stripe Wero path uses iDEAL fallback (payment_method_types=["ideal"]).'
         );
 
         return [
@@ -934,10 +936,10 @@ Route::group([
             'card_ready' => $cardReady,
             'apple_pay_ready' => $appleReady,
             'google_pay_ready' => $googleReady,
-            'wero_ready' => false,
-            'any_ready' => $cardReady || $appleReady || $googleReady,
-            'wero_enabled_by_config' => false,
-            'wero_capability_status' => 'unsupported',
+            'wero_ready' => $weroReady,
+            'any_ready' => $cardReady || $appleReady || $googleReady || $weroReady,
+            'wero_enabled_by_config' => $weroReady,
+            'wero_capability_status' => $weroReady ? 'fallback_only' : 'unconfigured',
         ];
     };
 
@@ -1121,13 +1123,6 @@ Route::group([
                     $candidateProviders[] = $supportedProvider;
                 }
             }
-            if ($methodCode === 'wero') {
-                $candidateProviders = array_values(array_unique(array_merge(
-                    ['worldline'],
-                    array_filter($candidateProviders, fn (string $provider) => $provider !== 'worldline')
-                )));
-            }
-
             $inclusionReasons = [];
             $selectedProvider = null;
             foreach ($candidateProviders as $candidateProvider) {
@@ -1169,7 +1164,11 @@ Route::group([
                     'included' => false,
                     'reason' => 'no_provider_ready',
                     'configured_provider' => $configuredProvider,
+                    'selected_provider' => null,
                     'supported_providers' => $supportedProviders,
+                    'fallback_allowed' => false,
+                    'fallback_reason' => null,
+                    'source_of_truth' => 'payment_methods.provider_code+supported_providers',
                     'candidate_diagnostics' => $inclusionReasons,
                 ];
                 continue;
@@ -1188,6 +1187,9 @@ Route::group([
                 'selected_provider' => $selectedProvider,
                 'configured_provider' => $configuredProvider,
                 'supported_providers' => $supportedProviders,
+                'fallback_allowed' => false,
+                'fallback_reason' => null,
+                'source_of_truth' => 'payment_methods.provider_code+supported_providers',
             ];
         }
 
@@ -2266,14 +2268,7 @@ Route::group([
 
             $fallbackMethod = strtolower((string)($payload['fallback_method'] ?? ''));
             if ($fallbackMethod === '') {
-                $persistStripeWeroCapabilityStatus('unsupported', 'Stripe does not accept payment_method_types=[\"wero\"]. Use Worldline for native Wero.');
-                return response()->json([
-                    'success' => false,
-                    'provider' => 'stripe',
-                    'method' => 'wero',
-                    'error_code' => 'stripe_wero_not_supported',
-                    'error' => 'Stripe does not support native Wero in Checkout. Use the Worldline Wero endpoint.',
-                ], 422);
+                $fallbackMethod = 'ideal';
             }
 
             if ($fallbackMethod !== 'ideal') {
@@ -2321,10 +2316,10 @@ Route::group([
                 'provider' => 'stripe',
                 'method' => 'ideal',
                 'requested_method' => 'wero',
-                'fallback' => true,
+                'fallback' => $fallbackFromWorldline,
                 'fallback_provider' => 'stripe',
                 'fallback_method' => 'ideal',
-                'original_provider' => 'worldline',
+                'original_provider' => $fallbackFromWorldline ? 'worldline' : 'stripe',
                 'redirect_url' => (string)($session->url ?? ''),
                 'session_id' => (string)($session->id ?? ''),
             ]);

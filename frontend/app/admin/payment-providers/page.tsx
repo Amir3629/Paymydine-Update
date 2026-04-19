@@ -130,6 +130,9 @@ export default function PaymentProvidersPage() {
         <p className="text-xs text-amber-600 mt-2">
           Saving credentials does not validate provider authorization/entitlement. Validate with a runtime create-session test.
         </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Wero supports multiple providers (currently Worldline or Stripe/iDEAL fallback mode) and follows the configured payment-method provider selection.
+        </p>
       </div>
 
       <div className="space-y-4">
