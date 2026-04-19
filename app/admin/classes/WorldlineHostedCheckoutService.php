@@ -303,6 +303,13 @@ class WorldlineHostedCheckoutService
         $specific->returnUrl = $returnUrl;
         $specific->locale = $locale;
         $specific->showResultPage = false;
+        if ($paymentProductId > 0) {
+            $paymentProductFilters = new \stdClass();
+            $paymentProductFilters->restrictTo = new \stdClass();
+            $paymentProductFilters->restrictTo->products = [$paymentProductId];
+            $specific->paymentProductFilters = $paymentProductFilters;
+            $paymentProductFiltersIncluded = true;
+        }
 
         $body = new CreateHostedCheckoutRequest();
         $body->order = $order;
@@ -338,7 +345,9 @@ class WorldlineHostedCheckoutService
                 'returnUrl' => $returnUrl,
                 'locale' => $locale,
                 'showResultPage' => false,
-                'paymentProductFilters' => null,
+                'paymentProductFilters' => $paymentProductFiltersIncluded
+                    ? ['restrictTo' => ['products' => [$paymentProductId]]]
+                    : null,
             ],
         ];
         PaymentLogger::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [

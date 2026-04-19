@@ -2134,6 +2134,21 @@ Route::group([
                         'note' => 'No runtime product-id rewrite is applied. Configure/verify product id in Worldline merchant settings.',
                     ],
                 ]);
+
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'worldline',
+                    'method' => 'wero',
+                    'error_code' => 'worldline_provider_configuration_invalid',
+                    'resolved_error_code' => 'worldline_provider_configuration_invalid',
+                    'allow_fallback' => false,
+                    'error' => 'Worldline Wero payment product id is missing or invalid in provider configuration.',
+                    'details' => [
+                        'configured_product_id' => $productIdResolution['configured_product_id'] ?? null,
+                        'effective_product_id' => $productIdResolution['effective_product_id'] ?? null,
+                        'environment' => $productIdResolution['environment'] ?? null,
+                    ],
+                ], 422);
             }
 
             $result = $svc->createHostedCheckout([
