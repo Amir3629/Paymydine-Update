@@ -267,6 +267,7 @@ class WorldlineHostedCheckoutService
     {
         $cfg = $this->getConfig();
         $merchantClient = $this->makeMerchantClient($cfg);
+        $requestId = (string) Str::uuid();
 
         $amountMinor = (int)($payload['amount_minor'] ?? 0);
         $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
@@ -318,6 +319,7 @@ class WorldlineHostedCheckoutService
             'payment_method' => $paymentMethod,
             'payment_product_id' => $paymentProductId,
             'payment_product_filters_included' => $paymentProductFiltersIncluded,
+            'request_id' => $requestId,
         ];
         $sdkPayloadDebug = [
             'order' => [
@@ -341,10 +343,13 @@ class WorldlineHostedCheckoutService
         ];
         PaymentLogger::info('WORLDLINE HOSTED CHECKOUT REQUEST PAYLOAD', [
             'provider' => 'worldline',
+            'component' => 'WorldlineHostedCheckoutService',
             'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'tenant_database' => $cfg['tenant_database'] ?? null,
             'config_id' => $cfg['config_id'] ?? null,
+            'merchant_id' => $cfg['merchant_id'] ?? null,
+            'api_endpoint' => $cfg['api_endpoint'] ?? null,
             'environment' => $this->getEnvironment($cfg),
             'request_meta' => $requestMeta,
             'sdk_payload' => $sdkPayloadDebug,
@@ -368,6 +373,7 @@ class WorldlineHostedCheckoutService
                 || str_contains($errorLower, 'unprocessable');
             PaymentLogger::exception('WORLDLINE HOSTED CHECKOUT CREATE FAILED', $e, [
                 'provider' => 'worldline',
+                'component' => 'WorldlineHostedCheckoutService',
                 'payment_method' => $paymentMethod,
                 'host' => $cfg['host'] ?? null,
                 'tenant_database' => $cfg['tenant_database'] ?? null,
@@ -378,6 +384,7 @@ class WorldlineHostedCheckoutService
                 'responseBody' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
                 'provider_validation_failure' => $providerValidationFailure,
                 'origin' => $e->getFile().':'.$e->getLine(),
+                'request_id' => $requestId,
             ]);
             throw $e;
         }
@@ -387,6 +394,7 @@ class WorldlineHostedCheckoutService
 
         PaymentLogger::info('WORLDLINE HOSTED CHECKOUT RAW RESPONSE', [
             'provider' => 'worldline',
+            'component' => 'WorldlineHostedCheckoutService',
             'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'tenant_database' => $cfg['tenant_database'] ?? null,
@@ -400,6 +408,7 @@ class WorldlineHostedCheckoutService
         $redirectCandidates = $this->collectRedirectCandidates($response, $rawResponse);
         PaymentLogger::info('WORLDLINE HOSTED CHECKOUT REDIRECT FIELD CANDIDATES', [
             'provider' => 'worldline',
+            'component' => 'WorldlineHostedCheckoutService',
             'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
@@ -418,6 +427,7 @@ class WorldlineHostedCheckoutService
         }
         PaymentLogger::info('WORLDLINE HOSTED CHECKOUT FINAL REDIRECT DECISION', [
             'provider' => 'worldline',
+            'component' => 'WorldlineHostedCheckoutService',
             'payment_method' => $paymentMethod,
             'host' => $cfg['host'] ?? null,
             'hosted_checkout_id' => $response->hostedCheckoutId ?? ($rawResponse['hostedCheckoutId'] ?? null),
@@ -445,7 +455,7 @@ class WorldlineHostedCheckoutService
                 'locale' => $requestMeta['locale'],
                 'country_code' => $requestMeta['country_code'],
                 'merchant_customer_id' => $requestMeta['merchant_customer_id'],
-                'trace_id' => (string) Str::uuid(),
+                'trace_id' => $requestId,
             ],
             'created_at_utc' => gmdate('c'),
         ];
