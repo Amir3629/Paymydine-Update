@@ -170,6 +170,21 @@ function __pmdRemoteConsoleInstallOnce() {
   } catch {}
 }
 
+const WERO_EXPECTED_BUSINESS_ERROR_CODES = new Set([
+  "wero_product_not_available",
+  "wero_unavailable",
+  "wero_not_supported",
+  "worldline_provider_configuration_invalid",
+])
+
+const mapWeroBackendErrorToDisplayMessage = (errorCode: unknown): string | null => {
+  const normalized = String(errorCode || "").toLowerCase()
+  if (WERO_EXPECTED_BUSINESS_ERROR_CODES.has(normalized)) {
+    return "Wero is currently unavailable for this merchant. Please choose card or PayPal."
+  }
+  return null
+}
+
 function useThemeBackgroundColor() {
   const [color, setColor] = useState('#FAFAFA');
   const [themeId, setThemeId] = useState('clean-light');
@@ -716,6 +731,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const [weroInlineError, setWeroInlineError] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [isDarkTheme, setIsDarkTheme] = useState(false)
 
@@ -1185,9 +1201,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         (globalThis as any).__stripePreferred = "card"
       } catch {}
     }
+    setWeroInlineError(null)
     setSelectedPaymentMethod(methodId)
   }
   const handleBackToMethods = () => {
+    setWeroInlineError(null)
     setSelectedPaymentMethod(null)
   }
 
@@ -1332,6 +1350,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
   const startHostedRedirectCheckout = async () => {
     if (!selectedMethod || !["card", "wero"].includes(selectedMethod.code)) return
+    setWeroInlineError(null)
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
@@ -1389,6 +1408,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (!res.ok || !json?.success || !json?.redirect_url) {
         const providerLabel = providerCode === "worldline" ? "Worldline" : "Stripe"
         const resolvedErrorCode = String(json?.resolved_error_code || json?.error_code || "").toLowerCase()
+        const weroBusinessMessage = selectedMethod.code === "wero"
+          ? (mapWeroBackendErrorToDisplayMessage(resolvedErrorCode)
+            || mapWeroBackendErrorToDisplayMessage(json?.error_code))
+          : null
         const fallbackAllowedByCode = [
           "worldline_invalid_credentials_or_entitlement",
           "worldline_session_unavailable",
@@ -1402,8 +1425,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           selectedMethod.code === "wero" &&
           (json?.error_code === "wero_not_supported" || json?.error_code === "wero_unavailable")
         ) {
+          if (weroBusinessMessage) {
+            setWeroInlineError(weroBusinessMessage)
+            setIsLoading(false)
+            return
+          }
           shouldFallbackFromWero = true
           throw new Error("Wero is currently unavailable. Please choose another payment method.")
+        }
+        if (selectedMethod.code === "wero" && weroBusinessMessage) {
+          setWeroInlineError(weroBusinessMessage)
+          setIsLoading(false)
+          return
         }
         if (selectedMethod.code === "wero") {
           if (providerCode === "worldline" && fallbackAllowed) {
@@ -1461,6 +1494,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               if (typeof window !== "undefined") {
                 window.location.href = String(fallbackJson.redirect_url)
               }
+              return
+            }
+
+            const fallbackBusinessMessage =
+              mapWeroBackendErrorToDisplayMessage(fallbackJson?.resolved_error_code)
+              || mapWeroBackendErrorToDisplayMessage(fallbackJson?.error_code)
+            if (fallbackBusinessMessage) {
+              setWeroInlineError(fallbackBusinessMessage)
+              setIsLoading(false)
               return
             }
           }
@@ -2052,6 +2094,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 ? "You will be redirected to a secure Wero checkout powered by Worldline."
                 : "You will be redirected to a secure Wero checkout powered by Stripe."}
             </div>
+            {weroInlineError && (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
+                {weroInlineError}
+              </div>
+            )}
             <Button
               type="button"
               onClick={startHostedRedirectCheckout}
