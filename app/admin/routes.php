@@ -809,6 +809,10 @@ Route::group([
                         : \Admin\Models\Payments_model::supportedProvidersForMethod((string)$row->code)
                 ), fn (string $provider) => $provider !== ''));
                 $resolvedProvider = $row->provider_code ?? ($meta['provider_code'] ?? null);
+                $providerSource = $row->provider_code !== null ? 'column:provider_code' : (array_key_exists('provider_code', $meta) ? 'meta.provider_code' : 'default');
+                $supportedSource = is_array($meta['supported_providers'] ?? null) && !empty($meta['supported_providers'])
+                    ? 'meta.supported_providers'
+                    : 'matrix.default';
                 return [
                     'code' => (string)$row->code,
                     'name' => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
@@ -816,6 +820,12 @@ Route::group([
                     'supported_providers' => $supportedProviders,
                     'enabled' => (bool)$row->status,
                     'priority' => (int)($row->priority ?? 0),
+                    'source_of_truth' => [
+                        'table' => $row->getTable(),
+                        'key' => [$row->getKeyName() => $row->getKey()],
+                        'provider' => $providerSource,
+                        'supported_providers' => $supportedSource,
+                    ],
                 ];
             })
             ->keyBy('code');
@@ -924,8 +934,8 @@ Route::group([
         $googleReady = $baseReady && $googleMethodConfigured;
         $weroReady = $baseReady && $weroMethodConfigured;
         $persistStripeWeroCapabilityStatus(
-            $weroReady ? 'fallback_only' : 'unconfigured',
-            'Stripe Wero path uses iDEAL fallback (payment_method_types=["ideal"]).'
+            $weroReady ? 'redirect_checkout' : 'unconfigured',
+            'Stripe Wero is executed as a redirect checkout flow.'
         );
 
         return [
@@ -939,7 +949,7 @@ Route::group([
             'wero_ready' => $weroReady,
             'any_ready' => $cardReady || $appleReady || $googleReady || $weroReady,
             'wero_enabled_by_config' => $weroReady,
-            'wero_capability_status' => $weroReady ? 'fallback_only' : 'unconfigured',
+            'wero_capability_status' => $weroReady ? 'redirect_checkout' : 'unconfigured',
         ];
     };
 
@@ -1022,13 +1032,11 @@ Route::group([
                 'apple_pay' => (bool)($stripeReadiness['apple_pay_ready'] ?? false),
                 'google_pay' => (bool)($stripeReadiness['google_pay_ready'] ?? false),
                 'paypal' => (bool)($stripeReadiness['any_ready'] ?? false),
-                'wero' => false,
+                'wero' => (bool)($stripeReadiness['wero_ready'] ?? false),
             ];
             return [
                 'ready' => (bool)($readinessByMethod[$methodCode] ?? false),
-                'reason' => $methodCode === 'wero'
-                    ? 'stripe_does_not_support_native_wero'
-                    : 'stripe_method_readiness',
+                'reason' => 'stripe_method_readiness',
             ];
         }
 
@@ -1168,11 +1176,18 @@ Route::group([
                     'supported_providers' => $supportedProviders,
                     'fallback_allowed' => false,
                     'fallback_reason' => null,
-                    'source_of_truth' => 'payment_methods.provider_code+supported_providers',
+                    'selection_change_reason' => 'no_candidate_provider_ready',
+                    'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code+supported_providers',
                     'candidate_diagnostics' => $inclusionReasons,
                 ];
                 continue;
             }
+
+            $selectionChanged = $configuredProvider !== null
+                && strtolower((string)$configuredProvider) !== strtolower((string)$selectedProvider);
+            $selectionChangeReason = $selectionChanged
+                ? ('configured_provider_not_usable: '.implode(';', $inclusionReasons))
+                : null;
 
             $availableMethods->push([
                 'code' => $methodCode,
@@ -1187,9 +1202,10 @@ Route::group([
                 'selected_provider' => $selectedProvider,
                 'configured_provider' => $configuredProvider,
                 'supported_providers' => $supportedProviders,
-                'fallback_allowed' => false,
-                'fallback_reason' => null,
-                'source_of_truth' => 'payment_methods.provider_code+supported_providers',
+                'fallback_allowed' => $selectionChanged,
+                'fallback_reason' => $selectionChangeReason,
+                'selection_change_reason' => $selectionChangeReason,
+                'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code+supported_providers',
             ];
         }
 
@@ -1241,7 +1257,24 @@ Route::group([
         ], 200);
     });
 
-    Route::get('/payment-methods-admin', function () use ($defaultPaymentMethods, $loadJsonSetting) {
+    Route::get('/payment-methods-admin', function () use ($defaultPaymentMethods, $loadJsonSetting, $loadMethodRecordsFromPayments) {
+        $methodsFromDb = $loadMethodRecordsFromPayments();
+        if ($methodsFromDb->count() > 0) {
+            $payload = $methodsFromDb
+                ->values()
+                ->map(fn ($m) => [
+                    'code' => (string)$m['code'],
+                    'name' => (string)$m['name'],
+                    'provider_code' => $m['provider_code'] ?? null,
+                    'enabled' => (bool)($m['enabled'] ?? false),
+                    'priority' => (int)($m['priority'] ?? 0),
+                    'supported_providers' => array_values((array)($m['supported_providers'] ?? [])),
+                    'source_of_truth' => $m['source_of_truth'] ?? null,
+                ])
+                ->all();
+            return response()->json(['success' => true, 'data' => $payload]);
+        }
+
         $defaults = $defaultPaymentMethods;
         $load = $loadJsonSetting;
         return response()->json([
@@ -1294,6 +1327,52 @@ Route::group([
                 return response()->json(['success' => false, 'message' => "Provider {$providerCode} is not fully implemented for method {$methodCode}"], 422);
             }
         }
+
+        foreach ($normalized as $method) {
+            $code = (string)$method['code'];
+            $row = \Admin\Models\Payments_model::query()->where('code', $code)->first();
+            if (!$row) {
+                continue;
+            }
+
+            $providerCode = $method['provider_code'] ?? null;
+            $providerCode = $providerCode !== null ? strtolower((string)$providerCode) : null;
+            $supportedProviders = \Admin\Models\Payments_model::supportedProvidersForMethod($code);
+            if ($code === 'cod') {
+                $providerCode = null;
+                $supportedProviders = [];
+            }
+
+            $config = method_exists($row, 'getConfigData') ? $row->getConfigData() : [];
+            $config['provider_code'] = $providerCode;
+            $config['supported_providers'] = $supportedProviders;
+            $row->setConfigData($config);
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'provider_code')) {
+                $row->provider_code = $providerCode;
+            }
+            if (isset($row->priority)) {
+                $row->priority = (int)($method['priority'] ?? $row->priority);
+            }
+            if (isset($row->sort_order)) {
+                $row->sort_order = (int)($method['priority'] ?? $row->sort_order);
+            }
+            $row->status = !empty($method['enabled']) ? 1 : 0;
+            $row->save();
+
+            \Admin\Classes\PaymentLogger::info('Payment method admin mapping persisted', [
+                'provider' => 'internal',
+                'payment_method' => $code,
+                'request_meta' => [
+                    'table' => $row->getTable(),
+                    'key' => [$row->getKeyName() => $row->getKey()],
+                    'provider_code' => $providerCode,
+                    'supported_providers' => $supportedProviders,
+                    'status' => (int)$row->status,
+                ],
+            ]);
+        }
+
         $saveJsonSetting('payment_methods', $normalized);
         return response()->json(['success' => true, 'data' => $normalized]);
     });
@@ -2180,11 +2259,12 @@ Route::group([
             return response()->json(['success' => false, 'error' => 'Wero method is disabled'], 422);
         }
 
-        $providerCode = (string)($weroMethod['provider_code'] ?? 'stripe');
+        $providerCode = strtolower((string)($weroMethod['provider_code'] ?? 'stripe'));
         $fallbackFromWorldline = filter_var($request->input('fallback_from_worldline', false), FILTER_VALIDATE_BOOLEAN);
         if ($providerCode !== 'stripe' && !$fallbackFromWorldline) {
             return response()->json(['success' => false, 'error' => 'Wero is not configured for Stripe on this tenant'], 422);
         }
+        $isExplicitFallback = $fallbackFromWorldline;
 
         $resolveStripeRuntimeReadiness();
 
@@ -2215,13 +2295,14 @@ Route::group([
         }
 
         try {
-            \Admin\Classes\PaymentLogger::info('Stripe fallback Wero session requested', [
+            \Admin\Classes\PaymentLogger::info('Stripe Wero session requested', [
                 'provider' => 'stripe',
-                'payment_method' => 'ideal',
+                'payment_method' => 'wero',
                 'request_meta' => [
                     'fallback_from_worldline' => $fallbackFromWorldline,
                     'requested_method' => 'wero',
                     'configured_runtime_provider' => $providerCode,
+                    'flow_mode' => $isExplicitFallback ? 'fallback' : 'primary',
                 ],
             ]);
             \Stripe\Stripe::setApiKey($secretKey);
@@ -2301,6 +2382,7 @@ Route::group([
                     'provider' => 'stripe',
                     'payment_method' => 'ideal',
                     'requested_method' => 'wero',
+                    'flow_mode' => $isExplicitFallback ? 'fallback' : 'primary',
                 ],
             ];
             $customerEmail = trim((string)($payload['customer_email'] ?? ''));
@@ -2314,12 +2396,13 @@ Route::group([
             return response()->json([
                 'success' => true,
                 'provider' => 'stripe',
-                'method' => 'ideal',
+                'method' => 'wero',
+                'provider_method' => 'ideal',
                 'requested_method' => 'wero',
-                'fallback' => $fallbackFromWorldline,
-                'fallback_provider' => 'stripe',
-                'fallback_method' => 'ideal',
-                'original_provider' => $fallbackFromWorldline ? 'worldline' : 'stripe',
+                'fallback' => $isExplicitFallback,
+                'fallback_provider' => $isExplicitFallback ? 'stripe' : null,
+                'fallback_method' => $isExplicitFallback ? 'ideal' : null,
+                'original_provider' => $isExplicitFallback ? 'worldline' : 'stripe',
                 'redirect_url' => (string)($session->url ?? ''),
                 'session_id' => (string)($session->id ?? ''),
             ]);

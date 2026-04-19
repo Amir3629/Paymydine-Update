@@ -1350,6 +1350,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? "/api/v1/payments/worldline/wero/create-session"
           : "/api/v1/payments/wero/create-session")
         : "/api/v1/payments/card/create-session"
+      console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
+        selected_method: selectedMethod.code,
+        backend_selected_provider: providerCode,
+        endpoint: checkoutEndpoint,
+        flow_mode: "primary",
+      })
       const res = await fetch(checkoutEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1428,11 +1434,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             }
 
             if (fallbackRes.ok && fallbackJson?.success && fallbackJson?.redirect_url) {
-              console.info("[WERO_FALLBACK]", {
+              console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
+                selected_method: "wero",
                 original_provider: "worldline",
+                backend_selected_provider: String(fallbackJson?.provider || "stripe"),
                 fallback_provider: String(fallbackJson?.fallback_provider || "stripe"),
                 fallback_method: String(fallbackJson?.fallback_method || "ideal"),
                 resolved_error_code: resolvedErrorCode,
+                endpoint: "/api/v1/payments/wero/create-session",
+                flow_mode: "fallback",
+                redirect_url_type: typeof fallbackJson?.redirect_url,
+                has_session_id: Boolean(fallbackJson?.session_id),
               })
               if (typeof window !== "undefined" && fallbackJson?.session_id) {
                 localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
@@ -1483,6 +1495,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
 
       if (typeof window !== "undefined") {
+        console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
+          selected_method: selectedMethod.code,
+          backend_selected_provider: String(json?.provider || providerCode),
+          endpoint: checkoutEndpoint,
+          flow_mode: Boolean(json?.fallback) ? "fallback" : "primary",
+          redirect_url_type: typeof json?.redirect_url,
+          has_session_id: Boolean(json?.session_id),
+          has_hosted_checkout_id: Boolean(json?.hosted_checkout_id),
+        })
         window.location.href = json.redirect_url
       }
     } catch (error) {

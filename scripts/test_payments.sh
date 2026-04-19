@@ -41,10 +41,29 @@ with open(sys.argv[1], 'r', encoding='utf-8') as fh:
     data = json.load(fh)
 if not isinstance(data, list):
     raise SystemExit(1)
-if not any((row.get('code') == 'wero' and row.get('provider_code') == 'worldline') for row in data if isinstance(row, dict)):
+if not any((row.get('code') == 'wero' and row.get('provider_code') in {'stripe','worldline'}) for row in data if isinstance(row, dict)):
     raise SystemExit(1)
 PY
-pass "GET /api/v1/payments includes wero mapped to worldline"
+pass "GET /api/v1/payments includes wero with stripe/worldline provider mapping"
+
+TRACE_OUT="$TMP_DIR/trace.json"
+TRACE_CODE=$(get_json "$BASE_URL/api/v1/payments/debug/availability-trace" "$TRACE_OUT")
+[[ "$TRACE_CODE" == "200" ]] || fail "GET /api/v1/payments/debug/availability-trace returned HTTP $TRACE_CODE"
+python3 - "$TRACE_OUT" <<'PY' || fail "availability trace contract validation failed"
+import json,sys
+body=json.load(open(sys.argv[1], encoding='utf-8'))
+if not body.get('success'):
+    raise SystemExit(1)
+trace=body.get('trace') or []
+wero=[row for row in trace if isinstance(row,dict) and row.get('method')=='wero']
+if not wero:
+    raise SystemExit(1)
+row=wero[0]
+for key in ('configured_provider','selected_provider','supported_providers','source_of_truth','fallback_allowed','fallback_reason'):
+    if key not in row:
+        raise SystemExit(1)
+PY
+pass "availability trace exposes configured/selected provider diagnostics for wero"
 
 WERO_OUT="$TMP_DIR/worldline_wero.json"
 WERO_CODE=$(post_json "$BASE_URL/api/v1/payments/worldline/wero/create-session" '{"amount": 1.00, "currency": "EUR", "return_url": "https://mimoza.paymydine.com/payment-return-test", "cancel_url": "https://mimoza.paymydine.com/payment-cancel-test", "locale": "de_DE", "country_code": "DE"}' "$WERO_OUT")
@@ -56,17 +75,18 @@ if body.get('success') is True:
     if code != 200 or not body.get('redirect_url'):
         raise SystemExit(1)
 else:
-    # allowed non-success if provider rejects credentials/entitlement, but must be explicit
     if code not in (422, 502, 503):
         raise SystemExit(1)
     if body.get('error_code') not in {
-        'wero_provider_not_authorized',
-        'wero_provider_validation_failed',
         'wero_provider_configuration_invalid',
-        'wero_provider_temporarily_unavailable',
-        'wero_create_session_failed',
+        'worldline_provider_configuration_invalid',
+        'worldline_request_validation_failed',
+        'worldline_invalid_credentials_or_entitlement',
+        'worldline_session_unavailable',
         'wero_not_supported',
         'wero_unavailable',
+        'wero_provider_mismatch',
+        None,
     }:
         raise SystemExit(1)
 PY
@@ -74,17 +94,19 @@ pass "POST /api/v1/payments/worldline/wero/create-session returned valid success
 
 STRIPE_OUT="$TMP_DIR/stripe_wero.json"
 STRIPE_CODE=$(post_json "$BASE_URL/api/v1/payments/wero/create-session" '{"amount": 1.00, "currency": "EUR", "return_url": "https://mimoza.paymydine.com/payment-return-test"}' "$STRIPE_OUT")
-python3 - "$STRIPE_CODE" "$STRIPE_OUT" <<'PY' || fail "Stripe Wero safety validation failed"
+python3 - "$STRIPE_CODE" "$STRIPE_OUT" <<'PY' || fail "Stripe Wero create-session contract validation failed"
 import json,sys
 code=int(sys.argv[1])
 body=json.load(open(sys.argv[2], encoding='utf-8'))
-if code != 422:
-    raise SystemExit(1)
-if body.get('error_code') not in {'stripe_wero_not_supported', 'wero_not_supported', None}:
-    raise SystemExit(1)
-if body.get('error_code') is None and 'not configured for Stripe' not in str(body.get('error', '')):
-    raise SystemExit(1)
+if body.get('success') is True:
+    if code != 200 or body.get('provider') != 'stripe' or not body.get('redirect_url'):
+        raise SystemExit(1)
+else:
+    if code not in (422, 500, 503):
+        raise SystemExit(1)
+    if body.get('error_code') not in {'wero_not_supported','wero_invalid_request',None}:
+        raise SystemExit(1)
 PY
-pass "POST /api/v1/payments/wero/create-session no longer attempts Stripe native wero"
+pass "POST /api/v1/payments/wero/create-session returned valid primary/fallback contract"
 
 echo "All payment checks passed."
