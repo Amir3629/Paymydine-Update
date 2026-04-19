@@ -27,10 +27,10 @@ class WorldlineHostedCheckoutService
             $value = preg_replace('/[^A-Z0-9]/', '', $value) ?? '';
             $value = preg_replace('/^(PMDWERO|WERO|PMD)+/', '', $value) ?? '';
             if ($value === '') {
-                $value = 'W'.strtoupper(substr(sha1($seed), 0, 11));
+                $value = strtoupper(substr(sha1($seed), 0, 10));
             }
-            if (strlen($value) > 12) {
-                $value = substr($value, 0, 12);
+            if (strlen($value) > 10) {
+                $value = substr($value, 0, 10);
             }
 
             return $value;

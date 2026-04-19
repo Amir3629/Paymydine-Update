@@ -889,6 +889,96 @@ Route::group([
         $saveJsonSetting('payment_providers', $providers->values()->all());
     };
 
+    $persistWorldlineWeroDebug = function (array $payload): void {
+        try {
+            $host = preg_replace('/[^a-zA-Z0-9\.\-_]/', '_', (string)request()->getHost());
+            $path = storage_path('app/worldline_wero_debug');
+            if (!is_dir($path)) {
+                @mkdir($path, 0775, true);
+            }
+            @file_put_contents(
+                rtrim($path, '/').'/'.$host.'.json',
+                json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('WORLDLINE_WERO_DEBUG_PERSIST_FAILED', ['message' => $e->getMessage()]);
+        }
+    };
+
+    $loadWorldlineWeroDebug = function (): ?array {
+        try {
+            $host = preg_replace('/[^a-zA-Z0-9\.\-_]/', '_', (string)request()->getHost());
+            $file = storage_path('app/worldline_wero_debug/'.$host.'.json');
+            if (!is_file($file)) {
+                return null;
+            }
+            $raw = @file_get_contents($file);
+            $decoded = json_decode((string)$raw, true);
+            return is_array($decoded) ? $decoded : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    };
+
+    $extractWorldlineExceptionDetails = function (\Throwable $e): array {
+        $statusCode = method_exists($e, 'getStatusCode') ? (int)$e->getStatusCode() : null;
+        $errorId = method_exists($e, 'getErrorId') ? (string)$e->getErrorId() : null;
+        $responseBody = method_exists($e, 'getResponseBody') ? (string)$e->getResponseBody() : '';
+
+        if ($responseBody === '' && method_exists($e, 'getResponse')) {
+            try {
+                $response = $e->getResponse();
+                if (is_object($response) && method_exists($response, 'getBody')) {
+                    $body = $response->getBody();
+                    $responseBody = is_string($body) ? $body : (method_exists($body, '__toString') ? (string)$body : '');
+                } elseif (is_string($response)) {
+                    $responseBody = $response;
+                }
+            } catch (\Throwable $ignored) {
+            }
+        }
+
+        $errors = [];
+        if (method_exists($e, 'getErrors')) {
+            try {
+                $rawErrors = $e->getErrors();
+                if (is_array($rawErrors)) {
+                    $errors = $rawErrors;
+                }
+            } catch (\Throwable $ignored) {
+            }
+        }
+
+        $payload = json_decode($responseBody, true);
+        if (is_array($payload)) {
+            if (empty($errors) && is_array($payload['errors'] ?? null)) {
+                $errors = (array)$payload['errors'];
+            }
+            if ($statusCode === null && isset($payload['httpStatusCode'])) {
+                $statusCode = (int)$payload['httpStatusCode'];
+            }
+            if ($errorId === null && isset($payload['errorId'])) {
+                $errorId = (string)$payload['errorId'];
+            }
+        }
+
+        return [
+            'httpStatusCode' => $statusCode,
+            'errorId' => $errorId,
+            'category' => (string)($payload['category'] ?? ''),
+            'errors' => array_values(array_map(function ($err) {
+                $row = is_array($err) ? $err : (array)$err;
+                return [
+                    'code' => $row['code'] ?? null,
+                    'id' => $row['id'] ?? null,
+                    'propertyName' => $row['propertyName'] ?? null,
+                    'message' => $row['message'] ?? null,
+                ];
+            }, (array)$errors)),
+            'raw_response_body' => $responseBody !== '' ? mb_substr($responseBody, 0, 4000) : null,
+        ];
+    };
+
     $toBool = function ($value): bool {
         if (is_bool($value)) {
             return $value;
@@ -2082,7 +2172,15 @@ Route::group([
         }
     });
 
-    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus, $resolveWorldlineWeroProductId) {
+    Route::get('/payments/worldline/wero/debug-last', function () use ($loadWorldlineWeroDebug) {
+        return response()->json([
+            'success' => true,
+            'host' => request()->getHost(),
+            'debug' => $loadWorldlineWeroDebug(),
+        ], 200);
+    });
+
+    Route::post('/payments/worldline/wero/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $resolveWorldlineWeroReadiness, $persistWorldlineWeroCapabilityStatus, $resolveWorldlineWeroProductId, $persistWorldlineWeroDebug, $extractWorldlineExceptionDetails) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection(false))->keyBy('code');
         $weroMethod = (array)$runtimeMethods->get('wero', []);
         if (empty($weroMethod)) {
@@ -2163,6 +2261,24 @@ Route::group([
                 'payment_product_id' => (int)($productIdResolution['effective_product_id'] ?? 0),
             ]);
 
+            $persistWorldlineWeroDebug([
+                'updated_at' => gmdate('c'),
+                'host' => request()->getHost(),
+                'phase' => 'success',
+                'request_payload' => [
+                    'amount' => (float)$payload['amount'],
+                    'currency' => strtoupper((string)$payload['currency']),
+                    'return_url' => (string)$payload['return_url'],
+                    'locale' => (string)($payload['locale'] ?? 'de_DE'),
+                    'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                    'payment_product_id' => (int)($productIdResolution['effective_product_id'] ?? 0),
+                ],
+                'provider_response' => [
+                    'hosted_checkout_id' => (string)($result['hosted_checkout_id'] ?? ''),
+                    'redirect_url_present' => !empty($result['redirect_url']),
+                ],
+            ]);
+
             $redirectUrl = (string)($result['redirect_url'] ?? '');
             if ($redirectUrl === '') {
                 return response()->json([
@@ -2192,16 +2308,15 @@ Route::group([
             ]);
         } catch (\Throwable $e) {
             $requestId = (string)\Illuminate\Support\Str::uuid();
-            $statusCode = method_exists($e, 'getStatusCode') ? (int)$e->getStatusCode() : null;
-            $providerErrorId = method_exists($e, 'getErrorId') ? (string)$e->getErrorId() : null;
-            $responseBody = method_exists($e, 'getResponseBody') ? (string)$e->getResponseBody() : '';
+            $providerException = $extractWorldlineExceptionDetails($e);
+            $statusCode = (int)($providerException['httpStatusCode'] ?? 0) ?: (method_exists($e, 'getStatusCode') ? (int)$e->getStatusCode() : null);
+            $providerErrorId = (string)($providerException['errorId'] ?? '') ?: (method_exists($e, 'getErrorId') ? (string)$e->getErrorId() : null);
+            $responseBody = (string)($providerException['raw_response_body'] ?? '');
             $errorMessage = (string)$e->getMessage();
             $errorLower = strtolower($errorMessage.' '.$responseBody);
-            $upstreamPayload = json_decode($responseBody, true);
-            $upstreamError = is_array($upstreamPayload['errors'][0] ?? null)
-                ? (array)$upstreamPayload['errors'][0]
-                : (is_array($upstreamPayload) ? $upstreamPayload : []);
-            $upstreamCode = (string)($upstreamError['code'] ?? $upstreamError['errorCode'] ?? '');
+            $upstreamErrors = (array)($providerException['errors'] ?? []);
+            $upstreamError = is_array($upstreamErrors[0] ?? null) ? (array)$upstreamErrors[0] : [];
+            $upstreamCode = (string)($upstreamError['code'] ?? '');
             $propertyName = (string)($upstreamError['propertyName'] ?? '');
             $errorCode = 'worldline_internal_exception';
             $humanMessage = 'Worldline Wero checkout is currently unavailable. Please try again later.';
@@ -2268,8 +2383,17 @@ Route::group([
                 'statusCode' => $statusCode,
                 'provider_error_id' => $providerErrorId,
                 'responseBody' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
+                'provider_exception' => $providerException,
                 'resolved_error_code' => $errorCode,
                 'request_id' => $requestId,
+            ]);
+
+            $persistWorldlineWeroDebug([
+                'updated_at' => gmdate('c'),
+                'host' => request()->getHost(),
+                'phase' => 'error',
+                'resolved_error_code' => $errorCode,
+                'provider_exception' => $providerException,
             ]);
             return response()->json([
                 'success' => false,
@@ -2292,6 +2416,8 @@ Route::group([
                 'provider_error_id' => $providerErrorId ?: null,
                 'property_name' => $propertyName !== '' ? $propertyName : null,
                 'upstream_code' => $upstreamCode !== '' ? $upstreamCode : null,
+                'category' => ($providerException['category'] ?? '') !== '' ? (string)$providerException['category'] : null,
+                'errors' => $upstreamErrors,
                 'response_body' => $responseBody !== '' ? mb_substr($responseBody, 0, 2000) : null,
             ], $httpCode);
         }
