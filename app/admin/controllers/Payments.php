@@ -163,13 +163,6 @@ class Payments extends \Admin\Classes\AdminController
         if ($isMethodRecord && (string)$model->code !== 'cod') {
             $currentProvider = $this->extractProviderCode($model);
             $compatibleOptions = $this->getCompatibleProviders($model->code);
-            $currentConfig = method_exists($model, 'getConfigData') ? (array)$model->getConfigData() : [];
-            $currentSupportedProviders = array_values(array_filter(array_map(
-                fn ($provider) => strtolower(trim((string)$provider)),
-                is_array($currentConfig['supported_providers'] ?? null)
-                    ? (array)$currentConfig['supported_providers']
-                    : Payments_model::supportedProvidersForMethod((string)$model->code)
-            ), fn (string $provider) => $provider !== ''));
             $assignmentWarning = null;
             if ($currentProvider && !array_key_exists($currentProvider, $compatibleOptions)) {
                 $assignmentWarning = "Current provider '{$currentProvider}' is no longer selectable because this flow is not fully implemented. Please select a supported provider.";
@@ -185,14 +178,6 @@ class Payments extends \Admin\Classes\AdminController
                     'comment' => $assignmentWarning
                         ?: 'Only providers with both capability and implemented flow are shown.',
                     'default' => $this->extractProviderCode($model),
-                ],
-                'supported_providers' => [
-                    'label' => 'Supported Provider Fallbacks',
-                    'type' => 'checkboxlist',
-                    'span' => 'right',
-                    'options' => $compatibleOptions,
-                    'default' => $currentSupportedProviders,
-                    'comment' => 'Runtime fallback candidates for this method. Provider selection still starts from the primary provider above.',
                 ],
             ]);
         }
@@ -369,21 +354,8 @@ class Payments extends \Admin\Classes\AdminController
             $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
             $this->validateProviderCompatibility((string)$model->code, $providerCode);
 
-            $supportedProvidersInput = post('supported_providers', post('Payment.supported_providers', []));
-            $supportedProviders = array_values(array_unique(array_filter(array_map(
-                fn ($provider) => strtolower(trim((string)$provider)),
-                is_array($supportedProvidersInput) ? $supportedProvidersInput : []
-            ), fn (string $provider) => $provider !== '')));
-            if (empty($supportedProviders)) {
-                $supportedProviders = Payments_model::supportedProvidersForMethod((string)$model->code);
-            }
-            if ($providerCode && !in_array($providerCode, $supportedProviders, true)) {
-                $supportedProviders[] = $providerCode;
-            }
-
             $data = $model->getConfigData();
             $data['provider_code'] = $providerCode;
-            $data['supported_providers'] = $supportedProviders;
             $model->setConfigData($data);
             $model->provider_code = $providerCode;
         }
@@ -821,19 +793,13 @@ class Payments extends \Admin\Classes\AdminController
                 'webhook_secret' => ['label' => 'Webhook Secret (optional)', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
             ],
             'vr_payment' => [
-                'enabled' => ['label' => 'Provider Enabled', 'type' => 'switch', 'span' => 'left', 'default' => false, 'comment' => 'Enable VR Payment at provider level.'],
-                'mode' => ['label' => 'Mode', 'type' => 'select', 'span' => 'right', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
+                'mode' => ['label' => 'Mode', 'type' => 'select', 'span' => 'left', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
                 'api_base_url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'comment' => 'Base URL for VR Payment API (no trailing slash required).'],
                 'space_id' => ['label' => 'Space ID', 'type' => 'text', 'span' => 'right'],
                 'user_id' => ['label' => 'User ID', 'type' => 'text', 'span' => 'left'],
                 'auth_key' => ['label' => 'Auth Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
                 'webhook_signing_key' => ['label' => 'Webhook Signing Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
                 'preferred_integration_mode' => ['label' => 'Preferred Integration', 'type' => 'select', 'span' => 'right', 'default' => 'payment_page', 'options' => ['payment_page' => 'Hosted Payment Page']],
-                'card_enabled' => ['label' => 'Enable Card', 'type' => 'switch', 'span' => 'left', 'default' => true],
-                'apple_pay_enabled' => ['label' => 'Enable Apple Pay', 'type' => 'switch', 'span' => 'right', 'default' => false],
-                'google_pay_enabled' => ['label' => 'Enable Google Pay', 'type' => 'switch', 'span' => 'left', 'default' => false],
-                'paypal_enabled' => ['label' => 'Enable PayPal', 'type' => 'switch', 'span' => 'right', 'default' => false],
-                'wero_enabled' => ['label' => 'Enable Wero', 'type' => 'switch', 'span' => 'left', 'default' => false],
             ],
         ];
 
