@@ -1,72 +1,76 @@
-# VR Integration Audit (Paymydine)
+# VR Integration Audit (PayMyDine)
 
 Date: 2026-04-20
 
-## Scope audited
-- Laravel/TastyIgniter admin payment controller/model/routes:
-  - `app/admin/controllers/Payments.php`
-  - `app/admin/models/Payments_model.php`
-  - `app/admin/routes.php`
-- VR service and diagnostics:
-  - `app/admin/classes/VRPaymentGatewayService.php`
-- Frontend checkout entrypoint (read-only audit):
-  - `frontend/app/menu/page.tsx`
+## 1) Investigation scope
+Inspected files:
+- `app/admin/controllers/Payments.php`
+- `app/admin/models/Payments_model.php`
+- `app/admin/classes/VRPaymentGatewayService.php`
+- `app/admin/routes.php`
+- `frontend/app/menu/page.tsx`
 
-## Current architecture (as implemented now)
+## 2) Current payment architecture
+### Backend source of truth
+- **Payment method/provider assignment source of truth is method `provider_code`** on payment method rows.
+- Admin payment method edit flow persists `provider_code` from method forms.
+- Runtime method availability is resolved in `app/admin/routes.php` (`resolveRuntimeMethodCollection`) and then consumed by create-session routes.
 
-### 1) Source of truth for provider assignment
-- Payment methods currently resolve provider from `payment_methods.provider_code` (with meta fallback in some paths).
-- Admin method edit form exposes `provider_code` as the assignment field.
-- `supported_providers` fallback arrays are mostly removed from runtime selection, but legacy model helpers still exist.
+### Method/provider catalogs
+- Method matrix includes: `card`, `apple_pay`, `google_pay`, `wero`, `paypal`, `cod`.
+- Provider matrix includes: `stripe`, `paypal`, `worldline`, `sumup`, `square`, `vr_payment`.
+- Compatibility matrix exists in `Payments_model::METHOD_PROVIDER_MATRIX`.
 
-### 2) Source of truth for provider readiness
-- Runtime readiness is computed in `app/admin/routes.php` via provider-specific readiness helpers:
-  - Stripe readiness
-  - Worldline readiness (+ Wero product readiness)
-  - VR readiness via `VRPaymentGatewayService::getConfigForDiagnostics()` / `isMethodReady()`
-- Current VR readiness is too optimistic for non-card methods: it marks methods ready if provider is enabled + credentials present + integration mode, without proving account/method entitlement.
+### Admin UX observed
+- Method edit UI uses a **single provider selector** (`provider_code`) and no fallback checkbox UI.
+- Provider edit UI for VR contains core provider config fields (mode/base URL/space/user/auth/webhook key/integration mode) without method toggles.
 
-### 3) Frontend flow per method
-- Frontend menu page chooses endpoint based on backend-selected `provider_code`.
-- For VR provider, method-specific create-session endpoints are used:
-  - `/api/v1/payments/vr-payment/{method}/create-session`
-- Return handling uses `/api/v1/payments/vr-payment/return-status`.
-- There is special localStorage state handling for pending VR checkout.
+### Frontend flow observed
+- Frontend menu checkout (`frontend/app/menu/page.tsx`) reads backend-provided methods/provider selection and routes create-session calls by selected provider.
+- VR-specific endpoints in use:
+  - `/api/v1/payments/vr-payment/card/create-session`
+  - `/api/v1/payments/vr-payment/wero/create-session`
+  - `/api/v1/payments/vr-payment/apple-pay/create-session`
+  - `/api/v1/payments/vr-payment/google-pay/create-session`
+  - `/api/v1/payments/vr-payment/paypal/create-session`
+- Return handling uses `/api/v1/payments/vr-payment/return-status` with pending checkout localStorage recovery.
 
-## What is already correct
-- Admin/provider split is mostly aligned: method owns `provider_code` assignment.
-- VR provider form has core config fields (mode/base URL/space/user/auth/webhook key/integration mode).
-- VR routes exist for diagnostics, create-session, return-status, webhook, and persistence tables.
-- Runtime selection currently does not apply method-level fallback arrays.
+## 3) Runtime resolution and diagnostics behavior
+- Runtime selection currently honors method `provider_code` and provider readiness.
+- VR readiness is provided by `VRPaymentGatewayService::getConfigForDiagnostics()` and method checks via `isMethodReady()`.
+- Diagnostics endpoint `/api/v1/payments/vr-payment/diagnostics` is available and includes readiness/runtime context.
 
-## What is redundant / wrong / risky
-1. **VR error normalization too generic**
-   - Create-session failures collapse into broad codes (`vr_payment_checkout_create_failed`) and do not clearly classify connectivity/auth/validation/capability failures.
-2. **Diagnostics do not explicitly classify connectivity blocker**
-   - There is no first-class, explicit connectivity probe result to configured VR host in diagnostics payload.
-3. **Method readiness semantics are not capability-aware**
-   - `isMethodReady()` currently returns true for all supported methods when config exists, which can misrepresent account entitlement (Apple Pay/Google Pay/Wero/PayPal on VR).
-4. **Method metadata compatibility remains in model layer**
-   - `supported_providers` helper/accessors still exist in `Payments_model`; they are legacy and potentially confusing though no longer central in runtime selection.
+## 4) Current VR integration shape
+- VR service handles:
+  - create redirect session
+  - status fetch
+  - webhook signature verification
+  - payment status normalization
+- Session persistence:
+  - `vr_payment_sessions` table stores method/provider/merchant reference/session IDs/state/raw snapshot.
+- Webhook event persistence:
+  - `vr_payment_webhook_events` for idempotent event tracking.
 
-## Environment blocker observed
-- External connectivity to VR host (example observed: `https://asia.vrpy.de`) can fail at TCP/HTTPS timeout level from this server environment.
-- This is an infra/network/allowlist problem, not always an app-code bug.
-- Diagnostics should surface this explicitly.
+## 5) Risks/bugs identified
+1. If VR host is unreachable, failures must be clearly classified as connectivity/infrastructure, not generic app errors.
+2. Failed session persistence previously relied on provider IDs only; failures before receiving IDs could be dropped.
+3. Diagnostics need explicit method mapping + connectivity + normalized last error for fast root-cause analysis.
+4. Wallet capability can still be account-entitlement dependent on VR side (Apple Pay/Google Pay/Wero/PayPal); readiness should not be interpreted as guaranteed settlement capability without provider-side enablement.
 
-## Files that should change (and why)
-1. `app/admin/classes/VRPaymentGatewayService.php`
-   - Add robust request payload normalization (merchant reference generation, deterministic method handling).
-   - Add error classification for timeout/DNS/TLS/4xx/5xx/method-not-supported/account-capability.
-   - Add safe connectivity probe helper for diagnostics.
-2. `app/admin/routes.php`
-   - Enrich `/payments/vr-payment/diagnostics` with method mapping + connectivity classification + latest normalized error context.
-   - Ensure VR create-session endpoints persist richer diagnostics (error category/code/details) without leaking secrets.
-3. `app/admin/models/Payments_model.php` (optional/minimal)
-   - Keep compatibility, but avoid re-introducing `supported_providers` semantics into active paths.
-4. `VR_INTEGRATION_DELIVERY.md`
-   - Delivery and operations/testing guide.
+## 6) What must change
+- Keep admin UX simple (method provider_code assignment only; provider core config only).
+- Harden VR error normalization and payload consistency.
+- Add explicit connectivity probe output to diagnostics/readiness.
+- Persist failed create-session snapshots using merchant reference fallback when provider session IDs are not yet available.
+- Keep frontend unchanged unless strictly required.
 
-## Files that should NOT be changed unless strictly required
-- `frontend/app/menu/page.tsx` (currently already wired for backend-selected provider endpoints).
-- Existing Stripe/PayPal/Worldline runtime flows.
+## 7) What must NOT change
+- Do not break Stripe/PayPal/Worldline flows.
+- Do not reintroduce fallback checkbox UI on method forms.
+- Do not add provider-side method assignment toggles in VR provider form.
+- Do not do broad risky rewrites in frontend checkout.
+
+## 8) Root cause classification for current blocker
+- Observed condition: DNS may resolve but TCP/HTTPS to VR host (`asia.vrpy.de:443`) times out.
+- This indicates **environment/network path issue (e.g., firewall/egress/allowlist/routing)**, not only application logic.
+- App code should still provide accurate diagnostics and normalized failures under this condition.

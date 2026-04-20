@@ -1130,8 +1130,9 @@ Route::group([
         $sessionId = trim((string)($record['session_id'] ?? ''));
         $transactionId = trim((string)($record['transaction_id'] ?? ''));
         $providerReference = trim((string)($record['provider_reference'] ?? ''));
+        $merchantReference = trim((string)($record['merchant_reference'] ?? ''));
 
-        if ($sessionId === '' && $transactionId === '' && $providerReference === '') {
+        if ($sessionId === '' && $transactionId === '' && $providerReference === '' && $merchantReference === '') {
             return;
         }
 
@@ -1140,15 +1141,19 @@ Route::group([
             $lookup->where('session_id', $sessionId);
         } elseif ($transactionId !== '') {
             $lookup->where('transaction_id', $transactionId);
-        } else {
+        } elseif ($providerReference !== '') {
             $lookup->where('provider_reference', $providerReference);
+        } else {
+            $lookup->where('merchant_reference', $merchantReference)
+                ->where('method_code', (string)($record['method_code'] ?? 'card'))
+                ->orderByDesc('updated_at');
         }
 
         $existing = $lookup->first();
         $payload = [
             'provider_code' => 'vr_payment',
             'method_code' => (string)($record['method_code'] ?? 'card'),
-            'merchant_reference' => (string)($record['merchant_reference'] ?? ''),
+            'merchant_reference' => $merchantReference,
             'session_id' => $sessionId !== '' ? $sessionId : null,
             'transaction_id' => $transactionId !== '' ? $transactionId : null,
             'provider_reference' => $providerReference !== '' ? $providerReference : null,
