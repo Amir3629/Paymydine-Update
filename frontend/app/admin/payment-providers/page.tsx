@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 
-type ProviderCode = "stripe" | "paypal" | "worldline" | "sumup" | "square"
+type ProviderCode = "stripe" | "paypal" | "worldline" | "sumup" | "square" | "vr_payment"
 
 type PaymentProvider = {
   code: ProviderCode
@@ -59,6 +59,21 @@ const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string;
     { key: "live_access_token", label: "Live Access Token", type: "password" },
     { key: "live_location_id", label: "Live Location ID" },
     { key: "currency", label: "Currency" },
+  ],
+  vr_payment: [
+    { key: "mode", label: "Mode", options: ["test", "live"] },
+    { key: "api_base_url", label: "API Base URL" },
+    { key: "hosted_checkout_base_url", label: "Hosted Checkout URL" },
+    { key: "account_id", label: "Account / Space ID" },
+    { key: "application_user_id", label: "Application User ID" },
+    { key: "auth_key", label: "Auth / Signing Key", type: "password" },
+    { key: "webhook_secret", label: "Webhook Secret", type: "password" },
+    { key: "preferred_integration_mode", label: "Integration Mode", options: ["payment_page"] },
+    { key: "card_enabled", label: "Card Enabled (true/false)" },
+    { key: "apple_pay_enabled", label: "Apple Pay Enabled (true/false)" },
+    { key: "google_pay_enabled", label: "Google Pay Enabled (true/false)" },
+    { key: "paypal_enabled", label: "PayPal Enabled (true/false)" },
+    { key: "wero_enabled", label: "Wero Enabled (true/false)" },
   ],
 }
 

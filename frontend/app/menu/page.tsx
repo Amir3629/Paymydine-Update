@@ -1337,9 +1337,19 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     try {
       const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
       const providerCode = selectedMethod.code === "wero"
-        ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : "stripe")
+        ? (
+          selectedProviderCodeForCheckout === "worldline"
+            ? "worldline"
+            : selectedProviderCodeForCheckout === "vr_payment"
+              ? "vr_payment"
+              : "stripe"
+        )
         : (selectedProviderCode || "unknown")
-      const providerReturnCode = providerCode === "worldline" ? "worldline" : "wero"
+      const providerReturnCode = providerCode === "worldline"
+        ? "worldline"
+        : providerCode === "vr_payment"
+          ? "vr_payment"
+          : "wero"
       const returnUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerReturnCode)}`
@@ -1350,10 +1360,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           : "/menu"
 
       const checkoutEndpoint = selectedMethod.code === "wero"
-        ? (selectedProviderCodeForCheckout === "worldline"
-          ? "/api/v1/payments/worldline/wero/create-session"
-          : "/api/v1/payments/wero/create-session")
-        : "/api/v1/payments/card/create-session"
+        ? (
+          selectedProviderCodeForCheckout === "worldline"
+            ? "/api/v1/payments/worldline/wero/create-session"
+            : selectedProviderCodeForCheckout === "vr_payment"
+              ? "/api/v1/payments/vr-payment/wero/create-session"
+              : "/api/v1/payments/wero/create-session"
+        )
+        : providerCode === "vr_payment"
+          ? `/api/v1/payments/vr-payment/${selectedMethod.code.replace("_", "-")}/create-session`
+          : "/api/v1/payments/card/create-session"
       console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
         selected_method: selectedMethod.code,
         backend_selected_provider: providerCode,
@@ -1387,7 +1403,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
 
       if (!res.ok || !json?.success || !json?.redirect_url) {
-        const providerLabel = providerCode === "worldline" ? "Worldline" : "Stripe"
+        const providerLabel = providerCode === "worldline" ? "Worldline" : providerCode === "vr_payment" ? "VR Payment" : "Stripe"
         const resolvedErrorCode = String(json?.resolved_error_code || json?.error_code || "").toLowerCase()
         const fallbackAllowedByCode = [
           "worldline_invalid_credentials_or_entitlement",
@@ -1502,6 +1518,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             created_at: Date.now(),
           }))
         }
+        if (providerCode === "vr_payment" && json?.session_id) {
+          localStorage.setItem("pmd_vr_payment_pending_checkout", JSON.stringify({
+            session_id: String(json.session_id),
+            method_code: selectedMethod.code,
+            provider_code: "vr_payment",
+            created_at: Date.now(),
+          }))
+        }
       }
 
       if (typeof window !== "undefined") {
@@ -1534,7 +1558,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (typeof window === "undefined") return
       const params = new URLSearchParams(window.location.search)
       const provider = params.get("payment_return_provider")
-      if (!["worldline", "sumup", "square", "wero"].includes(provider || "")) return
+      if (!["worldline", "sumup", "square", "wero", "vr_payment"].includes(provider || "")) return
 
       const pendingKey = provider === "worldline"
         ? "pmd_worldline_pending_checkout"
@@ -1542,7 +1566,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? "pmd_sumup_pending_checkout"
           : provider === "square"
             ? "pmd_square_pending_checkout"
-            : "pmd_wero_pending_checkout"
+            : provider === "vr_payment"
+              ? "pmd_vr_payment_pending_checkout"
+              : "pmd_wero_pending_checkout"
       const pendingRaw = localStorage.getItem(pendingKey)
       if (!pendingRaw) return
       let pending: any = null
@@ -1565,7 +1591,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? "/api/v1/payments/sumup/checkout-status"
           : provider === "square"
             ? "/api/v1/payments/square/checkout-status"
-            : "/api/v1/payments/wero/checkout-status"
+            : provider === "vr_payment"
+              ? "/api/v1/payments/vr-payment/checkout-status"
+              : "/api/v1/payments/wero/checkout-status"
 
       const requiredValue = Object.values(verificationPayload)[0]
       if (!requiredValue) return
@@ -1588,7 +1616,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           )
           const forcedMethodCode = pending?.method_code
             ? String(pending.method_code)
-            : (provider === "wero" ? "wero" : "card")
+            : (provider === "wero" ? "wero" : provider === "vr_payment" ? "card" : "card")
           const forcedProviderCode = pending?.provider_code
             ? String(pending.provider_code)
             : String(json?.provider || (provider === "wero" ? "stripe" : provider))
@@ -2050,6 +2078,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
               {selectedProviderCode === "worldline"
                 ? "You will be redirected to a secure Wero checkout powered by Worldline."
+                : selectedProviderCode === "vr_payment"
+                  ? "You will be redirected to a secure Wero checkout powered by VR Payment."
                 : "You will be redirected to a secure Wero checkout powered by Stripe."}
             </div>
             <Button
