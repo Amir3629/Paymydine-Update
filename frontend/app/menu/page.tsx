@@ -1344,6 +1344,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
         : (selectedProviderCodeForCheckout || "unknown")
       const providerReturnCode = providerCode === "worldline" ? "worldline" : (providerCode === "vr_payment" ? "vr_payment" : "wero")
+      const merchantReference = `PMD-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
       const returnUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerReturnCode)}`
@@ -1382,6 +1383,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           return_url: returnUrl,
           cancel_url: cancelUrl,
           customer_email: paymentFormData.email || "",
+          merchant_reference: merchantReference,
           items: itemsToPay.map((item: any) => ({
             id: String(item.item.id),
             name: item.item.name,
@@ -1518,6 +1520,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         if (providerCode === "vr_payment" && json?.session_id) {
           localStorage.setItem("pmd_vr_payment_pending_checkout", JSON.stringify({
             session_id: String(json.session_id),
+            merchant_reference: merchantReference,
             method_code: selectedMethod.code,
             provider_code: "vr_payment",
             created_at: Date.now(),
@@ -1556,7 +1559,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (typeof window === "undefined") return
       const params = new URLSearchParams(window.location.search)
       const provider = params.get("payment_return_provider")
-      if (!["worldline", "sumup", "square", "wero"].includes(provider || "")) return
+      if (!["worldline", "sumup", "square", "wero", "vr_payment"].includes(provider || "")) return
 
       const pendingKey = provider === "worldline"
         ? "pmd_worldline_pending_checkout"
@@ -1564,7 +1567,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? "pmd_sumup_pending_checkout"
           : provider === "square"
             ? "pmd_square_pending_checkout"
-            : "pmd_wero_pending_checkout"
+            : provider === "vr_payment"
+              ? "pmd_vr_payment_pending_checkout"
+              : "pmd_wero_pending_checkout"
       const pendingRaw = localStorage.getItem(pendingKey)
       if (!pendingRaw) return
       let pending: any = null
@@ -1580,6 +1585,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? { checkout_id: String(pending?.checkout_id || "") }
           : provider === "square"
             ? { payment_link_id: String(pending?.payment_link_id || "") }
+            : provider === "vr_payment"
+              ? {
+                  session_id: String(pending?.session_id || params.get("session_id") || ""),
+                  transaction_id: String(params.get("transaction_id") || ""),
+                  provider_reference: String(params.get("provider_reference") || ""),
+                  merchant_reference: String(pending?.merchant_reference || ""),
+                }
             : { session_id: String(pending?.session_id || params.get("session_id") || "") }
       const verificationUrl = provider === "worldline"
         ? "/api/v1/payments/worldline/checkout-status"
@@ -1587,10 +1599,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? "/api/v1/payments/sumup/checkout-status"
           : provider === "square"
             ? "/api/v1/payments/square/checkout-status"
+            : provider === "vr_payment"
+              ? "/api/v1/payments/vr-payment/return-status"
             : "/api/v1/payments/wero/checkout-status"
 
-      const requiredValue = Object.values(verificationPayload)[0]
-      if (!requiredValue) return
+      const hasReference = Object.values(verificationPayload).some((value) => String(value || "").trim() !== "")
+      if (!hasReference) return
 
       try {
         const res = await fetch(verificationUrl, {
@@ -1601,12 +1615,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         const json = await res.json().catch(() => ({}))
         if (res.ok && json?.success && json?.is_paid) {
           localStorage.removeItem(pendingKey)
+          const fallbackReference = String(
+            (verificationPayload as any)?.session_id
+            || (verificationPayload as any)?.transaction_id
+            || (verificationPayload as any)?.provider_reference
+            || ""
+          )
           const txId = String(
             json?.payment_intent_id
             || json?.payment_id
             || json?.transaction_code
             || json?.order_id
-            || requiredValue
+            || fallbackReference
           )
           const forcedMethodCode = pending?.method_code
             ? String(pending.method_code)
@@ -1621,6 +1641,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           params.delete("payment_return_provider")
           const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`
           window.history.replaceState({}, "", next)
+          return
+        }
+
+        if (res.ok && json?.success && json?.status === "pending") {
+          setProviderInlineError("Your payment is still pending confirmation. Please refresh in a moment.")
+          return
+        }
+
+        if (res.ok && json?.success && (json?.status === "cancelled" || json?.status === "expired")) {
+          localStorage.removeItem(pendingKey)
+          setProviderInlineError("Payment was cancelled. Please choose another method to continue.")
           return
         }
 

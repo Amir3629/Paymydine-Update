@@ -168,6 +168,8 @@ class VRPaymentGatewayService
                 'redirect_url' => $redirectUrl,
                 'session_id' => $body['session_id'] ?? null,
                 'transaction_id' => $body['transaction_id'] ?? null,
+                'provider_reference' => $body['provider_reference'] ?? null,
+                'status' => $this->normalizePaymentStatus((string)($body['status'] ?? 'pending')),
             ];
         } catch (\Throwable $e) {
             PaymentLogger::exception('VR_PAYMENT_CREATE_SESSION_EXCEPTION', $e, [
@@ -177,6 +179,110 @@ class VRPaymentGatewayService
 
             return $this->businessError('vr_payment_checkout_create_failed', 'Unable to create VR Payment checkout session.');
         }
+    }
+
+    public function fetchPaymentStatus(array $context): array
+    {
+        $config = $this->getConfig();
+        if (!$this->toBool($config['enabled'] ?? false) || !$this->requiredCredentialsPresent($config)) {
+            return $this->businessError('vr_payment_provider_not_ready', 'VR Payment provider is not ready.');
+        }
+
+        $sessionId = trim((string)($context['session_id'] ?? ''));
+        $transactionId = trim((string)($context['transaction_id'] ?? ''));
+        $providerReference = trim((string)($context['provider_reference'] ?? ''));
+
+        if ($sessionId === '' && $transactionId === '' && $providerReference === '') {
+            return $this->businessError('vr_payment_status_lookup_failed', 'No VR Payment reference was provided.');
+        }
+
+        try {
+            $endpoint = $config['api_base_url'].'/checkout/status';
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'x-space-id' => $config['space_id'],
+                'x-user-id' => $config['user_id'],
+                'x-auth-key' => $config['auth_key'],
+            ])->timeout(20)->post($endpoint, [
+                'session_id' => $sessionId !== '' ? $sessionId : null,
+                'transaction_id' => $transactionId !== '' ? $transactionId : null,
+                'provider_reference' => $providerReference !== '' ? $providerReference : null,
+            ]);
+
+            if (!$response->ok()) {
+                return $this->businessError('vr_payment_status_lookup_failed', 'Unable to verify VR Payment status.', [
+                    'provider_http_status' => $response->status(),
+                ]);
+            }
+
+            $body = (array)$response->json();
+            $normalized = $this->normalizePaymentStatus((string)($body['status'] ?? $body['payment_status'] ?? 'unknown'));
+
+            return [
+                'success' => true,
+                'provider' => 'vr_payment',
+                'status' => $normalized,
+                'is_paid' => in_array($normalized, ['authorized', 'completed'], true),
+                'session_id' => $body['session_id'] ?? ($sessionId !== '' ? $sessionId : null),
+                'transaction_id' => $body['transaction_id'] ?? ($transactionId !== '' ? $transactionId : null),
+                'provider_reference' => $body['provider_reference'] ?? ($providerReference !== '' ? $providerReference : null),
+                'raw_status' => $body['status'] ?? $body['payment_status'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            $normalized = $this->normalizeProviderException($e);
+            return $this->businessError('vr_payment_status_lookup_failed', 'Unable to verify VR Payment status.', [
+                'details' => $normalized,
+            ]);
+        }
+    }
+
+    public function verifyWebhookSignature(string $rawBody, ?string $signatureHeader, ?string $timestampHeader = null): bool
+    {
+        $config = $this->getConfig();
+        $key = (string)($config['webhook_signing_key'] ?? '');
+        if ($key === '' || $signatureHeader === null || trim($signatureHeader) === '') {
+            return false;
+        }
+
+        $signature = trim($signatureHeader);
+        $signature = preg_replace('/^sha256=/i', '', $signature) ?: $signature;
+        $expectedRaw = hash_hmac('sha256', $rawBody, $key);
+        if (hash_equals($expectedRaw, $signature)) {
+            return true;
+        }
+
+        if ($timestampHeader !== null && trim($timestampHeader) !== '') {
+            $expectedWithTimestamp = hash_hmac('sha256', trim($timestampHeader).'.'.$rawBody, $key);
+            if (hash_equals($expectedWithTimestamp, $signature)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function normalizeProviderException(\Throwable $e): array
+    {
+        return [
+            'class' => get_class($e),
+            'message' => $e->getMessage(),
+            'code' => method_exists($e, 'getCode') ? $e->getCode() : null,
+        ];
+    }
+
+    public function normalizePaymentStatus(string $providerStatus): string
+    {
+        $status = strtolower(trim($providerStatus));
+        return match ($status) {
+            'pending', 'created', 'processing' => 'pending',
+            'authorized', 'authorised' => 'authorized',
+            'paid', 'captured', 'completed', 'succeeded', 'success' => 'completed',
+            'failed', 'error', 'declined' => 'failed',
+            'cancelled', 'canceled' => 'cancelled',
+            'expired', 'timeout' => 'expired',
+            default => 'unknown',
+        };
     }
 
     protected function requiredCredentialsPresent(array $config): bool

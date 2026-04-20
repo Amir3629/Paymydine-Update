@@ -1131,6 +1131,105 @@ Route::group([
         ]);
     };
 
+    $persistVRPaymentSession = function (array $record): void {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('vr_payment_sessions')) {
+            return;
+        }
+
+        $sessionId = trim((string)($record['session_id'] ?? ''));
+        $transactionId = trim((string)($record['transaction_id'] ?? ''));
+        $providerReference = trim((string)($record['provider_reference'] ?? ''));
+
+        if ($sessionId === '' && $transactionId === '' && $providerReference === '') {
+            return;
+        }
+
+        $lookup = \Illuminate\Support\Facades\DB::table('vr_payment_sessions');
+        if ($sessionId !== '') {
+            $lookup->where('session_id', $sessionId);
+        } elseif ($transactionId !== '') {
+            $lookup->where('transaction_id', $transactionId);
+        } else {
+            $lookup->where('provider_reference', $providerReference);
+        }
+
+        $existing = $lookup->first();
+        $payload = [
+            'provider_code' => 'vr_payment',
+            'method_code' => (string)($record['method_code'] ?? 'card'),
+            'merchant_reference' => (string)($record['merchant_reference'] ?? ''),
+            'session_id' => $sessionId !== '' ? $sessionId : null,
+            'transaction_id' => $transactionId !== '' ? $transactionId : null,
+            'provider_reference' => $providerReference !== '' ? $providerReference : null,
+            'state' => (string)($record['state'] ?? 'pending'),
+            'amount' => isset($record['amount']) ? (float)$record['amount'] : null,
+            'currency' => isset($record['currency']) ? strtoupper((string)$record['currency']) : null,
+            'order_id' => isset($record['order_id']) ? (int)$record['order_id'] : null,
+            'raw_snapshot' => isset($record['raw_snapshot']) ? json_encode($record['raw_snapshot']) : null,
+            'updated_at' => now(),
+        ];
+
+        if ($existing) {
+            \Illuminate\Support\Facades\DB::table('vr_payment_sessions')
+                ->where('id', (int)$existing->id)
+                ->update($payload);
+            return;
+        }
+
+        $payload['created_at'] = now();
+        \Illuminate\Support\Facades\DB::table('vr_payment_sessions')->insert($payload);
+    };
+
+    $reconcileVRPaymentState = function (array $statusData): void {
+        $state = strtolower((string)($statusData['status'] ?? 'unknown'));
+        $sessionId = trim((string)($statusData['session_id'] ?? ''));
+        $transactionId = trim((string)($statusData['transaction_id'] ?? ''));
+        $providerReference = trim((string)($statusData['provider_reference'] ?? ''));
+        $referenceCandidates = array_values(array_filter([
+            $sessionId !== '' ? $sessionId : null,
+            $transactionId !== '' ? $transactionId : null,
+            $providerReference !== '' ? $providerReference : null,
+            isset($statusData['merchant_reference']) ? trim((string)$statusData['merchant_reference']) : null,
+        ]));
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') || empty($referenceCandidates)) {
+            return;
+        }
+
+        $mappedSettlementStatus = match ($state) {
+            'authorized', 'completed' => 'paid',
+            'failed' => 'failed',
+            'cancelled', 'expired' => 'cancelled',
+            default => null,
+        };
+
+        if ($mappedSettlementStatus === null) {
+            return;
+        }
+
+        $matchedRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+            ->whereIn('payment_reference', $referenceCandidates)
+            ->get(['id', 'order_id']);
+
+        foreach ($matchedRows as $row) {
+            \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                ->where('id', (int)$row->id)
+                ->update([
+                    'settlement_status' => $mappedSettlementStatus,
+                    'updated_at' => now(),
+                ]);
+            if (\Illuminate\Support\Facades\Schema::hasTable('orders')) {
+                \Illuminate\Support\Facades\DB::table('orders')
+                    ->where('order_id', (int)$row->order_id)
+                    ->update([
+                        'payment_provider' => 'vr_payment',
+                        'payment_reference' => $referenceCandidates[0] ?? null,
+                        'updated_at' => now(),
+                    ]);
+            }
+        }
+    };
+
     $isProviderReadyForMethod = function (string $providerCode, string $methodCode, array $stripeReadiness, array $worldlineReadiness, array $worldlineWeroReadiness, array $vrPaymentReadiness): array {
         if ($providerCode === 'stripe') {
             $readinessByMethod = [
@@ -1383,12 +1482,29 @@ Route::group([
 
     Route::get('/payments/vr-payment/diagnostics', function () use ($resolveRuntimeMethodCollection, $resolveVRPaymentRuntimeReadiness) {
         $runtime = $resolveRuntimeMethodCollection(true);
+        $lastSession = null;
+        $lastWebhook = null;
+        if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_sessions')) {
+            $lastSession = \Illuminate\Support\Facades\DB::table('vr_payment_sessions')->orderByDesc('updated_at')->first();
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_webhook_events')) {
+            $lastWebhook = \Illuminate\Support\Facades\DB::table('vr_payment_webhook_events')->orderByDesc('processed_at')->first();
+        }
+        $readiness = $resolveVRPaymentRuntimeReadiness();
         return response()->json([
             'success' => true,
             'provider' => 'vr_payment',
-            'readiness' => $resolveVRPaymentRuntimeReadiness(),
+            'readiness' => $readiness,
+            'webhook_signing_key_present' => (bool)($readiness['config_presence']['webhook_signing_key'] ?? false),
+            'return_status_endpoint' => '/api/v1/payments/vr-payment/return-status',
+            'webhook_endpoint' => '/api/v1/payments/vr-payment/webhook',
             'runtime_trace' => $runtime['trace'] ?? [],
             'runtime_methods' => $runtime['methods'] ?? [],
+            'last_session' => $lastSession,
+            'last_webhook_event' => $lastWebhook,
+            'last_normalized_error' => ($lastSession && in_array((string)($lastSession->state ?? ''), ['failed', 'cancelled', 'expired'], true))
+                ? ['state' => (string)$lastSession->state, 'updated_at' => (string)($lastSession->updated_at ?? '')]
+                : null,
         ]);
     });
 
@@ -1641,7 +1757,7 @@ Route::group([
         ], 200);
     });
 
-    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection) {
+    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $persistVRPaymentSession) {
         $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
         $cardMethod = (array)$runtimeMethods->get('card', []);
         if (empty($cardMethod)) {
@@ -1812,6 +1928,17 @@ Route::group([
                 if (!($result['success'] ?? false)) {
                     return response()->json($result, 422);
                 }
+                $persistVRPaymentSession([
+                    'method_code' => 'card',
+                    'merchant_reference' => (string)$request->input('merchant_reference', ''),
+                    'session_id' => (string)($result['session_id'] ?? ''),
+                    'transaction_id' => (string)($result['transaction_id'] ?? ''),
+                    'provider_reference' => (string)($result['provider_reference'] ?? ''),
+                    'state' => (string)($result['status'] ?? 'pending'),
+                    'amount' => $amountMajor,
+                    'currency' => $currency,
+                    'raw_snapshot' => $result,
+                ]);
                 return response()->json($result, 200);
             }
 
@@ -1829,8 +1956,8 @@ Route::group([
         }
     });
 
-    $registerVRPaymentSessionRoute = function (string $methodCode, string $path) use ($resolveRuntimeMethodCollection) {
-        Route::post($path, function (\Illuminate\Http\Request $request) use ($methodCode, $resolveRuntimeMethodCollection) {
+    $registerVRPaymentSessionRoute = function (string $methodCode, string $path) use ($resolveRuntimeMethodCollection, $persistVRPaymentSession) {
+        Route::post($path, function (\Illuminate\Http\Request $request) use ($methodCode, $resolveRuntimeMethodCollection, $persistVRPaymentSession) {
             $payload = $request->validate([
                 'amount' => 'required|numeric|min:0.01',
                 'currency' => 'required|string|size:3',
@@ -1839,6 +1966,7 @@ Route::group([
                 'locale' => 'nullable|string|max:10',
                 'country_code' => 'nullable|string|max:3',
                 'merchant_customer_id' => 'nullable|string|max:120',
+                'merchant_reference' => 'nullable|string|max:191',
                 'items' => 'nullable|array',
             ]);
 
@@ -1885,6 +2013,18 @@ Route::group([
                 return response()->json($result, 422);
             }
 
+            $persistVRPaymentSession([
+                'method_code' => $methodCode,
+                'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
+                'session_id' => (string)($result['session_id'] ?? ''),
+                'transaction_id' => (string)($result['transaction_id'] ?? ''),
+                'provider_reference' => (string)($result['provider_reference'] ?? ''),
+                'state' => (string)($result['status'] ?? 'pending'),
+                'amount' => (float)$payload['amount'],
+                'currency' => strtoupper((string)$payload['currency']),
+                'raw_snapshot' => $result,
+            ]);
+
             return response()->json($result, 200);
         });
     };
@@ -1894,6 +2034,130 @@ Route::group([
     $registerVRPaymentSessionRoute('wero', '/payments/vr-payment/wero/create-session');
     $registerVRPaymentSessionRoute('apple_pay', '/payments/vr-payment/apple-pay/create-session');
     $registerVRPaymentSessionRoute('google_pay', '/payments/vr-payment/google-pay/create-session');
+
+    Route::match(['GET', 'POST'], '/payments/vr-payment/return-status', function (\Illuminate\Http\Request $request) use ($persistVRPaymentSession, $reconcileVRPaymentState) {
+        $payload = $request->validate([
+            'session_id' => 'nullable|string|max:191',
+            'transaction_id' => 'nullable|string|max:191',
+            'provider_reference' => 'nullable|string|max:191',
+            'merchant_reference' => 'nullable|string|max:191',
+        ]);
+
+        if (
+            empty($payload['session_id'])
+            && empty($payload['transaction_id'])
+            && empty($payload['provider_reference'])
+            && empty($payload['merchant_reference'])
+        ) {
+            return response()->json([
+                'success' => false,
+                'provider' => 'vr_payment',
+                'error_code' => 'vr_payment_status_lookup_failed',
+                'error' => 'No VR Payment reference was provided.',
+            ], 422);
+        }
+
+        $service = app(\Admin\Classes\VRPaymentGatewayService::class);
+        $status = $service->fetchPaymentStatus($payload);
+        if (!($status['success'] ?? false)) {
+            return response()->json($status, 422);
+        }
+
+        $persistVRPaymentSession([
+            'method_code' => 'unknown',
+            'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
+            'session_id' => (string)($status['session_id'] ?? ''),
+            'transaction_id' => (string)($status['transaction_id'] ?? ''),
+            'provider_reference' => (string)($status['provider_reference'] ?? ''),
+            'state' => (string)($status['status'] ?? 'unknown'),
+            'raw_snapshot' => $status,
+        ]);
+        $reconcileVRPaymentState(array_merge($payload, $status));
+
+        return response()->json($status, 200);
+    });
+
+    Route::post('/payments/vr-payment/webhook', function (\Illuminate\Http\Request $request) use ($persistVRPaymentSession, $reconcileVRPaymentState) {
+        $rawBody = (string)$request->getContent();
+        $signature = (string)$request->header('x-vr-signature', '');
+        $timestamp = (string)$request->header('x-vr-timestamp', '');
+        $service = app(\Admin\Classes\VRPaymentGatewayService::class);
+
+        if (!$service->verifyWebhookSignature($rawBody, $signature, $timestamp)) {
+            \Admin\Classes\PaymentLogger::warning('VR_PAYMENT_WEBHOOK_SIGNATURE_INVALID', [
+                'provider' => 'vr_payment',
+                'payment_method' => 'all',
+                'request_meta' => ['headers' => $request->headers->all()],
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'vr_payment',
+                'error_code' => 'vr_payment_signature_invalid',
+                'error' => 'Invalid VR Payment webhook signature.',
+            ], 401);
+        }
+
+        $payload = json_decode($rawBody, true);
+        if (!is_array($payload)) {
+            return response()->json([
+                'success' => false,
+                'provider' => 'vr_payment',
+                'error_code' => 'vr_payment_webhook_invalid',
+                'error' => 'Invalid webhook payload.',
+            ], 422);
+        }
+
+        $eventId = trim((string)($payload['event_id'] ?? ''));
+        if ($eventId === '') {
+            $eventId = hash('sha256', $rawBody);
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_webhook_events')) {
+            $alreadyProcessed = \Illuminate\Support\Facades\DB::table('vr_payment_webhook_events')
+                ->where('event_id', $eventId)
+                ->exists();
+            if ($alreadyProcessed) {
+                return response()->json(['success' => true, 'provider' => 'vr_payment', 'duplicate' => true], 200);
+            }
+        }
+
+        $normalizedState = $service->normalizePaymentStatus((string)($payload['status'] ?? $payload['payment_status'] ?? 'unknown'));
+        $record = [
+            'method_code' => (string)($payload['method'] ?? 'unknown'),
+            'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
+            'session_id' => (string)($payload['session_id'] ?? ''),
+            'transaction_id' => (string)($payload['transaction_id'] ?? ''),
+            'provider_reference' => (string)($payload['provider_reference'] ?? ''),
+            'state' => $normalizedState,
+            'raw_snapshot' => $payload,
+        ];
+        $persistVRPaymentSession($record);
+        $reconcileVRPaymentState(array_merge($payload, [
+            'status' => $normalizedState,
+        ]));
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_webhook_events')) {
+            \Illuminate\Support\Facades\DB::table('vr_payment_webhook_events')->insert([
+                'event_id' => $eventId,
+                'event_type' => (string)($payload['event_type'] ?? $payload['type'] ?? 'unknown'),
+                'session_id' => (string)($payload['session_id'] ?? ''),
+                'transaction_id' => (string)($payload['transaction_id'] ?? ''),
+                'provider_reference' => (string)($payload['provider_reference'] ?? ''),
+                'state' => $normalizedState,
+                'processed_at' => now(),
+                'payload' => json_encode($payload),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'provider' => 'vr_payment',
+            'event_id' => $eventId,
+            'status' => $normalizedState,
+        ], 200);
+    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
     Route::post('/payments/worldline/checkout-status', function (\Illuminate\Http\Request $request) {
         $payload = $request->validate([
@@ -3958,7 +4222,7 @@ return response()->json([
                 $validationRules['table_id'] = 'nullable|string|max:50';
             }
 
-            $validationRules['payment_provider'] = 'nullable|string|in:stripe,paypal,worldline,sumup,square';
+            $validationRules['payment_provider'] = 'nullable|string|in:stripe,paypal,worldline,sumup,square,vr_payment';
             $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,wero,paypal,cod,cash,stripe';
             $validationRules['payment_reference'] = 'nullable|string|max:255';
 
