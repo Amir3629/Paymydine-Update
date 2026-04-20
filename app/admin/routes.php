@@ -717,6 +717,7 @@ Route::group([
         'worldline' => ['card', 'wero'],
         'sumup' => ['card'],
         'square' => ['card'],
+        'vr_payment' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'],
     ];
 
     $implementedFlowMatrix = $providerCapabilityMatrix;
@@ -743,6 +744,7 @@ Route::group([
         ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '', 'wero_enabled' => false, 'wero_payment_product_id' => '']],
         ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
         ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['square'], 'config' => ['transaction_mode' => 'test', 'test_access_token' => '', 'test_location_id' => '', 'live_access_token' => '', 'live_location_id' => '', 'currency' => 'EUR']],
+        ['code' => 'vr_payment', 'name' => 'VR Payment', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['vr_payment'], 'config' => ['enabled' => false, 'mode' => 'test', 'api_base_url' => '', 'space_id' => '', 'user_id' => '', 'auth_key' => '', 'webhook_signing_key' => '', 'preferred_integration_mode' => 'payment_page', 'card_enabled' => true, 'apple_pay_enabled' => false, 'google_pay_enabled' => false, 'paypal_enabled' => false, 'wero_enabled' => false]],
     ];
 
     $loadJsonSetting = function (string $item, array $fallback) {
@@ -768,7 +770,7 @@ Route::group([
     };
 
     $loadProviderRecordsFromPayments = function () {
-        $providerCodes = ['stripe', 'paypal', 'worldline', 'sumup', 'square'];
+        $providerCodes = ['stripe', 'paypal', 'worldline', 'sumup', 'square', 'vr_payment'];
         return \Admin\Models\Payments_model::query()
             ->whereIn('code', $providerCodes)
             ->get()
@@ -782,6 +784,7 @@ Route::group([
                         'worldline' => ['card', 'wero'],
                         'sumup' => ['card'],
                         'square' => ['card'],
+                        'vr_payment' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'],
                     ][(string)$row->code] ?? [];
                 }
 
@@ -1115,7 +1118,20 @@ Route::group([
         ];
     };
 
-    $isProviderReadyForMethod = function (string $providerCode, string $methodCode, array $stripeReadiness, array $worldlineReadiness, array $worldlineWeroReadiness): array {
+    $resolveVRPaymentRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentProviders): array {
+        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
+        $providerRow = (array)$providers->get('vr_payment', []);
+        $providerEnabled = (bool)($providerRow['enabled'] ?? false);
+
+        $service = app(\Admin\Classes\VRPaymentGatewayService::class);
+        $diag = $service->getConfigForDiagnostics();
+
+        return array_merge($diag, [
+            'provider_enabled' => $providerEnabled && (bool)($diag['provider_enabled'] ?? false),
+        ]);
+    };
+
+    $isProviderReadyForMethod = function (string $providerCode, string $methodCode, array $stripeReadiness, array $worldlineReadiness, array $worldlineWeroReadiness, array $vrPaymentReadiness): array {
         if ($providerCode === 'stripe') {
             $readinessByMethod = [
                 'card' => (bool)($stripeReadiness['card_ready'] ?? false),
@@ -1146,6 +1162,20 @@ Route::group([
             }
         }
 
+        if ($providerCode === 'vr_payment') {
+            $readinessByMethod = [
+                'card' => (bool)($vrPaymentReadiness['card_ready'] ?? false),
+                'apple_pay' => (bool)($vrPaymentReadiness['apple_pay_ready'] ?? false),
+                'google_pay' => (bool)($vrPaymentReadiness['google_pay_ready'] ?? false),
+                'paypal' => (bool)($vrPaymentReadiness['paypal_ready'] ?? false),
+                'wero' => (bool)($vrPaymentReadiness['wero_ready'] ?? false),
+            ];
+            return [
+                'ready' => (bool)($readinessByMethod[$methodCode] ?? false),
+                'reason' => 'vr_payment_method_readiness',
+            ];
+        }
+
         return ['ready' => true, 'reason' => 'generic_provider_readiness'];
     };
 
@@ -1157,6 +1187,7 @@ Route::group([
         $resolveStripeRuntimeReadiness,
         $resolveWorldlineInlineReadiness,
         $resolveWorldlineWeroReadiness,
+        $resolveVRPaymentRuntimeReadiness,
         $loadMethodRecordsFromPayments,
         $loadProviderRecordsFromPayments,
         $isProviderReadyForMethod
@@ -1166,6 +1197,7 @@ Route::group([
         $stripeReadiness = $resolveStripeRuntimeReadiness();
         $worldlineReadiness = $resolveWorldlineInlineReadiness();
         $worldlineWeroReadiness = $resolveWorldlineWeroReadiness();
+        $vrPaymentReadiness = $resolveVRPaymentRuntimeReadiness();
         $resolveAvailableProviders = is_callable($availableProviderCodesForMethod ?? null)
             ? $availableProviderCodesForMethod
             : fn (string $methodCode): array => [];
@@ -1244,7 +1276,8 @@ Route::group([
                     $methodCode,
                     $stripeReadiness,
                     $worldlineReadiness,
-                    $worldlineWeroReadiness
+                    $worldlineWeroReadiness,
+                    $vrPaymentReadiness
                 );
 
                 if (!($providerReadiness['ready'] ?? false)) {
@@ -1308,6 +1341,7 @@ Route::group([
                     'stripe' => $stripeReadiness,
                     'worldline_card' => $worldlineReadiness,
                     'worldline_wero' => $worldlineWeroReadiness,
+                    'vr_payment' => $vrPaymentReadiness,
                 ],
             ];
         }
@@ -1345,6 +1379,17 @@ Route::group([
             'trace' => $resolution['trace'] ?? [],
             'readiness' => $resolution['readiness'] ?? [],
         ], 200);
+    });
+
+    Route::get('/payments/vr-payment/diagnostics', function () use ($resolveRuntimeMethodCollection, $resolveVRPaymentRuntimeReadiness) {
+        $runtime = $resolveRuntimeMethodCollection(true);
+        return response()->json([
+            'success' => true,
+            'provider' => 'vr_payment',
+            'readiness' => $resolveVRPaymentRuntimeReadiness(),
+            'runtime_trace' => $runtime['trace'] ?? [],
+            'runtime_methods' => $runtime['methods'] ?? [],
+        ]);
     });
 
     Route::get('/payment-methods-admin', function () use ($defaultPaymentMethods, $loadJsonSetting, $loadMethodRecordsFromPayments) {
@@ -1751,6 +1796,25 @@ Route::group([
                 return response()->json(['success' => false, 'error' => 'Stripe card flow uses PaymentIntent endpoint'], 409);
             }
 
+            if ($providerCode === 'vr_payment') {
+                $service = app(\Admin\Classes\VRPaymentGatewayService::class);
+                $result = $service->createRedirectSession([
+                    'method' => 'card',
+                    'amount' => $amountMajor,
+                    'currency' => $currency,
+                    'return_url' => $returnUrl,
+                    'cancel_url' => (string)($payload['cancel_url'] ?? $returnUrl),
+                    'locale' => (string)($payload['locale'] ?? 'en_US'),
+                    'country_code' => (string)$request->input('country_code', 'DE'),
+                    'merchant_customer_id' => (string)$request->input('merchant_customer_id', 'PMD-VR-CARD'),
+                    'items' => (array)($payload['items'] ?? []),
+                ]);
+                if (!($result['success'] ?? false)) {
+                    return response()->json($result, 422);
+                }
+                return response()->json($result, 200);
+            }
+
             return response()->json(['success' => false, 'error' => "Unsupported card provider {$providerCode}"], 422);
         } catch (\Throwable $e) {
             \Log::error('Card create-session failed', [
@@ -1764,6 +1828,72 @@ Route::group([
             return response()->json(['success' => false, 'error' => $e->getMessage() ?: 'Failed to create card session'], 500);
         }
     });
+
+    $registerVRPaymentSessionRoute = function (string $methodCode, string $path) use ($resolveRuntimeMethodCollection) {
+        Route::post($path, function (\Illuminate\Http\Request $request) use ($methodCode, $resolveRuntimeMethodCollection) {
+            $payload = $request->validate([
+                'amount' => 'required|numeric|min:0.01',
+                'currency' => 'required|string|size:3',
+                'return_url' => 'required|url',
+                'cancel_url' => 'required|url',
+                'locale' => 'nullable|string|max:10',
+                'country_code' => 'nullable|string|max:3',
+                'merchant_customer_id' => 'nullable|string|max:120',
+                'items' => 'nullable|array',
+            ]);
+
+            $runtimeCollection = $resolveRuntimeMethodCollection(true);
+            $runtimeMethods = collect($runtimeCollection['methods'] ?? [])->keyBy('code');
+            $selected = (array)$runtimeMethods->get($methodCode, []);
+            if (empty($selected)) {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'vr_payment',
+                    'method' => $methodCode,
+                    'business_error' => true,
+                    'error_code' => 'vr_payment_method_not_active',
+                    'error' => 'This payment method is currently unavailable for this merchant.',
+                ], 422);
+            }
+
+            $selectedProvider = strtolower((string)($selected['provider_code'] ?? ''));
+            if ($selectedProvider !== 'vr_payment') {
+                return response()->json([
+                    'success' => false,
+                    'provider' => $selectedProvider ?: null,
+                    'method' => $methodCode,
+                    'business_error' => true,
+                    'error_code' => 'vr_payment_method_not_active',
+                    'error' => 'Selected method is not mapped to VR Payment.',
+                ], 422);
+            }
+
+            $service = app(\Admin\Classes\VRPaymentGatewayService::class);
+            $result = $service->createRedirectSession([
+                'method' => $methodCode,
+                'amount' => (float)$payload['amount'],
+                'currency' => strtoupper((string)$payload['currency']),
+                'return_url' => (string)$payload['return_url'],
+                'cancel_url' => (string)$payload['cancel_url'],
+                'locale' => (string)($payload['locale'] ?? 'en_US'),
+                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
+                'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? 'PMD-VR-CHECKOUT'),
+                'items' => (array)($payload['items'] ?? []),
+            ]);
+
+            if (!($result['success'] ?? false)) {
+                return response()->json($result, 422);
+            }
+
+            return response()->json($result, 200);
+        });
+    };
+
+    $registerVRPaymentSessionRoute('card', '/payments/vr-payment/card/create-session');
+    $registerVRPaymentSessionRoute('paypal', '/payments/vr-payment/paypal/create-session');
+    $registerVRPaymentSessionRoute('wero', '/payments/vr-payment/wero/create-session');
+    $registerVRPaymentSessionRoute('apple_pay', '/payments/vr-payment/apple-pay/create-session');
+    $registerVRPaymentSessionRoute('google_pay', '/payments/vr-payment/google-pay/create-session');
 
     Route::post('/payments/worldline/checkout-status', function (\Illuminate\Http\Request $request) {
         $payload = $request->validate([

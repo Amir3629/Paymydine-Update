@@ -24,7 +24,7 @@ class Payments extends \Admin\Classes\AdminController
      * - This must be used for assignable dropdown/validation.
      */
     protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod'];
-    protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square'];
+    protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square', 'vr_payment'];
 
     public $implement = [
         'Admin\Actions\ListController',
@@ -558,7 +558,7 @@ class Payments extends \Admin\Classes\AdminController
     protected function resolveProviderGatewayClasses(): array
     {
         $rows = Payments_model::query()
-            ->whereIn('code', ['stripe', 'paypal', 'paypalexpress', 'worldline', 'sumup', 'square'])
+            ->whereIn('code', ['stripe', 'paypal', 'paypalexpress', 'worldline', 'sumup', 'square', 'vr_payment'])
             ->get(['code', 'class_name']);
         $map = [];
         foreach ($rows as $row) {
@@ -581,6 +581,7 @@ class Payments extends \Admin\Classes\AdminController
         $providerDefaults['worldline']['name'] = 'Worldline';
         $providerDefaults['stripe']['name'] = 'Stripe';
         $providerDefaults['square']['name'] = 'Square';
+        $providerDefaults['vr_payment']['name'] = 'VR Payment';
 
         $classMap = $this->resolveProviderGatewayClasses();
         foreach ($providerDefaults as $code => $cfg) {
@@ -614,6 +615,7 @@ class Payments extends \Admin\Classes\AdminController
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card', 'wero']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],
             ['code' => 'square', 'name' => 'Square', 'supported_methods' => ['card']],
+            ['code' => 'vr_payment', 'name' => 'VR Payment', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero']],
         ];
 
         $row = \DB::table('settings')
@@ -727,6 +729,7 @@ class Payments extends \Admin\Classes\AdminController
             'worldline' => 102,
             'sumup' => 103,
             'square' => 104,
+            'vr_payment' => 105,
         ];
     }
 
@@ -777,6 +780,21 @@ class Payments extends \Admin\Classes\AdminController
                 'api_key_id' => ['label' => 'API Key ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Public API key identifier from Worldline portal.'],
                 'secret_api_key' => ['label' => 'Secret API Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
                 'webhook_secret' => ['label' => 'Webhook Secret (optional)', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
+            ],
+            'vr_payment' => [
+                'enabled' => ['label' => 'Provider Enabled', 'type' => 'switch', 'span' => 'left', 'default' => false, 'comment' => 'Enable VR Payment at provider level.'],
+                'mode' => ['label' => 'Mode', 'type' => 'select', 'span' => 'right', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
+                'api_base_url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'comment' => 'Base URL for VR Payment API (no trailing slash required).'],
+                'space_id' => ['label' => 'Space ID', 'type' => 'text', 'span' => 'right'],
+                'user_id' => ['label' => 'User ID', 'type' => 'text', 'span' => 'left'],
+                'auth_key' => ['label' => 'Auth Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
+                'webhook_signing_key' => ['label' => 'Webhook Signing Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
+                'preferred_integration_mode' => ['label' => 'Preferred Integration', 'type' => 'select', 'span' => 'right', 'default' => 'payment_page', 'options' => ['payment_page' => 'Hosted Payment Page']],
+                'card_enabled' => ['label' => 'Enable Card', 'type' => 'switch', 'span' => 'left', 'default' => true],
+                'apple_pay_enabled' => ['label' => 'Enable Apple Pay', 'type' => 'switch', 'span' => 'right', 'default' => false],
+                'google_pay_enabled' => ['label' => 'Enable Google Pay', 'type' => 'switch', 'span' => 'left', 'default' => false],
+                'paypal_enabled' => ['label' => 'Enable PayPal', 'type' => 'switch', 'span' => 'right', 'default' => false],
+                'wero_enabled' => ['label' => 'Enable Wero', 'type' => 'switch', 'span' => 'left', 'default' => false],
             ],
         ];
 
@@ -852,6 +870,7 @@ class Payments extends \Admin\Classes\AdminController
             'square' => ['test_access_token', 'live_access_token'],
             'sumup' => ['access_token'],
             'worldline' => ['secret_api_key', 'webhook_secret'],
+            'vr_payment' => ['auth_key', 'webhook_signing_key'],
         ][$providerCode] ?? [];
     }
 
@@ -896,6 +915,9 @@ class Payments extends \Admin\Classes\AdminController
         } elseif ($code === 'worldline') {
             $diagnostics = app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getConfigForDiagnostics();
             $result = ['success' => true, 'message' => 'Worldline configuration resolved from active tenant POS mapping.', 'environment' => $diagnostics['environment'] ?? 'unknown'];
+        } elseif ($code === 'vr_payment') {
+            $diagnostics = app(\Admin\Classes\VRPaymentGatewayService::class)->getConfigForDiagnostics();
+            $result = ['success' => (bool)($diagnostics['provider_enabled'] ?? false), 'message' => 'VR Payment diagnostics resolved.', 'diagnostics' => $diagnostics];
         }
 
         if (request()->ajax()) {
