@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 class VRPaymentGatewayService
 {
     protected const SUPPORTED_METHODS = ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'];
+    protected const MAC_VERSION = '1';
 
     public function getConfig(): array
     {
@@ -109,34 +110,18 @@ class VRPaymentGatewayService
         }
 
         try {
-            $endpoint = $config['api_base_url'].'/checkout/sessions';
-            $requestPayload = [
-                'payment_method' => $method,
-                'method' => $method,
-                'merchant_reference' => $merchantReference,
-                'amount' => (float)($payload['amount'] ?? 0),
-                'currency' => strtoupper((string)($payload['currency'] ?? 'EUR')),
-                'return_url' => (string)($payload['return_url'] ?? ''),
-                'cancel_url' => (string)($payload['cancel_url'] ?? ''),
-                'locale' => (string)($payload['locale'] ?? 'en_US'),
-                'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
-                'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? ''),
-                'items' => array_values((array)($payload['items'] ?? [])),
-            ];
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-                'x-space-id' => $config['space_id'],
-                'x-user-id' => $config['user_id'],
-                'x-auth-key' => $config['auth_key'],
-            ])->timeout(20)->post($endpoint, $requestPayload);
+            $spaceId = (int)$config['space_id'];
+            $gatewayBase = $this->resolveGatewayBaseUrl($config['api_base_url'] ?? '');
+            $transactionPath = '/api/transaction/create?spaceId='.$spaceId;
+            $requestPayload = $this->buildTransactionCreatePayload($method, $payload, $merchantReference);
+            $response = $this->signedGatewayRequest('POST', $gatewayBase, $transactionPath, $config, $requestPayload);
 
             if (!$response->ok()) {
                 $httpFailure = $this->normalizeHttpFailure($response->status(), (string)$response->body());
                 PaymentLogger::warning('VR_PAYMENT_CREATE_SESSION_HTTP_FAILURE', [
                     'provider' => 'vr_payment',
                     'payment_method' => $method,
-                    'request_meta' => ['endpoint' => $endpoint, 'merchant_reference' => $merchantReference],
+                    'request_meta' => ['endpoint' => $gatewayBase.$transactionPath, 'merchant_reference' => $merchantReference],
                     'response_meta' => ['status' => $response->status(), 'body' => $response->body()],
                 ]);
 
@@ -153,7 +138,29 @@ class VRPaymentGatewayService
             }
 
             $body = (array)$response->json();
-            $redirectUrl = (string)($body['redirect_url'] ?? $body['payment_page_url'] ?? '');
+            $transactionId = (string)($body['id'] ?? $body['transaction_id'] ?? '');
+            if ($transactionId === '') {
+                return $this->businessError('vr_payment_transaction_create_failed', 'VR Payment transaction creation did not return an id.');
+            }
+
+            $paymentPagePath = '/api/transaction-payment-page/payment-page-url?spaceId='.$spaceId.'&id='.$transactionId;
+            $pageResponse = $this->signedGatewayRequest('GET', $gatewayBase, $paymentPagePath, $config);
+            if (!$pageResponse->ok()) {
+                $httpFailure = $this->normalizeHttpFailure($pageResponse->status(), (string)$pageResponse->body());
+                return $this->businessError(
+                    (string)$httpFailure['error_code'],
+                    (string)$httpFailure['error'],
+                    [
+                        'status' => $pageResponse->status(),
+                        'error_category' => $httpFailure['error_category'] ?? 'provider_http',
+                        'merchant_reference' => $merchantReference,
+                        'provider_response' => $httpFailure['provider_response'] ?? null,
+                    ]
+                );
+            }
+
+            $pageBody = (array)$pageResponse->json();
+            $redirectUrl = (string)($pageBody['url'] ?? $pageBody['paymentPageUrl'] ?? $pageBody['redirect_url'] ?? '');
             if ($redirectUrl === '') {
                 return $this->businessError('vr_payment_redirect_missing', 'VR Payment did not return a redirect URL.');
             }
@@ -163,11 +170,11 @@ class VRPaymentGatewayService
                 'provider' => 'vr_payment',
                 'method' => $method,
                 'redirect_url' => $redirectUrl,
-                'merchant_reference' => $body['merchant_reference'] ?? $merchantReference,
-                'session_id' => $body['session_id'] ?? null,
-                'transaction_id' => $body['transaction_id'] ?? null,
-                'provider_reference' => $body['provider_reference'] ?? null,
-                'status' => $this->normalizePaymentStatus((string)($body['status'] ?? 'pending')),
+                'merchant_reference' => $merchantReference,
+                'session_id' => $transactionId,
+                'transaction_id' => $transactionId,
+                'provider_reference' => $transactionId,
+                'status' => $this->normalizePaymentStatus((string)($body['state'] ?? 'pending')),
             ];
         } catch (\Throwable $e) {
             $normalized = $this->normalizeProviderException($e);
@@ -205,18 +212,11 @@ class VRPaymentGatewayService
         }
 
         try {
-            $endpoint = $config['api_base_url'].'/checkout/status';
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-                'x-space-id' => $config['space_id'],
-                'x-user-id' => $config['user_id'],
-                'x-auth-key' => $config['auth_key'],
-            ])->timeout(20)->post($endpoint, [
-                'session_id' => $sessionId !== '' ? $sessionId : null,
-                'transaction_id' => $transactionId !== '' ? $transactionId : null,
-                'provider_reference' => $providerReference !== '' ? $providerReference : null,
-            ]);
+            $spaceId = (int)$config['space_id'];
+            $gatewayBase = $this->resolveGatewayBaseUrl($config['api_base_url'] ?? '');
+            $resolvedTransactionId = $transactionId !== '' ? $transactionId : ($providerReference !== '' ? $providerReference : $sessionId);
+            $statusPath = '/api/transaction/read?spaceId='.$spaceId.'&id='.urlencode($resolvedTransactionId);
+            $response = $this->signedGatewayRequest('GET', $gatewayBase, $statusPath, $config);
 
             if (!$response->ok()) {
                 return $this->businessError('vr_payment_status_lookup_failed', 'Unable to verify VR Payment status.', [
@@ -225,17 +225,18 @@ class VRPaymentGatewayService
             }
 
             $body = (array)$response->json();
-            $normalized = $this->normalizePaymentStatus((string)($body['status'] ?? $body['payment_status'] ?? 'unknown'));
+            $normalized = $this->normalizePaymentStatus((string)($body['state'] ?? $body['status'] ?? $body['payment_status'] ?? 'unknown'));
+            $resolvedId = (string)($body['id'] ?? $resolvedTransactionId);
 
             return [
                 'success' => true,
                 'provider' => 'vr_payment',
                 'status' => $normalized,
                 'is_paid' => in_array($normalized, ['authorized', 'completed'], true),
-                'session_id' => $body['session_id'] ?? ($sessionId !== '' ? $sessionId : null),
-                'transaction_id' => $body['transaction_id'] ?? ($transactionId !== '' ? $transactionId : null),
-                'provider_reference' => $body['provider_reference'] ?? ($providerReference !== '' ? $providerReference : null),
-                'raw_status' => $body['status'] ?? $body['payment_status'] ?? null,
+                'session_id' => $resolvedId,
+                'transaction_id' => $resolvedId,
+                'provider_reference' => $resolvedId,
+                'raw_status' => $body['state'] ?? $body['status'] ?? $body['payment_status'] ?? null,
             ];
         } catch (\Throwable $e) {
             $normalized = $this->normalizeProviderException($e);
@@ -394,6 +395,108 @@ class VRPaymentGatewayService
             && ($config['space_id'] ?? '') !== ''
             && ($config['user_id'] ?? '') !== ''
             && ($config['auth_key'] ?? '') !== '';
+    }
+
+    protected function buildTransactionCreatePayload(string $method, array $payload, string $merchantReference): array
+    {
+        $amountMajor = (float)($payload['amount'] ?? 0);
+        $amountMajor = $amountMajor > 0 ? $amountMajor : 0.01;
+        $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
+        $returnUrl = (string)($payload['return_url'] ?? '');
+        $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
+
+        $lineItems = [];
+        foreach ((array)($payload['items'] ?? []) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $qty = max(1, (int)($item['quantity'] ?? 1));
+            $price = (float)($item['price'] ?? 0);
+            if ($price <= 0) {
+                continue;
+            }
+            $lineItems[] = [
+                'name' => (string)($item['name'] ?? 'Paymydine item'),
+                'quantity' => $qty,
+                'type' => 'PRODUCT',
+                'amountIncludingTax' => round($price * $qty, 2),
+                'sku' => (string)($item['id'] ?? ('item-'.(count($lineItems) + 1))),
+                'uniqueId' => (string)($item['id'] ?? ('item-'.(count($lineItems) + 1))),
+            ];
+        }
+        if (empty($lineItems)) {
+            $lineItems[] = [
+                'name' => 'Paymydine order',
+                'quantity' => 1,
+                'type' => 'PRODUCT',
+                'amountIncludingTax' => round($amountMajor, 2),
+                'sku' => 'order',
+                'uniqueId' => 'order',
+            ];
+        }
+
+        return [
+            'currency' => $currency,
+            'lineItems' => $lineItems,
+            'autoConfirmationEnabled' => true,
+            'merchantReference' => $merchantReference,
+            'successUrl' => $returnUrl,
+            'failedUrl' => $cancelUrl,
+            'language' => (string)($payload['locale'] ?? 'en-US'),
+            'customerEmailAddress' => (string)($payload['customer_email'] ?? ''),
+            'metaData' => [
+                'payment_method' => $method,
+                'merchant_reference' => $merchantReference,
+            ],
+        ];
+    }
+
+    protected function resolveGatewayBaseUrl(string $apiBaseUrl): string
+    {
+        $candidate = rtrim(trim($apiBaseUrl), '/');
+        if ($candidate === '') {
+            return 'https://gateway.vr-payment.de';
+        }
+
+        $parts = parse_url($candidate);
+        $host = strtolower((string)($parts['host'] ?? ''));
+        if ($host === '' || str_contains($host, 'asia.vrpy.de')) {
+            return 'https://gateway.vr-payment.de';
+        }
+
+        return ($parts['scheme'] ?? 'https').'://'.$host;
+    }
+
+    protected function signedGatewayRequest(string $method, string $baseUrl, string $pathWithQuery, array $config, ?array $body = null)
+    {
+        $upperMethod = strtoupper($method);
+        $timestamp = (string)time();
+        $decodedSecret = base64_decode((string)$config['auth_key'], true);
+        if ($decodedSecret === false) {
+            throw new \RuntimeException('VR Payment auth_key must be Base64-encoded application user key.');
+        }
+
+        $signaturePayload = self::MAC_VERSION.'|'.(string)$config['user_id'].'|'.$timestamp.'|'.$upperMethod.'|'.$pathWithQuery;
+        $macValue = base64_encode(hash_hmac('sha512', $signaturePayload, $decodedSecret, true));
+        $url = rtrim($baseUrl, '/').$pathWithQuery;
+
+        $request = Http::withHeaders([
+            'Accept' => 'application/json',
+            'X-Mac-Version' => self::MAC_VERSION,
+            'X-Mac-Userid' => (string)$config['user_id'],
+            'X-Mac-Timestamp' => $timestamp,
+            'X-Mac-Value' => $macValue,
+        ])->timeout(20);
+
+        if ($upperMethod === 'GET') {
+            return $request->get($url);
+        }
+
+        return $request->withHeaders([
+            'Content-Type' => 'application/json;charset=utf-8',
+        ])->send($upperMethod, $url, [
+            'json' => $body ?? [],
+        ]);
     }
 
     protected function toBool($value): bool
