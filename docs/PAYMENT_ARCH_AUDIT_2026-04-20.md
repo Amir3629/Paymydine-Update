@@ -221,3 +221,127 @@ Scope: backend + frontend trace for Wero routed through VR Payment, with explici
 8. Status/order reconciliation: **partially wired**
 9. Credentials/schema requirements: **works**
 10. Missing/half-wired/dead paths: **partially wired** (typed Next admin mismatch, missing `order_id` session binding)
+
+---
+
+## Reference Provider Pattern to Mirror (Best Match): **Worldline Hosted Checkout**
+
+Why this reference:
+- It is the most complete **redirect/hosted** implementation in this repo and is the closest architectural match to VR Payment (`create-session` → redirect → status verification) rather than Stripe’s PaymentIntent-heavy inline/card path.
+- It already includes mature service-level normalization, request/response instrumentation, tenant-aware config resolution, and frontend return verification wiring.
+
+> Note: Worldline’s dedicated webhook endpoint is present but currently a logging stub (“phase 2”), so webhook **signature verification** is not yet its strong point.
+
+### 1) Admin settings form definition (Worldline reference)
+- Defined in `Payments::getProviderSpecificFields('worldline')` with fields:
+  - `api_endpoint`, `merchant_id`, `api_key_id`, `secret_api_key`, `webhook_secret`.
+- Provider record is normalized through provider-specific save flow in `Payments` controller.
+
+### 2) Config validation
+- Runtime config load and hard-fail behavior is in `WorldlineHostedCheckoutService::getConfig()`:
+  - resolves tenant by host
+  - loads latest `pos_configs` for `pos_devices.code = worldline`
+  - throws when config is missing.
+- Request-level validation is enforced in routes (`/payments/card/create-session`, `/payments/worldline/create-hosted-checkout`, `/payments/worldline/checkout-status`).
+
+### 3) Secret handling
+- Secrets are persisted in provider config fields and in POS config (`access_token`, `password` mapping for Worldline).
+- Logging is sanitized by `sanitizeForLogs()` to redact `secret|token|password|api_key|authorization` keys.
+- Admin side has secret field retention/redaction behavior via `providerSecretFields()` + `filterProviderDataFromPost()`.
+
+### 4) Readiness checks
+- Runtime method gating in `/api/v1/payments` path uses worldline readiness closures:
+  - `$resolveWorldlineInlineReadiness`
+  - `$resolveWorldlineWeroReadiness`
+  - `$isProviderReadyForMethod`.
+- Diagnostics endpoint exists: `/api/v1/payments/worldline/auth-diagnostic` and `/api/v1/payments/worldline/debug-config`.
+
+### 5) Checkout/session creation
+- Service-level hosted checkout construction in `createHostedCheckout()`:
+  - validates amount
+  - builds SDK request object
+  - sets return URL/locale/payment product filters
+  - logs payload and raw response
+  - resolves final redirect URL with candidate fallback
+  - persists checkout session snapshot.
+- Route usage:
+  - generic `/payments/card/create-session` branches to Worldline when `provider_code=worldline`
+  - Wero-specific `/payments/worldline/wero/create-session` invokes same service with product/method constraints.
+
+### 6) Redirect/return flow
+- Frontend (`frontend/app/menu/page.tsx`) creates session then redirects browser to provider URL.
+- For worldline returns, frontend stores `pmd_worldline_pending_checkout`, then verifies via `/api/v1/payments/worldline/checkout-status` on return (`payment_return_provider=worldline`).
+
+### 7) Webhook verification
+- Endpoint `/worldline/webhook` exists but currently only logs payload and states signature verification is future phase.
+- So reference provider webhook verification pattern is currently **incomplete**.
+
+### 8) Transaction persistence
+- Durable provider session persistence:
+  - Worldline checkout snapshots are written to `storage/app/worldline_checkout_sessions/<host>/<hostedCheckoutId>.json`.
+- Order/payment persistence is shared in QR settlement endpoint `/orders/pay-existing`:
+  - inserts `order_payment_transactions`
+  - inserts `order_payment_transaction_items`
+  - stores `payment_reference` and method.
+
+### 9) Order status updates
+- `/orders/pay-existing` updates:
+  - `orders.settlement_status`
+  - `orders.settled_amount`
+  - `orders.settlement_method`
+  - `orders.settlement_reference`
+  - `orders.processed`, `orders.settled_at`
+- Also writes `order_totals` (`payment_method`, optional `payment_reference`) and emits notification events.
+
+### 10) Diagnostics/logging
+- Strong structured logging in `WorldlineHostedCheckoutService` via `PaymentLogger`:
+  - request payload
+  - raw response
+  - redirect candidate selection
+  - exceptions with categorized details.
+- Additional runtime diagnostics routes in `app/admin/routes.php`.
+
+---
+
+## Reference (Worldline) vs VR Payment Gap Analysis
+
+### What VR already has (good parity)
+- **Admin provider form fields** for VR in `Payments::getProviderSpecificFields('vr_payment')`.
+- **Secret field handling** via `providerSecretFields()` + posted-data filtering.
+- **Readiness diagnostics** in `VRPaymentGatewayService::getConfigForDiagnostics()` and `/payments/vr-payment/diagnostics`.
+- **Hosted checkout session creation** via `VRPaymentGatewayService::createRedirectSession()` and dedicated method routes (`/payments/vr-payment/*/create-session`).
+- **Return verification flow** via `/payments/vr-payment/return-status` + frontend `payment_return_provider=vr_payment` path.
+- **Webhook verification and idempotency** are actually stronger than Worldline currently:
+  - signature verification (`verifyWebhookSignature`)
+  - event dedupe (`vr_payment_webhook_events.event_id`).
+- **Status normalization + reconciliation** implemented (`normalizePaymentStatus`, `$reconcileVRPaymentState`).
+
+### What VR is missing / weaker than reference runtime pattern
+- **Session↔order binding not completed:** `vr_payment_sessions.order_id` exists but is not populated in create/return/webhook callsites.
+- **No durable JSON session snapshot directory equivalent** to Worldline’s `worldline_checkout_sessions` host-scoped files (VR uses DB sessions table only).
+- **Less request-level contextual logging richness** than Worldline’s multi-step payload/response/redirect candidate logs.
+- **Admin Next.js typings lag backend support** (`vr_payment` absent in `frontend/app/admin/payments/page.tsx` and `frontend/app/admin/payment-providers/page.tsx` unions).
+
+### What should be copied structurally from reference provider
+1. **Adopt Worldline-style staged logging around VR create-session:**
+   - request payload snapshot (sanitized)
+   - raw provider response snapshot
+   - redirect candidate evaluation decision.
+2. **Add explicit session-order correlation contract** (copy intent of settlement tracking):
+   - persist `order_id` into `vr_payment_sessions` at checkout initiation and keep through return/webhook updates.
+3. **Preserve a single “status mapping contract” layer** (already started in `normalizePaymentStatus`) and make it authoritative for all return/webhook code paths.
+4. **Add explicit provider diagnostics endpoints parity fields** that Worldline exposes (host, tenant DB, config id, environment, key-length/prefix diagnostics).
+5. **Mirror Worldline’s request validation strictness per endpoint** (already mostly present; keep standardized error contract for all VR method routes).
+6. **Keep webhook rigor at VR level (already stronger) and use it as standard for other providers**.
+
+---
+
+## Practical Recommendation
+
+If the goal is “VR should look like the most production-hardened redirect provider in this repo,” use **Worldline Hosted Checkout** as the structural blueprint for:
+- config loading discipline,
+- staged observability,
+- redirect candidate handling,
+- frontend return orchestration,
+
+and keep VR’s existing webhook verification model as the security baseline to exceed that reference.
