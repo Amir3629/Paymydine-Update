@@ -76,4 +76,12 @@
   'System\\Models\\Themes_model' => 'app/system/models/Themes_model.php',
   'Admin\\Classes\\UserPanel' => 'app/admin/classes/UserPanel.php',
   'Admin\\Classes\\UserState' => 'app/admin/classes/UserState.php',
+  'System\\Actions\\ModelAction' => 'app/system/actions/ModelAction.php',
+  'Admin\\Classes\\BasePaymentGateway' => 'app/admin/classes/BasePaymentGateway.php',
+  'Igniter\\PayRegister\\Traits\\PaymentHelpers' => 'extensions/igniter/payregister/traits/PaymentHelpers.php',
+  'Igniter\\PayRegister\\Payments\\Stripe' => 'extensions/igniter/payregister/payments/Stripe.php',
+  'Igniter\\PayRegister\\Payments\\PaypalExpress' => 'extensions/igniter/payregister/payments/PaypalExpress.php',
+  'Igniter\\PayRegister\\Payments\\SumUp' => 'extensions/igniter/payregister/payments/SumUp.php',
+  'Admin\\Classes\\WorldlineHostedCheckoutService' => 'app/admin/classes/WorldlineHostedCheckoutService.php',
+  'Admin\\Classes\\PaymentLogger' => 'app/admin/classes/PaymentLogger.php',
 );
