@@ -1114,6 +1114,8 @@ Route::group([
 
         $service = app(\Admin\Classes\VRPaymentGatewayService::class);
         $diag = $service->getConfigForDiagnostics();
+        $connectivity = $service->probeConnectivity();
+        $diag['connectivity'] = $connectivity;
 
         return array_merge($diag, [
             'provider_enabled' => $providerEnabled && (bool)($diag['provider_enabled'] ?? false),
@@ -1448,6 +1450,40 @@ Route::group([
             $lastWebhook = \Illuminate\Support\Facades\DB::table('vr_payment_webhook_events')->orderByDesc('processed_at')->first();
         }
         $readiness = $resolveVRPaymentRuntimeReadiness();
+        $methodTrace = collect($runtime['trace'] ?? [])->keyBy('method');
+        $methodMappings = collect($runtime['methods'] ?? [])
+            ->map(fn ($m) => [
+                'method_code' => (string)($m['code'] ?? ''),
+                'provider_code' => (string)($m['provider_code'] ?? ''),
+                'ready' => true,
+                'reason' => 'provider_ready',
+            ])->keyBy('method_code');
+        foreach (['card', 'apple_pay', 'google_pay', 'paypal', 'wero'] as $method) {
+            if (!$methodMappings->has($method)) {
+                $trace = (array)$methodTrace->get($method, []);
+                $methodMappings->put($method, [
+                    'method_code' => $method,
+                    'provider_code' => (string)($trace['configured_provider'] ?? ''),
+                    'ready' => false,
+                    'reason' => (string)($trace['selection_change_reason'] ?? $trace['reason'] ?? 'method_not_available'),
+                ]);
+            }
+        }
+
+        $lastNormalizedError = null;
+        if ($lastSession && !empty($lastSession->raw_snapshot)) {
+            $snapshot = json_decode((string)$lastSession->raw_snapshot, true);
+            if (is_array($snapshot) && (!empty($snapshot['error_code']) || !empty($snapshot['error_category']))) {
+                $lastNormalizedError = [
+                    'state' => (string)($lastSession->state ?? 'unknown'),
+                    'error_code' => $snapshot['error_code'] ?? null,
+                    'error_category' => $snapshot['error_category'] ?? null,
+                    'error' => $snapshot['error'] ?? null,
+                    'updated_at' => (string)($lastSession->updated_at ?? ''),
+                ];
+            }
+        }
+
         return response()->json([
             'success' => true,
             'provider' => 'vr_payment',
@@ -1457,11 +1493,10 @@ Route::group([
             'webhook_endpoint' => '/api/v1/payments/vr-payment/webhook',
             'runtime_trace' => $runtime['trace'] ?? [],
             'runtime_methods' => $runtime['methods'] ?? [],
+            'method_mapping' => $methodMappings->values()->all(),
             'last_session' => $lastSession,
             'last_webhook_event' => $lastWebhook,
-            'last_normalized_error' => ($lastSession && in_array((string)($lastSession->state ?? ''), ['failed', 'cancelled', 'expired'], true))
-                ? ['state' => (string)$lastSession->state, 'updated_at' => (string)($lastSession->updated_at ?? '')]
-                : null,
+            'last_normalized_error' => $lastNormalizedError,
         ]);
     });
 
@@ -1959,16 +1994,28 @@ Route::group([
                 'locale' => (string)($payload['locale'] ?? 'en_US'),
                 'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
                 'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? 'PMD-VR-CHECKOUT'),
+                'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
                 'items' => (array)($payload['items'] ?? []),
             ]);
 
             if (!($result['success'] ?? false)) {
+                $persistVRPaymentSession([
+                    'method_code' => $methodCode,
+                    'merchant_reference' => (string)($result['merchant_reference'] ?? ($payload['merchant_reference'] ?? '')),
+                    'session_id' => (string)($result['session_id'] ?? ''),
+                    'transaction_id' => (string)($result['transaction_id'] ?? ''),
+                    'provider_reference' => (string)($result['provider_reference'] ?? ''),
+                    'state' => 'failed',
+                    'amount' => (float)$payload['amount'],
+                    'currency' => strtoupper((string)$payload['currency']),
+                    'raw_snapshot' => $result,
+                ]);
                 return response()->json($result, 422);
             }
 
             $persistVRPaymentSession([
                 'method_code' => $methodCode,
-                'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
+                'merchant_reference' => (string)($result['merchant_reference'] ?? ($payload['merchant_reference'] ?? '')),
                 'session_id' => (string)($result['session_id'] ?? ''),
                 'transaction_id' => (string)($result['transaction_id'] ?? ''),
                 'provider_reference' => (string)($result['provider_reference'] ?? ''),
