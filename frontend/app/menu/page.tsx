@@ -716,6 +716,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [isDarkTheme, setIsDarkTheme] = useState(false)
 
@@ -1177,6 +1178,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }
 
   const handlePaymentMethodSelect = (methodId: string) => {
+    setProviderInlineError(null)
 
     // Apple Pay / Google Pay must remain their own methods.
     // Do NOT reroute them to Stripe card fields.
@@ -1188,6 +1190,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     setSelectedPaymentMethod(methodId)
   }
   const handleBackToMethods = () => {
+    setProviderInlineError(null)
     setSelectedPaymentMethod(null)
   }
 
@@ -1331,15 +1334,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }
 
   const startHostedRedirectCheckout = async () => {
-    if (!selectedMethod || !["card", "wero"].includes(selectedMethod.code)) return
+    if (!selectedMethod || !["card", "wero", "paypal", "apple_pay", "google_pay"].includes(selectedMethod.code)) return
+    setProviderInlineError(null)
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
       const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
       const providerCode = selectedMethod.code === "wero"
-        ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : "stripe")
-        : (selectedProviderCode || "unknown")
-      const providerReturnCode = providerCode === "worldline" ? "worldline" : "wero"
+        ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
+        : (selectedProviderCodeForCheckout || "unknown")
+      const providerReturnCode = providerCode === "worldline" ? "worldline" : (providerCode === "vr_payment" ? "vr_payment" : "wero")
+      const merchantReference = `PMD-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
       const returnUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerReturnCode)}`
@@ -1349,11 +1354,20 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? window.location.href
           : "/menu"
 
-      const checkoutEndpoint = selectedMethod.code === "wero"
-        ? (selectedProviderCodeForCheckout === "worldline"
-          ? "/api/v1/payments/worldline/wero/create-session"
-          : "/api/v1/payments/wero/create-session")
-        : "/api/v1/payments/card/create-session"
+      const vrEndpointByMethod: Record<string, string> = {
+        card: "/api/v1/payments/vr-payment/card/create-session",
+        paypal: "/api/v1/payments/vr-payment/paypal/create-session",
+        wero: "/api/v1/payments/vr-payment/wero/create-session",
+        apple_pay: "/api/v1/payments/vr-payment/apple-pay/create-session",
+        google_pay: "/api/v1/payments/vr-payment/google-pay/create-session",
+      }
+      const checkoutEndpoint = providerCode === "vr_payment"
+        ? (vrEndpointByMethod[selectedMethod.code] || "/api/v1/payments/vr-payment/card/create-session")
+        : selectedMethod.code === "wero"
+          ? (selectedProviderCodeForCheckout === "worldline"
+            ? "/api/v1/payments/worldline/wero/create-session"
+            : "/api/v1/payments/wero/create-session")
+          : "/api/v1/payments/card/create-session"
       console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
         selected_method: selectedMethod.code,
         backend_selected_provider: providerCode,
@@ -1369,6 +1383,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           return_url: returnUrl,
           cancel_url: cancelUrl,
           customer_email: paymentFormData.email || "",
+          merchant_reference: merchantReference,
           items: itemsToPay.map((item: any) => ({
             id: String(item.item.id),
             name: item.item.name,
@@ -1387,7 +1402,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
 
       if (!res.ok || !json?.success || !json?.redirect_url) {
-        const providerLabel = providerCode === "worldline" ? "Worldline" : "Stripe"
+        const providerLabel = providerCode === "worldline" ? "Worldline" : (providerCode === "vr_payment" ? "VR Payment" : "Stripe")
         const resolvedErrorCode = String(json?.resolved_error_code || json?.error_code || "").toLowerCase()
         const fallbackAllowedByCode = [
           "worldline_invalid_credentials_or_entitlement",
@@ -1502,6 +1517,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             created_at: Date.now(),
           }))
         }
+        if (providerCode === "vr_payment" && json?.session_id) {
+          localStorage.setItem("pmd_vr_payment_pending_checkout", JSON.stringify({
+            session_id: String(json.session_id),
+            merchant_reference: merchantReference,
+            method_code: selectedMethod.code,
+            provider_code: "vr_payment",
+            created_at: Date.now(),
+          }))
+        }
       }
 
       if (typeof window !== "undefined") {
@@ -1521,6 +1545,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         setSelectedPaymentMethod(null)
       }
       setIsLoading(false)
+      setProviderInlineError(error instanceof Error ? error.message : "Unable to start checkout")
       toast({
         title: "Payment Failed",
         description: error instanceof Error ? error.message : "Unable to start checkout",
@@ -1534,7 +1559,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (typeof window === "undefined") return
       const params = new URLSearchParams(window.location.search)
       const provider = params.get("payment_return_provider")
-      if (!["worldline", "sumup", "square", "wero"].includes(provider || "")) return
+      if (!["worldline", "sumup", "square", "wero", "vr_payment"].includes(provider || "")) return
 
       const pendingKey = provider === "worldline"
         ? "pmd_worldline_pending_checkout"
@@ -1542,7 +1567,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? "pmd_sumup_pending_checkout"
           : provider === "square"
             ? "pmd_square_pending_checkout"
-            : "pmd_wero_pending_checkout"
+            : provider === "vr_payment"
+              ? "pmd_vr_payment_pending_checkout"
+              : "pmd_wero_pending_checkout"
       const pendingRaw = localStorage.getItem(pendingKey)
       if (!pendingRaw) return
       let pending: any = null
@@ -1558,6 +1585,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? { checkout_id: String(pending?.checkout_id || "") }
           : provider === "square"
             ? { payment_link_id: String(pending?.payment_link_id || "") }
+            : provider === "vr_payment"
+              ? {
+                  session_id: String(pending?.session_id || params.get("session_id") || ""),
+                  transaction_id: String(params.get("transaction_id") || ""),
+                  provider_reference: String(params.get("provider_reference") || ""),
+                  merchant_reference: String(pending?.merchant_reference || ""),
+                }
             : { session_id: String(pending?.session_id || params.get("session_id") || "") }
       const verificationUrl = provider === "worldline"
         ? "/api/v1/payments/worldline/checkout-status"
@@ -1565,10 +1599,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? "/api/v1/payments/sumup/checkout-status"
           : provider === "square"
             ? "/api/v1/payments/square/checkout-status"
+            : provider === "vr_payment"
+              ? "/api/v1/payments/vr-payment/return-status"
             : "/api/v1/payments/wero/checkout-status"
 
-      const requiredValue = Object.values(verificationPayload)[0]
-      if (!requiredValue) return
+      const hasReference = Object.values(verificationPayload).some((value) => String(value || "").trim() !== "")
+      if (!hasReference) return
 
       try {
         const res = await fetch(verificationUrl, {
@@ -1579,12 +1615,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         const json = await res.json().catch(() => ({}))
         if (res.ok && json?.success && json?.is_paid) {
           localStorage.removeItem(pendingKey)
+          const fallbackReference = String(
+            (verificationPayload as any)?.session_id
+            || (verificationPayload as any)?.transaction_id
+            || (verificationPayload as any)?.provider_reference
+            || ""
+          )
           const txId = String(
             json?.payment_intent_id
             || json?.payment_id
             || json?.transaction_code
             || json?.order_id
-            || requiredValue
+            || fallbackReference
           )
           const forcedMethodCode = pending?.method_code
             ? String(pending.method_code)
@@ -1599,6 +1641,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           params.delete("payment_return_provider")
           const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`
           window.history.replaceState({}, "", next)
+          return
+        }
+
+        if (res.ok && json?.success && json?.status === "pending") {
+          setProviderInlineError("Your payment is still pending confirmation. Please refresh in a moment.")
+          return
+        }
+
+        if (res.ok && json?.success && (json?.status === "cancelled" || json?.status === "expired")) {
+          localStorage.removeItem(pendingKey)
+          setProviderInlineError("Payment was cancelled. Please choose another method to continue.")
           return
         }
 
@@ -1783,7 +1836,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
               </div>
               <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-                Your card details will be completed in a secure embedded {selectedProviderCode.toUpperCase()} frame.
+                {selectedProviderCode === "vr_payment"
+                  ? "You will be redirected to a secure VR Payment checkout page."
+                  : `Your card details will be completed in a secure embedded ${selectedProviderCode.toUpperCase()} frame.`}
               </div>
               <Button
                 type="button"
@@ -1791,8 +1846,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
               >
-                {isLoading ? "Opening secure form..." : `Pay with ${selectedProviderCode.toUpperCase()}`}
+                {isLoading ? "Opening secure form..." : `Pay with ${selectedProviderCode === "vr_payment" ? "VR Payment" : selectedProviderCode.toUpperCase()}`}
               </Button>
+              {providerInlineError && (
+                <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
+                  {providerInlineError}
+                </div>
+              )}
             </motion.div>
           )
         }
@@ -1890,7 +1950,26 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </div>
             </div>
 
-            {paypalConfigLoading ? (
+            {selectedProviderCode === "vr_payment" ? (
+              <>
+                <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
+                  You will be redirected to a secure VR Payment PayPal checkout page.
+                </div>
+                <Button
+                  type="button"
+                  onClick={startHostedRedirectCheckout}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
+                >
+                  {isLoading ? "Opening PayPal..." : "Pay with PayPal"}
+                </Button>
+                {providerInlineError && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
+                    {providerInlineError}
+                  </div>
+                )}
+              </>
+            ) : paypalConfigLoading ? (
               <div className="rounded-xl p-4 border text-sm text-gray-600">
                 Loading PayPal...
               </div>
@@ -1978,7 +2057,26 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </div>
             </div>
 
-            {stripeConfig?.methods?.[selectedPaymentMethod as "apple_pay" | "google_pay"] ? (
+            {selectedProviderCode === "vr_payment" ? (
+              <>
+                <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
+                  You will be redirected to a secure VR Payment checkout page.
+                </div>
+                <Button
+                  type="button"
+                  onClick={startHostedRedirectCheckout}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
+                >
+                  {isLoading ? "Opening wallet..." : `Pay with ${selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}`}
+                </Button>
+                {providerInlineError && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
+                    {providerInlineError}
+                  </div>
+                )}
+              </>
+            ) : stripeConfig?.methods?.[selectedPaymentMethod as "apple_pay" | "google_pay"] ? (
               stripePromise ? (
                 <Elements stripe={stripePromise}>
                   <WalletStripePay
@@ -2050,7 +2148,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
               {selectedProviderCode === "worldline"
                 ? "You will be redirected to a secure Wero checkout powered by Worldline."
-                : "You will be redirected to a secure Wero checkout powered by Stripe."}
+                : selectedProviderCode === "vr_payment"
+                  ? "You will be redirected to a secure Wero checkout powered by VR Payment."
+                  : "You will be redirected to a secure Wero checkout powered by Stripe."}
             </div>
             <Button
               type="button"
@@ -2060,6 +2160,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             >
               {isLoading ? "Opening Wero..." : "Pay with Wero"}
             </Button>
+            {providerInlineError && (
+              <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
+                {providerInlineError}
+              </div>
+            )}
           </motion.div>
         )
 
