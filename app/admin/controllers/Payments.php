@@ -547,15 +547,7 @@ class Payments extends \Admin\Classes\AdminController
                 ?? ($meta['provider_code'] ?? null)
                 ?? $cfg['provider_code'];
             $meta['provider_code'] = $currentProviderCode;
-            $meta['supported_providers'] = array_values(array_unique(array_filter(array_map(
-                fn ($provider) => strtolower(trim((string)$provider)),
-                is_array($meta['supported_providers'] ?? null)
-                    ? $meta['supported_providers']
-                    : Payments_model::supportedProvidersForMethod($code)
-            ), fn (string $provider) => $provider !== '')));
-            if ($currentProviderCode && !in_array((string)$currentProviderCode, $meta['supported_providers'], true)) {
-                $meta['supported_providers'][] = (string)$currentProviderCode;
-            }
+            unset($meta['supported_providers']);
             if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'meta')) {
                 $row->meta = json_encode($meta, JSON_UNESCAPED_UNICODE);
             }

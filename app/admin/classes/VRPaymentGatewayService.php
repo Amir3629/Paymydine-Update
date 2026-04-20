@@ -7,13 +7,7 @@ use Illuminate\Support\Facades\Http;
 
 class VRPaymentGatewayService
 {
-    protected const METHOD_FLAG_MAP = [
-        'card' => 'card_enabled',
-        'apple_pay' => 'apple_pay_enabled',
-        'google_pay' => 'google_pay_enabled',
-        'paypal' => 'paypal_enabled',
-        'wero' => 'wero_enabled',
-    ];
+    protected const SUPPORTED_METHODS = ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'];
 
     public function getConfig(): array
     {
@@ -30,11 +24,6 @@ class VRPaymentGatewayService
             'auth_key' => trim((string)($raw['auth_key'] ?? '')),
             'webhook_signing_key' => trim((string)($raw['webhook_signing_key'] ?? '')),
             'preferred_integration_mode' => (string)($raw['preferred_integration_mode'] ?? 'payment_page'),
-            'card_enabled' => $this->toBool($raw['card_enabled'] ?? true),
-            'apple_pay_enabled' => $this->toBool($raw['apple_pay_enabled'] ?? false),
-            'google_pay_enabled' => $this->toBool($raw['google_pay_enabled'] ?? false),
-            'paypal_enabled' => $this->toBool($raw['paypal_enabled'] ?? false),
-            'wero_enabled' => $this->toBool($raw['wero_enabled'] ?? false),
         ];
 
         return $config;
@@ -59,9 +48,9 @@ class VRPaymentGatewayService
             ],
         ];
 
-        foreach (self::METHOD_FLAG_MAP as $method => $flag) {
+        foreach (self::SUPPORTED_METHODS as $method) {
             $readiness[$method.'_ready'] = $this->isMethodReady($method, $config);
-            $readiness[$method.'_enabled'] = (bool)($config[$flag] ?? false);
+            $readiness[$method.'_enabled'] = true;
         }
 
         $readiness['any_ready'] =
@@ -78,9 +67,7 @@ class VRPaymentGatewayService
     {
         $method = strtolower(trim($methodCode));
         $cfg = $config ?: $this->getConfig();
-        $flag = self::METHOD_FLAG_MAP[$method] ?? null;
-
-        if ($flag === null) {
+        if (!in_array($method, self::SUPPORTED_METHODS, true)) {
             return false;
         }
 
@@ -96,7 +83,7 @@ class VRPaymentGatewayService
             return false;
         }
 
-        return $this->toBool($cfg[$flag] ?? false);
+        return true;
     }
 
     public function createRedirectSession(array $payload): array
@@ -117,11 +104,6 @@ class VRPaymentGatewayService
         }
 
         if (!$this->isMethodReady($method, $config)) {
-            $flag = self::METHOD_FLAG_MAP[$method] ?? null;
-            if ($flag && !$this->toBool($config[$flag] ?? false)) {
-                return $this->businessError('vr_payment_method_not_active', 'This VR Payment method is not active for this merchant.');
-            }
-
             return $this->businessError('vr_payment_wallet_not_enabled', 'Selected wallet is not enabled for VR Payment.');
         }
 

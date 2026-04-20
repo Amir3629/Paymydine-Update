@@ -744,7 +744,7 @@ Route::group([
         ['code' => 'worldline', 'name' => 'Worldline', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['worldline'], 'config' => ['api_endpoint' => '', 'merchant_id' => '', 'api_key_id' => '', 'secret_api_key' => '', 'webhook_secret' => '', 'wero_enabled' => false, 'wero_payment_product_id' => '']],
         ['code' => 'sumup', 'name' => 'SumUp', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['sumup'], 'config' => ['access_token' => '', 'url' => 'https://api.sumup.com', 'id_application' => '']],
         ['code' => 'square', 'name' => 'Square', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['square'], 'config' => ['transaction_mode' => 'test', 'test_access_token' => '', 'test_location_id' => '', 'live_access_token' => '', 'live_location_id' => '', 'currency' => 'EUR']],
-        ['code' => 'vr_payment', 'name' => 'VR Payment', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['vr_payment'], 'config' => ['enabled' => false, 'mode' => 'test', 'api_base_url' => '', 'space_id' => '', 'user_id' => '', 'auth_key' => '', 'webhook_signing_key' => '', 'preferred_integration_mode' => 'payment_page', 'card_enabled' => true, 'apple_pay_enabled' => false, 'google_pay_enabled' => false, 'paypal_enabled' => false, 'wero_enabled' => false]],
+        ['code' => 'vr_payment', 'name' => 'VR Payment', 'enabled' => false, 'supported_methods' => $providerCapabilityMatrix['vr_payment'], 'config' => ['enabled' => false, 'mode' => 'test', 'api_base_url' => '', 'space_id' => '', 'user_id' => '', 'auth_key' => '', 'webhook_signing_key' => '', 'preferred_integration_mode' => 'payment_page']],
     ];
 
     $loadJsonSetting = function (string $item, array $fallback) {
@@ -805,29 +805,18 @@ Route::group([
             ->get()
             ->map(function ($row) {
                 $meta = is_array($row->data ?? null) ? (array)$row->data : [];
-                $supportedProviders = array_values(array_filter(array_map(
-                    fn ($provider) => strtolower(trim((string)$provider)),
-                    is_array($meta['supported_providers'] ?? null)
-                        ? $meta['supported_providers']
-                        : \Admin\Models\Payments_model::supportedProvidersForMethod((string)$row->code)
-                ), fn (string $provider) => $provider !== ''));
                 $resolvedProvider = $row->provider_code ?? ($meta['provider_code'] ?? null);
                 $providerSource = $row->provider_code !== null ? 'column:provider_code' : (array_key_exists('provider_code', $meta) ? 'meta.provider_code' : 'default');
-                $supportedSource = is_array($meta['supported_providers'] ?? null) && !empty($meta['supported_providers'])
-                    ? 'meta.supported_providers'
-                    : 'matrix.default';
                 return [
                     'code' => (string)$row->code,
                     'name' => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
                     'provider_code' => $resolvedProvider,
-                    'supported_providers' => $supportedProviders,
                     'enabled' => (bool)$row->status,
                     'priority' => (int)($row->priority ?? 0),
                     'source_of_truth' => [
                         'table' => $row->getTable(),
                         'key' => [$row->getKeyName() => $row->getKey()],
                         'provider' => $providerSource,
-                        'supported_providers' => $supportedSource,
                     ],
                 ];
             })
@@ -1314,12 +1303,6 @@ Route::group([
             $methodCode = (string)($m['code'] ?? '');
             $isEnabled = (bool)($m['enabled'] ?? false);
             $configuredProvider = $m['provider_code'] ?? null;
-            $supportedProviders = array_values(array_unique(array_filter(array_map(
-                fn ($provider) => strtolower(trim((string)$provider)),
-                is_array($m['supported_providers'] ?? null) && !empty($m['supported_providers'])
-                    ? (array)$m['supported_providers']
-                    : $resolveAvailableProviders($methodCode)
-            ), fn (string $provider) => $provider !== '')));
 
             if ($methodCode === 'cod') {
                 if ($isEnabled) {
@@ -1343,73 +1326,48 @@ Route::group([
                 continue;
             }
 
-            $candidateProviders = [];
-            if ($configuredProvider) {
-                $candidateProviders[] = strtolower((string)$configuredProvider);
-            }
-            foreach ($supportedProviders as $supportedProvider) {
-                if (!in_array($supportedProvider, $candidateProviders, true)) {
-                    $candidateProviders[] = $supportedProvider;
-                }
-            }
             $inclusionReasons = [];
-            $selectedProvider = null;
-            foreach ($candidateProviders as $candidateProvider) {
-                if (!in_array($candidateProvider, $resolveAvailableProviders($methodCode), true)) {
-                    $inclusionReasons[] = "{$candidateProvider}:not_supported_for_method";
-                    continue;
-                }
-                if (!$providersByCode->has($candidateProvider)) {
-                    $inclusionReasons[] = "{$candidateProvider}:provider_not_configured";
-                    continue;
-                }
-
-                $provider = (array)$providersByCode->get($candidateProvider, []);
+            $selectedProvider = $configuredProvider ? strtolower((string)$configuredProvider) : null;
+            if (!$selectedProvider) {
+                $inclusionReasons[] = 'provider_missing';
+            } elseif (!in_array($selectedProvider, $resolveAvailableProviders($methodCode), true)) {
+                $inclusionReasons[] = "{$selectedProvider}:not_supported_for_method";
+            } elseif (!$providersByCode->has($selectedProvider)) {
+                $inclusionReasons[] = "{$selectedProvider}:provider_not_configured";
+            } else {
+                $provider = (array)$providersByCode->get($selectedProvider, []);
                 if (!($provider['enabled'] ?? false)) {
-                    $inclusionReasons[] = "{$candidateProvider}:provider_disabled";
-                    continue;
+                    $inclusionReasons[] = "{$selectedProvider}:provider_disabled";
+                } else {
+                    $providerReadiness = $isProviderReadyForMethod(
+                        $selectedProvider,
+                        $methodCode,
+                        $stripeReadiness,
+                        $worldlineReadiness,
+                        $worldlineWeroReadiness,
+                        $vrPaymentReadiness
+                    );
+                    if (!($providerReadiness['ready'] ?? false)) {
+                        $inclusionReasons[] = "{$selectedProvider}:".(string)($providerReadiness['reason'] ?? 'provider_not_ready');
+                    }
                 }
-
-                $providerReadiness = $isProviderReadyForMethod(
-                    $candidateProvider,
-                    $methodCode,
-                    $stripeReadiness,
-                    $worldlineReadiness,
-                    $worldlineWeroReadiness,
-                    $vrPaymentReadiness
-                );
-
-                if (!($providerReadiness['ready'] ?? false)) {
-                    $inclusionReasons[] = "{$candidateProvider}:".(string)($providerReadiness['reason'] ?? 'provider_not_ready');
-                    continue;
-                }
-
-                $selectedProvider = $candidateProvider;
-                break;
             }
 
-            if ($selectedProvider === null) {
+            if (!empty($inclusionReasons)) {
                 $trace[] = [
                     'method' => $methodCode,
                     'included' => false,
                     'reason' => 'no_provider_ready',
                     'configured_provider' => $configuredProvider,
                     'selected_provider' => null,
-                    'supported_providers' => $supportedProviders,
                     'fallback_allowed' => false,
                     'fallback_reason' => null,
-                    'selection_change_reason' => 'no_candidate_provider_ready',
-                    'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code+supported_providers',
+                    'selection_change_reason' => 'configured_provider_not_usable',
+                    'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code',
                     'candidate_diagnostics' => $inclusionReasons,
                 ];
                 continue;
             }
-
-            $selectionChanged = $configuredProvider !== null
-                && strtolower((string)$configuredProvider) !== strtolower((string)$selectedProvider);
-            $selectionChangeReason = $selectionChanged
-                ? ('configured_provider_not_usable: '.implode(';', $inclusionReasons))
-                : null;
 
             $availableMethods->push([
                 'code' => $methodCode,
@@ -1423,11 +1381,10 @@ Route::group([
                 'reason' => 'provider_ready',
                 'selected_provider' => $selectedProvider,
                 'configured_provider' => $configuredProvider,
-                'supported_providers' => $supportedProviders,
-                'fallback_allowed' => $selectionChanged,
-                'fallback_reason' => $selectionChangeReason,
-                'selection_change_reason' => $selectionChangeReason,
-                'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code+supported_providers',
+                'fallback_allowed' => false,
+                'fallback_reason' => null,
+                'selection_change_reason' => null,
+                'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code',
             ];
         }
 
@@ -1519,7 +1476,6 @@ Route::group([
                     'provider_code' => $m['provider_code'] ?? null,
                     'enabled' => (bool)($m['enabled'] ?? false),
                     'priority' => (int)($m['priority'] ?? 0),
-                    'supported_providers' => array_values((array)($m['supported_providers'] ?? [])),
                     'source_of_truth' => $m['source_of_truth'] ?? null,
                 ])
                 ->all();
@@ -1588,15 +1544,13 @@ Route::group([
 
             $providerCode = $method['provider_code'] ?? null;
             $providerCode = $providerCode !== null ? strtolower((string)$providerCode) : null;
-            $supportedProviders = \Admin\Models\Payments_model::supportedProvidersForMethod($code);
             if ($code === 'cod') {
                 $providerCode = null;
-                $supportedProviders = [];
             }
 
             $config = method_exists($row, 'getConfigData') ? $row->getConfigData() : [];
             $config['provider_code'] = $providerCode;
-            $config['supported_providers'] = $supportedProviders;
+            unset($config['supported_providers']);
             $row->setConfigData($config);
 
             if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'provider_code')) {
@@ -1618,7 +1572,6 @@ Route::group([
                     'table' => $row->getTable(),
                     'key' => [$row->getKeyName() => $row->getKey()],
                     'provider_code' => $providerCode,
-                    'supported_providers' => $supportedProviders,
                     'status' => (int)$row->status,
                 ],
             ]);
