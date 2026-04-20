@@ -712,7 +712,7 @@ Route::group([
     $methodProviderMatrix = \Admin\Models\Payments_model::supportedProviderMatrix();
 
     $providerCapabilityMatrix = [
-        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'],
+        'stripe' => ['card', 'apple_pay', 'google_pay', 'paypal'],
         'paypal' => ['paypal'],
         'worldline' => ['card', 'wero'],
         'sumup' => ['card'],
@@ -1118,9 +1118,9 @@ Route::group([
         ];
     };
 
-    $resolveVRPaymentRuntimeReadiness = function () use ($loadJsonSetting, $defaultPaymentProviders): array {
-        $providers = collect($loadJsonSetting('payment_providers', $defaultPaymentProviders))->keyBy('code');
-        $providerRow = (array)$providers->get('vr_payment', []);
+    $resolveVRPaymentRuntimeReadiness = function () use ($loadProviderRecordsFromPayments): array {
+        $providerRecords = $loadProviderRecordsFromPayments();
+        $providerRow = (array)$providerRecords->get('vr_payment', []);
         $providerEnabled = (bool)($providerRow['enabled'] ?? false);
 
         $service = app(\Admin\Classes\VRPaymentGatewayService::class);

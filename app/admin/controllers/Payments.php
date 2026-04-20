@@ -163,6 +163,13 @@ class Payments extends \Admin\Classes\AdminController
         if ($isMethodRecord && (string)$model->code !== 'cod') {
             $currentProvider = $this->extractProviderCode($model);
             $compatibleOptions = $this->getCompatibleProviders($model->code);
+            $currentConfig = method_exists($model, 'getConfigData') ? (array)$model->getConfigData() : [];
+            $currentSupportedProviders = array_values(array_filter(array_map(
+                fn ($provider) => strtolower(trim((string)$provider)),
+                is_array($currentConfig['supported_providers'] ?? null)
+                    ? (array)$currentConfig['supported_providers']
+                    : Payments_model::supportedProvidersForMethod((string)$model->code)
+            ), fn (string $provider) => $provider !== ''));
             $assignmentWarning = null;
             if ($currentProvider && !array_key_exists($currentProvider, $compatibleOptions)) {
                 $assignmentWarning = "Current provider '{$currentProvider}' is no longer selectable because this flow is not fully implemented. Please select a supported provider.";
@@ -178,6 +185,14 @@ class Payments extends \Admin\Classes\AdminController
                     'comment' => $assignmentWarning
                         ?: 'Only providers with both capability and implemented flow are shown.',
                     'default' => $this->extractProviderCode($model),
+                ],
+                'supported_providers' => [
+                    'label' => 'Supported Provider Fallbacks',
+                    'type' => 'checkboxlist',
+                    'span' => 'right',
+                    'options' => $compatibleOptions,
+                    'default' => $currentSupportedProviders,
+                    'comment' => 'Runtime fallback candidates for this method. Provider selection still starts from the primary provider above.',
                 ],
             ]);
         }
@@ -354,11 +369,21 @@ class Payments extends \Admin\Classes\AdminController
             $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
             $this->validateProviderCompatibility((string)$model->code, $providerCode);
 
+            $supportedProvidersInput = post('supported_providers', post('Payment.supported_providers', []));
+            $supportedProviders = array_values(array_unique(array_filter(array_map(
+                fn ($provider) => strtolower(trim((string)$provider)),
+                is_array($supportedProvidersInput) ? $supportedProvidersInput : []
+            ), fn (string $provider) => $provider !== '')));
+            if (empty($supportedProviders)) {
+                $supportedProviders = Payments_model::supportedProvidersForMethod((string)$model->code);
+            }
+            if ($providerCode && !in_array($providerCode, $supportedProviders, true)) {
+                $supportedProviders[] = $providerCode;
+            }
+
             $data = $model->getConfigData();
             $data['provider_code'] = $providerCode;
-            if ((string)$model->code === 'wero' && !isset($data['supported_providers'])) {
-                $data['supported_providers'] = ['stripe', 'worldline'];
-            }
+            $data['supported_providers'] = $supportedProviders;
             $model->setConfigData($data);
             $model->provider_code = $providerCode;
         }
@@ -371,6 +396,9 @@ class Payments extends \Admin\Classes\AdminController
             }
             $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
             $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, $model->getConfigData());
+            if (array_key_exists('enabled', $normalizedProviderData)) {
+                $model->status = !empty($normalizedProviderData['enabled']) ? 1 : 0;
+            }
             $model->setConfigData($normalizedProviderData);
             $this->applyNormalizedProviderDataToPost((array)post('Payment', []), $normalizedProviderData);
             $model->is_default = 0;
@@ -519,32 +547,43 @@ class Payments extends \Admin\Classes\AdminController
         $providerClassMap = $this->resolveProviderGatewayClasses();
         foreach ($defaults as $code => $cfg) {
             $row = Payments_model::query()->where('code', $code)->first();
-            $payload = [
-                'name' => $cfg['name'],
-                'description' => $cfg['name'].' payment method',
-                'priority' => $cfg['priority'],
-                'status' => true,
-                'is_default' => $code === 'cod',
-            ];
-
-            $providerCode = $cfg['provider_code'];
-            if ($providerCode && isset($providerClassMap[$providerCode])) {
-                $payload['class_name'] = $providerClassMap[$providerCode];
-            }
 
             if (!$row) {
                 $row = new Payments_model();
                 $row->code = $code;
-            }
-            foreach ($payload as $k => $v) {
-                $row->{$k} = $v;
+                $row->name = $cfg['name'];
+                $row->description = $cfg['name'].' payment method';
+                $row->priority = $cfg['priority'];
+                $row->status = true;
+                $row->is_default = $code === 'cod';
+                $providerCode = $cfg['provider_code'];
+                if ($providerCode && isset($providerClassMap[$providerCode])) {
+                    $row->class_name = $providerClassMap[$providerCode];
+                }
+            } else {
+                $row->name = $row->name ?: $cfg['name'];
+                $row->description = $row->description ?: ($cfg['name'].' payment method');
+                if (!isset($row->priority) || $row->priority === null || $row->priority === '') {
+                    $row->priority = $cfg['priority'];
+                }
+                if ((string)$code === 'cod') {
+                    $row->is_default = $row->is_default ?: 1;
+                }
             }
             $meta = is_array($row->meta) ? $row->meta : (is_string($row->meta) ? (json_decode($row->meta, true) ?: []) : []);
             $currentProviderCode = $row->provider_code
                 ?? ($meta['provider_code'] ?? null)
                 ?? $cfg['provider_code'];
             $meta['provider_code'] = $currentProviderCode;
-            $meta['supported_providers'] = $meta['supported_providers'] ?? Payments_model::supportedProvidersForMethod($code);
+            $meta['supported_providers'] = array_values(array_unique(array_filter(array_map(
+                fn ($provider) => strtolower(trim((string)$provider)),
+                is_array($meta['supported_providers'] ?? null)
+                    ? $meta['supported_providers']
+                    : Payments_model::supportedProvidersForMethod($code)
+            ), fn (string $provider) => $provider !== '')));
+            if ($currentProviderCode && !in_array((string)$currentProviderCode, $meta['supported_providers'], true)) {
+                $meta['supported_providers'][] = (string)$currentProviderCode;
+            }
             if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'meta')) {
                 $row->meta = json_encode($meta, JSON_UNESCAPED_UNICODE);
             }
@@ -610,7 +649,7 @@ class Payments extends \Admin\Classes\AdminController
     protected function getPaymentProviderSettings(): array
     {
         $defaults = [
-            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'wero']],
+            ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card', 'wero']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],

@@ -20,8 +20,9 @@ class VRPaymentGatewayService
         $row = Payments_model::query()->where('code', 'vr_payment')->first();
         $raw = is_array(optional($row)->data) ? (array)$row->data : [];
 
+        $providerStatusEnabled = isset($row->status) ? $this->toBool($row->status) : null;
         $config = [
-            'enabled' => $this->toBool($raw['enabled'] ?? null),
+            'enabled' => $providerStatusEnabled !== null ? $providerStatusEnabled : $this->toBool($raw['enabled'] ?? null),
             'mode' => in_array((string)($raw['mode'] ?? ''), ['test', 'live'], true) ? (string)$raw['mode'] : 'test',
             'api_base_url' => rtrim((string)($raw['api_base_url'] ?? ''), '/'),
             'space_id' => trim((string)($raw['space_id'] ?? '')),
