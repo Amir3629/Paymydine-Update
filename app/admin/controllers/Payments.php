@@ -9,6 +9,7 @@ use Admin\Models\Payments_model;
 use Exception;
 use Igniter\Flame\Database\Model;
 use Igniter\Flame\Exception\ApplicationException;
+use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use System\Helpers\ValidationHelper;
@@ -299,6 +300,14 @@ class Payments extends \Admin\Classes\AdminController
             $attributes['id_application'] = 'Merchant Code';
             $attributes['url'] = 'API Base URL';
             $attributes['auth_mode'] = 'Auth Mode';
+
+            $payload = $form->getSaveData();
+            $token = trim((string)($payload['access_token'] ?? $payload['Payment']['access_token'] ?? ''));
+            if ($token !== '' && str_starts_with(strtolower($token), 'sup_pk_')) {
+                throw new ValidationException([
+                    'access_token' => 'This looks like a SumUp public key (sup_pk_...). Please use a server-side secret/access token (for example sup_sk_... or a valid SumUp API access token).',
+                ]);
+            }
         }
 
         try {
@@ -791,7 +800,7 @@ class Payments extends \Admin\Classes\AdminController
                     'options' => ['access_token' => 'Access Token (current)'],
                     'comment' => 'OAuth can be added later. Current production-safe mode uses a per-tenant access token.',
                 ],
-                'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'right', 'comment' => 'Required. Saved value is shown; replace to rotate token.'],
+                'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'right', 'comment' => 'Required server credential. Do not paste public keys (sup_pk_...). Saved value is shown; replace to rotate token.'],
                 'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
                 'id_application' => ['label' => 'Merchant Code', 'type' => 'text', 'span' => 'right', 'comment' => 'Optional. If empty, system attempts auto-resolve via SumUp /v0.1/me endpoint.'],
             ],

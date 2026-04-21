@@ -6,6 +6,7 @@ use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminMenu;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Admin\Models\Menus_model;
 use Admin\Helpers\PosMenuNormalizer;
 
@@ -135,6 +136,12 @@ class PosConfigs extends \Admin\Classes\AdminController
     {
         $model = $form->model;
         $deviceCode = strtolower((string)optional($model->devices)->code);
+        if ($deviceCode === '') {
+            $deviceId = (int)($model->device_id ?: post('device_id', post('Pos_configs.device_id', 0)));
+            if ($deviceId > 0) {
+                $deviceCode = strtolower((string)\Admin\Models\Pos_devices_model::query()->where('device_id', $deviceId)->value('code'));
+            }
+        }
 
         if ($deviceCode !== 'sumup') {
             return;
@@ -161,7 +168,14 @@ class PosConfigs extends \Admin\Classes\AdminController
         $providerTokenPresent = strlen((string)($providerData['access_token'] ?? '')) > 0 ? 'Yes' : 'No';
         $providerStatus = (bool)optional($provider)->status ? 'Enabled' : 'Disabled';
 
-        $form->addFields([
+        $terminalSchemaReady = Schema::hasTable('pos_configs')
+            && Schema::hasColumn('pos_configs', 'sumup_affiliate_key')
+            && Schema::hasColumn('pos_configs', 'sumup_reader_id')
+            && Schema::hasColumn('pos_configs', 'sumup_pairing_code')
+            && Schema::hasColumn('pos_configs', 'sumup_pairing_state')
+            && Schema::hasColumn('pos_configs', 'sumup_reader_label');
+
+        $fields = [
             'sumup_terminal_setup_guide' => [
                 'type' => 'section',
                 'label' => 'SumUp POS / Terminal Setup',
@@ -175,11 +189,23 @@ class PosConfigs extends \Admin\Classes\AdminController
                 'default' => "Provider status: {$providerStatus}\nAPI Base URL: {$providerUrl}\nMerchant Code: ".($providerMerchantCode !== '' ? $providerMerchantCode : '[auto-resolve]')."\nAccess Token configured: {$providerTokenPresent}",
                 'comment' => 'Read-only snapshot from provider configuration.',
             ],
-        ]);
+        ];
 
-        foreach (['sumup_affiliate_key', 'sumup_reader_id', 'sumup_pairing_code', 'sumup_pairing_state', 'sumup_reader_label'] as $fieldName) {
-            if ($field = $form->getField($fieldName)) {
-                $field->hidden = false;
+        if (!$terminalSchemaReady) {
+            $fields['sumup_terminal_schema_notice'] = [
+                'type' => 'section',
+                'label' => 'Terminal fields not active yet',
+                'comment' => 'Terminal-specific fields require schema update on production. Apply deploy/sql/2026-04-21-sumup-pos-terminal-fields.sql on each tenant database before using terminal fields.',
+            ];
+        }
+
+        $form->addFields($fields);
+
+        if ($terminalSchemaReady) {
+            foreach (['sumup_affiliate_key', 'sumup_reader_id', 'sumup_pairing_code', 'sumup_pairing_state', 'sumup_reader_label'] as $fieldName) {
+                if ($field = $form->getField($fieldName)) {
+                    $field->hidden = false;
+                }
             }
         }
     }
