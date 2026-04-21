@@ -20,7 +20,8 @@ class Pos_configs_model extends Model
     {
         static::addGlobalScope('exclude_worldline_pos', function ($query) {
             $query->whereHas('devices', function ($deviceQuery) {
-                $deviceQuery->whereRaw('LOWER(name) NOT LIKE ?', ['%worldline%']);
+                $deviceQuery->whereRaw('LOWER(name) NOT LIKE ?', ['%worldline%'])
+                    ->whereRaw('LOWER(code) <> ?', ['sumup']);
             });
         });
     }
@@ -56,6 +57,7 @@ class Pos_configs_model extends Model
     {
         return \Admin\Models\Pos_devices_model::query()
             ->whereRaw('LOWER(name) NOT LIKE ?', ['%worldline%'])
+            ->whereRaw('LOWER(code) <> ?', ['sumup'])
             ->get()
             ->mapWithKeys(function ($device) {
             $img = $device->getImageUrl() ? '<img src="'.$device->getImageUrl().'" style="height:30px;margin-right:5px;" />' : '';

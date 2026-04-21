@@ -15,11 +15,6 @@ class PosConfigs extends FormRequest
             'id_application' => lang('admin::lang.label_id_application_pos'),
             'username' => lang('admin::lang.pos_configs.label_username'),
             'password' => lang('admin::lang.pos_configs.label_password'),
-            'sumup_affiliate_key' => 'SumUp Affiliate Key',
-            'sumup_reader_id' => 'SumUp Reader ID',
-            'sumup_pairing_code' => 'SumUp Pairing Code',
-            'sumup_pairing_state' => 'SumUp Pairing State',
-            'sumup_reader_label' => 'SumUp Reader Label',
         ];
     }
 
@@ -32,11 +27,6 @@ class PosConfigs extends FormRequest
             'password' => ['nullable', 'string', 'max:128'],
             'access_token' => ['nullable', 'string', 'max:2048'],
             'id_application' => ['nullable', 'string', 'max:128'],
-            'sumup_affiliate_key' => ['nullable', 'string', 'max:191'],
-            'sumup_reader_id' => ['nullable', 'string', 'max:191'],
-            'sumup_pairing_code' => ['nullable', 'string', 'max:191'],
-            'sumup_pairing_state' => ['nullable', 'string', 'max:50'],
-            'sumup_reader_label' => ['nullable', 'string', 'max:191'],
         ];
     }
 }

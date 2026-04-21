@@ -194,7 +194,8 @@ return [
         'media_manager' => 'Media Manager',
         'system' => 'System',
         'pos_devices' => 'POS Devices List',
-        'pos'         => 'POS Device Settings',
+        'pos'         => 'POS Sync Settings',
+        'terminal_devices' => 'Terminal Devices',
 
         'alert_no_definition' => 'No definition for item %s.',
         'alert_invalid_menu' => 'Invalid item specified.',
@@ -1141,5 +1142,11 @@ return [
         'alert_login_restricted' => 'Warning: You do not have the right permission to <b>access a POS config</b>, please contact system administrator.',
         'alert_impersonate_confirm' => 'Are you sure you want to impersonate this POS Config? You can revert to your original state by logging out.',
         'alert_impersonate_success' => 'You are now impersonating POS Config: %s',
+    ],
+
+    'terminal_devices' => [
+        'text_title' => 'Terminal Devices',
+        'text_form_name' => 'Terminal Device',
+        'text_empty' => 'There are no terminal devices configured.',
     ],
 ];

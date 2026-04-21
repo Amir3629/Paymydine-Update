@@ -6,7 +6,6 @@ use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminMenu;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Admin\Models\Menus_model;
 use Admin\Helpers\PosMenuNormalizer;
 
@@ -147,67 +146,13 @@ class PosConfigs extends \Admin\Classes\AdminController
             return;
         }
 
-        // SumUp terminal setup: POS owns terminal fields only; online credentials are provider-owned.
-        foreach (['url', 'username', 'password', 'access_token', 'id_application'] as $fieldName) {
-            if (method_exists($form, 'removeField')) {
-                $form->removeField($fieldName);
-            }
-        }
-
-        if (isset($this->formConfig['form']['toolbar']['buttons']['sync_menu'])) {
-            unset($this->formConfig['form']['toolbar']['buttons']['sync_menu']);
-        }
-        if (isset($this->formConfig['form']['toolbar']['buttons']['register_webhook'])) {
-            unset($this->formConfig['form']['toolbar']['buttons']['register_webhook']);
-        }
-
-        $provider = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
-        $providerData = is_array(optional($provider)->data) ? (array)$provider->data : [];
-        $providerUrl = (string)($providerData['url'] ?? 'https://api.sumup.com');
-        $providerMerchantCode = (string)($providerData['id_application'] ?? '');
-        $providerTokenPresent = strlen((string)($providerData['access_token'] ?? '')) > 0 ? 'Yes' : 'No';
-        $providerStatus = (bool)optional($provider)->status ? 'Enabled' : 'Disabled';
-
-        $terminalSchemaReady = Schema::hasTable('pos_configs')
-            && Schema::hasColumn('pos_configs', 'sumup_affiliate_key')
-            && Schema::hasColumn('pos_configs', 'sumup_reader_id')
-            && Schema::hasColumn('pos_configs', 'sumup_pairing_code')
-            && Schema::hasColumn('pos_configs', 'sumup_pairing_state')
-            && Schema::hasColumn('pos_configs', 'sumup_reader_label');
-
-        $fields = [
-            'sumup_terminal_setup_guide' => [
+        $form->addFields([
+            'sumup_pos_migration_notice' => [
                 'type' => 'section',
-                'label' => 'SumUp POS / Terminal Setup',
-                'comment' => 'This page is for in-person terminal readiness only. Online checkout credentials are managed in Payments > Providers > SumUp. Do not start terminal charges from this settings page; start them from order payment actions.',
+                'label' => 'SumUp moved to Terminal Devices',
+                'comment' => 'SumUp card-present setup no longer belongs to POS sync configs. Use System > Terminal Devices for SumUp reader setup, pairing and diagnostics. Keep this page only for POS sync integrations such as Ready2Order.',
             ],
-            'sumup_provider_snapshot' => [
-                'label' => 'Linked Provider Status',
-                'type' => 'textarea',
-                'span' => 'full',
-                'attributes' => ['rows' => 4, 'readonly' => 'readonly'],
-                'default' => "Provider status: {$providerStatus}\nAPI Base URL: {$providerUrl}\nMerchant Code: ".($providerMerchantCode !== '' ? $providerMerchantCode : '[auto-resolve]')."\nAccess Token configured: {$providerTokenPresent}",
-                'comment' => 'Read-only snapshot from provider configuration.',
-            ],
-        ];
-
-        if (!$terminalSchemaReady) {
-            $fields['sumup_terminal_schema_notice'] = [
-                'type' => 'section',
-                'label' => 'Terminal fields not active yet',
-                'comment' => 'Terminal-specific fields require schema update on production. Apply deploy/sql/2026-04-21-sumup-pos-terminal-fields.sql on each tenant database before using terminal fields.',
-            ];
-        }
-
-        $form->addFields($fields);
-
-        if ($terminalSchemaReady) {
-            foreach (['sumup_affiliate_key', 'sumup_reader_id', 'sumup_pairing_code', 'sumup_pairing_state', 'sumup_reader_label'] as $fieldName) {
-                if ($field = $form->getField($fieldName)) {
-                    $field->hidden = false;
-                }
-            }
-        }
+        ]);
     }
 
     public function onTestIntegration()
@@ -222,51 +167,11 @@ class PosConfigs extends \Admin\Classes\AdminController
         }
 
         if (strtolower($config->devices->code ?? '') === 'sumup') {
-            try {
-                $provider = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
-                $providerData = is_array(optional($provider)->data) ? (array)$provider->data : [];
-                $baseUrl = rtrim((string)($providerData['url'] ?? 'https://api.sumup.com'), '/');
-                $token = (string)($providerData['access_token'] ?? '');
-                if ($token === '') {
-                    return response()->json([
-                        'provider' => 'sumup',
-                        'integration_mode' => 'terminal_setup',
-                        'error' => 'SumUp provider access token is missing. Configure it in Payments > Providers > SumUp.',
-                    ], 422);
-                }
-
-                $response = Http::withToken($token)
-                    ->acceptJson()
-                    ->get($baseUrl.'/v0.1/me/merchant-profile');
-
-                $json = $response->json();
-
-                return response()->json([
-                    'provider' => 'sumup',
-                    'integration_mode' => 'terminal_setup',
-                    'supported_features' => [
-                        'readers',
-                        'terminal_pairing_state',
-                        'terminal_readiness',
-                    ],
-                    'merchant_code' => ($providerData['id_application'] ?? null) ?: ($json['merchant_code'] ?? null),
-                    'reader_id' => $config->sumup_reader_id ?? null,
-                    'pairing_state' => $config->sumup_pairing_state ?? null,
-                    'reader_label' => $config->sumup_reader_label ?? null,
-                    'sumup_status' => $response->status(),
-                    'sumup_response' => $json,
-                ], $response->status());
-            } catch (\Throwable $e) {
-                Log::error('Error while testing SumUp integration', [
-                    'config_id' => $configId,
-                    'message' => $e->getMessage(),
-                ]);
-
-                return response()->json([
-                    'provider' => 'sumup',
-                    'error' => $e->getMessage(),
-                ], 500);
-            }
+            return response()->json([
+                'provider' => 'sumup',
+                'success' => false,
+                'error' => 'SumUp terminal setup moved to System > Terminal Devices. POS Configs is reserved for POS sync providers.',
+            ], 410);
         }
 
         try {
