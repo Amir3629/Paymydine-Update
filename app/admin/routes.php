@@ -1769,6 +1769,7 @@ Route::group([
             'cancel_url' => 'nullable|url',
             'locale' => 'nullable|string|max:10',
             'items' => 'nullable|array',
+            'order_id' => 'nullable|integer|min:1',
         ]);
 
         $amountMajor = (float)$payload['amount'];
@@ -1822,13 +1823,24 @@ Route::group([
                 $token = (string)($paymentData['access_token'] ?? '');
                 $baseUrl = rtrim((string)($paymentData['url'] ?? 'https://api.sumup.com'), '/');
                 $merchantCode = (string)($paymentData['id_application'] ?? '');
-                if ($token === '' || $merchantCode === '') {
+                if ($token === '') {
                     return response()->json(['success' => false, 'error' => 'SumUp credentials are incomplete'], 503);
                 }
+                if ($merchantCode === '') {
+                    $merchantResp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
+                    $merchantCode = (string)(($merchantResp->json()['merchant_code'] ?? '') ?: '');
+                }
+                if ($merchantCode === '') {
+                    return response()->json(['success' => false, 'error' => 'SumUp merchant code is missing and could not be auto-resolved'], 503);
+                }
+                $orderId = isset($payload['order_id']) ? (int)$payload['order_id'] : 0;
+                $checkoutReference = $orderId > 0
+                    ? ('PMD-ORD-'.$orderId.'-'.uniqid('', true))
+                    : ('PMD-'.uniqid('', true));
                 $sumupResponse = \Illuminate\Support\Facades\Http::withToken($token)
                     ->acceptJson()
                     ->post($baseUrl.'/v0.1/checkouts', [
-                        'checkout_reference' => 'PMD-'.uniqid('', true),
+                        'checkout_reference' => $checkoutReference,
                         'amount' => number_format($amountMajor, 2, '.', ''),
                         'currency' => $currency,
                         'merchant_code' => $merchantCode,
@@ -1843,11 +1855,24 @@ Route::group([
                 if ($redirectUrl === '') {
                     return response()->json(['success' => false, 'error' => 'SumUp checkout URL missing'], 502);
                 }
+                if ($orderId > 0 && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
+                    \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insert([
+                        'order_id' => $orderId,
+                        'payment_method' => 'card',
+                        'payment_reference' => (string)($body['id'] ?? $checkoutReference),
+                        'amount' => $amountMajor,
+                        'settlement_status' => 'pending',
+                        'payer_label' => 'sumup_guest_checkout',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
                 return response()->json([
                     'success' => true,
                     'provider' => 'sumup',
                     'redirect_url' => $redirectUrl,
                     'checkout_id' => $body['id'] ?? null,
+                    'checkout_reference' => $checkoutReference,
                 ]);
             }
 

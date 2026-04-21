@@ -290,6 +290,17 @@ class Payments extends \Admin\Classes\AdminController
             }
         }
 
+        if ($isProviderRecord && (string)$model->code === 'sumup') {
+            $rules['access_token'] = ['required', 'string', 'min:20', 'max:4096'];
+            $rules['url'] = ['required', 'url', 'max:255', 'regex:/^https:\\/\\//i'];
+            $rules['id_application'] = ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'];
+            $rules['auth_mode'] = ['nullable', 'in:access_token'];
+
+            $attributes['id_application'] = 'Merchant Code';
+            $attributes['url'] = 'API Base URL';
+            $attributes['auth_mode'] = 'Auth Mode';
+        }
+
         try {
             return $this->validatePasses($form->getSaveData(), $rules, $messages, $attributes);
         } catch (\Throwable $e) {
@@ -480,12 +491,6 @@ class Payments extends \Admin\Classes\AdminController
                 'access_token' => $data['secret_api_key'] ?? null,
                 'id_application' => $data['merchant_id'] ?? null,
                 'password' => $data['webhook_secret'] ?? null,
-            ]);
-        } elseif ((string)$model->code === 'sumup') {
-            $this->syncProviderIntoPosConfig('sumup', [
-                'url' => $data['url'] ?? null,
-                'access_token' => $data['access_token'] ?? null,
-                'id_application' => $data['id_application'] ?? null,
             ]);
         }
     }
@@ -773,9 +778,22 @@ class Payments extends \Admin\Classes\AdminController
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
             ]),
             'sumup' => [
-                'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
-                'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'right', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
-                'id_application' => ['label' => 'Merchant Code', 'type' => 'text', 'span' => 'left', 'comment' => 'SumUp merchant code. If empty, system attempts auto-resolve.'],
+                'sumup_setup_guide' => [
+                    'type' => 'section',
+                    'label' => 'SumUp Provider Setup',
+                    'comment' => 'Use this page for guest online payments only. In SumUp Dashboard create an API app/token, then paste the Access Token below. Merchant Code is optional (auto-resolve is supported). Terminal reader settings belong in POS > SumUp, not here.',
+                ],
+                'auth_mode' => [
+                    'label' => 'Auth Mode',
+                    'type' => 'select',
+                    'span' => 'left',
+                    'default' => 'access_token',
+                    'options' => ['access_token' => 'Access Token (current)'],
+                    'comment' => 'OAuth can be added later. Current production-safe mode uses a per-tenant access token.',
+                ],
+                'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'right', 'comment' => 'Required. Saved value is shown; replace to rotate token.'],
+                'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
+                'id_application' => ['label' => 'Merchant Code', 'type' => 'text', 'span' => 'right', 'comment' => 'Optional. If empty, system attempts auto-resolve via SumUp /v0.1/me endpoint.'],
             ],
             'worldline' => [
                 'api_endpoint' => ['label' => 'API Endpoint', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.preprod.connect.worldline-solutions.com', 'comment' => 'Preprod or live Connect API endpoint URL.'],

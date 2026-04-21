@@ -197,11 +197,23 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
       case "sumup":
         return (
           <SumUpHostedCheckout
+            amount={finalTotal}
             currency={merchantSettings?.currency || "EUR"}
             description="PayMyDine SumUp hosted checkout"
             className="w-full"
           />
         );
+      case "card":
+        if ((selectedMethod.provider_code || "").toLowerCase() === "sumup") {
+          return (
+            <SumUpHostedCheckout
+              amount={finalTotal}
+              currency={merchantSettings?.currency || "EUR"}
+              description="PayMyDine SumUp hosted checkout"
+              className="w-full"
+            />
+          );
+        }
 
       case "stripe":
       case "authorizenetaim":
@@ -735,7 +747,8 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
           {selectedPaymentMethod === "sumup" && (
               <div data-pmd-sumup-hard-fallback="1" className="w-full mt-4">
                 <SumUpHostedCheckout
-                  currency="EUR"
+                  amount={finalTotal}
+                  currency={merchantSettings?.currency || "EUR"}
                   description="PayMyDine SumUp hosted checkout"
                   className="w-full"
                 />

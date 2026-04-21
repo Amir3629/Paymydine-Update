@@ -131,6 +131,59 @@ class PosConfigs extends \Admin\Classes\AdminController
         }
     }
 
+    public function formExtendFields($form)
+    {
+        $model = $form->model;
+        $deviceCode = strtolower((string)optional($model->devices)->code);
+
+        if ($deviceCode !== 'sumup') {
+            return;
+        }
+
+        // SumUp terminal setup: POS owns terminal fields only; online credentials are provider-owned.
+        foreach (['url', 'username', 'password', 'access_token', 'id_application'] as $fieldName) {
+            if (method_exists($form, 'removeField')) {
+                $form->removeField($fieldName);
+            }
+        }
+
+        if (isset($this->formConfig['form']['toolbar']['buttons']['sync_menu'])) {
+            unset($this->formConfig['form']['toolbar']['buttons']['sync_menu']);
+        }
+        if (isset($this->formConfig['form']['toolbar']['buttons']['register_webhook'])) {
+            unset($this->formConfig['form']['toolbar']['buttons']['register_webhook']);
+        }
+
+        $provider = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
+        $providerData = is_array(optional($provider)->data) ? (array)$provider->data : [];
+        $providerUrl = (string)($providerData['url'] ?? 'https://api.sumup.com');
+        $providerMerchantCode = (string)($providerData['id_application'] ?? '');
+        $providerTokenPresent = strlen((string)($providerData['access_token'] ?? '')) > 0 ? 'Yes' : 'No';
+        $providerStatus = (bool)optional($provider)->status ? 'Enabled' : 'Disabled';
+
+        $form->addFields([
+            'sumup_terminal_setup_guide' => [
+                'type' => 'section',
+                'label' => 'SumUp POS / Terminal Setup',
+                'comment' => 'This page is for in-person terminal readiness only. Online checkout credentials are managed in Payments > Providers > SumUp. Do not start terminal charges from this settings page; start them from order payment actions.',
+            ],
+            'sumup_provider_snapshot' => [
+                'label' => 'Linked Provider Status',
+                'type' => 'textarea',
+                'span' => 'full',
+                'attributes' => ['rows' => 4, 'readonly' => 'readonly'],
+                'default' => "Provider status: {$providerStatus}\nAPI Base URL: {$providerUrl}\nMerchant Code: ".($providerMerchantCode !== '' ? $providerMerchantCode : '[auto-resolve]')."\nAccess Token configured: {$providerTokenPresent}",
+                'comment' => 'Read-only snapshot from provider configuration.',
+            ],
+        ]);
+
+        foreach (['sumup_affiliate_key', 'sumup_reader_id', 'sumup_pairing_code', 'sumup_pairing_state', 'sumup_reader_label'] as $fieldName) {
+            if ($field = $form->getField($fieldName)) {
+                $field->hidden = false;
+            }
+        }
+    }
+
     public function onTestIntegration()
     {
         $segments = request()->segments();
@@ -144,9 +197,19 @@ class PosConfigs extends \Admin\Classes\AdminController
 
         if (strtolower($config->devices->code ?? '') === 'sumup') {
             try {
-                $baseUrl = rtrim($config->url ?: 'https://api.sumup.com', '/');
+                $provider = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
+                $providerData = is_array(optional($provider)->data) ? (array)$provider->data : [];
+                $baseUrl = rtrim((string)($providerData['url'] ?? 'https://api.sumup.com'), '/');
+                $token = (string)($providerData['access_token'] ?? '');
+                if ($token === '') {
+                    return response()->json([
+                        'provider' => 'sumup',
+                        'integration_mode' => 'terminal_setup',
+                        'error' => 'SumUp provider access token is missing. Configure it in Payments > Providers > SumUp.',
+                    ], 422);
+                }
 
-                $response = Http::withToken($config->access_token)
+                $response = Http::withToken($token)
                     ->acceptJson()
                     ->get($baseUrl.'/v0.1/me/merchant-profile');
 
@@ -154,20 +217,16 @@ class PosConfigs extends \Admin\Classes\AdminController
 
                 return response()->json([
                     'provider' => 'sumup',
-                    'integration_mode' => 'payments',
+                    'integration_mode' => 'terminal_setup',
                     'supported_features' => [
-                        'merchant_profile',
-                        'checkouts',
-                        'transactions',
-                        'refunds',
                         'readers',
-                        'checkout_status_webhook',
+                        'terminal_pairing_state',
+                        'terminal_readiness',
                     ],
-                    'unsupported_features_for_now' => [
-                        'public_menu_sync',
-                        'public_catalog_crud',
-                    ],
-                    'merchant_code' => $config->id_application ?: ($json['merchant_code'] ?? null),
+                    'merchant_code' => ($providerData['id_application'] ?? null) ?: ($json['merchant_code'] ?? null),
+                    'reader_id' => $config->sumup_reader_id ?? null,
+                    'pairing_state' => $config->sumup_pairing_state ?? null,
+                    'reader_label' => $config->sumup_reader_label ?? null,
                     'sumup_status' => $response->status(),
                     'sumup_response' => $json,
                 ], $response->status());

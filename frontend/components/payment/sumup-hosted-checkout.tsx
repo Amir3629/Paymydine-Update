@@ -3,11 +3,14 @@
 import { useState } from "react"
 
 type Props = {
-  amount?: number
+  amount: number
+  currency: string
   orderId?: number | string | null
   orderType?: string
+  description?: string
   successUrl?: string
   cancelUrl?: string
+  className?: string
 }
 
 export default function SumUpHostedCheckout(props: Props) {
@@ -20,15 +23,18 @@ export default function SumUpHostedCheckout(props: Props) {
       setError(null)
 
       const payload = {
+        amount: props.amount,
+        currency: props.currency,
         order_id: props.orderId ?? null,
-        order_type: props.orderType ?? "delivery",
-        success_url: props.successUrl ?? `${window.location.origin}/order-placed`,
+        order_type: props.orderType ?? "guest",
+        description: props.description ?? "PayMyDine SumUp checkout",
+        return_url: props.successUrl ?? `${window.location.origin}/order-placed`,
         cancel_url: props.cancelUrl ?? `${window.location.origin}/menu`,
       }
 
       console.log("[PMD-SUMUP] create-checkout payload", payload)
 
-      const res = await fetch("/api/v1/payments/sumup/create-checkout", {
+      const res = await fetch("/api/v1/payments/card/create-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,7 +86,7 @@ export default function SumUpHostedCheckout(props: Props) {
   return (
     <div
       data-pmd-sumup-checkout="1"
-      className="w-full mt-4 rounded-3xl border p-4 sm:p-5"
+      className={`w-full mt-4 rounded-3xl border p-4 sm:p-5 ${props.className ?? ""}`}
       style={{
         borderColor: "var(--theme-border)",
         background: "rgba(255,255,255,0.04)",

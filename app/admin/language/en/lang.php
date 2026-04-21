@@ -62,9 +62,9 @@ return [
     'label_location' => 'Location(s)',
     'label_description' => 'Description',
     
-    'label_url' => 'API URL Sandbox',
-    'label_access_token_pos' => 'Access Token Sandbox',
-    'label_id_application_pos' => 'Application ID Sandbox',
+    'label_url' => 'API Base URL',
+    'label_access_token_pos' => 'Access Token',
+    'label_id_application_pos' => 'Merchant Code',
     'label_username_pos' => 'Username',
     'label_password_pos' => 'Password',
 
@@ -1132,8 +1132,8 @@ return [
         'text_empty' => 'There are no POS configs available.',
         'pos_devices' => 'POS Devices',
         'label_super_pos_configs' => 'Super Admin',
-        'label_username' => 'API Sandbox Username',
-        'label_password' => 'API Sandbox Password',
+        'label_username' => 'API Username',
+        'label_password' => 'API Password',
         'label_devices' => 'Devices',
 
         'help_devices' => 'Specify which devices the POS should belong to. Segmenting agents into devices lets you easily assign orders.',
