@@ -206,6 +206,12 @@ export default function SumUpHostedCheckout(props: Props) {
 
       if (success && json?.checkout_id) {
         const checkoutId = String(json.checkout_id)
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
+            checkout_id: checkoutId,
+            created_at: Date.now(),
+          }))
+        }
         setWidgetCheckoutId(checkoutId)
         await mountWidget(checkoutId)
         return
