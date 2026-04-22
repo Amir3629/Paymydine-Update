@@ -1402,7 +1402,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
 
       if (!res.ok || !json?.success || !json?.redirect_url) {
-        const providerLabel = providerCode === "worldline" ? "Worldline" : (providerCode === "vr_payment" ? "VR Payment" : "Stripe")
+        const providerLabel = providerCode === "worldline"
+          ? "Worldline"
+          : providerCode === "vr_payment"
+            ? "VR Payment"
+            : providerCode === "sumup"
+              ? "SumUp"
+              : providerCode === "square"
+                ? "Square"
+                : "Stripe"
         const resolvedErrorCode = String(json?.resolved_error_code || json?.error_code || "").toLowerCase()
         const fallbackAllowedByCode = [
           "worldline_invalid_credentials_or_entitlement",

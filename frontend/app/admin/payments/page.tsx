@@ -26,6 +26,7 @@ type PaymentProvider = {
 }
 
 export default function PaymentMethodsPage() {
+  const IS_READ_ONLY = true
   const { toast } = useToast()
   const [methods, setMethods] = useState<PaymentMethod[]>([])
   const [providers, setProviders] = useState<PaymentProvider[]>([])
@@ -64,6 +65,7 @@ export default function PaymentMethodsPage() {
   const enabledProviderCodes = useMemo(() => new Set(providers.filter((p) => p.enabled).map((p) => p.code)), [providers])
 
   const updateMethod = (code: PaymentMethod["code"], patch: Partial<PaymentMethod>) => {
+    if (IS_READ_ONLY) return
     setMethods((prev) => prev.map((method) => (method.code === code ? { ...method, ...patch } : method)))
   }
 
@@ -90,6 +92,7 @@ export default function PaymentMethodsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
         <h1 className="text-3xl font-bold">Payment Methods</h1>
+        <p className="text-sm text-amber-600 mt-1">Read-only mirror: edit payment methods in Laravel Backend Admin.</p>
         <p className="text-sm text-muted-foreground mt-1">UI methods are separated from providers. Assign a provider per method.</p>
         </div>
         <Button asChild variant="outline" className="shrink-0">
@@ -129,13 +132,14 @@ export default function PaymentMethodsPage() {
 
                   <div>
                     <Label className="text-xs">Display Name</Label>
-                    <Input value={method.name} onChange={(e) => updateMethod(method.code, { name: e.target.value })} />
+                    <Input disabled={IS_READ_ONLY} value={method.name} onChange={(e) => updateMethod(method.code, { name: e.target.value })} />
                   </div>
 
                   <div>
                     <Label className="text-xs">Provider</Label>
                     <Select
                       value={method.provider_code ?? "none"}
+                      disabled={IS_READ_ONLY}
                       onValueChange={(value) => updateMethod(method.code, { provider_code: value === "none" ? null : (value as PaymentMethod["provider_code"]) })}
                     >
                       <SelectTrigger>
@@ -161,6 +165,7 @@ export default function PaymentMethodsPage() {
                     <Label htmlFor={`enabled-${method.code}`} className="text-sm">Enabled</Label>
                     <Switch
                       id={`enabled-${method.code}`}
+                      disabled={IS_READ_ONLY}
                       checked={method.enabled}
                       onCheckedChange={(checked) => updateMethod(method.code, { enabled: checked })}
                     />
@@ -171,8 +176,8 @@ export default function PaymentMethodsPage() {
         )}
 
         <div className="pt-2 flex justify-end">
-          <Button onClick={saveMethods} disabled={isLoading || isSaving}>
-            {isSaving ? "Saving..." : "Save Payment Methods"}
+          <Button onClick={saveMethods} disabled={IS_READ_ONLY || isLoading || isSaving}>
+            {IS_READ_ONLY ? "Read-only in storefront admin" : (isSaving ? "Saving..." : "Save Payment Methods")}
           </Button>
         </div>
       </div>
