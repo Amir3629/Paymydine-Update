@@ -1,176 +1,299 @@
-# PayMyDine SumUp / Ready2Order / Payment Mapping Audit (2026-04-22)
+# PayMyDine Audit Update — Canonical SumUp/Ready2Order Modeling (2026-04-22)
 
-## Section 1: File inventory
+## Part A — SumUp online payments: canonical route family
 
-### SumUp inventory
-- `app/admin/controllers/Payments.php`
-  - SumUp provider form fields (`access_token`, `url`, `id_application`) and validation.
-  - Auto merchant identity resolution via `GET /v0.1/me`.
-  - Provider connection testing.
-- `app/admin/routes.php`
-  - Runtime method/provider resolution.
-  - Card checkout session creation branch for provider `sumup`.
-  - SumUp checkout status verification endpoint.
-  - SumUp widget event logging endpoint.
-  - SumUp health/debug endpoints.
-- `app/main/routes_sumup.php`
-  - Additional SumUp routes: merchant profile, create checkout, checkout lookup, refund, webhook.
-  - Includes payment finalization helper for paid checkouts.
-- `app/admin/controllers/TerminalDevices.php`
-  - SumUp reader discovery and terminal connection testing.
-  - Explicit split between online provider config and terminal setup.
-- `app/admin/models/Terminal_devices_model.php`
-  - Terminal device domain model (card-present setup).
-- `app/admin/models/config/terminal_devices_model.php`
-  - Laravel admin fields and toolbar actions for reader setup.
-- `app/admin/models/config/pos_configs_model.php`
-  - Legacy/hidden SumUp terminal fields still present in POS config schema.
-- `app/admin/models/Pos_configs_model.php`
-  - Global scope excludes SumUp from POS config listings.
-- `app/admin/controllers/PosConfigs.php`
-  - SumUp path treated as no-menu-sync mode and webhook-registration skipped.
-- `app/admin/database/migrations/2026_04_21_120000_add_sumup_terminal_fields_to_pos_configs.php`
-  - Adds hidden SumUp terminal columns to `pos_configs` (legacy overlap with terminal_devices).
-- `app/admin/database/migrations/2026_04_22_000100_create_terminal_devices_table.php`
-  - Creates dedicated `terminal_devices` table for card-present.
-- `app/admin/requests/TerminalDevices.php`
-  - Validation rules for terminal device setup.
-- `app/Services/Payments/PaymentProviderFactory.php`
-  - Declares SumUp as a selectable payment provider.
-- `app/Services/Payments/Providers/SumUpProvider.php`
-  - Stub only (returns `success=false`, no real createPayment implementation).
-- `config/logging.php`
-  - Dedicated `sumup` daily log channel.
-- `frontend/app/menu/page.tsx`
-  - Handles SumUp pending checkout localStorage and return-status verification.
-- `frontend/components/payment/sumup-hosted-checkout.tsx`
-  - SumUp widget + redirect hybrid flow.
-- `frontend/components/payment-flow.tsx` and `frontend/components/payment/secure-payment-flow.tsx`
-  - Frontend routes SumUp via `sumup` method code OR `card` method with `provider_code=sumup`.
-- `frontend/app/admin/payment-providers/page.tsx`
-  - Next.js admin-like surface exposes SumUp credentials.
-- `frontend/app/admin/payments/page.tsx`
-  - Next.js method/provider assignment UI.
+### Active online flow map
 
-### Ready2Order inventory
-- `app/admin/controllers/PosConfigs.php`
-  - Ready2Order detection and direct products sync behavior.
-  - Generic webhook registration intentionally skipped for Ready2Order direct mode.
-- `app/admin/models/Pos_configs_model.php`
-  - Ready2Order table sync shell execution (`pmd_r2o_sync_tables.php`, `pmd_r2o_auto_create_tables.php`).
-- `app/admin/views/posconfigs/edit.blade.php`
-  - Ready2Order sync modal and client-side sync UI behavior.
-- `app/admin/controllers/PosWebhookController.php`
-  - Webhook ingestion path for external POS payloads (provider-driven).
-- `app/admin/controllers/Api/PosWebhookController.php`
-  - Similar POS webhook ingestion controller variant.
-- `app/system/helpers/r2o_outbound_dryrun_helper.php`
-  - Outbound payload dry-run and optional live push to Ready2Order orders API.
-  - Uses settings-based payment/table/product mapping keys.
-- `app/Services/R2O/pmd_r2o_import_orders_fullscan.php`
-  - Fullscan importer from Ready2Order invoices, with DB table bootstrapping.
-- `app/Services/R2O/pmd_r2o_stateful_tracker.php`
-  - Stateful invoice fetch/tracking utility.
-- `app/admin/routes.php`
-  - Calls dry-run outbound helper after order creation.
-  - Includes routes for POS invoice PDF retrieval via ready2order API token.
-- `routes/api.php`
-  - Attempts to require `routes/api_r2o_webhook.php` (file not found in repository).
+#### A1) `app/admin/routes.php` (runtime checkout lane used by storefront)
+
+**Create checkout/session**
+- `POST /api/v1/payments/card/create-session`
+  - Resolves active provider from runtime payment-method mapping.
+  - If provider for `card` is `sumup`, creates SumUp checkout (`/v0.1/checkouts`) with merchant-code auto-resolve fallback (`/v0.1/me`), persists pending transaction row when `order_id` exists, returns `checkout_id` + redirect candidates.
+
+**Retrieve checkout/status**
+- `POST /api/v1/payments/sumup/checkout-status`
+  - Pulls SumUp checkout state from `/v0.1/checkouts/{id}`.
+  - Maps upstream status into internal settlement status and updates `order_payment_transactions` when present.
+
+**Webhook-like runtime event capture**
+- `POST /api/v1/payments/sumup/widget-event`
+  - Stores frontend widget lifecycle events for diagnostics.
+
+**Health/debug**
+- `GET /api/v1/payments/sumup/health`
+  - Lightweight token/merchant readiness check via `/v0.1/me`.
+- `GET /api/v1/payments/sumup/debug`
+  - Diagnostic payload preview and `/v0.1/me` probe.
+
+#### A2) `app/main/routes_sumup.php` (secondary SumUp route family)
+
+**Create checkout/session**
+- `POST /api/v1/payments/sumup/create-checkout`
+- `POST /payments/sumup/create-hosted-checkout` (outside the tenant group, legacy-style config keys)
+
+**Retrieve checkout/status**
+- `GET /api/v1/payments/sumup/checkout/{checkoutId}`
+
+**Webhook**
+- `POST /api/v1/webhook/sumup`
+  - Verifies checkout and calls `pmdFinalizeSumupCheckoutIfPaid`.
+
+**Refund**
+- `POST /api/v1/payments/sumup/refund/{txnId}`
+
+**Payment finalization helper**
+- `pmdFinalizeSumupCheckoutIfPaid(array $checkoutBody)`
+  - Marks order as payment-processed and updates transaction rows to `paid`.
 
 ---
 
-## Section 2: Architecture grouping
+### Duplicate/conflicting endpoints
 
-### Laravel admin UI/config
-- **Payment providers UI (active):** SumUp provider credentials are actively managed in Laravel `Payments` provider mode (`access_token`, `url`, auto merchant code, test connection).  
-- **POS config UI (mixed active + legacy):** SumUp is explicitly excluded from active POS config use, but hidden SumUp terminal fields still exist in `pos_configs` config + migration, indicating legacy residue.  
-- **Terminal Devices UI (active):** New dedicated SumUp card-present setup path exists and is the intended layer for readers/pairing.
+1. **Two create-checkout paths with overlapping purpose**
+   - `POST /api/v1/payments/card/create-session` (`admin/routes.php`) vs `POST /api/v1/payments/sumup/create-checkout` (`main/routes_sumup.php`).
+   - They both hit SumUp checkout creation but sit behind different orchestration logic.
 
-### Payment provider logic
-- **Active:** Runtime card session route supports `sumup` in `app/admin/routes.php` and creates checkouts against `/v0.1/checkouts`.  
-- **Partially duplicated:** `app/main/routes_sumup.php` provides another SumUp API surface for create/lookup/refund/webhook, partially overlapping admin routes.  
-- **Legacy/stub signal:** `App\Services\Payments\Providers\SumUpProvider` is still a stub and not the real execution path.
+2. **Two SumUp status/verification styles**
+   - Polling status endpoint in `admin/routes.php` (`/payments/sumup/checkout-status`) is used by frontend return flow.
+   - `main/routes_sumup.php` offers read endpoint (`/payments/sumup/checkout/{id}`) not used by current frontend flow.
 
-### POS integration logic
-- **Ready2Order is mature POS lane:** Config detection, table sync utilities, menu import-first sync, outbound dry-run/live push scaffolding, invoice retrieval, and webhook ingestion paths.  
-- **SumUp POS lane is transitional:** Dedicated terminal domain exists, but legacy `pos_configs` fields remain and POS controller still contains SumUp-specific bypass behavior.
+3. **Webhook/finalization split from active checkout path**
+   - Webhook/finalization exists in `main/routes_sumup.php`, but active frontend create+verify loop runs through `admin/routes.php` + polling.
 
-### Frontend checkout logic
-- **SumUp online checkout is active:** Frontend supports redirect + widget fallback via `checkout_id`, stores pending SumUp checkout IDs, and verifies status after return.  
-- **Provider-based routing is active:** `card` method delegates to provider chosen in backend (`provider_code`) and can reach SumUp branch.
-
-### Webhook/status logic
-- **SumUp:** Checkout status verification endpoint + widget event logging endpoint + optional webhook route in `app/main/routes_sumup.php`.  
-- **Ready2Order:** Webhook controllers exist, plus external POS pull in handlers.
-
-### Logs/diagnostics
-- **SumUp logs:** Dedicated `sumup` channel records identity lookup, create session requests/responses, widget events, health/debug checks.  
-- **Ready2Order logs:** Uses system log with prefixed entries for import/fullscan/stateful/outbound dry-run and push.
-
-### Database/migrations
-- **SumUp provider data:** Stored in payment config payload (`Payments_model` data/meta).  
-- **SumUp terminal data:** Stored in `terminal_devices` (new), but duplicated historical fields persisted in `pos_configs`.  
-- **Ready2Order operational data:** Importer creates/uses POS import and mapping tables (`ti_pos_order_imports`, `ti_pos_order_import_items`, `ti_pos_product_mappings`, etc.) in scripts.
+4. **Legacy/alternate config keys in `create-hosted-checkout`**
+   - Uses `transaction_mode` + `live_api_key/test_api_key` + `merchant_code/base_url` style, diverging from active provider fields (`access_token`, `url`, `id_application`).
 
 ---
 
-## Section 3: Duplicate/conflicting modeling
+### Canonical path recommendation
 
-1. **Two active SumUp API surfaces for online payments**
-   - `app/admin/routes.php` has `/payments/card/create-session` sumup branch + checkout-status + health/debug/widget-event.
-   - `app/main/routes_sumup.php` also has create-checkout/checkout/refund/webhook endpoints.
-   - Risk: behavior drift, duplicated auth/config assumptions.
-
-2. **SumUp terminal modeled in two storage layers**
-   - New canonical: `terminal_devices` table + model/controller.
-   - Legacy duplicate: hidden `sumup_*` fields in `pos_configs` migration/config.
-   - Risk: conflicting source of truth for reader setup.
-
-3. **Payment provider config duplicated across DB settings and payment rows**
-   - `payment_providers` JSON settings (admin API) and `payments` table config payload both store overlapping provider config.
-   - Runtime loaders merge across both, increasing ambiguity.
-
-4. **Ready2Order webhook path ambiguity**
-   - `routes/api.php` references a missing `api_r2o_webhook.php` file while webhook controllers/routes exist elsewhere.
-   - Risk: hidden dead/expected route contract mismatch.
-
-5. **Frontend Next.js admin pages duplicate Laravel admin concerns**
-   - `frontend/app/admin/payment-providers` and `frontend/app/admin/payments` are additional config surfaces even though Laravel admin is stated source of truth.
+**Canonical production online path should be `app/admin/routes.php` family** because:
+1. Frontend checkout orchestration targets `/api/v1/payments/card/create-session` and `/api/v1/payments/sumup/checkout-status` directly.
+2. Provider resolution is unified there with method/provider runtime mapping (same decision engine used for non-SumUp providers).
+3. Provider config loading aligns with Laravel Payments admin provider record (`Payments_model` code=`sumup`, `data` payload).
+4. `main/routes_sumup.php` is functionally useful but currently behaves as parallel integration surface, not the storefront control plane.
 
 ---
 
-## Section 4: Missing pieces for production readiness
+### Config source-of-truth (online)
 
-### SumUp payment provider
-- No clear idempotency strategy recorded for create-checkout retries.
-- No signed webhook verification path shown for `/webhook/sumup`.
-- No explicit capability discovery matrix from SumUp account entitlements (only coarse health identity check).
-- No strong environment split in SumUp provider fields (single token/base URL set).
-- Secret masking UX is partial (fields shown as text in some surfaces, especially Next.js admin pages).
-- No explicit reconciliation job for long-pending checkouts.
+1. **Authoritative runtime credentials source**
+   - `payments` row for `code='sumup'`, config in model `data` payload (`access_token`, `url`, `id_application`), loaded in both route families.
 
-### SumUp POS / terminal
-- Terminal pairing lifecycle is represented, but no explicit periodic heartbeat/reader-online monitor found.
-- Legacy fields in `pos_configs` indicate migration not fully consolidated.
+2. **How merchant code resolves**
+   - Use `id_application` if available.
+   - Else call SumUp `/v0.1/me` to resolve `merchant_code`.
 
-### Payment method/provider governance
-- METHOD_PROVIDER_MATRIX allows combinations broader than implemented capabilities for some methods.
-- Runtime checks are strong in save API, but frontend surfaces can still present stale combinations before server rejects.
-- Potential dangerous UI state: admin can see/support methods for providers whose runtime flow remains incomplete or provider disabled.
-
-### Ready2Order baseline gaps (despite being richer)
-- Significant operational logic still lives in standalone scripts with hardcoded paths/DB names.
-- Uses shell exec dependencies (`/home/ubuntu/...`) in model/controller flows.
-- Not all mapping/config appears centralized in Laravel models/controllers (some in `settings` key-value conventions).
+3. **Method/provider decision source**
+   - Provider assignment for `card` comes from payment-method resolver in `admin/routes.php`, constrained by `Payments_model::METHOD_PROVIDER_MATRIX` and runtime method mapping.
 
 ---
 
-## Section 5: Questions unresolved
+### Why `SumUpProvider.php` is still a stub
 
-1. Which SumUp route family is canonical for production: `app/admin/routes.php` endpoints or `app/main/routes_sumup.php` endpoints?
-2. Should `pos_configs` SumUp columns be considered migrated/obsolete now that `terminal_devices` exists?
-3. Is Next.js `/admin/*` intended for real operator config, or only transitional tooling while Laravel admin remains source of truth?
-4. What is the intended webhook contract for SumUp: polling checkout-status only, webhook only, or both with signature verification?
-5. Is `routes/api.php` missing `api_r2o_webhook.php` accidental technical debt or an intentionally removed route?
-6. For method/provider mapping, is the authoritative source `payments` table rows, `settings.payment_methods`, or resolved runtime merge output?
-7. Are Apple Pay / Google Pay / PayPal / Wero under SumUp expected roadmap items or should they be hard-blocked at admin UX + API level now?
+- `PaymentProviderFactory` can instantiate `SumUpProvider`, but active checkout HTTP routes do not call `PaymentProviderFactory::make('sumup')` for session creation.
+- Online flow is implemented procedurally in route closures (`admin/routes.php` and `main/routes_sumup.php`), bypassing the provider service abstraction.
+- Result: the provider class is currently non-authoritative and effectively dormant for live checkout execution.
+
+---
+
+### Online lane risks
+
+1. Parallel route families increase behavior drift risk (payload shapes, key names, status mapping).
+2. Webhook/finalization not co-located with active checkout create/status loop.
+3. Legacy hosted-checkout route in `main/routes_sumup.php` uses different credential schema.
+4. Operational confusion: engineers/operators can’t easily tell which endpoint family is “real.”
+
+
+## Part B — SumUp terminal/card-present model
+
+### Terminal architecture map
+
+1. **Dedicated terminal model exists**
+   - `terminal_devices` table + `Terminal_devices_model` + `terminal_devices_model` admin config.
+2. **Terminal controller depends on online provider readiness**
+   - `TerminalDevices` reads SumUp provider token from Payments config, discovers readers, tests connection.
+3. **POS configs lane explicitly demotes SumUp**
+   - `PosConfigs` shows migration notice and blocks SumUp POS integration test/sync semantics.
+4. **`pos_configs` still contains hidden SumUp fields**
+   - Form config + migration keep `sumup_*` columns, but they are hidden and not part of active controller read/write path.
+
+---
+
+### Storage sources (terminal fields)
+
+#### Canonical active store
+- `terminal_devices` columns:
+  - `provider_code`, `location_id`, `affiliate_key`, `reader_id`, `reader_label`, `pairing_state`, `terminal_status`, `metadata`, `is_active`.
+- Written/read by:
+  - `TerminalDevices` controller form save + onDiscoverReaders/onTestTerminalConnection workflow.
+  - `TerminalDevices` form request validation.
+
+#### Legacy/deferred store
+- `pos_configs` hidden fields:
+  - `sumup_affiliate_key`, `sumup_reader_id`, `sumup_pairing_code`, `sumup_pairing_state`, `sumup_reader_label`.
+- Present in migration + form config only.
+- Not used by active SumUp terminal controller runtime.
+
+---
+
+### Active vs dead fields
+
+**Active (terminal lane):**
+- `terminal_devices.*` fields listed above.
+
+**Likely dead / migration residue:**
+- `pos_configs.sumup_affiliate_key`
+- `pos_configs.sumup_reader_id`
+- `pos_configs.sumup_pairing_code`
+- `pos_configs.sumup_pairing_state`
+- `pos_configs.sumup_reader_label`
+
+Reason: repo-wide runtime references are limited to form schema/migration definitions; no active execution path in current terminal/checkout controllers depends on these fields.
+
+---
+
+### Canonical source recommendation (terminal)
+
+- Treat **`terminal_devices` as canonical source of truth** for SumUp card-present state.
+- Treat hidden `pos_configs.sumup_*` as **technical debt / migration residue** unless an external script outside repo still consumes them.
+- Keep online provider credentials in Payments provider config; keep reader/terminal state in `terminal_devices`.
+
+---
+
+### Terminal lane risks
+
+1. Hidden `pos_configs.sumup_*` fields imply obsolete but still-schema-visible source.
+2. Operators may misread “POS Configs” vs “Terminal Devices” separation.
+3. Split mental model can cause support errors (editing wrong page, stale values, conflicting expectations).
+
+
+## Part C — Frontend exposure of SumUp flows
+
+### User-facing SumUp rendering map
+
+SumUp can render in three ways:
+1. `selectedMethod.code === "sumup"` renders `SumUpHostedCheckout` (`payment-flow` and `secure-payment-flow`).
+2. `selectedMethod.code === "card" && provider_code === "sumup"` also renders `SumUpHostedCheckout`.
+3. `menu/page.tsx` hosted redirect orchestrator uses provider-based routing and persists SumUp pending checkout for return verification.
+
+**Important:** route orchestrator in menu page is method/provider-driven and treats SumUp as card provider via `/payments/card/create-session`; there is no dedicated Apple Pay/Google Pay/Wero/PayPal SumUp endpoint branch.
+
+---
+
+### Operator-facing config surfaces
+
+1. **Laravel admin (intended source):**
+   - Payments provider forms and payment-method mapping APIs.
+2. **Next.js admin pages (also writable):**
+   - `/admin/payment-providers` writes to `/api/v1/payment-providers-admin`.
+   - `/admin/payments` writes to `/api/v1/payment-methods-admin`.
+
+These Next.js pages are not read-only and therefore duplicate operator configuration surface area.
+
+---
+
+### Unsupported/fake UI states
+
+1. **Direct method code `sumup` is still renderable in frontend components**
+   - Even though backend method matrix is centered around `card` + provider assignment.
+   - This can create stale or non-canonical presentation path.
+
+2. **Wallet/payment method UX can appear provider-agnostic**
+   - UI supports Apple Pay/Google Pay/PayPal/Wero methods broadly; backend compatibility is provider-specific and enforced server-side.
+   - Potential mismatch between what operator sees selectable and what backend will actually execute.
+
+3. **Provider label fallback in hosted redirect flow**
+   - Non-worldline/non-vr provider errors are labelled “Stripe” by default in one branch, which can mislead when SumUp is the selected provider.
+
+---
+
+### Source-of-truth conflicts
+
+- Laravel admin is declared source-of-truth, but Next.js admin pages are writable against same admin APIs.
+- This creates governance ambiguity (which admin UX is official), and increases risk of inconsistent operator guidance/validation messaging.
+
+---
+
+### Recommendations (frontend, conceptual only)
+
+1. Show SumUp only via canonical card-provider path (`card + provider_code=sumup`).
+2. Hide/retire direct `sumup` method rendering in payment components unless backend explicitly keeps method code `sumup` as first-class.
+3. Keep Next.js admin pages read-only or clearly mark as non-canonical if Laravel backend remains official admin.
+4. Keep backend hard validation as final authority for unsupported provider/method combinations.
+
+
+## Part D — Ready2Order vs SumUp (architecture + operational readiness)
+
+### Ready2Order baseline (POS integration)
+
+**Config**
+- POS config detection for `ready2order`, base URL helper, token usage.
+
+**Menu sync**
+- POS→local normalization/import in `PosConfigs::onSyncMenu`.
+- Local→POS push intentionally skipped for ready2order direct mode (guarded behavior).
+
+**Table sync**
+- `Pos_configs_model::syncReady2OrderTables` executes dedicated sync scripts.
+
+**Order push**
+- `r2o_outbound_dryrun_helper` builds outbound payload with mapping keys and can push to Ready2Order orders endpoint when enabled.
+
+**Webhook/status ingestion**
+- POS webhook controllers exist for provider-based inbound order ingestion.
+
+**Logs/diagnostics**
+- Extensive prefixed logging in helper/scripts/controllers.
+
+---
+
+### SumUp online baseline (payment provider lane)
+
+- Card checkout creation, redirect/widget support, return-status polling, diagnostics endpoints, and optional webhook + finalization helper in secondary route family.
+- Credentials managed in Payments provider configuration.
+
+---
+
+### SumUp terminal baseline (card-present lane)
+
+- Dedicated `terminal_devices` model/UI.
+- Reader discovery and connection tests using SumUp readers endpoint.
+- Explicit dependency on online SumUp provider readiness (token must be configured/enabled first).
+
+---
+
+### Valid comparison points (Ready2Order vs SumUp)
+
+Valid:
+1. Admin clarity and source-of-truth consistency.
+2. Runtime observability/diagnostics completeness.
+3. Duplicate surface risk and configuration drift controls.
+
+---
+
+### Invalid comparison points
+
+Invalid/unfair:
+1. Expecting SumUp online provider lane to offer full POS menu/table sync parity with Ready2Order.
+2. Treating SumUp as a single domain equal to a full POS aggregator without separating online payments vs terminal card-present concerns.
+
+---
+
+### Architecture recommendation
+
+1. **SumUp online**
+   - Canonical execution path: `app/admin/routes.php` provider-resolved checkout/status flow.
+   - Consolidate webhook/finalization with this path conceptually.
+
+2. **SumUp terminal/card-present**
+   - Canonical storage: `terminal_devices` only.
+   - `pos_configs.sumup_*` should be treated as deprecation residue unless external dependency is proven.
+
+3. **Ready2Order POS**
+   - Keep as POS baseline lane (menu/table/order sync behavior), but continue reducing script/path hardcoding and key-value mapping sprawl.
+
+4. **Cross-cutting governance**
+   - One canonical admin surface (Laravel), with any Next.js admin pages read-only or explicitly secondary.
+   - One canonical route family per domain lane to prevent drift.
