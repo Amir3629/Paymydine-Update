@@ -1872,8 +1872,9 @@ Route::group([
                     return response()->json(['success' => false, 'error' => 'SumUp credentials are incomplete'], 503);
                 }
                 try {
+                    $startedAt = microtime(true);
                     if ($merchantCode === '') {
-                        $merchantResp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
+                        $merchantResp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->timeout(5)->get($baseUrl.'/v0.1/me');
                         $merchantPayload = (array)$merchantResp->json();
                         $merchantCode = (string)(($merchantPayload['merchant_profile']['merchant_code'] ?? $merchantPayload['merchant_code'] ?? '') ?: '');
                     }
@@ -1900,6 +1901,7 @@ Route::group([
                         'merchant_code' => $merchantCode,
                         'description' => 'Paymydine order',
                         'return_url' => $returnUrl,
+                        'hosted_checkout' => ['enabled' => true],
                     ];
 
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_REQUEST', [
@@ -1907,17 +1909,41 @@ Route::group([
                         'payload' => $sumupCheckoutPayload,
                     ]);
 
-                    $sumupResponse = \Illuminate\Support\Facades\Http::withToken($token)
-                        ->acceptJson()
-                        ->post($baseUrl.'/v0.1/checkouts', $sumupCheckoutPayload);
-                    $body = (array)$sumupResponse->json();
+                    $sumupResponse = null;
+                    $body = [];
+                    $attempts = 0;
+                    $maxAttempts = 3;
+                    while ($attempts < $maxAttempts) {
+                        $attempts++;
+                        try {
+                            $sumupResponse = \Illuminate\Support\Facades\Http::withToken($token)
+                                ->acceptJson()
+                                ->timeout(5)
+                                ->post($baseUrl.'/v0.1/checkouts', $sumupCheckoutPayload);
+                            $body = (array)$sumupResponse->json();
 
+                            if ($sumupResponse->ok() || $sumupResponse->status() < 500) {
+                                break;
+                            }
+                        } catch (\Throwable $attemptError) {
+                            $body = ['exception' => $attemptError->getMessage()];
+                            if ($attempts >= $maxAttempts) {
+                                throw $attemptError;
+                            }
+                        }
+
+                        usleep(250000);
+                    }
+
+                    $statusCode = $sumupResponse ? $sumupResponse->status() : null;
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_RESPONSE', [
-                        'status' => $sumupResponse->status(),
+                        'attempts' => $attempts,
+                        'status' => $statusCode,
                         'body' => $body,
+                        'duration_ms' => (int)round((microtime(true) - $startedAt) * 1000),
                     ]);
 
-                    if (!$sumupResponse->ok()) {
+                    if (!$sumupResponse || !$sumupResponse->ok()) {
                         return response()->json([
                             'success' => false,
                             'provider' => 'sumup',
@@ -1927,6 +1953,7 @@ Route::group([
                         ], 422);
                     }
                     $redirectUrl = (string)($body['checkout_url'] ?? $body['hosted_checkout_url'] ?? '');
+                    $hostedCheckoutUrl = (string)($body['hosted_checkout_url'] ?? '');
                     if ($redirectUrl === '') {
                         return response()->json([
                             'success' => false,
@@ -1951,6 +1978,7 @@ Route::group([
                         'success' => true,
                         'provider' => 'sumup',
                         'redirect_url' => $redirectUrl,
+                        'hosted_checkout_url' => $hostedCheckoutUrl !== '' ? $hostedCheckoutUrl : null,
                         'checkout_id' => $body['id'] ?? null,
                         'checkout_reference' => $checkoutReference,
                     ]);
@@ -2623,6 +2651,44 @@ Route::group([
             ], 200);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'provider' => 'sumup', 'error' => $e->getMessage()], 500);
+        }
+    });
+
+    Route::get('/payments/sumup/health', function () {
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
+        $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        $token = trim((string)($data['access_token'] ?? ''));
+        $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
+        $merchantCode = trim((string)($data['id_application'] ?? ''));
+
+        if (!$payment || !(bool)$payment->status || $token === '') {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'SumUp provider is not configured',
+            ], 422);
+        }
+
+        $start = microtime(true);
+        try {
+            $res = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->timeout(5)->get($baseUrl.'/v0.1/me');
+            $json = (array)$res->json();
+            if ($merchantCode === '') {
+                $merchantCode = (string)(($json['merchant_profile']['merchant_code'] ?? $json['merchant_code'] ?? '') ?: '');
+            }
+
+            $latency = (int)round((microtime(true) - $start) * 1000);
+            return response()->json([
+                'status' => ($res->ok() && $merchantCode !== '') ? 'ok' : 'failed',
+                'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
+                'latency_ms' => $latency,
+            ], ($res->ok() && $merchantCode !== '') ? 200 : 502);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'failed',
+                'merchant_code' => null,
+                'latency_ms' => (int)round((microtime(true) - $start) * 1000),
+                'message' => 'SumUp health check request failed',
+            ], 500);
         }
     });
 

@@ -405,6 +405,9 @@ class Payments extends \Admin\Classes\AdminController
                 }
 
                 $normalizedProviderData['id_application'] = (string)($identity['merchant_code'] ?? '');
+                $normalizedProviderData['merchant_email'] = (string)($identity['email'] ?? '');
+                $normalizedProviderData['connection_status'] = 'Connected ✔';
+                $normalizedProviderData['last_tested_at'] = now()->toDateTimeString();
                 \Log::channel('sumup')->info('SUMUP_PROVIDER_IDENTITY_RESOLVED', [
                     'merchant_code' => $normalizedProviderData['id_application'],
                     'email' => $identity['email'] ?? null,
@@ -826,6 +829,9 @@ class Payments extends \Admin\Classes\AdminController
                 'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'right', 'comment' => 'Required server credential. Do not paste public keys (sup_pk_...). Saved value is shown; replace to rotate token.'],
                 'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
                 'id_application' => ['label' => 'Merchant Code (Auto)', 'type' => 'text', 'span' => 'right', 'readOnly' => true, 'comment' => 'Auto-resolved from SumUp /v0.1/me using your access token. This is not manually editable.'],
+                'connection_status' => ['label' => 'SumUp Connected', 'type' => 'text', 'span' => 'left', 'readOnly' => true, 'default' => 'Unknown'],
+                'merchant_email' => ['label' => 'Merchant Email', 'type' => 'text', 'span' => 'right', 'readOnly' => true],
+                'last_tested_at' => ['label' => 'Last Test Time', 'type' => 'text', 'span' => 'left', 'readOnly' => true],
             ],
             'worldline' => [
                 'api_endpoint' => ['label' => 'API Endpoint', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.preprod.connect.worldline-solutions.com', 'comment' => 'Preprod or live Connect API endpoint URL.'],
@@ -1013,6 +1019,17 @@ class Payments extends \Admin\Classes\AdminController
                 'account_email' => $email !== '' ? $email : null,
                 'connected' => $isConnected,
             ];
+            $updated = (array)$model->data;
+            $updated['connection_status'] = $isConnected ? 'Connected ✔' : 'Failed';
+            $updated['last_tested_at'] = now()->toDateTimeString();
+            if ($merchant !== '') {
+                $updated['id_application'] = $merchant;
+            }
+            if ($email !== '') {
+                $updated['merchant_email'] = $email;
+            }
+            $model->setConfigData($updated);
+            $model->save();
         } elseif ($code === 'worldline') {
             $diagnostics = app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getConfigForDiagnostics();
             $result = ['success' => true, 'message' => 'Worldline configuration resolved from active tenant POS mapping.', 'environment' => $diagnostics['environment'] ?? 'unknown'];

@@ -63,12 +63,12 @@ export default function SumUpHostedCheckout(props: Props) {
       }
 
       const redirectUrl =
+        json?.hosted_checkout_url ||
+        json?.data?.hosted_checkout_url ||
         json?.redirect_url ||
         json?.checkout_url ||
         json?.data?.redirect_url ||
-        json?.data?.checkout_url ||
-        json?.data?.hosted_checkout_url ||
-        json?.hosted_checkout_url
+        json?.data?.checkout_url
 
       if (!redirectUrl) {
         throw new Error("No SumUp redirect URL returned from backend")
