@@ -851,11 +851,28 @@ Route::group([
             ->map(function ($row) {
                 $meta = is_array($row->data ?? null) ? (array)$row->data : [];
                 $resolvedProvider = $row->provider_code ?? ($meta['provider_code'] ?? null);
+                $supportedProvidersRaw = $meta['supported_providers'] ?? \Admin\Models\Payments_model::supportedProvidersForMethod((string)$row->code);
+                $supportedProviders = array_values(array_unique(array_filter(array_map(
+                    fn ($provider) => strtolower(trim((string)$provider)),
+                    is_array($supportedProvidersRaw) ? $supportedProvidersRaw : []
+                ), fn (string $provider) => $provider !== '')));
+                $allowedProviders = \Admin\Models\Payments_model::supportedProvidersForMethod((string)$row->code);
+                if (!empty($allowedProviders)) {
+                    $supportedProviders = array_values(array_filter($supportedProviders, fn (string $provider) => in_array($provider, $allowedProviders, true)));
+                }
+                $normalizedProvider = strtolower(trim((string)$resolvedProvider));
+                if ($normalizedProvider !== '' && in_array($normalizedProvider, $allowedProviders, true) && !in_array($normalizedProvider, $supportedProviders, true)) {
+                    $supportedProviders[] = $normalizedProvider;
+                }
+                if (empty($supportedProviders) && !empty($allowedProviders)) {
+                    $supportedProviders = array_values($allowedProviders);
+                }
                 $providerSource = $row->provider_code !== null ? 'column:provider_code' : (array_key_exists('provider_code', $meta) ? 'meta.provider_code' : 'default');
                 return [
                     'code' => (string)$row->code,
                     'name' => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
                     'provider_code' => $resolvedProvider,
+                    'supported_providers' => $supportedProviders,
                     'enabled' => (bool)$row->status,
                     'priority' => (int)($row->priority ?? 0),
                     'source_of_truth' => [
@@ -1380,10 +1397,23 @@ Route::group([
 
             $inclusionReasons = [];
             $selectedProvider = $configuredProvider ? strtolower((string)$configuredProvider) : null;
+            $supportedProviders = array_values(array_unique(array_filter(array_map(
+                fn ($provider) => strtolower(trim((string)$provider)),
+                (array)($m['supported_providers'] ?? [])
+            ), fn (string $provider) => $provider !== '')));
+            $availableProviders = $resolveAvailableProviders($methodCode);
+            if (!empty($availableProviders)) {
+                $supportedProviders = array_values(array_filter($supportedProviders, fn (string $provider) => in_array($provider, $availableProviders, true)));
+            }
+            if (empty($supportedProviders)) {
+                $supportedProviders = $availableProviders;
+            }
             if (!$selectedProvider) {
                 $inclusionReasons[] = 'provider_missing';
-            } elseif (!in_array($selectedProvider, $resolveAvailableProviders($methodCode), true)) {
+            } elseif (!in_array($selectedProvider, $availableProviders, true)) {
                 $inclusionReasons[] = "{$selectedProvider}:not_supported_for_method";
+            } elseif (!empty($supportedProviders) && !in_array($selectedProvider, $supportedProviders, true)) {
+                $inclusionReasons[] = "{$selectedProvider}:not_in_supported_providers";
             } elseif (!$providersByCode->has($selectedProvider)) {
                 $inclusionReasons[] = "{$selectedProvider}:provider_not_configured";
             } else {
@@ -1635,7 +1665,14 @@ Route::group([
 
             $config = method_exists($row, 'getConfigData') ? $row->getConfigData() : [];
             $config['provider_code'] = $providerCode;
-            unset($config['supported_providers']);
+            $config['supported_providers'] = \Admin\Models\Payments_model::supportedProvidersForMethod($code);
+            if ($providerCode && !in_array($providerCode, $config['supported_providers'], true)) {
+                $config['supported_providers'][] = $providerCode;
+            }
+            $config['supported_providers'] = array_values(array_unique(array_filter(array_map(
+                fn ($provider) => strtolower(trim((string)$provider)),
+                (array)$config['supported_providers']
+            ), fn (string $provider) => $provider !== '')));
             $row->setConfigData($config);
 
             if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'provider_code')) {
@@ -1796,7 +1833,9 @@ Route::group([
     });
 
     Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $persistVRPaymentSession) {
-        $runtimeMethods = collect($resolveRuntimeMethodCollection())->keyBy('code');
+        $runtimeResolution = $resolveRuntimeMethodCollection(true);
+        $runtimeMethods = collect($runtimeResolution['methods'] ?? [])->keyBy('code');
+        $runtimeTraceByMethod = collect($runtimeResolution['trace'] ?? [])->keyBy('method');
         $cardMethod = (array)$runtimeMethods->get('card', []);
         if (empty($cardMethod)) {
             return response()->json(['success' => false, 'error' => 'Card method is disabled'], 422);
@@ -1805,6 +1844,14 @@ Route::group([
         $providerCode = (string)($cardMethod['provider_code'] ?? '');
         if ($providerCode === '') {
             return response()->json(['success' => false, 'error' => 'Card provider is not configured'], 422);
+        }
+        if ($providerCode === 'sumup') {
+            \Log::channel('sumup')->info('SUMUP_CARD_RESOLVER_SELECTION', [
+                'host' => request()->getHost(),
+                'selected_provider' => $providerCode,
+                'card_method' => $cardMethod,
+                'card_trace' => (array)$runtimeTraceByMethod->get('card', []),
+            ]);
         }
 
         $payload = $request->validate([
@@ -1897,7 +1944,7 @@ Route::group([
                     $sumupCheckoutPayload = [
                         'checkout_reference' => $checkoutReference,
                         'amount' => (float)round((float)$amountMajor, 2),
-                        'currency' => 'EUR',
+                        'currency' => $currency,
                         'merchant_code' => (string)$merchantCode,
                     ];
 
@@ -1947,20 +1994,37 @@ Route::group([
 
                     if (!$sumupResponse || !$sumupResponse->ok()) {
                         $failedStatus = $sumupResponse ? (int)$sumupResponse->status() : 422;
-                        return response()->json([
+                        $errorResponse = [
+                            'success' => false,
+                            'provider' => 'sumup',
                             'error' => 'sumup_error',
                             'status' => $failedStatus,
                             'body' => $body,
-                        ], $failedStatus);
+                        ];
+                        \Log::channel('sumup')->warning('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
+                            'host' => request()->getHost(),
+                            'status' => $failedStatus,
+                            'response' => $errorResponse,
+                        ]);
+                        return response()->json($errorResponse, $failedStatus);
                     }
-                    $redirectUrl = (string)($body['checkout_url'] ?? $body['hosted_checkout_url'] ?? '');
+                    $checkoutUrl = (string)($body['checkout_url'] ?? '');
                     $hostedCheckoutUrl = (string)($body['hosted_checkout_url'] ?? '');
+                    $redirectUrl = $checkoutUrl !== '' ? $checkoutUrl : $hostedCheckoutUrl;
                     if ($redirectUrl === '') {
-                        return response()->json([
+                        $missingUrlResponse = [
+                            'success' => false,
+                            'provider' => 'sumup',
                             'error' => 'sumup_error',
                             'status' => 422,
                             'body' => $body,
-                        ], 422);
+                        ];
+                        \Log::channel('sumup')->warning('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
+                            'host' => request()->getHost(),
+                            'status' => 422,
+                            'response' => $missingUrlResponse,
+                        ]);
+                        return response()->json($missingUrlResponse, 422);
                     }
                     if ($orderId > 0 && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
                         \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insert([
@@ -1974,25 +2038,39 @@ Route::group([
                             'updated_at' => now(),
                         ]);
                     }
-                    return response()->json([
+                    $successResponse = [
                         'success' => true,
                         'provider' => 'sumup',
                         'redirect_url' => $redirectUrl,
-                        'checkout_url' => $redirectUrl,
+                        'checkout_url' => $checkoutUrl !== '' ? $checkoutUrl : $redirectUrl,
                         'hosted_checkout_url' => $hostedCheckoutUrl !== '' ? $hostedCheckoutUrl : null,
                         'checkout_id' => $body['id'] ?? null,
                         'checkout_reference' => $checkoutReference,
+                    ];
+                    \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
+                        'host' => request()->getHost(),
+                        'status' => 200,
+                        'response' => $successResponse,
                     ]);
+                    return response()->json($successResponse);
                 } catch (\Throwable $sumupException) {
                     \Log::channel('sumup')->error('SUMUP_CREATE_SESSION_EXCEPTION', [
                         'message' => $sumupException->getMessage(),
                         'class' => get_class($sumupException),
                     ]);
-                    return response()->json([
+                    $exceptionResponse = [
+                        'success' => false,
+                        'provider' => 'sumup',
                         'error' => 'sumup_error',
                         'status' => 500,
                         'body' => ['message' => $sumupException->getMessage()],
-                    ], 500);
+                    ];
+                    \Log::channel('sumup')->error('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
+                        'host' => request()->getHost(),
+                        'status' => 500,
+                        'response' => $exceptionResponse,
+                    ]);
+                    return response()->json($exceptionResponse, 500);
                 }
             }
 

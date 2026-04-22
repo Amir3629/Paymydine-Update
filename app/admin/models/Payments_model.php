@@ -514,6 +514,21 @@ class Payments_model extends Model
             is_array($value) ? $value : []
         ), fn (string $v) => $v !== ''));
 
-        return array_values(array_unique($items));
+        $items = array_values(array_unique($items));
+        $allowed = self::supportedProvidersForMethod((string)$this->code);
+        if (!empty($allowed)) {
+            $items = array_values(array_filter($items, fn (string $provider) => in_array($provider, $allowed, true)));
+        }
+
+        $selectedProvider = strtolower(trim((string)($this->provider_code ?? '')));
+        if ($selectedProvider !== '' && in_array($selectedProvider, $allowed, true) && !in_array($selectedProvider, $items, true)) {
+            $items[] = $selectedProvider;
+        }
+
+        if (empty($items) && !empty($allowed)) {
+            return array_values($allowed);
+        }
+
+        return $items;
     }
 }
