@@ -183,6 +183,41 @@ $config['form']['fields'] = [
         'type' => 'text',
         'span' => 'right',
     ],
+    'sumup_affiliate_key' => [
+        'label' => 'SumUp Affiliate Key',
+        'type' => 'text',
+        'span' => 'left',
+        'hidden' => true,
+        'comment' => 'Optional for terminal/payment links depending on your SumUp account setup.',
+    ],
+    'sumup_reader_id' => [
+        'label' => 'SumUp Reader ID',
+        'type' => 'text',
+        'span' => 'right',
+        'hidden' => true,
+        'comment' => 'Terminal/reader identifier for in-person payments.',
+    ],
+    'sumup_pairing_code' => [
+        'label' => 'Pairing Code',
+        'type' => 'text',
+        'span' => 'left',
+        'hidden' => true,
+        'comment' => 'Use when pairing a reader from this tenant account.',
+    ],
+    'sumup_pairing_state' => [
+        'label' => 'Pairing State',
+        'type' => 'text',
+        'span' => 'right',
+        'hidden' => true,
+        'comment' => 'Readiness hint for staff. Example: unpaired, paired, needs_attention.',
+    ],
+    'sumup_reader_label' => [
+        'label' => 'Reader Label',
+        'type' => 'text',
+        'span' => 'left',
+        'hidden' => true,
+        'comment' => 'Friendly internal name for this terminal (e.g. Bar Reader 1).',
+    ],
 ];
 
 return $config;

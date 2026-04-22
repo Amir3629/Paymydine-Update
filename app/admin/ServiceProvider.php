@@ -561,6 +561,13 @@ class ServiceProvider extends AppServiceProvider
                             'title' => lang('admin::lang.side_menu.pos'),
                             'permission' => 'Admin.Pos',
                         ],
+                        'terminal_devices' => [
+                            'priority' => 51,
+                            'class' => 'credit-card',
+                            'href' => admin_url('terminal_devices'),
+                            'title' => lang('admin::lang.side_menu.terminal_devices'),
+                            'permission' => 'Admin.Pos',
+                        ],
                     ],
                 ],
             ]);
@@ -664,6 +671,7 @@ class ServiceProvider extends AppServiceProvider
             'working_hours' => 'Admin\Models\Working_hours_model',
             'pos_devices' => 'Admin\Models\Pos_devices_model',
             'pos_configs' => 'Admin\Models\Pos_configs_model',
+            'terminal_devices' => 'Admin\Models\Terminal_devices_model',
             'finger_devices' => 'Admin\Models\FingerDevices_model',
             'staff_attendance' => 'Admin\Models\Staff_attendance_model',
         ]);
@@ -1094,6 +1102,5 @@ class ServiceProvider extends AppServiceProvider
         });
     }
 }
-
 
 

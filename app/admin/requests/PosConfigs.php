@@ -22,7 +22,7 @@ class PosConfigs extends FormRequest
     {
         return [
 'devices.*' => ['integer', 'exists:pos_devices,device_id'],
-            'url' => ['required', 'string', 'max:255'],
+            'url' => ['nullable', 'string', 'max:255'],
             'username' => ['nullable', 'string', 'max:128'],
             'password' => ['nullable', 'string', 'max:128'],
             'access_token' => ['nullable', 'string', 'max:2048'],
