@@ -685,6 +685,51 @@ App::before(function () {
             ]);
         }
     })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    Route::resource('terminal_devices', 'TerminalDevices');
+
+    Route::get('sumup/test', function () {
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
+        $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        $token = trim((string)($data['access_token'] ?? ''));
+        $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
+
+        if (!$payment || !(bool)$payment->status || $token === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'SumUp provider is not configured/enabled.',
+            ], 422);
+        }
+
+        try {
+            $resp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
+            $json = (array)$resp->json();
+            $merchantCode = (string)($json['merchant_profile']['merchant_code'] ?? $json['merchant_code'] ?? '');
+            $email = (string)($json['email'] ?? $json['user_email'] ?? '');
+
+            \Log::channel('sumup')->info('SUMUP_ADMIN_TEST_ENDPOINT', [
+                'status' => $resp->status(),
+                'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
+                'email' => $email !== '' ? $email : null,
+            ]);
+
+            return response()->json([
+                'success' => $resp->ok() && $merchantCode !== '',
+                'status' => $resp->status(),
+                'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
+                'account_email' => $email !== '' ? $email : null,
+                'connected' => $resp->ok() && $merchantCode !== '',
+            ], $resp->ok() ? 200 : 502);
+        } catch (\Throwable $e) {
+            \Log::channel('sumup')->error('SUMUP_ADMIN_TEST_EXCEPTION', [
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to contact SumUp test endpoint.',
+            ], 500);
+        }
+    });
 });
 
 // Frontend API Routes - These are loaded by TastyIgniter's routing system
@@ -702,51 +747,6 @@ App::before(function () {
 //     Route::get('restaurant/{locationId}/order/{orderId}', 'OrderController@getOrderStatus');
 //     Route::post('restaurant/{locationId}/waiter', 'OrderController@requestWaiter');
 // });
-
-        Route::resource('terminal_devices', 'TerminalDevices');
-
-        Route::get('sumup/test', function () {
-            $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
-            $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
-            $token = trim((string)($data['access_token'] ?? ''));
-            $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
-
-            if (!$payment || !(bool)$payment->status || $token === '') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'SumUp provider is not configured/enabled.',
-                ], 422);
-            }
-
-            try {
-                $resp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
-                $json = (array)$resp->json();
-                $merchantCode = (string)($json['merchant_profile']['merchant_code'] ?? $json['merchant_code'] ?? '');
-                $email = (string)($json['email'] ?? $json['user_email'] ?? '');
-
-                \Log::channel('sumup')->info('SUMUP_ADMIN_TEST_ENDPOINT', [
-                    'status' => $resp->status(),
-                    'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
-                    'email' => $email !== '' ? $email : null,
-                ]);
-
-                return response()->json([
-                    'success' => $resp->ok() && $merchantCode !== '',
-                    'status' => $resp->status(),
-                    'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
-                    'account_email' => $email !== '' ? $email : null,
-                    'connected' => $resp->ok() && $merchantCode !== '',
-                ], $resp->ok() ? 200 : 502);
-            } catch (\Throwable $e) {
-                \Log::channel('sumup')->error('SUMUP_ADMIN_TEST_EXCEPTION', [
-                    'message' => $e->getMessage(),
-                ]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to contact SumUp test endpoint.',
-                ], 500);
-            }
-        });
 
 // Custom API Routes for frontend (no tenant required)
 Route::group([
