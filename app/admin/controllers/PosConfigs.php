@@ -131,6 +131,30 @@ class PosConfigs extends \Admin\Classes\AdminController
         }
     }
 
+    public function formExtendFields($form)
+    {
+        $model = $form->model;
+        $deviceCode = strtolower((string)optional($model->devices)->code);
+        if ($deviceCode === '') {
+            $deviceId = (int)($model->device_id ?: post('device_id', post('Pos_configs.device_id', 0)));
+            if ($deviceId > 0) {
+                $deviceCode = strtolower((string)\Admin\Models\Pos_devices_model::query()->where('device_id', $deviceId)->value('code'));
+            }
+        }
+
+        if ($deviceCode !== 'sumup') {
+            return;
+        }
+
+        $form->addFields([
+            'sumup_pos_migration_notice' => [
+                'type' => 'section',
+                'label' => 'SumUp moved to Terminal Devices',
+                'comment' => 'SumUp card-present setup no longer belongs to POS sync configs. Use System > Terminal Devices for SumUp reader setup, pairing and diagnostics. Keep this page only for POS sync integrations such as Ready2Order.',
+            ],
+        ]);
+    }
+
     public function onTestIntegration()
     {
         $segments = request()->segments();
@@ -143,45 +167,11 @@ class PosConfigs extends \Admin\Classes\AdminController
         }
 
         if (strtolower($config->devices->code ?? '') === 'sumup') {
-            try {
-                $baseUrl = rtrim($config->url ?: 'https://api.sumup.com', '/');
-
-                $response = Http::withToken($config->access_token)
-                    ->acceptJson()
-                    ->get($baseUrl.'/v0.1/me/merchant-profile');
-
-                $json = $response->json();
-
-                return response()->json([
-                    'provider' => 'sumup',
-                    'integration_mode' => 'payments',
-                    'supported_features' => [
-                        'merchant_profile',
-                        'checkouts',
-                        'transactions',
-                        'refunds',
-                        'readers',
-                        'checkout_status_webhook',
-                    ],
-                    'unsupported_features_for_now' => [
-                        'public_menu_sync',
-                        'public_catalog_crud',
-                    ],
-                    'merchant_code' => $config->id_application ?: ($json['merchant_code'] ?? null),
-                    'sumup_status' => $response->status(),
-                    'sumup_response' => $json,
-                ], $response->status());
-            } catch (\Throwable $e) {
-                Log::error('Error while testing SumUp integration', [
-                    'config_id' => $configId,
-                    'message' => $e->getMessage(),
-                ]);
-
-                return response()->json([
-                    'provider' => 'sumup',
-                    'error' => $e->getMessage(),
-                ], 500);
-            }
+            return response()->json([
+                'provider' => 'sumup',
+                'success' => false,
+                'error' => 'SumUp terminal setup moved to System > Terminal Devices. POS Configs is reserved for POS sync providers.',
+            ], 410);
         }
 
         try {

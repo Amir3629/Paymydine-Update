@@ -62,9 +62,9 @@ return [
     'label_location' => 'Location(s)',
     'label_description' => 'Description',
     
-    'label_url' => 'API URL Sandbox',
-    'label_access_token_pos' => 'Access Token Sandbox',
-    'label_id_application_pos' => 'Application ID Sandbox',
+    'label_url' => 'API Base URL',
+    'label_access_token_pos' => 'Access Token',
+    'label_id_application_pos' => 'Merchant Code',
     'label_username_pos' => 'Username',
     'label_password_pos' => 'Password',
 
@@ -194,7 +194,8 @@ return [
         'media_manager' => 'Media Manager',
         'system' => 'System',
         'pos_devices' => 'POS Devices List',
-        'pos'         => 'POS Device Settings',
+        'pos'         => 'POS Sync Settings',
+        'terminal_devices' => 'Terminal Devices',
 
         'alert_no_definition' => 'No definition for item %s.',
         'alert_invalid_menu' => 'Invalid item specified.',
@@ -1132,8 +1133,8 @@ return [
         'text_empty' => 'There are no POS configs available.',
         'pos_devices' => 'POS Devices',
         'label_super_pos_configs' => 'Super Admin',
-        'label_username' => 'API Sandbox Username',
-        'label_password' => 'API Sandbox Password',
+        'label_username' => 'API Username',
+        'label_password' => 'API Password',
         'label_devices' => 'Devices',
 
         'help_devices' => 'Specify which devices the POS should belong to. Segmenting agents into devices lets you easily assign orders.',
@@ -1141,5 +1142,11 @@ return [
         'alert_login_restricted' => 'Warning: You do not have the right permission to <b>access a POS config</b>, please contact system administrator.',
         'alert_impersonate_confirm' => 'Are you sure you want to impersonate this POS Config? You can revert to your original state by logging out.',
         'alert_impersonate_success' => 'You are now impersonating POS Config: %s',
+    ],
+
+    'terminal_devices' => [
+        'text_title' => 'Terminal Devices',
+        'text_form_name' => 'Terminal Device',
+        'text_empty' => 'There are no terminal devices configured.',
     ],
 ];

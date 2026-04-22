@@ -263,11 +263,23 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
       case "sumup":
         return (
           <SumUpHostedCheckout
+            amount={finalTotal}
             currency={merchantSettings?.currency || "EUR"}
             description="PayMyDine SumUp hosted checkout"
             className="w-full"
           />
         );
+      case "card":
+        if ((selectedMethod.provider_code || "").toLowerCase() === "sumup") {
+          return (
+            <SumUpHostedCheckout
+              amount={finalTotal}
+              currency={merchantSettings?.currency || "EUR"}
+              description="PayMyDine SumUp hosted checkout"
+              className="w-full"
+            />
+          );
+        }
 
       case "stripe":
       case "authorizenetaim":

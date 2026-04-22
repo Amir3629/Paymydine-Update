@@ -9,22 +9,25 @@ use Illuminate\Support\Facades\Route;
 if (!function_exists('pmdLoadSumupConfig')) {
     function pmdLoadSumupConfig()
     {
-        return DB::table('pos_configs as c')
-            ->join('pos_devices as d', 'd.device_id', '=', 'c.device_id')
-            ->whereRaw('LOWER(ti_d.code) = ?', ['sumup'])
-            ->select(
-                'c.config_id',
-                'c.device_id',
-                'c.url',
-                'c.access_token',
-                'c.id_application',
-                'c.username',
-                'c.password',
-                'd.code as device_code',
-                'd.name as device_name'
-            )
-            ->orderByDesc('c.config_id')
+        $payment = \Admin\Models\Payments_model::query()
+            ->where('code', 'sumup')
             ->first();
+        $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        $token = (string)($data['access_token'] ?? '');
+        $url = (string)($data['url'] ?? 'https://api.sumup.com');
+        $merchantCode = (string)($data['id_application'] ?? '');
+        $enabled = (bool)optional($payment)->status;
+
+        if (!$enabled || $token === '') {
+            return null;
+        }
+
+        return (object)[
+            'provider_payment_id' => optional($payment)->getKey(),
+            'url' => $url,
+            'access_token' => $token,
+            'id_application' => $merchantCode,
+        ];
     }
 }
 
@@ -46,6 +49,56 @@ if (!function_exists('pmdResolveSumupMerchantCode')) {
         }
 
         return null;
+    }
+}
+
+if (!function_exists('pmdExtractOrderIdFromCheckoutReference')) {
+    function pmdExtractOrderIdFromCheckoutReference(?string $checkoutReference): ?int
+    {
+        $ref = (string)$checkoutReference;
+        if (preg_match('/PMD-ORD-(\\d+)-/i', $ref, $m)) {
+            return (int)$m[1];
+        }
+        return null;
+    }
+}
+
+if (!function_exists('pmdFinalizeSumupCheckoutIfPaid')) {
+    function pmdFinalizeSumupCheckoutIfPaid(array $checkoutBody): array
+    {
+        $status = strtoupper((string)($checkoutBody['status'] ?? ''));
+        $checkoutId = (string)($checkoutBody['id'] ?? '');
+        $checkoutReference = (string)($checkoutBody['checkout_reference'] ?? '');
+        $orderId = pmdExtractOrderIdFromCheckoutReference($checkoutReference);
+
+        if (!in_array($status, ['PAID', 'SUCCESSFUL'], true) || $orderId <= 0) {
+            return ['finalized' => false, 'order_id' => $orderId];
+        }
+
+        $order = \Admin\Models\Orders_model::query()->find($orderId);
+        if (!$order) {
+            return ['finalized' => false, 'order_id' => $orderId, 'error' => 'order_not_found'];
+        }
+
+        $order->markAsPaymentProcessed();
+        $order->logPaymentAttempt('SumUp checkout paid', true, [
+            'checkout_id' => $checkoutId,
+            'checkout_reference' => $checkoutReference,
+            'status' => $status,
+        ], $checkoutBody, true);
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
+            \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                ->where('order_id', $orderId)
+                ->whereIn('payment_reference', array_values(array_filter([$checkoutId, $checkoutReference])))
+                ->update([
+                    'settlement_status' => 'paid',
+                    'paid_at' => now(),
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return ['finalized' => true, 'order_id' => $orderId];
     }
 }
 
@@ -204,8 +257,8 @@ Route::group([
         $cfg = pmdLoadSumupConfig();
 
         Log::info('PMD SumUp webhook received', [
-            'headers' => $request->headers->all(),
-            'payload' => $request->all(),
+            'event_type' => $request->input('event_type'),
+            'id' => $request->input('id'),
         ]);
 
         if (!$cfg) {
@@ -226,8 +279,12 @@ Route::group([
             Log::info('PMD SumUp webhook verified checkout', [
                 'checkout_id' => $checkoutId,
                 'verify_status' => $verify->status(),
-                'verify_body' => $verify->json(),
+                'checkout_status' => $verify->json()['status'] ?? null,
             ]);
+            if ($verify->ok()) {
+                $finalize = pmdFinalizeSumupCheckoutIfPaid((array)$verify->json());
+                Log::info('PMD SumUp webhook finalize result', $finalize);
+            }
         }
 
         return response()->json(['success' => true], 200);
@@ -318,4 +375,3 @@ Route::post('/payments/sumup/create-hosted-checkout', function (\Illuminate\Http
         ], 500);
     }
 });
-
