@@ -204,7 +204,9 @@ export default function SumUpHostedCheckout(props: Props) {
         return
       }
 
-      if (success && json?.checkout_id) {
+      const widgetReady = json?.widget_ready === true
+
+      if (success && widgetReady && !redirectUrl && json?.checkout_id) {
         const checkoutId = String(json.checkout_id)
         setWidgetCheckoutId(checkoutId)
         await mountWidget(checkoutId)
