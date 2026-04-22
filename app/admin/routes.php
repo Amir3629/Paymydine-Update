@@ -1896,12 +1896,9 @@ Route::group([
                         : ('PMD-'.uniqid('', true));
                     $sumupCheckoutPayload = [
                         'checkout_reference' => $checkoutReference,
-                        'amount' => number_format($amountMajor, 2, '.', ''),
-                        'currency' => $currency,
-                        'merchant_code' => $merchantCode,
-                        'description' => 'Paymydine order',
-                        'return_url' => $returnUrl,
-                        'hosted_checkout' => ['enabled' => true],
+                        'amount' => (float)round((float)$amountMajor, 2),
+                        'currency' => 'EUR',
+                        'merchant_code' => (string)$merchantCode,
                     ];
 
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_REQUEST', [
@@ -1944,22 +1941,20 @@ Route::group([
                     ]);
 
                     if (!$sumupResponse || !$sumupResponse->ok()) {
+                        $failedStatus = $sumupResponse ? (int)$sumupResponse->status() : 422;
                         return response()->json([
-                            'success' => false,
-                            'provider' => 'sumup',
-                            'error' => 'sumup_checkout_create_failed',
-                            'status' => $sumupResponse->status(),
-                            'details' => $body,
-                        ], 422);
+                            'error' => 'sumup_error',
+                            'status' => $failedStatus,
+                            'body' => $body,
+                        ], $failedStatus);
                     }
                     $redirectUrl = (string)($body['checkout_url'] ?? $body['hosted_checkout_url'] ?? '');
                     $hostedCheckoutUrl = (string)($body['hosted_checkout_url'] ?? '');
                     if ($redirectUrl === '') {
                         return response()->json([
-                            'success' => false,
-                            'provider' => 'sumup',
-                            'error' => 'sumup_checkout_url_missing',
-                            'details' => $body,
+                            'error' => 'sumup_error',
+                            'status' => 422,
+                            'body' => $body,
                         ], 422);
                     }
                     if ($orderId > 0 && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
@@ -1988,10 +1983,9 @@ Route::group([
                         'class' => get_class($sumupException),
                     ]);
                     return response()->json([
-                        'success' => false,
-                        'provider' => 'sumup',
-                        'error' => 'sumup_request_exception',
-                        'message' => $sumupException->getMessage(),
+                        'error' => 'sumup_error',
+                        'status' => 500,
+                        'body' => ['message' => $sumupException->getMessage()],
                     ], 500);
                 }
             }
