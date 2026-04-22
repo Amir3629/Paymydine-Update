@@ -1,6 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useRef, useState } from "react"
+
+declare global {
+  interface Window {
+    SumUpCard?: {
+      mount: (config: Record<string, any>) => void
+    }
+  }
+}
 
 type Props = {
   amount: number
@@ -16,11 +24,131 @@ type Props = {
 export default function SumUpHostedCheckout(props: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [widgetCheckoutId, setWidgetCheckoutId] = useState<string | null>(null)
+  const [widgetHint, setWidgetHint] = useState<string | null>(null)
+  const widgetMountedRef = useRef(false)
+  const widgetContainerId = useMemo(
+    () => `sumup-card-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  )
+
+  async function reportWidgetEvent(checkoutId: string, eventType: string, eventBody?: any) {
+    try {
+      await fetch("/api/v1/payments/sumup/widget-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          checkout_id: checkoutId,
+          event_type: eventType,
+          event_body: eventBody ?? null,
+          event_meta: {
+            origin: window.location.origin,
+            pathname: window.location.pathname,
+          },
+        }),
+      })
+    } catch (e) {
+      console.warn("[PMD-SUMUP] widget-event logging failed", e)
+    }
+  }
+
+  async function verifyCheckoutStatus(checkoutId: string) {
+    const res = await fetch("/api/v1/payments/sumup/checkout-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ checkout_id: checkoutId }),
+    })
+    const data = await res.json().catch(() => null)
+    return { ok: res.ok, data }
+  }
+
+  async function ensureWidgetScriptLoaded() {
+    if (window.SumUpCard?.mount) return
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-pmd-sumup-sdk="1"]'
+    )
+    if (existing) {
+      await new Promise<void>((resolve, reject) => {
+        const done = () => resolve()
+        existing.addEventListener("load", done, { once: true })
+        existing.addEventListener("error", () => reject(new Error("SumUp SDK failed to load")), {
+          once: true,
+        })
+        setTimeout(done, 1200)
+      })
+      return
+    }
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script")
+      script.src = "https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"
+      script.async = true
+      script.defer = true
+      script.dataset.pmdSumupSdk = "1"
+      script.onload = () => resolve()
+      script.onerror = () => reject(new Error("SumUp SDK failed to load"))
+      document.head.appendChild(script)
+    })
+  }
+
+  async function mountWidget(checkoutId: string) {
+    if (widgetMountedRef.current) return
+    await ensureWidgetScriptLoaded()
+    if (!window.SumUpCard?.mount) {
+      throw new Error("SumUp Payment Widget is unavailable")
+    }
+
+    widgetMountedRef.current = true
+    setWidgetHint("SumUp secure card form is ready.")
+    await reportWidgetEvent(checkoutId, "widget_mount_start")
+
+    window.SumUpCard.mount({
+      id: widgetContainerId,
+      checkoutId,
+      onResponse: async (type: string, body: any) => {
+        const normalizedType = String(type || "").toLowerCase()
+        console.log("[PMD-SUMUP] widget response", { type: normalizedType, body })
+        await reportWidgetEvent(checkoutId, normalizedType || "unknown", body)
+
+        if (normalizedType === "sent") {
+          setWidgetHint("Processing payment…")
+          return
+        }
+        if (normalizedType === "auth-screen") {
+          setWidgetHint("Authentication required. Please complete the bank challenge.")
+          return
+        }
+        if (normalizedType === "invalid") {
+          setError("Please review the card form fields.")
+          return
+        }
+
+        if (["success", "fail", "error"].includes(normalizedType)) {
+          const verify = await verifyCheckoutStatus(checkoutId)
+          const isPaid = verify.ok && !!verify.data?.is_paid
+          if (isPaid) {
+            const successTarget = props.successUrl ?? `${window.location.origin}/order-placed`
+            window.location.href = successTarget
+            return
+          }
+
+          if (normalizedType === "fail") {
+            setError("Payment was cancelled or failed. Please try again.")
+          } else {
+            setError(
+              verify?.data?.error ||
+                "Payment could not be confirmed. Please retry your payment."
+            )
+          }
+        }
+      },
+    })
+  }
 
   async function handleCheckout() {
     try {
       setLoading(true)
       setError(null)
+      setWidgetHint(null)
 
       const payload = {
         amount: props.amount,
@@ -77,10 +205,10 @@ export default function SumUpHostedCheckout(props: Props) {
       }
 
       if (success && json?.checkout_id) {
-        throw new Error(
-          json?.message ||
-            "SumUp checkout was created, but no redirect URL was returned. Please try again."
-        )
+        const checkoutId = String(json.checkout_id)
+        setWidgetCheckoutId(checkoutId)
+        await mountWidget(checkoutId)
+        return
       }
 
       if (!redirectUrl) {
@@ -136,10 +264,22 @@ export default function SumUpHostedCheckout(props: Props) {
         </div>
       ) : null}
 
+      {widgetCheckoutId ? (
+        <div
+          className="mb-3 rounded-2xl px-3 py-2 text-xs"
+          style={{ background: "rgba(255,255,255,0.06)", color: "var(--theme-text-primary, #F3F4F6)" }}
+        >
+          Checkout ID: {widgetCheckoutId}
+          {widgetHint ? <div className="mt-1 opacity-80">{widgetHint}</div> : null}
+        </div>
+      ) : null}
+
+      <div id={widgetContainerId} className={widgetCheckoutId ? "mb-3" : "hidden"} />
+
       <button
         type="button"
         onClick={handleCheckout}
-        disabled={loading}
+        disabled={loading || !!widgetCheckoutId}
         className="w-full rounded-2xl px-4 py-3 font-semibold transition"
         style={{
           background: "var(--theme-payment-button, var(--theme-primary))",

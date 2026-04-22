@@ -2790,6 +2790,30 @@ Route::group([
             $body = (array)$res->json();
             $status = strtoupper((string)($body['status'] ?? ''));
             $isPaid = in_array($status, ['PAID', 'SUCCESSFUL'], true);
+            $settlementStatus = match ($status) {
+                'PAID', 'SUCCESSFUL' => 'paid',
+                'FAILED' => 'failed',
+                'EXPIRED' => 'cancelled',
+                default => null,
+            };
+
+            if ($settlementStatus !== null && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
+                \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                    ->where('payment_reference', (string)$payload['checkout_id'])
+                    ->update([
+                        'settlement_status' => $settlementStatus,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            \Log::channel('sumup')->info('SUMUP_CHECKOUT_STATUS_VERIFIED', [
+                'host' => request()->getHost(),
+                'checkout_id' => (string)$payload['checkout_id'],
+                'upstream_status' => (int)$res->status(),
+                'checkout_status' => $status !== '' ? $status : null,
+                'is_paid' => $isPaid,
+                'mapped_settlement_status' => $settlementStatus,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -2798,10 +2822,41 @@ Route::group([
                 'status' => $body['status'] ?? null,
                 'transaction_code' => $body['transaction_code'] ?? null,
                 'is_paid' => $isPaid,
+                'raw_body' => array_intersect_key($body, array_flip([
+                    'id',
+                    'status',
+                    'amount',
+                    'currency',
+                    'checkout_reference',
+                    'transaction_code',
+                    'transaction_id',
+                ])),
             ], 200);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'provider' => 'sumup', 'error' => $e->getMessage()], 500);
         }
+    });
+
+    Route::post('/payments/sumup/widget-event', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'checkout_id' => 'required|string',
+            'event_type' => 'required|string|max:32',
+            'event_body' => 'nullable|array',
+            'event_meta' => 'nullable|array',
+        ]);
+
+        \Log::channel('sumup')->info('SUMUP_WIDGET_EVENT', [
+            'host' => request()->getHost(),
+            'checkout_id' => (string)$payload['checkout_id'],
+            'event_type' => strtolower((string)$payload['event_type']),
+            'event_body' => (array)($payload['event_body'] ?? []),
+            'event_meta' => (array)($payload['event_meta'] ?? []),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'provider' => 'sumup',
+        ], 200);
     });
 
     Route::get('/payments/sumup/health', function () {
