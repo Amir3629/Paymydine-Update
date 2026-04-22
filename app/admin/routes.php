@@ -703,6 +703,51 @@ App::before(function () {
 //     Route::post('restaurant/{locationId}/waiter', 'OrderController@requestWaiter');
 // });
 
+        Route::resource('terminal_devices', 'TerminalDevices');
+
+        Route::get('sumup/test', function () {
+            $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
+            $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+            $token = trim((string)($data['access_token'] ?? ''));
+            $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
+
+            if (!$payment || !(bool)$payment->status || $token === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'SumUp provider is not configured/enabled.',
+                ], 422);
+            }
+
+            try {
+                $resp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
+                $json = (array)$resp->json();
+                $merchantCode = (string)($json['merchant_profile']['merchant_code'] ?? $json['merchant_code'] ?? '');
+                $email = (string)($json['email'] ?? $json['user_email'] ?? '');
+
+                \Log::channel('sumup')->info('SUMUP_ADMIN_TEST_ENDPOINT', [
+                    'status' => $resp->status(),
+                    'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
+                    'email' => $email !== '' ? $email : null,
+                ]);
+
+                return response()->json([
+                    'success' => $resp->ok() && $merchantCode !== '',
+                    'status' => $resp->status(),
+                    'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
+                    'account_email' => $email !== '' ? $email : null,
+                    'connected' => $resp->ok() && $merchantCode !== '',
+                ], $resp->ok() ? 200 : 502);
+            } catch (\Throwable $e) {
+                \Log::channel('sumup')->error('SUMUP_ADMIN_TEST_EXCEPTION', [
+                    'message' => $e->getMessage(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to contact SumUp test endpoint.',
+                ], 500);
+            }
+        });
+
 // Custom API Routes for frontend (no tenant required)
 Route::group([
     'prefix' => 'api/v1',
@@ -1826,54 +1871,101 @@ Route::group([
                 if ($token === '') {
                     return response()->json(['success' => false, 'error' => 'SumUp credentials are incomplete'], 503);
                 }
-                if ($merchantCode === '') {
-                    $merchantResp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
-                    $merchantCode = (string)(($merchantResp->json()['merchant_code'] ?? '') ?: '');
-                }
-                if ($merchantCode === '') {
-                    return response()->json(['success' => false, 'error' => 'SumUp merchant code is missing and could not be auto-resolved'], 503);
-                }
-                $orderId = isset($payload['order_id']) ? (int)$payload['order_id'] : 0;
-                $checkoutReference = $orderId > 0
-                    ? ('PMD-ORD-'.$orderId.'-'.uniqid('', true))
-                    : ('PMD-'.uniqid('', true));
-                $sumupResponse = \Illuminate\Support\Facades\Http::withToken($token)
-                    ->acceptJson()
-                    ->post($baseUrl.'/v0.1/checkouts', [
+                try {
+                    if ($merchantCode === '') {
+                        $merchantResp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
+                        $merchantPayload = (array)$merchantResp->json();
+                        $merchantCode = (string)(($merchantPayload['merchant_profile']['merchant_code'] ?? $merchantPayload['merchant_code'] ?? '') ?: '');
+                    }
+                    if ($merchantCode === '') {
+                        \Log::channel('sumup')->error('SUMUP_CREATE_SESSION_MERCHANT_CODE_MISSING', [
+                            'host' => request()->getHost(),
+                            'base_url' => $baseUrl,
+                        ]);
+                        return response()->json([
+                            'success' => false,
+                            'provider' => 'sumup',
+                            'error' => 'sumup_merchant_code_missing',
+                            'message' => 'SumUp merchant code could not be resolved from token.',
+                        ], 422);
+                    }
+                    $orderId = isset($payload['order_id']) ? (int)$payload['order_id'] : 0;
+                    $checkoutReference = $orderId > 0
+                        ? ('PMD-ORD-'.$orderId.'-'.uniqid('', true))
+                        : ('PMD-'.uniqid('', true));
+                    $sumupCheckoutPayload = [
                         'checkout_reference' => $checkoutReference,
                         'amount' => number_format($amountMajor, 2, '.', ''),
                         'currency' => $currency,
                         'merchant_code' => $merchantCode,
                         'description' => 'Paymydine order',
                         'return_url' => $returnUrl,
+                    ];
+
+                    \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_REQUEST', [
+                        'host' => request()->getHost(),
+                        'payload' => $sumupCheckoutPayload,
                     ]);
-                if (!$sumupResponse->ok()) {
-                    return response()->json(['success' => false, 'error' => 'Failed to create SumUp checkout', 'details' => $sumupResponse->json()], 502);
-                }
-                $body = (array)$sumupResponse->json();
-                $redirectUrl = (string)($body['checkout_url'] ?? $body['hosted_checkout_url'] ?? '');
-                if ($redirectUrl === '') {
-                    return response()->json(['success' => false, 'error' => 'SumUp checkout URL missing'], 502);
-                }
-                if ($orderId > 0 && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
-                    \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insert([
-                        'order_id' => $orderId,
-                        'payment_method' => 'card',
-                        'payment_reference' => (string)($body['id'] ?? $checkoutReference),
-                        'amount' => $amountMajor,
-                        'settlement_status' => 'pending',
-                        'payer_label' => 'sumup_guest_checkout',
-                        'created_at' => now(),
-                        'updated_at' => now(),
+
+                    $sumupResponse = \Illuminate\Support\Facades\Http::withToken($token)
+                        ->acceptJson()
+                        ->post($baseUrl.'/v0.1/checkouts', $sumupCheckoutPayload);
+                    $body = (array)$sumupResponse->json();
+
+                    \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_RESPONSE', [
+                        'status' => $sumupResponse->status(),
+                        'body' => $body,
                     ]);
+
+                    if (!$sumupResponse->ok()) {
+                        return response()->json([
+                            'success' => false,
+                            'provider' => 'sumup',
+                            'error' => 'sumup_checkout_create_failed',
+                            'status' => $sumupResponse->status(),
+                            'details' => $body,
+                        ], 422);
+                    }
+                    $redirectUrl = (string)($body['checkout_url'] ?? $body['hosted_checkout_url'] ?? '');
+                    if ($redirectUrl === '') {
+                        return response()->json([
+                            'success' => false,
+                            'provider' => 'sumup',
+                            'error' => 'sumup_checkout_url_missing',
+                            'details' => $body,
+                        ], 422);
+                    }
+                    if ($orderId > 0 && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
+                        \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insert([
+                            'order_id' => $orderId,
+                            'payment_method' => 'card',
+                            'payment_reference' => (string)($body['id'] ?? $checkoutReference),
+                            'amount' => $amountMajor,
+                            'settlement_status' => 'pending',
+                            'payer_label' => 'sumup_guest_checkout',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                    return response()->json([
+                        'success' => true,
+                        'provider' => 'sumup',
+                        'redirect_url' => $redirectUrl,
+                        'checkout_id' => $body['id'] ?? null,
+                        'checkout_reference' => $checkoutReference,
+                    ]);
+                } catch (\Throwable $sumupException) {
+                    \Log::channel('sumup')->error('SUMUP_CREATE_SESSION_EXCEPTION', [
+                        'message' => $sumupException->getMessage(),
+                        'class' => get_class($sumupException),
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'sumup',
+                        'error' => 'sumup_request_exception',
+                        'message' => $sumupException->getMessage(),
+                    ], 500);
                 }
-                return response()->json([
-                    'success' => true,
-                    'provider' => 'sumup',
-                    'redirect_url' => $redirectUrl,
-                    'checkout_id' => $body['id'] ?? null,
-                    'checkout_reference' => $checkoutReference,
-                ]);
             }
 
             if ($providerCode === 'square') {

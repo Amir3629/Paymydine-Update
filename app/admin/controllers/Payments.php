@@ -388,6 +388,29 @@ class Payments extends \Admin\Classes\AdminController
             }
             $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
             $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, $model->getConfigData());
+            if ((string)$model->code === 'sumup') {
+                $token = trim((string)($normalizedProviderData['access_token'] ?? ''));
+                $baseUrl = rtrim((string)($normalizedProviderData['url'] ?? 'https://api.sumup.com'), '/');
+                if ($token === '') {
+                    throw new ValidationException([
+                        'access_token' => 'SumUp access token is required.',
+                    ]);
+                }
+
+                $identity = $this->resolveSumupIdentity($token, $baseUrl);
+                if (!($identity['ok'] ?? false)) {
+                    throw new ValidationException([
+                        'access_token' => (string)($identity['message'] ?? 'Unable to verify SumUp access token.'),
+                    ]);
+                }
+
+                $normalizedProviderData['id_application'] = (string)($identity['merchant_code'] ?? '');
+                \Log::channel('sumup')->info('SUMUP_PROVIDER_IDENTITY_RESOLVED', [
+                    'merchant_code' => $normalizedProviderData['id_application'],
+                    'email' => $identity['email'] ?? null,
+                    'base_url' => $baseUrl,
+                ]);
+            }
             if (array_key_exists('enabled', $normalizedProviderData)) {
                 $model->status = !empty($normalizedProviderData['enabled']) ? 1 : 0;
             }
@@ -802,7 +825,7 @@ class Payments extends \Admin\Classes\AdminController
                 ],
                 'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'right', 'comment' => 'Required server credential. Do not paste public keys (sup_pk_...). Saved value is shown; replace to rotate token.'],
                 'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
-                'id_application' => ['label' => 'Merchant Code', 'type' => 'text', 'span' => 'right', 'comment' => 'Optional. If empty, system attempts auto-resolve via SumUp /v0.1/me endpoint.'],
+                'id_application' => ['label' => 'Merchant Code (Auto)', 'type' => 'text', 'span' => 'right', 'readOnly' => true, 'comment' => 'Auto-resolved from SumUp /v0.1/me using your access token. This is not manually editable.'],
             ],
             'worldline' => [
                 'api_endpoint' => ['label' => 'API Endpoint', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.preprod.connect.worldline-solutions.com', 'comment' => 'Preprod or live Connect API endpoint URL.'],
@@ -898,6 +921,49 @@ class Payments extends \Admin\Classes\AdminController
         ][$providerCode] ?? [];
     }
 
+    protected function resolveSumupIdentity(string $token, string $baseUrl): array
+    {
+        try {
+            $resp = Http::withToken($token)->acceptJson()->get(rtrim($baseUrl, '/').'/v0.1/me');
+            $json = (array)$resp->json();
+            $merchantCode = (string)($json['merchant_profile']['merchant_code'] ?? $json['merchant_code'] ?? '');
+            $email = (string)($json['email'] ?? $json['user_email'] ?? '');
+
+            if (!$resp->ok()) {
+                \Log::channel('sumup')->error('SUMUP_IDENTITY_LOOKUP_FAILED', [
+                    'status' => $resp->status(),
+                    'response' => $json,
+                ]);
+                return [
+                    'ok' => false,
+                    'message' => 'SumUp identity lookup failed. Please verify token and account permissions.',
+                ];
+            }
+
+            if ($merchantCode === '') {
+                return [
+                    'ok' => false,
+                    'message' => 'SumUp merchant code could not be resolved from /v0.1/me.',
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'merchant_code' => $merchantCode,
+                'email' => $email !== '' ? $email : null,
+                'raw' => $json,
+            ];
+        } catch (\Throwable $e) {
+            \Log::channel('sumup')->error('SUMUP_IDENTITY_LOOKUP_EXCEPTION', [
+                'message' => $e->getMessage(),
+            ]);
+            return [
+                'ok' => false,
+                'message' => 'Failed to contact SumUp identity endpoint.',
+            ];
+        }
+    }
+
     public function onTestProviderConnection()
     {
         $code = (string)post('code', post('Payment.code', (string)($this->params[0] ?? '')));
@@ -934,8 +1000,19 @@ class Payments extends \Admin\Classes\AdminController
             $token = $data['access_token'] ?? null;
             $base = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
             if (!$token) throw new ApplicationException('Missing SumUp access token.');
-            $resp = Http::withToken($token)->acceptJson()->get($base.'/v0.1/me');
-            $result = ['success' => $resp->ok(), 'message' => $resp->ok() ? 'SumUp connection successful.' : 'SumUp API request failed.', 'status' => $resp->status()];
+            $identity = $this->resolveSumupIdentity((string)$token, $base);
+            $isConnected = (bool)($identity['ok'] ?? false);
+            $merchant = (string)($identity['merchant_code'] ?? '');
+            $email = (string)($identity['email'] ?? '');
+            $result = [
+                'success' => $isConnected,
+                'message' => $isConnected
+                    ? ('Connected. Merchant code: '.$merchant.($email !== '' ? (' | Email: '.$email) : ''))
+                    : ('Failed. '.(string)($identity['message'] ?? 'SumUp API request failed.')),
+                'merchant_code' => $merchant !== '' ? $merchant : null,
+                'account_email' => $email !== '' ? $email : null,
+                'connected' => $isConnected,
+            ];
         } elseif ($code === 'worldline') {
             $diagnostics = app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getConfigForDiagnostics();
             $result = ['success' => true, 'message' => 'Worldline configuration resolved from active tenant POS mapping.', 'environment' => $diagnostics['environment'] ?? 'unknown'];
