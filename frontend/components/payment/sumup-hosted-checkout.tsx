@@ -25,7 +25,6 @@ export default function SumUpHostedCheckout(props: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [widgetCheckoutId, setWidgetCheckoutId] = useState<string | null>(null)
-  const [widgetHint, setWidgetHint] = useState<string | null>(null)
   const widgetMountedRef = useRef(false)
   const widgetContainerId = useMemo(
     () => `sumup-card-${Math.random().toString(36).slice(2, 10)}`,
@@ -98,7 +97,7 @@ export default function SumUpHostedCheckout(props: Props) {
     }
 
     widgetMountedRef.current = true
-    setWidgetHint("SumUp secure card form is ready.")
+    console.info("[PMD-SUMUP] widget mount start", { checkoutId, containerId: widgetContainerId })
     await reportWidgetEvent(checkoutId, "widget_mount_start")
 
     window.SumUpCard.mount({
@@ -110,19 +109,25 @@ export default function SumUpHostedCheckout(props: Props) {
         await reportWidgetEvent(checkoutId, normalizedType || "unknown", body)
 
         if (normalizedType === "sent") {
-          setWidgetHint("Processing payment…")
+          console.info("[PMD-SUMUP] widget submit sent", { checkoutId })
           return
         }
         if (normalizedType === "auth-screen") {
-          setWidgetHint("Authentication required. Please complete the bank challenge.")
+          console.info("[PMD-SUMUP] widget auth screen", { checkoutId })
           return
         }
         if (normalizedType === "invalid") {
+          console.warn("[PMD-SUMUP] widget invalid form", { checkoutId, body })
           setError("Please review the card form fields.")
           return
         }
 
         if (["success", "fail", "error"].includes(normalizedType)) {
+          if (normalizedType === "error") {
+            console.error("[PMD-SUMUP] widget error callback", { checkoutId, body })
+          } else {
+            console.info("[PMD-SUMUP] widget terminal callback", { checkoutId, type: normalizedType })
+          }
           const verify = await verifyCheckoutStatus(checkoutId)
           const isPaid = verify.ok && !!verify.data?.is_paid
           if (isPaid) {
@@ -142,13 +147,14 @@ export default function SumUpHostedCheckout(props: Props) {
         }
       },
     })
+    console.info("[PMD-SUMUP] widget mount success", { checkoutId, containerId: widgetContainerId })
   }
 
   async function handleCheckout() {
     try {
       setLoading(true)
       setError(null)
-      setWidgetHint(null)
+      console.info("[PMD-SUMUP] checkout button clicked")
 
       const payload = {
         amount: props.amount,
@@ -233,13 +239,13 @@ export default function SumUpHostedCheckout(props: Props) {
   return (
     <div
       data-pmd-sumup-checkout="1"
-      className={`w-full mt-4 rounded-3xl border p-4 sm:p-5 ${props.className ?? ""}`}
+      className={`w-full rounded-2xl border p-3 sm:p-4 ${props.className ?? ""}`}
       style={{
         borderColor: "var(--theme-border)",
         background: "rgba(255,255,255,0.04)",
       }}
     >
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-3">
         <img
           src="/images/payments/sumup_dark.svg"
           alt="SumUp"
@@ -251,10 +257,8 @@ export default function SumUpHostedCheckout(props: Props) {
           }}
         />
         <div>
-          <div className="text-sm font-semibold">پرداخت با SumUp</div>
-          <div className="text-xs opacity-80">
-            با زدن دکمه، به صفحه امن SumUp منتقل می‌شوی.
-          </div>
+          <div className="text-sm font-semibold">Secure card payment</div>
+          <div className="text-xs opacity-80">Your payment is processed securely by SumUp.</div>
         </div>
       </div>
 
@@ -270,17 +274,10 @@ export default function SumUpHostedCheckout(props: Props) {
         </div>
       ) : null}
 
-      {widgetCheckoutId ? (
-        <div
-          className="mb-3 rounded-2xl px-3 py-2 text-xs"
-          style={{ background: "rgba(255,255,255,0.06)", color: "var(--theme-text-primary, #F3F4F6)" }}
-        >
-          Checkout ID: {widgetCheckoutId}
-          {widgetHint ? <div className="mt-1 opacity-80">{widgetHint}</div> : null}
-        </div>
-      ) : null}
-
-      <div id={widgetContainerId} className={widgetCheckoutId ? "mb-3" : "hidden"} />
+      <div
+        id={widgetContainerId}
+        className={widgetCheckoutId ? "mb-2 min-h-[320px] sm:min-h-[360px]" : "hidden"}
+      />
 
       <button
         type="button"
