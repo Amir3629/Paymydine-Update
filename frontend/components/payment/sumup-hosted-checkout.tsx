@@ -62,13 +62,26 @@ export default function SumUpHostedCheckout(props: Props) {
         throw new Error(json?.message || json?.error || `HTTP ${res.status}`)
       }
 
+      const success = json?.success === true
       const redirectUrl =
-        json?.hosted_checkout_url ||
-        json?.data?.hosted_checkout_url ||
         json?.redirect_url ||
+        json?.hosted_checkout_url ||
         json?.checkout_url ||
         json?.data?.redirect_url ||
+        json?.data?.hosted_checkout_url ||
         json?.data?.checkout_url
+
+      if (success && redirectUrl) {
+        window.location.href = String(redirectUrl)
+        return
+      }
+
+      if (success && json?.checkout_id) {
+        throw new Error(
+          json?.message ||
+            "SumUp checkout was created, but no redirect URL was returned. Please try again."
+        )
+      }
 
       if (!redirectUrl) {
         throw new Error("No SumUp redirect URL returned from backend")

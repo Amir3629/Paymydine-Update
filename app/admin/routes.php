@@ -1992,7 +1992,10 @@ Route::group([
                         'duration_ms' => (int)round((microtime(true) - $startedAt) * 1000),
                     ]);
 
-                    if (!$sumupResponse || !$sumupResponse->ok()) {
+                    $checkoutId = trim((string)($body['id'] ?? ''));
+                    $isUpstreamSuccess = $sumupResponse && $sumupResponse->successful();
+
+                    if (!$isUpstreamSuccess) {
                         $failedStatus = $sumupResponse ? (int)$sumupResponse->status() : 422;
                         $errorResponse = [
                             'success' => false,
@@ -2008,29 +2011,77 @@ Route::group([
                         ]);
                         return response()->json($errorResponse, $failedStatus);
                     }
-                    $checkoutUrl = (string)($body['checkout_url'] ?? '');
-                    $hostedCheckoutUrl = (string)($body['hosted_checkout_url'] ?? '');
-                    $redirectUrl = $checkoutUrl !== '' ? $checkoutUrl : $hostedCheckoutUrl;
-                    if ($redirectUrl === '') {
-                        $missingUrlResponse = [
+
+                    if ($checkoutId === '') {
+                        $missingIdResponse = [
                             'success' => false,
                             'provider' => 'sumup',
                             'error' => 'sumup_error',
-                            'status' => 422,
+                            'status' => (int)($statusCode ?: 422),
+                            'message' => 'SumUp checkout response did not include a checkout id.',
                             'body' => $body,
                         ];
                         \Log::channel('sumup')->warning('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
                             'host' => request()->getHost(),
-                            'status' => 422,
-                            'response' => $missingUrlResponse,
+                            'status' => (int)($statusCode ?: 422),
+                            'response' => $missingIdResponse,
                         ]);
-                        return response()->json($missingUrlResponse, 422);
+                        return response()->json($missingIdResponse, 422);
                     }
+
+                    $extractUrlFromLinks = function (array $payload, array $preferredRels = []): ?string {
+                        $links = $payload['links'] ?? [];
+                        if (!is_array($links)) {
+                            return null;
+                        }
+                        foreach ($links as $link) {
+                            $href = trim((string)($link['href'] ?? ''));
+                            $rel = strtolower(trim((string)($link['rel'] ?? '')));
+                            if ($href === '') {
+                                continue;
+                            }
+                            if (!empty($preferredRels) && in_array($rel, $preferredRels, true)) {
+                                return $href;
+                            }
+                        }
+                        if (empty($preferredRels)) {
+                            foreach ($links as $link) {
+                                $href = trim((string)($link['href'] ?? ''));
+                                if ($href !== '') {
+                                    return $href;
+                                }
+                            }
+                        }
+                        return null;
+                    };
+
+                    $hostedCheckoutUrl = trim((string)(
+                        $body['hosted_checkout_url']
+                        ?? ($body['checkout_link'] ?? '')
+                    ));
+                    if ($hostedCheckoutUrl === '') {
+                        $hostedCheckoutUrl = (string)($extractUrlFromLinks($body, ['hosted_checkout', 'checkout', 'pay', 'payment']) ?? '');
+                    }
+                    $checkoutUrl = trim((string)($body['checkout_url'] ?? ''));
+                    if ($checkoutUrl === '') {
+                        $checkoutUrl = (string)($extractUrlFromLinks($body, ['checkout', 'pay', 'payment']) ?? '');
+                    }
+                    $fallbackCheckoutUrl = trim((string)(
+                        $body['redirect_url']
+                        ?? ($body['url'] ?? '')
+                    ));
+                    if ($fallbackCheckoutUrl === '') {
+                        $fallbackCheckoutUrl = (string)($extractUrlFromLinks($body) ?? '');
+                    }
+                    $redirectUrl = $hostedCheckoutUrl !== ''
+                        ? $hostedCheckoutUrl
+                        : ($checkoutUrl !== '' ? $checkoutUrl : $fallbackCheckoutUrl);
+
                     if ($orderId > 0 && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
                         \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insert([
                             'order_id' => $orderId,
                             'payment_method' => 'card',
-                            'payment_reference' => (string)($body['id'] ?? $checkoutReference),
+                            'payment_reference' => $checkoutId !== '' ? $checkoutId : $checkoutReference,
                             'amount' => $amountMajor,
                             'settlement_status' => 'pending',
                             'payer_label' => 'sumup_guest_checkout',
@@ -2041,15 +2092,31 @@ Route::group([
                     $successResponse = [
                         'success' => true,
                         'provider' => 'sumup',
-                        'redirect_url' => $redirectUrl,
-                        'checkout_url' => $checkoutUrl !== '' ? $checkoutUrl : $redirectUrl,
+                        'status' => (int)($statusCode ?: 200),
+                        'checkout_id' => $checkoutId,
+                        'checkout_url' => $checkoutUrl !== '' ? $checkoutUrl : null,
                         'hosted_checkout_url' => $hostedCheckoutUrl !== '' ? $hostedCheckoutUrl : null,
-                        'checkout_id' => $body['id'] ?? null,
+                        'redirect_url' => $redirectUrl,
                         'checkout_reference' => $checkoutReference,
+                        'raw_body' => array_intersect_key($body, array_flip([
+                            'id',
+                            'status',
+                            'amount',
+                            'currency',
+                            'checkout_reference',
+                            'checkout_url',
+                            'hosted_checkout_url',
+                            'redirect_url',
+                            'links',
+                        ])),
                     ];
+                    if ($redirectUrl === '') {
+                        $successResponse['widget_ready'] = true;
+                        $successResponse['message'] = 'SumUp checkout was created successfully, but no redirect URL was returned. Use checkout_id with SumUp Payment Widget.';
+                    }
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
                         'host' => request()->getHost(),
-                        'status' => 200,
+                        'status' => (int)($statusCode ?: 200),
                         'response' => $successResponse,
                     ]);
                     return response()->json($successResponse);
