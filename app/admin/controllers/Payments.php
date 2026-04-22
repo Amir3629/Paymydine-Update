@@ -933,7 +933,7 @@ class Payments extends \Admin\Classes\AdminController
             $resp = Http::withToken($token)->acceptJson()->get(rtrim($baseUrl, '/').'/v0.1/me');
             $json = (array)$resp->json();
             $merchantCode = (string)($json['merchant_profile']['merchant_code'] ?? $json['merchant_code'] ?? '');
-            $email = (string)($json['email'] ?? $json['user_email'] ?? '');
+            $email = (string)($json['email'] ?? $json['user_email'] ?? $json['merchant_profile']['email'] ?? '');
 
             if (!$resp->ok()) {
                 \Log::channel('sumup')->error('SUMUP_IDENTITY_LOOKUP_FAILED', [

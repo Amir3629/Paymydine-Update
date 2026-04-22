@@ -1905,6 +1905,11 @@ Route::group([
                         'host' => request()->getHost(),
                         'payload' => $sumupCheckoutPayload,
                     ]);
+                    \Illuminate\Support\Facades\Cache::put(
+                        'sumup_last_checkout_payload_'.request()->getHost(),
+                        $sumupCheckoutPayload,
+                        now()->addHours(12)
+                    );
 
                     $sumupResponse = null;
                     $body = [];
@@ -1973,6 +1978,7 @@ Route::group([
                         'success' => true,
                         'provider' => 'sumup',
                         'redirect_url' => $redirectUrl,
+                        'checkout_url' => $redirectUrl,
                         'hosted_checkout_url' => $hostedCheckoutUrl !== '' ? $hostedCheckoutUrl : null,
                         'checkout_id' => $body['id'] ?? null,
                         'checkout_reference' => $checkoutReference,
@@ -2076,14 +2082,19 @@ Route::group([
 
             return response()->json(['success' => false, 'error' => "Unsupported card provider {$providerCode}"], 422);
         } catch (\Throwable $e) {
-            \Log::error('Card create-session failed', [
+            $logPayload = [
                 'provider' => $providerCode,
                 'message' => $e->getMessage(),
                 'class' => get_class($e),
                 'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
                 'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
                 'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
-            ]);
+            ];
+            if ($providerCode === 'sumup') {
+                \Log::channel('sumup')->error('SUMUP_CREATE_SESSION_OUTER_EXCEPTION', $logPayload);
+            } else {
+                \Log::error('Card create-session failed', $logPayload);
+            }
             return response()->json(['success' => false, 'error' => $e->getMessage() ?: 'Failed to create card session'], 500);
         }
     });
@@ -2684,6 +2695,52 @@ Route::group([
                 'message' => 'SumUp health check request failed',
             ], 500);
         }
+    });
+
+    Route::get('/payments/sumup/debug', function () {
+        $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
+        $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        $token = trim((string)($data['access_token'] ?? ''));
+        $merchantCode = trim((string)($data['id_application'] ?? ''));
+        $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
+        $preview = \Illuminate\Support\Facades\Cache::get('sumup_last_checkout_payload_'.request()->getHost());
+
+        $meResult = null;
+        if ($token !== '') {
+            try {
+                $resp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->timeout(5)->get($baseUrl.'/v0.1/me');
+                $meResult = [
+                    'ok' => $resp->ok(),
+                    'status' => $resp->status(),
+                    'body' => $resp->json(),
+                ];
+            } catch (\Throwable $e) {
+                $meResult = [
+                    'ok' => false,
+                    'status' => 500,
+                    'body' => ['message' => $e->getMessage()],
+                ];
+            }
+        }
+
+        \Log::channel('sumup')->info('SUMUP_DEBUG_ENDPOINT_HIT', [
+            'host' => request()->getHost(),
+            'provider_loaded' => (bool)$payment,
+            'token_present' => $token !== '',
+            'merchant_code_present' => $merchantCode !== '',
+            'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
+            'payload_preview' => $preview,
+            'me_ok' => $meResult['ok'] ?? null,
+        ]);
+
+        return response()->json([
+            'provider_loaded' => (bool)$payment,
+            'token_present' => $token !== '',
+            'merchant_code_present' => $merchantCode !== '',
+            'merchant_code_value' => $merchantCode !== '' ? $merchantCode : null,
+            'me_result' => $meResult,
+            'last_create_checkout_payload_preview' => $preview,
+        ]);
     });
 
     Route::post('/payments/square/checkout-status', function (\Illuminate\Http\Request $request) {
