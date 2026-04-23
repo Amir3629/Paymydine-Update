@@ -102,6 +102,19 @@ if (!function_exists('pmdFinalizeSumupCheckoutIfPaid')) {
     }
 }
 
+if (!function_exists('pmdSumupCompatResponse')) {
+    function pmdSumupCompatResponse(array $payload, int $status, string $canonicalEndpoint)
+    {
+        return response()->json(array_merge($payload, [
+            'deprecated' => true,
+            'compat_mode' => true,
+            'canonical_endpoint' => $canonicalEndpoint,
+        ]), $status)
+            ->header('X-PMD-Deprecated-Route', '1')
+            ->header('X-PMD-Canonical-Route', $canonicalEndpoint);
+    }
+}
+
 Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web', \App\Http\Middleware\DetectTenant::class],
@@ -134,13 +147,17 @@ Route::group([
     });
 
     Route::post('/payments/sumup/create-checkout', function (Request $request) {
+        Log::warning('PMD_SUMUP_COMPAT_ROUTE_HIT', [
+            'route' => '/api/v1/payments/sumup/create-checkout',
+            'canonical_route' => '/api/v1/payments/card/create-session',
+        ]);
         $cfg = pmdLoadSumupConfig();
 
         if (!$cfg) {
-            return response()->json([
+            return pmdSumupCompatResponse([
                 'success' => false,
                 'error' => 'SumUp configuration not found',
-            ], 404);
+            ], 404, '/api/v1/payments/card/create-session');
         }
 
         $validated = $request->validate([
@@ -155,10 +172,10 @@ Route::group([
         $merchantCode = pmdResolveSumupMerchantCode($cfg);
 
         if (!$merchantCode) {
-            return response()->json([
+            return pmdSumupCompatResponse([
                 'success' => false,
                 'error' => 'SumUp merchant_code could not be resolved',
-            ], 400);
+            ], 400, '/api/v1/payments/card/create-session');
         }
 
         $payload = [
@@ -180,23 +197,27 @@ Route::group([
             'response' => $resp->json(),
         ]);
 
-        return response()->json([
+        return pmdSumupCompatResponse([
             'success' => $resp->successful(),
             'provider' => 'sumup',
             'integration_mode' => 'payments',
             'status' => $resp->status(),
             'data' => $resp->json(),
-        ], $resp->status());
+        ], $resp->status(), '/api/v1/payments/card/create-session');
     });
 
     Route::get('/payments/sumup/checkout/{checkoutId}', function ($checkoutId) {
+        Log::warning('PMD_SUMUP_COMPAT_ROUTE_HIT', [
+            'route' => '/api/v1/payments/sumup/checkout/{checkoutId}',
+            'canonical_route' => '/api/v1/payments/sumup/checkout-status',
+        ]);
         $cfg = pmdLoadSumupConfig();
 
         if (!$cfg) {
-            return response()->json([
+            return pmdSumupCompatResponse([
                 'success' => false,
                 'error' => 'SumUp configuration not found',
-            ], 404);
+            ], 404, '/api/v1/payments/sumup/checkout-status');
         }
 
         $baseUrl = rtrim($cfg->url ?: 'https://api.sumup.com', '/');
@@ -205,29 +226,32 @@ Route::group([
             ->acceptJson()
             ->get($baseUrl.'/v0.1/checkouts/'.$checkoutId);
 
-        return response()->json([
+        return pmdSumupCompatResponse([
             'success' => $resp->successful(),
             'provider' => 'sumup',
             'status' => $resp->status(),
             'data' => $resp->json(),
-        ], $resp->status());
+        ], $resp->status(), '/api/v1/payments/sumup/checkout-status');
     });
 
     Route::post('/payments/sumup/refund/{txnId}', function (Request $request, $txnId) {
+        Log::warning('PMD_SUMUP_COMPAT_ROUTE_HIT', [
+            'route' => '/api/v1/payments/sumup/refund/{txnId}',
+            'canonical_route' => '/api/v1/payments/sumup/refund',
+        ]);
         $cfg = pmdLoadSumupConfig();
 
         if (!$cfg) {
-            return response()->json([
+            return pmdSumupCompatResponse([
                 'success' => false,
                 'error' => 'SumUp configuration not found',
-            ], 404);
+            ], 404, '/api/v1/payments/sumup/refund');
         }
 
         $validated = $request->validate([
             'amount' => 'nullable|numeric|min:0.01',
         ]);
 
-        $baseUrl = rtrim($cfg->url ?: 'https://api.sumup.com', '/');
         $payload = [];
 
         if (isset($validated['amount'])) {
@@ -245,15 +269,19 @@ Route::group([
             'response' => $resp->json(),
         ]);
 
-        return response()->json([
+        return pmdSumupCompatResponse([
             'success' => $resp->successful(),
             'provider' => 'sumup',
             'status' => $resp->status(),
             'data' => $resp->json(),
-        ], $resp->status());
+        ], $resp->status(), '/api/v1/payments/sumup/refund');
     });
 
     Route::post('/webhook/sumup', function (Request $request) {
+        Log::warning('PMD_SUMUP_COMPAT_ROUTE_HIT', [
+            'route' => '/api/v1/webhook/sumup',
+            'canonical_route' => '/api/v1/payments/sumup/webhook',
+        ]);
         $cfg = pmdLoadSumupConfig();
 
         Log::info('PMD SumUp webhook received', [
@@ -262,7 +290,7 @@ Route::group([
         ]);
 
         if (!$cfg) {
-            return response()->json(['success' => false, 'error' => 'SumUp configuration not found'], 404);
+            return pmdSumupCompatResponse(['success' => false, 'error' => 'SumUp configuration not found'], 404, '/api/v1/payments/sumup/webhook');
         }
 
         $payload = $request->all();
@@ -287,21 +315,25 @@ Route::group([
             }
         }
 
-        return response()->json(['success' => true], 200);
+        return pmdSumupCompatResponse(['success' => true], 200, '/api/v1/payments/sumup/webhook');
     });
 });
 
 
 
 Route::post('/payments/sumup/create-hosted-checkout', function (\Illuminate\Http\Request $request) {
+    \Log::warning('PMD_SUMUP_COMPAT_ROUTE_HIT', [
+        'route' => '/payments/sumup/create-hosted-checkout',
+        'canonical_route' => '/api/v1/payments/card/create-session',
+    ]);
     try {
         $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'sumup')->first();
 
         if (!$payment) {
-            return response()->json([
+            return pmdSumupCompatResponse([
                 'success' => false,
                 'error' => 'SumUp configuration not found',
-            ], 404);
+            ], 404, '/api/v1/payments/card/create-session');
         }
 
         $data = (array) ($payment->data ?? []);
@@ -315,10 +347,10 @@ Route::post('/payments/sumup/create-hosted-checkout', function (\Illuminate\Http
         $baseUrl = rtrim($data['base_url'] ?? 'https://api.sumup.com', '/');
 
         if (!$apiKey || !$merchantCode) {
-            return response()->json([
+            return pmdSumupCompatResponse([
                 'success' => false,
                 'error' => 'SumUp gateway is not configured correctly',
-            ], 422);
+            ], 422, '/api/v1/payments/card/create-session');
         }
 
         $amount = (float) $request->input('amount', 0);
@@ -329,10 +361,10 @@ Route::post('/payments/sumup/create-hosted-checkout', function (\Illuminate\Http
         $returnUrl = (string) $request->input('return_url', $data['webhook_url'] ?? url('/api/v1/webhook/sumup'));
 
         if ($amount <= 0) {
-            return response()->json([
+            return pmdSumupCompatResponse([
                 'success' => false,
                 'error' => 'Amount must be greater than zero',
-            ], 422);
+            ], 422, '/api/v1/payments/card/create-session');
         }
 
         $payload = [
@@ -354,7 +386,7 @@ Route::post('/payments/sumup/create-hosted-checkout', function (\Illuminate\Http
 
         $json = $resp->json();
 
-        return response()->json([
+        return pmdSumupCompatResponse([
             'success' => $resp->successful(),
             'provider' => 'sumup',
             'integration_mode' => 'hosted_checkout',
@@ -363,15 +395,15 @@ Route::post('/payments/sumup/create-hosted-checkout', function (\Illuminate\Http
             'data' => $json,
             'hosted_checkout_url' => $json['hosted_checkout_url'] ?? null,
             'checkout_id' => $json['id'] ?? null,
-        ], $resp->status());
+        ], $resp->status(), '/api/v1/payments/card/create-session');
     } catch (\Throwable $e) {
         \Log::error('SumUp hosted checkout create failed', [
             'message' => $e->getMessage(),
         ]);
 
-        return response()->json([
+        return pmdSumupCompatResponse([
             'success' => false,
             'error' => $e->getMessage(),
-        ], 500);
+        ], 500, '/api/v1/payments/card/create-session');
     }
 });

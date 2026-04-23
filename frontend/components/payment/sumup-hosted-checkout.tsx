@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 declare global {
   interface Window {
@@ -25,8 +25,8 @@ export default function SumUpHostedCheckout(props: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [widgetCheckoutId, setWidgetCheckoutId] = useState<string | null>(null)
-  const [widgetHint, setWidgetHint] = useState<string | null>(null)
   const widgetMountedRef = useRef(false)
+  const checkoutStartedRef = useRef(false)
   const widgetContainerId = useMemo(
     () => `sumup-card-${Math.random().toString(36).slice(2, 10)}`,
     []
@@ -98,7 +98,7 @@ export default function SumUpHostedCheckout(props: Props) {
     }
 
     widgetMountedRef.current = true
-    setWidgetHint("SumUp secure card form is ready.")
+    console.info("[PMD-SUMUP] widget mount start", { checkoutId, containerId: widgetContainerId })
     await reportWidgetEvent(checkoutId, "widget_mount_start")
 
     window.SumUpCard.mount({
@@ -110,19 +110,29 @@ export default function SumUpHostedCheckout(props: Props) {
         await reportWidgetEvent(checkoutId, normalizedType || "unknown", body)
 
         if (normalizedType === "sent") {
-          setWidgetHint("Processing payment…")
+          console.info("[PMD-SUMUP] widget submit sent", { checkoutId })
           return
         }
         if (normalizedType === "auth-screen") {
-          setWidgetHint("Authentication required. Please complete the bank challenge.")
+          console.info("[PMD-SUMUP] widget auth screen", { checkoutId })
           return
         }
         if (normalizedType === "invalid") {
+          console.warn("[PMD-SUMUP] widget invalid form", { checkoutId, body })
           setError("Please review the card form fields.")
           return
         }
 
         if (["success", "fail", "error"].includes(normalizedType)) {
+          if (normalizedType === "error") {
+            console.error("[PMD-SUMUP] widget error callback", { checkoutId, body })
+          } else if (normalizedType === "success") {
+            console.info("[PMD-SUMUP] widget success callback", { checkoutId, body })
+          } else if (normalizedType === "fail") {
+            console.info("[PMD-SUMUP] widget fail callback", { checkoutId, body })
+          } else {
+            console.info("[PMD-SUMUP] widget terminal callback", { checkoutId, type: normalizedType })
+          }
           const verify = await verifyCheckoutStatus(checkoutId)
           const isPaid = verify.ok && !!verify.data?.is_paid
           if (isPaid) {
@@ -142,13 +152,16 @@ export default function SumUpHostedCheckout(props: Props) {
         }
       },
     })
+    console.info("[PMD-SUMUP] widget mount success", { checkoutId, containerId: widgetContainerId })
   }
 
   async function handleCheckout() {
+    if (checkoutStartedRef.current || loading || widgetCheckoutId) return
+    checkoutStartedRef.current = true
     try {
       setLoading(true)
       setError(null)
-      setWidgetHint(null)
+      console.info("[PMD-SUMUP] checkout init trigger")
 
       const payload = {
         amount: props.amount,
@@ -206,6 +219,12 @@ export default function SumUpHostedCheckout(props: Props) {
 
       if (success && json?.checkout_id) {
         const checkoutId = String(json.checkout_id)
+        if (typeof window !== "undefined") {
+          localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
+            checkout_id: checkoutId,
+            created_at: Date.now(),
+          }))
+        }
         setWidgetCheckoutId(checkoutId)
         await mountWidget(checkoutId)
         return
@@ -224,32 +243,24 @@ export default function SumUpHostedCheckout(props: Props) {
     }
   }
 
+  useEffect(() => {
+    if (widgetCheckoutId || loading) return
+    void handleCheckout()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgetCheckoutId, loading])
+
   return (
     <div
       data-pmd-sumup-checkout="1"
-      className={`w-full mt-4 rounded-3xl border p-4 sm:p-5 ${props.className ?? ""}`}
+      className={`w-full rounded-xl border p-2 overflow-visible ${props.className ?? ""}`}
       style={{
         borderColor: "var(--theme-border)",
         background: "rgba(255,255,255,0.04)",
       }}
     >
-      <div className="flex items-center gap-3 mb-4">
-        <img
-          src="/images/payments/sumup_dark.svg"
-          alt="SumUp"
-          className="object-contain"
-          style={{
-            width: "140px",
-            height: "40px",
-            maxWidth: "100%",
-          }}
-        />
-        <div>
-          <div className="text-sm font-semibold">پرداخت با SumUp</div>
-          <div className="text-xs opacity-80">
-            با زدن دکمه، به صفحه امن SumUp منتقل می‌شوی.
-          </div>
-        </div>
+      <div className="mb-2">
+        <div className="text-sm font-semibold">Secure card payment</div>
+        <div className="text-xs opacity-80">Your payment is processed securely by SumUp.</div>
       </div>
 
       {error ? (
@@ -264,32 +275,10 @@ export default function SumUpHostedCheckout(props: Props) {
         </div>
       ) : null}
 
-      {widgetCheckoutId ? (
-        <div
-          className="mb-3 rounded-2xl px-3 py-2 text-xs"
-          style={{ background: "rgba(255,255,255,0.06)", color: "var(--theme-text-primary, #F3F4F6)" }}
-        >
-          Checkout ID: {widgetCheckoutId}
-          {widgetHint ? <div className="mt-1 opacity-80">{widgetHint}</div> : null}
-        </div>
-      ) : null}
-
-      <div id={widgetContainerId} className={widgetCheckoutId ? "mb-3" : "hidden"} />
-
-      <button
-        type="button"
-        onClick={handleCheckout}
-        disabled={loading || !!widgetCheckoutId}
-        className="w-full rounded-2xl px-4 py-3 font-semibold transition"
-        style={{
-          background: "var(--theme-payment-button, var(--theme-primary))",
-          color: "var(--theme-background, #111)",
-          opacity: loading ? 0.7 : 1,
-          cursor: loading ? "not-allowed" : "pointer",
-        }}
-      >
-        {loading ? "در حال انتقال به SumUp..." : "Pay with SumUp"}
-      </button>
+      <div
+        id={widgetContainerId}
+        className={widgetCheckoutId ? "min-h-[820px] sm:min-h-[860px] md:min-h-0 overflow-visible" : "hidden"}
+      />
     </div>
   )
 }

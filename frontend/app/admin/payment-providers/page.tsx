@@ -63,6 +63,7 @@ const providerFieldMap: Record<ProviderCode, Array<{ key: string; label: string;
 }
 
 export default function PaymentProvidersPage() {
+  const IS_READ_ONLY = true
   const { toast } = useToast()
   const [providers, setProviders] = useState<PaymentProvider[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -93,10 +94,12 @@ export default function PaymentProvidersPage() {
   }, [toast])
 
   const updateProvider = (code: ProviderCode, patch: Partial<PaymentProvider>) => {
+    if (IS_READ_ONLY) return
     setProviders((prev) => prev.map((provider) => (provider.code === code ? { ...provider, ...patch } : provider)))
   }
 
   const updateConfig = (code: ProviderCode, key: string, value: string) => {
+    if (IS_READ_ONLY) return
     setProviders((prev) =>
       prev.map((provider) =>
         provider.code === code ? { ...provider, config: { ...(provider.config || {}), [key]: value } } : provider,
@@ -126,6 +129,9 @@ export default function PaymentProvidersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Payment Providers</h1>
+        <p className="text-sm text-amber-600 mt-1">
+          Read-only mirror: configuration changes must be made in Laravel Backend Admin.
+        </p>
         <p className="text-sm text-muted-foreground mt-1">Provider integrations and credentials are managed separately from UI payment methods.</p>
         <p className="text-xs text-amber-600 mt-2">
           Saving credentials does not validate provider authorization/entitlement. Validate with a runtime create-session test.
@@ -159,6 +165,7 @@ export default function PaymentProvidersPage() {
                     <Switch
                       id={`provider-enabled-${provider.code}`}
                       checked={provider.enabled}
+                      disabled={IS_READ_ONLY}
                       onCheckedChange={(checked) => updateProvider(provider.code, { enabled: checked })}
                     />
                   </div>
@@ -171,6 +178,7 @@ export default function PaymentProvidersPage() {
                       {field.options ? (
                         <Select
                           value={String(provider.config?.[field.key] || field.options[0])}
+                          disabled={IS_READ_ONLY}
                           onValueChange={(value) => updateConfig(provider.code, field.key, value)}
                         >
                           <SelectTrigger>
@@ -187,6 +195,7 @@ export default function PaymentProvidersPage() {
                       ) : (
                         <Input
                           type={field.type || "text"}
+                          disabled={IS_READ_ONLY}
                           value={String(provider.config?.[field.key] || "")}
                           onChange={(e) => updateConfig(provider.code, field.key, e.target.value)}
                         />
@@ -201,8 +210,8 @@ export default function PaymentProvidersPage() {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={save} disabled={isLoading || isSaving}>
-          {isSaving ? "Saving..." : "Save Providers"}
+        <Button onClick={save} disabled={IS_READ_ONLY || isLoading || isSaving}>
+          {IS_READ_ONLY ? "Read-only in storefront admin" : (isSaving ? "Saving..." : "Save Providers")}
         </Button>
       </div>
     </div>
