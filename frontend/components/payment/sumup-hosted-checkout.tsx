@@ -126,6 +126,10 @@ export default function SumUpHostedCheckout(props: Props) {
         if (["success", "fail", "error"].includes(normalizedType)) {
           if (normalizedType === "error") {
             console.error("[PMD-SUMUP] widget error callback", { checkoutId, body })
+          } else if (normalizedType === "success") {
+            console.info("[PMD-SUMUP] widget success callback", { checkoutId, body })
+          } else if (normalizedType === "fail") {
+            console.info("[PMD-SUMUP] widget fail callback", { checkoutId, body })
           } else {
             console.info("[PMD-SUMUP] widget terminal callback", { checkoutId, type: normalizedType })
           }
@@ -248,24 +252,14 @@ export default function SumUpHostedCheckout(props: Props) {
   return (
     <div
       data-pmd-sumup-checkout="1"
-      className={`w-full rounded-xl border p-2 sm:p-3 ${props.className ?? ""}`}
+      className={`w-full rounded-xl border p-2 overflow-visible ${props.className ?? ""}`}
       style={{
         borderColor: "var(--theme-border)",
         background: "rgba(255,255,255,0.04)",
       }}
     >
       <div className="mb-2">
-        <img
-          src="/images/payments/sumup_dark.svg"
-          alt="SumUp"
-          className="object-contain"
-          style={{
-            width: "140px",
-            height: "40px",
-            maxWidth: "100%",
-          }}
-        />
-        <div className="text-sm font-semibold mt-1">Secure card payment</div>
+        <div className="text-sm font-semibold">Secure card payment</div>
         <div className="text-xs opacity-80">Your payment is processed securely by SumUp.</div>
       </div>
 
@@ -283,7 +277,7 @@ export default function SumUpHostedCheckout(props: Props) {
 
       <div
         id={widgetContainerId}
-        className={widgetCheckoutId ? "min-h-[420px] sm:min-h-[460px]" : "hidden"}
+        className={widgetCheckoutId ? "min-h-[820px] sm:min-h-[860px] md:min-h-0 overflow-visible" : "hidden"}
       />
     </div>
   )
