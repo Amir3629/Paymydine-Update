@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 declare global {
   interface Window {
@@ -26,6 +26,7 @@ export default function SumUpHostedCheckout(props: Props) {
   const [error, setError] = useState<string | null>(null)
   const [widgetCheckoutId, setWidgetCheckoutId] = useState<string | null>(null)
   const widgetMountedRef = useRef(false)
+  const checkoutStartedRef = useRef(false)
   const widgetContainerId = useMemo(
     () => `sumup-card-${Math.random().toString(36).slice(2, 10)}`,
     []
@@ -151,10 +152,12 @@ export default function SumUpHostedCheckout(props: Props) {
   }
 
   async function handleCheckout() {
+    if (checkoutStartedRef.current || loading || widgetCheckoutId) return
+    checkoutStartedRef.current = true
     try {
       setLoading(true)
       setError(null)
-      console.info("[PMD-SUMUP] checkout button clicked")
+      console.info("[PMD-SUMUP] checkout init trigger")
 
       const payload = {
         amount: props.amount,
@@ -236,16 +239,22 @@ export default function SumUpHostedCheckout(props: Props) {
     }
   }
 
+  useEffect(() => {
+    if (widgetCheckoutId || loading) return
+    void handleCheckout()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgetCheckoutId, loading])
+
   return (
     <div
       data-pmd-sumup-checkout="1"
-      className={`w-full rounded-2xl border p-3 sm:p-4 ${props.className ?? ""}`}
+      className={`w-full rounded-xl border p-2 sm:p-3 ${props.className ?? ""}`}
       style={{
         borderColor: "var(--theme-border)",
         background: "rgba(255,255,255,0.04)",
       }}
     >
-      <div className="flex items-center gap-3 mb-3">
+      <div className="mb-2">
         <img
           src="/images/payments/sumup_dark.svg"
           alt="SumUp"
@@ -256,10 +265,8 @@ export default function SumUpHostedCheckout(props: Props) {
             maxWidth: "100%",
           }}
         />
-        <div>
-          <div className="text-sm font-semibold">Secure card payment</div>
-          <div className="text-xs opacity-80">Your payment is processed securely by SumUp.</div>
-        </div>
+        <div className="text-sm font-semibold mt-1">Secure card payment</div>
+        <div className="text-xs opacity-80">Your payment is processed securely by SumUp.</div>
       </div>
 
       {error ? (
@@ -276,23 +283,8 @@ export default function SumUpHostedCheckout(props: Props) {
 
       <div
         id={widgetContainerId}
-        className={widgetCheckoutId ? "mb-2 min-h-[320px] sm:min-h-[360px]" : "hidden"}
+        className={widgetCheckoutId ? "min-h-[420px] sm:min-h-[460px]" : "hidden"}
       />
-
-      <button
-        type="button"
-        onClick={handleCheckout}
-        disabled={loading || !!widgetCheckoutId}
-        className="w-full rounded-2xl px-4 py-3 font-semibold transition"
-        style={{
-          background: "var(--theme-payment-button, var(--theme-primary))",
-          color: "var(--theme-background, #111)",
-          opacity: loading ? 0.7 : 1,
-          cursor: loading ? "not-allowed" : "pointer",
-        }}
-      >
-        {loading ? "در حال انتقال به SumUp..." : "Pay with SumUp"}
-      </button>
     </div>
   )
 }
