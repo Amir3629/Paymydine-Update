@@ -1591,7 +1591,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       const verificationPayload = provider === "worldline"
         ? { hosted_checkout_id: String(pending?.hosted_checkout_id || "") }
         : provider === "sumup"
-          ? { checkout_id: String(pending?.checkout_id || "") }
+          ? { checkout_id: String(pending?.checkout_id || params.get("checkout_id") || "") }
           : provider === "square"
             ? { payment_link_id: String(pending?.payment_link_id || "") }
             : provider === "vr_payment"
@@ -1836,8 +1836,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           }
           if (selectedProviderCode === "sumup") {
             const sumupReturnUrl = typeof window !== "undefined"
-              ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=sumup`
-              : "/menu?payment_return_provider=sumup"
+              ? `${window.location.origin}/payment/sumup/complete`
+              : "/payment/sumup/complete"
             const sumupCancelUrl = typeof window !== "undefined" ? window.location.href : "/menu"
             return (
               <motion.div

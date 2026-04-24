@@ -185,6 +185,9 @@ Route::group([
             'merchant_code' => $merchantCode,
             'description' => $validated['description'] ?? 'PayMyDine SumUp checkout',
             'return_url' => $validated['return_url'] ?? (request()->getSchemeAndHttpHost().'/sumup/return'),
+            'hosted_checkout' => [
+                'enabled' => true,
+            ],
         ];
 
         $resp = Http::withToken($cfg->access_token)
@@ -197,12 +200,29 @@ Route::group([
             'response' => $resp->json(),
         ]);
 
+        $responseBody = (array) $resp->json();
+        $hostedCheckoutUrl = (string)($responseBody['hosted_checkout_url'] ?? '');
+        $checkoutId = (string)($responseBody['id'] ?? '');
+
+        if ($hostedCheckoutUrl !== '') {
+            Log::info('SUMUP_HOSTED_CHECKOUT_REDIRECT', [
+                'host' => request()->getHost(),
+                'checkout_id' => $checkoutId !== '' ? $checkoutId : null,
+                'checkout_reference' => $payload['checkout_reference'],
+                'redirect_url' => $hostedCheckoutUrl,
+            ]);
+        }
+
         return pmdSumupCompatResponse([
             'success' => $resp->successful(),
             'provider' => 'sumup',
             'integration_mode' => 'payments',
             'status' => $resp->status(),
-            'data' => $resp->json(),
+            'redirect_url' => $hostedCheckoutUrl !== '' ? $hostedCheckoutUrl : null,
+            'hosted_checkout_url' => $hostedCheckoutUrl !== '' ? $hostedCheckoutUrl : null,
+            'checkout_id' => $checkoutId !== '' ? $checkoutId : null,
+            'hosted_checkout' => true,
+            'data' => $responseBody,
         ], $resp->status(), '/api/v1/payments/card/create-session');
     });
 
@@ -406,4 +426,20 @@ Route::post('/payments/sumup/create-hosted-checkout', function (\Illuminate\Http
             'error' => $e->getMessage(),
         ], 500, '/api/v1/payments/card/create-session');
     }
+});
+
+Route::get('/payment/sumup/complete', function (\Illuminate\Http\Request $request) {
+    \Log::info('SUMUP_HOSTED_CHECKOUT_RETURN', [
+        'host' => $request->getHost(),
+        'checkout_id' => (string)$request->query('checkout_id', ''),
+        'query' => $request->query(),
+    ]);
+
+    $checkoutId = trim((string)$request->query('checkout_id', ''));
+    $target = '/menu?payment_return_provider=sumup';
+    if ($checkoutId !== '') {
+        $target .= '&checkout_id='.urlencode($checkoutId);
+    }
+
+    return redirect($target);
 });

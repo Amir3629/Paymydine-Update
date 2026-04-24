@@ -1951,6 +1951,9 @@ Route::group([
                         'amount' => (float)round((float)$amountMajor, 2),
                         'currency' => $currency,
                         'merchant_code' => (string)$merchantCode,
+                        'hosted_checkout' => [
+                            'enabled' => true,
+                        ],
                     ];
 
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_REQUEST', [
@@ -2117,9 +2120,19 @@ Route::group([
                         ])),
                     ];
                     $successResponse['merchant_code_source'] = $merchantCodeSource;
+                    $successResponse['hosted_checkout'] = true;
                     if ($redirectUrl === '') {
                         $successResponse['widget_ready'] = true;
                         $successResponse['message'] = 'SumUp checkout was created successfully, but no redirect URL was returned. Use checkout_id with SumUp Payment Widget.';
+                    }
+                    if ($redirectUrl !== '') {
+                        \Log::channel('sumup')->info('SUMUP_HOSTED_CHECKOUT_REDIRECT', [
+                            'host' => request()->getHost(),
+                            'checkout_id' => $checkoutId,
+                            'checkout_reference' => $checkoutReference,
+                            'merchant_code_source' => $merchantCodeSource,
+                            'redirect_url' => $redirectUrl,
+                        ]);
                     }
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
                         'host' => request()->getHost(),
@@ -2820,6 +2833,13 @@ Route::group([
                 'checkout_status' => $status !== '' ? $status : null,
                 'is_paid' => $isPaid,
                 'mapped_settlement_status' => $settlementStatus,
+            ]);
+            \Log::channel('sumup')->info('SUMUP_HOSTED_CHECKOUT_VERIFIED', [
+                'host' => request()->getHost(),
+                'checkout_id' => (string)$payload['checkout_id'],
+                'checkout_status' => $status !== '' ? $status : null,
+                'is_paid' => $isPaid,
+                'transaction_code' => $body['transaction_code'] ?? null,
             ]);
 
             return response()->json([
