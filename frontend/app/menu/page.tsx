@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
 import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
+import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
 import {
@@ -1402,7 +1403,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
 
       if (!res.ok || !json?.success || !json?.redirect_url) {
-        const providerLabel = providerCode === "worldline" ? "Worldline" : (providerCode === "vr_payment" ? "VR Payment" : "Stripe")
+        const providerLabel = providerCode === "worldline"
+          ? "Worldline"
+          : providerCode === "vr_payment"
+            ? "VR Payment"
+            : providerCode === "sumup"
+              ? "SumUp"
+              : providerCode === "square"
+                ? "Square"
+                : "Stripe"
         const resolvedErrorCode = String(json?.resolved_error_code || json?.error_code || "").toLowerCase()
         const fallbackAllowedByCode = [
           "worldline_invalid_credentials_or_entitlement",
@@ -1822,6 +1831,34 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                     })
                   }}
                 />
+              </motion.div>
+            )
+          }
+          if (selectedProviderCode === "sumup") {
+            const sumupReturnUrl = typeof window !== "undefined"
+              ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=sumup`
+              : "/menu?payment_return_provider=sumup"
+            const sumupCancelUrl = typeof window !== "undefined" ? window.location.href : "/menu"
+            return (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-3 overflow-hidden"
+              >
+                <SumUpHostedCheckout
+                  amount={finalTotal}
+                  currency={merchantSettings?.currency || "EUR"}
+                  description="PayMyDine SumUp checkout"
+                  successUrl={sumupReturnUrl}
+                  cancelUrl={sumupCancelUrl}
+                  className="w-full"
+                />
+                {providerInlineError && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
+                    {providerInlineError}
+                  </div>
+                )}
               </motion.div>
             )
           }

@@ -2806,7 +2806,7 @@ Route::group([
                     ]);
             }
 
-            \Log::channel('sumup')->info('SUMUP_CHECKOUT_STATUS_VERIFIED', [
+            \Log::channel('sumup')->info('SUMUP_CHECKOUT_STATUS', [
                 'host' => request()->getHost(),
                 'checkout_id' => (string)$payload['checkout_id'],
                 'upstream_status' => (int)$res->status(),

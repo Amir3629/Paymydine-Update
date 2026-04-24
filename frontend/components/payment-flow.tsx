@@ -193,16 +193,6 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
     switch (selectedMethod.code) {
       case "worldline":
         return <WorldlineGridLauncher />
-
-      case "sumup":
-        return (
-          <SumUpHostedCheckout
-            amount={finalTotal}
-            currency={merchantSettings?.currency || "EUR"}
-            description="PayMyDine SumUp hosted checkout"
-            className="w-full"
-          />
-        );
       case "card":
         if ((selectedMethod.provider_code || "").toLowerCase() === "sumup") {
           return (
@@ -743,17 +733,6 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
                 <WorldlineGridLauncher />
               </div>
           )}
-
-          {selectedPaymentMethod === "sumup" && (
-              <div data-pmd-sumup-hard-fallback="1" className="w-full mt-4">
-                <SumUpHostedCheckout
-                  amount={finalTotal}
-                  currency={merchantSettings?.currency || "EUR"}
-                  description="PayMyDine SumUp hosted checkout"
-                  className="w-full"
-                />
-              </div>
-            )}
 
             {selectedPaymentMethod && (
             <motion.div
