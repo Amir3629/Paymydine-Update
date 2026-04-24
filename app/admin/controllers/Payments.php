@@ -391,7 +391,12 @@ class Payments extends \Admin\Classes\AdminController
             if ((string)$model->code === 'sumup') {
                 $token = trim((string)($normalizedProviderData['access_token'] ?? ''));
                 $baseUrl = rtrim((string)($normalizedProviderData['url'] ?? 'https://api.sumup.com'), '/');
+                $configuredMerchantCodeBefore = trim((string)($normalizedProviderData['id_application'] ?? ''));
                 if ($token === '') {
+                    \Log::channel('sumup')->warning('SUMUP_PROVIDER_SAVE_TOKEN_VALIDATION_FAILED', [
+                        'base_url' => $baseUrl,
+                        'reason' => 'missing_access_token',
+                    ]);
                     throw new ValidationException([
                         'access_token' => 'SumUp access token is required.',
                     ]);
@@ -399,19 +404,42 @@ class Payments extends \Admin\Classes\AdminController
 
                 $identity = $this->resolveSumupIdentity($token, $baseUrl);
                 if (!($identity['ok'] ?? false)) {
+                    \Log::channel('sumup')->warning('SUMUP_PROVIDER_SAVE_TOKEN_VALIDATION_FAILED', [
+                        'base_url' => $baseUrl,
+                        'reason' => 'identity_lookup_failed',
+                        'message' => (string)($identity['message'] ?? 'Unknown error'),
+                    ]);
                     throw new ValidationException([
                         'access_token' => (string)($identity['message'] ?? 'Unable to verify SumUp access token.'),
                     ]);
                 }
 
-                $normalizedProviderData['id_application'] = (string)($identity['merchant_code'] ?? '');
+                $resolvedMerchantCode = trim((string)($identity['merchant_code'] ?? ''));
+                $finalMerchantCode = $configuredMerchantCodeBefore;
+                $merchantCodeSource = 'preserved_configured';
+                if ($finalMerchantCode === '' && $resolvedMerchantCode !== '') {
+                    $finalMerchantCode = $resolvedMerchantCode;
+                    $merchantCodeSource = 'auto_filled_from_me';
+                }
+
+                $normalizedProviderData['id_application'] = $finalMerchantCode;
                 $normalizedProviderData['merchant_email'] = (string)($identity['email'] ?? '');
                 $normalizedProviderData['connection_status'] = 'Connected ✔';
                 $normalizedProviderData['last_tested_at'] = now()->toDateTimeString();
-                \Log::channel('sumup')->info('SUMUP_PROVIDER_IDENTITY_RESOLVED', [
-                    'merchant_code' => $normalizedProviderData['id_application'],
-                    'email' => $identity['email'] ?? null,
+                \Log::channel('sumup')->info('SUMUP_PROVIDER_TOKEN_VALIDATION_OK', [
                     'base_url' => $baseUrl,
+                    'resolved_merchant_code' => $resolvedMerchantCode !== '' ? $resolvedMerchantCode : null,
+                    'email' => $identity['email'] ?? null,
+                    'token_prefix' => substr($token, 0, 6),
+                    'token_suffix' => substr($token, -4),
+                    'token_len' => strlen($token),
+                ]);
+                \Log::channel('sumup')->info('SUMUP_PROVIDER_MERCHANT_CODE_PERSIST_DECISION', [
+                    'base_url' => $baseUrl,
+                    'configured_before' => $configuredMerchantCodeBefore !== '' ? $configuredMerchantCodeBefore : null,
+                    'resolved_from_me' => $resolvedMerchantCode !== '' ? $resolvedMerchantCode : null,
+                    'final_saved_id_application' => $finalMerchantCode !== '' ? $finalMerchantCode : null,
+                    'merchant_code_source' => $merchantCodeSource,
                 ]);
             }
             if (array_key_exists('enabled', $normalizedProviderData)) {
@@ -828,7 +856,7 @@ class Payments extends \Admin\Classes\AdminController
                 ],
                 'access_token' => ['label' => 'Access Token', 'type' => 'text', 'span' => 'right', 'comment' => 'Required server credential. Do not paste public keys (sup_pk_...). Saved value is shown; replace to rotate token.'],
                 'url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'default' => 'https://api.sumup.com', 'comment' => 'Use default unless SumUp provides another endpoint.'],
-                'id_application' => ['label' => 'Merchant Code (Auto)', 'type' => 'text', 'span' => 'right', 'readOnly' => true, 'comment' => 'Auto-resolved from SumUp /v0.1/me using your access token. This is not manually editable.'],
+                'id_application' => ['label' => 'Merchant Code', 'type' => 'text', 'span' => 'right', 'comment' => 'Optional but recommended. If set, PayMyDine uses this merchant code for checkout creation. If empty, it falls back to resolving from SumUp /v0.1/me using the access token.'],
                 'connection_status' => ['label' => 'SumUp Connected', 'type' => 'text', 'span' => 'left', 'readOnly' => true, 'default' => 'Unknown'],
                 'merchant_email' => ['label' => 'Merchant Email', 'type' => 'text', 'span' => 'right', 'readOnly' => true],
                 'last_tested_at' => ['label' => 'Last Test Time', 'type' => 'text', 'span' => 'left', 'readOnly' => true],
@@ -1022,7 +1050,7 @@ class Payments extends \Admin\Classes\AdminController
             $updated = (array)$model->data;
             $updated['connection_status'] = $isConnected ? 'Connected ✔' : 'Failed';
             $updated['last_tested_at'] = now()->toDateTimeString();
-            if ($merchant !== '') {
+            if ($merchant !== '' && trim((string)($updated['id_application'] ?? '')) === '') {
                 $updated['id_application'] = $merchant;
             }
             if ($email !== '') {
