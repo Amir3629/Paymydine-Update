@@ -1184,18 +1184,47 @@ Route::group([
         ]);
     };
 
-    $persistVRPaymentSession = function (array $record): void {
+    $sanitizeVRCorrelationLog = function (array $payload): array {
+        $sanitize = function ($value, $key = '') use (&$sanitize) {
+            if (is_array($value)) {
+                $out = [];
+                foreach ($value as $k => $v) {
+                    $out[$k] = $sanitize($v, (string)$k);
+                }
+                return $out;
+            }
+            if (preg_match('/secret|token|key|signature|auth|password/i', (string)$key)) {
+                return is_string($value) && trim($value) !== '' ? '***redacted***' : $value;
+            }
+            return $value;
+        };
+
+        return $sanitize($payload);
+    };
+
+    $persistVRPaymentSession = function (array $record) use ($sanitizeVRCorrelationLog): ?array {
         if (!\Illuminate\Support\Facades\Schema::hasTable('vr_payment_sessions')) {
-            return;
+            return null;
         }
 
         $sessionId = trim((string)($record['session_id'] ?? ''));
         $transactionId = trim((string)($record['transaction_id'] ?? ''));
         $providerReference = trim((string)($record['provider_reference'] ?? ''));
         $merchantReference = trim((string)($record['merchant_reference'] ?? ''));
+        $internalCorrelationId = trim((string)($record['internal_correlation_id'] ?? ''));
+        $reservedPaymentReference = trim((string)($record['reserved_payment_reference'] ?? ''));
+        $tenantHost = trim((string)($record['tenant_host'] ?? request()->getHost()));
+        $tenantDatabase = trim((string)($record['tenant_database'] ?? \Illuminate\Support\Facades\DB::connection()->getDatabaseName()));
 
-        if ($sessionId === '' && $transactionId === '' && $providerReference === '' && $merchantReference === '') {
-            return;
+        if (
+            $sessionId === ''
+            && $transactionId === ''
+            && $providerReference === ''
+            && $merchantReference === ''
+            && $internalCorrelationId === ''
+            && $reservedPaymentReference === ''
+        ) {
+            return null;
         }
 
         $lookup = \Illuminate\Support\Facades\DB::table('vr_payment_sessions');
@@ -1205,6 +1234,10 @@ Route::group([
             $lookup->where('transaction_id', $transactionId);
         } elseif ($providerReference !== '') {
             $lookup->where('provider_reference', $providerReference);
+        } elseif ($internalCorrelationId !== '' && \Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'internal_correlation_id')) {
+            $lookup->where('internal_correlation_id', $internalCorrelationId);
+        } elseif ($reservedPaymentReference !== '' && \Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'reserved_payment_reference')) {
+            $lookup->where('reserved_payment_reference', $reservedPaymentReference);
         } else {
             $lookup->where('merchant_reference', $merchantReference)
                 ->where('method_code', (string)($record['method_code'] ?? 'card'))
@@ -1212,6 +1245,24 @@ Route::group([
         }
 
         $existing = $lookup->first();
+        if ($internalCorrelationId === '') {
+            $internalCorrelationId = (string)(
+                ($existing && property_exists($existing, 'internal_correlation_id') ? $existing->internal_correlation_id : '')
+                ?: ($record['raw_snapshot']['internal_correlation_id'] ?? '')
+                ?: \Illuminate\Support\Str::uuid()
+            );
+        }
+
+        $rawSnapshot = is_array($record['raw_snapshot'] ?? null) ? (array)$record['raw_snapshot'] : [];
+        $rawSnapshot = array_merge($rawSnapshot, [
+            'internal_correlation_id' => $internalCorrelationId,
+            'reserved_payment_reference' => $reservedPaymentReference !== '' ? $reservedPaymentReference : null,
+            'tenant_host' => $tenantHost !== '' ? $tenantHost : null,
+            'tenant_database' => $tenantDatabase !== '' ? $tenantDatabase : null,
+            'method_code' => (string)($record['method_code'] ?? 'card'),
+            'provider_code' => 'vr_payment',
+        ]);
+
         $payload = [
             'provider_code' => 'vr_payment',
             'method_code' => (string)($record['method_code'] ?? 'card'),
@@ -1219,23 +1270,139 @@ Route::group([
             'session_id' => $sessionId !== '' ? $sessionId : null,
             'transaction_id' => $transactionId !== '' ? $transactionId : null,
             'provider_reference' => $providerReference !== '' ? $providerReference : null,
-            'state' => (string)($record['state'] ?? 'pending'),
+            'state' => (string)($record['state'] ?? 'created'),
             'amount' => isset($record['amount']) ? (float)$record['amount'] : null,
             'currency' => isset($record['currency']) ? strtoupper((string)$record['currency']) : null,
-            'order_id' => isset($record['order_id']) ? (int)$record['order_id'] : null,
-            'raw_snapshot' => isset($record['raw_snapshot']) ? json_encode($record['raw_snapshot']) : null,
+            'order_id' => isset($record['order_id']) && (int)$record['order_id'] > 0 ? (int)$record['order_id'] : null,
+            'raw_snapshot' => json_encode($rawSnapshot),
             'updated_at' => now(),
         ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'tenant_host')) {
+            $payload['tenant_host'] = $tenantHost !== '' ? $tenantHost : null;
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'tenant_database')) {
+            $payload['tenant_database'] = $tenantDatabase !== '' ? $tenantDatabase : null;
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'internal_correlation_id')) {
+            $payload['internal_correlation_id'] = $internalCorrelationId !== '' ? $internalCorrelationId : null;
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'reserved_payment_reference')) {
+            $payload['reserved_payment_reference'] = $reservedPaymentReference !== '' ? $reservedPaymentReference : null;
+        }
 
         if ($existing) {
+            if (empty($payload['order_id']) && !empty($existing->order_id)) {
+                $payload['order_id'] = (int)$existing->order_id;
+            }
             \Illuminate\Support\Facades\DB::table('vr_payment_sessions')
                 ->where('id', (int)$existing->id)
                 ->update($payload);
+            $rowId = (int)$existing->id;
+        } else {
+            $payload['created_at'] = now();
+            $rowId = (int)\Illuminate\Support\Facades\DB::table('vr_payment_sessions')->insertGetId($payload);
+        }
+
+        \Admin\Classes\PaymentLogger::info('VR_PAYMENT_SESSION_CORRELATION_PERSISTED', [
+            'provider' => 'vr_payment',
+            'payment_method' => (string)($payload['method_code'] ?? 'card'),
+            'request_meta' => $sanitizeVRCorrelationLog([
+                'session_row_id' => $rowId,
+                'tenant_host' => $tenantHost,
+                'tenant_database' => $tenantDatabase,
+                'order_id' => $payload['order_id'] ?? null,
+                'merchant_reference' => $merchantReference !== '' ? $merchantReference : null,
+                'session_id' => $payload['session_id'] ?? null,
+                'provider_reference' => $payload['provider_reference'] ?? null,
+                'transaction_id' => $payload['transaction_id'] ?? null,
+                'internal_correlation_id' => $payload['internal_correlation_id'] ?? null,
+                'reserved_payment_reference' => $payload['reserved_payment_reference'] ?? null,
+                'amount' => $payload['amount'] ?? null,
+                'currency' => $payload['currency'] ?? null,
+                'state' => $payload['state'] ?? null,
+            ]),
+        ]);
+
+        return array_merge($payload, ['id' => $rowId]);
+    };
+
+    $attachVRSessionToOrder = function (
+        int $orderId,
+        ?string $paymentReference = null,
+        ?string $paymentProvider = null,
+        ?string $paymentMethodRaw = null,
+        ?int $internalTransactionId = null
+    ) use ($persistVRPaymentSession, $sanitizeVRCorrelationLog): void {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('vr_payment_sessions') || $orderId <= 0) {
             return;
         }
 
-        $payload['created_at'] = now();
-        \Illuminate\Support\Facades\DB::table('vr_payment_sessions')->insert($payload);
+        $normalizedMethodRaw = strtolower(trim((string)$paymentMethodRaw));
+        $reference = trim((string)$paymentReference);
+
+        if ($reference === '') {
+            return;
+        }
+
+        $sessionQuery = \Illuminate\Support\Facades\DB::table('vr_payment_sessions')
+            ->where(function ($q) use ($reference) {
+                $q->where('session_id', $reference)
+                    ->orWhere('transaction_id', $reference)
+                    ->orWhere('provider_reference', $reference)
+                    ->orWhere('merchant_reference', $reference);
+                if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'internal_correlation_id')) {
+                    $q->orWhere('internal_correlation_id', $reference);
+                }
+                if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'reserved_payment_reference')) {
+                    $q->orWhere('reserved_payment_reference', $reference);
+                }
+            })
+            ->orderByDesc('updated_at');
+
+        $matched = $sessionQuery->first();
+        if (!$matched) {
+            return;
+        }
+
+        $snapshot = json_decode((string)($matched->raw_snapshot ?? ''), true);
+        if (!is_array($snapshot)) {
+            $snapshot = [];
+        }
+        $snapshot['linked_order_id'] = $orderId;
+        $snapshot['linked_at'] = gmdate('c');
+        if ($internalTransactionId !== null && $internalTransactionId > 0) {
+            $snapshot['internal_transaction_id'] = $internalTransactionId;
+        }
+        $snapshot['link_reference'] = $reference;
+
+        $persistVRPaymentSession([
+            'order_id' => $orderId,
+            'method_code' => (string)($matched->method_code ?? ($normalizedMethodRaw !== '' ? $normalizedMethodRaw : 'wero')),
+            'merchant_reference' => (string)($matched->merchant_reference ?? ''),
+            'session_id' => (string)($matched->session_id ?? ''),
+            'transaction_id' => (string)($matched->transaction_id ?? ''),
+            'provider_reference' => (string)($matched->provider_reference ?? ''),
+            'internal_correlation_id' => (string)($matched->internal_correlation_id ?? ''),
+            'reserved_payment_reference' => (string)($matched->reserved_payment_reference ?? ''),
+            'state' => (string)($matched->state ?? 'pending'),
+            'amount' => isset($matched->amount) ? (float)$matched->amount : null,
+            'currency' => (string)($matched->currency ?? ''),
+            'raw_snapshot' => $snapshot,
+        ]);
+
+        \Admin\Classes\PaymentLogger::info('VR_PAYMENT_ORDER_LINKED_FROM_REFERENCE', [
+            'provider' => 'vr_payment',
+            'payment_method' => (string)($matched->method_code ?? 'wero'),
+            'request_meta' => $sanitizeVRCorrelationLog([
+                'order_id' => $orderId,
+                'reference' => $reference,
+                'session_id' => $matched->session_id ?? null,
+                'transaction_id' => $matched->transaction_id ?? null,
+                'provider_reference' => $matched->provider_reference ?? null,
+                'internal_correlation_id' => $matched->internal_correlation_id ?? null,
+                'internal_transaction_id' => $internalTransactionId,
+            ]),
+        ]);
     };
 
     $reconcileVRPaymentState = function (array $statusData): void {
@@ -1243,11 +1410,15 @@ Route::group([
         $sessionId = trim((string)($statusData['session_id'] ?? ''));
         $transactionId = trim((string)($statusData['transaction_id'] ?? ''));
         $providerReference = trim((string)($statusData['provider_reference'] ?? ''));
+        $internalCorrelationId = trim((string)($statusData['internal_correlation_id'] ?? ''));
+        $reservedPaymentReference = trim((string)($statusData['reserved_payment_reference'] ?? ''));
         $referenceCandidates = array_values(array_filter([
             $sessionId !== '' ? $sessionId : null,
             $transactionId !== '' ? $transactionId : null,
             $providerReference !== '' ? $providerReference : null,
             isset($statusData['merchant_reference']) ? trim((string)$statusData['merchant_reference']) : null,
+            $internalCorrelationId !== '' ? $internalCorrelationId : null,
+            $reservedPaymentReference !== '' ? $reservedPaymentReference : null,
         ]));
 
         if (!\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') || empty($referenceCandidates)) {
@@ -1265,9 +1436,41 @@ Route::group([
             return;
         }
 
-        $matchedRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
-            ->whereIn('payment_reference', $referenceCandidates)
-            ->get(['id', 'order_id']);
+        $sessionRow = null;
+        if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_sessions')) {
+            $sessionRow = \Illuminate\Support\Facades\DB::table('vr_payment_sessions')
+                ->where(function ($q) use ($referenceCandidates) {
+                    $q->whereIn('session_id', $referenceCandidates)
+                        ->orWhereIn('transaction_id', $referenceCandidates)
+                        ->orWhereIn('provider_reference', $referenceCandidates)
+                        ->orWhereIn('merchant_reference', $referenceCandidates);
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'internal_correlation_id')) {
+                        $q->orWhereIn('internal_correlation_id', $referenceCandidates);
+                    }
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('vr_payment_sessions', 'reserved_payment_reference')) {
+                        $q->orWhereIn('reserved_payment_reference', $referenceCandidates);
+                    }
+                })
+                ->orderByDesc('updated_at')
+                ->first();
+        }
+
+        $matchedRows = collect();
+        if ($sessionRow && !empty($sessionRow->order_id)) {
+            $matchedRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                ->where('order_id', (int)$sessionRow->order_id)
+                ->get(['id', 'order_id']);
+        }
+        if ($matchedRows->isEmpty()) {
+            $matchedRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                ->whereIn('payment_reference', $referenceCandidates)
+                ->get(['id', 'order_id']);
+        }
+        if ($matchedRows->isEmpty() && $providerReference !== '') {
+            $matchedRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                ->where('payment_reference', $providerReference)
+                ->get(['id', 'order_id']);
+        }
 
         foreach ($matchedRows as $row) {
             \Illuminate\Support\Facades\DB::table('order_payment_transactions')
@@ -1578,6 +1781,38 @@ Route::group([
             'last_webhook_event' => $lastWebhook,
             'last_normalized_error' => $lastNormalizedError,
         ]);
+    });
+
+    Route::get('/payments/vr-payment/correlation-diagnostics', function () {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('vr_payment_sessions')) {
+            return response()->json([
+                'success' => false,
+                'provider' => 'vr_payment',
+                'error' => 'vr_payment_sessions table is missing',
+            ], 404);
+        }
+
+        $baseQuery = \Illuminate\Support\Facades\DB::table('vr_payment_sessions');
+        $total = (clone $baseQuery)->count();
+        $unlinked = (clone $baseQuery)->whereNull('order_id')->count();
+        $weroUnlinked = (clone $baseQuery)
+            ->where('method_code', 'wero')
+            ->whereNull('order_id')
+            ->count();
+        $latest = \Illuminate\Support\Facades\DB::table('vr_payment_sessions')
+            ->orderByDesc('updated_at')
+            ->limit(25)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'provider' => 'vr_payment',
+            'tenant_host' => request()->getHost(),
+            'total_sessions' => $total,
+            'unlinked_sessions' => $unlinked,
+            'wero_unlinked_sessions' => $weroUnlinked,
+            'latest_sessions' => $latest,
+        ], 200);
     });
 
     Route::get('/payment-methods-admin', function () use ($defaultPaymentMethods, $loadJsonSetting, $loadMethodRecordsFromPayments) {
@@ -2255,6 +2490,8 @@ Route::group([
                 'country_code' => 'nullable|string|max:3',
                 'merchant_customer_id' => 'nullable|string|max:120',
                 'merchant_reference' => 'nullable|string|max:191',
+                'order_id' => 'nullable|integer|min:1',
+                'reserved_payment_reference' => 'nullable|string|max:191',
                 'items' => 'nullable|array',
             ]);
 
@@ -2299,31 +2536,46 @@ Route::group([
             ]);
 
             if (!($result['success'] ?? false)) {
-                $persistVRPaymentSession([
+                $sessionRecord = $persistVRPaymentSession([
                     'method_code' => $methodCode,
                     'merchant_reference' => (string)($result['merchant_reference'] ?? ($payload['merchant_reference'] ?? '')),
                     'session_id' => (string)($result['session_id'] ?? ''),
                     'transaction_id' => (string)($result['transaction_id'] ?? ''),
                     'provider_reference' => (string)($result['provider_reference'] ?? ''),
+                    'order_id' => (int)($payload['order_id'] ?? 0) ?: null,
+                    'reserved_payment_reference' => (string)($payload['reserved_payment_reference'] ?? ''),
                     'state' => 'failed',
                     'amount' => (float)$payload['amount'],
                     'currency' => strtoupper((string)$payload['currency']),
                     'raw_snapshot' => $result,
                 ]);
+                if (is_array($sessionRecord) && !empty($sessionRecord['internal_correlation_id'])) {
+                    $result['internal_correlation_id'] = (string)$sessionRecord['internal_correlation_id'];
+                }
                 return response()->json($result, 422);
             }
 
-            $persistVRPaymentSession([
+            $sessionRecord = $persistVRPaymentSession([
                 'method_code' => $methodCode,
                 'merchant_reference' => (string)($result['merchant_reference'] ?? ($payload['merchant_reference'] ?? '')),
                 'session_id' => (string)($result['session_id'] ?? ''),
                 'transaction_id' => (string)($result['transaction_id'] ?? ''),
                 'provider_reference' => (string)($result['provider_reference'] ?? ''),
+                'order_id' => (int)($payload['order_id'] ?? 0) ?: null,
+                'reserved_payment_reference' => (string)($payload['reserved_payment_reference'] ?? ''),
                 'state' => (string)($result['status'] ?? 'pending'),
                 'amount' => (float)$payload['amount'],
                 'currency' => strtoupper((string)$payload['currency']),
                 'raw_snapshot' => $result,
             ]);
+            if (is_array($sessionRecord)) {
+                if (!empty($sessionRecord['internal_correlation_id'])) {
+                    $result['internal_correlation_id'] = (string)$sessionRecord['internal_correlation_id'];
+                }
+                if (!empty($sessionRecord['reserved_payment_reference'])) {
+                    $result['reserved_payment_reference'] = (string)$sessionRecord['reserved_payment_reference'];
+                }
+            }
 
             return response()->json($result, 200);
         });
@@ -2363,7 +2615,7 @@ Route::group([
             return response()->json($status, 422);
         }
 
-        $persistVRPaymentSession([
+        $sessionRecord = $persistVRPaymentSession([
             'method_code' => 'unknown',
             'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
             'session_id' => (string)($status['session_id'] ?? ''),
@@ -2372,7 +2624,15 @@ Route::group([
             'state' => (string)($status['status'] ?? 'unknown'),
             'raw_snapshot' => $status,
         ]);
-        $reconcileVRPaymentState(array_merge($payload, $status));
+        $reconcileVRPaymentState(array_merge($payload, $status, is_array($sessionRecord) ? [
+            'internal_correlation_id' => (string)($sessionRecord['internal_correlation_id'] ?? ''),
+            'reserved_payment_reference' => (string)($sessionRecord['reserved_payment_reference'] ?? ''),
+            'order_id' => (int)($sessionRecord['order_id'] ?? 0),
+        ] : []));
+
+        if (is_array($sessionRecord) && !empty($sessionRecord['internal_correlation_id'])) {
+            $status['internal_correlation_id'] = (string)$sessionRecord['internal_correlation_id'];
+        }
 
         return response()->json($status, 200);
     });
@@ -2431,9 +2691,12 @@ Route::group([
             'state' => $normalizedState,
             'raw_snapshot' => $payload,
         ];
-        $persistVRPaymentSession($record);
+        $sessionRecord = $persistVRPaymentSession($record);
         $reconcileVRPaymentState(array_merge($payload, [
             'status' => $normalizedState,
+            'internal_correlation_id' => is_array($sessionRecord) ? (string)($sessionRecord['internal_correlation_id'] ?? '') : '',
+            'reserved_payment_reference' => is_array($sessionRecord) ? (string)($sessionRecord['reserved_payment_reference'] ?? '') : '',
+            'order_id' => is_array($sessionRecord) ? (int)($sessionRecord['order_id'] ?? 0) : 0,
         ]));
 
         if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_webhook_events')) {
@@ -4499,7 +4762,7 @@ return response()->json([
 
 
     // Order submission endpoint
-    Route::post('/orders', function (Request $request) use ($loadJsonSetting, $defaultPaymentMethods) {
+    Route::post('/orders', function (Request $request) use ($loadJsonSetting, $defaultPaymentMethods, $attachVRSessionToOrder) {
         \Log::info('PMD_ACTIVE_ORDER_ROUTE_ENTER', [
             'host' => $request->getHost(),
             'path' => $request->path(),
@@ -4882,6 +5145,13 @@ return response()->json([
 
             $orderId = DB::table('orders')->insertGetId($insertData);
             $order = \Admin\Models\Orders_model::find($orderId);
+
+            $attachVRSessionToOrder(
+                (int)$orderId,
+                $request->filled('payment_reference') ? (string)$request->payment_reference : null,
+                (string)($frontendPaymentProvider ?? ''),
+                (string)($frontendPaymentMethodRaw ?? '')
+            );
 
 
             if ($order) {
@@ -7131,7 +7401,7 @@ Route::group([
         ]);
     });
 
-    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) {
+    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) use ($attachVRSessionToOrder) {
         $request->validate([
             'order_id' => 'required|integer',
             'payment_method' => 'required|string|max:50',
@@ -7358,6 +7628,14 @@ Route::group([
         $remaining = $result['remaining'];
         $paymentAmount = $result['calculatedAmount'];
         $allocationRows = $result['allocationRows'];
+
+        $attachVRSessionToOrder(
+            (int)$order->order_id,
+            $request->filled('payment_reference') ? (string)$request->payment_reference : null,
+            null,
+            $normalizedPaymentMethod,
+            $transactionId ? (int)$transactionId : null
+        );
 
         \Illuminate\Support\Facades\DB::table('order_totals')
             ->where('order_id', $request->order_id)
