@@ -1914,7 +1914,8 @@ Route::group([
             if ($providerCode === 'sumup') {
                 $token = (string)($paymentData['access_token'] ?? '');
                 $baseUrl = rtrim((string)($paymentData['url'] ?? 'https://api.sumup.com'), '/');
-                $merchantCode = (string)($paymentData['id_application'] ?? '');
+                $merchantCode = trim((string)($paymentData['id_application'] ?? ''));
+                $merchantCodeSource = 'configured';
                 if ($token === '') {
                     return response()->json(['success' => false, 'error' => 'SumUp credentials are incomplete'], 503);
                 }
@@ -1923,12 +1924,16 @@ Route::group([
                     if ($merchantCode === '') {
                         $merchantResp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->timeout(5)->get($baseUrl.'/v0.1/me');
                         $merchantPayload = (array)$merchantResp->json();
-                        $merchantCode = (string)(($merchantPayload['merchant_profile']['merchant_code'] ?? $merchantPayload['merchant_code'] ?? '') ?: '');
+                        $merchantCode = trim((string)(($merchantPayload['merchant_profile']['merchant_code'] ?? $merchantPayload['merchant_code'] ?? '') ?: ''));
+                        if ($merchantCode !== '') {
+                            $merchantCodeSource = 'resolved_from_me';
+                        }
                     }
                     if ($merchantCode === '') {
                         \Log::channel('sumup')->error('SUMUP_CREATE_SESSION_MERCHANT_CODE_MISSING', [
                             'host' => request()->getHost(),
                             'base_url' => $baseUrl,
+                            'merchant_code_source' => $merchantCodeSource,
                         ]);
                         return response()->json([
                             'success' => false,
@@ -1946,11 +1951,15 @@ Route::group([
                         'amount' => (float)round((float)$amountMajor, 2),
                         'currency' => $currency,
                         'merchant_code' => (string)$merchantCode,
+                        'hosted_checkout' => [
+                            'enabled' => true,
+                        ],
                     ];
 
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_REQUEST', [
                         'host' => request()->getHost(),
                         'payload' => $sumupCheckoutPayload,
+                        'merchant_code_source' => $merchantCodeSource,
                     ]);
                     \Illuminate\Support\Facades\Cache::put(
                         'sumup_last_checkout_payload_'.request()->getHost(),
@@ -2110,9 +2119,20 @@ Route::group([
                             'links',
                         ])),
                     ];
+                    $successResponse['merchant_code_source'] = $merchantCodeSource;
+                    $successResponse['hosted_checkout'] = true;
                     if ($redirectUrl === '') {
                         $successResponse['widget_ready'] = true;
                         $successResponse['message'] = 'SumUp checkout was created successfully, but no redirect URL was returned. Use checkout_id with SumUp Payment Widget.';
+                    }
+                    if ($redirectUrl !== '') {
+                        \Log::channel('sumup')->info('SUMUP_HOSTED_CHECKOUT_REDIRECT', [
+                            'host' => request()->getHost(),
+                            'checkout_id' => $checkoutId,
+                            'checkout_reference' => $checkoutReference,
+                            'merchant_code_source' => $merchantCodeSource,
+                            'redirect_url' => $redirectUrl,
+                        ]);
                     }
                     \Log::channel('sumup')->info('SUMUP_CREATE_SESSION_FINAL_RESPONSE', [
                         'host' => request()->getHost(),
@@ -2806,13 +2826,20 @@ Route::group([
                     ]);
             }
 
-            \Log::channel('sumup')->info('SUMUP_CHECKOUT_STATUS', [
+            \Log::channel('sumup')->info('SUMUP_CHECKOUT_STATUS_VERIFIED', [
                 'host' => request()->getHost(),
                 'checkout_id' => (string)$payload['checkout_id'],
                 'upstream_status' => (int)$res->status(),
                 'checkout_status' => $status !== '' ? $status : null,
                 'is_paid' => $isPaid,
                 'mapped_settlement_status' => $settlementStatus,
+            ]);
+            \Log::channel('sumup')->info('SUMUP_HOSTED_CHECKOUT_VERIFIED', [
+                'host' => request()->getHost(),
+                'checkout_id' => (string)$payload['checkout_id'],
+                'checkout_status' => $status !== '' ? $status : null,
+                'is_paid' => $isPaid,
+                'transaction_code' => $body['transaction_code'] ?? null,
             ]);
 
             return response()->json([
@@ -2901,14 +2928,16 @@ Route::group([
         $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
         $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
         $token = trim((string)($data['access_token'] ?? ''));
-        $merchantCode = trim((string)($data['id_application'] ?? ''));
+        $configuredMerchantCode = trim((string)($data['id_application'] ?? ''));
         $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
         $preview = \Illuminate\Support\Facades\Cache::get('sumup_last_checkout_payload_'.request()->getHost());
 
         $meResult = null;
+        $resolvedMerchantCode = '';
         if ($token !== '') {
             try {
                 $resp = \Illuminate\Support\Facades\Http::withToken($token)->acceptJson()->timeout(5)->get($baseUrl.'/v0.1/me');
+                $resolvedMerchantCode = trim((string)((($resp->json()['merchant_profile']['merchant_code'] ?? null) ?? ($resp->json()['merchant_code'] ?? '')) ?: ''));
                 $meResult = [
                     'ok' => $resp->ok(),
                     'status' => $resp->status(),
@@ -2922,13 +2951,17 @@ Route::group([
                 ];
             }
         }
+        $effectiveMerchantCode = $configuredMerchantCode !== '' ? $configuredMerchantCode : $resolvedMerchantCode;
+        $effectiveMerchantCodeSource = $configuredMerchantCode !== '' ? 'configured' : ($resolvedMerchantCode !== '' ? 'resolved_from_me' : null);
 
         \Log::channel('sumup')->info('SUMUP_DEBUG_ENDPOINT_HIT', [
             'host' => request()->getHost(),
             'provider_loaded' => (bool)$payment,
             'token_present' => $token !== '',
-            'merchant_code_present' => $merchantCode !== '',
-            'merchant_code' => $merchantCode !== '' ? $merchantCode : null,
+            'configured_merchant_code' => $configuredMerchantCode !== '' ? $configuredMerchantCode : null,
+            'resolved_merchant_code' => $resolvedMerchantCode !== '' ? $resolvedMerchantCode : null,
+            'effective_merchant_code' => $effectiveMerchantCode !== '' ? $effectiveMerchantCode : null,
+            'effective_merchant_code_source' => $effectiveMerchantCodeSource,
             'payload_preview' => $preview,
             'me_ok' => $meResult['ok'] ?? null,
         ]);
@@ -2936,8 +2969,11 @@ Route::group([
         return response()->json([
             'provider_loaded' => (bool)$payment,
             'token_present' => $token !== '',
-            'merchant_code_present' => $merchantCode !== '',
-            'merchant_code_value' => $merchantCode !== '' ? $merchantCode : null,
+            'merchant_code_present' => $effectiveMerchantCode !== '',
+            'configured_merchant_code' => $configuredMerchantCode !== '' ? $configuredMerchantCode : null,
+            'resolved_merchant_code_from_me' => $resolvedMerchantCode !== '' ? $resolvedMerchantCode : null,
+            'effective_merchant_code' => $effectiveMerchantCode !== '' ? $effectiveMerchantCode : null,
+            'effective_merchant_code_source' => $effectiveMerchantCodeSource,
             'me_result' => $meResult,
             'last_create_checkout_payload_preview' => $preview,
         ]);

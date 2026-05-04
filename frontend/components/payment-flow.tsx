@@ -200,6 +200,8 @@ export function PaymentFlow({ isOpen, onOpenChange }: PaymentFlowProps) {
               amount={finalTotal}
               currency={merchantSettings?.currency || "EUR"}
               description="PayMyDine SumUp hosted checkout"
+              successUrl={typeof window !== "undefined" ? `${window.location.origin}/payment/sumup/complete` : "/payment/sumup/complete"}
+              cancelUrl={typeof window !== "undefined" ? window.location.href : "/menu"}
               className="w-full"
             />
           );
