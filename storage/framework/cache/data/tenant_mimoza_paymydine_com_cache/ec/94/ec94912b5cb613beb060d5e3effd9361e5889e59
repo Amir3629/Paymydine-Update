@@ -1,0 +1,68 @@
+1776293472a:1:{s:33:"reservation/reservation.blade.php";a:11:{s:8:"fileName";s:33:"reservation/reservation.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:1467:"---
+title: 'main::lang.reservation.title'
+layout: default
+permalink: ':location/reservation'
+'[account]': null
+
+'[booking]':
+    useCalendarView: 1
+    minGuestSize: 2.0
+    maxGuestSize: 20.0
+    timeSlotsInterval: 120.0
+    showLocationThumb: 0
+    locationThumbWidth: 95.0
+    locationThumbHeight: 80.0
+    bookingPage: reservation/reservation
+    successPage: reservation/success
+description: ''
+
+
+---
+@partial('breadcrumb')
+<div class="col-full">
+    <div class="row justify-content-center">
+        <div class="col col-sm-12 center-block">
+            <div class="card mb-1">
+                <div class="card-body">
+                    @partial('account/welcome')
+                </div>
+            </div>
+            <div class="card card-contact">
+                <div class="row ">
+                    <div class="col-md-6 image-reserve" 
+                    style="background-image: url({{ $this->theme->reservation_image ? uploads_url($this->theme->reservation_image) : site_url('/themes/tastyigniter-typical/assets/images/reserva.jpeg') }})">                        
+                    </div>
+                    <div class="col-md-6 ">
+                        <div class="custom-form-reserve justify-content-center d-flex m-3">
+                            @component('booking')
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>";s:6:"markup";s:1043:"
+@partial('breadcrumb')
+<div class="col-full">
+    <div class="row justify-content-center">
+        <div class="col col-sm-12 center-block">
+            <div class="card mb-1">
+                <div class="card-body">
+                    @partial('account/welcome')
+                </div>
+            </div>
+            <div class="card card-contact">
+                <div class="row ">
+                    <div class="col-md-6 image-reserve" 
+                    style="background-image: url({{ $this->theme->reservation_image ? uploads_url($this->theme->reservation_image) : site_url('/themes/tastyigniter-typical/assets/images/reserva.jpeg') }})">                        
+                    </div>
+                    <div class="col-md-6 ">
+                        <div class="custom-form-reserve justify-content-center d-flex m-3">
+                            @component('booking')
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>";s:4:"code";N;s:5:"title";s:28:"main::lang.reservation.title";s:6:"layout";s:7:"default";s:9:"permalink";s:21:":location/reservation";s:9:"[account]";N;s:9:"[booking]";a:9:{s:15:"useCalendarView";i:1;s:12:"minGuestSize";d:2;s:12:"maxGuestSize";d:20;s:17:"timeSlotsInterval";d:120;s:17:"showLocationThumb";i:0;s:18:"locationThumbWidth";d:95;s:19:"locationThumbHeight";d:80;s:11:"bookingPage";s:23:"reservation/reservation";s:11:"successPage";s:19:"reservation/success";}s:11:"description";s:0:"";}}

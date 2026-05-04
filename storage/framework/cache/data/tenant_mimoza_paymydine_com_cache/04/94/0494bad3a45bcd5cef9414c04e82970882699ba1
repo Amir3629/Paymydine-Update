@@ -1,0 +1,15 @@
+1776238484a:1:{s:25:"localMenu/items.blade.php";a:5:{s:8:"fileName";s:25:"localMenu/items.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:287:"<ul class="products margin-sus columns-3 mt-5">
+    @forelse ($menuItems as $menuItemObject)
+        @partial('@item', ['menuItem' => $menuItemObject->model, 'menuItemObject' => $menuItemObject])
+    @empty
+        <p>@lang('igniter.local::default.text_empty')</p>
+    @endforelse
+</ul>
+";s:6:"markup";s:287:"<ul class="products margin-sus columns-3 mt-5">
+    @forelse ($menuItems as $menuItemObject)
+        @partial('@item', ['menuItem' => $menuItemObject->model, 'menuItemObject' => $menuItemObject])
+    @empty
+        <p>@lang('igniter.local::default.text_empty')</p>
+    @endforelse
+</ul>
+";s:4:"code";N;}}
