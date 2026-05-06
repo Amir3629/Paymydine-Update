@@ -1,0 +1,48 @@
+1778072219a:1:{s:25:"account/account.blade.php";a:11:{s:8:"fileName";s:25:"account/account.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:594:"---
+title: main::lang.account.title
+layout: account
+permalink: /account
+
+'[localBox]':
+
+'[cartBox]':
+
+'[localMenu]':
+    forceRedirect: 0
+---
+
+<div class="account-user">
+    <div class="row">
+        <div class="col-md-3">
+            @partial('account/sidebar')
+        </div>
+        
+        <div class="col-md-9">
+            <div class="p-md-5">
+                <div class="panel p-md-5">
+                    <div class="panel-body">
+                        @component('account')
+                    </div>
+                </div>
+            </div>
+        </div>        
+    </div>
+</div>";s:6:"markup";s:453:"
+
+<div class="account-user">
+    <div class="row">
+        <div class="col-md-3">
+            @partial('account/sidebar')
+        </div>
+        
+        <div class="col-md-9">
+            <div class="p-md-5">
+                <div class="panel p-md-5">
+                    <div class="panel-body">
+                        @component('account')
+                    </div>
+                </div>
+            </div>
+        </div>        
+    </div>
+</div>";s:4:"code";N;s:5:"title";s:24:"main::lang.account.title";s:6:"layout";s:7:"account";s:9:"permalink";s:8:"/account";s:10:"[localBox]";N;s:9:"[cartBox]";N;s:11:"[localMenu]";a:1:{s:13:"forceRedirect";i:0;}}}
