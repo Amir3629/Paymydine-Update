@@ -1,0 +1,63 @@
+1776238484a:1:{s:30:"resetpassword/forgot.blade.php";a:5:{s:8:"fileName";s:30:"resetpassword/forgot.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:976:"<p>@lang('igniter.user::default.reset.text_summary')</p>
+
+{!! form_open([
+    'role' => 'form',
+    'method' => 'POST',
+    'data-request' => $__SELF__.'::onForgotPassword',
+]) !!}
+<div class="form-floating mb-4">
+    <input
+        name="email"
+        type="text"
+        id="email"
+        class="form-control input-lg"
+        value="{{ set_value('email') }}"
+        placeholder="@lang('igniter.user::default.reset.label_email')"
+    />
+    <label for="email">@lang('igniter.user::default.reset.label_email')</label>
+    {!! form_error('email', '<span class="text-danger">', '</span>') !!}
+</div>
+
+<div class="clearfix">
+    <a
+        class="btn btn-link btn-lg pull-left"
+        href="{{ site_url('account/login') }}"
+    >@lang('igniter.user::default.reset.button_login')</a>
+    <button
+        type="submit"
+        class="btn btn-primary text-uppercase btn-lg pull-right"
+    >@lang('igniter.user::default.reset.button_reset')</button>
+</div>
+{!! form_close() !!}
+";s:6:"markup";s:976:"<p>@lang('igniter.user::default.reset.text_summary')</p>
+
+{!! form_open([
+    'role' => 'form',
+    'method' => 'POST',
+    'data-request' => $__SELF__.'::onForgotPassword',
+]) !!}
+<div class="form-floating mb-4">
+    <input
+        name="email"
+        type="text"
+        id="email"
+        class="form-control input-lg"
+        value="{{ set_value('email') }}"
+        placeholder="@lang('igniter.user::default.reset.label_email')"
+    />
+    <label for="email">@lang('igniter.user::default.reset.label_email')</label>
+    {!! form_error('email', '<span class="text-danger">', '</span>') !!}
+</div>
+
+<div class="clearfix">
+    <a
+        class="btn btn-link btn-lg pull-left"
+        href="{{ site_url('account/login') }}"
+    >@lang('igniter.user::default.reset.button_login')</a>
+    <button
+        type="submit"
+        class="btn btn-primary text-uppercase btn-lg pull-right"
+    >@lang('igniter.user::default.reset.button_reset')</button>
+</div>
+{!! form_close() !!}
+";s:4:"code";N;}}

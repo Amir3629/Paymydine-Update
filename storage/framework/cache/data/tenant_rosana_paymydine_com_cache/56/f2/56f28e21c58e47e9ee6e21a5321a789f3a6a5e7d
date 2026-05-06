@@ -1,0 +1,50 @@
+1778078665a:1:{s:19:"locations.blade.php";a:11:{s:8:"fileName";s:19:"locations.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:573:"---
+title: main::lang.locations.title
+layout: default
+permalink: /locations
+
+'[localSearch]':
+
+'[localList]':
+
+'[localMenu]':
+    forceRedirect: 0
+---
+@partial('breadcrumb')
+<div class="col-full">
+    <div class="row g-4">
+
+        <div class="location-list">
+            @partial('localList::search')
+
+            <div class="row">
+                
+                    @partial('localList::filter')
+                
+                    @partial('localList::sorting')
+                
+            </div>
+
+            @component('localList')
+        </div>
+    </div>
+</div>";s:6:"markup";s:423:"
+@partial('breadcrumb')
+<div class="col-full">
+    <div class="row g-4">
+
+        <div class="location-list">
+            @partial('localList::search')
+
+            <div class="row">
+                
+                    @partial('localList::filter')
+                
+                    @partial('localList::sorting')
+                
+            </div>
+
+            @component('localList')
+        </div>
+    </div>
+</div>";s:4:"code";N;s:5:"title";s:26:"main::lang.locations.title";s:6:"layout";s:7:"default";s:9:"permalink";s:10:"/locations";s:13:"[localSearch]";N;s:11:"[localList]";N;s:11:"[localMenu]";a:1:{s:13:"forceRedirect";i:0;}}}
