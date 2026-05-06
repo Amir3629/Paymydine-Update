@@ -1,0 +1,25 @@
+1776238484a:1:{s:28:"booking/input_date.blade.php";a:5:{s:8:"fileName";s:28:"booking/input_date.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:347:"<select
+    name="date"
+    id="date"
+    class="form-control input-lg"
+>
+    @foreach ($__SELF__->getDatePickerOptions() as $date)
+        <option
+            value="{{ $date->format('Y-m-d') }}"
+            {!! set_select('date', $date->format('Y-m-d')) !!}
+        >{{ $date->isoFormat($bookingDateFormat) }}</option>
+    @endforeach
+</select>
+";s:6:"markup";s:347:"<select
+    name="date"
+    id="date"
+    class="form-control input-lg"
+>
+    @foreach ($__SELF__->getDatePickerOptions() as $date)
+        <option
+            value="{{ $date->format('Y-m-d') }}"
+            {!! set_select('date', $date->format('Y-m-d')) !!}
+        >{{ $date->isoFormat($bookingDateFormat) }}</option>
+    @endforeach
+</select>
+";s:4:"code";N;}}

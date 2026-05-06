@@ -1,0 +1,411 @@
+
+<table class="order-details-table">
+    <tbody>
+        <?php if($formModel->payment_method): ?>
+            <tr>
+                <td class="text-muted"><?php echo app('translator')->get('admin::lang.orders.label_payment_method'); ?></td>
+                <td class="text-right"><?php echo e($formModel->payment_method->name); ?></td>
+            </tr>
+        <?php endif; ?>
+        <?php
+            $pmdSettlementStatus = (string)($formModel->settlement_status ?? '');
+            $pmdSettledAmount = (float)($formModel->settled_amount ?? 0);
+            $pmdOrderTotal = (float)($formModel->order_total ?? 0);
+            $pmdRemainingAmount = max(0, $pmdOrderTotal - $pmdSettledAmount);
+            $pmdSettlementLabel = $pmdSettlementStatus !== '' ? ucfirst($pmdSettlementStatus) : 'Unpaid';
+            $pmdSettlementMethod = trim((string)($formModel->settlement_method ?? ''));
+            $pmdSettlementReference = trim((string)($formModel->settlement_reference ?? ''));
+            $pmdTotalsByCode = collect($formModel->getOrderTotals() ?? [])->keyBy('code');
+            $pmdSubtotal = (float) optional($pmdTotalsByCode->get('subtotal'))->value;
+            $pmdTaxTitle = (string) (optional($pmdTotalsByCode->get('tax'))->title ?? 'Tax');
+            $pmdTaxValue = (float) optional($pmdTotalsByCode->get('tax'))->value;
+            $pmdTipValue = (float) optional($pmdTotalsByCode->get('tip'))->value;
+            $pmdDiscountTitle = (string) (optional($pmdTotalsByCode->get('discount'))->title ?? 'Discount');
+            $pmdDiscountValue = (float) optional($pmdTotalsByCode->get('discount'))->value;
+            $pmdTotalValue = (float) (optional($pmdTotalsByCode->get('total'))->value ?? $pmdOrderTotal);
+            $pmdHasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
+            $pmdSplitTransactions = collect();
+            $pmdSplitItemsByTx = [];
+            if ($pmdHasSplitTables) {
+                $pmdAllocationColumn = function_exists('pmdResolveSplitAllocationColumn')
+                    ? pmdResolveSplitAllocationColumn()
+                    : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_item_id')
+                        ? 'order_item_id'
+                        : (\Illuminate\Support\Facades\Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
+                            ? 'order_menu_id'
+                            : 'menu_id'));
+                \Log::info('Split allocation column resolved', ['column' => $pmdAllocationColumn]);
+                $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
+                $pmdSplitTransactions = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                    ->where('order_id', (int)$formModel->order_id)
+                    ->orderByDesc('id')
+                    ->get();
+                $pmdTxIds = $pmdSplitTransactions->pluck('id')->all();
+                if (!empty($pmdTxIds)) {
+                    $pmdItemRows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti')
+                        ->leftJoin('order_menus as om', $pmdJoinLeft, '=', 'ti.'.$pmdAllocationColumn)
+                        ->whereIn('ti.transaction_id', $pmdTxIds)
+                        ->get(['ti.transaction_id', 'ti.quantity_paid', 'ti.unit_price', 'ti.line_total', 'om.name', 'om.menu_id', 'om.order_menu_id']);
+                    foreach ($pmdItemRows as $pmdItemRow) {
+                        $txId = (int)$pmdItemRow->transaction_id;
+                        $pmdSplitItemsByTx[$txId] = $pmdSplitItemsByTx[$txId] ?? [];
+                        $pmdSplitItemsByTx[$txId][] = $pmdItemRow;
+                    }
+                }
+            }
+        ?>
+        <tr>
+            <td class="text-muted align-top">Billing Snapshot</td>
+            <td class="text-right">
+                <div>Subtotal: <?php echo e(currency_format($pmdSubtotal)); ?></div>
+                <div><?php echo e($pmdTaxTitle); ?>: <?php echo e(currency_format($pmdTaxValue)); ?></div>
+                <?php if(abs($pmdTipValue) > 0.0001): ?>
+                    <div>Tip: <?php echo e(currency_format($pmdTipValue)); ?></div>
+                <?php endif; ?>
+                <?php if(abs($pmdDiscountValue) > 0.0001): ?>
+                    <div><?php echo e($pmdDiscountTitle); ?>: <?php echo e(currency_format($pmdDiscountValue)); ?></div>
+                <?php endif; ?>
+                <div><strong>Total: <?php echo e(currency_format($pmdTotalValue)); ?></strong></div>
+            </td>
+        </tr>
+        <tr>
+            <td class="text-muted">Settlement</td>
+            <td class="text-right">
+                <?php echo e($pmdSettlementLabel); ?> (<?php echo e(currency_format($pmdSettledAmount)); ?> / <?php echo e(currency_format($pmdOrderTotal)); ?>, Remaining <?php echo e(currency_format($pmdRemainingAmount)); ?>)
+                <?php if($pmdSettlementMethod !== ''): ?>
+                    <div class="text-muted" style="font-size:12px;">Method: <?php echo e(strtoupper($pmdSettlementMethod)); ?></div>
+                <?php endif; ?>
+                <?php if($pmdSettlementReference !== ''): ?>
+                    <div class="text-muted" style="font-size:12px;">Reference: <?php echo e($pmdSettlementReference); ?></div>
+                <?php endif; ?>
+            </td>
+        </tr>
+        <?php if($pmdHasSplitTables && $pmdSplitTransactions->count() > 0): ?>
+            <tr>
+                <td class="text-muted align-top">Split Payments</td>
+                <td class="text-right">
+                    <div style="text-align:left;">
+                        <?php $__currentLoopData = $pmdSplitTransactions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pmdTx): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <div style="border:1px solid #eceef4;border-radius:10px;padding:8px 10px;margin-bottom:8px;">
+                                <div style="display:flex;justify-content:space-between;gap:10px;">
+                                    <div>
+                                        <strong>#<?php echo e((int)$pmdTx->id); ?></strong>
+                                        · <?php echo e(strtoupper((string)$pmdTx->payment_method)); ?>
+
+                                        · <?php echo e(currency_format((float)$pmdTx->amount)); ?>
+
+                                    </div>
+                                    <a href="<?php echo e(url('admin/orders/split-receipt/'.(int)$pmdTx->id)); ?>" target="_blank">Receipt</a>
+                                </div>
+                                <div class="text-muted" style="font-size:12px;margin-top:2px;">
+                                    Status: <?php echo e(ucfirst((string)($pmdTx->settlement_status ?? 'partial'))); ?>
+
+                                    <?php if(!empty($pmdTx->payment_reference)): ?>
+                                        · Ref: <?php echo e($pmdTx->payment_reference); ?>
+
+                                    <?php endif; ?>
+                                    · Paid: <?php echo e($pmdTx->paid_at ?: $pmdTx->created_at); ?>
+
+                                </div>
+                                <?php if(!empty($pmdSplitItemsByTx[(int)$pmdTx->id])): ?>
+                                    <ul style="margin:6px 0 0 18px;padding:0;font-size:12px;">
+                                        <?php $__currentLoopData = $pmdSplitItemsByTx[(int)$pmdTx->id]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pmdTxItem): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <li>
+                                                <?php echo e($pmdTxItem->name ?: ('Menu #'.$pmdTxItem->menu_id)); ?>
+
+                                                × <?php echo e(rtrim(rtrim(number_format((float)$pmdTxItem->quantity_paid, 3, '.', ''), '0'), '.')); ?>
+
+                                                = <?php echo e(currency_format((float)$pmdTxItem->line_total)); ?>
+
+                                            </li>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </div>
+                </td>
+            </tr>
+        <?php endif; ?>
+        <tr>
+            <td class="text-muted"><?php echo app('translator')->get('admin::lang.orders.label_invoice'); ?></td>
+            <td class="text-right">
+                <?php if($formModel->hasInvoice()): ?>
+                    <a
+                        class="font-weight-bold"
+                        href="<?php echo e((((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
+? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
+: admin_url('orders/invoice/'.$formModel->order_id)); ?>"
+                        target="_blank"
+                    ><?php echo e($formModel->invoice_number); ?></a>
+                <?php else: ?>
+                    <?php echo e($formModel->invoice_number); ?>
+
+                <?php endif; ?>
+            </td>
+        </tr>
+        <tr>
+            <td class="text-muted"><?php echo app('translator')->get('admin::lang.orders.label_date_added'); ?></td>
+            <td class="text-right"><?php echo e($formModel->created_at->isoFormat(lang('system::lang.moment.date_time_format_short'))); ?></td>
+        </tr>
+        <tr>
+            <td class="text-muted"><?php echo app('translator')->get('admin::lang.orders.label_date_modified'); ?></td>
+            <td class="text-right"><?php echo e($formModel->updated_at->isoFormat(lang('system::lang.moment.date_time_format_short'))); ?></td>
+        </tr>
+        <?php if($formModel->ip_address): ?>
+            <tr>
+                <td class="text-muted"><?php echo app('translator')->get('admin::lang.orders.label_ip_address'); ?></td>
+                <td class="text-right"><?php echo e($formModel->ip_address); ?></td>
+            </tr>
+        <?php endif; ?>
+        <?php if($formModel->user_agent): ?>
+            <tr>
+                <td class="text-muted"><?php echo app('translator')->get('admin::lang.orders.label_user_agent'); ?></td>
+                <td class="text-right"><?php echo e($formModel->user_agent); ?></td>
+            </tr>
+        <?php endif; ?>
+    </tbody>
+</table>
+
+<style>
+/* Ensure style tag is not displayed as text */
+@supports  not (display: none) {
+    /* Fallback for older browsers */
+}
+
+.order-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.order-details-table td {
+    padding: 10px 6px;
+    border-bottom: 1px solid #f5f6fa;
+    color: #526484;
+}
+
+.order-details-table td.text-muted {
+    color: #8094ae;
+    font-size: 13px;
+}
+
+.order-details-table td.text-right {
+    text-align: right;
+    font-weight: 500;
+    color: #526484 !important;
+    font-size: 14px;
+}
+
+.order-details-table td.text-right a {
+    color: #526484 !important;
+}
+
+.order-details-table td.text-right a:hover {
+    color: #364a63 !important;
+}
+
+/* Remove all green colors from order details table */
+.order-details-table td,
+.order-details-table td.text-right,
+.order-details-table td.text-right a,
+.order-details-table td.text-muted {
+    color: #526484 !important;
+}
+
+.order-details-table td.text-right a:hover {
+    color: #364a63 !important;
+}
+
+/* Invoice number link stays GREEN - highest specificity */
+.order-details-table td.text-right a[href*="/orders/pos-invoice/"][target="_blank"],
+.order-details-table td.text-right a.font-weight-bold[href*="/orders/pos-invoice/"],
+.order-details-table td.text-right a[href*="/orders/pos-invoice/"] {
+    color: #364a63 !important;
+}
+
+.order-details-table td.text-right a[href*="/orders/pos-invoice/"][target="_blank"]:hover,
+.order-details-table td.text-right a.font-weight-bold[href*="/orders/pos-invoice/"]:hover,
+.order-details-table td.text-right a[href*="/orders/pos-invoice/"]:hover {
+    color: #364a63 !important;
+}
+
+.order-details-table tr:last-child td {
+    border-bottom: none;
+}
+
+.order-bill-card,
+.order-details-card {
+    margin-bottom: 12px !important;
+}
+
+.order-bill-card .card-body,
+.order-details-card .card-body {
+    padding: 12px !important;
+}
+
+/* Tighter spacing for all cards in order edit */
+.order-bill-card,
+.order-details-card,
+.card.bg-light.shadow-sm {
+    margin-bottom: 10px !important;
+}
+
+.card.bg-light.shadow-sm .card-body {
+    padding: 12px !important;
+}
+</style>
+<style>
+/* Hide any style/script tags displayed as text on mobile */
+@media (max-width: 768px) {
+    style,
+    script {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        opacity: 0 !important;
+    }
+}
+</style>
+
+<script>
+(function() {
+    function forceSendInvoiceIconColor() {
+        const btn = document.querySelector('a.btn-send-invoice[data-request="onSendInvoiceEmail"]');
+        if (btn) {
+            const icon = btn.querySelector('i.fa-envelope');
+            if (icon) {
+                icon.style.setProperty('color', '#364a63', 'important');
+                icon.style.setProperty('margin-right', '8px', 'important');
+            }
+        }
+    }
+    
+    // Run on load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', forceSendInvoiceIconColor);
+    } else {
+        forceSendInvoiceIconColor();
+    }
+    
+    // Run after delays
+    setTimeout(forceSendInvoiceIconColor, 100);
+    setTimeout(forceSendInvoiceIconColor, 500);
+    setTimeout(forceSendInvoiceIconColor, 1000);
+    
+    // Watch for changes
+    const observer = new MutationObserver(forceSendInvoiceIconColor);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Also on AJAX updates
+    document.addEventListener('ajaxUpdate', function() {
+        setTimeout(forceSendInvoiceIconColor, 100);
+    });
+})();
+</script>
+
+<script>
+(function() {
+    function forceSendInvoiceIconColor() {
+        // Try multiple selectors
+        const selectors = [
+            'a.btn-send-invoice[data-request="onSendInvoiceEmail"]',
+            'a[data-request="onSendInvoiceEmail"]',
+            '.btn-send-invoice'
+        ];
+        
+        let btn = null;
+        for (let selector of selectors) {
+            btn = document.querySelector(selector);
+            if (btn) break;
+        }
+        
+        if (btn) {
+            const icon = btn.querySelector('i.fa-envelope') || btn.querySelector('i.fa') || btn.querySelector('i');
+            if (icon) {
+                // Use setProperty with !important
+                icon.style.setProperty('color', '#364a63', 'important');
+                icon.style.setProperty('margin-right', '8px', 'important');
+                
+                // Also set directly
+                icon.style.color = '#364a63';
+                icon.style.marginRight = '8px';
+                
+                // Force override any inherited color
+                if (window.getComputedStyle(icon).color !== 'rgb(54, 74, 99)') {
+                    icon.setAttribute('style', icon.getAttribute('style') + '; color: #364a63 !important; margin-right: 8px !important;');
+                }
+            }
+        }
+    }
+    
+    // Run immediately if DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            forceSendInvoiceIconColor();
+            setTimeout(forceSendInvoiceIconColor, 100);
+            setTimeout(forceSendInvoiceIconColor, 500);
+            setTimeout(forceSendInvoiceIconColor, 1000);
+        });
+    } else {
+        forceSendInvoiceIconColor();
+        setTimeout(forceSendInvoiceIconColor, 100);
+        setTimeout(forceSendInvoiceIconColor, 500);
+        setTimeout(forceSendInvoiceIconColor, 1000);
+    }
+    
+    // Watch for changes
+    const observer = new MutationObserver(function() {
+        forceSendInvoiceIconColor();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Also on AJAX updates
+    document.addEventListener('ajaxUpdate', function() {
+        setTimeout(forceSendInvoiceIconColor, 50);
+        setTimeout(forceSendInvoiceIconColor, 200);
+    });
+    
+    // Force on page transitions
+    document.addEventListener('pageContentLoaded', function() {
+        setTimeout(forceSendInvoiceIconColor, 100);
+    });
+})();
+</script>
+
+
+<script>
+(function() {
+    function replaceApiClientLabel() {
+        document.querySelectorAll('.order-details-table td.text-right').forEach(function(el) {
+            var t = (el.textContent || '').trim();
+            if (t === 'API Client') {
+                el.textContent = 'ready2order POS';
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', replaceApiClientLabel);
+    } else {
+        replaceApiClientLabel();
+    }
+
+    setTimeout(replaceApiClientLabel, 100);
+    setTimeout(replaceApiClientLabel, 500);
+    setTimeout(replaceApiClientLabel, 1000);
+
+    const obs = new MutationObserver(replaceApiClientLabel);
+    obs.observe(document.body, {childList: true, subtree: true});
+
+    document.addEventListener('ajaxUpdate', function() {
+        setTimeout(replaceApiClientLabel, 100);
+    });
+})();
+</script>
+<?php /**PATH /var/www/paymydine/app/admin/views/orders/form/order_details.blade.php ENDPATH**/ ?>
