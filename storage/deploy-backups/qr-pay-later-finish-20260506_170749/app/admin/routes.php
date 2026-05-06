@@ -7069,12 +7069,12 @@ Route::group([
         $paidQtyByMenu = [];
 
         if ($hasSplitTables) {
-            $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as opt')
-                ->join('order_payment_transaction_items as opti', 'opti.transaction_id', '=', 'opt.id')
-                ->where('opt.order_id', $order->order_id)
-                ->whereNotIn('opt.settlement_status', ['failed', 'cancelled'])
-                ->selectRaw("COALESCE(ti_opti.order_menu_id, ti_opti.menu_id) as alloc_key, SUM(ti_opti.quantity_paid) as qty_paid")
-                ->groupByRaw("COALESCE(ti_opti.order_menu_id, ti_opti.menu_id)")
+            $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                ->join('order_payment_transaction_items', 'order_payment_transaction_items.transaction_id', '=', 'order_payment_transactions.id')
+                ->where('order_payment_transactions.order_id', $order->order_id)
+                ->whereNotIn('order_payment_transactions.settlement_status', ['failed', 'cancelled'])
+                ->selectRaw("COALESCE(order_payment_transaction_items.order_item_id, order_payment_transaction_items.order_menu_id, order_payment_transaction_items.menu_id) as alloc_key, SUM(order_payment_transaction_items.quantity_paid) as qty_paid")
+                ->groupByRaw("COALESCE(order_payment_transaction_items.order_item_id, order_payment_transaction_items.order_menu_id, order_payment_transaction_items.menu_id)")
                 ->get();
 
             foreach ($paidRows as $paidRow) {
@@ -7290,12 +7290,12 @@ Route::group([
                 $paidQtyByMenu = [];
 
                 if ($hasSplitTables) {
-                    $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions as opt')
-                        ->join('order_payment_transaction_items as opti', 'opti.transaction_id', '=', 'opt.id')
-                        ->where('opt.order_id', $lockedOrder->order_id)
-                        ->whereNotIn('opt.settlement_status', ['failed', 'cancelled'])
-                        ->selectRaw("ti_opti.{$allocationColumn} as alloc_key, SUM(ti_opti.quantity_paid) as qty_paid")
-                        ->groupByRaw("ti_opti." . $allocationColumn)
+                    $paidRows = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                        ->join('order_payment_transaction_items', 'order_payment_transaction_items.transaction_id', '=', 'order_payment_transactions.id')
+                        ->where('order_payment_transactions.order_id', $lockedOrder->order_id)
+                        ->whereNotIn('order_payment_transactions.settlement_status', ['failed', 'cancelled'])
+                        ->selectRaw("order_payment_transaction_items.{$allocationColumn} as alloc_key, SUM(order_payment_transaction_items.quantity_paid) as qty_paid")
+                        ->groupBy("order_payment_transaction_items.{$allocationColumn}")
                         ->get();
                     foreach ($paidRows as $paidRow) {
                         if ($allocationMode === 'menu_id_legacy') {

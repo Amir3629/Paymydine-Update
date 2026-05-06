@@ -825,10 +825,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ->where('order_type', (string)$table_id)
             ->where('payment', 'qr_pay_later')
             ->when($hasSettlementStatusColumn, function ($q) {
-                $q->where(function ($settlement) {
-                    $settlement->whereNull('settlement_status')
-                        ->orWhereNotIn('settlement_status', ['paid', 'cancelled', 'failed']);
-                });
+                $q->where('settlement_status', '!=', 'paid');
             }, function ($q) use ($paidStatusId) {
                 $q->where('status_id', '!=', $paidStatusId);
             });
@@ -1241,10 +1238,7 @@ $unavailableTables = DB::table('orders')
         if ($hasSettlementStatusColumn) {
             $q->orWhere(function ($sub) {
                 $sub->where('payment', 'qr_pay_later')
-                    ->where(function ($settlement) {
-                        $settlement->whereNull('settlement_status')
-                            ->orWhereNotIn('settlement_status', ['paid', 'cancelled', 'failed']);
-                    });
+                    ->where('settlement_status', '!=', 'paid');
             });
         } else {
             $q->orWhere(function ($sub) use ($status_id) {
@@ -1298,8 +1292,7 @@ $unavailableTables = DB::table('orders')
                                 if ($hasSettlementStatusColumn) {
                                     $q->where(function ($sub) {
                                         $sub->where('payment', '!=', 'qr_pay_later')
-                                            ->orWhereNull('settlement_status')
-                                            ->orWhereNotIn('settlement_status', ['paid', 'cancelled', 'failed']);
+                                            ->orWhere('settlement_status', '!=', 'paid');
                                     });
                                 } else {
                                     $q->where('status_id', '!=', 10); // Legacy fallback

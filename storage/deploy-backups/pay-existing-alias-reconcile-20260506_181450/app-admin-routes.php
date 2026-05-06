@@ -7294,8 +7294,8 @@ Route::group([
                         ->join('order_payment_transaction_items as opti', 'opti.transaction_id', '=', 'opt.id')
                         ->where('opt.order_id', $lockedOrder->order_id)
                         ->whereNotIn('opt.settlement_status', ['failed', 'cancelled'])
-                        ->selectRaw("ti_opti.{$allocationColumn} as alloc_key, SUM(ti_opti.quantity_paid) as qty_paid")
-                        ->groupByRaw("ti_opti." . $allocationColumn)
+                        ->selectRaw("opti.{$allocationColumn} as alloc_key, SUM(ti_opti.quantity_paid) as qty_paid")
+                        ->groupBy("opti.{$allocationColumn}")
                         ->get();
                     foreach ($paidRows as $paidRow) {
                         if ($allocationMode === 'menu_id_legacy') {

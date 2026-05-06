@@ -7073,8 +7073,8 @@ Route::group([
                 ->join('order_payment_transaction_items as opti', 'opti.transaction_id', '=', 'opt.id')
                 ->where('opt.order_id', $order->order_id)
                 ->whereNotIn('opt.settlement_status', ['failed', 'cancelled'])
-                ->selectRaw("COALESCE(ti_opti.order_menu_id, ti_opti.menu_id) as alloc_key, SUM(ti_opti.quantity_paid) as qty_paid")
-                ->groupByRaw("COALESCE(ti_opti.order_menu_id, ti_opti.menu_id)")
+                ->selectRaw("COALESCE(opti.order_item_id, opti.order_menu_id, opti.menu_id) as alloc_key, SUM(opti.quantity_paid) as qty_paid")
+                ->groupByRaw("COALESCE(opti.order_item_id, opti.order_menu_id, opti.menu_id)")
                 ->get();
 
             foreach ($paidRows as $paidRow) {
@@ -7294,8 +7294,8 @@ Route::group([
                         ->join('order_payment_transaction_items as opti', 'opti.transaction_id', '=', 'opt.id')
                         ->where('opt.order_id', $lockedOrder->order_id)
                         ->whereNotIn('opt.settlement_status', ['failed', 'cancelled'])
-                        ->selectRaw("ti_opti.{$allocationColumn} as alloc_key, SUM(ti_opti.quantity_paid) as qty_paid")
-                        ->groupByRaw("ti_opti." . $allocationColumn)
+                        ->selectRaw("opti.{$allocationColumn} as alloc_key, SUM(opti.quantity_paid) as qty_paid")
+                        ->groupBy("opti.{$allocationColumn}")
                         ->get();
                     foreach ($paidRows as $paidRow) {
                         if ($allocationMode === 'menu_id_legacy') {

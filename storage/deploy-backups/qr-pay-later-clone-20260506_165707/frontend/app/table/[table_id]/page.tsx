@@ -113,7 +113,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             path_table: pathParam,          // keep original path for navigation
           })
 
-          const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId, { tableNo: res.data?.table_no ?? pathParam, qr })
+          const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId)
           console.info("[PMD QR entry] pending-qr response", {
             table_id: resolvedTableId,
             has_pending_order: !!pending?.data?.order_id,

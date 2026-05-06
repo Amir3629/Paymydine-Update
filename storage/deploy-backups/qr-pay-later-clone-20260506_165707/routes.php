@@ -5,7 +5,6 @@ use Admin\Controllers\SuperAdminController;
 use App\Admin\Controllers\NotificationsApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 App::before(function () {
     /*
@@ -884,84 +883,24 @@ Route::group([
 
     // Order status endpoints
     Route::get('/orders/pending-qr', function (Request $request) {
-        $tableId = trim((string)$request->get('table_id', ''));
-        $tableNo = trim((string)$request->get('table_no', ''));
-        $tableParam = trim((string)$request->get('table', ''));
-        $qrInput = trim((string)$request->get('qr', ''));
-
-        if ($tableId === '' && $tableNo === '' && $tableParam === '' && $qrInput === '') {
+        $tableId = (string)$request->get('table_id', '');
+        if ($tableId === '') {
             return response()->json([
                 'success' => false,
-                'error' => 'table_id or table_no or table or qr is required'
+                'error' => 'table_id is required'
             ], 422);
         }
 
         $paidStatusId = (int)(DB::table('statuses')
             ->whereRaw('LOWER(status_name) = ?', ['paid'])
             ->value('status_id') ?? 10);
-        $hasSettlementColumns = Schema::hasColumn('orders', 'settlement_status')
-            && Schema::hasColumn('orders', 'settled_amount');
 
-        $table = null;
-        $inputs = array_values(array_unique(array_filter([$tableId, $tableNo, $tableParam], fn($v) => $v !== '')));
-        foreach ($inputs as $candidate) {
-            $table = DB::table('tables')
-                ->where('table_id', $candidate)
-                ->orWhere('table_no', $candidate)
-                ->first();
-            if ($table) break;
-        }
-        if (!$table && $qrInput !== '') {
-            $table = DB::table('tables')->where('qr_code', $qrInput)->first();
-        }
-
-        $candidates = array_values(array_unique(array_filter([
-            $table ? (string)$table->table_id : null,
-            $table ? (string)$table->table_no : null,
-            $table ? (string)$table->table_name : null,
-            $tableId,
-            $tableNo,
-            $tableParam,
-        ], fn($v) => $v !== null && $v !== '')));
-
-        $baseOrderQuery = DB::table('orders')
+        $order = DB::table('orders')
+            ->where('order_type', $tableId)
             ->where('payment', 'qr_pay_later')
-            ->when($hasSettlementColumns, function ($q) {
-                $q->where(function ($settlement) {
-                    $settlement->whereNull('settlement_status')
-                        ->orWhereNotIn('settlement_status', ['paid', 'cancelled', 'failed']);
-                })->where(function ($amount) {
-                    $amount->whereNull('settled_amount')
-                        ->orWhereColumn('settled_amount', '<', 'order_total');
-                });
-            }, function ($q) use ($paidStatusId) {
-                $q->where('status_id', '!=', $paidStatusId);
-            });
-
-        $order = null;
-        $duplicateOpenOrderIds = [];
-        if (!empty($candidates)) {
-            $exactMatches = (clone $baseOrderQuery)
-                ->whereIn('order_type', $candidates)
-                ->orderByDesc('order_id')
-                ->get();
-            $order = $exactMatches->first();
-            $duplicateOpenOrderIds = $exactMatches->pluck('order_id')->skip(1)->map(fn($id) => (int)$id)->values()->all();
-        }
-
-        if (!$order && !empty($candidates)) {
-            $fallbackMatches = (clone $baseOrderQuery)
-                ->where(function ($q) use ($candidates) {
-                    foreach ($candidates as $candidate) {
-                        $q->orWhere('comment', 'like', '%Table ID: ' . $candidate . '%');
-                        $q->orWhere('comment', 'like', '%Table: ' . $candidate . '%');
-                    }
-                })
-                ->orderByDesc('order_id')
-                ->get();
-            $order = $fallbackMatches->first();
-            $duplicateOpenOrderIds = $fallbackMatches->pluck('order_id')->skip(1)->map(fn($id) => (int)$id)->values()->all();
-        }
+            ->where('status_id', '!=', $paidStatusId)
+            ->orderByDesc('order_id')
+            ->first();
 
         if (!$order) {
             return response()->json([
@@ -972,16 +911,7 @@ Route::group([
 
         $items = DB::table('order_menus')
             ->where('order_id', $order->order_id)
-            ->get(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal']);
-
-        $orderTotal = (float)($order->order_total ?? 0);
-        $settledAmount = $hasSettlementColumns ? (float)($order->settled_amount ?? 0) : 0.0;
-        if ($settledAmount < 0) $settledAmount = 0.0;
-        if ($settledAmount > $orderTotal && $orderTotal > 0) $settledAmount = $orderTotal;
-        $remainingAmount = max(0, round($orderTotal - $settledAmount, 4));
-        $settlementStatus = $hasSettlementColumns
-            ? strtolower((string)($order->settlement_status ?? 'unpaid'))
-            : 'unpaid';
+            ->get(['menu_id', 'name', 'quantity', 'price', 'subtotal']);
 
         return response()->json([
             'success' => true,
@@ -990,11 +920,7 @@ Route::group([
                 'table_id' => (string)$order->order_type,
                 'payment' => (string)$order->payment,
                 'status_id' => (int)$order->status_id,
-                'order_total' => $orderTotal,
-                'settlement_status' => $settlementStatus,
-                'settled_amount' => round($settledAmount, 4),
-                'remaining_amount' => $remainingAmount,
-                'duplicate_open_order_ids' => $duplicateOpenOrderIds,
+                'order_total' => (float)$order->order_total,
                 'items' => $items,
             ]
         ]);
@@ -1005,143 +931,58 @@ Route::group([
             'order_id' => 'required|integer',
             'payment_method' => 'required|string|max:50',
             'payment_reference' => 'nullable|string|max:255',
-            'amount' => 'nullable|numeric|min:0.0001',
-            'table_id' => 'nullable|string|max:50',
-            'table_no' => 'nullable|string|max:50',
-            'table' => 'nullable|string|max:50',
-            'qr' => 'nullable|string|max:191',
-            'selected_items' => 'nullable|array',
         ]);
 
         $paidStatusId = (int)(DB::table('statuses')
             ->whereRaw('LOWER(status_name) = ?', ['paid'])
             ->value('status_id') ?? 10);
-        $hasSettlementColumns = Schema::hasColumn('orders', 'settlement_status')
-            && Schema::hasColumn('orders', 'settled_amount');
-        $normalizedPaymentMethod = strtolower((string)$request->payment_method);
 
-        $result = DB::transaction(function () use ($request, $paidStatusId, $hasSettlementColumns, $normalizedPaymentMethod) {
-            $order = DB::table('orders')
-                ->where('order_id', $request->order_id)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$order) {
-                return ['error' => 'Order not found', 'status' => 404];
-            }
-            if (strtolower((string)$order->payment) !== 'qr_pay_later') {
-                return ['error' => 'Only qr_pay_later orders can be paid through this endpoint', 'status' => 422];
-            }
-
-            $contextValues = array_values(array_unique(array_filter([
-                trim((string)$request->input('table_id', '')),
-                trim((string)$request->input('table_no', '')),
-                trim((string)$request->input('table', '')),
-            ], fn($value) => $value !== '')));
-            $qrContext = trim((string)$request->input('qr', ''));
-            if ($qrContext !== '') {
-                $tableForQr = DB::table('tables')->where('qr_code', $qrContext)->first();
-                if ($tableForQr) {
-                    $contextValues = array_values(array_unique(array_filter(array_merge($contextValues, [
-                        (string)$tableForQr->table_id,
-                        (string)($tableForQr->table_no ?? ''),
-                        (string)($tableForQr->table_name ?? ''),
-                    ]), fn($value) => $value !== '')));
-                }
-            }
-            if (!empty($contextValues)) {
-                $orderType = (string)($order->order_type ?? '');
-                $comment = (string)($order->comment ?? '');
-                $contextMatches = in_array($orderType, $contextValues, true);
-                if (!$contextMatches) {
-                    foreach ($contextValues as $candidate) {
-                        if (str_contains($comment, 'Table ID: '.$candidate) || str_contains($comment, 'Table: '.$candidate)) {
-                            $contextMatches = true;
-                            break;
-                        }
-                    }
-                }
-                if (!$contextMatches) {
-                    return ['error' => 'Order does not belong to scanned table', 'status' => 409];
-                }
-            }
-
-            $orderTotal = round((float)($order->order_total ?? 0), 4);
-            $settledAmount = $hasSettlementColumns ? max(0, round((float)($order->settled_amount ?? 0), 4)) : 0.0;
-            $settlementStatus = $hasSettlementColumns ? strtolower((string)($order->settlement_status ?? 'unpaid')) : 'unpaid';
-            if (in_array($settlementStatus, ['cancelled', 'failed'], true)) {
-                return ['error' => 'Order is not payable', 'status' => 422];
-            }
-            if (($hasSettlementColumns && ($settlementStatus === 'paid' || ($orderTotal > 0 && $settledAmount >= $orderTotal - 0.0001)))
-                || (!$hasSettlementColumns && (int)$order->status_id === $paidStatusId)) {
-                return [
-                    'success' => true,
-                    'order_id' => (int)$request->order_id,
-                    'message' => 'Order is already paid',
-                    'settlement_status' => 'paid',
-                    'settled_amount' => $settledAmount ?: $orderTotal,
-                    'remaining_amount' => 0.0,
-                    'already_paid' => true,
-                    'should_print_receipt' => false,
-                ];
-            }
-
-            $update = [
-                'status_id' => $paidStatusId,
-                'processed' => 1,
-                'updated_at' => now(),
-            ];
-            if ($hasSettlementColumns) {
-                $update['settlement_status'] = 'paid';
-                $update['settled_amount'] = $orderTotal;
-                $update['settlement_method'] = $normalizedPaymentMethod;
-                if ($request->filled('payment_reference')) $update['settlement_reference'] = (string)$request->payment_reference;
-                if (Schema::hasColumn('orders', 'settled_at')) $update['settled_at'] = now();
-            } else {
-                $update['payment'] = $normalizedPaymentMethod;
-            }
-
-            DB::table('orders')->where('order_id', $request->order_id)->update($update);
-
-            DB::table('order_totals')
-                ->where('order_id', $request->order_id)
-                ->where('code', 'payment_method')
-                ->update(['value' => $normalizedPaymentMethod]);
-
-            if ($request->filled('payment_reference')) {
-                $exists = DB::table('order_totals')
-                    ->where('order_id', $request->order_id)
-                    ->where('code', 'payment_reference')
-                    ->where('value', (string)$request->payment_reference)
-                    ->exists();
-                if (!$exists) {
-                    DB::table('order_totals')->insert([
-                        'order_id' => $request->order_id,
-                        'code' => 'payment_reference',
-                        'title' => 'Payment Reference',
-                        'value' => (string)$request->payment_reference,
-                        'priority' => 0
-                    ]);
-                }
-            }
-
-            return [
-                'success' => true,
-                'order_id' => (int)$request->order_id,
-                'message' => 'Order paid successfully',
-                'settlement_status' => 'paid',
-                'settled_amount' => $orderTotal,
-                'remaining_amount' => 0.0,
-                'already_paid' => false,
-                'should_print_receipt' => true,
-            ];
-        });
-
-        if (!empty($result['error'])) {
-            return response()->json(['success' => false, 'error' => $result['error']], $result['status'] ?? 500);
+        $order = DB::table('orders')->where('order_id', $request->order_id)->first();
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Order not found',
+            ], 404);
         }
 
-        return response()->json($result);
+        if (strtolower((string)$order->payment) !== 'qr_pay_later') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Only qr_pay_later orders can be paid through this endpoint',
+            ], 422);
+        }
+
+        DB::table('orders')
+            ->where('order_id', $request->order_id)
+            ->update([
+                'status_id' => $paidStatusId,
+                'payment' => strtolower((string)$request->payment_method),
+                'processed' => 1,
+                'updated_at' => now(),
+            ]);
+
+        DB::table('order_totals')
+            ->where('order_id', $request->order_id)
+            ->where('code', 'payment_method')
+            ->update([
+                'value' => strtolower((string)$request->payment_method),
+            ]);
+
+        if ($request->filled('payment_reference')) {
+            DB::table('order_totals')->insert([
+                'order_id' => $request->order_id,
+                'code' => 'payment_reference',
+                'title' => 'Payment Reference',
+                'value' => (string)$request->payment_reference,
+                'priority' => 0
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int)$request->order_id,
+            'message' => 'Order paid successfully'
+        ]);
     });
 
     Route::get('/order-status', function (Request $request) {
