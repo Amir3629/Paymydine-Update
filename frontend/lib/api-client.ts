@@ -766,9 +766,13 @@ export class ApiClient {
     }
   }
 
-  async getPendingQrOrderByTable(tableId: string): Promise<PendingQrOrderResponse> {
+  async getPendingQrOrderByTable(tableId: string, context?: { tableNo?: string | null; qr?: string | null }): Promise<PendingQrOrderResponse> {
     try {
-      const endpoint = `/api/v1/orders/pending-qr?table_id=${encodeURIComponent(tableId)}`;
+      const params = new URLSearchParams();
+      params.set('table_id', tableId);
+      if (context?.tableNo) params.set('table_no', context.tableNo);
+      if (context?.qr) params.set('qr', context.qr);
+      const endpoint = `/api/v1/orders/pending-qr?${params.toString()}`;
       const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
       return await response.json();
     } catch (error) {
@@ -785,6 +789,9 @@ export class ApiClient {
       amount?: number | null;
       selected_items?: Array<{ order_menu_id: number; quantity: number }>;
       payer_label?: string | null;
+      table_id?: string | null;
+      table_no?: string | null;
+      qr?: string | null;
     }
   ) {
     const endpoint = `/api/v1/orders/pay-existing`;
@@ -801,6 +808,9 @@ export class ApiClient {
         amount: payload.amount ?? null,
         selected_items: payload.selected_items ?? [],
         payer_label: payload.payer_label ?? null,
+        table_id: payload.table_id ?? null,
+        table_no: payload.table_no ?? null,
+        qr: payload.qr ?? null,
       }),
     });
 

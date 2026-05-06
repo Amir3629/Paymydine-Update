@@ -1085,11 +1085,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             }, [])
           : undefined
 
+        const existingOrderAmount = isSplitting
+          ? null
+          : Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
+
         const paidResponse = await apiClient.payExistingQrOrder(existingOrderId, {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
-          amount: Number(finalTotal || 0),
+          amount: existingOrderAmount,
           selected_items: selectedItemsPayload,
+          table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+          table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+          qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : null,
         })
 
         if (paidResponse?.success) {
@@ -3444,23 +3451,6 @@ function MenuContent() {
     return () => clearTimeout(timer)
   }, [existingOrderId, items])
 
-  useEffect(() => {
-    if (!existingOrderId) return
-    if (!items || items.length === 0) return
-
-    const timer = setTimeout(() => {
-      try {
-        const state = useCartStore.getState() as any
-        if (state?.isCartOpen !== true) {
-          toggleCart()
-        }
-      } catch (e) {
-        console.error('[PMD] auto-open bill failed', e)
-      }
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [existingOrderId, items, toggleCart])
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -3547,7 +3537,7 @@ useEffect(() => {
                 table_no: prev?.table_no ?? tableResult.data.table_no ?? null
               }))
 
-              const pendingQr = await apiClient.getPendingQrOrderByTable(String(tableResult.data.table_id))
+              const pendingQr = await apiClient.getPendingQrOrderByTable(String(tableResult.data.table_id), { tableNo: tableResult.data?.table_no ?? table_no ?? null, qr: qr || null })
               if (pendingQr?.success && pendingQr.data?.order_id) {
                 const pendingId = Number(pendingQr.data.order_id)
                 setExistingOrderId(pendingId)

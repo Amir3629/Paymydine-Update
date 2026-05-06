@@ -6991,7 +6991,10 @@ Route::group([
             ->when($hasSettlementColumns, function ($q) {
                 $q->where(function ($settlement) {
                     $settlement->whereNull('settlement_status')
-                        ->orWhere('settlement_status', '!=', 'paid');
+                        ->orWhereNotIn('settlement_status', ['paid', 'cancelled', 'failed']);
+                })->where(function ($amount) {
+                    $amount->whereNull('settled_amount')
+                        ->orWhereColumn('settled_amount', '<', 'order_total');
                 });
             }, function ($q) {
                 $paidStatusId = (int) (\Illuminate\Support\Facades\DB::table('statuses')
@@ -7002,16 +7005,19 @@ Route::group([
 
         // Deterministic targeting: first try exact order_type table match.
         $order = null;
+        $duplicateOpenOrderIds = [];
         if (!empty($exactCandidates)) {
-            $order = (clone $baseOrderQuery)
+            $exactMatches = (clone $baseOrderQuery)
                 ->whereIn('order_type', $exactCandidates)
                 ->orderByDesc('order_id')
-                ->first();
+                ->get();
+            $order = $exactMatches->first();
+            $duplicateOpenOrderIds = $exactMatches->pluck('order_id')->skip(1)->map(fn($id) => (int)$id)->values()->all();
         }
 
         // Legacy fallback: only when exact table match failed.
         if (!$order && !empty($exactCandidates)) {
-            $order = (clone $baseOrderQuery)
+            $fallbackMatches = (clone $baseOrderQuery)
                 ->where(function ($q) use ($exactCandidates) {
                     foreach ($exactCandidates as $candidate) {
                         $q->orWhere('comment', 'like', '%Table ID: ' . $candidate . '%');
@@ -7019,7 +7025,9 @@ Route::group([
                     }
                 })
                 ->orderByDesc('order_id')
-                ->first();
+                ->get();
+            $order = $fallbackMatches->first();
+            $duplicateOpenOrderIds = $fallbackMatches->pluck('order_id')->skip(1)->map(fn($id) => (int)$id)->values()->all();
         }
 
         \Log::info('QR_SETTLEMENT_DEBUG pending-qr resolve', [
@@ -7162,6 +7170,7 @@ Route::group([
                 'remaining_amount' => round($remainingAmount, 4),
                 'settlement_method' => (string)($order->settlement_method ?? ''),
                 'settlement_reference' => (string)($order->settlement_reference ?? ''),
+                'duplicate_open_order_ids' => $duplicateOpenOrderIds,
                 'items' => $items,
             ],
         ]);
@@ -7174,6 +7183,10 @@ Route::group([
             'payment_reference' => 'nullable|string|max:255',
             'amount' => 'nullable|numeric|min:0.0001',
             'payer_label' => 'nullable|string|max:191',
+            'table_id' => 'nullable|string|max:50',
+            'table_no' => 'nullable|string|max:50',
+            'table' => 'nullable|string|max:50',
+            'qr' => 'nullable|string|max:191',
             'selected_items' => 'nullable|array',
             'selected_items.*.order_menu_id' => 'required_with:selected_items|integer',
             'selected_items.*.quantity' => 'required_with:selected_items|numeric|min:0.001',
@@ -7187,6 +7200,39 @@ Route::group([
             return response()->json(['success' => false, 'error' => 'Only qr_pay_later orders can be paid through this endpoint'], 422);
         }
 
+        $contextValues = array_values(array_unique(array_filter([
+            trim((string)$request->input('table_id', '')),
+            trim((string)$request->input('table_no', '')),
+            trim((string)$request->input('table', '')),
+        ], fn($value) => $value !== '')));
+        $qrContext = trim((string)$request->input('qr', ''));
+        if ($qrContext !== '') {
+            $tableForQr = \Illuminate\Support\Facades\DB::table('tables')->where('qr_code', $qrContext)->first();
+            if ($tableForQr) {
+                $contextValues = array_values(array_unique(array_filter(array_merge($contextValues, [
+                    (string)$tableForQr->table_id,
+                    (string)($tableForQr->table_no ?? ''),
+                    (string)($tableForQr->table_name ?? ''),
+                ]), fn($value) => $value !== '')));
+            }
+        }
+        if (!empty($contextValues)) {
+            $orderType = (string)($order->order_type ?? '');
+            $comment = (string)($order->comment ?? '');
+            $contextMatches = in_array($orderType, $contextValues, true);
+            if (!$contextMatches) {
+                foreach ($contextValues as $candidate) {
+                    if (str_contains($comment, 'Table ID: '.$candidate) || str_contains($comment, 'Table: '.$candidate)) {
+                        $contextMatches = true;
+                        break;
+                    }
+                }
+            }
+            if (!$contextMatches) {
+                return response()->json(['success' => false, 'error' => 'Order does not belong to scanned table'], 409);
+            }
+        }
+
         \Log::info('QR_SETTLEMENT_DEBUG pay-existing before', [
             'host' => $request->getHost(),
             'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
@@ -7196,6 +7242,9 @@ Route::group([
         ]);
 
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
+        $paidStatusId = (int)(\Illuminate\Support\Facades\DB::table('statuses')
+            ->whereRaw('LOWER(status_name) = ?', ['paid'])
+            ->value('status_id') ?? 10);
         $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
             && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
         $allocationMeta = pmdResolveSplitAllocationColumn();
@@ -7207,11 +7256,30 @@ Route::group([
         $transactionId = null;
 
         try {
-            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId) {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId) {
                 $lockedOrder = \Admin\Models\Orders_model::query()
                     ->where('order_id', $order->order_id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                $orderTotalForGuard = round((float)($lockedOrder->order_total ?? 0), 4);
+                $currentSettledForGuard = max(0, round((float)($lockedOrder->settled_amount ?? 0), 4));
+                $currentSettlementStatusForGuard = strtolower((string)($lockedOrder->settlement_status ?? 'unpaid'));
+                if (in_array($currentSettlementStatusForGuard, ['cancelled', 'failed'], true)) {
+                    throw new \InvalidArgumentException('Order is not payable');
+                }
+                if ($currentSettlementStatusForGuard === 'paid' || ($orderTotalForGuard > 0 && $currentSettledForGuard >= $orderTotalForGuard - 0.0001)) {
+                    return [
+                        'lockedOrder' => $lockedOrder,
+                        'previousSettlementStatus' => 'paid',
+                        'newSettlementStatus' => 'paid',
+                        'newSettled' => $currentSettledForGuard,
+                        'remaining' => 0.0,
+                        'calculatedAmount' => 0.0,
+                        'allocationRows' => [],
+                        'alreadyPaid' => true,
+                    ];
+                }
 
                 $orderMenus = \Illuminate\Support\Facades\DB::table('order_menus')
                     ->where('order_id', $lockedOrder->order_id)
@@ -7371,11 +7439,12 @@ Route::group([
                 }
                 $lockedOrder->processed = $newSettlementStatus === 'paid' ? 1 : 0;
                 if ($newSettlementStatus === 'paid') {
+                    $lockedOrder->status_id = $paidStatusId;
                     $lockedOrder->settled_at = now();
                 }
                 $lockedOrder->save();
 
-                return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows');
+                return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows') + ['alreadyPaid' => false];
             });
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
@@ -7394,6 +7463,24 @@ Route::group([
         $remaining = $result['remaining'];
         $paymentAmount = $result['calculatedAmount'];
         $allocationRows = $result['allocationRows'];
+        $alreadyPaid = (bool)($result['alreadyPaid'] ?? false);
+        $shouldPrintReceipt = !$alreadyPaid && $previousSettlementStatus !== 'paid' && $newSettlementStatus === 'paid';
+
+        if ($alreadyPaid) {
+            return response()->json([
+                'success' => true,
+                'order_id' => (int)$request->order_id,
+                'transaction_id' => null,
+                'message' => 'Order is already paid',
+                'settlement_status' => 'paid',
+                'settled_amount' => $newSettled,
+                'remaining_amount' => 0.0,
+                'paid_amount' => 0.0,
+                'allocations' => [],
+                'already_paid' => true,
+                'should_print_receipt' => false,
+            ]);
+        }
 
         \Illuminate\Support\Facades\DB::table('order_totals')
             ->where('order_id', $request->order_id)
@@ -7417,6 +7504,9 @@ Route::group([
                 if ($table) $tableDisplay = (string)($table->table_name ?: ('Table '.$table->table_no));
             }
             $notifyStatus = $newSettlementStatus === 'paid' ? 'full_payment' : 'partial_payment';
+            if ($notifyStatus === 'full_payment' && !$shouldPrintReceipt) {
+                $notifyStatus = null;
+            }
             if ($notifyStatus !== null) {
                 \App\Helpers\NotificationHelper::createOrderNotification([
                     'tenant_id' => $order->location_id ?? 1,
@@ -7469,6 +7559,9 @@ Route::group([
             'remaining_amount' => $remaining,
             'paid_amount' => $paymentAmount,
             'allocations' => $allocationRows,
+            'already_paid' => false,
+            'should_print_receipt' => $shouldPrintReceipt,
+            'receipt_url' => $transactionId ? url('admin/orders/split-receipt/'.$transactionId) : null,
         ]);
     })->withoutMiddleware([\Igniter\Cart\Middleware\Currency::class]);
 
