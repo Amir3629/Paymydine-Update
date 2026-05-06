@@ -124,6 +124,10 @@
             },
         }
 
+        if (!$.fn.selectonic) {
+            throw new Error('Selectonic is required by MediaManager but is not loaded.')
+        }
+
         this.$mediaListElement.find('.media-list').selectonic(selectonicOptions)
     }
 
@@ -164,7 +168,13 @@
     }
 
     MediaManager.prototype.getSelectedItems = function () {
-        return this.$mediaListElement.find('.media-list').selectonic('getSelected')
+        var $mediaList = this.$mediaListElement.find('.media-list')
+
+        if ($.fn.selectonic && $mediaList.data('selectonic.options')) {
+            return $mediaList.selectonic('getSelected')
+        }
+
+        return $mediaList.find('> .media-item.selected, > .media-item.active')
     }
 
     MediaManager.prototype.toggleSelection = function (event, selection) {
@@ -527,8 +537,10 @@
             selectedIcon: 'fa folder-open',
         }
 
-        $folderTree.treeview(treeOptions)
-        $folderTree.on('nodeSelected', $.proxy(this.onTreeNodeSelected, this))
+        if ($.fn.treeview) {
+            $folderTree.treeview(treeOptions)
+            $folderTree.on('nodeSelected', $.proxy(this.onTreeNodeSelected, this))
+        }
 
         $folderTreeDropdown.on('show.bs.dropdown', $.proxy(this.onShowFolderTree, this));
         $folderTreeDropdown.on('hide.bs.dropdown', $.proxy(this.onHideFolderTree, this));

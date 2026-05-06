@@ -258,9 +258,17 @@ class MediaFinder extends BaseFormWidget
         if (!is_array($items = array_get($data, 'items')))
             throw new ApplicationException(lang('main::lang.media_manager.alert_select_item_to_attach'));
 
+        if (!$this->isMulti) {
+            $items = array_slice($items, 0, 1);
+        }
+
         $model = $this->model;
         if (!$model->exists)
             throw new ApplicationException(lang('main::lang.media_manager.alert_only_attach_to_saved'));
+
+        if (!$this->isMulti) {
+            $model->getMedia($this->fieldName)->each->delete();
+        }
 
         $manager = MediaLibrary::instance();
         foreach ($items as &$item) {
