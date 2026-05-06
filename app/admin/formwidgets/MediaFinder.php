@@ -220,7 +220,19 @@ class MediaFinder extends BaseFormWidget
         if (!in_array(HasMedia::class, class_uses_recursive(get_class($this->model))))
             return;
 
-        $this->model->deleteMedia($mediaId);
+        try {
+            $this->model->deleteMedia($mediaId);
+        }
+        catch (\Throwable $ex) {
+            // PMD stale media remove guard:
+            // If the browser sends an old attachment id that was already removed,
+            // do not crash the whole menu edit page.
+            if (str_contains($ex->getMessage(), 'cannot be deleted because it does not exist')) {
+                return;
+            }
+
+            throw $ex;
+        }
     }
 
     public function onAddAttachment()

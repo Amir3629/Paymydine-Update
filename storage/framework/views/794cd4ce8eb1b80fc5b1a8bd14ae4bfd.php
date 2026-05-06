@@ -1,1 +1,0 @@
-Invitation to access <?php echo e($site_name); ?>
