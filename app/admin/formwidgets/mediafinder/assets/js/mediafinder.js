@@ -108,12 +108,10 @@
                     return
                 }
 
-                if (!self.options.isMulti && items.length > 1) {
-                    alert('Please select a single item.')
-                    return
-                }
-
                 items = self.extractItemData(items)
+                if (!self.options.isMulti && items.length > 1) {
+                    items = items.slice(0, 1)
+                }
                 if (!items.length) {
                     this.hide()
                     return
@@ -151,28 +149,46 @@
 
     MediaFinder.prototype.extractItemData = function (items) {
         var itemsToAttach = []
-        var $items = $(items)
-        // Selectonic returns .media-item; the .media-thumb inside has data-media-item* attributes
-        var $els = $items.find('[data-media-item-path], [data-media-item-url], [data-media-item]')
-        if (!$els.length) $els = $items.filter('[data-media-item-path], [data-media-item-url], [data-media-item]')
-        if (!$els.length) $els = $items
-        $els.each(function () {
-            var el = $(this)
-            var data = el.data('mediaItemData')
+
+        $(items).each(function () {
+            var $selected = $(this).closest('.media-item')
+            if (!$selected.length) {
+                $selected = $(this).filter('.media-item')
+            }
+            if (!$selected.length) {
+                $selected = $(this)
+            }
+
+            var $item = $selected.filter('[data-media-item-path], [data-media-item-url], [data-media-item]').first()
+            if (!$item.length) {
+                $item = $selected.find('[data-media-item-path], [data-media-item-url], [data-media-item]').first()
+            }
+            if (!$item.length) {
+                return
+            }
+
+            var data = $item.data('mediaItemData')
             if (!data) {
-                var path = el.attr('data-media-item-path')
-                var url = el.attr('data-media-item-url')
-                if (!path && !url) return
+                var path = $item.attr('data-media-item-path') || $item.attr('data-media-item-name') || ''
+                var url = $item.attr('data-media-item-url') || ''
+                if (!path && !url) {
+                    return
+                }
+
                 data = {
-                    path: path || el.attr('data-media-item-name') || '',
-                    publicUrl: url || '',
-                    fileType: (el.attr('data-media-item-file-type') || 'image').toLowerCase(),
-                    name: el.attr('data-media-item-name') || ''
+                    path: path,
+                    publicUrl: url,
+                    fileType: ($item.attr('data-media-item-file-type') || 'image').toLowerCase(),
+                    name: $item.attr('data-media-item-name') || path.split('/').pop() || ''
                 }
             }
-            if (data && (data.publicUrl || data.path)) itemsToAttach.push(data)
+
+            if (data && (data.publicUrl || data.path)) {
+                itemsToAttach.push(data)
+            }
         })
-        return itemsToAttach
+
+        return this.options.isMulti ? itemsToAttach : itemsToAttach.slice(0, 1)
     }
 
     MediaFinder.prototype.removeMediaItem = function ($element) {

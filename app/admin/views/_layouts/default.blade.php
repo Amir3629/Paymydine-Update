@@ -601,7 +601,6 @@
  /* ===== END MOBILE HEADER HIDE UNTIL STABLE ===== */
 </script>
 
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -676,10 +675,6 @@
 
 
 
-<!-- PMD EARLY SORTABLE DROPZONE START -->
-    <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ time() }}"></script>
-<!-- PMD EARLY SORTABLE DROPZONE END -->
 
 {!! get_script_tags() !!}
 <!-- SlimSelect: dropdown inside form so it scrolls with page (must run before selectList is used) -->
@@ -947,6 +942,5 @@
 })();
 </script>
 
-    <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
 </body>
 </html>
