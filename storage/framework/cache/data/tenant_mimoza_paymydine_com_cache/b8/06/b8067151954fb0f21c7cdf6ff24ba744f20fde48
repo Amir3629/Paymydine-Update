@@ -1,0 +1,27 @@
+1776238484a:1:{s:29:"booking/input_guest.blade.php";a:5:{s:8:"fileName";s:29:"booking/input_guest.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:298:"<select
+    name="guest"
+    id="noOfGuests"
+    class="form-control input-lg"
+>
+    @foreach ($__SELF__->getGuestSizeOptions() as $key => $value)
+        <option
+            value="{{ $key }}"
+            {!! set_select('guest', $key) !!}
+        >{{ $value }}</option>
+    @endforeach
+</select>
+
+";s:6:"markup";s:298:"<select
+    name="guest"
+    id="noOfGuests"
+    class="form-control input-lg"
+>
+    @foreach ($__SELF__->getGuestSizeOptions() as $key => $value)
+        <option
+            value="{{ $key }}"
+            {!! set_select('guest', $key) !!}
+        >{{ $value }}</option>
+    @endforeach
+</select>
+
+";s:4:"code";N;}}
