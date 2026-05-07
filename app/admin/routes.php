@@ -8,6 +8,7 @@ use Admin\Controllers\BiometricDevicesAPI;
 use Admin\Controllers\Api\CashDrawerController;
 use Admin\Controllers\Api\PosAgentController;
 use App\Admin\Controllers\NotificationsApiController;
+use App\Admin\Classes\TerminalDevicesPlatformController;
 use Illuminate\Http\Request;
 require_once base_path('app/system/helpers/r2o_outbound_dryrun_helper.php');
 use Illuminate\Support\Facades\DB;
@@ -687,6 +688,17 @@ App::before(function () {
     })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::resource('terminal_devices', 'TerminalDevices');
+
+    Route::prefix('terminal_devices_platform')->group(function() {
+        Route::get('/', [TerminalDevicesPlatformController::class, 'index'])->name('terminal_devices_platform.index');
+        Route::get('create', [TerminalDevicesPlatformController::class, 'create'])->name('terminal_devices_platform.create');
+        Route::post('store', [TerminalDevicesPlatformController::class, 'store'])->name('terminal_devices_platform.store');
+        Route::get('edit/{id}', [TerminalDevicesPlatformController::class, 'edit'])->name('terminal_devices_platform.edit');
+        Route::post('update/{id}', [TerminalDevicesPlatformController::class, 'update'])->name('terminal_devices_platform.update');
+        Route::post('connect/{id}', [TerminalDevicesPlatformController::class, 'connect'])->name('terminal_devices_platform.connect');
+        Route::post('sync/{id}', [TerminalDevicesPlatformController::class, 'sync'])->name('terminal_devices_platform.sync');
+        Route::post('toggle/{id}', [TerminalDevicesPlatformController::class, 'toggle'])->name('terminal_devices_platform.toggle');
+    });
 
     Route::get('sumup/test', function () {
         $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
