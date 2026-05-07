@@ -1,125 +1,113 @@
 <?php
-echo "🔧 شروع تنظیم کامل Terminal Devices\n\n";
+echo "🔍 اسکریپت تشخیص کامل Terminal Devices\n\n";
 
-// 1️⃣ اتصال به دیتابیس
 require __DIR__.'/vendor/autoload.php';
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+
+// Boot Laravel
 $app = require_once __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-echo "💾 اتصال به دیتابیس موفق!\n\n";
-
-// 2️⃣ بررسی و ایجاد جدول ti_terminal_devices
-$tableName = 'ti_terminal_devices';
-if (!Schema::hasTable($tableName)) {
-    echo "⚠️ جدول $tableName موجود نیست. ایجاد می‌شود...\n";
-    DB::statement("
-        CREATE TABLE `$tableName` (
-            `device_id` INT AUTO_INCREMENT PRIMARY KEY,
-            `name` VARCHAR(255) NOT NULL,
-            `ip_address` VARCHAR(50),
-            `status` VARCHAR(50) DEFAULT 'inactive',
-            `last_active` DATETIME DEFAULT NULL,
-            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-    ");
-    echo "✅ جدول $tableName ایجاد شد.\n";
-} else {
-    echo "✅ جدول $tableName از قبل موجود است.\n";
-}
-
-// 3️⃣ ایجاد کنترلر TerminalDevicesController.php
+// 1️⃣ بررسی کنترلر
 $controllerPath = __DIR__.'/app/admin/classes/TerminalDevicesController.php';
-if (!file_exists($controllerPath)) {
-    echo "⚠️ کنترلر TerminalDevicesController.php وجود ندارد، ایجاد می‌شود...\n";
-    $controllerContent = <<<PHP
-<?php
-namespace Admin\Classes;
-
-use Admin\Classes\AdminController;
-use DB;
-
-class TerminalDevicesController extends AdminController
-{
-    public \$implement = [];
-
-    public function index()
-    {
-        \$this->pageTitle = 'Terminal Devices';
-        \$this->vars['devices'] = DB::table('ti_terminal_devices')->get();
-        return \$this->makeView('admin::terminal_devices.index');
+echo "📂 بررسی کنترلر:\n";
+if (file_exists($controllerPath)) {
+    echo "✅ فایل کنترلر موجود است: $controllerPath\n";
+    $content = file_get_contents($controllerPath);
+    echo "📝 100 خط اول کنترلر:\n";
+    $lines = explode("\n", $content);
+    for ($i=0; $i<min(100,count($lines)); $i++) echo $lines[$i]."\n";
+    if (strpos($content, 'function index') !== false) {
+        echo "✅ متد index() موجود است.\n";
+    } else {
+        echo "⚠️ متد index() موجود نیست.\n";
     }
-}
-PHP;
-    file_put_contents($controllerPath, $controllerContent);
-    echo "✅ کنترلر ایجاد شد: $controllerPath\n";
 } else {
-    echo "✅ کنترلر TerminalDevicesController.php قبلاً موجود است.\n";
+    echo "❌ فایل کنترلر پیدا نشد!\n";
 }
 
-// 4️⃣ ایجاد ویو اختصاصی index.blade.php
+// 2️⃣ بررسی ویو
 $viewDir = __DIR__.'/app/admin/views/terminal_devices';
 $viewPath = $viewDir.'/index.blade.php';
-if (!file_exists($viewPath)) {
-    if (!is_dir($viewDir)) mkdir($viewDir, 0755, true);
-    $viewContent = <<<BLADE
-@extends('admin::layouts.default')
-
-@section('main')
-<h1>Terminal Devices</h1>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>IP Address</th>
-            <th>Status</th>
-            <th>Last Active</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (\$devices as \$device)
-        <tr>
-            <td>{{ \$device->name }}</td>
-            <td>{{ \$device->ip_address ?? 'N/A' }}</td>
-            <td>{{ \$device->status ?? 'inactive' }}</td>
-            <td>{{ \$device->last_active ?? 'N/A' }}</td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
-@endsection
-BLADE;
-    file_put_contents($viewPath, $viewContent);
-    echo "✅ ویو index.blade.php ایجاد شد: $viewPath\n";
+echo "\n🖼 بررسی ویو:\n";
+if (file_exists($viewPath)) {
+    echo "✅ ویو موجود است: $viewPath\n";
+    echo "📝 50 خط اول ویو:\n";
+    $lines = explode("\n", file_get_contents($viewPath));
+    for ($i=0; $i<min(50,count($lines)); $i++) echo $lines[$i]."\n";
 } else {
-    echo "✅ ویو index.blade.php قبلاً موجود است.\n";
+    echo "❌ ویو پیدا نشد!\n";
 }
 
-// 5️⃣ بررسی فایل‌های JS/CSS
+// 3️⃣ بررسی روت
+$routesFile = __DIR__.'/app/admin/routes.php';
+echo "\n🛣 بررسی روت‌ها:\n";
+if (file_exists($routesFile)) {
+    echo "✅ routes.php موجود است.\n";
+    $routes = file_get_contents($routesFile);
+    echo "📝 تمام خطوط routes.php:\n";
+    $lines = explode("\n", $routes);
+    foreach ($lines as $line) echo $line."\n";
+    if (preg_match("/Route::resource\('terminal_devices',\s*'([^\']+)'\)/", $routes, $m)) {
+        echo "✅ مسیر terminal_devices ثبت شده به کنترلر: ".$m[1]."\n";
+    } else {
+        echo "❌ مسیر terminal_devices ثبت نشده است.\n";
+    }
+} else {
+    echo "❌ routes.php وجود ندارد.\n";
+}
+
+// 4️⃣ بررسی فایل‌های JS/CSS
 $assetDir = __DIR__.'/app/admin/assets/vendor/pmd-mediafix';
 $assets = ['daterangepicker.js','daterangepicker.css','force-blue-buttons.js','jquery-sortable.js','moment.min.js'];
-$missing = [];
+echo "\n🗂 بررسی فایل‌های JS/CSS:\n";
 foreach ($assets as $f) {
-    if (!file_exists($assetDir.'/'.$f)) $missing[] = $f;
-}
-if ($missing) {
-    echo "⚠️ فایل‌های JS/CSS گم شده: ".implode(', ',$missing)."\n";
-    echo "  لطفاً از repository اصلی فایل‌ها را در مسیر app/admin/assets/vendor/pmd-mediafix قرار دهید.\n";
-} else {
-    echo "✅ تمام فایل‌های JS/CSS موجود هستند.\n";
+    $status = file_exists($assetDir.'/'.$f) ? "✅ موجود" : "❌ گم شده";
+    echo " - $f : $status\n";
 }
 
-// 6️⃣ پاکسازی کش لاراول
+// 5️⃣ بررسی جدول دیتابیس
+echo "\n💾 بررسی دیتابیس:\n";
+$tableName = 'ti_terminal_devices';
+if (Schema::hasTable($tableName)) {
+    echo "✅ جدول $tableName موجود است.\n";
+    try {
+        $count = DB::table($tableName)->count();
+        echo "📝 تعداد رکوردها در جدول: $count\n";
+        $sample = DB::table($tableName)->limit(10)->get();
+        echo "📝 نمونه 10 رکورد اول:\n";
+        print_r($sample->toArray());
+    } catch (\Throwable $e) {
+        echo "⚠️ خطا در خواندن داده‌ها: ".$e->getMessage()."\n";
+    }
+} else {
+    echo "❌ جدول $tableName موجود نیست!\n";
+}
+
+// 6️⃣ بررسی دسترسی‌ها
+echo "\n🔑 بررسی دسترسی فولدرها:\n";
+$dirs = [
+    'app/admin/classes',
+    'app/admin/views',
+    'app/admin/views/terminal_devices',
+    'app/admin/assets/vendor/pmd-mediafix',
+    'storage/framework/views'
+];
+foreach ($dirs as $d) {
+    $perm = substr(sprintf('%o', fileperms(__DIR__.'/'.$d)), -4);
+    echo " - $d : $perm\n";
+}
+
+// 7️⃣ پاکسازی کش لاراول
 echo "\n🔁 پاکسازی کش لاراول...\n";
 shell_exec('php artisan view:clear');
 shell_exec('php artisan cache:clear');
 shell_exec('php artisan config:clear');
 shell_exec('rm -rf storage/framework/views/*');
-echo "✅ کش‌ها پاک شدند.\n";
+echo "✅ کش‌ها پاک شد.\n";
 
-// 7️⃣ پایان
-echo "\n🎯 تمام مراحل انجام شد. حالا صفحه Terminal Devices باید درست نمایش داده شود.\n";
+echo "\n🎯 اسکریپت کامل پایان یافت. تمام مسیرها، فایل‌ها و دیتابیس بررسی شد.\n";
 ?>
