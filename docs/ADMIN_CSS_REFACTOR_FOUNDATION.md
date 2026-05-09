@@ -70,6 +70,22 @@ No other `pmd-admin` component files or page files are loaded yet. The first Bla
 
 This is low-risk because the onboarding dashboard widget is not an order, payment, invoice, Fiskaly, toolbar, dropdown, media finder, date picker, rich editor, delete confirmation, routing, tenant, database, or business-logic flow. The loaded CSS uses `.pmd-` prefixed selectors only, so it does not affect legacy UI unless a matching `.pmd-` class is explicitly added.
 
+
+## Phase 4 second safe card usage
+
+Phase 4 keeps the same CSS loading as Phase 3. No new `pmd-admin` files are loaded; only these files remain active through the admin asset metadata:
+
+- `css/pmd-admin/00-variables.css`
+- `css/pmd-admin/components/cards.css`
+
+The second Blade usage is limited to `app/admin/dashboardwidgets/charts/charts.blade.php`, where existing classes and chart markup remain in place and these scoped classes were added:
+
+- `.pmd-card` on the existing charts dashboard widget wrapper.
+- `.pmd-card__title` on the existing chart widget title.
+- `.pmd-card__body` on the existing chart container.
+
+This is low-risk because the change is presentation-only on a dashboard widget shell. It does not change chart data, orders, payments, invoices, Fiskaly, toolbar save buttons, dropdowns, media finder, date picker, rich editor, delete confirmation, tenant/database behavior, routing, or business logic.
+
 ## Files still considered legacy
 
 Legacy CSS remains active and must not be deleted yet. Important legacy files include:
@@ -90,7 +106,8 @@ These files should be migrated gradually only after equivalent scoped `.pmd-` mo
 
 - Added a passive modular CSS folder structure under `app/admin/assets/css/pmd-admin/`.
 - Phase 3 loads only `00-variables.css` and `components/cards.css` through `app/admin/views/_meta/assets.json`.
-- Phase 3 applies `.pmd-card` classes only to the onboarding dashboard widget.
+- Phase 3 applies `.pmd-card` classes to the onboarding dashboard widget.
+- Phase 4 applies the same existing `.pmd-card` classes to the charts dashboard widget only.
 - Added CSS variable tokens in `00-variables.css`.
 - Added small `.pmd-` starter component classes.
 - Added empty page wrapper scopes for future page-specific work.
@@ -101,18 +118,18 @@ These files should be migrated gradually only after equivalent scoped `.pmd-` mo
 - No existing CSS was removed.
 - No existing JS was removed.
 - No admin layout was changed.
-- No existing asset order was changed; two new `pmd-admin` entries were appended to the admin asset metadata after the existing `admin-css` entry.
+- No existing asset order was changed; the same two `pmd-admin` entries remain appended to the admin asset metadata after the existing `admin-css` entry.
 - No Tailwind dependency or Tailwind classes were added.
 - No Next.js frontend/admin files were touched.
 - No payment, order, Fiskaly, tenant, database, or business logic was touched.
 
 ## Next PR recommendation
 
-The next PR should either validate this onboarding card usage visually or choose one additional low-risk admin card area for scoped `.pmd-card` adoption. Avoid toolbar Save buttons, payment/order screens, invoice screens, Fiskaly, dropdowns, media finder, date picker, rich editor, delete confirmation, routing, tenant, database, and any business-critical flow.
+The next PR should visually validate both dashboard widgets using `.pmd-card` before expanding usage. If stable, choose one additional low-risk dashboard/card shell for scoped `.pmd-card` adoption. Avoid toolbar Save buttons, payment/order screens, invoice screens, Fiskaly, dropdowns, media finder, date picker, rich editor, delete confirmation, routing, tenant, database, and any business-critical flow.
 
 Suggested next steps:
 
-1. Smoke-test the dashboard onboarding widget where `.pmd-card` is now used.
+1. Smoke-test the onboarding and charts dashboard widgets where `.pmd-card` is now used.
 2. If stable, apply `.pmd-card` to one more low-risk dashboard/card shell only.
 3. Keep loading limited to variables and cards until another component has a reviewed usage.
 4. Smoke-test dashboard, settings, a table/list page, a modal, dropdowns, notifications, media finder, and date picker.
