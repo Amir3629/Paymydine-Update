@@ -68,4 +68,26 @@ This means:
 
 ## Remaining risk
 
-`force-button-alignment.js` and `page-specific-fixes.js` still contain style mutation logic. If button jumping remains after this fix, the next investigation should focus on toolbar-specific pages and the remaining JS hover/toolbar style handlers, with browser devtools recording which script last changes the affected button's inline styles.
+`page-specific-fixes.js` and other legacy admin scripts still contain style mutation logic. If button jumping remains after the Phase 6 force-button-alignment auto-disable, the next investigation should use browser devtools to record which remaining script last changes the affected button's inline styles.
+
+## Phase 6 update: force-button-alignment.js
+
+After disabling `fix-button-widths-global.js`, browser evidence still showed button jumping. Console logs reported `Force Button Alignment initialized`, `Found 20 total buttons to fix`, and `Connection broken for 20 buttons`; a button watcher detected hundreds of button style mutations during the first second after load and again after dashboard AJAX widget loading.
+
+The remaining high-risk source is `app/admin/assets/js/force-button-alignment.js`. It contains broad automatic behavior that can restyle buttons, attach observers and timers, run after page content changes, and write inline styles to toolbar/action buttons after first paint.
+
+Phase 6 disables that automatic behavior behind `AUTO_FORCE_BUTTON_ALIGNMENT = false`. When disabled, the script:
+
+- Does not automatically call broad button styling functions.
+- Does not attach its automatic DOM-ready, `pageContentLoaded`, `setTimeout`, or `setInterval` restyling handlers.
+- Does not automatically attach its MutationObserver-driven `init()` flow.
+- Does not automatically write inline styles to buttons.
+
+The file remains loaded and available for manual debugging. Use this browser-console API only when intentionally investigating a legacy button issue:
+
+```js
+window.forceButtonAlignment.run()
+window.forceButtonAlignment.applyToolbarPalette()
+```
+
+Remaining risk: other admin scripts and legacy CSS can still mutate or override button styles. If jumping continues, inspect the affected button in browser devtools and watch which script last writes inline styles after `force-button-alignment.js` auto mode is disabled.

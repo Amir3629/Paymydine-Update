@@ -5,6 +5,10 @@
 
 (function() {
     'use strict';
+
+    // Phase 6 safety switch: broad automatic inline button restyling caused
+    // visible button jumps after first paint and dashboard AJAX updates.
+    const AUTO_FORCE_BUTTON_ALIGNMENT = false;
     
     const isThemeEditPage = window.location.pathname.includes('/admin/themes/edit');
     const isHistoryPage = window.location.pathname.includes('/admin/history');
@@ -22,7 +26,9 @@
         console.log('🔧 Force Button Alignment skipped on cash drawers page (preserve simple toolbar layout)');
         return;
     }
-    console.log('🔧 Force Button Alignment initialized');
+    if (AUTO_FORCE_BUTTON_ALIGNMENT) {
+        console.log('🔧 Force Button Alignment initialized');
+    }
     
     const BUTTON_PADDING = '0.55rem 1.75rem';
     const PRIMARY_BUTTON_PADDING = '0.55rem 1.75rem';
@@ -1167,6 +1173,21 @@ function moveBulkButtons() {
         });
     }
     
+    // Manual debugging API only. Do not run these automatically while the
+    // Phase 6 safety switch is off.
+    window.forceButtonAlignment = {
+        run: breakConnection,
+        init: init,
+        applyToolbarPalette: applyToolbarButtonPalette,
+        forceToolbarPrimaryBlue: forceToolbarPrimaryBlue,
+        fixSettingsCardLinks: fixSettingsCardLinks
+    };
+
+    if (!AUTO_FORCE_BUTTON_ALIGNMENT) {
+        console.log('ℹ️ Automatic force button alignment disabled; use window.forceButtonAlignment.run() manually for legacy debugging.');
+        return;
+    }
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
