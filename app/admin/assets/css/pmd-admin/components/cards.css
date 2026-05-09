@@ -8,3 +8,7 @@
 .pmd-card__title {
   color: var(--pmd-color-text);
 }
+
+.pmd-card__body {
+  color: var(--pmd-color-text);
+}
