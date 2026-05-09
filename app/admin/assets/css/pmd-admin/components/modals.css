@@ -1,0 +1,17 @@
+/* PayMyDine Admin modals: scoped `.pmd-` starters only. */
+.pmd-modal {
+  background-color: var(--pmd-color-surface);
+  border-radius: var(--pmd-radius-lg);
+}
+
+.pmd-modal__header {
+  border-bottom-color: var(--pmd-color-border);
+}
+
+.pmd-modal__body {
+  color: var(--pmd-color-text);
+}
+
+.pmd-modal__footer {
+  border-top-color: var(--pmd-color-border);
+}
