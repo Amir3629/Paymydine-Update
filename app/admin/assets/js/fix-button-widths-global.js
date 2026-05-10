@@ -1,8 +1,12 @@
 /**
  * GLOBAL BUTTON WIDTH FIX
  * 
- * This script enforces consistent button dimensions (48x48px) across ALL pages,
- * matching the orders page style.
+ * Legacy helper for consistent icon-button dimensions.
+ *
+ * Phase 5: automatic page-load enforcement is disabled because it mutates
+ * rendered buttons from their CSS size to 48x48px after refresh, causing
+ * visible button jumping/flicker. Keep the manual function export for
+ * emergency debugging while future cleanup moves this behavior into scoped CSS.
  * 
  * This will:
  * - Find all .btn-edit buttons
@@ -15,6 +19,10 @@
 
 (function() {
     'use strict';
+
+    // SAFETY: automatic post-render sizing caused button jump/flicker on refresh.
+    // Keep false until icon-only buttons are migrated to scoped CSS.
+    const AUTO_ENFORCE_BUTTON_DIMENSIONS = false;
 
     if (window.location.pathname.includes('/admin/media_manager')) {
         return; // Skip on media manager - buttons have their own styling
@@ -289,6 +297,11 @@
     }
     
     function init() {
+        if (!AUTO_ENFORCE_BUTTON_DIMENSIONS) {
+            console.log('ℹ️ Button width auto-enforcement disabled; use window.enforceButtonDimensions() manually if debugging a legacy icon button.');
+            return;
+        }
+
         // Run immediately on script load (only once)
         lastRunTime = Date.now();
         enforceButtonDimensions();

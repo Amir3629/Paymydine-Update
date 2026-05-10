@@ -1,6 +1,6 @@
-<div class="dashboard-widget widget-onboarding">
-    <h6 class="widget-title">@lang('admin::lang.dashboard.onboarding.title')</h6>
-    <div class="row">
+<div class="dashboard-widget widget-onboarding pmd-card">
+    <h6 class="widget-title pmd-card__title">@lang('admin::lang.dashboard.onboarding.title')</h6>
+    <div class="row pmd-card__body">
         <div class="list-group list-group-flush w-100">
             @foreach($onboarding->listSteps() as $step)
                 @if(($completed = $step->completed) && $completed())

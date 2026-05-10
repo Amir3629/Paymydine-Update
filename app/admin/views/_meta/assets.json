@@ -22,6 +22,14 @@
     {
       "path": "css/admin.css",
       "name": "admin-css"
+    },
+    {
+      "path": "css/pmd-admin/00-variables.css",
+      "name": "pmd-admin-variables-css"
+    },
+    {
+      "path": "css/pmd-admin/components/cards.css",
+      "name": "pmd-admin-cards-css"
     }
   ],
   "script": [

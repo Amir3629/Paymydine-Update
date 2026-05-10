@@ -1,7 +1,7 @@
-<div class="dashboard-widget widget-charts">
-    <h6 class="widget-title"><i class="stat-icon {{ $chartIcon }}"></i> @lang($chartLabel)</h6>
+<div class="dashboard-widget widget-charts pmd-card">
+    <h6 class="widget-title pmd-card__title"><i class="stat-icon {{ $chartIcon }}"></i> @lang($chartLabel)</h6>
     <div
-        class="chart-container"
+        class="chart-container pmd-card__body"
         data-control="chart"
         data-alias="{{ $this->alias }}"
         data-type="{{ $chartType }}"
