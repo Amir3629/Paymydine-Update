@@ -2,6 +2,21 @@
  * PayMyDine admin toolbar buttons.
  * CSS-only normalization for top admin toolbars; do not mirror these rules in JS.
  */
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *),
+.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .toolbar-action {
+  width: 100%;
+}
+
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
 .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
 .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
 .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
@@ -10,12 +25,12 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.5rem !important;
+  gap: 0.35rem !important;
   width: auto !important;
   min-width: 0 !important;
   min-height: 42px !important;
   height: 42px !important;
-  padding: 0.55rem 1rem !important;
+  padding: 0.55rem 0.95rem !important;
   line-height: 1 !important;
   text-align: center !important;
   white-space: nowrap !important;
@@ -52,6 +67,11 @@
   box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
 }
 
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-primary,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-primary {
+  margin-right: auto !important;
+}
+
 .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
 .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
 .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
@@ -77,6 +97,27 @@
   box-shadow: none !important;
 }
 
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-secondary,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-secondary,
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light {
+  color: #202938 !important;
+  background: #ffffff !important;
+  border-color: #c9d2e3 !important;
+  box-shadow: none !important;
+}
+
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  flex: 0 0 40px !important;
+}
+
 #dashboardContainer-daterange {
   min-width: 18rem !important;
   justify-content: space-between !important;
@@ -94,4 +135,41 @@ body.edit-mode-active .toolbar-action .edit-mode-only {
 body.edit-mode-active .toolbar-action [data-control="daterange"],
 body.edit-mode-active #dashboardContainer-daterange {
   display: none !important;
+}
+
+/* Bulk actions remain controlled by list checkbox JS; this only restores CSS visibility/layout. */
+html body.page body.page .list-table .bulk-actions.hide {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+html body.page body.page .list-table .bulk-actions:not(.hide) {
+  display: table-row !important;
+  visibility: visible !important;
+  height: auto !important;
+  overflow: visible !important;
+  padding: initial !important;
+  margin: initial !important;
+  border: 0 !important;
+  line-height: inherit !important;
+  font-size: inherit !important;
+}
+
+html body.page body.page .list-table .bulk-actions:not(.hide) .bulk-actions-cell > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+}
+
+html body.page body.page .list-table .bulk-actions [data-control="bulk-action"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0.5rem 0.9rem !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
 }

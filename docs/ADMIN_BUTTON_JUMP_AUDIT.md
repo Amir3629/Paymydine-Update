@@ -155,3 +155,27 @@ Phase 9 fixes only the dashboard container area:
 Phase 9 preserves dashboard behavior: widgets still load through the plugin, the fallback still exists if the plugin fails, charts still initialize after widget HTML is available, Edit Layout still toggles sortable edit mode, Add Widget appears only in edit mode, the Add Widget modal still opens through the existing Bootstrap/request attributes, and the daterange control hides in edit mode via CSS and returns after saving.
 
 Remaining risk: non-dashboard legacy scripts still contain disabled/manual style writers and some non-toolbar dashboard/date-picker code still has narrow inline positioning for the mobile date picker. Those are outside this Phase 9 toolbar-jump fix. Any future toolbar mutation should be verified against the browser trace before broad CSS or global admin JavaScript is changed.
+
+## Phase 10 update: CSS-only toolbar grouping and bulk-action visibility
+
+After the runtime toolbar mutators were identified, the remaining cleanup moved top-toolbar layout decisions into the single loaded stylesheet `app/admin/assets/css/pmd-admin/components/toolbar-buttons.css`.
+
+Phase 10 keeps the active asset set focused on `admin.css`, pmd variables, pmd cards, pmd toolbar buttons, and `admin.js`. No dashboard JavaScript, widget behavior, route, tenant, database, or media-manager behavior was changed.
+
+The toolbar markup/layout sources are:
+
+- `app/admin/widgets/toolbar/toolbar.blade.php`: renders the shared top toolbar as `.toolbar.btn-toolbar > .toolbar-action > .progress-indicator-container` and outputs configured toolbar buttons in order.
+- `app/admin/classes/ToolbarButton.php` and `app/admin/widgets/toolbar/button_*.blade.php`: preserve the configured button class/order from controller/model config.
+- `app/admin/widgets/lists/list_actions.blade.php` and `app/admin/widgets/lists/assets/js/lists.js`: list bulk actions are still shown by checkbox selection through the existing `.bulk-actions.hide` class toggle; CSS should not replace that behavior.
+
+Phase 10 fixes only CSS/layout:
+
+- Top toolbars now use a stable flex row on `.progress-indicator-container`.
+- The first primary toolbar action remains left by receiving `margin-right: auto`, so later secondary actions group on the right instead of floating into the middle.
+- Back buttons that appear as the first `.btn-outline-secondary` action are stabilized as 40x40 icon buttons before the primary action.
+- New/primary buttons keep the dark-blue treatment with reduced icon/text gap and natural width.
+- Secondary/right-side buttons keep white/outline styling.
+- Dashboard toolbar edit-mode visibility remains CSS-owned; the daterange still hides in edit mode and returns after saving.
+- Orders/list bulk actions remain JS-controlled by row selection, but CSS now restores visibility for `.bulk-actions:not(.hide)` and aligns the bulk action button to the right. This overrides legacy CSS that hid bulk action rows entirely without touching row-selection JavaScript.
+
+The old side-nav toolbar runtime mutator blocks remain disabled and documented in place. Do not reintroduce DOM-ready/load/timer/MutationObserver code that writes toolbar button `style` attributes; future toolbar visual changes should go into `toolbar-buttons.css` or a similarly scoped stylesheet.
