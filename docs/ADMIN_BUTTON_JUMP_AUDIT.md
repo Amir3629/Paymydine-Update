@@ -179,3 +179,21 @@ Phase 10 fixes only CSS/layout:
 - Orders/list bulk actions remain JS-controlled by row selection, but CSS now restores visibility for `.bulk-actions:not(.hide)` and aligns the bulk action button to the right. This overrides legacy CSS that hid bulk action rows entirely without touching row-selection JavaScript.
 
 The old side-nav toolbar runtime mutator blocks remain disabled and documented in place. Do not reintroduce DOM-ready/load/timer/MutationObserver code that writes toolbar button `style` attributes; future toolbar visual changes should go into `toolbar-buttons.css` or a similarly scoped stylesheet.
+
+## Phase 11 update: unified CSS-only top toolbar button rules
+
+Phase 11 keeps the button-jump fix CSS-only and continues to leave dashboard container JavaScript untouched. The active toolbar stylesheet remains `app/admin/assets/css/pmd-admin/components/toolbar-buttons.css`.
+
+The remaining toolbar issues were caused by mixed legacy toolbar structures using the same visual roles with different wrappers: shared `Toolbar` widgets render `.toolbar.btn-toolbar > .toolbar-action > .progress-indicator-container`, some pages use `.page-actions`, `.form-toolbar`, or `.list-toolbar`, and list bulk actions render as `.bulk-actions.hide` rows that existing list JavaScript toggles when checkboxes change.
+
+Phase 11 extends only the scoped toolbar CSS:
+
+- Top toolbar wrappers now share the same stable flex layout without using runtime style writers.
+- Back buttons that are first `.btn-outline-secondary` actions are fixed as visible 40x40 outline icon buttons with dark icons.
+- Top-toolbar primary buttons, including Save buttons and `data-request="onSave"` buttons, use the same dark-blue primary treatment and stable 42px sizing.
+- First primary actions remain left; secondary/default actions and button groups after the first primary group to the right through flex ordering and primary `margin-right: auto`.
+- Dashboard `.widget-item-action` edit-mode buttons now center their icons inside the existing square button frames.
+- List bulk-action rows remain controlled by existing checkbox JavaScript, but CSS now permits `.bulk-actions:not(.hide)` to render and align its action buttons to the right.
+- Media manager button dimensions/layout remain owned by the media-manager CSS; Phase 11 only centers icons inside media-manager toolbar buttons.
+
+No MutationObserver, timer, `setProperty`, `setAttribute('style')`, jQuery `.css()`, `.show()`, or `.hide()` behavior was added for toolbar buttons.

@@ -2,24 +2,37 @@
  * PayMyDine admin toolbar buttons.
  * CSS-only normalization for top admin toolbars; do not mirror these rules in JS.
  */
+.toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *),
 .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *),
-.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .toolbar-action {
+.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .toolbar-action,
+.page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *),
+.form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *),
+.list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) {
   width: 100%;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container {
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *),
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
   gap: 0.5rem !important;
   width: 100% !important;
   min-width: 0 !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
-.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
 #edit-layout-toggle,
 #dashboardContainer-daterange {
   display: inline-flex !important;
@@ -36,14 +49,25 @@
   white-space: nowrap !important;
   vertical-align: middle !important;
   box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
-.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
-.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
 #edit-layout-toggle i,
 #edit-layout-toggle .fa,
 #dashboardContainer-daterange i,
@@ -54,11 +78,19 @@
   flex: 0 0 auto !important;
   margin: 0 !important;
   line-height: 1 !important;
+  color: inherit !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
-.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-success,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) [data-request="onSave"],
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) [data-request="onSave"],
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
 #edit-layout-toggle {
   color: #ffffff !important;
   background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
@@ -67,17 +99,33 @@
   box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-primary,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-primary {
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-primary,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-success,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > [data-request="onSave"],
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-group:has(.btn-primary),
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-group:has([data-request="onSave"]),
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-primary,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-success,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > [data-request="onSave"],
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-group:has(.btn-primary),
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-group:has([data-request="onSave"]),
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-primary,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > [data-request="onSave"],
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-group:has(.btn-primary),
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-group:has([data-request="onSave"]),
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-primary {
+  order: 2 !important;
   margin-right: auto !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
-.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
-.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) [data-request="onSave"]:hover,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) [data-request="onSave"]:focus,
 #edit-layout-toggle:hover,
 #edit-layout-toggle:focus {
   color: #ffffff !important;
@@ -86,10 +134,10 @@
   border-color: #405874 !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-ice,
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-default,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-ice,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-default,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-ice,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-default,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-ice,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-default,
 #dashboardContainer-daterange {
   color: #202938 !important;
   background: #f1f4fb !important;
@@ -97,18 +145,48 @@
   box-shadow: none !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-secondary,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-secondary,
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light {
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-secondary,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-default,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-secondary,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-secondary,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-default,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-secondary,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-secondary,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-default,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-secondary,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-default,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-secondary,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-default,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-default,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-light,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-default {
   color: #202938 !important;
   background: #ffffff !important;
   border-color: #c9d2e3 !important;
   box-shadow: none !important;
 }
 
-.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child,
-.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child {
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]),
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]),
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]),
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]),
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-group:not(:has(.btn-primary)):not(:has([data-request="onSave"])),
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-group:not(:has(.btn-primary)):not(:has([data-request="onSave"])) {
+  order: 10 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-outline-secondary:first-child,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-outline-secondary:first-child {
+  order: 1 !important;
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
@@ -116,6 +194,15 @@
   min-height: 40px !important;
   padding: 0 !important;
   flex: 0 0 40px !important;
+  color: #202938 !important;
+  background: #ffffff !important;
+  border: 1px solid #c9d2e3 !important;
+}
+
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-outline-secondary:first-child i,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child i,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-outline-secondary:first-child i {
+  color: #202938 !important;
 }
 
 #dashboardContainer-daterange {
@@ -137,13 +224,39 @@ body.edit-mode-active #dashboardContainer-daterange {
   display: none !important;
 }
 
+.dashboard-widgets .widget-item-action .btn,
+.widget-item .widget-item-action .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+.dashboard-widgets .widget-item-action .btn i,
+.widget-item .widget-item-action .btn i {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
 /* Bulk actions remain controlled by list checkbox JS; this only restores CSS visibility/layout. */
 html body.page body.page .list-table .bulk-actions.hide {
   display: none !important;
   visibility: hidden !important;
 }
 
-html body.page body.page .list-table .bulk-actions:not(.hide) {
+html body.page body.page .list-table .bulk-actions:not(.hide),
+html body.page body.page .list-table .table .bulk-actions:not(.hide) {
   display: table-row !important;
   visibility: visible !important;
   height: auto !important;
@@ -172,4 +285,19 @@ html body.page body.page .list-table .bulk-actions [data-control="bulk-action"] 
   padding: 0.5rem 0.9rem !important;
   line-height: 1 !important;
   white-space: nowrap !important;
+}
+
+/* Media manager owns button size/layout; keep only icon centering here. */
+html body .media-manager .media-toolbar .btn i,
+html body .media-manager .media-toolbar button i,
+html body .media-manager .media-toolbar a.btn i,
+html body .media-toolbar .media-toolbar-tooltip-wrap .btn i,
+html body .media-toolbar .btn[data-media-control] i,
+html body .media-toolbar [data-media-control].btn i {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
 }
