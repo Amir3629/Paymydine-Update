@@ -197,3 +197,16 @@ Phase 11 extends only the scoped toolbar CSS:
 - Media manager button dimensions/layout remain owned by the media-manager CSS; Phase 11 only centers icons inside media-manager toolbar buttons.
 
 No MutationObserver, timer, `setProperty`, `setAttribute('style')`, jQuery `.css()`, `.show()`, or `.hide()` behavior was added for toolbar buttons.
+
+## Phase 12 update: CSS-only back, payments, bulk, and media dropdown alignment
+
+Phase 12 keeps the Phase 11 constraints: no toolbar JavaScript, no dashboard container changes, no media-manager behavior changes, and no re-enabled side-nav runtime mutators.
+
+The remaining production issues were layout/override problems in the focused stylesheet:
+
+- Back links that render as `.btn.btn-outline-secondary` with a left-arrow icon can be direct toolbar children or children of `.progress-indicator-container`. They now receive explicit left-side ordering, compact 40x40 sizing, and the dark-blue primary visual treatment while keeping the arrow centered.
+- Some pages, such as payments provider/method toolbars, render primary actions directly inside `.toolbar-action` or page/form/list toolbar wrappers instead of inside the shared progress wrapper. Direct primary children now follow the same left-primary/right-secondary flex rule.
+- Legacy list CSS can still hide `.bulk-actions` even after list JavaScript removes `.hide`. The Phase 12 rules make `.bulk-actions:not(.hide)` visible, opaque, and table-row/table-cell based while preserving the existing checkbox JavaScript as the state owner.
+- Media-manager toolbar button sizes remain controlled by media-manager styles; Phase 12 only centers dropdown-toggle icon contents for the filter/sort two-icon buttons.
+
+No `MutationObserver`, timer, inline style writer, jQuery `.css()`, `.show()`, or `.hide()` behavior was added.
