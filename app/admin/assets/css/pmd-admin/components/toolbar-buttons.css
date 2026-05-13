@@ -409,3 +409,163 @@ html body .media-manager .media-toolbar button.btn.dropdown-toggle {
   justify-content: center !important;
   gap: 0.25rem !important;
 }
+
+/*
+ * FINAL ADMIN TOOLBAR OVERRIDE
+ * This file is loaded after legacy admin CSS in the Blade layout. Keep these
+ * rules last because legacy button files set toolbar size/color later than
+ * assets.json output and can otherwise override the stable toolbar layout.
+ */
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container,
+html body.page .btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-outline-secondary:has(.fa-arrow-left),
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:has(.fa-arrow-left),
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-outline-secondary:has(.fa-arrow-left),
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .btn-outline-secondary:has(.fa-arrow-left),
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left),
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left),
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left) {
+  order: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  color: #ffffff !important;
+  background: #364a63 !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
+}
+
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-outline-secondary:has(.fa-arrow-left) .fa,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:has(.fa-arrow-left) .fa,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-outline-secondary:has(.fa-arrow-left) .fa,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .btn-outline-secondary:has(.fa-arrow-left) .fa,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left) .fa,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left) .fa,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left) .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  color: #ffffff !important;
+  line-height: 1 !important;
+}
+
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-primary,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-success,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > [data-request="onSave"],
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-primary,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-success,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > [data-request="onSave"],
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-primary,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-success,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > [data-request="onSave"],
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-primary,
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .btn-primary,
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-primary,
+html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-primary,
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-primary,
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-primary {
+  order: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0 16px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  color: #ffffff !important;
+  background: #364a63 !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
+}
+
+html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)),
+html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)),
+html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)),
+html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)) {
+  order: 10 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Split secondary actions only inside known toolbar wrappers that already contain a primary action. */
+html body.page .progress-indicator-container:has(> .btn-primary) > .btn-primary + .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)),
+html body.page .progress-indicator-container:has(> [data-request="onSave"]) > [data-request="onSave"] + .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)),
+html body.page .toolbar-action:has(> .btn-primary) > .btn-primary + .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)),
+html body.page .page-actions:has(> .btn-primary) > .btn-primary + .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)),
+html body.page .form-toolbar:has(> .btn-primary) > .btn-primary + .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(.btn-outline-secondary:has(.fa-arrow-left)) {
+  margin-left: auto !important;
+}
+
+html body.page .list-table .bulk-actions:not(.hide),
+html body.page .list-table .table .bulk-actions:not(.hide),
+html body.page .list-table tbody .bulk-actions:not(.hide),
+html body.page tr.bulk-actions[data-control="bulk-actions"]:not(.hide),
+html body.page [data-control="bulk-actions"].bulk-actions:not(.hide) {
+  display: table-row !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+html body.page .list-table .bulk-actions:not(.hide) td,
+html body.page .list-table .table .bulk-actions:not(.hide) td,
+html body.page tr.bulk-actions[data-control="bulk-actions"]:not(.hide) td {
+  display: table-cell !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+html body.page .list-table .bulk-actions:not(.hide) .bulk-actions-cell > div,
+html body.page tr.bulk-actions[data-control="bulk-actions"]:not(.hide) .bulk-actions-cell > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+html body .media-manager .media-toolbar .dropdown-toggle.btn,
+html body .media-manager .media-toolbar a.btn.dropdown-toggle,
+html body .media-manager .media-toolbar button.btn.dropdown-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.25rem !important;
+}
