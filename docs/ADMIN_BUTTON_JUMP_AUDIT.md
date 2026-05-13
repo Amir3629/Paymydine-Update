@@ -91,3 +91,27 @@ window.forceButtonAlignment.applyToolbarPalette()
 ```
 
 Remaining risk: other admin scripts and legacy CSS can still mutate or override button styles. If jumping continues, inspect the affected button in browser devtools and watch which script last writes inline styles after `force-button-alignment.js` auto mode is disabled.
+
+## Phase 7 update: admin.js button inline styling
+
+After Phase 6 disabled automatic `force-button-alignment.js`, browser StyleTrace still showed dashboard button style mutations from `app/admin/assets/js/admin.js`. The remaining mutators were traced to `applyGreenButtonBase`, `applySaveButtonStyles`, `applyCloseButtonStyles`, `applyWidgetModalStyles`, and the `saveButtonStyleInterval` loop.
+
+`applyGreenButtonBase` writes broad inline button styles such as background, border, color, box-shadow, min-width, height, padding, line-height, and `display: inline-block`. That conflicts with other legacy button styling that uses `inline-flex`, producing visible button jumps.
+
+Phase 7 disables automatic admin button inline styling behind `AUTO_ADMIN_BUTTON_INLINE_STYLING = false` in both the source file and compiled production file:
+
+- `app/admin/assets/src/js/app.js`
+- `app/admin/assets/js/admin.js`
+
+When disabled, automatic calls from `document.render`, `ajaxDone`, `ajaxComplete`, `ajaxSuccess`, document-ready startup, and `saveButtonStyleInterval` do not run button/modal restyling. Non-button critical admin behavior remains active, including metisMenu/sidebar behavior, tooltip/alert initialization, delete icon coloring, modal z-index handling, modal content data handling, CSRF/ajax handling, login redirect behavior, and ajaxPrefilter CSRF token behavior.
+
+The legacy functions remain available for manual browser-console debugging:
+
+```js
+window.PMDAdminButtonStyling.run()
+window.PMDAdminButtonStyling.applySaveButtonStyles(document)
+window.PMDAdminButtonStyling.applyCloseButtonStyles(document)
+window.PMDAdminButtonStyling.applyWidgetModalStyles(document)
+```
+
+The source map 404 and mixed-content image warning observed during browser testing are separate non-button issues and are not addressed by this button-jump fix.

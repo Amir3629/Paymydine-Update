@@ -12,6 +12,7 @@
         $('.sidebar').removeClass('show')
     })
 
+    const AUTO_ADMIN_BUTTON_INLINE_STYLING = false;
     var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)'; // Dark blue instead of green
     var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #364a63 0%, #526484 100%)'; // Dark blue instead of green
 
@@ -148,6 +149,23 @@
         });
     }
 
+    function runAdminButtonInlineStyling(context) {
+        applySaveButtonStyles(context);
+        applyCloseButtonStyles(context);
+        applyWidgetModalStyles(context);
+    }
+
+    window.PMDAdminButtonStyling = {
+        applySaveButtonStyles: applySaveButtonStyles,
+        applyCloseButtonStyles: applyCloseButtonStyles,
+        applyWidgetModalStyles: applyWidgetModalStyles,
+        run: runAdminButtonInlineStyling
+    };
+
+    if (!AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+        console.log('ℹ️ Automatic admin button inline styling disabled; use window.PMDAdminButtonStyling.run() manually for legacy debugging.');
+    }
+
     $(document).render(function (event) {
         var context = event && event.target ? event.target : document;
 
@@ -155,39 +173,35 @@
         $('.alert', document).alert();
 
         applyDeleteIconColor(context);
-        applySaveButtonStyles(context);
-        applyCloseButtonStyles(context);
-        applyWidgetModalStyles(context);
+        if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+            runAdminButtonInlineStyling(context);
+        }
     });
 
     $(document).on('ajaxDone ajaxComplete ajaxSuccess', function (event, context) {
         var scope = context && context.elements ? context.elements : context;
         applyDeleteIconColor(scope || document);
-        applySaveButtonStyles(scope || document);
-        applyCloseButtonStyles(scope || document);
-        applyWidgetModalStyles(scope || document);
+        if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+            runAdminButtonInlineStyling(scope || document);
+        }
     });
 
     applyDeleteIconColor();
-    applySaveButtonStyles();
-    applyCloseButtonStyles();
-    applyWidgetModalStyles();
+    if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+        runAdminButtonInlineStyling();
 
-    $(function () {
-        applySaveButtonStyles();
-        applyCloseButtonStyles();
-        applyWidgetModalStyles();
-    });
+        $(function () {
+            runAdminButtonInlineStyling();
+        });
 
-    var saveButtonStyleInterval = setInterval(function () {
-        applySaveButtonStyles();
-        applyCloseButtonStyles();
-        applyWidgetModalStyles();
-    }, 500);
+        var saveButtonStyleInterval = setInterval(function () {
+            runAdminButtonInlineStyling();
+        }, 500);
 
-    setTimeout(function () {
-        clearInterval(saveButtonStyleInterval);
-    }, 5000);
+        setTimeout(function () {
+            clearInterval(saveButtonStyleInterval);
+        }, 5000);
+    }
 
     // Multiple Modal Fix
     $(document).on('show.bs.modal', '.modal', function () {
