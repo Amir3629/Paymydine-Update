@@ -21,7 +21,7 @@ html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.mo
   align-items: center !important;
   justify-content: flex-start !important;
   flex-wrap: nowrap !important;
-  gap: 0.5rem !important;
+  gap: 8px !important;
   width: 100% !important;
   min-width: 0 !important;
 }
@@ -114,8 +114,17 @@ html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.mo
 html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-group:has(.btn-primary),
 html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-group:has([data-request="onSave"]),
 html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-primary {
-  order: 2 !important;
-  margin-right: auto !important;
+  order: 1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0 16px !important;
+  line-height: 1 !important;
 }
 
 html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
@@ -186,23 +195,27 @@ html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.
 html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-outline-secondary:first-child,
 html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child,
 html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-outline-secondary:first-child {
-  order: 1 !important;
+  order: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
   height: 40px !important;
   min-height: 40px !important;
+  max-height: 40px !important;
   padding: 0 !important;
   flex: 0 0 40px !important;
-  color: #202938 !important;
-  background: #ffffff !important;
-  border: 1px solid #c9d2e3 !important;
+  color: #ffffff !important;
+  background: #364a63 !important;
+  border: 1px solid #364a63 !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
 }
 
 html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .toolbar-action > .progress-indicator-container > .btn-outline-secondary:first-child i,
 html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .progress-indicator-container > .btn-outline-secondary:first-child i,
 html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) .progress-indicator-container > .btn-outline-secondary:first-child i {
-  color: #202938 !important;
+  color: #ffffff !important;
 }
 
 #dashboardContainer-daterange {
@@ -291,9 +304,9 @@ html body.page body.page .list-table .bulk-actions [data-control="bulk-action"] 
 html body .media-manager .media-toolbar .btn i,
 html body .media-manager .media-toolbar button i,
 html body .media-manager .media-toolbar a.btn i,
-html body .media-toolbar .media-toolbar-tooltip-wrap .btn i,
-html body .media-toolbar .btn[data-media-control] i,
-html body .media-toolbar [data-media-control].btn i {
+html body .media-manager .media-toolbar .media-toolbar-tooltip-wrap .btn i,
+html body .media-manager .media-toolbar .btn[data-media-control] i,
+html body .media-manager .media-toolbar [data-media-control].btn i {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -317,8 +330,20 @@ html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.
 html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-primary,
 html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-primary,
 html body.page .list-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-primary {
-  order: 2 !important;
-  margin-right: auto !important;
+  order: 1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0 16px !important;
+  color: #ffffff !important;
+  background: #364a63 !important;
+  border-color: #364a63 !important;
+  line-height: 1 !important;
 }
 
 /* Back actions stay left, compact, and visibly dark-blue like the main action. */
@@ -329,7 +354,9 @@ html body.page .toolbar.btn-toolbar:not(.media-manager *):not(.media-toolbar *):
 html body.page .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left),
 html body.page .page-actions:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left),
 html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-outline-secondary:has(.fa-arrow-left) {
-  order: 1 !important;
+  order: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
@@ -338,7 +365,7 @@ html body.page .form-toolbar:not(.media-manager *):not(.media-toolbar *):not(.mo
   padding: 0 !important;
   flex: 0 0 40px !important;
   color: #ffffff !important;
-  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  background: #364a63 !important;
   background-color: #364a63 !important;
   border: 1px solid #364a63 !important;
   box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
@@ -374,9 +401,9 @@ html body.page body.page .list-table .table .bulk-actions:not(.hide) td {
 }
 
 /* Media manager keeps its dimensions; only center two-icon dropdown contents. */
-html body .media-toolbar .dropdown-toggle.btn,
-html body .media-toolbar a.btn.dropdown-toggle,
-html body .media-toolbar button.btn.dropdown-toggle {
+html body .media-manager .media-toolbar .dropdown-toggle.btn,
+html body .media-manager .media-toolbar a.btn.dropdown-toggle,
+html body .media-manager .media-toolbar button.btn.dropdown-toggle {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;

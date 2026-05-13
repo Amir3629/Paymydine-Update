@@ -210,3 +210,24 @@ The remaining production issues were layout/override problems in the focused sty
 - Media-manager toolbar button sizes remain controlled by media-manager styles; Phase 12 only centers dropdown-toggle icon contents for the filter/sort two-icon buttons.
 
 No `MutationObserver`, timer, inline style writer, jQuery `.css()`, `.show()`, or `.hide()` behavior was added.
+
+## Phase 13 update: toolbar auto-margin cleanup and page-specific button mutator disable
+
+Phase 13 keeps the toolbar fix limited to the focused toolbar stylesheet and the legacy page-specific button mutator. No dashboard container files, order/create Blade files, routes, controllers, payment/order/Fiskaly/tenant/database logic, Nginx, asset order, or new JavaScript behavior were changed.
+
+Toolbar CSS findings and fix:
+
+- `app/admin/assets/css/pmd-admin/components/toolbar-buttons.css` still had older primary-action rules that assigned `order: 2` and `margin-right: auto` to primary/save buttons. On pages with a back button or only one primary action, that auto margin could push Save/New/Manage actions into the wrong position.
+- Phase 13 changes primary/save/new toolbar actions to `order: 1`, removes both left and right auto margins, and keeps the stable 42px height and standard toolbar padding.
+- Back-arrow actions remain `order: 0`, left of the primary action, dark blue, and compact 40x40.
+- Secondary/default actions remain ordered after primary actions without broad auto margins. Any future right split should use an explicit safe wrapper rather than applying auto margins to primary buttons globally.
+- Media manager button sizing/layout remains scoped out. The only media-manager rule in this phase is icon centering for dropdown-toggle buttons inside `.media-manager .media-toolbar`.
+
+Page-specific JavaScript findings and fix:
+
+- `app/admin/assets/js/page-specific-fixes.js` still auto-ran `fixDarkBlueButtonText()`, logged `Fixed X buttons with incorrect text colors`, attached delayed timers, a `MutationObserver`, and document change/click handlers, and wrote inline `color` styles to broad button selectors.
+- Phase 13 adds `AUTO_PAGE_SPECIFIC_BUTTON_TEXT_FIXES = false`, exposes `window.PMDPageSpecificFixes.fixDarkBlueButtonText()` for manual browser-console debugging, and prevents the automatic text-color fixer from running or attaching its observer/change/click handlers while the flag is false.
+- The same safety flag also keeps the legacy page-specific back-button width lock from automatically installing style hooks/observers, so top toolbar sizing stays CSS-owned.
+- A search for `moveBulkButtons`, `toolbarBulkContainer`, and `marginLeft` found no active implementation in `page-specific-fixes.js` to patch in this repository state. Bulk action row visibility remains controlled by existing list checkbox behavior plus the scoped CSS already present in `toolbar-buttons.css`.
+
+Remaining risk: `page-specific-fixes.js` still contains other legacy non-toolbar page fixes with timers/observers and inline styles. Those were intentionally preserved for this phase unless they were part of the broad button text/toolbar sizing mutation path.

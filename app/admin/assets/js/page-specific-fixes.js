@@ -2,6 +2,8 @@
  * PAGE-SPECIFIC FIXES
  * Targeted fixes for specific pages that can't be handled with CSS alone
  */
+const AUTO_PAGE_SPECIFIC_BUTTON_TEXT_FIXES = false;
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // Only run on the statuses page
@@ -304,77 +306,85 @@ document.addEventListener('DOMContentLoaded', function() {
         return fixedCount;
     }
     
-    // Run immediately
-    fixDarkBlueButtonText();
-    
-    // Run after a short delay to catch dynamically added elements
-    setTimeout(fixDarkBlueButtonText, 100);
-    setTimeout(fixDarkBlueButtonText, 500);
-    setTimeout(fixDarkBlueButtonText, 1000);
-    
-    // Watch for changes (e.g., when radio buttons are checked/unchecked)
-    const observer = new MutationObserver(function(mutations) {
-        // Skip processing when modal is open to prevent freeze
-        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
-            return;
-        }
-        // Skip if any mutation is inside a modal
-        for (const mutation of mutations) {
-            if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+    window.PMDPageSpecificFixes = Object.assign(window.PMDPageSpecificFixes || {}, {
+        fixDarkBlueButtonText
+    });
+
+    if (AUTO_PAGE_SPECIFIC_BUTTON_TEXT_FIXES) {
+        // Run immediately
+        fixDarkBlueButtonText();
+
+        // Run after a short delay to catch dynamically added elements
+        setTimeout(fixDarkBlueButtonText, 100);
+        setTimeout(fixDarkBlueButtonText, 500);
+        setTimeout(fixDarkBlueButtonText, 1000);
+
+        // Watch for changes (e.g., when radio buttons are checked/unchecked)
+        const observer = new MutationObserver(function(mutations) {
+            // Skip processing when modal is open to prevent freeze
+            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
                 return;
             }
-            if (mutation.target.closest && mutation.target.closest('.modal')) {
-                return;
+            // Skip if any mutation is inside a modal
+            for (const mutation of mutations) {
+                if (window.shouldSkipObserver && window.shouldSkipObserver(mutation)) {
+                    return;
+                }
+                if (mutation.target.closest && mutation.target.closest('.modal')) {
+                    return;
+                }
             }
-        }
-        
-        let shouldFix = false;
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && 
-                (mutation.attributeName === 'class' || mutation.attributeName === 'style')) {
-                shouldFix = true;
-            }
-            if (mutation.addedNodes.length) {
-                shouldFix = true;
+
+            let shouldFix = false;
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' &&
+                    (mutation.attributeName === 'class' || mutation.attributeName === 'style')) {
+                    shouldFix = true;
+                }
+                if (mutation.addedNodes.length) {
+                    shouldFix = true;
+                }
+            });
+            if (shouldFix) {
+                setTimeout(fixDarkBlueButtonText, 50);
             }
         });
-        if (shouldFix) {
-            setTimeout(fixDarkBlueButtonText, 50);
-        }
-    });
-    
-    // Observe the document for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style']
-    });
-    
-    // Also watch for input changes (radio/checkbox checked state)
-    document.addEventListener('change', function(e) {
-        if (e.target.type === 'radio' || e.target.type === 'checkbox') {
-            setTimeout(fixDarkBlueButtonText, 50);
-        }
-    });
-    
-    // Watch for click events on buttons (in case styles change on click)
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.btn, button, label.btn, label.btn-light, .btn-light');
-        if (btn) {
-            // Fix immediately and after a delay to catch state changes
-            setTimeout(fixDarkBlueButtonText, 10);
-            setTimeout(fixDarkBlueButtonText, 100);
-            setTimeout(fixDarkBlueButtonText, 300);
-            
-            // Also fix related buttons in the same group
-            const form = btn.closest('form');
-            const btnGroup = btn.closest('.btn-group');
-            if (form || btnGroup) {
-                setTimeout(fixDarkBlueButtonText, 150);
+
+        // Observe the document for changes
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'style']
+        });
+
+        // Also watch for input changes (radio/checkbox checked state)
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'radio' || e.target.type === 'checkbox') {
+                setTimeout(fixDarkBlueButtonText, 50);
             }
-        }
-    }, true);
+        });
+
+        // Watch for click events on buttons (in case styles change on click)
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn, button, label.btn, label.btn-light, .btn-light');
+            if (btn) {
+                // Fix immediately and after a delay to catch state changes
+                setTimeout(fixDarkBlueButtonText, 10);
+                setTimeout(fixDarkBlueButtonText, 100);
+                setTimeout(fixDarkBlueButtonText, 300);
+
+                // Also fix related buttons in the same group
+                const form = btn.closest('form');
+                const btnGroup = btn.closest('.btn-group');
+                if (form || btnGroup) {
+                    setTimeout(fixDarkBlueButtonText, 150);
+                }
+            }
+        }, true);
+    } else {
+        console.info('PMD page-specific button text fixes disabled; use window.PMDPageSpecificFixes.fixDarkBlueButtonText() for manual debugging.');
+    }
     
     // ============================================
     // FIX: Image Upload Fields - Ice White Background + Dark Blue Plus Icon
@@ -871,17 +881,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     /* Button size is defined once in custom-fixes.css (progress-indicator-container) - no injected style to avoid size flash on load */
     
-    // Run immediately to protect buttons
-    lockSaveButtonWidth();
-    
-    // Run a few times to catch dynamically added buttons, then STOP
-    setTimeout(lockSaveButtonWidth, 50);
-    setTimeout(lockSaveButtonWidth, 200);
-    setTimeout(lockSaveButtonWidth, 500);
-    // Stop calling it after 500ms - protectButtonStyles will handle ongoing protection
-    
-    // Watch for style changes on save buttons and IMMEDIATELY fix them
-    const widthObserver = new MutationObserver(function(mutations) {
+    window.PMDPageSpecificFixes = Object.assign(window.PMDPageSpecificFixes || {}, {
+        lockSaveButtonWidth,
+        protectButtonStyles
+    });
+
+    if (AUTO_PAGE_SPECIFIC_BUTTON_TEXT_FIXES) {
+        // Run immediately to protect buttons
+        lockSaveButtonWidth();
+
+        // Run a few times to catch dynamically added buttons, then STOP
+        setTimeout(lockSaveButtonWidth, 50);
+        setTimeout(lockSaveButtonWidth, 200);
+        setTimeout(lockSaveButtonWidth, 500);
+        // Stop calling it after 500ms - protectButtonStyles will handle ongoing protection
+
+        // Watch for style changes on save buttons and IMMEDIATELY fix them
+        const widthObserver = new MutationObserver(function(mutations) {
         // Skip processing when modal is open to prevent freeze (except for modal buttons)
         const isModalMutation = mutations.some(mutation => {
             if (mutation.target.closest && mutation.target.closest('.modal')) {
@@ -960,18 +976,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    widthObserver.observe(document.body, {
-        attributes: true,
-        attributeFilter: ['style'],
-        childList: true,
-        subtree: true
-    });
-    
-    // Protect Back buttons when found (Save is never touched here)
-    setTimeout(function() {
-        document.querySelectorAll('.progress-indicator-container .btn-outline-secondary').forEach(protectButtonStyles);
-    }, 0);
-    
-    // DON'T run periodically - protectButtonStyles handles everything
-    // Running this causes constant re-renders and jumping
+        widthObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['style'],
+            childList: true,
+            subtree: true
+        });
+
+        // Protect Back buttons when found (Save is never touched here)
+        setTimeout(function() {
+            document.querySelectorAll('.progress-indicator-container .btn-outline-secondary').forEach(protectButtonStyles);
+        }, 0);
+
+        // DON'T run periodically - protectButtonStyles handles everything
+        // Running this causes constant re-renders and jumping
+    }
 });
