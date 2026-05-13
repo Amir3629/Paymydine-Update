@@ -1,4 +1,4 @@
-/* PayMyDine Admin toolbar: scoped `.pmd-` starters only. */
+/* PayMyDine Admin toolbar: scoped `.pmd-` starters plus safe legacy toolbar stabilization. */
 .pmd-toolbar {
   display: flex;
   align-items: center;
@@ -8,4 +8,56 @@
 .pmd-toolbar__action {
   display: inline-flex;
   align-items: center;
+}
+
+/*
+ * Phase 8: stabilize existing admin toolbar buttons from first paint.
+ * These rules replace JS-applied inline sizing for top toolbar/action buttons.
+ * Keep selectors limited to toolbar/dashboard action shells; do not style every
+ * global `.btn` in the admin.
+ */
+.toolbar-action .btn,
+.toolbar-action button.btn,
+.toolbar-action a.btn,
+.toolbar-action .edit-mode-only .btn,
+.toolbar-action [data-control="daterange"],
+#edit-layout-toggle,
+#dashboardContainer-daterange {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+}
+
+.toolbar-action .btn .fa,
+.toolbar-action button.btn .fa,
+.toolbar-action a.btn .fa,
+.toolbar-action [data-control="daterange"] .fa,
+#edit-layout-toggle .fa,
+#dashboardContainer-daterange .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+.toolbar-action .edit-mode-only {
+  display: none !important;
+}
+
+body.edit-mode-active .toolbar-action .edit-mode-only {
+  display: inline-flex !important;
+}
+
+body.edit-mode-active .toolbar-action [data-control="daterange"],
+body.edit-mode-active #dashboardContainer-daterange {
+  display: none !important;
 }

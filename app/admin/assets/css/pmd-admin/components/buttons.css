@@ -1,4 +1,4 @@
-/* PayMyDine Admin buttons: scoped `.pmd-` starters only. */
+/* PayMyDine Admin buttons: scoped `.pmd-` starters plus safe toolbar button helpers. */
 .pmd-btn {
   display: inline-flex;
   align-items: center;
@@ -24,4 +24,36 @@
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
+}
+
+/* Phase 8: stable visual states for existing top toolbar buttons. */
+.toolbar-action .btn-primary,
+.toolbar-action button.btn-primary,
+.toolbar-action a.btn-primary,
+#edit-layout-toggle {
+  min-width: 110px !important;
+  padding: 0.55rem 1.75rem !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  border-color: #364a63 !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.3) !important;
+  text-decoration: none !important;
+}
+
+.toolbar-action .btn-ice,
+.toolbar-action button.btn-ice,
+.toolbar-action a.btn-ice,
+.toolbar-action .btn-outline-default,
+.toolbar-action button.btn-outline-default,
+.toolbar-action a.btn-outline-default,
+.toolbar-action [data-control="daterange"],
+#dashboardContainer-daterange {
+  padding: 0.55rem 1.25rem !important;
+  border-radius: 12px !important;
+  color: #202938 !important;
+  background: #f1f4fb !important;
+  border: 1px solid #c9d2e3 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
 }

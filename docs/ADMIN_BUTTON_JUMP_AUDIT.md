@@ -115,3 +115,22 @@ window.PMDAdminButtonStyling.applyWidgetModalStyles(document)
 ```
 
 The source map 404 and mixed-content image warning observed during browser testing are separate non-button issues and are not addressed by this button-jump fix.
+
+## Phase 8 update: top toolbar button stabilization
+
+Browser traces after Phase 7 showed remaining first-paint and early-load style changes on top toolbar/admin action buttons, including `#edit-layout-toggle`, `#dashboardContainer-daterange`, `.toolbar-action .btn`, `.edit-mode-only .btn`, and dashboard daterange controls.
+
+The root cause for this phase was a combination of two patterns:
+
+- Legacy toolbar buttons depended on inline Blade/JavaScript style writes for display, background, and visibility changes.
+- Stable button dimensions were not available from the loaded modular CSS at first paint, so legacy scripts and global CSS could compete over `display`, height, padding, line-height, and icon alignment.
+
+Phase 8 moves the stable visual rules into loaded CSS:
+
+- `app/admin/assets/css/pmd-admin/components/buttons.css` now defines stable toolbar button visual states for primary, ice, outline-default, and dashboard daterange toolbar buttons.
+- `app/admin/assets/css/pmd-admin/components/toolbar.css` now defines stable toolbar button sizing from first paint: `height: 40px`, `min-height: 40px`, `display: inline-flex`, centered alignment, `gap: 8px`, `line-height: 1`, `white-space: nowrap`, `box-sizing: border-box`, and stable `.fa` icon sizing.
+- `app/admin/views/_meta/assets.json` now loads only the needed additional pmd components: `components/buttons.css` and `components/toolbar.css`, appended after the existing pmd variables/cards entries without reordering existing assets.
+
+Phase 8 also removes dashboard toolbar JavaScript inline style mutations from `app/admin/widgets/dashboardcontainer/widget_toolbar.blade.php`. The edit layout toggle still changes edit mode state, updates the button label, triggers sortable setup/teardown, opens the Add Widget modal through existing Bootstrap/request attributes, and leaves the daterange picker behavior intact. CSS now handles edit-mode visibility for the Add Widget and daterange controls.
+
+Remaining risk: other legacy scripts still contain disabled/manual or non-toolbar inline style writers. If a toolbar button still jumps, verify whether the mutation is from an enabled script or from static inline markup outside the dashboard toolbar.

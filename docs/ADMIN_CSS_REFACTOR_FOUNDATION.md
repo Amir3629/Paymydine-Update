@@ -4,7 +4,7 @@ Date: 2026-05-09
 
 ## Purpose
 
-This foundation creates a safe folder structure for future Laravel/TastyIgniter admin CSS modularization without redesigning the current production admin UI. As of Phase 3, only the passive variables file and card component file are loaded through the existing admin asset metadata; the rest of the `pmd-admin` foundation remains unloaded.
+This foundation creates a safe folder structure for future Laravel/TastyIgniter admin CSS modularization without redesigning the current production admin UI. As of Phase 8, the passive variables file plus card, button, and toolbar component files are loaded through the existing admin asset metadata; the rest of the `pmd-admin` foundation remains unloaded.
 
 ## Why this structure exists
 
@@ -46,7 +46,7 @@ These files must not override generic framework selectors during the foundation 
 
 Component CSS lives in `app/admin/assets/css/pmd-admin/components/`. It is for reusable `.pmd-` classes such as buttons, forms, dropdowns, modals, tables, toolbars, and cards.
 
-Component files should not target `.btn`, `.btn-primary`, `.form-control`, `.modal`, `.table`, or `.dropdown-menu` directly. Currently only `components/cards.css` is loaded from this group.
+Component files should not target `.btn`, `.btn-primary`, `.form-control`, `.modal`, `.table`, or `.dropdown-menu` directly. Currently `components/cards.css`, `components/buttons.css`, and `components/toolbar.css` are loaded from this group.
 
 ### Page CSS
 
@@ -108,6 +108,7 @@ These files should be migrated gradually only after equivalent scoped `.pmd-` mo
 - Phase 3 loads only `00-variables.css` and `components/cards.css` through `app/admin/views/_meta/assets.json`.
 - Phase 3 applies `.pmd-card` classes to the onboarding dashboard widget.
 - Phase 4 applies the same existing `.pmd-card` classes to the charts dashboard widget only.
+- Phase 8 loads `components/buttons.css` and `components/toolbar.css` to stabilize top toolbar button sizing from first paint.
 - Added CSS variable tokens in `00-variables.css`.
 - Added small `.pmd-` starter component classes.
 - Added empty page wrapper scopes for future page-specific work.
@@ -118,7 +119,7 @@ These files should be migrated gradually only after equivalent scoped `.pmd-` mo
 - No existing CSS was removed.
 - No existing JS was removed.
 - No admin layout was changed.
-- No existing asset order was changed; the same two `pmd-admin` entries remain appended to the admin asset metadata after the existing `admin-css` entry.
+- No existing asset order was changed; pmd component entries are appended to the admin asset metadata after the existing `admin-css` entry.
 - No Tailwind dependency or Tailwind classes were added.
 - No Next.js frontend/admin files were touched.
 - No payment, order, Fiskaly, tenant, database, or business logic was touched.
