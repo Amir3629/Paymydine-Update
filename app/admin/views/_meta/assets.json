@@ -32,12 +32,8 @@
       "name": "pmd-admin-cards-css"
     },
     {
-      "path": "css/pmd-admin/components/buttons.css",
-      "name": "pmd-admin-buttons-css"
-    },
-    {
-      "path": "css/pmd-admin/components/toolbar.css",
-      "name": "pmd-admin-toolbar-css"
+      "path": "css/pmd-admin/components/toolbar-buttons.css",
+      "name": "pmd-admin-toolbar-buttons-css"
     }
   ],
   "script": [

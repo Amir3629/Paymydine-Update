@@ -1,0 +1,97 @@
+/*
+ * PayMyDine admin toolbar buttons.
+ * CSS-only normalization for top admin toolbars; do not mirror these rules in JS.
+ */
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn,
+#edit-layout-toggle,
+#dashboardContainer-daterange {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 0.55rem 1rem !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+}
+
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn i,
+.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn .fa,
+#edit-layout-toggle i,
+#edit-layout-toggle .fa,
+#dashboardContainer-daterange i,
+#dashboardContainer-daterange .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary,
+#edit-layout-toggle {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
+}
+
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
+.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:hover,
+.progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-primary:focus,
+#edit-layout-toggle:hover,
+#edit-layout-toggle:focus {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #405874 0%, #5d708c 100%) !important;
+  background-color: #405874 !important;
+  border-color: #405874 !important;
+}
+
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-ice,
+.toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-default,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-ice,
+.btn-toolbar .toolbar-action:not(.media-manager *):not(.media-toolbar *):not(.modal *) .btn-outline-default,
+#dashboardContainer-daterange {
+  color: #202938 !important;
+  background: #f1f4fb !important;
+  border-color: #c9d2e3 !important;
+  box-shadow: none !important;
+}
+
+#dashboardContainer-daterange {
+  min-width: 18rem !important;
+  justify-content: space-between !important;
+  padding-inline: 1rem !important;
+}
+
+.toolbar-action .edit-mode-only {
+  display: none !important;
+}
+
+body.edit-mode-active .toolbar-action .edit-mode-only {
+  display: inline-flex !important;
+}
+
+body.edit-mode-active .toolbar-action [data-control="daterange"],
+body.edit-mode-active #dashboardContainer-daterange {
+  display: none !important;
+}

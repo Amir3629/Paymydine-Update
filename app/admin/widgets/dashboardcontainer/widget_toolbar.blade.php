@@ -27,7 +27,7 @@
                 id="edit-layout-toggle"
                 onclick="toggleEditMode()"
             >
-                <i class="fa fa-edit"></i>&nbsp;&nbsp;<span id="edit-layout-text">Edit Layout</span>
+                <i class="fa fa-edit"></i><span id="edit-layout-text">Edit Layout</span>
             </button>
             
             <!-- Add Widget Button (Hidden by default, shown in edit mode) -->
@@ -39,7 +39,7 @@
                     data-bs-target="#newWidgetModal"
                     data-request="{{ $this->getEventHandler('onLoadAddPopup') }}"
                     tabindex="-1"
-                ><i class="fa fa-plus"></i>&nbsp;&nbsp;@lang('admin::lang.dashboard.button_add_widget')</button>
+                ><i class="fa fa-plus"></i>@lang('admin::lang.dashboard.button_add_widget')</button>
             </div>
         @endif
         {{-- Set As Default button removed --}}
@@ -50,8 +50,8 @@
             data-start-date="{{ $startDate->format('m/d/Y') }}"
             data-end-date="{{ $endDate->format('m/d/Y') }}"
         >
-            <i class="fa fa-calendar"></i>&nbsp;&nbsp;
-            <span>{{$startDate->isoFormat($dateRangeFormat).' - '.$endDate->isoFormat($dateRangeFormat)}}</span>&nbsp;&nbsp;
+            <i class="fa fa-calendar"></i>
+            <span>{{$startDate->isoFormat($dateRangeFormat).' - '.$endDate->isoFormat($dateRangeFormat)}}</span>
             <i class="fa fa-caret-down"></i>
         </button>
     </div>
