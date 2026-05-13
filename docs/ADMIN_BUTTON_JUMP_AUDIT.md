@@ -134,3 +134,24 @@ Phase 8 moves the stable visual rules into loaded CSS:
 Phase 8 also removes dashboard toolbar JavaScript inline style mutations from `app/admin/widgets/dashboardcontainer/widget_toolbar.blade.php`. The edit layout toggle still changes edit mode state, updates the button label, triggers sortable setup/teardown, opens the Add Widget modal through existing Bootstrap/request attributes, and leaves the daterange picker behavior intact. CSS now handles edit-mode visibility for the Add Widget and daterange controls.
 
 Remaining risk: other legacy scripts still contain disabled/manual or non-toolbar inline style writers. If a toolbar button still jumps, verify whether the mutation is from an enabled script or from static inline markup outside the dashboard toolbar.
+
+## Phase 9 update: dashboard toolbar jump root cause and fix
+
+After Phase 8, browser tracing still showed repeated post-refresh mutations around the dashboard toolbar targets `#edit-layout-toggle`, `#dashboardContainer-daterange`, `.edit-mode-only .btn`, and toolbar `.fa` icons. The remaining root cause inside the dashboard area was the widget bootstrap flow, not the edit-mode toolbar toggle itself:
+
+- `app/admin/widgets/dashboardcontainer/assets/js/dashboardcontainer.js` initialized the DashboardContainer plugin and immediately requested `dashboardContainer::onRenderWidgets`.
+- `app/admin/widgets/dashboardcontainer/dashboardcontainer.blade.php` also had an inline fallback that could request the same widgets while the plugin request was still in flight or before the plugin had finished populating the container.
+- Both paths could manually insert or finalize widget HTML and then initialize charts. Those duplicate widget/render cycles happened adjacent to the toolbar and re-triggered legacy admin render/update hooks that were still observable in the browser trace.
+- The dashboard widget bootstrap code also used jQuery inline style helpers for progress/container visibility. Those writes were not toolbar button sizing rules, but they made the dashboard refresh path noisier and harder to distinguish from real toolbar mutations.
+
+Phase 9 fixes only the dashboard container area:
+
+- `dashboardcontainer.js` now keeps shared per-alias state in `window.PMDDashboardContainerState`, marks plugin activity, tracks request start/completion/failure, and treats widgets as loaded only after the container actually has content.
+- `dashboardcontainer.js` skips duplicate widget fetches across the same alias while a successful plugin request is active, preventing repeated widget loads from plugin/data-api re-entry.
+- The inline Blade fallback now waits for the plugin request to complete, retries briefly while the plugin owns the dashboard, refuses to start a second fallback request, and only calls `onRenderWidgets` if the plugin did not populate the container.
+- Progress indicator visibility in the touched dashboard paths now uses the semantic `hidden` property instead of writing inline display/height/padding-style visibility rules.
+- `widget_toolbar.blade.php` remains class/state based: Edit Layout toggles `edit-mode`/`edit-mode-active` and updates text only; CSS in `pmd-admin/components/toolbar.css` and `pmd-admin/components/buttons.css` remains responsible for display, height, min-height, min-width, padding, line-height, gap, icon sizing, alignment, and `inline-flex` behavior.
+
+Phase 9 preserves dashboard behavior: widgets still load through the plugin, the fallback still exists if the plugin fails, charts still initialize after widget HTML is available, Edit Layout still toggles sortable edit mode, Add Widget appears only in edit mode, the Add Widget modal still opens through the existing Bootstrap/request attributes, and the daterange control hides in edit mode via CSS and returns after saving.
+
+Remaining risk: non-dashboard legacy scripts still contain disabled/manual style writers and some non-toolbar dashboard/date-picker code still has narrow inline positioning for the mobile date picker. Those are outside this Phase 9 toolbar-jump fix. Any future toolbar mutation should be verified against the browser trace before broad CSS or global admin JavaScript is changed.

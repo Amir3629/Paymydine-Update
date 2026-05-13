@@ -10,6 +10,20 @@
 +function ($) {
     "use strict";
 
+    function getDashboardContainerState(alias) {
+        window.PMDDashboardContainerState = window.PMDDashboardContainerState || {};
+        if (!window.PMDDashboardContainerState[alias]) {
+            window.PMDDashboardContainerState[alias] = {};
+        }
+        return window.PMDDashboardContainerState[alias];
+    }
+
+    function updateDashboardContainerState(alias, values) {
+        var state = getDashboardContainerState(alias);
+        $.extend(state, values);
+        return state;
+    }
+
     // DASHBOARDCONTAINER CLASS DEFINITION
     // ============================
 
@@ -20,6 +34,8 @@
         this.$requestTarget = this.$form.length ? this.$form : this.$el
         this.$toolbar = $('[data-container-toolbar]')
         this.$dateRangeEl = $(options.dateRangeSelector, this.$toolbar)
+        updateDashboardContainerState(options.alias, {pluginActive: true});
+        window.PMDDashboardContainerPluginActive = true
 
         this.init();
         this.initSortable()
@@ -352,14 +368,14 @@ DashboardContainer.prototype.initDateRange = function () {
             $('span', self.$dateRangeEl).text(startInput + ' - ' + endInput)
             self.$dateRangeEl.attr('data-start-date', startInput).attr('data-end-date', endInput)
 
-            $('.dashboard-widgets .progress-indicator').show()
+            $('.dashboard-widgets .progress-indicator').prop('hidden', false)
             self.$dateRangeEl.request(self.options.alias + '::onSetDateRange', {
                 data: {
                     start: start.toISOString(),
                     end: end.toISOString(),
                 }
             }).always(function () {
-                $('.dashboard-widgets .progress-indicator').attr('style', 'display: none !important;')
+                $('.dashboard-widgets .progress-indicator').prop('hidden', true)
             })
         })
     }
@@ -405,17 +421,30 @@ DashboardContainer.prototype.initDateRange = function () {
         $('span', this.$dateRangeEl).html(start.format(this.options.dateRangeFormat)
             + ' - ' + end.format(this.options.dateRangeFormat));
 
-        $('.dashboard-widgets .progress-indicator').show()
+        $('.dashboard-widgets .progress-indicator').prop('hidden', false)
 
         this.$dateRangeEl.request(this.options.alias + '::onSetDateRange', {
             data: {start: start.toISOString(), end: end.toISOString()}
         }).always(function () {
-            $('.dashboard-widgets .progress-indicator').attr('style', 'display: none !important;');
+            $('.dashboard-widgets .progress-indicator').prop('hidden', true);
         })
     }
 
     DashboardContainer.prototype.fetchWidgets = function () {
         var self = this;
+        var widgetState = getDashboardContainerState(self.options.alias);
+        if (self._widgetsRequestStarted || (widgetState.requestStarted && !widgetState.requestFailed)) {
+            console.log('ℹ️ DashboardContainer: widget request already started, skipping duplicate fetch');
+            return;
+        }
+        self._widgetsRequestStarted = true;
+        updateDashboardContainerState(self.options.alias, {
+            requestStarted: true,
+            requestComplete: false,
+            requestFailed: false,
+            widgetsLoaded: false
+        });
+        window.PMDDashboardContainerWidgetRequestStarted = true;
         // The container ID is generated as: alias + '-' + 'container'
         // e.g., 'dashboardContainer-container'
         var containerId = self.options.alias + '-container';
@@ -444,7 +473,7 @@ DashboardContainer.prototype.initDateRange = function () {
         // Start request immediately - no delay
         $.request(self.options.alias + '::onRenderWidgets', {
             success: function(data) {
-                console.log('✅ DashboardContainer: Widgets loaded successfully', data);
+                console.log('✅ DashboardContainer: Widgets response received successfully', data);
                 
                 // TastyIgniter's AJAX handler should automatically insert HTML,
                 // but manually ensure it happens if needed - check immediately
@@ -482,21 +511,10 @@ DashboardContainer.prototype.initDateRange = function () {
                 
                 // Ensure container is visible immediately
                 if ($container.length) {
-                    $container.css({
-                        'display': 'block',
-                        'visibility': 'visible',
-                        'opacity': '1',
-                        'min-height': '100px'
-                    });
+                    $container.prop('hidden', false);
                     
-                    // Hide progress indicator immediately
-                    $('.dashboard-widgets .progress-indicator', self.$el).css({
-                        'display': 'none',
-                        'visibility': 'hidden',
-                        'opacity': '0',
-                        'height': '0',
-                        'overflow': 'hidden'
-                    });
+                    // Hide progress indicator immediately without writing inline styles.
+                    $('.dashboard-widgets .progress-indicator', self.$el).prop('hidden', true);
                     
                     var finalContentLength = $container.html().trim().length;
                     var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
@@ -532,6 +550,7 @@ DashboardContainer.prototype.initDateRange = function () {
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
+                updateDashboardContainerState(self.options.alias, {requestFailed: true});
                 console.error('❌ DashboardContainer: Failed to load widgets', {
                     status: textStatus,
                     error: errorThrown,
@@ -540,15 +559,12 @@ DashboardContainer.prototype.initDateRange = function () {
                 });
             }
         }).always(function (response) {
+            updateDashboardContainerState(self.options.alias, {requestComplete: true});
             console.log('🔄 DashboardContainer: Request completed');
             
             // Hide progress indicator after a delay to ensure HTML is inserted
             setTimeout(function() {
-                $('.dashboard-widgets .progress-indicator', self.$el).css({
-                    'display': 'none',
-                    'visibility': 'hidden',
-                    'opacity': '0'
-                });
+                $('.dashboard-widgets .progress-indicator', self.$el).prop('hidden', true);
                 
                 // Final check and visibility fix
                 var $container = $(containerSelector);
@@ -556,18 +572,10 @@ DashboardContainer.prototype.initDateRange = function () {
                     var hasContent = $container.html().trim().length > 0;
                     var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
                     
-                    $container.css({
-                        'display': 'block',
-                        'visibility': 'visible',
-                        'opacity': '1'
-                    });
+                    $container.prop('hidden', false);
                     
-                    // Ensure widget-list is visible
-                    $container.find('.widget-list').css({
-                        'display': 'flex',
-                        'visibility': 'visible',
-                        'opacity': '1'
-                    });
+                    // Ensure widget-list remains available without inline style mutations.
+                    $container.find('.widget-list').prop('hidden', false);
                     
                     console.log('✅ DashboardContainer: Final visibility check', {
                         hasContent: hasContent,
@@ -576,6 +584,12 @@ DashboardContainer.prototype.initDateRange = function () {
                         progressHidden: !$('.dashboard-widgets .progress-indicator', self.$el).is(':visible')
                     });
                     
+                    updateDashboardContainerState(self.options.alias, {
+                        requestComplete: true,
+                        widgetsLoaded: hasContent
+                    });
+                    window.PMDDashboardContainerWidgetsLoaded = hasContent;
+
                     if (!hasContent) {
                         console.error('❌ DashboardContainer: Container is STILL empty after all attempts!');
                     }

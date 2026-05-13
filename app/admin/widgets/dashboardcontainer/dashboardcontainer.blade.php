@@ -38,6 +38,22 @@ $loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
     var containerId = {!! json_encode($this->getId("container")) !!};
     var containerSelector = '#' + containerId;
     var hasLoaded = false;
+    var fallbackAttempts = 0;
+    var maxFallbackAttempts = 10;
+
+    function getDashboardState() {
+        window.PMDDashboardContainerState = window.PMDDashboardContainerState || {};
+        window.PMDDashboardContainerState[alias] = window.PMDDashboardContainerState[alias] || {};
+        return window.PMDDashboardContainerState[alias];
+    }
+
+    function updateDashboardState(values) {
+        var state = getDashboardState();
+        Object.keys(values).forEach(function(key) {
+            state[key] = values[key];
+        });
+        return state;
+    }
     
     function loadWidgets() {
         if (hasLoaded || typeof jQuery === 'undefined') {
@@ -53,18 +69,35 @@ $loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
             return;
         }
         
-        // Check if already has content
-        if ($container.html().trim().length > 0) {
+        var hasContainerContent = $container.html().trim().length > 0;
+        var dashboardState = getDashboardState();
+
+        // Check if the plugin already populated the dashboard. The fallback only
+        // hides the progress indicator semantically; it never writes toolbar styles.
+        if (hasContainerContent || (dashboardState.widgetsLoaded && window.PMDDashboardContainerWidgetsLoaded)) {
             hasLoaded = true;
-            jQuery('.dashboard-widgets .progress-indicator').hide();
+            jQuery('.dashboard-widgets .progress-indicator').prop('hidden', true);
             return;
         }
-        
-        console.log('🚀 DashboardContainer: Loading widgets via fallback...', { alias: alias, containerId: containerId });
+
+        var pluginInstance = jQuery('[data-control="dashboard-container"]').data('ti.dashboardContainer');
+        var pluginOwnsDashboard = !!(dashboardState.pluginActive || window.PMDDashboardContainerPluginActive || pluginInstance);
+        var pluginRequestActive = !!(dashboardState.requestStarted && !dashboardState.requestComplete && !dashboardState.requestFailed);
+        if ((pluginOwnsDashboard || pluginRequestActive) && fallbackAttempts < maxFallbackAttempts) {
+            fallbackAttempts++;
+            setTimeout(loadWidgets, 500);
+            return;
+        }
+
+        if (dashboardState.fallbackRequestStarted) {
+            return;
+        }
+
+        updateDashboardState({fallbackRequestStarted: true, fallbackRequestFailed: false});
+        console.log('🚀 DashboardContainer: Loading widgets via fallback after plugin did not populate container...', { alias: alias, containerId: containerId });
         
         jQuery.request(alias + '::onRenderWidgets', {
             success: function(data) {
-                hasLoaded = true;
                 var htmlContent = null;
                 
                 if (typeof data === 'object' && data !== null) {
@@ -74,16 +107,11 @@ $loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
                 }
                 
                 if (htmlContent && $container.length) {
+                    hasLoaded = true;
                     $container.html(htmlContent);
-                    // Hide progress indicator immediately - remove from layout flow
-                    jQuery('.dashboard-widgets .progress-indicator').css({
-                        'display': 'none',
-                        'visibility': 'hidden',
-                        'opacity': '0',
-                        'height': '0',
-                        'overflow': 'hidden',
-                        'position': 'absolute'
-                    });
+                    jQuery('.dashboard-widgets .progress-indicator').prop('hidden', true);
+                    updateDashboardState({fallbackRequestComplete: true, widgetsLoaded: true});
+                    window.PMDDashboardContainerWidgetsLoaded = true;
                     console.log('✅ DashboardContainer: Widgets loaded via fallback');
                     
                     // Initialize charts immediately after widgets are loaded
@@ -107,28 +135,32 @@ $loader_logo = DB::table('logos')->orderBy('id', 'desc')->value('loader_logo');
                     }
                     // Start chart initialization immediately, with minimal delay
                     setTimeout(initChartsFallback, 50);
+                } else {
+                    updateDashboardState({fallbackRequestFailed: true, fallbackRequestComplete: true});
+                    console.warn('⚠️ DashboardContainer: Fallback response did not include widget HTML');
                 }
             },
             error: function(jqXHR) {
+                updateDashboardState({fallbackRequestFailed: true, fallbackRequestComplete: true});
                 console.error('❌ DashboardContainer: Failed to load widgets', jqXHR.status);
             }
         });
     }
     
-    // Wait for jQuery and DOM - start immediately, no delay
+    // Wait briefly before fallback so the dashboardContainer plugin can own the first request.
     if (typeof jQuery !== 'undefined') {
         jQuery(document).ready(function() {
-            loadWidgets(); // Start immediately
+            setTimeout(loadWidgets, 1500);
         });
     } else {
         var checkJQuery = setInterval(function() {
             if (typeof jQuery !== 'undefined') {
                 clearInterval(checkJQuery);
                 jQuery(document).ready(function() {
-                    loadWidgets(); // Start immediately
+                    setTimeout(loadWidgets, 1500);
                 });
             }
-        }, 50); // Check faster
+        }, 50);
     }
 })();
 
