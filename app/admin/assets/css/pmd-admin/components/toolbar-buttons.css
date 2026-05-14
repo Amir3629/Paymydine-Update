@@ -661,3 +661,77 @@ html body .toolbar-action .btn i {
 
 /* === PMD FINAL TOOLBAR OVERRIDE HOTFIX END === */
 
+
+/* Settings/Form toolbar hardening: keep Back before Save and override legacy 48px/green rules. */
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > a.btn.btn-outline-secondary:has(.fa-arrow-left) {
+  order: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  color: #ffffff !important;
+  background: #364a63 !important;
+  background-color: #364a63 !important;
+  background-image: none !important;
+  border: 1px solid #364a63 !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
+}
+
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > a.btn.btn-outline-secondary:has(.fa-arrow-left) i,
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > a.btn.btn-outline-secondary:has(.fa-arrow-left) .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+}
+
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > a.btn.btn-primary[data-request="onSave"],
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-group > .btn.btn-primary[data-request="onSave"] {
+  order: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0 16px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  color: #ffffff !important;
+  background: #364a63 !important;
+  background-color: #364a63 !important;
+  background-image: none !important;
+  border: 1px solid #364a63 !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
+  line-height: 1 !important;
+}
+
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-group:has(> .btn.btn-primary[data-request="onSave"]) {
+  order: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn:not(.btn-primary):not(.btn-success):not([data-request="onSave"]):not(:has(.fa-arrow-left)),
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-group:not(:has(.btn-primary)):not(:has([data-request="onSave"])) > .btn {
+  background: #f1f3fa !important;
+  background-color: #f1f3fa !important;
+  background-image: none !important;
+}
