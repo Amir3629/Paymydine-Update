@@ -1041,11 +1041,13 @@ html body.page[class*="payments"] .page-wrapper .page-content .progress-indicato
   align-items: center !important;
 }
 
+
 /*
  * Staff list toolbar split.
- * JS moves non-primary Staff toolbar actions into `.right-buttons`; these scoped
- * rules keep New on the left and Groups/Roles on the right without changing
- * other admin toolbars that also use `.toolbar-action` or `.progress-indicator-container`.
+ * The page-scoped JS adds `.pmd-staff-toolbar-split` only on the Staff index
+ * toolbar and moves secondary actions into `.right-buttons`. Keeping the CSS
+ * behind this scoped class prevents the split layout from affecting other
+ * admin pages that also use `.toolbar-action` or `.progress-indicator-container`.
  */
 html body.page .progress-indicator-container.pmd-staff-toolbar-split {
   display: flex !important;
@@ -1072,7 +1074,18 @@ html body.page .progress-indicator-container.pmd-staff-toolbar-split > .right-bu
 }
 
 /* Optional development-only debugging: add `pmd-debug-toolbar` to <body>. */
-html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split,
+html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split {
+  outline: 1px dashed orange;
+}
+
+html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split .pmd-toolbar-primary-action {
+  outline: 1px solid green;
+}
+
 html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split > .right-buttons {
-  outline: 1px dashed rgba(54, 74, 99, 0.45);
+  outline: 1px dashed blue;
+}
+
+html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split > .right-buttons .pmd-toolbar-secondary-action {
+  outline: 1px solid red;
 }

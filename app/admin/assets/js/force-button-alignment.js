@@ -673,9 +673,10 @@
     }
     
     /**
-     * Staffs page: keep New left and move Groups/Roles into `.right-buttons`.
-     * This mirrors the permanent admin.js behavior without writing inline layout
-     * styles, so manual legacy debugging cannot create a competing toolbar shape.
+     * Staffs page legacy hook: keep New left and move Groups/Roles into
+     * `.right-buttons`. This mirrors the production admin.js split without
+     * writing inline layout styles, so manual legacy debugging cannot create a
+     * competing toolbar shape.
      */
     function applyStaffsToolbarLayout() {
         const toolbar = document.querySelector('#toolbar') || document.querySelector('.toolbar') || document.querySelector('.list-toolbar');
@@ -693,17 +694,22 @@
         });
         if (!rightGroup) {
             rightGroup = document.createElement('div');
-            rightGroup.className = 'right-buttons';
+            rightGroup.className = 'right-buttons pmd-toolbar-right-buttons';
             rightGroup.setAttribute('aria-label', 'Secondary staff toolbar actions');
             progressContainer.appendChild(rightGroup);
+        } else {
+            rightGroup.classList.add('pmd-toolbar-right-buttons');
         }
 
+        newBtn.classList.add('pmd-toolbar-primary-action');
+        groupsBtn.classList.add('pmd-toolbar-secondary-action');
+        rolesBtn.classList.add('pmd-toolbar-secondary-action');
         rightGroup.appendChild(groupsBtn);
         rightGroup.appendChild(rolesBtn);
         progressContainer.classList.add('pmd-staff-toolbar-split', 'toolbar-staffs-layout');
         progressContainer.dataset.staffsLayoutApplied = '1';
     }
-    
+
     /** System Logs page: Refresh on left, Empty Logs + Request Logs grouped on the right. Runs on init. */
     function applySystemLogsToolbarLayout() {
         const toolbar = document.querySelector('#toolbar') || document.querySelector('.toolbar') || document.querySelector('.list-toolbar');

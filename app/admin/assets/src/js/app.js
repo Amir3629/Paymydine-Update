@@ -27,76 +27,108 @@
 
 
     /**
-     * Staff list toolbar split.
+     * Page-scoped toolbar splitting.
      *
-     * The Staff index toolbar has one primary action (New) that must stay on
-     * the left while secondary actions (Groups, Roles, etc.) live in a
-     * `.right-buttons` group on the right. This keeps the behavior permanent
-     * without broad toolbar JS that could affect other admin pages.
+     * Problem pages can opt into this by adding a config entry below. The helper
+     * leaves the configured primary action on the left, creates/reuses a
+     * `.right-buttons` container, and moves every other direct toolbar action into
+     * that right-side group. Keeping this config-driven prevents Staff-specific
+     * fixes from leaking into unrelated admin toolbars.
      */
-    function applyStaffToolbarSplit() {
-        var path = (window.location.pathname || '').replace(/\/+$/, '');
-        if (!/\/admin\/staffs$/.test(path)) return;
+    var PMD_TOOLBAR_SPLIT_PAGES = [
+        {
+            name: 'staffs-index',
+            routePattern: /\/admin\/staffs$/,
+            primarySelector: 'a.btn-primary[href*="staffs/create"]',
+            splitClass: 'pmd-staff-toolbar-split',
+            rightLabel: 'Secondary staff toolbar actions'
+        }
+    ];
 
+    function getActiveToolbarSplitConfig() {
+        var path = (window.location.pathname || '').replace(/\/+$/, '');
+
+        for (var i = 0; i < PMD_TOOLBAR_SPLIT_PAGES.length; i++) {
+            if (PMD_TOOLBAR_SPLIT_PAGES[i].routePattern.test(path)) {
+                return PMD_TOOLBAR_SPLIT_PAGES[i];
+            }
+        }
+
+        return null;
+    }
+
+    function toolbarChildContains(child, selector) {
+        return (child.matches && child.matches(selector)) ||
+            (child.querySelector && child.querySelector(selector));
+    }
+
+    function getOrCreateRightButtons(container, config) {
+        var children = Array.prototype.slice.call(container.children);
+        for (var i = 0; i < children.length; i++) {
+            if (children[i].classList && children[i].classList.contains('right-buttons')) {
+                children[i].classList.add('pmd-toolbar-right-buttons');
+                return children[i];
+            }
+        }
+
+        var rightButtons = document.createElement('div');
+        rightButtons.className = 'right-buttons pmd-toolbar-right-buttons';
+        rightButtons.setAttribute('aria-label', config.rightLabel || 'Secondary toolbar actions');
+        return rightButtons;
+    }
+
+    function isToolbarActionChild(child) {
+        if (!child || child.tagName === 'INPUT' || child.tagName === 'SCRIPT') return false;
+        if (child.classList && child.classList.contains('progress-indicator')) return false;
+
+        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group'))) ||
+            (child.querySelector && child.querySelector('.btn'));
+    }
+
+    function applyToolbarSplit(config) {
         var containers = document.querySelectorAll('.toolbar-action > .progress-indicator-container, .progress-indicator-container');
+
         Array.prototype.forEach.call(containers, function (container) {
             if (!container || container.closest('.modal, .media-manager, .media-toolbar')) return;
 
-            var directChildren = Array.prototype.slice.call(container.children);
-            var hasStaffCreate = directChildren.some(function (child) {
-                return (child.matches && child.matches('a.btn-primary[href*="staffs/create"]')) ||
-                    (child.querySelector && child.querySelector('a.btn-primary[href*="staffs/create"]'));
-            });
-
-            if (!hasStaffCreate) return;
-
-            var rightButtons = null;
-            directChildren.forEach(function (child) {
-                if (child.classList && child.classList.contains('right-buttons')) {
-                    rightButtons = child;
+            var children = Array.prototype.slice.call(container.children);
+            var primaryAction = null;
+            children.forEach(function (child) {
+                if (!primaryAction && toolbarChildContains(child, config.primarySelector)) {
+                    primaryAction = child;
                 }
             });
 
-            if (!rightButtons) {
-                rightButtons = document.createElement('div');
-                rightButtons.className = 'right-buttons';
-                rightButtons.setAttribute('aria-label', 'Secondary staff toolbar actions');
-            }
+            if (!primaryAction) return;
 
+            var rightButtons = getOrCreateRightButtons(container, config);
             var secondaryActions = [];
+
             Array.prototype.slice.call(container.children).forEach(function (child) {
-                if (!child || child === rightButtons) return;
-                if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT') return;
-                if (child.classList && child.classList.contains('progress-indicator')) return;
-
-                var isAction = (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group'))) ||
-                    (child.querySelector && child.querySelector('.btn'));
-                if (!isAction) return;
-
-                var isPrimaryStaffCreate = (child.matches && child.matches('a.btn-primary[href*="staffs/create"]')) ||
-                    (child.querySelector && child.querySelector('a.btn-primary[href*="staffs/create"]'));
-                var isBackOrSave = (child.matches && child.matches('.btn-outline-secondary, [data-request="onSave"]')) ||
-                    (child.querySelector && child.querySelector('.btn-outline-secondary, [data-request="onSave"]'));
-
-                if (!isPrimaryStaffCreate && !isBackOrSave) {
-                    secondaryActions.push(child);
-                }
+                if (!isToolbarActionChild(child) || child === rightButtons) return;
+                if (child === primaryAction || toolbarChildContains(child, config.primarySelector)) return;
+                secondaryActions.push(child);
             });
 
-            if (!secondaryActions.length && rightButtons.parentElement === container) {
-                container.classList.add('pmd-staff-toolbar-split');
-                return;
-            }
+            container.classList.add(config.splitClass);
+            primaryAction.classList.add('pmd-toolbar-primary-action');
 
-            container.classList.add('pmd-staff-toolbar-split');
             if (rightButtons.parentElement !== container) {
                 container.appendChild(rightButtons);
             }
 
             secondaryActions.forEach(function (button) {
+                button.classList.add('pmd-toolbar-secondary-action');
                 rightButtons.appendChild(button);
             });
         });
+    }
+
+    function applyScopedToolbarSplits() {
+        var config = getActiveToolbarSplitConfig();
+        if (!config) return;
+
+        applyToolbarSplit(config);
     }
 
     function applyGreenButtonBase(element) {
@@ -247,7 +279,7 @@
         $('.alert', document).alert();
 
         applyDeleteIconColor(context);
-        applyStaffToolbarSplit();
+        applyScopedToolbarSplits();
         if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
             runAdminButtonInlineStyling(context);
         }
@@ -256,18 +288,18 @@
     $(document).on('ajaxDone ajaxComplete ajaxSuccess', function (event, context) {
         var scope = context && context.elements ? context.elements : context;
         applyDeleteIconColor(scope || document);
-        applyStaffToolbarSplit();
+        applyScopedToolbarSplits();
         if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
             runAdminButtonInlineStyling(scope || document);
         }
     });
 
     applyDeleteIconColor();
-    applyStaffToolbarSplit();
+    applyScopedToolbarSplits();
 
     $(function () {
-        applyStaffToolbarSplit();
-        setTimeout(applyStaffToolbarSplit, 100);
+        applyScopedToolbarSplits();
+        setTimeout(applyScopedToolbarSplits, 100);
     });
 
     if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
