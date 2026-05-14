@@ -1,0 +1,33 @@
+1776238484a:1:{s:31:"localbox/control_info.blade.php";a:5:{s:8:"fileName";s:31:"localbox/control_info.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:519:"<div class="pb">
+    <div class="mw">
+        <span class="d-block" style="white-space: nowrap;">
+            <strong>{{ $orderType->getLabel() }}</strong>
+        </span>
+        @if ($orderType->getSchedule()->isOpen())
+        <span class="small-t d-block lh-0">            
+                @if ($orderType->getLeadTime())
+                    {!! sprintf(lang('igniter.local::default.text_in_min'), $orderType->getLeadTime()) !!}
+                @endif            
+        </span>
+        @endif
+    </div>
+</div>
+
+
+";s:6:"markup";s:519:"<div class="pb">
+    <div class="mw">
+        <span class="d-block" style="white-space: nowrap;">
+            <strong>{{ $orderType->getLabel() }}</strong>
+        </span>
+        @if ($orderType->getSchedule()->isOpen())
+        <span class="small-t d-block lh-0">            
+                @if ($orderType->getLeadTime())
+                    {!! sprintf(lang('igniter.local::default.text_in_min'), $orderType->getLeadTime()) !!}
+                @endif            
+        </span>
+        @endif
+    </div>
+</div>
+
+
+";s:4:"code";N;}}
