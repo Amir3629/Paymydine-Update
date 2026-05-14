@@ -672,7 +672,11 @@
         progressContainer.dataset.mailTemplatesLayoutApplied = '1';
     }
     
-    /** Staffs page: one button left (New), Groups + Roles grouped on the right. Runs on init so it applies even when there is no bulk row. */
+    /**
+     * Staffs page: keep New left and move Groups/Roles into `.right-buttons`.
+     * This mirrors the permanent admin.js behavior without writing inline layout
+     * styles, so manual legacy debugging cannot create a competing toolbar shape.
+     */
     function applyStaffsToolbarLayout() {
         const toolbar = document.querySelector('#toolbar') || document.querySelector('.toolbar') || document.querySelector('.list-toolbar');
         if (!toolbar) return;
@@ -683,14 +687,20 @@
         const rolesBtn = progressContainer.querySelector('a[href*="staff_roles"]');
         if (!newBtn || !groupsBtn || !rolesBtn) return;
         if (progressContainer.dataset.staffsLayoutApplied === '1') return;
-        var rightGroup = document.createElement('div');
-        rightGroup.className = 'toolbar-staffs-right';
-        rightGroup.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-left: auto;';
-        progressContainer.insertBefore(rightGroup, groupsBtn);
+
+        var rightGroup = Array.prototype.slice.call(progressContainer.children).find(function(child) {
+            return child.classList && child.classList.contains('right-buttons');
+        });
+        if (!rightGroup) {
+            rightGroup = document.createElement('div');
+            rightGroup.className = 'right-buttons';
+            rightGroup.setAttribute('aria-label', 'Secondary staff toolbar actions');
+            progressContainer.appendChild(rightGroup);
+        }
+
         rightGroup.appendChild(groupsBtn);
         rightGroup.appendChild(rolesBtn);
-        progressContainer.style.justifyContent = 'flex-start';
-        progressContainer.classList.add('toolbar-staffs-layout');
+        progressContainer.classList.add('pmd-staff-toolbar-split', 'toolbar-staffs-layout');
         progressContainer.dataset.staffsLayoutApplied = '1';
     }
     

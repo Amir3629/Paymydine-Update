@@ -25,6 +25,80 @@
             });
     }
 
+
+    /**
+     * Staff list toolbar split.
+     *
+     * The Staff index toolbar has one primary action (New) that must stay on
+     * the left while secondary actions (Groups, Roles, etc.) live in a
+     * `.right-buttons` group on the right. This keeps the behavior permanent
+     * without broad toolbar JS that could affect other admin pages.
+     */
+    function applyStaffToolbarSplit() {
+        var path = (window.location.pathname || '').replace(/\/+$/, '');
+        if (!/\/admin\/staffs$/.test(path)) return;
+
+        var containers = document.querySelectorAll('.toolbar-action > .progress-indicator-container, .progress-indicator-container');
+        Array.prototype.forEach.call(containers, function (container) {
+            if (!container || container.closest('.modal, .media-manager, .media-toolbar')) return;
+
+            var directChildren = Array.prototype.slice.call(container.children);
+            var hasStaffCreate = directChildren.some(function (child) {
+                return (child.matches && child.matches('a.btn-primary[href*="staffs/create"]')) ||
+                    (child.querySelector && child.querySelector('a.btn-primary[href*="staffs/create"]'));
+            });
+
+            if (!hasStaffCreate) return;
+
+            var rightButtons = null;
+            directChildren.forEach(function (child) {
+                if (child.classList && child.classList.contains('right-buttons')) {
+                    rightButtons = child;
+                }
+            });
+
+            if (!rightButtons) {
+                rightButtons = document.createElement('div');
+                rightButtons.className = 'right-buttons';
+                rightButtons.setAttribute('aria-label', 'Secondary staff toolbar actions');
+            }
+
+            var secondaryActions = [];
+            Array.prototype.slice.call(container.children).forEach(function (child) {
+                if (!child || child === rightButtons) return;
+                if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT') return;
+                if (child.classList && child.classList.contains('progress-indicator')) return;
+
+                var isAction = (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group'))) ||
+                    (child.querySelector && child.querySelector('.btn'));
+                if (!isAction) return;
+
+                var isPrimaryStaffCreate = (child.matches && child.matches('a.btn-primary[href*="staffs/create"]')) ||
+                    (child.querySelector && child.querySelector('a.btn-primary[href*="staffs/create"]'));
+                var isBackOrSave = (child.matches && child.matches('.btn-outline-secondary, [data-request="onSave"]')) ||
+                    (child.querySelector && child.querySelector('.btn-outline-secondary, [data-request="onSave"]'));
+
+                if (!isPrimaryStaffCreate && !isBackOrSave) {
+                    secondaryActions.push(child);
+                }
+            });
+
+            if (!secondaryActions.length && rightButtons.parentElement === container) {
+                container.classList.add('pmd-staff-toolbar-split');
+                return;
+            }
+
+            container.classList.add('pmd-staff-toolbar-split');
+            if (rightButtons.parentElement !== container) {
+                container.appendChild(rightButtons);
+            }
+
+            secondaryActions.forEach(function (button) {
+                rightButtons.appendChild(button);
+            });
+        });
+    }
+
     function applyGreenButtonBase(element) {
         // Never overwrite while hovered/focused so hover effect stays until mouse out
         if (element.matches && (element.matches(':hover') || document.activeElement === element)) return;
@@ -173,6 +247,7 @@
         $('.alert', document).alert();
 
         applyDeleteIconColor(context);
+        applyStaffToolbarSplit();
         if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
             runAdminButtonInlineStyling(context);
         }
@@ -181,12 +256,20 @@
     $(document).on('ajaxDone ajaxComplete ajaxSuccess', function (event, context) {
         var scope = context && context.elements ? context.elements : context;
         applyDeleteIconColor(scope || document);
+        applyStaffToolbarSplit();
         if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
             runAdminButtonInlineStyling(scope || document);
         }
     });
 
     applyDeleteIconColor();
+    applyStaffToolbarSplit();
+
+    $(function () {
+        applyStaffToolbarSplit();
+        setTimeout(applyStaffToolbarSplit, 100);
+    });
+
     if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
         runAdminButtonInlineStyling();
 
