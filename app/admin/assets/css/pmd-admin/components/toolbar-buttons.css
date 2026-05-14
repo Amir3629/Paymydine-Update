@@ -916,3 +916,31 @@ html body.page #edit-form .progress-indicator-container:not(.media-manager *):no
   background-color: #f1f3fa !important;
   background-image: none !important;
 }
+
+/* Final secondary toolbar grouping: only the first secondary action after primary creates the right split. */
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default),
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-group:has(> .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default)) {
+  order: 10 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default),
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-group > .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default) {
+  background: #f1f3fa !important;
+  background-color: #f1f3fa !important;
+  background-image: none !important;
+  border-color: #c9d2e3 !important;
+}
+
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > :is(.btn-primary, [data-request="onSave"], .btn-group:has(> .btn.btn-primary)) + .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default),
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > :is(.btn-primary, [data-request="onSave"], .btn-group:has(> .btn.btn-primary)) + .btn-group:has(> .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default)) {
+  margin-left: auto !important;
+}
+
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > :is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default) ~ .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default),
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > :is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default) ~ .btn-group:has(> .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default)),
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-group:has(> .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default)) ~ .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default),
+html body.page .progress-indicator-container:not(.media-manager *):not(.media-toolbar *):not(.modal *) > .btn-group:has(> .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default)) ~ .btn-group:has(> .btn:is(.btn-default, .btn-light, .btn-secondary, .btn-outline-default)) {
+  margin-left: 0 !important;
+}
