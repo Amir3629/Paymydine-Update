@@ -18,21 +18,20 @@
     </div>
 </div>
 @if ($this->canManage || $this->canSetDefault)
-    <div class="toolbar-action pt-3">
+    <div class="toolbar-action pt-3 pmd-toolbar">
         @if ($this->canManage)
             <!-- Edit Layout Toggle Button -->
             <button
                 type="button"
                 class="btn btn-primary"
                 id="edit-layout-toggle"
-                style="background: linear-gradient(135deg, #364a63 0%, #526484 100%); border-color: #202938; margin-right: 10px;"
                 onclick="toggleEditMode()"
             >
-                <i class="fa fa-edit"></i>&nbsp;&nbsp;<span id="edit-layout-text">Edit Layout</span>
+                <i class="fa fa-edit"></i><span id="edit-layout-text">Edit Layout</span>
             </button>
             
             <!-- Add Widget Button (Hidden by default, shown in edit mode) -->
-            <div class="edit-mode-only" style="display: none;">
+            <div class="edit-mode-only">
                 <button
                     type="button"
                     class="btn btn-ice"
@@ -40,7 +39,7 @@
                     data-bs-target="#newWidgetModal"
                     data-request="{{ $this->getEventHandler('onLoadAddPopup') }}"
                     tabindex="-1"
-                ><i class="fa fa-plus"></i>&nbsp;&nbsp;@lang('admin::lang.dashboard.button_add_widget')</button>
+                ><i class="fa fa-plus"></i>@lang('admin::lang.dashboard.button_add_widget')</button>
             </div>
         @endif
         {{-- Set As Default button removed --}}
@@ -51,35 +50,13 @@
             data-start-date="{{ $startDate->format('m/d/Y') }}"
             data-end-date="{{ $endDate->format('m/d/Y') }}"
         >
-            <i class="fa fa-calendar"></i>&nbsp;&nbsp;
-            <span>{{$startDate->isoFormat($dateRangeFormat).' - '.$endDate->isoFormat($dateRangeFormat)}}</span>&nbsp;&nbsp;
+            <i class="fa fa-calendar"></i>
+            <span>{{$startDate->isoFormat($dateRangeFormat).' - '.$endDate->isoFormat($dateRangeFormat)}}</span>
             <i class="fa fa-caret-down"></i>
         </button>
     </div>
 @endif
 
-<style>
-/* Hide edit-mode-only buttons by default */
-.edit-mode-only {
-    display: none !important;
-}
-
-/* Show edit-mode-only buttons when in edit mode */
-.edit-mode ~ .toolbar-action .edit-mode-only,
-body.edit-mode-active .edit-mode-only {
-    display: inline-block !important;
-}
-
-/* For btn-group specifically */
-body.edit-mode-active .edit-mode-only.btn-group {
-    display: inline-flex !important;
-}
-
-/* Hide the dashboard date range picker while editing layout */
-body.edit-mode-active #{{ $this->alias }}-daterange {
-    display: none !important;
-}
-</style>
 
 <script>
 // Edit Layout Toggle System
@@ -89,27 +66,14 @@ function toggleEditMode() {
     isEditMode = !isEditMode;
     
     const dashboardContainer = document.querySelector('[data-control="dashboard-container"]');
-    const editButton = document.getElementById('edit-layout-toggle');
     const editText = document.getElementById('edit-layout-text');
-    const editModeButtons = document.querySelectorAll('.edit-mode-only');
-    const dateRangeButton = document.getElementById('{{ $this->alias }}-daterange');
     
     if (isEditMode) {
         // Enter edit mode
         dashboardContainer.classList.add('edit-mode');
         document.body.classList.add('edit-mode-active');
         editText.textContent = 'Save Edit';
-        editButton.style.background = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
-        
-        // Show Add Widget and Set As Default buttons
-        editModeButtons.forEach(btn => {
-            btn.style.display = btn.classList.contains('btn-group') ? 'inline-flex' : 'inline-block';
-        });
-
-        if (dateRangeButton) {
-            dateRangeButton.dataset.originalDisplay = dateRangeButton.style.display;
-            dateRangeButton.style.setProperty('display', 'none', 'important');
-        }
+        // CSS handles edit-mode toolbar visibility and button presentation.
 
         // Ensure dashboard sortable (drag handles) is initialized immediately so move works on first click
         if (typeof jQuery !== 'undefined' && dashboardContainer) {
@@ -120,18 +84,7 @@ function toggleEditMode() {
         dashboardContainer.classList.remove('edit-mode');
         document.body.classList.remove('edit-mode-active');
         editText.textContent = 'Edit Layout';
-        editButton.style.background = 'linear-gradient(135deg, #364a63 0%, #526484 100%)';
-        
-        // Hide Add Widget and Set As Default buttons
-        editModeButtons.forEach(btn => {
-            btn.style.display = 'none';
-        });
-
-        if (dateRangeButton) {
-            const previousDisplay = dateRangeButton.dataset.originalDisplay || '';
-            dateRangeButton.style.setProperty('display', previousDisplay || '', 'important');
-            delete dateRangeButton.dataset.originalDisplay;
-        }
+        // CSS handles edit-mode toolbar visibility and button presentation.
 
         // Destroy sortable when leaving edit mode (clean state)
         if (typeof jQuery !== 'undefined' && dashboardContainer) {
