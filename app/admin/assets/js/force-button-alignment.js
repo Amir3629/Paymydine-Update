@@ -40,9 +40,9 @@
     const PRIMARY_SOLID_BACKGROUND = '#1f2b3a';
     const PRIMARY_BORDER = '#364a63';
     const PRIMARY_TEXT_COLOR = '#ffffff';
-    const ICE_BACKGROUND = '#f1f4fb';
+    const ICE_BACKGROUND = '#f1f3f9';
     const ICE_BORDER = '#c9d2e3';
-    const ICE_TEXT_COLOR = '#202938';
+    const ICE_TEXT_COLOR = '#364a63';
     const DANGER_BACKGROUND = '#dc3545';
     const DANGER_BORDER = '#dc3545';
     const DANGER_TEXT_COLOR = '#ffffff';

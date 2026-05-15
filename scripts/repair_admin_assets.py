@@ -365,6 +365,15 @@ TOOLBAR_JS = r'''
             primarySelector: 'a.btn-primary[href*="staffs/create"], a[href*="staffs/create"]',
             splitClass: 'pmd-staff-toolbar-split',
             rightLabel: 'Secondary staff toolbar actions'
+        },
+        {
+            name: 'payments-index',
+            routePattern: /\/admin\/payments$/,
+            primarySelector: '.pmd-toolbar-primary-action, [data-pmd-toolbar-primary]',
+            secondarySelector: '.pmd-payments-mode-toggle, [data-pmd-toolbar-secondary]',
+            splitClass: 'pmd-payments-toolbar-split',
+            rightLabel: 'Payment view actions',
+            allowRightOnly: true
         }
     ];
 
@@ -376,7 +385,9 @@ TOOLBAR_JS = r'''
         style.textContent = [
             '.progress-indicator-container.pmd-toolbar-split,.toolbar-action.pmd-toolbar-split{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;width:100%!important;min-width:0!important;}',
             '.progress-indicator-container.pmd-toolbar-split>.right-buttons,.toolbar-action.pmd-toolbar-split>.right-buttons{display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin-left:auto!important;flex:0 0 auto!important;}',
-            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn-group,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn-group{margin-left:0!important;margin-right:0!important;}'
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn-group,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn-group{margin-left:0!important;margin-right:0!important;}',
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn,.pmd-toolbar-right-buttons>.btn,.pmd-toolbar-secondary-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;box-shadow:none!important;}',
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:hover,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:focus,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn:hover,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}'
         ].join('\n');
         document.head.appendChild(style);
     }
@@ -428,7 +439,8 @@ TOOLBAR_JS = r'''
         if (child.classList && child.classList.contains('right-buttons')) return true;
 
         return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group') || child.classList.contains('dropdown'))) ||
-            (child.querySelector && child.querySelector('.btn, .btn-group'));
+            (child.hasAttribute && (child.hasAttribute('data-pmd-toolbar-secondary') || child.hasAttribute('data-pmd-toolbar-primary'))) ||
+            (child.querySelector && child.querySelector('.btn, .btn-group, [data-pmd-toolbar-secondary], [data-pmd-toolbar-primary]'));
     }
 
     function getToolbarContainers() {
@@ -453,8 +465,10 @@ TOOLBAR_JS = r'''
 
         if (primaryAction) return primaryAction;
 
+        if (config.allowRightOnly) return null;
+
         for (var i = 0; i < children.length; i++) {
-            if (isToolbarActionChild(children[i]) && !(children[i].classList && children[i].classList.contains('right-buttons'))) {
+            if (isToolbarActionChild(children[i]) && !(children[i].classList && children[i].classList.contains('right-buttons')) && !toolbarChildContains(children[i], config.secondarySelector)) {
                 return children[i];
             }
         }
@@ -470,14 +484,15 @@ TOOLBAR_JS = r'''
 
             var children = Array.prototype.slice.call(container.children);
             var primaryAction = findPrimaryAction(children, config);
-            if (!primaryAction) return;
+            if (!primaryAction && !config.allowRightOnly) return;
 
             var rightButtons = getOrCreateRightButtons(container, config);
             var secondaryActions = [];
 
             Array.prototype.slice.call(container.children).forEach(function (child) {
                 if (!isToolbarActionChild(child) || child === rightButtons) return;
-                if (child === primaryAction) return;
+                if (child === primaryAction || toolbarChildContains(child, config.primarySelector)) return;
+                if (config.secondarySelector && !primaryAction && !toolbarChildContains(child, config.secondarySelector)) return;
                 secondaryActions.push(child);
             });
 
@@ -485,7 +500,7 @@ TOOLBAR_JS = r'''
 
             container.classList.add('pmd-toolbar-split');
             if (config.splitClass) container.classList.add(config.splitClass);
-            primaryAction.classList.add('pmd-toolbar-primary-action');
+            if (primaryAction) primaryAction.classList.add('pmd-toolbar-primary-action');
 
             if (rightButtons.parentElement !== container) {
                 container.appendChild(rightButtons);
@@ -505,9 +520,36 @@ TOOLBAR_JS = r'''
         applyToolbarSplit(config);
     }
 
+    function syncPaymentsModeToggleLabels() {
+        var toggles = document.querySelectorAll('.pmd-payments-mode-toggle[data-methods-label][data-providers-label]');
+        if (!toggles.length) return;
+
+        var params = new URLSearchParams(window.location.search || '');
+        var isProvidersMode = params.get('mode') === 'providers';
+
+        Array.prototype.forEach.call(toggles, function (toggle) {
+            var nextLabel = isProvidersMode ? toggle.getAttribute('data-methods-label') : toggle.getAttribute('data-providers-label');
+            var nextHref = isProvidersMode ? toggle.getAttribute('data-methods-href') : toggle.getAttribute('data-providers-href');
+
+            if (nextLabel) toggle.textContent = nextLabel;
+            if (nextHref) toggle.setAttribute('href', nextHref);
+
+            if (toggle.dataset.paymentsToggleBound === '1') return;
+            toggle.dataset.paymentsToggleBound = '1';
+            toggle.addEventListener('click', function () {
+                var pendingLabel = isProvidersMode ? toggle.getAttribute('data-providers-label') : toggle.getAttribute('data-methods-label');
+                if (pendingLabel) toggle.textContent = pendingLabel;
+            });
+        });
+    }
+
     function scheduleToolbarSplit() {
+        syncPaymentsModeToggleLabels();
         applyScopedToolbarSplits();
-        window.setTimeout(applyScopedToolbarSplits, 100);
+        window.setTimeout(function () {
+            syncPaymentsModeToggleLabels();
+            applyScopedToolbarSplits();
+        }, 100);
     }
 
     if (document.readyState === 'loading') {
@@ -566,6 +608,64 @@ html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar
 html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split > .right-buttons .pmd-toolbar-secondary-action {
   outline: 1px solid red;
 }
+
+
+/* Generic admin toolbar split used by the runtime Toolbar Splitter. */
+html body.page .progress-indicator-container.pmd-toolbar-split,
+html body.page .toolbar-action.pmd-toolbar-split {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn-group {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Secondary toolbar actions should match the Staff toolbar's ice button style on every admin page. */
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .pmd-toolbar-right-buttons > .btn,
+html body.page .pmd-toolbar-secondary-action {
+  background: #f1f3f9 !important;
+  background-color: #f1f3f9 !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:hover,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:focus,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn:hover,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn:focus,
+html body.page .pmd-toolbar-right-buttons > .btn:hover,
+html body.page .pmd-toolbar-right-buttons > .btn:focus,
+html body.page .pmd-toolbar-secondary-action:hover,
+html body.page .pmd-toolbar-secondary-action:focus {
+  background: #e5ebf7 !important;
+  background-color: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+}
+
 '''
 
 

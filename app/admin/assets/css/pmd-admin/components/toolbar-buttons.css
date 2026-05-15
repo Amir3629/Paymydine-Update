@@ -1117,3 +1117,30 @@ html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn-group {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
+
+/* Secondary toolbar actions should match the Staff toolbar's ice button style on every admin page. */
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .pmd-toolbar-right-buttons > .btn,
+html body.page .pmd-toolbar-secondary-action {
+  background: #f1f3f9 !important;
+  background-color: #f1f3f9 !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:hover,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:focus,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn:hover,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn:focus,
+html body.page .pmd-toolbar-right-buttons > .btn:hover,
+html body.page .pmd-toolbar-right-buttons > .btn:focus,
+html body.page .pmd-toolbar-secondary-action:hover,
+html body.page .pmd-toolbar-secondary-action:focus {
+  background: #e5ebf7 !important;
+  background-color: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+}
