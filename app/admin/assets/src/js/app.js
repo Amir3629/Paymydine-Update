@@ -37,6 +37,8 @@
      * wrappers or breaking modal/media-manager controls.
      */
     var PMD_TOOLBAR_SPLIT_STYLE_ID = 'pmd-toolbar-split-runtime-style';
+    var PMD_TOOLBAR_SPLIT_OBSERVER = null;
+    var PMD_TOOLBAR_SPLIT_PENDING = false;
     var PMD_TOOLBAR_SPLIT_PAGES = [
         {
             name: 'staffs-index',
@@ -66,7 +68,9 @@
             '.progress-indicator-container.pmd-toolbar-split>.right-buttons,.toolbar-action.pmd-toolbar-split>.right-buttons{display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin-left:auto!important;flex:0 0 auto!important;}',
             '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn-group,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn-group{margin-left:0!important;margin-right:0!important;}',
             '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn,.pmd-toolbar-right-buttons>.btn,.pmd-toolbar-secondary-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;box-shadow:none!important;}',
-            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:hover,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:focus,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn:hover,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}'
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:hover,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:focus,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn:hover,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}',
+            '.progress-indicator-container.pmd-toolbar-split>.pmd-toolbar-back-action,.toolbar-action.pmd-toolbar-split>.pmd-toolbar-back-action,.pmd-toolbar-back-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;margin-right:8px!important;margin-left:0!important;box-shadow:none!important;order:0!important;}',
+            '.pmd-toolbar-back-action:hover,.pmd-toolbar-back-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}'
         ].join('\n');
         document.head.appendChild(style);
     }
@@ -94,6 +98,78 @@
         return (child.matches && child.matches(selector)) ||
             (child.querySelector && child.querySelector(selector));
     }
+
+    function isToolbarBackAction(child) {
+        if (!child || child.nodeType !== 1) return false;
+        if (child.matches && child.matches('[data-pmd-toolbar-back], .pmd-toolbar-back-action')) return true;
+
+        var icon = child.querySelector && child.querySelector('.fa-arrow-left, .fa-arrow-circle-left, .fa-chevron-left, i[class*="fa-arrow-left"], i[class*="fa-chevron-left"]');
+        if (!icon) return false;
+
+        return (child.matches && child.matches('a.btn, button.btn, .btn, .btn-group')) ||
+            (child.classList && child.classList.contains('pmd-toolbar-secondary-action'));
+    }
+
+    function normalizeToolbarBackAction(child) {
+        if (!child || child.nodeType !== 1) return;
+        child.classList.add('pmd-toolbar-back-action', 'pmd-toolbar-secondary-action');
+        child.style.setProperty('background', '#f1f3f9', 'important');
+        child.style.setProperty('background-color', '#f1f3f9', 'important');
+        child.style.setProperty('border', '1px solid #c9d2e3', 'important');
+        child.style.setProperty('color', '#364a63', 'important');
+        child.style.setProperty('margin-right', '8px', 'important');
+        child.style.setProperty('margin-left', '0', 'important');
+        child.style.setProperty('box-shadow', 'none', 'important');
+
+        var icons = child.querySelectorAll ? child.querySelectorAll('i, .fa') : [];
+        Array.prototype.forEach.call(icons, function (icon) {
+            icon.style.setProperty('color', '#364a63', 'important');
+        });
+    }
+
+    function getToolbarBackActions(container, rightButtons) {
+        var seen = [];
+        var sources = [container];
+        if (rightButtons) sources.push(rightButtons);
+
+        sources.forEach(function (source) {
+            if (!source) return;
+            Array.prototype.slice.call(source.children).forEach(function (child) {
+                if (isToolbarBackAction(child) && seen.indexOf(child) === -1) {
+                    seen.push(child);
+                }
+            });
+        });
+
+        return seen;
+    }
+
+    function placeToolbarBackActions(container, primaryAction, rightButtons) {
+        var backActions = getToolbarBackActions(container, rightButtons);
+        if (!backActions.length) return;
+
+        var referenceNode = null;
+        if (primaryAction && primaryAction.parentElement === container) {
+            referenceNode = primaryAction;
+        }
+        else if (rightButtons && rightButtons.parentElement === container) {
+            referenceNode = rightButtons;
+        }
+        else {
+            referenceNode = container.firstElementChild || null;
+        }
+
+        backActions.slice().reverse().forEach(function (backAction) {
+            normalizeToolbarBackAction(backAction);
+
+            if (backAction.parentElement !== container || backAction.nextElementSibling !== referenceNode) {
+                container.insertBefore(backAction, referenceNode);
+            }
+
+            referenceNode = backAction;
+        });
+    }
+
 
     function getOrCreateRightButtons(container, config) {
         var children = Array.prototype.slice.call(container.children);
@@ -147,7 +223,7 @@
         if (config.allowRightOnly) return null;
 
         for (var i = 0; i < children.length; i++) {
-            if (isToolbarActionChild(children[i]) && !(children[i].classList && children[i].classList.contains('right-buttons')) && !toolbarChildContains(children[i], config.secondarySelector)) {
+            if (isToolbarActionChild(children[i]) && !isToolbarBackAction(children[i]) && !(children[i].classList && children[i].classList.contains('right-buttons')) && !toolbarChildContains(children[i], config.secondarySelector)) {
                 return children[i];
             }
         }
@@ -166,10 +242,11 @@
             if (!primaryAction && !config.allowRightOnly) return;
 
             var rightButtons = getOrCreateRightButtons(container, config);
+            placeToolbarBackActions(container, primaryAction, rightButtons);
             var secondaryActions = [];
 
             Array.prototype.slice.call(container.children).forEach(function (child) {
-                if (!isToolbarActionChild(child) || child === rightButtons) return;
+                if (!isToolbarActionChild(child) || child === rightButtons || isToolbarBackAction(child)) return;
                 if (child === primaryAction || toolbarChildContains(child, config.primarySelector)) return;
                 if (config.secondarySelector && !primaryAction && !toolbarChildContains(child, config.secondarySelector)) return;
                 secondaryActions.push(child);
@@ -222,12 +299,39 @@
         });
     }
 
+    function queueToolbarSplitRefresh() {
+        if (PMD_TOOLBAR_SPLIT_PENDING) return;
+        PMD_TOOLBAR_SPLIT_PENDING = true;
+
+        window.setTimeout(function () {
+            PMD_TOOLBAR_SPLIT_PENDING = false;
+            syncPaymentsModeToggleLabels();
+            applyScopedToolbarSplits();
+        }, 50);
+    }
+
+    function initToolbarSplitObserver() {
+        if (PMD_TOOLBAR_SPLIT_OBSERVER || !window.MutationObserver || !document.body) return;
+
+        PMD_TOOLBAR_SPLIT_OBSERVER = new MutationObserver(function (mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                if (mutations[i].addedNodes && mutations[i].addedNodes.length) {
+                    queueToolbarSplitRefresh();
+                    return;
+                }
+            }
+        });
+
+        PMD_TOOLBAR_SPLIT_OBSERVER.observe(document.body, { childList: true, subtree: true });
+    }
+
     function scheduleToolbarSplit() {
         syncPaymentsModeToggleLabels();
         applyScopedToolbarSplits();
         window.setTimeout(function () {
             syncPaymentsModeToggleLabels();
             applyScopedToolbarSplits();
+            initToolbarSplitObserver();
         }, 100);
     }
 
