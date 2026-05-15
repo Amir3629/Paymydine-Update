@@ -1,0 +1,2 @@
+/*! PayMyDine fallback CSS for daterangepicker.css. Replace with vendor build when available. */
+.daterangepicker{position:absolute;z-index:3000;background:#fff;border:1px solid #d9dee8;border-radius:8px;padding:8px;display:none}

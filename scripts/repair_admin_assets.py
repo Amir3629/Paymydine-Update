@@ -31,6 +31,16 @@ ROOT = Path(__file__).resolve().parents[1]
 TIMEOUT = 30
 USER_AGENT = "PayMyDine-admin-asset-repair/1.0"
 
+# Local source files are preferred over tiny stubs when this script is run in an
+# environment where outbound CDN requests are blocked. Paths are repository-root
+# relative so the repair stays self-contained when known vendor packages already
+# exist elsewhere in the checkout.
+LOCAL_ASSET_FALLBACKS = {
+    "app/admin/assets/vendor/pmd-mediafix/jquery.min.js": [
+        "themes/tastyigniter-orange1/node_modules/jquery/dist/jquery.min.js",
+    ],
+}
+
 
 def log(message: str) -> None:
     print(f"[repair-admin-assets] {message}")
@@ -64,10 +74,21 @@ def fetch(url: str) -> bytes | None:
         return None
 
 
+def read_local_asset(rel_path: str) -> bytes | None:
+    for candidate in LOCAL_ASSET_FALLBACKS.get(rel_path, []):
+        path = ROOT / candidate
+        if path.exists() and path.is_file():
+            log(f"using local vendor copy {candidate} for {rel_path}")
+            return strip_source_maps(path.read_bytes())
+
+    return None
+
+
 def ensure_asset(rel_path: str, urls: list[str], fallback: str) -> None:
     path = ROOT / rel_path
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    # First try CDNs so production receives complete vendor libraries.
     for url in urls:
         data = fetch(url)
         if data:
@@ -75,6 +96,16 @@ def ensure_asset(rel_path: str, urls: list[str], fallback: str) -> None:
             log(f"wrote {rel_path} from {url}")
             return
 
+    # If the network is blocked, reuse any checked-out vendor package before
+    # falling back to a no-error compatibility shim.
+    local_data = read_local_asset(rel_path)
+    if local_data:
+        path.write_bytes(local_data)
+        log(f"wrote {rel_path} from local vendor copy")
+        return
+
+    # Last resort: write a safe shim so browser requests no longer 404 and
+    # admin initialization does not crash when optional widgets are absent.
     path.write_text(fallback, encoding="utf-8")
     log(f"wrote fallback stub for {rel_path}")
 
@@ -318,23 +349,37 @@ ASSETS = [
 
 TOOLBAR_JS = r'''
     /**
-     * Page-scoped toolbar splitting.
+     * PayMyDine admin toolbar splitting.
      *
-     * Problem pages can opt into this by adding a config entry below. The helper
-     * leaves the configured primary action on the left, creates/reuses a
-     * `.right-buttons` container, and moves every other direct toolbar action into
-     * that right-side group. Keeping this config-driven prevents Staff-specific
-     * fixes from leaking into unrelated admin toolbars.
+     * Keeps the first/primary toolbar action on the left and moves all other
+     * direct toolbar actions into a right-aligned `.right-buttons` group. The
+     * helper is intentionally defensive so it can run on DOMContentLoaded,
+     * after AJAX refreshes, and on already-split toolbars without duplicating
+     * wrappers or breaking modal/media-manager controls.
      */
+    var PMD_TOOLBAR_SPLIT_STYLE_ID = 'pmd-toolbar-split-runtime-style';
     var PMD_TOOLBAR_SPLIT_PAGES = [
         {
             name: 'staffs-index',
             routePattern: /\/admin\/staffs$/,
-            primarySelector: 'a.btn-primary[href*="staffs/create"]',
+            primarySelector: 'a.btn-primary[href*="staffs/create"], a[href*="staffs/create"]',
             splitClass: 'pmd-staff-toolbar-split',
             rightLabel: 'Secondary staff toolbar actions'
         }
     ];
+
+    function ensureToolbarSplitStyles() {
+        if (document.getElementById(PMD_TOOLBAR_SPLIT_STYLE_ID)) return;
+
+        var style = document.createElement('style');
+        style.id = PMD_TOOLBAR_SPLIT_STYLE_ID;
+        style.textContent = [
+            '.progress-indicator-container.pmd-toolbar-split,.toolbar-action.pmd-toolbar-split{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;width:100%!important;min-width:0!important;}',
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons,.toolbar-action.pmd-toolbar-split>.right-buttons{display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin-left:auto!important;flex:0 0 auto!important;}',
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn-group,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn-group{margin-left:0!important;margin-right:0!important;}'
+        ].join('\n');
+        document.head.appendChild(style);
+    }
 
     function getActiveToolbarSplitConfig() {
         var path = (window.location.pathname || '').replace(/\/+$/, '');
@@ -345,10 +390,17 @@ TOOLBAR_JS = r'''
             }
         }
 
-        return null;
+        return {
+            name: 'generic-admin-toolbar',
+            routePattern: /\/admin(?:\/|$)/,
+            primarySelector: '.btn-primary, [data-primary-action], [data-toolbar-primary]',
+            splitClass: 'pmd-toolbar-split',
+            rightLabel: 'Secondary toolbar actions'
+        };
     }
 
     function toolbarChildContains(child, selector) {
+        if (!child || !selector) return false;
         return (child.matches && child.matches(selector)) ||
             (child.querySelector && child.querySelector(selector));
     }
@@ -358,6 +410,7 @@ TOOLBAR_JS = r'''
         for (var i = 0; i < children.length; i++) {
             if (children[i].classList && children[i].classList.contains('right-buttons')) {
                 children[i].classList.add('pmd-toolbar-right-buttons');
+                children[i].setAttribute('aria-label', config.rightLabel || 'Secondary toolbar actions');
                 return children[i];
             }
         }
@@ -369,27 +422,54 @@ TOOLBAR_JS = r'''
     }
 
     function isToolbarActionChild(child) {
-        if (!child || child.tagName === 'INPUT' || child.tagName === 'SCRIPT') return false;
+        if (!child || child.nodeType !== 1) return false;
+        if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return false;
         if (child.classList && child.classList.contains('progress-indicator')) return false;
+        if (child.classList && child.classList.contains('right-buttons')) return true;
 
-        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group'))) ||
-            (child.querySelector && child.querySelector('.btn'));
+        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group') || child.classList.contains('dropdown'))) ||
+            (child.querySelector && child.querySelector('.btn, .btn-group'));
+    }
+
+    function getToolbarContainers() {
+        return document.querySelectorAll('.toolbar-action > .progress-indicator-container, .toolbar-action');
+    }
+
+    function shouldSkipToolbarContainer(container) {
+        if (!container || container.closest('.modal, .media-manager, .media-toolbar, [data-control="media-manager"]')) return true;
+        if (container.classList && container.classList.contains('right-buttons')) return true;
+        if (container.closest('.right-buttons')) return true;
+        return false;
+    }
+
+    function findPrimaryAction(children, config) {
+        var primaryAction = null;
+
+        children.forEach(function (child) {
+            if (!primaryAction && toolbarChildContains(child, config.primarySelector)) {
+                primaryAction = child;
+            }
+        });
+
+        if (primaryAction) return primaryAction;
+
+        for (var i = 0; i < children.length; i++) {
+            if (isToolbarActionChild(children[i]) && !(children[i].classList && children[i].classList.contains('right-buttons'))) {
+                return children[i];
+            }
+        }
+
+        return null;
     }
 
     function applyToolbarSplit(config) {
-        var containers = document.querySelectorAll('.toolbar-action > .progress-indicator-container, .progress-indicator-container');
+        ensureToolbarSplitStyles();
 
-        Array.prototype.forEach.call(containers, function (container) {
-            if (!container || container.closest('.modal, .media-manager, .media-toolbar')) return;
+        Array.prototype.forEach.call(getToolbarContainers(), function (container) {
+            if (shouldSkipToolbarContainer(container)) return;
 
             var children = Array.prototype.slice.call(container.children);
-            var primaryAction = null;
-            children.forEach(function (child) {
-                if (!primaryAction && toolbarChildContains(child, config.primarySelector)) {
-                    primaryAction = child;
-                }
-            });
-
+            var primaryAction = findPrimaryAction(children, config);
             if (!primaryAction) return;
 
             var rightButtons = getOrCreateRightButtons(container, config);
@@ -397,11 +477,14 @@ TOOLBAR_JS = r'''
 
             Array.prototype.slice.call(container.children).forEach(function (child) {
                 if (!isToolbarActionChild(child) || child === rightButtons) return;
-                if (child === primaryAction || toolbarChildContains(child, config.primarySelector)) return;
+                if (child === primaryAction) return;
                 secondaryActions.push(child);
             });
 
-            container.classList.add(config.splitClass);
+            if (!secondaryActions.length && rightButtons.parentElement !== container) return;
+
+            container.classList.add('pmd-toolbar-split');
+            if (config.splitClass) container.classList.add(config.splitClass);
             primaryAction.classList.add('pmd-toolbar-primary-action');
 
             if (rightButtons.parentElement !== container) {
@@ -417,12 +500,23 @@ TOOLBAR_JS = r'''
 
     function applyScopedToolbarSplits() {
         var config = getActiveToolbarSplitConfig();
-        if (!config) return;
+        if (!config || (config.routePattern && !config.routePattern.test((window.location.pathname || '').replace(/\/+$/, '')))) return;
 
         applyToolbarSplit(config);
     }
-'''
 
+    function scheduleToolbarSplit() {
+        applyScopedToolbarSplits();
+        window.setTimeout(applyScopedToolbarSplits, 100);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scheduleToolbarSplit);
+    }
+    else {
+        scheduleToolbarSplit();
+    }
+'''
 TOOLBAR_CSS = r'''
 
 /*
@@ -475,6 +569,28 @@ html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar
 '''
 
 
+def replace_between_markers(text: str, start_markers: tuple[str, ...], end_markers: tuple[str, ...], replacement: str) -> tuple[str, bool]:
+    start = -1
+    for marker in start_markers:
+        start = text.find(marker)
+        if start >= 0:
+            break
+
+    if start < 0:
+        return text, False
+
+    end = -1
+    for marker in end_markers:
+        end = text.find(marker, start)
+        if end >= 0:
+            break
+
+    if end < 0:
+        return text, False
+
+    return text[:start] + replacement + "\n" + text[end:], True
+
+
 def patch_toolbar_js(rel_path: str) -> None:
     path = ROOT / rel_path
     text = read(path)
@@ -482,10 +598,23 @@ def patch_toolbar_js(rel_path: str) -> None:
         log(f"WARN: {rel_path} not found; skipping toolbar JS patch")
         return
 
-    had_toolbar_helper = "var PMD_TOOLBAR_SPLIT_PAGES" in text
-    had_toolbar_calls = "applyScopedToolbarSplits();" in text
+    # Replace the incomplete/older Toolbar Splitter block when present; if the
+    # server copy never had the block, insert the complete implementation before
+    # the existing button-color helpers.
+    text, replaced = replace_between_markers(
+        text,
+        (
+            "    /**\n     * PayMyDine admin toolbar splitting.",
+            "    /**\n     * Page-scoped toolbar splitting.",
+        ),
+        (
+            "    var REFERENCE_MODAL_GRADIENT",
+            "    function applyGreenButtonBase",
+        ),
+        TOOLBAR_JS.rstrip("\n"),
+    )
 
-    if not had_toolbar_helper:
+    if not replaced:
         marker = "    function applyGreenButtonBase(element)"
         alt_marker = "    var REFERENCE_MODAL_GRADIENT"
         insert_at = text.find(marker)
@@ -496,7 +625,9 @@ def patch_toolbar_js(rel_path: str) -> None:
         else:
             text = text[:insert_at] + TOOLBAR_JS + "\n" + text[insert_at:]
 
-    if not had_toolbar_calls:
+    # Keep the helper wired into existing admin refresh paths. DOMContentLoaded
+    # is handled inside TOOLBAR_JS; these calls cover TastyIgniter AJAX updates.
+    if "applyScopedToolbarSplits();" not in text:
         text = text.replace(
             "        applyDeleteIconColor(context);\n",
             "        applyDeleteIconColor(context);\n        applyScopedToolbarSplits();\n",
@@ -509,7 +640,7 @@ def patch_toolbar_js(rel_path: str) -> None:
         )
         text = text.replace(
             "    applyDeleteIconColor();\n",
-            "    applyDeleteIconColor();\n    applyScopedToolbarSplits();\n\n    $(function () {\n        applyScopedToolbarSplits();\n        setTimeout(applyScopedToolbarSplits, 100);\n    });\n",
+            "    applyDeleteIconColor();\n    applyScopedToolbarSplits();\n",
             1,
         )
 
@@ -525,12 +656,28 @@ def patch_toolbar_css() -> None:
         log(f"WARN: {rel_path} not found; skipping toolbar CSS patch")
         return
 
-    if ".pmd-staff-toolbar-split" not in text:
+    if ".pmd-staff-toolbar-split" not in text or ".toolbar-action.pmd-toolbar-split" not in text:
         text = text.rstrip() + "\n" + TOOLBAR_CSS
         write(path, text)
         log(f"patched Staff toolbar CSS in {rel_path}")
     else:
-        log(f"Staff toolbar CSS already present in {rel_path}")
+        log(f"toolbar split CSS already present in {rel_path}")
+
+
+def is_git_tracked(path: Path) -> bool:
+    try:
+        rel = path.relative_to(ROOT)
+    except ValueError:
+        return False
+
+    result = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", str(rel)],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return result.returncode == 0
 
 
 def clear_caches() -> None:
@@ -547,12 +694,16 @@ def clear_caches() -> None:
         directory = ROOT / rel
         if not directory.exists():
             continue
+        removed = 0
         for child in directory.glob("*.php"):
+            if is_git_tracked(child):
+                continue
             try:
                 child.unlink()
+                removed += 1
             except OSError:
                 pass
-        log(f"cleared compiled PHP files in {rel}")
+        log(f"cleared {removed} untracked compiled PHP files in {rel}")
 
 
 def main() -> int:

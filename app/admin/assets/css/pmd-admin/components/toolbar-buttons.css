@@ -1089,3 +1089,31 @@ html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar
 html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split > .right-buttons .pmd-toolbar-secondary-action {
   outline: 1px solid red;
 }
+/* Generic admin toolbar split used by the runtime Toolbar Splitter. */
+html body.page .progress-indicator-container.pmd-toolbar-split,
+html body.page .toolbar-action.pmd-toolbar-split {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn-group {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
