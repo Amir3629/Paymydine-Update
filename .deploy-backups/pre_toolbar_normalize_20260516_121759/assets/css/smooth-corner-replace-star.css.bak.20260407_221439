@@ -1,0 +1,160 @@
+/* ============================================
+   SMOOTH CORNER - REPLACE STAR ICON
+   Minimal, safe visual enhancement only
+   No layout changes, no transparency, no DOM manipulation
+   ============================================ */
+
+/* ============================================
+   STEP 1: Remove Star Icon Completely
+   ============================================ */
+#sidebar-star-icon,
+body #sidebar-star-icon,
+html body #sidebar-star-icon,
+div#sidebar-star-icon,
+body div#sidebar-star-icon,
+html body div#sidebar-star-icon,
+[id="sidebar-star-icon"],
+body [id="sidebar-star-icon"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ============================================
+   STEP 2: Round the sharp edges at connection point
+   Remove the 90° stair edge by rounding sidebar and header corners
+   HIGH SPECIFICITY to override all other CSS
+   ============================================ */
+/* Round sidebar's top-right corner (at connection point) */
+/* Increased radius to 40px for smoother transition */
+body .sidebar,
+body .nk-sidebar,
+html body .sidebar,
+html body .nk-sidebar,
+body .sidebar.nk-sidebar,
+body .nk-sidebar.sidebar,
+html body .sidebar.nk-sidebar,
+html body .nk-sidebar.sidebar,
+.nk-sidebar.nk-sidebar-fixed,
+body .nk-sidebar.nk-sidebar-fixed,
+html body .nk-sidebar.nk-sidebar-fixed {
+  border-top-right-radius: 40px !important;
+  overflow: visible !important; /* Allow curve overlay to be visible */
+}
+
+/* Header: Remove shadow effect under header */
+.navbar-top,
+.nk-header,
+nav.navbar-top,
+.navbar.navbar-top,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  box-shadow: none !important;
+}
+
+/* ============================================
+   STEP 3: Filled Curve Overlay Element
+   Creates a filled overlay that covers sharp edges with smooth curved diagonal
+   Creates curved line from top-right to bottom-left - completely filled, no empty area
+   ============================================ */
+.sidebar-curve-fix {
+  position: fixed !important;
+  /* Position to cover the connection point area */
+  left: 190px !important; /* Start 40px before connection point (230 - 40) */
+  top: 24px !important;  /* Start 40px before connection point (64 - 40) */
+  width: 80px !important;
+  height: 80px !important;
+  /* CRITICAL: Always visible from start - no delays, no animations */
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  /* Match exact color at connection point - blend seamlessly with header and sidebar */
+  /* At connection point (230px, 64px): Header = #516584, Sidebar = #516584 */
+  /* Use #516584 to match both elements exactly - user won't see separate element */
+  background: #516584 !important;
+  background-color: #516584 !important;
+  background-image: none !important;
+  /* Create curved diagonal from top-right to bottom-left */
+  /* Using clip-path polygon with smooth curved points */
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 10%,
+    90% 20%,
+    80% 30%,
+    70% 40%,
+    60% 50%,
+    50% 60%,
+    40% 70%,
+    30% 80%,
+    20% 90%,
+    10% 100%,
+    0% 100%
+  ) !important;
+  -webkit-clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 10%,
+    90% 20%,
+    80% 30%,
+    70% 40%,
+    60% 50%,
+    50% 60%,
+    40% 70%,
+    30% 80%,
+    20% 90%,
+    10% 100%,
+    0% 100%
+  ) !important;
+  /* This creates a smooth curved line from top-right (100% 0%) to bottom-left (0% 100%) */
+  z-index: 1031 !important; /* Above header and sidebar */
+  pointer-events: none !important;
+}
+
+
+/* ============================================
+   STEP 4: Force Always Visible - Override All Other CSS
+   Ensure element is ALWAYS visible from page load - no delays, no animations
+   ============================================ */
+/* Maximum specificity to override ANY conflicting CSS from other files */
+body .sidebar-curve-fix,
+html body .sidebar-curve-fix,
+body > .sidebar-curve-fix,
+html body > .sidebar-curve-fix,
+html body[class] .sidebar-curve-fix,
+body[class] .sidebar-curve-fix,
+.sidebar-curve-fix {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+  /* Override any fade-in or delay effects */
+  animation-delay: 0s !important;
+  transition-delay: 0s !important;
+  /* Ensure it's rendered immediately */
+  content: "" !important;
+  /* Prevent any JavaScript from hiding it */
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+}
+
+/* ============================================
+   STEP 5: Responsive - Hide on Mobile
+   ============================================ */
+@media (max-width: 991px) {
+  .sidebar-curve-fix {
+    display: none !important;
+  }
+}
