@@ -30,8 +30,8 @@ cp -p "$ADMIN_JS" "$BACKUP_DIR/admin.js"
 cp -p "$TOOLBAR_CSS" "$BACKUP_DIR/toolbar-buttons.css"
 echo "Backed up admin toolbar assets to $BACKUP_DIR"
 
-if ! grep -q "Back-button normalization" "$ADMIN_JS"; then
-  echo "ERROR: admin.js does not contain the committed Back-button normalization block." >&2
+if ! grep -q "toolbar normalization" "$ADMIN_JS"; then
+  echo "ERROR: admin.js does not contain the committed toolbar normalization block." >&2
   echo "Pull/deploy the latest repository changes instead of appending a runtime fallback." >&2
   exit 1
 fi

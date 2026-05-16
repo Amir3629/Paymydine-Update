@@ -1089,14 +1089,54 @@ html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar
 html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split > .right-buttons .pmd-toolbar-secondary-action {
   outline: 1px solid red;
 }
-/* Generic admin toolbar split used only by the runtime Toolbar Splitter on opted-in pages. */
+/* Generic admin toolbar normalization used by the runtime normalizer. */
+html body.page .progress-indicator-container.pmd-toolbar-normalized,
 html body.page .progress-indicator-container.pmd-toolbar-split {
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   gap: 8px !important;
   width: 100% !important;
   min-width: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group > .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0.55rem 0.95rem !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group {
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn .fa,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group > .btn i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group > .btn .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  color: inherit !important;
 }
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons {
@@ -1109,15 +1149,18 @@ html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons 
 }
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
-html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group {
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
 
-/* Secondary toolbar actions should match the Staff toolbar's ice button style on every split toolbar. */
+/* Secondary toolbar actions match the Staff toolbar's ice button style. */
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn,
 html body.page .pmd-toolbar-right-buttons > .btn,
-html body.page .pmd-toolbar-secondary-action {
+html body.page .pmd-toolbar-right-buttons > .btn-group > .btn,
+html body.page .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action) {
   background: #f1f3f9 !important;
   background-color: #f1f3f9 !important;
   border: 1px solid #c9d2e3 !important;
@@ -1127,10 +1170,14 @@ html body.page .pmd-toolbar-secondary-action {
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:hover,
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:focus,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn:hover,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn:focus,
 html body.page .pmd-toolbar-right-buttons > .btn:hover,
 html body.page .pmd-toolbar-right-buttons > .btn:focus,
-html body.page .pmd-toolbar-secondary-action:hover,
-html body.page .pmd-toolbar-secondary-action:focus {
+html body.page .pmd-toolbar-right-buttons > .btn-group > .btn:hover,
+html body.page .pmd-toolbar-right-buttons > .btn-group > .btn:focus,
+html body.page .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):hover,
+html body.page .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):focus {
   background: #e5ebf7 !important;
   background-color: #e5ebf7 !important;
   border-color: #b8c6dd !important;
@@ -1167,4 +1214,10 @@ html body.page .pmd-toolbar-back-action:focus {
   border-color: #b8c6dd !important;
   color: #364a63 !important;
   box-shadow: none !important;
+}
+
+html body.page .pmd-toolbar-primary-action {
+  order: 1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }

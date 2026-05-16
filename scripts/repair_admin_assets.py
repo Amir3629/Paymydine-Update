@@ -349,33 +349,22 @@ ASSETS = [
 
 TOOLBAR_JS = r'''
     /**
-     * PayMyDine admin toolbar splitting and Back-button normalization.
+     * PayMyDine admin toolbar normalization.
      *
-     * Only configured problem pages receive a `.right-buttons` split. Generic
-     * admin pages are deliberately not split here because generated form pages
-     * such as `/admin/locations/create` already render Back before Save; the
-     * global pass below only marks/moves Back actions when they were injected
-     * into a right-side group by AJAX or older scripts.
+     * This is intentionally conservative: every toolbar gets safe Back/primary
+     * ordering and shared marker classes, but a `.right-buttons` split is only
+     * created when a toolbar actually has multiple secondary actions. That keeps
+     * one-button toolbars (for example Payments mode toggle) on the left and
+     * avoids the unsafe generic splitter that previously reprocessed every form.
      */
     var PMD_TOOLBAR_SPLIT_STYLE_ID = 'pmd-toolbar-split-runtime-style';
     var PMD_TOOLBAR_SPLIT_OBSERVER = null;
     var PMD_TOOLBAR_SPLIT_PENDING = false;
-    var PMD_TOOLBAR_SPLIT_PAGES = [
+    var PMD_TOOLBAR_FORCE_SPLIT_PAGES = [
         {
             name: 'staffs-index',
             routePattern: /\/admin\/staffs$/,
-            primarySelector: 'a.btn-primary[href*="staffs/create"], a[href*="staffs/create"]',
-            splitClass: 'pmd-staff-toolbar-split',
             rightLabel: 'Secondary staff toolbar actions'
-        },
-        {
-            name: 'payments-index',
-            routePattern: /\/admin\/payments$/,
-            primarySelector: '.pmd-toolbar-primary-action, [data-pmd-toolbar-primary]',
-            secondarySelector: '.pmd-payments-mode-toggle, [data-pmd-toolbar-secondary]',
-            splitClass: 'pmd-payments-toolbar-split',
-            rightLabel: 'Payment view actions',
-            allowRightOnly: true
         }
     ];
 
@@ -385,26 +374,27 @@ TOOLBAR_JS = r'''
         var style = document.createElement('style');
         style.id = PMD_TOOLBAR_SPLIT_STYLE_ID;
         style.textContent = [
-            '.progress-indicator-container.pmd-toolbar-split{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;width:100%!important;min-width:0!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized,.progress-indicator-container.pmd-toolbar-split{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;width:100%!important;min-width:0!important;flex-wrap:nowrap!important;}',
             '.progress-indicator-container.pmd-toolbar-split>.right-buttons{display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin-left:auto!important;flex:0 0 auto!important;}',
-            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn-group{margin-left:0!important;margin-right:0!important;}',
-            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.pmd-toolbar-right-buttons>.btn,.pmd-toolbar-secondary-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;box-shadow:none!important;}',
-            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:hover,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized>.btn,.progress-indicator-container.pmd-toolbar-normalized>.btn-group,.progress-indicator-container.pmd-toolbar-normalized>.btn-group>.btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:auto!important;min-width:0!important;max-width:none!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:0.55rem 0.95rem!important;line-height:1!important;text-align:center!important;white-space:nowrap!important;box-sizing:border-box!important;flex:0 0 auto!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized>.btn-group{padding:0!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn-group,.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn-group>.btn{margin-left:0!important;margin-right:0!important;}',
+            '.pmd-toolbar-secondary-action,.pmd-toolbar-right-buttons>.btn,.pmd-toolbar-right-buttons>.btn-group>.btn{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;box-shadow:none!important;}',
+            '.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn-group>.btn:hover,.pmd-toolbar-right-buttons>.btn-group>.btn:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}',
             '.pmd-toolbar-back-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;margin-right:8px!important;margin-left:0!important;box-shadow:none!important;order:0!important;}',
+            '.pmd-toolbar-primary-action{order:1!important;margin-left:0!important;margin-right:0!important;}',
             '.pmd-toolbar-back-action:hover,.pmd-toolbar-back-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}'
         ].join('\n');
         document.head.appendChild(style);
     }
 
-    function getActiveToolbarSplitConfig() {
+    function getForcedSplitConfig() {
         var path = (window.location.pathname || '').replace(/\/+$/, '');
-
-        for (var i = 0; i < PMD_TOOLBAR_SPLIT_PAGES.length; i++) {
-            if (PMD_TOOLBAR_SPLIT_PAGES[i].routePattern.test(path)) {
-                return PMD_TOOLBAR_SPLIT_PAGES[i];
+        for (var i = 0; i < PMD_TOOLBAR_FORCE_SPLIT_PAGES.length; i++) {
+            if (PMD_TOOLBAR_FORCE_SPLIT_PAGES[i].routePattern.test(path)) {
+                return PMD_TOOLBAR_FORCE_SPLIT_PAGES[i];
             }
         }
-
         return null;
     }
 
@@ -425,10 +415,19 @@ TOOLBAR_JS = r'''
             (child.classList && child.classList.contains('pmd-toolbar-secondary-action'));
     }
 
+    function isToolbarPrimaryAction(child) {
+        return toolbarChildContains(child, '.pmd-toolbar-primary-action, [data-pmd-toolbar-primary], .btn-primary, .btn-success, [data-request="onSave"]');
+    }
+
     function normalizeToolbarBackAction(child) {
         if (!child || child.nodeType !== 1) return;
         child.classList.add('pmd-toolbar-back-action', 'pmd-toolbar-secondary-action');
         child.setAttribute('data-pmd-toolbar-back', 'true');
+    }
+
+    function normalizeToolbarPrimaryAction(child) {
+        if (!child || child.nodeType !== 1) return;
+        child.classList.add('pmd-toolbar-primary-action');
     }
 
     function findDirectProgressContainer(toolbarAction) {
@@ -469,63 +468,95 @@ TOOLBAR_JS = r'''
         return false;
     }
 
-    function getOrCreateRightButtons(container, config) {
+    function getOrCreateRightButtons(container, label) {
         var children = Array.prototype.slice.call(container.children);
         for (var i = 0; i < children.length; i++) {
             if (children[i].classList && children[i].classList.contains('right-buttons')) {
                 children[i].classList.add('pmd-toolbar-right-buttons');
-                children[i].setAttribute('aria-label', config.rightLabel || 'Secondary toolbar actions');
+                children[i].setAttribute('aria-label', label || 'Secondary toolbar actions');
                 return children[i];
             }
         }
 
         var rightButtons = document.createElement('div');
         rightButtons.className = 'right-buttons pmd-toolbar-right-buttons';
-        rightButtons.setAttribute('aria-label', config.rightLabel || 'Secondary toolbar actions');
+        rightButtons.setAttribute('aria-label', label || 'Secondary toolbar actions');
         return rightButtons;
     }
 
-    function getToolbarBackActions(container, rightButtons) {
-        var seen = [];
-        var sources = [container];
-        if (rightButtons) sources.push(rightButtons);
+    function isToolbarActionChild(child) {
+        if (!child || child.nodeType !== 1) return false;
+        if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return false;
+        if (child.classList && child.classList.contains('progress-indicator')) return false;
+        if (child.classList && child.classList.contains('right-buttons')) return true;
 
-        sources.forEach(function (source) {
-            if (!source) return;
-            Array.prototype.forEach.call(source.children, function (child) {
-                if (isToolbarBackAction(child) && seen.indexOf(child) === -1) {
-                    seen.push(child);
-                }
-            });
-        });
-
-        return seen;
+        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group') || child.classList.contains('dropdown'))) ||
+            (child.hasAttribute && (child.hasAttribute('data-pmd-toolbar-secondary') || child.hasAttribute('data-pmd-toolbar-primary'))) ||
+            (child.querySelector && child.querySelector('.btn, .btn-group, [data-pmd-toolbar-secondary], [data-pmd-toolbar-primary], [data-request="onSave"]'));
     }
 
-    function findPrimaryAction(children, config) {
-        var primaryAction = null;
-        var primarySelector = config && config.primarySelector;
+    function unwrapRightButtonsIfSingle(container, rightButtons, primaryAction) {
+        if (!rightButtons || rightButtons.parentElement !== container) return;
+        var actions = Array.prototype.slice.call(rightButtons.children).filter(isToolbarActionChild);
+        if (actions.length > 1) return;
 
-        children.forEach(function (child) {
-            if (!primaryAction && toolbarChildContains(child, primarySelector)) {
-                primaryAction = child;
+        var reference = rightButtons;
+        actions.forEach(function (action) {
+            action.classList.remove('pmd-toolbar-secondary-action');
+            container.insertBefore(action, reference);
+        });
+        container.removeChild(rightButtons);
+        container.classList.remove('pmd-toolbar-split', 'pmd-staff-toolbar-split');
+
+        if (primaryAction && primaryAction.parentElement === container) {
+            placeToolbarBackActions(container, primaryAction, null);
+        }
+    }
+
+    function collectToolbarState(container) {
+        var state = {
+            children: Array.prototype.slice.call(container.children),
+            rightButtons: null,
+            primaryAction: null,
+            backActions: [],
+            secondaryActions: []
+        };
+
+        state.children.forEach(function (child) {
+            if (child.classList && child.classList.contains('right-buttons')) {
+                state.rightButtons = child;
+                return;
+            }
+            if (!isToolbarActionChild(child)) return;
+            if (isToolbarBackAction(child)) {
+                state.backActions.push(child);
+                return;
+            }
+            if (!state.primaryAction && isToolbarPrimaryAction(child)) {
+                state.primaryAction = child;
+                return;
             }
         });
 
-        if (primaryAction) return primaryAction;
-        if (config && config.allowRightOnly) return null;
 
-        for (var i = 0; i < children.length; i++) {
-            if (isToolbarActionChild(children[i]) && !isToolbarBackAction(children[i]) && !(children[i].classList && children[i].classList.contains('right-buttons'))) {
-                return children[i];
-            }
+        state.children.forEach(function (child) {
+            if (!isToolbarActionChild(child) || child === state.rightButtons || isToolbarBackAction(child) || child === state.primaryAction) return;
+            state.secondaryActions.push(child);
+        });
+
+        if (state.rightButtons) {
+            Array.prototype.forEach.call(state.rightButtons.children, function (child) {
+                if (isToolbarBackAction(child)) state.backActions.push(child);
+                else if (isToolbarActionChild(child)) state.secondaryActions.push(child);
+            });
         }
 
-        return null;
+        return state;
     }
 
     function placeToolbarBackActions(container, primaryAction, rightButtons) {
-        var backActions = getToolbarBackActions(container, rightButtons);
+        var state = collectToolbarState(container);
+        var backActions = state.backActions;
         if (!backActions.length) return;
 
         var referenceNode = null;
@@ -541,83 +572,64 @@ TOOLBAR_JS = r'''
 
         backActions.slice().reverse().forEach(function (backAction) {
             normalizeToolbarBackAction(backAction);
-
             if (backAction.parentElement !== container || backAction.nextElementSibling !== referenceNode) {
                 container.insertBefore(backAction, referenceNode);
             }
-
             referenceNode = backAction;
         });
     }
 
-    function isToolbarActionChild(child) {
-        if (!child || child.nodeType !== 1) return false;
-        if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return false;
-        if (child.classList && child.classList.contains('progress-indicator')) return false;
-        if (child.classList && child.classList.contains('right-buttons')) return true;
-
-        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group') || child.classList.contains('dropdown'))) ||
-            (child.hasAttribute && (child.hasAttribute('data-pmd-toolbar-secondary') || child.hasAttribute('data-pmd-toolbar-primary'))) ||
-            (child.querySelector && child.querySelector('.btn, .btn-group, [data-pmd-toolbar-secondary], [data-pmd-toolbar-primary]'));
+    function shouldSplitToolbar(state, forceConfig) {
+        if (!state.primaryAction) return false;
+        if (state.secondaryActions.length < 2) return false;
+        if (forceConfig) return true;
+        return true;
     }
 
-    function normalizeGlobalBackButtons() {
-        Array.prototype.forEach.call(getToolbarContainers(), function (container) {
-            if (shouldSkipToolbarContainer(container)) return;
-
-            var children = Array.prototype.slice.call(container.children);
-            var primaryAction = findPrimaryAction(children, { primarySelector: '.pmd-toolbar-primary-action, [data-pmd-toolbar-primary], .btn-primary' });
-            var rightButtons = null;
-            children.forEach(function (child) {
-                if (child.classList && child.classList.contains('right-buttons')) rightButtons = child;
-            });
-
-            placeToolbarBackActions(container, primaryAction, rightButtons);
-        });
-    }
-
-    function applyToolbarSplit(config) {
-        if (!config) return;
+    function normalizeToolbar(container, forceConfig) {
+        if (shouldSkipToolbarContainer(container)) return;
         ensureToolbarSplitStyles();
 
-        Array.prototype.forEach.call(getToolbarContainers(), function (container) {
-            if (shouldSkipToolbarContainer(container)) return;
+        container.classList.add('pmd-toolbar-normalized');
 
-            var children = Array.prototype.slice.call(container.children);
-            var primaryAction = findPrimaryAction(children, config);
-            if (!primaryAction && !config.allowRightOnly) return;
+        var state = collectToolbarState(container);
+        if (state.primaryAction) normalizeToolbarPrimaryAction(state.primaryAction);
+        placeToolbarBackActions(container, state.primaryAction, state.rightButtons);
 
-            var rightButtons = getOrCreateRightButtons(container, config);
-            placeToolbarBackActions(container, primaryAction, rightButtons);
-            var secondaryActions = [];
+        state = collectToolbarState(container);
+        unwrapRightButtonsIfSingle(container, state.rightButtons, state.primaryAction);
+        state = collectToolbarState(container);
 
-            Array.prototype.slice.call(container.children).forEach(function (child) {
-                if (!isToolbarActionChild(child) || child === rightButtons || isToolbarBackAction(child)) return;
-                if (child === primaryAction || toolbarChildContains(child, config.primarySelector)) return;
-                if (config.secondarySelector && !primaryAction && !toolbarChildContains(child, config.secondarySelector)) return;
-                secondaryActions.push(child);
-            });
-
-            if (!secondaryActions.length && rightButtons.parentElement !== container) return;
-
-            container.classList.add('pmd-toolbar-split');
-            if (config.splitClass) container.classList.add(config.splitClass);
-            if (primaryAction) primaryAction.classList.add('pmd-toolbar-primary-action');
-
-            if (rightButtons.parentElement !== container) {
-                container.appendChild(rightButtons);
-            }
-
-            secondaryActions.forEach(function (button) {
-                button.classList.add('pmd-toolbar-secondary-action');
-                rightButtons.appendChild(button);
-            });
+        state.secondaryActions.forEach(function (button) {
+            if (!isToolbarBackAction(button)) button.classList.add('pmd-toolbar-secondary-action');
         });
+
+        if (!shouldSplitToolbar(state, forceConfig)) return;
+
+        var rightButtons = getOrCreateRightButtons(container, forceConfig && forceConfig.rightLabel);
+        if (rightButtons.parentElement !== container) {
+            container.appendChild(rightButtons);
+        }
+
+        container.classList.add('pmd-toolbar-split');
+        if (forceConfig && forceConfig.name === 'staffs-index') {
+            container.classList.add('pmd-staff-toolbar-split');
+        }
+
+        state.secondaryActions.forEach(function (button) {
+            if (button === rightButtons || isToolbarBackAction(button)) return;
+            button.classList.add('pmd-toolbar-secondary-action');
+            rightButtons.appendChild(button);
+        });
+
+        placeToolbarBackActions(container, state.primaryAction, rightButtons);
     }
 
     function applyScopedToolbarSplits() {
-        normalizeGlobalBackButtons();
-        applyToolbarSplit(getActiveToolbarSplitConfig());
+        var forceConfig = getForcedSplitConfig();
+        Array.prototype.forEach.call(getToolbarContainers(), function (container) {
+            normalizeToolbar(container, forceConfig);
+        });
     }
 
     function syncPaymentsModeToggleLabels() {
@@ -752,14 +764,54 @@ html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar
 html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split > .right-buttons .pmd-toolbar-secondary-action {
   outline: 1px solid red;
 }
-/* Generic admin toolbar split used only by the runtime Toolbar Splitter on opted-in pages. */
+/* Generic admin toolbar normalization used by the runtime normalizer. */
+html body.page .progress-indicator-container.pmd-toolbar-normalized,
 html body.page .progress-indicator-container.pmd-toolbar-split {
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   gap: 8px !important;
   width: 100% !important;
   min-width: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group > .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0.55rem 0.95rem !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group {
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn .fa,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group > .btn i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group > .btn .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  color: inherit !important;
 }
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons {
@@ -772,15 +824,18 @@ html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons 
 }
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
-html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group {
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
 
-/* Secondary toolbar actions should match the Staff toolbar's ice button style on every split toolbar. */
+/* Secondary toolbar actions match the Staff toolbar's ice button style. */
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn,
 html body.page .pmd-toolbar-right-buttons > .btn,
-html body.page .pmd-toolbar-secondary-action {
+html body.page .pmd-toolbar-right-buttons > .btn-group > .btn,
+html body.page .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action) {
   background: #f1f3f9 !important;
   background-color: #f1f3f9 !important;
   border: 1px solid #c9d2e3 !important;
@@ -790,10 +845,14 @@ html body.page .pmd-toolbar-secondary-action {
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:hover,
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:focus,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn:hover,
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group > .btn:focus,
 html body.page .pmd-toolbar-right-buttons > .btn:hover,
 html body.page .pmd-toolbar-right-buttons > .btn:focus,
-html body.page .pmd-toolbar-secondary-action:hover,
-html body.page .pmd-toolbar-secondary-action:focus {
+html body.page .pmd-toolbar-right-buttons > .btn-group > .btn:hover,
+html body.page .pmd-toolbar-right-buttons > .btn-group > .btn:focus,
+html body.page .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):hover,
+html body.page .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):focus {
   background: #e5ebf7 !important;
   background-color: #e5ebf7 !important;
   border-color: #b8c6dd !important;
@@ -830,6 +889,12 @@ html body.page .pmd-toolbar-back-action:focus {
   border-color: #b8c6dd !important;
   color: #364a63 !important;
   box-shadow: none !important;
+}
+
+html body.page .pmd-toolbar-primary-action {
+  order: 1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 '''
 
@@ -921,7 +986,7 @@ def patch_toolbar_css() -> None:
         log(f"WARN: {rel_path} not found; skipping toolbar CSS patch")
         return
 
-    if ".pmd-staff-toolbar-split" not in text or "Back actions are left-side secondary actions" not in text:
+    if ".pmd-staff-toolbar-split" not in text or ".pmd-toolbar-normalized" not in text or "Back actions are left-side secondary actions" not in text:
         text = text.rstrip() + "\n" + TOOLBAR_CSS
         write(path, text)
         log(f"patched Staff toolbar CSS in {rel_path}")
