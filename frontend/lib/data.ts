@@ -15,6 +15,10 @@ export type MenuItem = {
   category_name?: string
   calories?: number
   allergens?: string[]
+  allergy_tags?: string[]
+  halal?: boolean
+  vegetarian?: boolean
+  vegan?: boolean
   stock_qty?: number
   minimum_qty?: number
   available?: boolean
@@ -38,6 +42,9 @@ export interface MenuItemOptionValue {
 
 // FIXED: Remove the mapping function - use API categories directly
 // const mapCategoryName = (apiCategoryName: string): MenuItem["category"] => { ... }
+
+
+const normalizeBoolean = (value: unknown): boolean => value === true || value === 1 || value === '1' || value === 'true'
 
 // FIXED: Convert API MenuItem to frontend MenuItem
 const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuItem => {
@@ -69,7 +76,11 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     category_id: apiItem.category_id,
     category_name: apiItem.category_name,
     calories: apiItem.calories || Math.floor(Math.random() * 600) + 300, // Fallback random calories
-    allergens: apiItem.allergens || [],
+    allergens: apiItem.allergens || apiItem.allergy_tags || [],
+    allergy_tags: apiItem.allergy_tags || apiItem.allergens || [],
+    halal: normalizeBoolean(apiItem.halal),
+    vegetarian: normalizeBoolean(apiItem.vegetarian),
+    vegan: normalizeBoolean(apiItem.vegan),
     stock_qty: apiItem.stock_qty,
     minimum_qty: apiItem.minimum_qty || 1,
     available: apiItem.available !== false && (apiItem.stock_qty === null || (apiItem.stock_qty ?? 0) > 0),

@@ -1418,3 +1418,83 @@ html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-
   box-shadow: none !important;
   transform: none !important;
 }
+
+/* PayMyDine safe toolbar classifier: CSS owns alignment, JS only marks nodes. */
+html body.page .toolbar-action.pmd-toolbar-normalized,
+html body.page .progress-indicator-container.pmd-toolbar-normalized {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized > :is(.btn, .btn-group, .dropdown, .form-group, [data-control]),
+html body.page .progress-indicator-container.pmd-toolbar-normalized > :is(.btn, .btn-group, .dropdown, .form-group, [data-control]),
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons,
+html body.page .toolbar-action.pmd-toolbar-normalized > .right-buttons {
+  flex: 0 0 auto !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-primary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-primary-action {
+  order: 1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-secondary-action,
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-right-buttons,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-secondary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons {
+  order: 10 !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized > .pmd-toolbar-secondary-first,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-secondary-first,
+html body.page .toolbar-action.pmd-toolbar-normalized > .right-buttons.pmd-toolbar-right-buttons,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons.pmd-toolbar-right-buttons {
+  margin-left: auto !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized > .right-buttons.pmd-toolbar-right-buttons,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons.pmd-toolbar-right-buttons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-back-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-back-action {
+  order: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized .btn-danger.pmd-toolbar-secondary-action,
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-right-buttons .btn-danger,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .btn-danger.pmd-toolbar-secondary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons .btn-danger {
+  background: #dc3545 !important;
+  background-color: #dc3545 !important;
+  background-image: none !important;
+  border-color: #dc3545 !important;
+  color: #ffffff !important;
+}
+
+html body.page .toolbar-action.pmd-toolbar-normalized .btn-danger.pmd-toolbar-secondary-action:hover,
+html body.page .toolbar-action.pmd-toolbar-normalized .btn-danger.pmd-toolbar-secondary-action:focus,
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-right-buttons .btn-danger:hover,
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-right-buttons .btn-danger:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .btn-danger.pmd-toolbar-secondary-action:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .btn-danger.pmd-toolbar-secondary-action:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons .btn-danger:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons .btn-danger:focus {
+  background: #bb2d3b !important;
+  background-color: #bb2d3b !important;
+  border-color: #b02a37 !important;
+  color: #ffffff !important;
+}

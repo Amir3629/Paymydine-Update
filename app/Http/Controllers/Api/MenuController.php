@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MenuController extends Controller
 {
@@ -24,6 +25,7 @@ class MenuController extends Controller
                     CAST(m.menu_price AS DECIMAL(10,2)) as price,
                     COALESCE(c.name, 'Main') as category_name,
                     ma.name as image,
+                    {$this->foodAttributeSql('m')}
                     COALESCE(m.is_stock_out, 0) as is_stock_out,
                     CASE 
                         WHEN m.is_stock_out = 1 THEN 0
@@ -40,12 +42,16 @@ class MenuController extends Controller
             ";
             
             $items = DB::select($query);
+            $allergyTagsByMenuId = $this->getAllergyTagsForMenuIds(array_map(function ($item) {
+                return $item->id;
+            }, $items));
             
             // Convert prices to float, fix image paths, and add options
             foreach ($items as &$item) {
                 $item->price = (float)$item->price;
                 $item->is_stock_out = (bool)($item->is_stock_out ?? 0);
                 $item->available = (bool)($item->available ?? 1);
+                $this->normalizeFoodAttributes($item, $allergyTagsByMenuId[$item->id] ?? []);
                 
                 if ($item->image) {
                     // If image exists, construct the relative URL for Next.js proxy
@@ -103,6 +109,11 @@ class MenuController extends Controller
                 // Combos are always available (no stock-out for combos yet)
                 $combo->is_stock_out = false;
                 $combo->available = true;
+                $combo->halal = false;
+                $combo->vegetarian = false;
+                $combo->vegan = false;
+                $combo->allergy_tags = [];
+                $combo->allergens = [];
             }
             
             // Merge combos with regular menu items
@@ -171,7 +182,10 @@ class MenuController extends Controller
                     'menus.stock_qty',
                     'menus.minimum_qty',
                     'categories.category_id',
-                    'categories.name as category_name'
+                    'categories.name as category_name',
+                    $this->foodAttributeSelect('menus.is_halal', 'is_halal'),
+                    $this->foodAttributeSelect('menus.is_vegetarian', 'is_vegetarian'),
+                    $this->foodAttributeSelect('menus.is_vegan', 'is_vegan'),
                 ]);
 
             // Filter by category if provided
@@ -188,8 +202,11 @@ class MenuController extends Controller
                 });
             }
 
-            $items = $query->get()->map(function ($item) {
-                return [
+            $rawItems = $query->get();
+            $allergyTagsByMenuId = $this->getAllergyTagsForMenuIds($rawItems->pluck('id')->all());
+
+            $items = $rawItems->map(function ($item) use ($allergyTagsByMenuId) {
+                return array_merge([
                     'id' => $item->id,
                     'name' => $item->name,
                     'description' => $item->description,
@@ -199,8 +216,8 @@ class MenuController extends Controller
                     'category_name' => $item->category_name,
                     'stock_qty' => $item->stock_qty,
                     'minimum_qty' => $item->minimum_qty ?? 1,
-                    'available' => $item->stock_qty > 0
-                ];
+                    'available' => $item->stock_qty > 0,
+                ], $this->foodAttributeArray($item, $allergyTagsByMenuId[$item->id] ?? []));
             });
 
             return response()->json([
@@ -247,11 +264,17 @@ class MenuController extends Controller
                     'menus.menu_price as price',
                     'menus.menu_photo as image',
                     'menus.stock_qty',
-                    'menus.minimum_qty'
+                    'menus.minimum_qty',
+                    $this->foodAttributeSelect('menus.is_halal', 'is_halal'),
+                    $this->foodAttributeSelect('menus.is_vegetarian', 'is_vegetarian'),
+                    $this->foodAttributeSelect('menus.is_vegan', 'is_vegan'),
                 ])
-                ->get()
-                ->map(function ($item) {
-                    return [
+                ->get();
+
+            $allergyTagsByMenuId = $this->getAllergyTagsForMenuIds($items->pluck('id')->all());
+
+            $items = $items->map(function ($item) use ($allergyTagsByMenuId) {
+                    return array_merge([
                         'id' => $item->id,
                         'name' => $item->name,
                         'description' => $item->description,
@@ -259,8 +282,8 @@ class MenuController extends Controller
                         'image' => $item->image ? asset('uploads/' . $item->image) : null,
                         'stock_qty' => $item->stock_qty,
                         'minimum_qty' => $item->minimum_qty ?? 1,
-                        'available' => $item->stock_qty > 0
-                    ];
+                        'available' => $item->stock_qty > 0,
+                    ], $this->foodAttributeArray($item, $allergyTagsByMenuId[$item->id] ?? []));
                 });
 
             return response()->json([
@@ -341,6 +364,74 @@ class MenuController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function foodAttributeSql(string $alias): string
+    {
+        return sprintf(
+            "%s as is_halal,\n                    %s as is_vegetarian,\n                    %s as is_vegan,",
+            Schema::hasColumn('menus', 'is_halal') ? "COALESCE({$alias}.is_halal, 0)" : '0',
+            Schema::hasColumn('menus', 'is_vegetarian') ? "COALESCE({$alias}.is_vegetarian, 0)" : '0',
+            Schema::hasColumn('menus', 'is_vegan') ? "COALESCE({$alias}.is_vegan, 0)" : '0'
+        );
+    }
+
+    private function foodAttributeSelect(string $column, string $alias)
+    {
+        $columnName = substr($column, strrpos($column, '.') + 1);
+
+        return Schema::hasColumn('menus', $columnName)
+            ? $column.' as '.$alias
+            : DB::raw('0 as '.$alias);
+    }
+
+    private function normalizeFoodAttributes(object $item, array $allergyTags): void
+    {
+        $item->halal = (bool)($item->is_halal ?? false);
+        $item->vegetarian = (bool)($item->is_vegetarian ?? false);
+        $item->vegan = (bool)($item->is_vegan ?? false);
+        $item->allergy_tags = array_values($allergyTags);
+        $item->allergens = $item->allergy_tags;
+
+        unset($item->is_halal, $item->is_vegetarian, $item->is_vegan);
+    }
+
+    private function foodAttributeArray(object $item, array $allergyTags): array
+    {
+        return [
+            'halal' => (bool)($item->is_halal ?? false),
+            'vegetarian' => (bool)($item->is_vegetarian ?? false),
+            'vegan' => (bool)($item->is_vegan ?? false),
+            'allergy_tags' => array_values($allergyTags),
+            'allergens' => array_values($allergyTags),
+        ];
+    }
+
+    private function getAllergyTagsForMenuIds(array $menuIds): array
+    {
+        $menuIds = array_values(array_filter(array_unique(array_map('intval', $menuIds))));
+        if (empty($menuIds) || !Schema::hasTable('allergenables') || !Schema::hasTable('allergens')) {
+            return [];
+        }
+
+        $rows = DB::table('allergenables')
+            ->join('allergens', 'allergenables.allergen_id', '=', 'allergens.allergen_id')
+            ->whereIn('allergenables.allergenable_id', $menuIds)
+            ->where(function ($query) {
+                $query->where('allergenables.allergenable_type', 'Admin\\Models\\Menus_model')
+                    ->orWhere('allergenables.allergenable_type', 'menus')
+                    ->orWhere('allergenables.allergenable_type', 'like', '%Menus_model');
+            })
+            ->where('allergens.status', 1)
+            ->orderBy('allergens.name')
+            ->get(['allergenables.allergenable_id as menu_id', 'allergens.name']);
+
+        $tags = [];
+        foreach ($rows as $row) {
+            $tags[(int)$row->menu_id][] = $row->name;
+        }
+
+        return $tags;
     }
 
     /**

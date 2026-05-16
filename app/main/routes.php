@@ -62,6 +62,60 @@ if (!function_exists('getMenuItemOptions')) {
     }
 }
 
+
+if (!function_exists('pmdFoodAttributeSelectSql')) {
+    function pmdFoodAttributeSelectSql($connection, $alias) {
+        $schema = \Illuminate\Support\Facades\Schema::connection($connection->getName());
+
+        return sprintf(
+            "%s as is_halal,\n                                %s as is_vegetarian,\n                                %s as is_vegan,",
+            $schema->hasColumn('menus', 'is_halal') ? "COALESCE({$alias}.is_halal, 0)" : '0',
+            $schema->hasColumn('menus', 'is_vegetarian') ? "COALESCE({$alias}.is_vegetarian, 0)" : '0',
+            $schema->hasColumn('menus', 'is_vegan') ? "COALESCE({$alias}.is_vegan, 0)" : '0'
+        );
+    }
+}
+
+if (!function_exists('pmdMenuAllergyTags')) {
+    function pmdMenuAllergyTags($connection, array $menuIds) {
+        $menuIds = array_values(array_filter(array_unique(array_map('intval', $menuIds))));
+        $schema = \Illuminate\Support\Facades\Schema::connection($connection->getName());
+        if (empty($menuIds) || !$schema->hasTable('allergenables') || !$schema->hasTable('allergens')) {
+            return [];
+        }
+
+        $rows = $connection->table('allergenables')
+            ->join('allergens', 'allergenables.allergen_id', '=', 'allergens.allergen_id')
+            ->whereIn('allergenables.allergenable_id', $menuIds)
+            ->where(function ($query) {
+                $query->where('allergenables.allergenable_type', 'Admin\\Models\\Menus_model')
+                    ->orWhere('allergenables.allergenable_type', 'menus')
+                    ->orWhere('allergenables.allergenable_type', 'like', '%Menus_model');
+            })
+            ->where('allergens.status', 1)
+            ->orderBy('allergens.name')
+            ->get(['allergenables.allergenable_id as menu_id', 'allergens.name']);
+
+        $tags = [];
+        foreach ($rows as $row) {
+            $tags[(int)$row->menu_id][] = $row->name;
+        }
+
+        return $tags;
+    }
+}
+
+if (!function_exists('pmdApplyFoodAttributes')) {
+    function pmdApplyFoodAttributes($item, array $allergyTags) {
+        $item->halal = (bool)($item->is_halal ?? false);
+        $item->vegetarian = (bool)($item->is_vegetarian ?? false);
+        $item->vegan = (bool)($item->is_vegan ?? false);
+        $item->allergy_tags = array_values($allergyTags);
+        $item->allergens = $item->allergy_tags;
+        unset($item->is_halal, $item->is_vegetarian, $item->is_vegan);
+    }
+}
+
 App::before(function () {
     /*
      * Register Main app routes
@@ -225,7 +279,8 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 m.menu_description as description,
                                 CAST(m.menu_price AS DECIMAL(10,2)) as price,
                                 COALESCE(c.name, 'Main') as category_name,
-                                ma.name as image
+                                ma.name as image,
+                                ".pmdFoodAttributeSelectSql($conn, 'm')."
                             FROM {$p}menus m
                             LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                             LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
@@ -237,10 +292,14 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         ";
                         
                         $items = $conn->select($query);
+                        $allergyTagsByMenuId = pmdMenuAllergyTags($conn, array_map(function ($item) {
+                            return $item->id;
+                        }, $items));
                         
                         // Convert prices to float, fix image paths, add options, mark as non-combo
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
+                            pmdApplyFoodAttributes($item, $allergyTagsByMenuId[$item->id] ?? []);
                             if ($item->image) {
                                 // If image exists, construct the relative URL for Next.js proxy
                                 $item->image = "/api/media/" . $item->image;
@@ -283,6 +342,11 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             $combo->options = [];
                             $combo->is_stock_out = false;
                             $combo->available = true;
+                            $combo->halal = false;
+                            $combo->vegetarian = false;
+                            $combo->vegan = false;
+                            $combo->allergy_tags = [];
+                            $combo->allergens = [];
                         }
                         $allItems = array_merge($items, $combos);
                         
