@@ -1,0 +1,79 @@
+/* ============================================
+   SMOOTH CORNER - REPLACE STAR ICON
+   Minimal, safe visual enhancement only
+   No layout changes, no transparency, no DOM manipulation
+   ============================================ */
+
+/* ============================================
+   STEP 1: Remove Star Icon Completely
+   ============================================ */
+#sidebar-star-icon,
+body #sidebar-star-icon,
+html body #sidebar-star-icon,
+div#sidebar-star-icon,
+body div#sidebar-star-icon,
+html body div#sidebar-star-icon,
+[id="sidebar-star-icon"],
+body [id="sidebar-star-icon"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ============================================
+   STEP 2: Round the sharp edges at connection point
+   Remove the 90° stair edge by rounding sidebar and header corners
+   HIGH SPECIFICITY to override all other CSS
+   ============================================ */
+/* Round sidebar's top-right corner (at connection point) */
+/* Increased radius to 40px for smoother transition */
+body .sidebar,
+body .nk-sidebar,
+html body .sidebar,
+html body .nk-sidebar,
+body .sidebar.nk-sidebar,
+body .nk-sidebar.sidebar,
+html body .sidebar.nk-sidebar,
+html body .nk-sidebar.sidebar,
+.nk-sidebar.nk-sidebar-fixed,
+body .nk-sidebar.nk-sidebar-fixed,
+html body .nk-sidebar.nk-sidebar-fixed {
+  border-top-right-radius: 40px !important;
+  overflow: visible !important; /* Allow curve overlay to be visible */
+}
+
+/* Header: Remove shadow effect under header */
+.navbar-top,
+.nk-header,
+nav.navbar-top,
+.navbar.navbar-top,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  box-shadow: none !important;
+}
+
+/* ============================================
+   STEP 3: Filled Curve Overlay Element
+   Creates a filled overlay that covers sharp edges with smooth curved diagonal
+   Creates curved line from top-right to bottom-left - completely filled, no empty area
+   ============================================ */
+
+
+
+/* ============================================
+   STEP 4: Force Always Visible - Override All Other CSS
+   Ensure element is ALWAYS visible from page load - no delays, no animations
+   ============================================ */
+/* Maximum specificity to override ANY conflicting CSS from other files */
+body 
+
+/* ============================================
+   STEP 5: Responsive - Hide on Mobile
+   ============================================ */
+@media (max-width: 991px) {
+  
+}

@@ -1,0 +1,247 @@
+/* ============================================
+   FIX MENU-GRID HOVER - Only icon scale, no green flashing
+   Override all conflicting hover effects
+   ============================================ */
+
+/* Completely disable ALL hover effects on menu-grid items - Override admin.css */
+.navbar-top .dropdown-menu .menu-grid .menu-item,
+.dropdown-menu .menu-grid .menu-item,
+.navbar-top .dropdown-menu .menu-grid .menu-item:hover,
+.dropdown-menu .menu-grid .menu-item:hover,
+.navbar-top .dropdown-menu .menu-grid .menu-item:focus,
+.dropdown-menu .menu-grid .menu-item:focus,
+.navbar-top .dropdown-menu .menu-grid .menu-item:active,
+.dropdown-menu .menu-grid .menu-item:active,
+.navbar-top .dropdown-menu .menu-grid .menu-item:focus-within,
+.dropdown-menu .menu-grid .menu-item:focus-within {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+  transition: none !important;
+}
+
+/* Also disable shadows on pseudo-elements */
+.navbar-top .dropdown-menu .menu-grid .menu-item::before,
+.dropdown-menu .menu-grid .menu-item::before,
+.navbar-top .dropdown-menu .menu-grid .menu-item::after,
+.dropdown-menu .menu-grid .menu-item::after {
+  display: none !important;
+  box-shadow: none !important;
+}
+
+/* Disable hover on menu-grid links - EXCEPT icon - Override all conflicting rules */
+.navbar-top .dropdown-menu .menu-grid .menu-link,
+.dropdown-menu .menu-grid .menu-link,
+.navbar-top .dropdown-menu .menu-grid .menu-link:hover,
+.dropdown-menu .menu-grid .menu-link:hover,
+.navbar-top .dropdown-menu .menu-grid .menu-link:focus,
+.dropdown-menu .menu-grid .menu-link:focus,
+.navbar-top .dropdown-menu .menu-grid .menu-link:active,
+.dropdown-menu .menu-grid .menu-link:active,
+.navbar-top .dropdown-menu .menu-grid .menu-link:focus-visible,
+.dropdown-menu .menu-grid .menu-link:focus-visible {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Override generic .menu-link:hover rules */
+.dropdown-menu:not(.profile-dropdown-menu) .menu-grid .menu-link:hover {
+  background: transparent !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Nuclear option: Remove ALL shadows from menu-grid children */
+.navbar-top .dropdown-menu .menu-grid *,
+.dropdown-menu .menu-grid * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+.navbar-top .dropdown-menu .menu-grid *:hover,
+.dropdown-menu .menu-grid *:hover {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Only allow icon to scale on hover - this is the ONLY effect */
+/* Make icon scale when hovering ANYWHERE on the menu-item or menu-link */
+.navbar-top .dropdown-menu .menu-grid .menu-link i,
+.dropdown-menu .menu-grid .menu-link i {
+  transition: transform 0.3s ease-out !important; /* Smoother transition */
+  color: #4b5563 !important;
+  display: block !important;
+  pointer-events: none !important; /* Don't block hover on parent */
+}
+
+/* Hover on menu-link triggers icon scale - Consolidated with icon rules below */
+
+/* Ensure hover works on entire menu-link area, not just icon */
+.navbar-top .dropdown-menu .menu-grid .menu-link:hover,
+.dropdown-menu .menu-grid .menu-link:hover,
+.navbar-top .dropdown-menu .menu-grid .menu-item:hover .menu-link,
+.dropdown-menu .menu-grid .menu-item:hover .menu-link {
+  pointer-events: auto !important;
+  background: transparent !important; /* No background change */
+}
+
+/* Keep text unchanged - ensure it's fully visible and can wrap */
+.navbar-top .dropdown-menu .menu-grid .menu-link span,
+.dropdown-menu .menu-grid .menu-link span {
+  transition: none !important;
+  transform: none !important;
+  text-align: center !important;
+  display: block !important;
+  width: 100% !important;
+  line-height: 1.3 !important; /* Better line height for readability */
+  word-wrap: break-word !important; /* Allow long words to wrap */
+  overflow-wrap: break-word !important; /* Modern property for word wrapping */
+  overflow: visible !important; /* Ensure text is not clipped */
+  white-space: normal !important; /* Allow text to wrap to multiple lines */
+  padding: 0 2px !important; /* Small padding to prevent edge clipping */
+}
+
+.navbar-top .dropdown-menu .menu-grid .menu-link:hover span,
+.dropdown-menu .menu-grid .menu-link:hover span {
+  transform: none !important;
+  color: inherit !important;
+}
+
+/* CRITICAL FIX: Ensure menu-item allows text to be fully visible */
+/* This ensures hover works anywhere on the button, not just on the link itself */
+.navbar-top .dropdown-menu .menu-grid .menu-item,
+.dropdown-menu .menu-grid .menu-item {
+  position: relative !important; /* Create positioning context */
+  min-height: 75px !important; /* Ensure minimum height */
+  overflow: visible !important; /* Ensure text is not clipped */
+  height: auto !important; /* Allow height to grow for multi-line text */
+}
+
+/* Ensure parent containers don't clip text */
+.navbar-top .dropdown-menu .menu-grid,
+.dropdown-menu .menu-grid {
+  overflow: visible !important; /* Ensure text is not clipped */
+  overflow-y: visible !important; /* Specifically allow vertical overflow for multi-line text */
+  overflow-x: visible !important; /* Allow horizontal overflow if needed */
+}
+
+/* Ensure perfect centering - icon and text both centered horizontally and vertically */
+/* Use flexbox to fill entire menu-item without absolute positioning (prevents text clipping) */
+.navbar-top .dropdown-menu .menu-grid .menu-link,
+.dropdown-menu .menu-grid .menu-link {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  position: relative !important; /* Changed from absolute to prevent clipping */
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 75px !important; /* Ensure minimum height */
+  padding: 8px 4px !important; /* Add padding to prevent text clipping */
+  box-sizing: border-box !important;
+  pointer-events: auto !important; /* Ensure entire area is clickable/hoverable */
+  cursor: pointer !important;
+  z-index: 100 !important; /* VERY HIGH to prevent blocking */
+  overflow: visible !important; /* Ensure text is not clipped */
+}
+
+/* Ensure the menu-item container doesn't block hover and allows text to be visible */
+.navbar-top .dropdown-menu .menu-grid .menu-item,
+.dropdown-menu .menu-grid .menu-item {
+  position: relative !important;
+  pointer-events: auto !important; /* Allow hover on entire item */
+  z-index: 20 !important; /* HIGHER than dropdown-item to prevent blocking */
+  overflow: visible !important; /* Ensure text is not clipped */
+  min-height: 75px !important; /* Ensure minimum height for multi-line text */
+  height: auto !important; /* Allow height to grow for multi-line text */
+}
+
+/* Ensure hover works on entire menu-item, trigger icon scale on menu-link */
+.navbar-top .dropdown-menu .menu-grid .menu-item:hover .menu-link i,
+.dropdown-menu .menu-grid .menu-item:hover .menu-link i,
+.navbar-top .dropdown-menu .menu-grid .menu-item:hover .menu-link:hover i,
+.dropdown-menu .menu-grid .menu-item:hover .menu-link:hover i {
+  transform: scale(1.05) !important; /* Scale icon when hovering anywhere on item */
+  color: #000000 !important;
+  transition: transform 0.3s ease-out !important;
+}
+
+/* Icon centered - CRITICAL: Must be inline-block or block for transform to work */
+.navbar-top .dropdown-menu .menu-grid .menu-link i,
+.dropdown-menu .menu-grid .menu-link i {
+  display: inline-block !important; /* Changed from block to inline-block for transform */
+  margin-left: auto !important;
+  margin-right: auto !important;
+  text-align: center !important;
+  margin-bottom: 6px !important;
+  transition: transform 0.3s ease-out !important; /* Ensure transition is set */
+  transform: scale(1) !important; /* Default scale */
+  color: #4b5563 !important; /* Default color */
+  pointer-events: none !important; /* Don't block hover on parent */
+}
+
+/* CRITICAL: Force icon transform on hover - maximum specificity */
+.navbar-top .dropdown-menu .menu-grid .menu-item:hover .menu-link i,
+.dropdown-menu .menu-grid .menu-item:hover .menu-link i,
+.navbar-top .dropdown-menu .menu-grid .menu-link:hover i,
+.dropdown-menu .menu-grid .menu-link:hover i,
+.navbar-top .dropdown-menu .menu-grid .menu-item:hover .menu-link:hover i,
+.dropdown-menu .menu-grid .menu-item:hover .menu-link:hover i {
+  transform: scale(1.05) !important; /* Scale icon on hover */
+  color: #000000 !important; /* Black on hover */
+  transition: transform 0.3s ease-out !important;
+  display: inline-block !important; /* Ensure display allows transform */
+}
+
+/* Text centered */
+.navbar-top .dropdown-menu .menu-grid .menu-link span,
+.dropdown-menu .menu-grid .menu-link span {
+  display: block !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+/* CRITICAL FIX: Ensure menu-grid items are above any dropdown-item elements */
+/* The diagnostic showed dropdown-item with z-index: 10 is blocking hover */
+.dropdown-menu .menu-grid,
+.dropdown-menu .menu-grid .menu-item,
+.dropdown-menu .menu-grid .menu-link {
+  position: relative !important;
+  z-index: 20 !important; /* Higher than dropdown-item (z-index: 10) */
+}
+
+/* Ensure dropdown-item elements don't overlap menu-grid */
+.dropdown-menu:has(.menu-grid) .dropdown-item:not(.menu-grid .dropdown-item) {
+  z-index: 1 !important; /* Lower than menu-grid items */
+  position: relative !important;
+}
+
+/* Make sure menu-grid container is above everything */
+.dropdown-menu .menu.menu-grid {
+  position: relative !important;
+  z-index: 20 !important;
+  pointer-events: auto !important;
+}

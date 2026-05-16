@@ -1,0 +1,410 @@
++function ($) {
+    "use strict";
+
+    $("#side-nav-menu").metisMenu({
+        toggle: true,
+        collapseInClass: 'show'
+    })
+
+    $("#navSidebar").on('show.bs.collapse', function () {
+        $('.sidebar').addClass('show')
+    }).on('hide.bs.collapse', function () {
+        $('.sidebar').removeClass('show')
+    })
+
+    const AUTO_ADMIN_BUTTON_INLINE_STYLING = false;
+    var GREEN_BUTTON_BASE_GRADIENT = 'linear-gradient(135deg, #1f2b3a 0%, #364a63 100%)'; // Dark blue instead of green
+    var GREEN_BUTTON_HOVER_GRADIENT = 'linear-gradient(135deg, #364a63 0%, #526484 100%)'; // Dark blue instead of green
+
+    function applyDeleteIconColor(context) {
+        var scope = context || document;
+
+        $('a[data-request="onDelete"] i.fa-trash, a[data-request="onDelete"] i.fa-trash-o', scope)
+            .each(function () {
+                this.style.setProperty('color', '#dc3545', 'important');
+            });
+    }
+
+
+    /**
+     * Page-scoped toolbar splitting.
+     *
+     * Problem pages can opt into this by adding a config entry below. The helper
+     * leaves the configured primary action on the left, creates/reuses a
+     * `.right-buttons` container, and moves every other direct toolbar action into
+     * that right-side group. Keeping this config-driven prevents Staff-specific
+     * fixes from leaking into unrelated admin toolbars.
+     */
+    var PMD_TOOLBAR_SPLIT_PAGES = [
+        {
+            name: 'staffs-index',
+            routePattern: /\/admin\/staffs$/,
+            primarySelector: 'a.btn-primary[href*="staffs/create"]',
+            splitClass: 'pmd-staff-toolbar-split',
+            rightLabel: 'Secondary staff toolbar actions'
+        }
+    ];
+
+    function getActiveToolbarSplitConfig() {
+        var path = (window.location.pathname || '').replace(/\/+$/, '');
+
+        for (var i = 0; i < PMD_TOOLBAR_SPLIT_PAGES.length; i++) {
+            if (PMD_TOOLBAR_SPLIT_PAGES[i].routePattern.test(path)) {
+                return PMD_TOOLBAR_SPLIT_PAGES[i];
+            }
+        }
+
+        return null;
+    }
+
+    function toolbarChildContains(child, selector) {
+        return (child.matches && child.matches(selector)) ||
+            (child.querySelector && child.querySelector(selector));
+    }
+
+    function getOrCreateRightButtons(container, config) {
+        var children = Array.prototype.slice.call(container.children);
+        for (var i = 0; i < children.length; i++) {
+            if (children[i].classList && children[i].classList.contains('right-buttons')) {
+                children[i].classList.add('pmd-toolbar-right-buttons');
+                return children[i];
+            }
+        }
+
+        var rightButtons = document.createElement('div');
+        rightButtons.className = 'right-buttons pmd-toolbar-right-buttons';
+        rightButtons.setAttribute('aria-label', config.rightLabel || 'Secondary toolbar actions');
+        return rightButtons;
+    }
+
+    function isToolbarActionChild(child) {
+        if (!child || child.tagName === 'INPUT' || child.tagName === 'SCRIPT') return false;
+        if (child.classList && child.classList.contains('progress-indicator')) return false;
+
+        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group'))) ||
+            (child.querySelector && child.querySelector('.btn'));
+    }
+
+    function applyToolbarSplit(config) {
+        var containers = document.querySelectorAll('.toolbar-action > .progress-indicator-container, .progress-indicator-container');
+
+        Array.prototype.forEach.call(containers, function (container) {
+            if (!container || container.closest('.modal, .media-manager, .media-toolbar')) return;
+
+            var children = Array.prototype.slice.call(container.children);
+            var primaryAction = null;
+            children.forEach(function (child) {
+                if (!primaryAction && toolbarChildContains(child, config.primarySelector)) {
+                    primaryAction = child;
+                }
+            });
+
+            if (!primaryAction) return;
+
+            var rightButtons = getOrCreateRightButtons(container, config);
+            var secondaryActions = [];
+
+            Array.prototype.slice.call(container.children).forEach(function (child) {
+                if (!isToolbarActionChild(child) || child === rightButtons) return;
+                if (child === primaryAction || toolbarChildContains(child, config.primarySelector)) return;
+                secondaryActions.push(child);
+            });
+
+            container.classList.add(config.splitClass);
+            primaryAction.classList.add('pmd-toolbar-primary-action');
+
+            if (rightButtons.parentElement !== container) {
+                container.appendChild(rightButtons);
+            }
+
+            secondaryActions.forEach(function (button) {
+                button.classList.add('pmd-toolbar-secondary-action');
+                rightButtons.appendChild(button);
+            });
+        });
+    }
+
+    function applyScopedToolbarSplits() {
+        var config = getActiveToolbarSplitConfig();
+        if (!config) return;
+
+        applyToolbarSplit(config);
+    }
+
+    function applyGreenButtonBase(element) {
+        // Never overwrite while hovered/focused so hover effect stays until mouse out
+        if (element.matches && (element.matches(':hover') || document.activeElement === element)) return;
+        element.style.setProperty('background', GREEN_BUTTON_BASE_GRADIENT, 'important');
+        element.style.setProperty('background-image', GREEN_BUTTON_BASE_GRADIENT, 'important');
+        element.style.setProperty('border', '1px solid #364a63', 'important'); // Dark blue border instead of green
+        element.style.setProperty('border-color', '#364a63', 'important'); // Dark blue border instead of green
+        element.style.setProperty('color', '#ffffff', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(54, 74, 99, 0.25)', 'important'); // Dark blue shadow instead of green
+        element.style.setProperty('transition', 'transform 0.2s ease, box-shadow 0.2s ease', 'important');
+        element.style.setProperty('transform', 'translateY(0)', 'important');
+        element.style.setProperty('min-width', '110px', 'important');
+        element.style.setProperty('width', 'auto', 'important');
+        element.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+        element.style.setProperty('display', 'inline-block', 'important');
+        element.style.setProperty('text-align', 'center', 'important');
+        // Fix full-width issue: prevent button from growing in btn-group
+        element.style.setProperty('flex', '0 0 auto', 'important');
+        element.style.setProperty('flex-grow', '0', 'important');
+        element.style.setProperty('flex-shrink', '0', 'important');
+        element.style.setProperty('flex-basis', 'auto', 'important');
+        element.style.removeProperty('align-items');
+        element.style.removeProperty('justify-content');
+        element.style.removeProperty('gap');
+        
+        // Also fix the parent btn-group to use inline-flex if it exists
+        var parent = element.parentElement;
+        if (parent && parent.classList.contains('btn-group')) {
+            parent.style.setProperty('display', 'inline-flex', 'important');
+        }
+    }
+
+    function handleGreenButtonHover(event) {
+        var element = event.currentTarget;
+        element.style.setProperty('background', GREEN_BUTTON_HOVER_GRADIENT, 'important');
+        element.style.setProperty('background-image', GREEN_BUTTON_HOVER_GRADIENT, 'important');
+        element.style.setProperty('transform', 'translateY(-1px)', 'important');
+        element.style.setProperty('box-shadow', '0 6px 16px rgba(54, 74, 99, 0.35)', 'important'); // Dark blue shadow instead of green
+    }
+
+    function handleGreenButtonLeave(event) {
+        applyGreenButtonBase(event.currentTarget);
+    }
+
+    function decorateGreenButton(element) {
+        applyGreenButtonBase(element);
+
+        if (element.dataset.greenButtonBound === '1')
+            return;
+
+        element.addEventListener('mouseenter', handleGreenButtonHover);
+        element.addEventListener('mouseleave', handleGreenButtonLeave);
+        element.addEventListener('focus', handleGreenButtonHover);
+        element.addEventListener('blur', handleGreenButtonLeave);
+
+        element.dataset.greenButtonBound = '1';
+    }
+
+    function applySaveButtonStyles(context) {
+        var $scope = context ? $(context) : $(document);
+
+        $scope.find('[data-request="onSave"], .btn-add-widget').each(function () {
+            decorateGreenButton(this);
+        });
+    }
+
+    function applyCloseButtonStyles(context) {
+        var $scope = context ? $(context) : $(document);
+
+        $scope.find('.btn-close-modal').each(function () {
+            this.style.setProperty('background', '#f1f4fb', 'important');
+            this.style.setProperty('border', '1px solid #c9d2e3', 'important');
+            this.style.setProperty('color', '#202938', 'important');
+            this.style.setProperty('width', '110px', 'important');
+            this.style.setProperty('min-width', '110px', 'important');
+            this.style.setProperty('padding', '0.55rem 1.75rem', 'important');
+            this.style.setProperty('border-radius', '12px', 'important');
+            this.style.setProperty('display', 'inline-block', 'important');
+            this.style.setProperty('text-align', 'center', 'important');
+        });
+    }
+
+    function applyWidgetModalStyles(context) {
+        var $scope = context ? $(context) : $(document);
+
+        $scope.find('#newWidgetModal .modal-content, .dashboard-widget-modal').each(function () {
+            this.style.setProperty('border', '2px solid #edeff5', 'important');
+            this.style.setProperty('border-radius', '18px', 'important');
+            this.style.setProperty('background', '#ffffff', 'important');
+            this.style.setProperty('box-shadow', '0 24px 48px rgba(32, 41, 56, 0.14)', 'important');
+        });
+
+        $scope.find('#newWidgetModal .modal-header, .dashboard-widget-modal .modal-header').each(function () {
+            this.style.setProperty('border', 'none', 'important');
+            this.style.setProperty('padding', '1.5rem 1.75rem', 'important');
+        });
+
+        $scope.find('#newWidgetModal .modal-body, .dashboard-widget-modal .modal-body').each(function () {
+            this.style.setProperty('padding', '1.5rem 1.75rem', 'important');
+            this.style.setProperty('border-bottom', '1px solid rgba(201, 210, 227, 0.5)', 'important');
+        });
+
+        $scope.find('#newWidgetModal .modal-footer, .dashboard-widget-modal .modal-footer').each(function () {
+            this.style.setProperty('border', 'none', 'important');
+            this.style.setProperty('padding', '1rem 1.75rem 1.25rem', 'important');
+            this.style.setProperty('gap', '0.75rem', 'important');
+        });
+
+        $scope.find('#newWidgetModal select, #newWidgetModal .form-control, #newWidgetModal .ss-main, .dashboard-widget-modal select, .dashboard-widget-modal .form-control, .dashboard-widget-modal .ss-main').each(function () {
+            this.style.setProperty('border', '1px solid #c9d2e3', 'important');
+            this.style.setProperty('border-radius', '12px', 'important');
+            this.style.setProperty('padding', '0.65rem 0.75rem', 'important');
+            this.style.setProperty('box-shadow', 'none', 'important');
+            this.style.setProperty('color', '#202938', 'important');
+            this.style.setProperty('background', '#ffffff', 'important');
+        });
+
+        $scope.find('#newWidgetModal .help-block, .dashboard-widget-modal .help-block').each(function () {
+            this.style.setProperty('color', '#202938', 'important');
+            this.style.setProperty('font-weight', '400', 'important');
+            this.style.setProperty('opacity', '0.9', 'important');
+        });
+    }
+
+    function runAdminButtonInlineStyling(context) {
+        applySaveButtonStyles(context);
+        applyCloseButtonStyles(context);
+        applyWidgetModalStyles(context);
+    }
+
+    window.PMDAdminButtonStyling = {
+        applySaveButtonStyles: applySaveButtonStyles,
+        applyCloseButtonStyles: applyCloseButtonStyles,
+        applyWidgetModalStyles: applyWidgetModalStyles,
+        run: runAdminButtonInlineStyling
+    };
+
+    if (!AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+        console.log('ℹ️ Automatic admin button inline styling disabled; use window.PMDAdminButtonStyling.run() manually for legacy debugging.');
+    }
+
+    $(document).render(function (event) {
+        var context = event && event.target ? event.target : document;
+
+        $('a[title], span[title], button[title], label[title]', document).not('[data-bs-toggle]').not('[data-no-tooltip]').tooltip({placement: 'bottom'});
+        $('.alert', document).alert();
+
+        applyDeleteIconColor(context);
+        applyScopedToolbarSplits();
+        if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+            runAdminButtonInlineStyling(context);
+        }
+    });
+
+    $(document).on('ajaxDone ajaxComplete ajaxSuccess', function (event, context) {
+        var scope = context && context.elements ? context.elements : context;
+        applyDeleteIconColor(scope || document);
+        applyScopedToolbarSplits();
+        if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+            runAdminButtonInlineStyling(scope || document);
+        }
+    });
+
+    applyDeleteIconColor();
+    applyScopedToolbarSplits();
+
+    $(function () {
+        applyScopedToolbarSplits();
+        setTimeout(applyScopedToolbarSplits, 100);
+    });
+
+    if (AUTO_ADMIN_BUTTON_INLINE_STYLING) {
+        runAdminButtonInlineStyling();
+
+        $(function () {
+            runAdminButtonInlineStyling();
+        });
+
+        var saveButtonStyleInterval = setInterval(function () {
+            runAdminButtonInlineStyling();
+        }, 500);
+
+        setTimeout(function () {
+            clearInterval(saveButtonStyleInterval);
+        }, 5000);
+    }
+
+    // Multiple Modal Fix
+    $(document).on('show.bs.modal', '.modal', function () {
+        var zIndex = 1040 + (10 * $('.modal:visible').length + 1)
+        $(this).css('z-index', zIndex)
+        $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 2).addClass('modal-stack')
+        setTimeout(function () {
+            $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack')
+        }, 0)
+    })
+
+    $(document).on('hidden.bs.modal', '.modal', function () {
+        $('.modal:visible').length && $(document.body).addClass('modal-open')
+    })
+
+    // Varying modal content
+    $(document).on('show.bs.modal', '.modal', function (event) {
+        var $modal = $(this),
+            $button = $(event.relatedTarget)
+
+        if (!$button.length)
+            return
+
+        $.each($button.get(0).attributes, function(index, attribute) {
+            if (/^data-modal-/.test(attribute.name)) {
+                var attrName = attribute.name.substr(11),
+                    attrValue = attribute.value
+
+                $modal.find('[data-modal-html="'+attrName+'"]').html(attrValue)
+                $modal.find('[data-modal-text="'+attrName+'"]').text(attrValue)
+                $modal.find('[data-modal-input="'+attrName+'"]').val(attrValue)
+            }
+        });
+    })
+
+    $(window).on('ajaxErrorMessage', function (event, message) {
+        if (!message) return
+
+        $.ti.flashMessage({class: 'danger', text: message, allowDismiss: false})
+
+        event.preventDefault()
+    })
+
+    /*
+     * Handle CSRF token failures and authentication errors
+     */
+    $(window).on('ajaxError', function (event, context, textStatus, jqXHR) {
+        // Handle 403 (CSRF failure) and 419 (token expired)
+        if (jqXHR.status === 403 || jqXHR.status === 419) {
+            var errorMessage = jqXHR.responseText || 'Security token expired. Reloading page...'
+            
+            console.error('CSRF/Auth Error:', errorMessage)
+            
+            $.ti.flashMessage({
+                class: 'danger', 
+                text: errorMessage,
+                allowDismiss: false
+            })
+            
+            // Auto-reload page after 2 seconds to get fresh CSRF token
+            setTimeout(function() {
+                console.log('Reloading page to refresh security token...')
+                window.location.reload()
+            }, 2000)
+            
+            event.preventDefault()
+            return false
+        }
+        
+        // Handle 401 (unauthenticated) - redirect to login
+        if (jqXHR.status === 401) {
+            console.warn('Session expired, redirecting to login...')
+            window.location.href = '/admin/login'
+            event.preventDefault()
+            return false
+        }
+    })
+
+    /*
+     * Ensure the CSRF token is added to all AJAX requests.
+     */
+    $.ajaxPrefilter(function(options) {
+        var token = $('meta[name="csrf-token"]').attr('content')
+
+        if (token) {
+            if (!options.headers) options.headers = {}
+            options.headers['X-CSRF-TOKEN'] = token
+        }
+    })
+}(window.jQuery);
+

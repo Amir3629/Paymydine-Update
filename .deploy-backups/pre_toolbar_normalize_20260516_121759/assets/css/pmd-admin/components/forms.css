@@ -1,0 +1,6 @@
+/* PayMyDine Admin forms: scoped `.pmd-` starters only. */
+.pmd-form-control {
+  border-color: var(--pmd-color-border);
+  border-radius: var(--pmd-radius-md);
+  color: var(--pmd-color-text);
+}

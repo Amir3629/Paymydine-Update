@@ -1,0 +1,107 @@
+/* ============================================
+   FIX FOOTER BUTTON - Remove ALL green colors on hover
+   Force gray hover state with maximum specificity
+   MUST LOAD AFTER dashboardcontainer.css to override
+   ============================================ */
+
+/* CRITICAL: Override dashboardcontainer.css green gradient hover rule */
+/* The rule ".dropdown-menu a:not(.btn):not(.menu-grid .menu-link):hover" 
+   was matching footer button, so we need maximum specificity here */
+
+/* Nuclear option: Remove green from footer button in ALL states */
+.navbar-top .dropdown-menu .dropdown-footer a,
+.dropdown-menu .dropdown-footer a,
+.navbar-top .dropdown-menu .dropdown-footer a.text-center,
+.dropdown-menu .dropdown-footer a.text-center,
+.navbar-top .dropdown-menu .dropdown-footer a[href*="settings"],
+.dropdown-menu .dropdown-footer a[href*="settings"] {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  border-color: #e5e7eb !important;
+  color: #202938 !important;
+}
+
+/* Remove green on ALL hover/focus/active states - MAXIMUM SPECIFICITY */
+.navbar-top .dropdown-menu .dropdown-footer a:hover,
+.dropdown-menu .dropdown-footer a:hover,
+.navbar-top .dropdown-menu .dropdown-footer a:focus,
+.dropdown-menu .dropdown-footer a:focus,
+.navbar-top .dropdown-menu .dropdown-footer a:active,
+.dropdown-menu .dropdown-footer a:active,
+.navbar-top .dropdown-menu .dropdown-footer a:focus-visible,
+.dropdown-menu .dropdown-footer a:focus-visible,
+.navbar-top .dropdown-menu .dropdown-footer a.text-center:hover,
+.dropdown-menu .dropdown-footer a.text-center:hover,
+.navbar-top .dropdown-menu .dropdown-footer a.text-center:focus,
+.dropdown-menu .dropdown-footer a.text-center:focus,
+.navbar-top .dropdown-menu .dropdown-footer a.text-center:active,
+.dropdown-menu .dropdown-footer a.text-center:active,
+.navbar-top .dropdown-menu .dropdown-footer a[href*="settings"]:hover,
+.dropdown-menu .dropdown-footer a[href*="settings"]:hover {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  background-image: none !important;
+  border-color: #d1d5db !important;
+  color: #202938 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Icon inside footer button - no green */
+.navbar-top .dropdown-menu .dropdown-footer a i,
+.dropdown-menu .dropdown-footer a i,
+.navbar-top .dropdown-menu .dropdown-footer a .fa,
+.dropdown-menu .dropdown-footer a .fa,
+.navbar-top .dropdown-menu .dropdown-footer a .fa-ellipsis-h,
+.dropdown-menu .dropdown-footer a .fa-ellipsis-h {
+  color: #202938 !important;
+}
+
+.navbar-top .dropdown-menu .dropdown-footer a:hover i,
+.dropdown-menu .dropdown-footer a:hover i,
+.navbar-top .dropdown-menu .dropdown-footer a:hover .fa,
+.dropdown-menu .dropdown-footer a:hover .fa,
+.navbar-top .dropdown-menu .dropdown-footer a:hover .fa-ellipsis-h,
+.dropdown-menu .dropdown-footer a:hover .fa-ellipsis-h {
+  color: #202938 !important;
+}
+
+/* Override any generic link hover rules that might apply */
+a.text-center[href*="settings"]:hover,
+a.text-center[href*="settings"]:focus,
+a.text-center[href*="settings"]:active {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  background-image: none !important;
+  color: #202938 !important;
+}
+
+/* Make sure no green gradients or colors can appear */
+.navbar-top .dropdown-menu .dropdown-footer a:hover *,
+.dropdown-menu .dropdown-footer a:hover * {
+  color: #202938 !important;
+}
+
+/* Override ANY generic link rules that might apply green */
+.navbar-top .dropdown-menu .dropdown-footer a.text-center,
+a.text-center[href*="/admin/settings"] {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  color: #202938 !important;
+  border-color: #e5e7eb !important;
+}
+
+.navbar-top .dropdown-menu .dropdown-footer a.text-center:hover,
+a.text-center[href*="/admin/settings"]:hover,
+.navbar-top .dropdown-menu .dropdown-footer a.text-center:focus,
+a.text-center[href*="/admin/settings"]:focus,
+.navbar-top .dropdown-menu .dropdown-footer a.text-center:active,
+a.text-center[href*="/admin/settings"]:active {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  background-image: none !important;
+  color: #202938 !important;
+  border-color: #d1d5db !important;
+}

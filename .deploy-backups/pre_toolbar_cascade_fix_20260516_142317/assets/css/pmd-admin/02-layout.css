@@ -1,0 +1,9 @@
+/*
+ * PayMyDine Admin modular CSS foundation: layout helpers.
+ *
+ * This file is reserved for future `.pmd-` layout wrappers only. It must not
+ * change the existing admin shell, sidebar, navbar, or asset loading behavior.
+ */
+.pmd-admin__section {
+  /* Future scoped layout styles belong here. */
+}

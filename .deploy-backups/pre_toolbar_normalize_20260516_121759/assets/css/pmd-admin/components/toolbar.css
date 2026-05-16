@@ -1,0 +1,11 @@
+/* PayMyDine Admin toolbar: scoped `.pmd-` starters only. */
+.pmd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--pmd-space-sm);
+}
+
+.pmd-toolbar__action {
+  display: inline-flex;
+  align-items: center;
+}
