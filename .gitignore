@@ -23,3 +23,5 @@ pm2/
 paymydine_backup.tar.gz
 paymydine_backup_*.tar.gz
 .DS_Store
+
+.deploy-backups/

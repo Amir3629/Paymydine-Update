@@ -1089,9 +1089,8 @@ html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar
 html body.page.pmd-debug-toolbar .progress-indicator-container.pmd-staff-toolbar-split > .right-buttons .pmd-toolbar-secondary-action {
   outline: 1px solid red;
 }
-/* Generic admin toolbar split used by the runtime Toolbar Splitter. */
-html body.page .progress-indicator-container.pmd-toolbar-split,
-html body.page .toolbar-action.pmd-toolbar-split {
+/* Generic admin toolbar split used only by the runtime Toolbar Splitter on opted-in pages. */
+html body.page .progress-indicator-container.pmd-toolbar-split {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
@@ -1100,8 +1099,7 @@ html body.page .toolbar-action.pmd-toolbar-split {
   min-width: 0 !important;
 }
 
-html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons,
-html body.page .toolbar-action.pmd-toolbar-split > .right-buttons {
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -1111,16 +1109,13 @@ html body.page .toolbar-action.pmd-toolbar-split > .right-buttons {
 }
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
-html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group,
-html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn,
-html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn-group {
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn-group {
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
 
-/* Secondary toolbar actions should match the Staff toolbar's ice button style on every admin page. */
+/* Secondary toolbar actions should match the Staff toolbar's ice button style on every split toolbar. */
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn,
-html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn,
 html body.page .pmd-toolbar-right-buttons > .btn,
 html body.page .pmd-toolbar-secondary-action {
   background: #f1f3f9 !important;
@@ -1132,8 +1127,6 @@ html body.page .pmd-toolbar-secondary-action {
 
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:hover,
 html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons > .btn:focus,
-html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn:hover,
-html body.page .toolbar-action.pmd-toolbar-split > .right-buttons > .btn:focus,
 html body.page .pmd-toolbar-right-buttons > .btn:hover,
 html body.page .pmd-toolbar-right-buttons > .btn:focus,
 html body.page .pmd-toolbar-secondary-action:hover,
@@ -1145,12 +1138,13 @@ html body.page .pmd-toolbar-secondary-action:focus {
   box-shadow: none !important;
 }
 
-/* Back actions are always left-side secondary actions and must sit before the primary button. */
-html body.page .progress-indicator-container.pmd-toolbar-split > .pmd-toolbar-back-action,
-html body.page .toolbar-action.pmd-toolbar-split > .pmd-toolbar-back-action,
-html body.page .pmd-toolbar-back-action,
-html body.page a.pmd-toolbar-secondary-action:has(.fa-arrow-left),
-html body.page a.pmd-toolbar-secondary-action:has(.fa-chevron-left) {
+/*
+ * Back actions are left-side secondary actions. The JS only adds
+ * `.pmd-toolbar-back-action` and, when needed, moves the anchor before the
+ * primary button; CSS owns the visual treatment so generated form pages keep
+ * loading without inline-style mutation loops.
+ */
+html body.page .pmd-toolbar-back-action {
   order: 0 !important;
   background: #f1f3f9 !important;
   background-color: #f1f3f9 !important;
@@ -1162,18 +1156,12 @@ html body.page a.pmd-toolbar-secondary-action:has(.fa-chevron-left) {
 }
 
 html body.page .pmd-toolbar-back-action i,
-html body.page .pmd-toolbar-back-action .fa,
-html body.page a.pmd-toolbar-secondary-action:has(.fa-arrow-left) i,
-html body.page a.pmd-toolbar-secondary-action:has(.fa-chevron-left) i {
+html body.page .pmd-toolbar-back-action .fa {
   color: #364a63 !important;
 }
 
 html body.page .pmd-toolbar-back-action:hover,
-html body.page .pmd-toolbar-back-action:focus,
-html body.page a.pmd-toolbar-secondary-action:has(.fa-arrow-left):hover,
-html body.page a.pmd-toolbar-secondary-action:has(.fa-arrow-left):focus,
-html body.page a.pmd-toolbar-secondary-action:has(.fa-chevron-left):hover,
-html body.page a.pmd-toolbar-secondary-action:has(.fa-chevron-left):focus {
+html body.page .pmd-toolbar-back-action:focus {
   background: #e5ebf7 !important;
   background-color: #e5ebf7 !important;
   border-color: #b8c6dd !important;
