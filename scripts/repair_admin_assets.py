@@ -381,13 +381,14 @@ TOOLBAR_JS = r'''
             '.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn-group,.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn-group>.btn{margin-left:0!important;margin-right:0!important;}',
             '.pmd-toolbar-secondary-action,.pmd-toolbar-right-buttons>.btn,.pmd-toolbar-right-buttons>.btn-group>.btn{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;box-shadow:none!important;}',
             '.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn-group>.btn:hover,.pmd-toolbar-right-buttons>.btn-group>.btn:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}',
-            '.pmd-toolbar-back-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;margin-right:8px!important;margin-left:0!important;box-shadow:none!important;order:0!important;}',
+            '.pmd-toolbar-back-action{background:#364a63!important;background-color:#364a63!important;border:1px solid #364a63!important;color:#fff!important;margin-right:8px!important;margin-left:0!important;box-shadow:0 4px 12px rgba(54,74,99,.24)!important;order:0!important;width:40px!important;min-width:40px!important;max-width:40px!important;height:40px!important;min-height:40px!important;max-height:40px!important;padding:0!important;flex:0 0 40px!important;transform:none!important;}',
             '.pmd-toolbar-primary-action{order:1!important;margin-left:0!important;margin-right:0!important;}',
 
-            '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-back-action{order:0!important;margin-left:0!important;margin-right:8px!important;flex:0 0 auto!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>[data-pmd-toolbar-back=\"true\"],.progress-indicator-container.pmd-toolbar-normalized>a.btn.btn-outline-secondary:has(.fa-arrow-left){order:0!important;margin-left:0!important;margin-right:8px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:40px!important;min-width:40px!important;max-width:40px!important;height:40px!important;min-height:40px!important;max-height:40px!important;padding:0!important;flex:0 0 40px!important;background:#364a63!important;background-color:#364a63!important;background-image:none!important;border:1px solid #364a63!important;color:#fff!important;box-shadow:0 4px 12px rgba(54,74,99,.24)!important;transform:none!important;}',
             '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn-group.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn-group.pmd-toolbar-primary-action>.btn{order:1!important;margin-left:0!important;margin-right:0!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;}',
-            '.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-default.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-light.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-danger.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action){display:inline-flex!important;align-items:center!important;justify-content:center!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:.55rem .95rem!important;line-height:1!important;border-radius:12px!important;background:#f1f3f9!important;background-color:#f1f3f9!important;background-image:none!important;border-color:#f1f3f9!important;color:#364a63!important;box-shadow:none!important;}',
-            '.pmd-toolbar-back-action:hover,.pmd-toolbar-back-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}'
+            '.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-default.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-light.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-danger.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):not([data-pmd-toolbar-back=\"true\"]):not(:has(.fa-arrow-left)){display:inline-flex!important;align-items:center!important;justify-content:center!important;order:10!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:.55rem .95rem!important;line-height:1!important;border-radius:12px!important;background:#f1f3f9!important;background-color:#f1f3f9!important;background-image:none!important;border-color:#f1f3f9!important;color:#364a63!important;box-shadow:none!important;transform:none!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action:hover,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action:focus,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action:active,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):hover,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):focus,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):active{background:#f1f3f9!important;background-color:#f1f3f9!important;border-color:#f1f3f9!important;color:#364a63!important;box-shadow:none!important;transform:none!important;}',
+            '.pmd-toolbar-back-action:hover,.pmd-toolbar-back-action:focus,.pmd-toolbar-back-action:active{background:#364a63!important;background-color:#364a63!important;border-color:#364a63!important;color:#fff!important;box-shadow:0 4px 12px rgba(54,74,99,.24)!important;transform:none!important;}'
         ].join('\n');
         document.head.appendChild(style);
     }
@@ -499,8 +500,17 @@ TOOLBAR_JS = r'''
         return rightButtons;
     }
 
+    function isHiddenToolbarAction(child) {
+        if (!child || child.nodeType !== 1) return true;
+        if (child.hidden || child.getAttribute('aria-hidden') === 'true') return true;
+        if (child.matches && child.matches('[type="hidden"], .d-none, .hide, [hidden]')) return true;
+        if (child.style && child.style.display === 'none') return true;
+        return false;
+    }
+
     function isToolbarActionChild(child) {
         if (!child || child.nodeType !== 1) return false;
+        if (isHiddenToolbarAction(child)) return false;
         if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return false;
         if (child.classList && child.classList.contains('progress-indicator')) return false;
         if (child.classList && child.classList.contains('right-buttons')) return true;
@@ -595,9 +605,13 @@ TOOLBAR_JS = r'''
     }
 
     function shouldSplitToolbar(state, forceConfig) {
-        if (!state.primaryAction) return false;
-        if (state.secondaryActions.length < 2) return false;
-        if (forceConfig) return true;
+        var leftActions = (state.primaryAction ? 1 : 0) + state.backActions.length;
+        var totalActions = leftActions + state.secondaryActions.length;
+
+        if (state.secondaryActions.length < 1) return false;
+        if (leftActions < 1) return false;
+        if (totalActions <= state.secondaryActions.length) return false;
+
         return true;
     }
 
@@ -612,8 +626,10 @@ TOOLBAR_JS = r'''
         placeToolbarBackActions(container, state.primaryAction, state.rightButtons);
 
         state = collectToolbarState(container);
-        unwrapRightButtonsIfSingle(container, state.rightButtons, state.primaryAction);
-        state = collectToolbarState(container);
+        if (state.rightButtons && !shouldSplitToolbar(state, forceConfig)) {
+            unwrapRightButtonsIfSingle(container, state.rightButtons, state.primaryAction);
+            state = collectToolbarState(container);
+        }
 
         state.secondaryActions.forEach(function (button) {
             if (!isToolbarBackAction(button)) button.classList.add('pmd-toolbar-secondary-action');
@@ -978,6 +994,137 @@ html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-t
   color: #364a63 !important;
   box-shadow: none !important;
 }
+
+/*
+ * Absolute final toolbar marker guard.
+ * This sits after all legacy/hotfix selectors so secondary order rules cannot
+ * visually move Back behind Primary, and right-button `.btn-default` rules
+ * cannot keep secondary actions white.
+ */
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-back-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-back-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > button.btn.pmd-toolbar-back-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"],
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.btn-outline-secondary:has(.fa-arrow-left) {
+  order: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+  background: #364a63 !important;
+  background-color: #364a63 !important;
+  background-image: none !important;
+  border: 1px solid #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
+  transform: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-back-action i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-back-action i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"] i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.btn-outline-secondary:has(.fa-arrow-left) i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-back-action .fa,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-back-action .fa,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"] .fa,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.btn-outline-secondary:has(.fa-arrow-left) .fa {
+  color: #ffffff !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-back-action:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-back-action:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-back-action:active,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-back-action:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-back-action:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-back-action:active,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"]:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"]:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"]:active {
+  background: #364a63 !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(54, 74, 99, 0.24) !important;
+  transform: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-primary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-primary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > button.btn.pmd-toolbar-primary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group.pmd-toolbar-primary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group.pmd-toolbar-primary-action > .btn {
+  order: 1 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-primary-action:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-primary-action:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-primary-action:active,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-primary-action:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-primary-action:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-primary-action:active,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group.pmd-toolbar-primary-action > .btn:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group.pmd-toolbar-primary-action > .btn:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group.pmd-toolbar-primary-action > .btn:active {
+  background: #364a63 !important;
+  background-color: #364a63 !important;
+  border-color: #364a63 !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):not([data-pmd-toolbar-back="true"]):not(:has(.fa-arrow-left)),
+html body.page .progress-indicator-container.pmd-toolbar-normalized > a.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):not([data-pmd-toolbar-back="true"]):not(:has(.fa-arrow-left)),
+html body.page .progress-indicator-container.pmd-toolbar-normalized > button.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):not([data-pmd-toolbar-back="true"]):not(:has(.fa-arrow-left)),
+html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action),
+html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn.btn-default.pmd-toolbar-secondary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn.btn-light.pmd-toolbar-secondary-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn.btn-danger.pmd-toolbar-secondary-action {
+  order: 10 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0.55rem 0.95rem !important;
+  line-height: 1 !important;
+  border-radius: 12px !important;
+  background: #f1f3f9 !important;
+  background-color: #f1f3f9 !important;
+  background-image: none !important;
+  border-color: #f1f3f9 !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):active,
+html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action:active {
+  background: #f1f3f9 !important;
+  background-color: #f1f3f9 !important;
+  border-color: #f1f3f9 !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
 '''
 
 
@@ -1068,7 +1215,7 @@ def patch_toolbar_css() -> None:
         log(f"WARN: {rel_path} not found; skipping toolbar CSS patch")
         return
 
-    if ".pmd-staff-toolbar-split" not in text or ".pmd-toolbar-normalized" not in text or "Back actions are left-side secondary actions" not in text:
+    if ".pmd-staff-toolbar-split" not in text or ".pmd-toolbar-normalized" not in text or "Absolute final toolbar marker guard" not in text:
         text = text.rstrip() + "\n" + TOOLBAR_CSS
         write(path, text)
         log(f"patched Staff toolbar CSS in {rel_path}")

@@ -60,13 +60,14 @@
             '.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn-group,.progress-indicator-container.pmd-toolbar-normalized>.right-buttons>.btn-group>.btn{margin-left:0!important;margin-right:0!important;}',
             '.pmd-toolbar-secondary-action,.pmd-toolbar-right-buttons>.btn,.pmd-toolbar-right-buttons>.btn-group>.btn{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;box-shadow:none!important;}',
             '.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn-group>.btn:hover,.pmd-toolbar-right-buttons>.btn-group>.btn:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}',
-            '.pmd-toolbar-back-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;margin-right:8px!important;margin-left:0!important;box-shadow:none!important;order:0!important;}',
+            '.pmd-toolbar-back-action{background:#364a63!important;background-color:#364a63!important;border:1px solid #364a63!important;color:#fff!important;margin-right:8px!important;margin-left:0!important;box-shadow:0 4px 12px rgba(54,74,99,.24)!important;order:0!important;width:40px!important;min-width:40px!important;max-width:40px!important;height:40px!important;min-height:40px!important;max-height:40px!important;padding:0!important;flex:0 0 40px!important;transform:none!important;}',
             '.pmd-toolbar-primary-action{order:1!important;margin-left:0!important;margin-right:0!important;}',
 
-            '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-back-action{order:0!important;margin-left:0!important;margin-right:8px!important;flex:0 0 auto!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>[data-pmd-toolbar-back=\"true\"],.progress-indicator-container.pmd-toolbar-normalized>a.btn.btn-outline-secondary:has(.fa-arrow-left){order:0!important;margin-left:0!important;margin-right:8px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:40px!important;min-width:40px!important;max-width:40px!important;height:40px!important;min-height:40px!important;max-height:40px!important;padding:0!important;flex:0 0 40px!important;background:#364a63!important;background-color:#364a63!important;background-image:none!important;border:1px solid #364a63!important;color:#fff!important;box-shadow:0 4px 12px rgba(54,74,99,.24)!important;transform:none!important;}',
             '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn-group.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn-group.pmd-toolbar-primary-action>.btn{order:1!important;margin-left:0!important;margin-right:0!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;}',
-            '.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-default.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-light.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-danger.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action){display:inline-flex!important;align-items:center!important;justify-content:center!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:.55rem .95rem!important;line-height:1!important;border-radius:12px!important;background:#f1f3f9!important;background-color:#f1f3f9!important;background-image:none!important;border-color:#f1f3f9!important;color:#364a63!important;box-shadow:none!important;}',
-            '.pmd-toolbar-back-action:hover,.pmd-toolbar-back-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}'
+            '.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-default.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-light.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-danger.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):not([data-pmd-toolbar-back=\"true\"]):not(:has(.fa-arrow-left)){display:inline-flex!important;align-items:center!important;justify-content:center!important;order:10!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:.55rem .95rem!important;line-height:1!important;border-radius:12px!important;background:#f1f3f9!important;background-color:#f1f3f9!important;background-image:none!important;border-color:#f1f3f9!important;color:#364a63!important;box-shadow:none!important;transform:none!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action:hover,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action:focus,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action:active,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):hover,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):focus,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):active{background:#f1f3f9!important;background-color:#f1f3f9!important;border-color:#f1f3f9!important;color:#364a63!important;box-shadow:none!important;transform:none!important;}',
+            '.pmd-toolbar-back-action:hover,.pmd-toolbar-back-action:focus,.pmd-toolbar-back-action:active{background:#364a63!important;background-color:#364a63!important;border-color:#364a63!important;color:#fff!important;box-shadow:0 4px 12px rgba(54,74,99,.24)!important;transform:none!important;}'
         ].join('\n');
         document.head.appendChild(style);
     }
@@ -178,8 +179,17 @@
         return rightButtons;
     }
 
+    function isHiddenToolbarAction(child) {
+        if (!child || child.nodeType !== 1) return true;
+        if (child.hidden || child.getAttribute('aria-hidden') === 'true') return true;
+        if (child.matches && child.matches('[type="hidden"], .d-none, .hide, [hidden]')) return true;
+        if (child.style && child.style.display === 'none') return true;
+        return false;
+    }
+
     function isToolbarActionChild(child) {
         if (!child || child.nodeType !== 1) return false;
+        if (isHiddenToolbarAction(child)) return false;
         if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return false;
         if (child.classList && child.classList.contains('progress-indicator')) return false;
         if (child.classList && child.classList.contains('right-buttons')) return true;
@@ -274,9 +284,13 @@
     }
 
     function shouldSplitToolbar(state, forceConfig) {
-        if (!state.primaryAction) return false;
-        if (state.secondaryActions.length < 2) return false;
-        if (forceConfig) return true;
+        var leftActions = (state.primaryAction ? 1 : 0) + state.backActions.length;
+        var totalActions = leftActions + state.secondaryActions.length;
+
+        if (state.secondaryActions.length < 1) return false;
+        if (leftActions < 1) return false;
+        if (totalActions <= state.secondaryActions.length) return false;
+
         return true;
     }
 
@@ -291,8 +305,10 @@
         placeToolbarBackActions(container, state.primaryAction, state.rightButtons);
 
         state = collectToolbarState(container);
-        unwrapRightButtonsIfSingle(container, state.rightButtons, state.primaryAction);
-        state = collectToolbarState(container);
+        if (state.rightButtons && !shouldSplitToolbar(state, forceConfig)) {
+            unwrapRightButtonsIfSingle(container, state.rightButtons, state.primaryAction);
+            state = collectToolbarState(container);
+        }
 
         state.secondaryActions.forEach(function (button) {
             if (!isToolbarBackAction(button)) button.classList.add('pmd-toolbar-secondary-action');
