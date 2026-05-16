@@ -40,9 +40,9 @@
     const PRIMARY_SOLID_BACKGROUND = '#1f2b3a';
     const PRIMARY_BORDER = '#364a63';
     const PRIMARY_TEXT_COLOR = '#ffffff';
-    const ICE_BACKGROUND = '#f1f4fb';
+    const ICE_BACKGROUND = '#f1f3f9';
     const ICE_BORDER = '#c9d2e3';
-    const ICE_TEXT_COLOR = '#202938';
+    const ICE_TEXT_COLOR = '#364a63';
     const DANGER_BACKGROUND = '#dc3545';
     const DANGER_BORDER = '#dc3545';
     const DANGER_TEXT_COLOR = '#ffffff';
@@ -672,7 +672,12 @@
         progressContainer.dataset.mailTemplatesLayoutApplied = '1';
     }
     
-    /** Staffs page: one button left (New), Groups + Roles grouped on the right. Runs on init so it applies even when there is no bulk row. */
+    /**
+     * Staffs page legacy hook: keep New left and move Groups/Roles into
+     * `.right-buttons`. This mirrors the production admin.js split without
+     * writing inline layout styles, so manual legacy debugging cannot create a
+     * competing toolbar shape.
+     */
     function applyStaffsToolbarLayout() {
         const toolbar = document.querySelector('#toolbar') || document.querySelector('.toolbar') || document.querySelector('.list-toolbar');
         if (!toolbar) return;
@@ -683,17 +688,28 @@
         const rolesBtn = progressContainer.querySelector('a[href*="staff_roles"]');
         if (!newBtn || !groupsBtn || !rolesBtn) return;
         if (progressContainer.dataset.staffsLayoutApplied === '1') return;
-        var rightGroup = document.createElement('div');
-        rightGroup.className = 'toolbar-staffs-right';
-        rightGroup.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-left: auto;';
-        progressContainer.insertBefore(rightGroup, groupsBtn);
+
+        var rightGroup = Array.prototype.slice.call(progressContainer.children).find(function(child) {
+            return child.classList && child.classList.contains('right-buttons');
+        });
+        if (!rightGroup) {
+            rightGroup = document.createElement('div');
+            rightGroup.className = 'right-buttons pmd-toolbar-right-buttons';
+            rightGroup.setAttribute('aria-label', 'Secondary staff toolbar actions');
+            progressContainer.appendChild(rightGroup);
+        } else {
+            rightGroup.classList.add('pmd-toolbar-right-buttons');
+        }
+
+        newBtn.classList.add('pmd-toolbar-primary-action');
+        groupsBtn.classList.add('pmd-toolbar-secondary-action');
+        rolesBtn.classList.add('pmd-toolbar-secondary-action');
         rightGroup.appendChild(groupsBtn);
         rightGroup.appendChild(rolesBtn);
-        progressContainer.style.justifyContent = 'flex-start';
-        progressContainer.classList.add('toolbar-staffs-layout');
+        progressContainer.classList.add('pmd-staff-toolbar-split', 'toolbar-staffs-layout');
         progressContainer.dataset.staffsLayoutApplied = '1';
     }
-    
+
     /** System Logs page: Refresh on left, Empty Logs + Request Logs grouped on the right. Runs on init. */
     function applySystemLogsToolbarLayout() {
         const toolbar = document.querySelector('#toolbar') || document.querySelector('.toolbar') || document.querySelector('.list-toolbar');

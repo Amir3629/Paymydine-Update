@@ -1,8 +1,30 @@
 /*
  * PayMyDine Admin page scope: payments.
  *
- * Keep this file empty until a future PR adds reviewed, page-specific styles.
+ * Payments has a right-only secondary action. The toolbar splitter moves the
+ * toggle into `.right-buttons`; this page rule keeps the container full width
+ * before and after the splitter runs.
  */
-.pmd-page--payments {
-  /* Future scoped page styles belong here. */
+.pmd-page--payments .pmd-payments-toolbar-container {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.pmd-page--payments .pmd-payments-mode-toggle {
+  background: #f1f3f9 !important;
+  background-color: #f1f3f9 !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
+}
+
+.pmd-page--payments .pmd-payments-mode-toggle:hover,
+.pmd-page--payments .pmd-payments-mode-toggle:focus {
+  background: #e5ebf7 !important;
+  background-color: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  color: #364a63 !important;
+  box-shadow: none !important;
 }

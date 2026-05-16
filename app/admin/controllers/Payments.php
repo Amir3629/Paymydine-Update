@@ -85,6 +85,8 @@ class Payments extends \Admin\Classes\AdminController
 
         session(['payments.form_mode' => $mode]);
 
+        $this->addCss('~/app/admin/assets/css/pmd-admin/pages/payments.css', 'pmd-payments-css');
+
         if ($requestedMode === '') {
             return \Redirect::to(admin_url('payments?mode='.$mode));
         }
