@@ -28,6 +28,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
+import { FoodAttributeTags } from "@/components/food-attribute-tags";
 import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
@@ -2754,6 +2755,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
       <div className="flex-grow">
         <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
+        <FoodAttributeTags item={item} compact className="mt-2" />
         <div className="flex justify-between items-center mt-2">
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
           <div className="relative">

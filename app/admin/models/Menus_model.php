@@ -40,6 +40,9 @@ class Menus_model extends Model
         'minimum_qty' => 'integer',
         'order_restriction' => 'array',
         'menu_status' => 'boolean',
+        'is_halal' => 'boolean',
+        'is_vegetarian' => 'boolean',
+        'is_vegan' => 'boolean',
         'menu_priority' => 'integer',
         'is_stock_out' => 'boolean',
     ];

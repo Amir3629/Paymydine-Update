@@ -19,6 +19,10 @@ class Menu extends FormRequest
             'subtract_stock' => lang('admin::lang.menus.label_subtract_stock'),
             'order_restriction.*' => lang('admin::lang.menus.label_order_restriction'),
             'menu_status' => lang('admin::lang.label_status'),
+            'is_halal' => 'Halal',
+            'is_vegetarian' => 'Vegetarian',
+            'is_vegan' => 'Vegan',
+            'allergens.*' => 'Allergy tags',
             'mealtime_id' => lang('admin::lang.menus.label_mealtime'),
             'menu_priority' => lang('admin::lang.menus.label_menu_priority'),
         ];
@@ -37,6 +41,10 @@ class Menu extends FormRequest
             'subtract_stock' => ['sometimes', 'required', 'boolean'],
             'order_restriction.*' => ['nullable', 'string'],
             'menu_status' => ['boolean'],
+            'is_halal' => ['sometimes', 'boolean'],
+            'is_vegetarian' => ['sometimes', 'boolean'],
+            'is_vegan' => ['sometimes', 'boolean'],
+            'allergens.*' => ['nullable', 'integer'],
             'mealtime_id' => ['nullable', 'integer'],
             'menu_priority' => ['min:0', 'integer'],
         ];

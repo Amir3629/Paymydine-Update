@@ -8,6 +8,7 @@ import { getMenuImageUrl } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { useLanguageStore } from "@/store/language-store"
 import type { TranslationKey } from "@/lib/translations"
+import { FoodAttributeTags } from "@/components/food-attribute-tags"
 
 interface MenuItemModalProps {
   item: MenuItem | null
@@ -62,6 +63,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
 
               {/* Content */}
               <h2 className="font-serif text-3xl font-bold text-paydine-elegant-gray mb-3 text-center">{itemName}</h2>
+              <FoodAttributeTags item={item} className="mb-4 justify-center" />
               <p className="text-gray-600 text-lg leading-relaxed text-center">{itemDescription}</p>
             </div>
           </motion.div>
