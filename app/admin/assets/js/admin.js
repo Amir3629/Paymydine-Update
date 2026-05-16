@@ -1471,6 +1471,10 @@ if (window.jQuery.request !== undefined)
             '.pmd-toolbar-secondary-action:hover,.pmd-toolbar-secondary-action:focus,.pmd-toolbar-right-buttons>.btn:hover,.pmd-toolbar-right-buttons>.btn:focus,.pmd-toolbar-right-buttons>.btn-group>.btn:hover,.pmd-toolbar-right-buttons>.btn-group>.btn:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}',
             '.pmd-toolbar-back-action{background:#f1f3f9!important;background-color:#f1f3f9!important;border:1px solid #c9d2e3!important;color:#364a63!important;margin-right:8px!important;margin-left:0!important;box-shadow:none!important;order:0!important;}',
             '.pmd-toolbar-primary-action{order:1!important;margin-left:0!important;margin-right:0!important;}',
+
+            '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-back-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-back-action{order:0!important;margin-left:0!important;margin-right:8px!important;flex:0 0 auto!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>a.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>button.btn.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn-group.pmd-toolbar-primary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn-group.pmd-toolbar-primary-action>.btn{order:1!important;margin-left:0!important;margin-right:0!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;}',
+            '.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-default.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-light.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized.pmd-toolbar-split .pmd-toolbar-right-buttons>.btn.btn-danger.pmd-toolbar-secondary-action,.progress-indicator-container.pmd-toolbar-normalized>.btn.pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action){display:inline-flex!important;align-items:center!important;justify-content:center!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:.55rem .95rem!important;line-height:1!important;border-radius:12px!important;background:#f1f3f9!important;background-color:#f1f3f9!important;background-image:none!important;border-color:#f1f3f9!important;color:#364a63!important;box-shadow:none!important;}',
             '.pmd-toolbar-back-action:hover,.pmd-toolbar-back-action:focus{background:#e5ebf7!important;background-color:#e5ebf7!important;border-color:#b8c6dd!important;color:#364a63!important;box-shadow:none!important;}'
         ].join('\n');
         document.head.appendChild(style);
@@ -1503,8 +1507,19 @@ if (window.jQuery.request !== undefined)
             (child.classList && child.classList.contains('pmd-toolbar-secondary-action'));
     }
 
+    function getToolbarActionText(child) {
+        if (!child || child.nodeType !== 1) return '';
+        return (child.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    function hasPrimaryToolbarLabel(child) {
+        var text = getToolbarActionText(child);
+        return /^(new|save|create|add)(\b|\s|$)/.test(text) || /\b(save|create|add)\b/.test(text);
+    }
+
     function isToolbarPrimaryAction(child) {
-        return toolbarChildContains(child, '.pmd-toolbar-primary-action, [data-pmd-toolbar-primary], .btn-primary, .btn-success, [data-request="onSave"]');
+        return toolbarChildContains(child, '.pmd-toolbar-primary-action, [data-pmd-toolbar-primary], .btn-primary, .btn-success, [data-request="onSave"]') ||
+            hasPrimaryToolbarLabel(child);
     }
 
     function normalizeToolbarBackAction(child) {
@@ -1779,7 +1794,8 @@ if (window.jQuery.request !== undefined)
             }
         });
 
-        PMD_TOOLBAR_SPLIT_OBSERVER.observe(document.body, { childList: true, subtree: true });
+        var observerTarget = document.querySelector('.page-content') || document.querySelector('.page-wrapper') || document.body;
+        PMD_TOOLBAR_SPLIT_OBSERVER.observe(observerTarget, { childList: true, subtree: true });
     }
 
     function scheduleToolbarSplit() {
