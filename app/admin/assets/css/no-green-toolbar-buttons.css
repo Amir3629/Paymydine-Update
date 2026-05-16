@@ -1,68 +1,257 @@
 /**
- * NO GREEN TOOLBAR BUTTONS - Loads last. Nuclear override so toolbar Save/Back stay blue.
- * Overrides any theme green (--bs-primary-rgb, box-shadow, background).
+ * PayMyDine admin button/toolbar system.
+ *
+ * Loaded late by the admin layout to neutralize legacy green Bootstrap/TastyIgniter
+ * button skinning without globally restyling every `.btn`. The selectors below
+ * are intentionally scoped to top-level admin toolbars, list bulk-action rows,
+ * tables, filters, pagination, and modal footers so toolbar layout rules do not
+ * leak into table rows, filters, media widgets, or modals.
+ *
+ * `!important` is used only where this late safety layer must beat older
+ * compiled admin.css/theme rules that also used `!important` for toolbar buttons.
  */
-/* Toolbar area: use blue for any inherited theme vars (no green) */
-html body .toolbar-action,
-html body .progress-indicator-container {
+
+html body.page .toolbar-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized,
+html body.page .progress-indicator-container.pmd-toolbar-split {
   --bs-primary-rgb: 54, 74, 99 !important;
   --bs-btn-focus-shadow-rgb: 54, 74, 99 !important;
 }
-html body .control-toolbar .toolbar-action .btn-primary,
-html body .control-toolbar .toolbar-action .progress-indicator-container .btn-primary,
-html body .control-toolbar .toolbar-action .progress-indicator-container .btn-group .btn-primary,
-html body .toolbar-action .btn-primary,
-html body .toolbar-action .progress-indicator-container .btn-primary,
-html body .toolbar-action .progress-indicator-container .btn-group .btn-primary,
-html body .progress-indicator-container .btn-primary,
-html body .progress-indicator-container .btn-group .btn-primary,
-.toolbar-action .progress-indicator-container .btn-primary,
-.toolbar-action .progress-indicator-container .btn-group .btn-primary,
-.progress-indicator-container .btn-primary,
-.progress-indicator-container .btn-group .btn-primary {
-  --bs-primary-rgb: 54, 74, 99 !important;
-  --bs-btn-focus-shadow-rgb: 54, 74, 99 !important;
+
+/* Top admin toolbar layout: primary left, secondary right when JS adds the split wrapper. */
+html body.page .toolbar-action > .progress-indicator-container.pmd-toolbar-normalized,
+html body.page .progress-indicator-container.pmd-toolbar-normalized,
+html body.page .toolbar-action.pmd-toolbar-normalized {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-split > .right-buttons,
+html body.page .progress-indicator-container.pmd-toolbar-split > .pmd-toolbar-right-buttons,
+html body.page .toolbar-action.pmd-toolbar-split > .right-buttons,
+html body.page .toolbar-action.pmd-toolbar-split > .pmd-toolbar-right-buttons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex: 0 0 auto !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons > .btn-group,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons > .btn-group > .btn,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn-group,
+html body.page .toolbar-action.pmd-toolbar-normalized > .right-buttons > .btn,
+html body.page .toolbar-action.pmd-toolbar-normalized > .right-buttons > .btn-group > .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0.55rem 0.95rem !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn .fa,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons > .btn i,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .right-buttons > .btn .fa,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn i,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn .fa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: inherit !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+/* Primary toolbar/form-save actions. */
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-primary,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-success,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-request="onSave"],
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-group.pmd-toolbar-primary-action > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-primary-action,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn-primary,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn-success,
+html body.page .toolbar-action.pmd-toolbar-normalized > [data-request="onSave"],
+html body.page .toolbar-action.pmd-toolbar-normalized > .pmd-toolbar-primary-action {
+  order: 1 !important;
+  color: #ffffff !important;
   background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
-  background-image: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
   background-color: #364a63 !important;
   border-color: #364a63 !important;
-  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4) !important;
-  color: #ffffff !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.35) !important;
 }
-html body .control-toolbar .toolbar-action .btn-primary:hover,
-html body .control-toolbar .toolbar-action .progress-indicator-container .btn-primary:hover,
-html body .toolbar-action .btn-primary:hover,
-html body .toolbar-action .progress-indicator-container .btn-primary:hover,
-html body .progress-indicator-container .btn-primary:hover,
-.toolbar-action .progress-indicator-container .btn-primary:hover,
-.progress-indicator-container .btn-primary:hover {
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-primary:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-success:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-request="onSave"]:hover,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn-primary:hover,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn-success:hover,
+html body.page .toolbar-action.pmd-toolbar-normalized > [data-request="onSave"]:hover {
+  color: #ffffff !important;
   background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
-  background-image: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
   background-color: #526484 !important;
   border-color: #526484 !important;
-  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.45) !important;
-  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.42) !important;
 }
-html body .control-toolbar .toolbar-action .btn-primary:focus,
-html body .toolbar-action .btn-primary:focus,
-html body .toolbar-action .progress-indicator-container .btn-primary:focus,
-html body .progress-indicator-container .btn-primary:focus,
-.toolbar-action .progress-indicator-container .btn-primary:focus,
-.progress-indicator-container .btn-primary:focus {
-  background: linear-gradient(135deg, #364a63 0%, #526484 100%) !important;
-  background-color: #364a63 !important;
-  border-color: #526484 !important;
-  box-shadow: 0 6px 16px rgba(31, 43, 58, 0.45), 0 0 0 0.25rem rgba(54, 74, 99, 0.25) !important;
-  color: #ffffff !important;
+
+/* Back is secondary, not primary/blue. It stays left and compact. */
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-back-action,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"],
+html body.page .toolbar-action.pmd-toolbar-normalized > .pmd-toolbar-back-action,
+html body.page .toolbar-action.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"] {
+  order: 0 !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding: 0 !important;
+  color: #364a63 !important;
+  background: #f1f4fb !important;
+  background-color: #f1f4fb !important;
+  background-image: none !important;
+  border: 1px solid #c9d2e3 !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
-html body .control-toolbar .toolbar-action .btn-primary:active,
-html body .toolbar-action .btn-primary:active,
-html body .progress-indicator-container .btn-primary:active,
-.toolbar-action .progress-indicator-container .btn-primary:active,
-.progress-indicator-container .btn-primary:active {
-  background: linear-gradient(135deg, #2a3a4e 0%, #364a63 100%) !important;
-  background-color: #364a63 !important;
-  border-color: #364a63 !important;
-  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4) !important;
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-back-action:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-back-action:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"]:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > [data-pmd-toolbar-back="true"]:focus,
+html body.page .toolbar-action.pmd-toolbar-normalized > .pmd-toolbar-back-action:hover,
+html body.page .toolbar-action.pmd-toolbar-normalized > .pmd-toolbar-back-action:focus {
+  color: #26394f !important;
+  background: #e5ebf7 !important;
+  background-color: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Secondary toolbar actions, including a single secondary action in `.right-buttons`. */
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn-group > .btn,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action),
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn,
+html body.page .toolbar-action.pmd-toolbar-normalized > .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action) {
+  order: 10 !important;
+  color: #364a63 !important;
+  background: #f1f4fb !important;
+  background-color: #f1f4fb !important;
+  background-image: none !important;
+  border: 1px solid #c9d2e3 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn:hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn:focus,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):hover,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):focus,
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn:hover,
+html body.page .toolbar-action.pmd-toolbar-normalized > .pmd-toolbar-secondary-action:not(.pmd-toolbar-back-action):hover {
+  color: #26394f !important;
+  background: #e5ebf7 !important;
+  background-color: #e5ebf7 !important;
+  border-color: #b8c6dd !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Danger actions keep their semantic danger color only when they are explicitly dangerous. */
+html body.page .progress-indicator-container.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn-danger,
+html body.page .progress-indicator-container.pmd-toolbar-normalized > .btn-danger.pmd-toolbar-secondary-action,
+html body.page .toolbar-action.pmd-toolbar-normalized .pmd-toolbar-right-buttons > .btn-danger,
+html body.page .toolbar-action.pmd-toolbar-normalized > .btn-danger.pmd-toolbar-secondary-action {
   color: #ffffff !important;
+  background: #dc3545 !important;
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+
+/* Table/list row actions stay compact and are isolated from top-toolbar flex rules. */
+html body.page .table .btn,
+html body.page .list-table .btn,
+html body.page table .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 32px;
+  height: auto;
+  padding: 0.35rem 0.65rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+html body.page .table .btn-sm,
+html body.page .list-table .btn-sm,
+html body.page table .btn-sm {
+  min-height: 30px;
+  padding: 0.25rem 0.5rem;
+}
+
+html body.page .list-table .bulk-actions:not(.hide),
+html body.page tr.bulk-actions[data-control="bulk-actions"]:not(.hide),
+html body.page [data-control="bulk-actions"].bulk-actions:not(.hide) {
+  display: table-row !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+html body.page .list-table .bulk-actions:not(.hide) .bulk-actions-cell > div,
+html body.page tr.bulk-actions[data-control="bulk-actions"]:not(.hide) .bulk-actions-cell > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+/* Filters/search/pagination/dropdowns remain readable but do not inherit toolbar splitting. */
+html body.page .filter-scope .btn,
+html body.page .list-filter .btn,
+html body.page .pagination .page-link,
+html body.page .dropdown-menu .dropdown-item {
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Modal footers own their alignment and are intentionally not normalized by toolbar JS. */
+html body.page .modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+html body.page .modal-footer .btn {
+  width: auto;
+  min-height: 40px;
+  padding: 0.5rem 0.95rem;
+  line-height: 1.2;
 }
