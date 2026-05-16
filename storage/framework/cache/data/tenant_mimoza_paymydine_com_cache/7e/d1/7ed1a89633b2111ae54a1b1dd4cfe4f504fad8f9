@@ -1,0 +1,53 @@
+1776293472a:1:{s:26:"checkout/success.blade.php";a:11:{s:8:"fileName";s:26:"checkout/success.blade.php";s:5:"mTime";i:1697888528;s:7:"content";s:772:"---
+title: main::lang.checkout.success.title
+layout: default
+permalink: /checkout/success/:hash?
+
+'[orderPage]':
+    hideReorderBtn: 1
+
+'[localReview]':
+
+'[localMenu]':
+    forceRedirect: 0
+---
+<div class="col-full">
+  <div class="row">
+    <div class="reservation-home mb-0 ">
+      <article class="mx-auto ticket">
+        <header class="ticket__wrapper">
+          <div class="ticket__header">
+            @lang('admin::lang.orders.text_invoice_thank_you') 🎟
+          </div>
+        </header>
+        <div class="ticket__divider">
+          <div class="ticket__notch"></div>
+          <div class="ticket__notch ticket__notch--right"></div>
+        </div>
+        <div class="ticket__body">
+          @component('orderPage')
+      </article>   
+</div>
+</div>
+</div>
+";s:6:"markup";s:579:"
+<div class="col-full">
+  <div class="row">
+    <div class="reservation-home mb-0 ">
+      <article class="mx-auto ticket">
+        <header class="ticket__wrapper">
+          <div class="ticket__header">
+            @lang('admin::lang.orders.text_invoice_thank_you') 🎟
+          </div>
+        </header>
+        <div class="ticket__divider">
+          <div class="ticket__notch"></div>
+          <div class="ticket__notch ticket__notch--right"></div>
+        </div>
+        <div class="ticket__body">
+          @component('orderPage')
+      </article>   
+</div>
+</div>
+</div>
+";s:4:"code";N;s:5:"title";s:33:"main::lang.checkout.success.title";s:6:"layout";s:7:"default";s:9:"permalink";s:24:"/checkout/success/:hash?";s:11:"[orderPage]";a:1:{s:14:"hideReorderBtn";i:1;}s:13:"[localReview]";N;s:11:"[localMenu]";a:1:{s:13:"forceRedirect";i:0;}}}
