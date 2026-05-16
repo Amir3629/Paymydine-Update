@@ -1157,6 +1157,10 @@ def patch_toolbar_js(rel_path: str) -> None:
         log(f"WARN: {rel_path} not found; skipping toolbar JS patch")
         return
 
+    if "PayMyDine admin toolbar normalization" in text and "PMD_TOOLBAR_SPLIT_STYLE_ID" not in text:
+        log(f"safe toolbar classifier already present in {rel_path}")
+        return
+
     # Replace the incomplete/older Toolbar Splitter block when present; if the
     # server copy never had the block, insert the complete implementation before
     # the existing button-color helpers.
