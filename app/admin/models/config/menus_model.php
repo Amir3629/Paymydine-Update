@@ -244,6 +244,48 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'comment' => 'Select allergens guests should see for this menu item.',
         ],
+        'nutrition_information_section' => [
+            'label' => 'Nutrition Information',
+            'type' => 'section',
+            'span' => 'full',
+            'comment' => 'Optional restaurant-provided nutrition estimates. Values may vary by portion size, ingredients, and preparation.',
+        ],
+        'calories' => [
+            'label' => 'Calories (kcal)',
+            'type' => 'number',
+            'span' => 'left',
+            'comment' => 'Optional estimated calories per serving.',
+        ],
+        'serving_size' => [
+            'label' => 'Serving / portion size',
+            'type' => 'text',
+            'span' => 'right',
+            'comment' => 'Optional serving size, for example 350g, 12 oz, or 1 bowl.',
+        ],
+        'protein' => [
+            'label' => 'Protein (g)',
+            'type' => 'number',
+            'span' => 'left',
+            'comment' => 'Optional estimated grams per serving.',
+        ],
+        'carbs' => [
+            'label' => 'Carbs (g)',
+            'type' => 'number',
+            'span' => 'right',
+            'comment' => 'Optional estimated grams per serving.',
+        ],
+        'fat' => [
+            'label' => 'Fat (g)',
+            'type' => 'number',
+            'span' => 'left',
+            'comment' => 'Optional estimated grams per serving.',
+        ],
+        'sugar' => [
+            'label' => 'Sugar (g)',
+            'type' => 'number',
+            'span' => 'right',
+            'comment' => 'Optional estimated grams per serving.',
+        ],
         'mealtimes' => [
             'label' => 'lang:admin::lang.menus.label_mealtime',
             'type' => 'relation',

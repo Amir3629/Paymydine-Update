@@ -25,6 +25,12 @@ class Menu extends FormRequest
             'is_vegetarian' => 'Vegetarian',
             'is_vegan' => 'Vegan',
             'allergens.*' => lang('admin::lang.menus.label_allergens'),
+            'calories' => 'Calories',
+            'protein' => 'Protein',
+            'carbs' => 'Carbs',
+            'fat' => 'Fat',
+            'sugar' => 'Sugar',
+            'serving_size' => 'Serving / portion size',
         ];
     }
 
@@ -47,6 +53,12 @@ class Menu extends FormRequest
             'is_vegetarian' => ['boolean'],
             'is_vegan' => ['boolean'],
             'allergens.*' => ['integer'],
+            'calories' => ['nullable', 'integer', 'min:0'],
+            'protein' => ['nullable', 'numeric', 'min:0'],
+            'carbs' => ['nullable', 'numeric', 'min:0'],
+            'fat' => ['nullable', 'numeric', 'min:0'],
+            'sugar' => ['nullable', 'numeric', 'min:0'],
+            'serving_size' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

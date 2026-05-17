@@ -83,6 +83,52 @@ if (!function_exists('normalizeMenuFoodAttributes')) {
 }
 
 
+
+if (!function_exists('pmdMenuColumnSelect')) {
+    function pmdMenuColumnSelect($connection, string $tableAlias, string $column): string
+    {
+        try {
+            if ($connection->getSchemaBuilder()->hasColumn('menus', $column)) {
+                return $tableAlias.'.'.$column.' as '.$column;
+            }
+        } catch (\Throwable $e) {
+            // Fall through to a null alias to keep pre-migration tenants working.
+        }
+
+        return 'NULL as '.$column;
+    }
+}
+
+if (!function_exists('normalizeMenuNutrition')) {
+    function normalizeMenuNutrition(&$item): void
+    {
+        $item->calories = isset($item->calories) && $item->calories !== null && $item->calories !== '' ? (int)$item->calories : null;
+
+        foreach (['protein', 'carbs', 'fat', 'sugar'] as $field) {
+            $item->{$field} = isset($item->{$field}) && $item->{$field} !== null && $item->{$field} !== '' ? (float)$item->{$field} : null;
+        }
+
+        $item->serving_size = isset($item->serving_size) && $item->serving_size !== '' ? (string)$item->serving_size : null;
+
+        $hasNutrition = $item->calories !== null
+            || $item->protein !== null
+            || $item->carbs !== null
+            || $item->fat !== null
+            || $item->sugar !== null
+            || $item->serving_size !== null;
+
+        $item->nutrition = $hasNutrition ? [
+            'calories' => $item->calories,
+            'protein' => $item->protein,
+            'carbs' => $item->carbs,
+            'fat' => $item->fat,
+            'sugar' => $item->sugar,
+            'serving_size' => $item->serving_size,
+            'disclaimer' => 'Restaurant-provided estimates. Values may vary by portion size, ingredients, and preparation.',
+        ] : null;
+    }
+}
+
 App::before(function () {
     /*
      * Register Main app routes
@@ -239,6 +285,10 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         // DetectTenant has set default connection to tenant; use it explicitly for menu + combos
                         $conn = DB::connection('tenant');
                         $p = $conn->getTablePrefix();
+                        $nutritionSelect = implode(",
+                                ", array_map(function ($column) use ($conn) {
+                            return pmdMenuColumnSelect($conn, 'm', $column);
+                        }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']));
                         $query = "
                             SELECT 
                                 m.menu_id as id,
@@ -250,6 +300,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 COALESCE(m.is_halal, 0) as halal,
                                 COALESCE(m.is_vegetarian, 0) as vegetarian,
                                 COALESCE(m.is_vegan, 0) as vegan,
+                                {$nutritionSelect},
                                 (
                                     SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
                                     FROM {$p}allergenables aa
@@ -274,6 +325,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
                             normalizeMenuFoodAttributes($item);
+                            normalizeMenuNutrition($item);
                             if ($item->image) {
                                 // If image exists, construct the relative URL for Next.js proxy
                                 $item->image = "/api/media/" . $item->image;
@@ -321,6 +373,13 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             $combo->vegan = false;
                             $combo->allergens = [];
                             $combo->allergy_tags = [];
+                            $combo->calories = null;
+                            $combo->protein = null;
+                            $combo->carbs = null;
+                            $combo->fat = null;
+                            $combo->sugar = null;
+                            $combo->serving_size = null;
+                            $combo->nutrition = null;
                         }
                         $allItems = array_merge($items, $combos);
                         

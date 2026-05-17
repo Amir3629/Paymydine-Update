@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MenuController extends Controller
 {
@@ -16,6 +17,7 @@ class MenuController extends Controller
         try {
             // Get menu items with categories (matching old API structure)
             $p = DB::connection()->getTablePrefix();
+            $nutritionSelect = $this->getNutritionRawSelect('m');
             $query = "
                 SELECT 
                     m.menu_id as id,
@@ -28,6 +30,7 @@ class MenuController extends Controller
                     COALESCE(m.is_halal, 0) as halal,
                     COALESCE(m.is_vegetarian, 0) as vegetarian,
                     COALESCE(m.is_vegan, 0) as vegan,
+                    {$nutritionSelect},
                     (
                         SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
                         FROM {$p}allergenables aa
@@ -56,6 +59,7 @@ class MenuController extends Controller
             foreach ($items as &$item) {
                 $item->price = (float)$item->price;
                 $this->normalizeFoodAttributes($item);
+                $this->normalizeNutrition($item);
                 $item->is_stock_out = (bool)($item->is_stock_out ?? 0);
                 $item->available = (bool)($item->available ?? 1);
                 
@@ -120,6 +124,13 @@ class MenuController extends Controller
                 $combo->vegan = false;
                 $combo->allergens = [];
                 $combo->allergy_tags = [];
+                $combo->calories = null;
+                $combo->protein = null;
+                $combo->carbs = null;
+                $combo->fat = null;
+                $combo->sugar = null;
+                $combo->serving_size = null;
+                $combo->nutrition = null;
             }
             
             // Merge combos with regular menu items
@@ -190,6 +201,12 @@ class MenuController extends Controller
                     'menus.is_halal as halal',
                     'menus.is_vegetarian as vegetarian',
                     'menus.is_vegan as vegan',
+                    DB::raw($this->getNutritionColumnExpression('calories', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('protein', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('carbs', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
                     'categories.category_id',
                     'categories.name as category_name'
                 ]);
@@ -210,6 +227,7 @@ class MenuController extends Controller
 
             $items = $query->get()->map(function ($item) {
                 $this->normalizeFoodAttributes($item);
+                $this->normalizeNutrition($item);
 
                 return [
                     'id' => $item->id,
@@ -226,7 +244,14 @@ class MenuController extends Controller
                     'vegetarian' => $item->vegetarian,
                     'vegan' => $item->vegan,
                     'allergens' => $item->allergens,
-                    'allergy_tags' => $item->allergy_tags
+                    'allergy_tags' => $item->allergy_tags,
+                    'calories' => $item->calories,
+                    'protein' => $item->protein,
+                    'carbs' => $item->carbs,
+                    'fat' => $item->fat,
+                    'sugar' => $item->sugar,
+                    'serving_size' => $item->serving_size,
+                    'nutrition' => $item->nutrition
                 ];
             });
 
@@ -277,11 +302,18 @@ class MenuController extends Controller
                     'menus.minimum_qty',
                     'menus.is_halal as halal',
                     'menus.is_vegetarian as vegetarian',
-                    'menus.is_vegan as vegan'
+                    'menus.is_vegan as vegan',
+                    DB::raw($this->getNutritionColumnExpression('calories', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('protein', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('carbs', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('serving_size', 'menus'))
                 ])
                 ->get()
                 ->map(function ($item) {
                     $this->normalizeFoodAttributes($item);
+                $this->normalizeNutrition($item);
 
                     return [
                         'id' => $item->id,
@@ -296,7 +328,14 @@ class MenuController extends Controller
                         'vegetarian' => $item->vegetarian,
                         'vegan' => $item->vegan,
                         'allergens' => $item->allergens,
-                        'allergy_tags' => $item->allergy_tags
+                        'allergy_tags' => $item->allergy_tags,
+                        'calories' => $item->calories,
+                        'protein' => $item->protein,
+                        'carbs' => $item->carbs,
+                        'fat' => $item->fat,
+                        'sugar' => $item->sugar,
+                        'serving_size' => $item->serving_size,
+                        'nutrition' => $item->nutrition
                     ];
                 });
 
@@ -419,6 +458,69 @@ class MenuController extends Controller
             ->distinct()
             ->pluck('allergens.name')
             ->all();
+    }
+
+
+    /**
+     * Build a raw SELECT fragment for optional nutrition columns.
+     */
+    private function getNutritionRawSelect($tableAlias)
+    {
+        return implode(",
+                    ", array_map(function ($column) use ($tableAlias) {
+            return $this->getNutritionColumnExpression($column, $tableAlias);
+        }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']));
+    }
+
+    /**
+     * Return a safe aliased expression even before tenant migrations have run.
+     */
+    private function getNutritionColumnExpression($column, $tableAlias = 'menus')
+    {
+        if (Schema::hasColumn('menus', $column)) {
+            return $tableAlias.'.'.$column.' as '.$column;
+        }
+
+        return 'NULL as '.$column;
+    }
+
+    /**
+     * Normalize optional restaurant-provided nutrition estimates for API consumers.
+     */
+    private function normalizeNutrition(&$item)
+    {
+        $numericFields = ['protein', 'carbs', 'fat', 'sugar'];
+
+        $item->calories = isset($item->calories) && $item->calories !== null && $item->calories !== ''
+            ? (int)$item->calories
+            : null;
+
+        foreach ($numericFields as $field) {
+            $item->{$field} = isset($item->{$field}) && $item->{$field} !== null && $item->{$field} !== ''
+                ? (float)$item->{$field}
+                : null;
+        }
+
+        $item->serving_size = isset($item->serving_size) && $item->serving_size !== ''
+            ? (string)$item->serving_size
+            : null;
+
+        $hasNutrition = $item->calories !== null
+            || $item->protein !== null
+            || $item->carbs !== null
+            || $item->fat !== null
+            || $item->sugar !== null
+            || $item->serving_size !== null;
+
+        $item->nutrition = $hasNutrition ? [
+            'calories' => $item->calories,
+            'protein' => $item->protein,
+            'carbs' => $item->carbs,
+            'fat' => $item->fat,
+            'sugar' => $item->sugar,
+            'serving_size' => $item->serving_size,
+            'disclaimer' => 'Restaurant-provided estimates. Values may vary by portion size, ingredients, and preparation.',
+        ] : null;
     }
 
     /**

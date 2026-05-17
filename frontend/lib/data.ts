@@ -13,7 +13,21 @@ export type MenuItem = {
   category: string // FIXED: Changed from hardcoded union to dynamic string
   category_id?: number
   category_name?: string
-  calories?: number
+  calories?: number | null
+  protein?: number | null
+  carbs?: number | null
+  fat?: number | null
+  sugar?: number | null
+  serving_size?: string | null
+  nutrition?: {
+    calories?: number | null
+    protein?: number | null
+    carbs?: number | null
+    fat?: number | null
+    sugar?: number | null
+    serving_size?: string | null
+    disclaimer?: string
+  } | null
   allergens?: string[]
   allergy_tags?: string[]
   halal?: boolean
@@ -45,6 +59,12 @@ export interface MenuItemOptionValue {
 
 const toBoolean = (value: unknown): boolean => value === true || value === 1 || value === '1'
 
+const toNumberOrNull = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
 // FIXED: Convert API MenuItem to frontend MenuItem
 const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuItem => {
   // Convert relative image path to full URL (same as logo system)
@@ -74,7 +94,13 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     category: categoryName || apiItem.category_name || 'Main Course',
     category_id: apiItem.category_id,
     category_name: apiItem.category_name,
-    calories: apiItem.calories || Math.floor(Math.random() * 600) + 300, // Fallback random calories
+    calories: toNumberOrNull(apiItem.calories ?? apiItem.nutrition?.calories),
+    protein: toNumberOrNull(apiItem.protein ?? apiItem.nutrition?.protein),
+    carbs: toNumberOrNull(apiItem.carbs ?? apiItem.nutrition?.carbs),
+    fat: toNumberOrNull(apiItem.fat ?? apiItem.nutrition?.fat),
+    sugar: toNumberOrNull(apiItem.sugar ?? apiItem.nutrition?.sugar),
+    serving_size: apiItem.serving_size || apiItem.nutrition?.serving_size || null,
+    nutrition: apiItem.nutrition || null,
     allergens: apiItem.allergens || [],
     allergy_tags: apiItem.allergy_tags || apiItem.allergens || [],
     halal: toBoolean(apiItem.halal),
