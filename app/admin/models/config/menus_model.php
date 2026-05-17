@@ -214,10 +214,35 @@ $config['form']['tabs'] = [
             'type' => 'relation',
             'span' => 'left',
         ],
+        'food_attributes_section' => [
+            'label' => 'Food Attributes & Allergies',
+            'type' => 'section',
+            'span' => 'full',
+            'comment' => 'Mark dietary attributes and select allergy warnings shown to guests.',
+        ],
+        'is_halal' => [
+            'label' => 'Halal',
+            'type' => 'switch',
+            'span' => 'left',
+            'default' => 0,
+        ],
+        'is_vegetarian' => [
+            'label' => 'Vegetarian',
+            'type' => 'switch',
+            'span' => 'right',
+            'default' => 0,
+        ],
+        'is_vegan' => [
+            'label' => 'Vegan',
+            'type' => 'switch',
+            'span' => 'left',
+            'default' => 0,
+        ],
         'allergens' => [
             'label' => 'lang:admin::lang.menus.label_allergens',
             'type' => 'relation',
             'span' => 'right',
+            'comment' => 'Select allergens guests should see for this menu item.',
         ],
         'mealtimes' => [
             'label' => 'lang:admin::lang.menus.label_mealtime',

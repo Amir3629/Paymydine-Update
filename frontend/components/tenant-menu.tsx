@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Plus, Minus } from 'lucide-react';
+import { FoodAttributeTags } from '@/components/food-attribute-tags';
 
 interface MenuItem {
   id: number;
@@ -18,6 +19,11 @@ interface MenuItem {
   image?: string;
   category_id: number;
   available: boolean;
+  halal?: boolean;
+  vegetarian?: boolean;
+  vegan?: boolean;
+  allergens?: string[];
+  allergy_tags?: string[];
 }
 
 interface Category {
@@ -150,7 +156,16 @@ export function TenantMenu() {
                       {item.available ? "Available" : "Unavailable"}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{item.description}</p>
+                  <FoodAttributeTags
+                    halal={item.halal}
+                    vegetarian={item.vegetarian}
+                    vegan={item.vegan}
+                    allergens={item.allergens}
+                    allergyTags={item.allergy_tags}
+                    compact
+                    className="mt-2"
+                  />
+                  <p className="text-sm text-gray-600 mt-2">{item.description}</p>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between items-center">

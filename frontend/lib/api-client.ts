@@ -18,6 +18,10 @@ export interface MenuItem {
   category_name?: string;
   calories?: number;
   allergens?: string[];
+  allergy_tags?: string[];
+  halal?: boolean;
+  vegetarian?: boolean;
+  vegan?: boolean;
   stock_qty?: number;
   minimum_qty?: number;
   available?: boolean;

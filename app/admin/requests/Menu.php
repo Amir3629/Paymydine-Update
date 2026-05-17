@@ -21,6 +21,10 @@ class Menu extends FormRequest
             'menu_status' => lang('admin::lang.label_status'),
             'mealtime_id' => lang('admin::lang.menus.label_mealtime'),
             'menu_priority' => lang('admin::lang.menus.label_menu_priority'),
+            'is_halal' => 'Halal',
+            'is_vegetarian' => 'Vegetarian',
+            'is_vegan' => 'Vegan',
+            'allergens.*' => lang('admin::lang.menus.label_allergens'),
         ];
     }
 
@@ -39,6 +43,10 @@ class Menu extends FormRequest
             'menu_status' => ['boolean'],
             'mealtime_id' => ['nullable', 'integer'],
             'menu_priority' => ['min:0', 'integer'],
+            'is_halal' => ['boolean'],
+            'is_vegetarian' => ['boolean'],
+            'is_vegan' => ['boolean'],
+            'allergens.*' => ['integer'],
         ];
     }
 }

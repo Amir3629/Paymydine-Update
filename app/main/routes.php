@@ -62,6 +62,27 @@ if (!function_exists('getMenuItemOptions')) {
     }
 }
 
+if (!function_exists('normalizeMenuFoodAttributes')) {
+    function normalizeMenuFoodAttributes(&$item): void
+    {
+        $allergyTags = [];
+
+        if (isset($item->allergy_names) && strlen((string)$item->allergy_names) > 0) {
+            $allergyTags = array_values(array_filter(explode('||', (string)$item->allergy_names)));
+            unset($item->allergy_names);
+        } elseif (isset($item->allergens) && is_array($item->allergens)) {
+            $allergyTags = $item->allergens;
+        }
+
+        $item->halal = (bool)($item->halal ?? $item->is_halal ?? 0);
+        $item->vegetarian = (bool)($item->vegetarian ?? $item->is_vegetarian ?? 0);
+        $item->vegan = (bool)($item->vegan ?? $item->is_vegan ?? 0);
+        $item->allergens = $allergyTags;
+        $item->allergy_tags = $allergyTags;
+    }
+}
+
+
 App::before(function () {
     /*
      * Register Main app routes
@@ -225,7 +246,18 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 m.menu_description as description,
                                 CAST(m.menu_price AS DECIMAL(10,2)) as price,
                                 COALESCE(c.name, 'Main') as category_name,
-                                ma.name as image
+                                ma.name as image,
+                                COALESCE(m.is_halal, 0) as halal,
+                                COALESCE(m.is_vegetarian, 0) as vegetarian,
+                                COALESCE(m.is_vegan, 0) as vegan,
+                                (
+                                    SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
+                                    FROM {$p}allergenables aa
+                                    INNER JOIN {$p}allergens a ON a.allergen_id = aa.allergen_id
+                                    WHERE aa.allergenable_id = m.menu_id
+                                        AND aa.allergenable_type IN ('menus', 'Admin\\Models\\Menus_model')
+                                        AND a.status = 1
+                                ) as allergy_names
                             FROM {$p}menus m
                             LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                             LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
@@ -241,6 +273,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         // Convert prices to float, fix image paths, add options, mark as non-combo
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
+                            normalizeMenuFoodAttributes($item);
                             if ($item->image) {
                                 // If image exists, construct the relative URL for Next.js proxy
                                 $item->image = "/api/media/" . $item->image;
@@ -283,6 +316,11 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             $combo->options = [];
                             $combo->is_stock_out = false;
                             $combo->available = true;
+                            $combo->halal = false;
+                            $combo->vegetarian = false;
+                            $combo->vegan = false;
+                            $combo->allergens = [];
+                            $combo->allergy_tags = [];
                         }
                         $allItems = array_merge($items, $combos);
                         
