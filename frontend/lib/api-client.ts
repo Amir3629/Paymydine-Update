@@ -107,6 +107,20 @@ export interface OrderResponse {
   order_id?: number;
 }
 
+export interface NutritionSuggestionResponse {
+  success: boolean;
+  data?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+    sugar: number;
+    source?: string;
+    disclaimer?: string;
+  };
+  message?: string;
+}
+
 export interface PendingQrOrderResponse {
   success: boolean;
   data?: {
@@ -658,6 +672,38 @@ export class ApiClient {
 
   async getTaxSettings(): Promise<{ success: boolean; data: any }> {
     return this.getVATSettings();
+  }
+
+
+  async suggestNutrition(payload: { food_name: string; ingredients?: string }): Promise<NutritionSuggestionResponse> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/ai/nutrition-suggest');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: safeJsonStringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data?.message || 'Unable to suggest nutrition right now.',
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Nutrition suggestion failed:', error);
+      return {
+        success: false,
+        message: 'Unable to suggest nutrition right now.',
+      };
+    }
   }
 
   async validateCoupon(code: string, subtotal: number): Promise<{ success: boolean; data?: any; message?: string }> {

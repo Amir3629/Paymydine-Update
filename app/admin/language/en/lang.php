@@ -930,7 +930,7 @@ return [
 
     'settings' => [
         'text_tab_setup' => 'Sales',
-        'text_tab_tax' => 'Tax',
+        'text_tab_tax' => 'VAT',
         'text_tab_user' => 'Customer registration',
         'text_tab_panel' => 'Panel settings',
 

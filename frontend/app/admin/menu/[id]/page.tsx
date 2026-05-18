@@ -1,8 +1,9 @@
 "use client"
 
-import { use } from "react"
+import { use, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useCmsStore } from "@/store/cms-store"
+import { apiClient } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,9 +16,60 @@ export default function EditMenuItemPage({ params }: { params: Promise<{ id: str
   const { menuItems, updateMenuItem } = useCmsStore()
   const { toast } = useToast()
   const item = menuItems.find((i) => i.id === Number(resolvedParams.id))
+  const [isSuggestingNutrition, setIsSuggestingNutrition] = useState(false)
+  const [nutritionMessage, setNutritionMessage] = useState<string | null>(null)
+  const [nutritionValues, setNutritionValues] = useState({
+    calories: item?.calories ?? "",
+    protein: item?.protein ?? "",
+    fat: item?.fat ?? "",
+    carbs: item?.carbs ?? "",
+    sugar: item?.sugar ?? "",
+  })
+  const [ingredientNotes, setIngredientNotes] = useState(item?.description ?? "")
 
   if (!item) {
     return <div>Item not found</div>
+  }
+
+  const setNutritionValue = (field: keyof typeof nutritionValues, value: string) => {
+    setNutritionValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleSuggestNutrition = async () => {
+    setIsSuggestingNutrition(true)
+    setNutritionMessage(null)
+
+    const response = await apiClient.suggestNutrition({
+      food_name: item.name,
+      ingredients: ingredientNotes,
+    })
+
+    setIsSuggestingNutrition(false)
+
+    if (!response.success || !response.data) {
+      const message = response.message || "Unable to suggest nutrition right now."
+      setNutritionMessage(message)
+      toast({ title: "AI nutrition suggestion failed", description: message })
+      return
+    }
+
+    setNutritionValues({
+      calories: response.data.calories,
+      protein: response.data.protein,
+      fat: response.data.fat,
+      carbs: response.data.carbs,
+      sugar: response.data.sugar,
+    })
+
+    const source = response.data.source === "openai" ? "AI" : "fallback estimate"
+    setNutritionMessage(response.data.disclaimer || `Applied ${source} nutrition values. Review before saving.`)
+    toast({ title: "Nutrition suggested", description: `Applied ${source} values. Review before saving.` })
+  }
+
+  const toOptionalNumber = (value: FormDataEntryValue | null) => {
+    if (value === null || value === "") return null
+    const numberValue = Number(value)
+    return Number.isFinite(numberValue) ? numberValue : null
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -29,8 +81,12 @@ export default function EditMenuItemPage({ params }: { params: Promise<{ id: str
       description: formData.get("description") as string,
       price: Number(formData.get("price")),
       image: formData.get("image") as string,
-      calories: Number(formData.get("calories")),
-      allergens: (formData.get("allergens") as string)?.split(",").map((s) => s.trim()) || [],
+      calories: toOptionalNumber(formData.get("calories")),
+      protein: toOptionalNumber(formData.get("protein")),
+      fat: toOptionalNumber(formData.get("fat")),
+      carbs: toOptionalNumber(formData.get("carbs")),
+      sugar: toOptionalNumber(formData.get("sugar")),
+      allergens: (formData.get("allergens") as string)?.split(",").map((s) => s.trim()).filter(Boolean) || [],
     }
     updateMenuItem(updatedItem)
     toast({ title: "Menu Item Updated", description: `${updatedItem.name} has been saved.` })
@@ -57,9 +113,67 @@ export default function EditMenuItemPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="space-y-2">
             <Label htmlFor="calories">Calories</Label>
-            <Input id="calories" name="calories" type="number" defaultValue={item.calories ?? ""} />
+            <Input
+              id="calories"
+              name="calories"
+              type="number"
+              min="0"
+              value={nutritionValues.calories}
+              onChange={(event) => setNutritionValue("calories", event.target.value)}
+            />
           </div>
         </div>
+
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="ai-ingredients">Ingredients / preparation notes for AI suggestion</Label>
+            <Textarea
+              id="ai-ingredients"
+              value={ingredientNotes}
+              onChange={(event) => setIngredientNotes(event.target.value)}
+              placeholder="Example: grilled chicken, rice, garlic sauce, salad"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="protein">Protein (g)</Label>
+              <Input id="protein" name="protein" type="number" min="0" step="0.1" value={nutritionValues.protein} onChange={(event) => setNutritionValue("protein", event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fat">Fat (g)</Label>
+              <Input id="fat" name="fat" type="number" min="0" step="0.1" value={nutritionValues.fat} onChange={(event) => setNutritionValue("fat", event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="carbs">Carbs (g)</Label>
+              <Input id="carbs" name="carbs" type="number" min="0" step="0.1" value={nutritionValues.carbs} onChange={(event) => setNutritionValue("carbs", event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sugar">Sugar (g)</Label>
+              <Input id="sugar" name="sugar" type="number" min="0" step="0.1" value={nutritionValues.sugar} onChange={(event) => setNutritionValue("sugar", event.target.value)} />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSuggestNutrition}
+              disabled={isSuggestingNutrition}
+              aria-label="Suggest calories and nutrition with AI"
+            >
+              {isSuggestingNutrition ? "Suggesting…" : "AI Suggest"}
+            </Button>
+            <p className="text-xs text-gray-600">
+              Suggestions are estimates. Review and edit values before saving.
+            </p>
+          </div>
+          {nutritionMessage && (
+            <p className="rounded-lg bg-white px-3 py-2 text-sm text-gray-700" role="status">
+              {nutritionMessage}
+            </p>
+          )}
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="image">Image URL</Label>
           <Input id="image" name="image" defaultValue={item.image} />

@@ -268,6 +268,13 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'comment' => 'Optional hex color displayed as a small circular menu badge.',
         ],
+        'ai_nutrition_suggest' => [
+            'label' => 'AI Nutrition Suggestion',
+            'type' => 'section',
+            'span' => 'full',
+            'commentHtml' => true,
+            'comment' => '<div class="pmd-ai-nutrition-box" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:1px solid #d1fae5;border-radius:10px;background:#ecfdf5;color:#064e3b;"><button type="button" class="btn btn-sm btn-outline-success" id="pmd-ai-nutrition-suggest" aria-label="Suggest calories and nutrition with AI">AI Suggest</button><span id="pmd-ai-nutrition-status" style="font-size:12px;">Use the menu name and description to estimate calories and macros. Review before saving.</span></div><script>(function(){if(window.__pmdAiNutritionSuggestBound)return;window.__pmdAiNutritionSuggestBound=true;function field(name){return document.querySelector("[name$=\\\"["+name+"]\\\"], [name=\\\""+name+"\\\"]");}function setValue(name,value){var el=field(name);if(!el)return;el.value=value==null?"":String(value);el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}));}document.addEventListener("click",function(event){var button=event.target&&event.target.closest&&event.target.closest("#pmd-ai-nutrition-suggest");if(!button)return;var status=document.getElementById("pmd-ai-nutrition-status");var menuName=field("menu_name");var description=field("menu_description");button.disabled=true;if(status)status.textContent="Suggesting nutrition…";fetch("/api/ai/nutrition-suggest",{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},body:JSON.stringify({food_name:menuName?menuName.value:"",ingredients:description?description.value:""})}).then(function(response){return response.json().then(function(json){if(!response.ok)throw new Error(json.message||"Unable to suggest nutrition.");return json;});}).then(function(json){var data=json.data||{};setValue("calories",data.calories);setValue("protein",data.protein);setValue("fat",data.fat);setValue("carbs",data.carbs);setValue("sugar",data.sugar);if(status)status.textContent=(data.disclaimer||"Nutrition values suggested. Review before saving.");}).catch(function(error){if(status)status.textContent=error.message||"Unable to suggest nutrition.";}).finally(function(){button.disabled=false;});});})();</script>',
+        ],
         'protein' => [
             'label' => 'Protein (g)',
             'type' => 'number',

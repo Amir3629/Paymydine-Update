@@ -292,3 +292,39 @@ cd frontend
 npm install
 npm run build
 ```
+
+## Admin AI Suggest workflow added in this patch
+
+1. Open **Admin → Menu → Edit item**.
+2. Enter or review the menu item name and description.
+3. In the nutrition area, add optional ingredient/preparation notes.
+4. Click **AI Suggest**.
+5. The admin UI calls `POST /api/ai/nutrition-suggest` with:
+
+```json
+{
+  "food_name": "Chicken shawarma wrap",
+  "ingredients": "grilled chicken, garlic sauce, pickles, fries"
+}
+```
+
+6. The endpoint returns editable estimates:
+
+```json
+{
+  "success": true,
+  "data": {
+    "calories": 620,
+    "protein": 34.5,
+    "fat": 24,
+    "carbs": 58,
+    "sugar": 4.8,
+    "source": "openai",
+    "disclaimer": "AI estimate. Please review and edit before saving."
+  }
+}
+```
+
+7. The UI fills calories, protein, fat, carbs, and sugar. The admin must review and save the menu item before values are used on customer menu cards or item modals.
+
+If `OPENAI_API_KEY` is not configured, the endpoint returns a conservative heuristic fallback with `source: "heuristic"` so the UI remains usable in low-cost/offline tenant environments.

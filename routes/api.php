@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\AiNutritionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,8 @@ use App\Http\Controllers\Api\CategoryController;
 
 // Apply CORS middleware to all API routes
 Route::middleware(['cors'])->group(function () {
+
+    Route::post('/ai/nutrition-suggest', [AiNutritionController::class, 'suggest']);
 
     // Health check endpoint
     Route::get('/health', function () {

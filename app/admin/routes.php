@@ -5096,9 +5096,9 @@ return response()->json([
 
             
             $taxAmount = round($orderTotal - $itemsSubtotal - $tipAmount + $couponDiscount, 4);
-// TAX REMOVED (replaced by snapshot)
+// VAT REMOVED (replaced by snapshot)
             if (abs($taxAmount) < 0.0001) {
-                // TAX REMOVED (replaced by snapshot)
+                // VAT REMOVED (replaced by snapshot)
             }
 
             DB::table('order_totals')->where('order_id', $orderId)->delete();
@@ -5118,7 +5118,7 @@ return response()->json([
                 $totalsRows[] = [
                     'order_id' => $orderId,
                     'code' => 'tax',
-                    'title' => 'Tax',
+                    'title' => 'VAT',
                     'value' => $taxAmount,
                     'priority' => 2,
                     'is_summable' => 1,
