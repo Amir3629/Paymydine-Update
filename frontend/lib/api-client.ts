@@ -16,8 +16,26 @@ export interface MenuItem {
   image: string;
   category_id?: number;
   category_name?: string;
-  calories?: number;
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  sugar?: number | null;
+  serving_size?: string | null;
+  nutrition?: {
+    calories?: number | null;
+    protein?: number | null;
+    carbs?: number | null;
+    fat?: number | null;
+    sugar?: number | null;
+    serving_size?: string | null;
+    disclaimer?: string;
+  } | null;
   allergens?: string[];
+  allergy_tags?: string[];
+  halal?: boolean;
+  vegetarian?: boolean;
+  vegan?: boolean;
   stock_qty?: number;
   minimum_qty?: number;
   available?: boolean;

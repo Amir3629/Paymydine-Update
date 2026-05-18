@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Sun May 17 22:22:31 UTC 2026
+-- Generated UTC: Mon May 18 09:31:45 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 -- This file is intended for GitHub documentation/development only
@@ -3112,7 +3112,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-17 22:22:32
+-- Dump completed on 2026-05-18  9:31:45
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -4832,6 +4832,12 @@ CREATE TABLE `ti_menus` (
   `is_halal` tinyint(1) NOT NULL DEFAULT 0,
   `is_vegetarian` tinyint(1) NOT NULL DEFAULT 0,
   `is_vegan` tinyint(1) NOT NULL DEFAULT 0,
+  `calories` int(11) DEFAULT NULL,
+  `protein` decimal(8,2) DEFAULT NULL,
+  `carbs` decimal(8,2) DEFAULT NULL,
+  `fat` decimal(8,2) DEFAULT NULL,
+  `sugar` decimal(8,2) DEFAULT NULL,
+  `serving_size` varchar(120) DEFAULT NULL,
   `is_stock_out` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Flag to mark items as stock-out (visible but not orderable)',
   `menu_priority` int(11) NOT NULL DEFAULT 0,
   `order_restriction` text DEFAULT NULL,
@@ -4839,7 +4845,7 @@ CREATE TABLE `ti_menus` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`menu_id`),
   KEY `idx_is_stock_out` (`is_stock_out`)
-) ENGINE=InnoDB AUTO_INCREMENT=129 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=130 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4865,7 +4871,7 @@ CREATE TABLE `ti_menus_specials` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`special_id`),
   UNIQUE KEY `ti_menus_specials_special_id_menu_id_unique` (`special_id`,`menu_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5928,7 +5934,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-17 22:22:32
+-- Dump completed on 2026-05-18  9:31:45
 
 -- ============================================================
 -- DATABASE: rosana
@@ -7387,6 +7393,12 @@ CREATE TABLE `ti_menus` (
   `is_halal` tinyint(1) NOT NULL DEFAULT 0,
   `is_vegetarian` tinyint(1) NOT NULL DEFAULT 0,
   `is_vegan` tinyint(1) NOT NULL DEFAULT 0,
+  `calories` int(11) DEFAULT NULL,
+  `protein` decimal(8,2) DEFAULT NULL,
+  `carbs` decimal(8,2) DEFAULT NULL,
+  `fat` decimal(8,2) DEFAULT NULL,
+  `sugar` decimal(8,2) DEFAULT NULL,
+  `serving_size` varchar(120) DEFAULT NULL,
   `is_stock_out` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Flag to mark items as stock-out (visible but not orderable)',
   `menu_priority` int(11) NOT NULL DEFAULT 0,
   `order_restriction` text DEFAULT NULL,
@@ -8234,7 +8246,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-17 22:22:32
+-- Dump completed on 2026-05-18  9:31:46
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -10132,4 +10144,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-17 22:22:32
+-- Dump completed on 2026-05-18  9:31:46

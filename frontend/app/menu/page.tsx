@@ -12,6 +12,8 @@ import { applyTheme } from "@/lib/theme-system";
 import { Logo } from "@/components/logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
+import { FoodAttributeTags } from "@/components/food-attribute-tags";
+import { FoodNutritionSummary } from "@/components/food-nutrition-summary";
 import { MenuItemModal } from "@/components/menu-item-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2753,6 +2755,25 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
       </div>
       <div className="flex-grow">
         <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <FoodAttributeTags
+            halal={item.halal}
+            vegetarian={item.vegetarian}
+            vegan={item.vegan}
+            allergens={item.allergens}
+            allergyTags={item.allergy_tags}
+            compact
+          />
+          <FoodNutritionSummary
+            calories={item.calories}
+            protein={item.protein}
+            carbs={item.carbs}
+            fat={item.fat}
+            sugar={item.sugar}
+            servingSize={item.serving_size}
+            compact
+          />
+        </div>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>

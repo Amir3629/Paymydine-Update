@@ -57,7 +57,7 @@ export default function EditMenuItemPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="space-y-2">
             <Label htmlFor="calories">Calories</Label>
-            <Input id="calories" name="calories" type="number" defaultValue={item.calories} />
+            <Input id="calories" name="calories" type="number" defaultValue={item.calories ?? ""} />
           </div>
         </div>
         <div className="space-y-2">
