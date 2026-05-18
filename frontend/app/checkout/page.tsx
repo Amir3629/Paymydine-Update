@@ -59,13 +59,13 @@ export default function CheckoutPage() {
   const { t } = useLanguageStore()
   const { items: allItems, clearCart, tableInfo } = useCartStore()
   const isCashier = (tableInfo as any)?.is_codier || false
-  const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadTaxSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
+  const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadVATSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
   const [isLoading, setIsLoading] = useState(false)
   
-  // Helper function to adjust price if tax is included in menu prices
-  const adjustPriceForTax = (price: number): number => {
+  // Helper function to adjust price if VAT is included in menu prices
+  const adjustPriceForVAT = (price: number): number => {
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // Tax is included in prices - increase price by tax percentage
+      // VAT is included in prices - increase price by VAT percentage
       return price * (1 + taxSettings.percentage / 100)
     }
     return price
@@ -146,9 +146,9 @@ const [isSplitting, setIsSplitting] = useState(false)
   }, [])
 
   useEffect(() => {
-    // Load tax settings from backend on mount
-    loadTaxSettings()
-  }, [loadTaxSettings])
+    // Load VAT settings from backend on mount
+    loadVATSettings()
+  }, [loadVATSettings])
 
   const isCartEmpty = allItems.length === 0
 
@@ -157,7 +157,7 @@ const [isSplitting, setIsSplitting] = useState(false)
     Array.from({ length: cartItem.quantity }).map((_, i) => ({
       cartIndex,
       item: cartItem.item,
-      price: adjustPriceForTax(cartItem.item.price),
+      price: adjustPriceForVAT(cartItem.item.price),
       key: `${cartItem.item.id}-${cartIndex}-${i}`,
     }))
   )
@@ -168,7 +168,7 @@ const [isSplitting, setIsSplitting] = useState(false)
     : allItems.flatMap((cartItem) =>
         Array.from({ length: cartItem.quantity }).map(() => ({
           item: cartItem.item,
-          price: adjustPriceForTax(cartItem.item.price),
+          price: adjustPriceForVAT(cartItem.item.price),
         }))
       )
 
@@ -176,11 +176,11 @@ const [isSplitting, setIsSplitting] = useState(false)
     () => itemsToPay.reduce((acc, inst) => acc + inst.price, 0),
     [itemsToPay, taxSettings],
   )
-  // Calculate tax if enabled AND tax should be applied on checkout (not already included in prices)
-  // tax_menu_price: 0 = tax included in menu price, 1 = apply tax on checkout
+  // Calculate VAT if enabled AND VAT should be applied on checkout (not already included in prices)
+  // vat_menu_price: 0 = VAT included in menu price, 1 = apply VAT on checkout
   const taxAmount = useMemo(() => {
     if (!taxSettings.enabled || taxSettings.percentage === 0 || taxSettings.menuPrice === 0) {
-      return 0 // If tax is included in menu price (menuPrice = 0), don't add tax
+      return 0 // If VAT is included in menu price (menuPrice = 0), don't add VAT
     }
     return subtotal * (taxSettings.percentage / 100)
   }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
@@ -1015,7 +1015,7 @@ const getButtonText = () => {
             
             {allItems.flatMap(({ item, quantity }) => {
               const itemName = t(item.nameKey as TranslationKey) || item.name
-              const adjustedPrice = adjustPriceForTax(item.price)
+              const adjustedPrice = adjustPriceForVAT(item.price)
               const hasOptions = item.options && item.options.length > 0
               
               // If item has sides/options, always show each instance separately (1x, 1x, 1x)
@@ -1201,7 +1201,7 @@ const getButtonText = () => {
               <div className="space-y-2">
                 {allItems.flatMap((cartItem) => {
                   const itemName = t(cartItem.item.nameKey as TranslationKey) || cartItem.item.name
-                  const adjustedPrice = adjustPriceForTax(cartItem.item.price)
+                  const adjustedPrice = adjustPriceForVAT(cartItem.item.price)
                   const hasOptions = cartItem.item.options && cartItem.item.options.length > 0
                   
                   // If item has sides/options, always show each instance separately (1x, 1x, 1x)

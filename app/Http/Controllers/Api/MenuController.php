@@ -31,6 +31,7 @@ class MenuController extends Controller
                     COALESCE(m.is_vegetarian, 0) as vegetarian,
                     COALESCE(m.is_vegan, 0) as vegan,
                     {$nutritionSelect},
+                    {$this->getOptionalMenuColumnExpression('color', 'm')},
                     (
                         SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
                         FROM {$p}allergenables aa
@@ -130,6 +131,7 @@ class MenuController extends Controller
                 $combo->fat = null;
                 $combo->sugar = null;
                 $combo->serving_size = null;
+                $combo->color = null;
                 $combo->nutrition = null;
             }
             
@@ -308,7 +310,8 @@ class MenuController extends Controller
                     DB::raw($this->getNutritionColumnExpression('carbs', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
-                    DB::raw($this->getNutritionColumnExpression('serving_size', 'menus'))
+                    DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('color', 'menus'))
                 ])
                 ->get()
                 ->map(function ($item) {
@@ -335,6 +338,7 @@ class MenuController extends Controller
                         'fat' => $item->fat,
                         'sugar' => $item->sugar,
                         'serving_size' => $item->serving_size,
+                        'color' => $item->color,
                         'nutrition' => $item->nutrition
                     ];
                 });
@@ -477,6 +481,14 @@ class MenuController extends Controller
      */
     private function getNutritionColumnExpression($column, $tableAlias = 'menus')
     {
+        return $this->getOptionalMenuColumnExpression($column, $tableAlias);
+    }
+
+    /**
+     * Return a safe aliased expression for optional menu columns before all tenants migrate.
+     */
+    private function getOptionalMenuColumnExpression($column, $tableAlias = 'menus')
+    {
         if (Schema::hasColumn('menus', $column)) {
             return $tableAlias.'.'.$column.' as '.$column;
         }
@@ -511,6 +523,10 @@ class MenuController extends Controller
             || $item->fat !== null
             || $item->sugar !== null
             || $item->serving_size !== null;
+
+        $item->color = isset($item->color) && preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/', (string)$item->color)
+            ? (string)$item->color
+            : null;
 
         $item->nutrition = $hasNutrition ? [
             'calories' => $item->calories,

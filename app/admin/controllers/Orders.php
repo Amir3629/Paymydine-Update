@@ -105,7 +105,7 @@ class Orders extends \Admin\Classes\AdminController
             return $method;
         })->values();
         
-        // Load tax settings
+        // Load VAT settings
         $settings = DB::table('settings')->get()->keyBy('item');
         $taxSettings = [
             'enabled' => ($settings['tax_mode']->value ?? '0') === '1',
@@ -708,7 +708,8 @@ class Orders extends \Admin\Classes\AdminController
                 'success' => true,
                 'totals' => [
                     'subtotal' => $subtotalTotal ? (float)$subtotalTotal->value : 0,
-                    'tax' => $taxTotal ? (float)$taxTotal->value : 0,
+                    'vat' => $taxTotal ? (float)$taxTotal->value : 0,
+                    'tax' => $taxTotal ? (float)$taxTotal->value : 0, // Legacy compatibility
                     'tip' => $tipTotal ? (float)$tipTotal->value : 0,
                     'coupon' => $couponTotal ? (float)$couponTotal->value : 0,
                     'total' => $finalTotal ? (float)$finalTotal->value : 0,
@@ -783,7 +784,8 @@ class Orders extends \Admin\Classes\AdminController
                 'success' => true,
                 'totals' => [
                     'subtotal' => $subtotalTotal ? (float)$subtotalTotal->value : 0,
-                    'tax' => $taxTotal ? (float)$taxTotal->value : 0,
+                    'vat' => $taxTotal ? (float)$taxTotal->value : 0,
+                    'tax' => $taxTotal ? (float)$taxTotal->value : 0, // Legacy compatibility
                     'tip' => $tipTotal ? (float)$tipTotal->value : 0,
                     'coupon' => $couponTotal ? (float)$couponTotal->value : 0,
                     'total' => $finalTotal ? (float)$finalTotal->value : 0,

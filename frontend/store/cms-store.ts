@@ -34,10 +34,10 @@ type TipSettings = {
   defaultPercentage: number
 }
 
-type TaxSettings = {
+type VATSettings = {
   enabled: boolean
   percentage: number
-  menuPrice: number // 0 = include tax in menu price, 1 = apply tax on menu price
+  menuPrice: number // 0 = include VAT in menu price, 1 = apply VAT on menu price
 }
 
 type AppliedCoupon = {
@@ -55,7 +55,7 @@ type CmsState = {
   menuItems: MenuItem[]
   paymentOptions: PaymentOption[]
   tipSettings: TipSettings
-  taxSettings: TaxSettings
+  taxSettings: VATSettings
   appliedCoupon: AppliedCoupon
   merchantSettings: MerchantSettings
   updateSettings: (newSettings: Partial<CmsSettings>) => void
@@ -63,7 +63,9 @@ type CmsState = {
   setMenuItems: (items: MenuItem[]) => void
   togglePaymentOption: (id: PaymentOption["id"]) => void
   updateTipSettings: (newSettings: Partial<TipSettings>) => void
-  updateTaxSettings: (newSettings: Partial<TaxSettings>) => void
+  updateVATSettings: (newSettings: Partial<VATSettings>) => void
+  updateTaxSettings: (newSettings: Partial<VATSettings>) => void
+  loadVATSettings: () => Promise<void>
   loadTaxSettings: () => Promise<void>
   loadMerchantSettings: () => Promise<void>
   validateCoupon: (code: string, subtotal: number) => Promise<{ success: boolean; message?: string }>
@@ -93,10 +95,10 @@ const initialTipSettings: TipSettings = {
   defaultPercentage: 10,
 }
 
-const initialTaxSettings: TaxSettings = {
+const initialVATSettings: VATSettings = {
   enabled: false,
   percentage: 0,
-  menuPrice: 1, // Default: apply tax on menu price
+  menuPrice: 1, // Default: apply VAT on menu price
 }
 
 const initialMerchantSettings: MerchantSettings = {
@@ -120,7 +122,7 @@ export const useCmsStore = create<CmsState>()(
       menuItems: [],
       paymentOptions: initialPaymentOptions,
       tipSettings: initialTipSettings,
-      taxSettings: initialTaxSettings,
+      taxSettings: initialVATSettings,
       appliedCoupon: null,
       merchantSettings: initialMerchantSettings,
       isInitialized: false,
@@ -142,6 +144,10 @@ export const useCmsStore = create<CmsState>()(
       updateTipSettings: (newSettings) =>
         set((state) => ({
           tipSettings: { ...state.tipSettings, ...newSettings },
+        })),
+      updateVATSettings: (newSettings) =>
+        set((state) => ({
+          taxSettings: { ...state.taxSettings, ...newSettings },
         })),
       updateTaxSettings: (newSettings) =>
         set((state) => ({
@@ -192,19 +198,19 @@ export const useCmsStore = create<CmsState>()(
         }
       },
 
-      loadTaxSettings: async () => {
+      loadVATSettings: async () => {
         try {
-          console.log('🔄 CMS Store: Loading tax settings from backend...')
-          const response = await apiClient.getTaxSettings()
-          console.log('📡 CMS Store: Tax settings API response:', response)
+          console.log('🔄 CMS Store: Loading VAT settings from backend...')
+          const response = await apiClient.getVATSettings()
+          console.log('📡 CMS Store: VAT settings API response:', response)
           
           if (response.success && response.data) {
-            // Backend returns tax_mode, tax_percentage, tax_menu_price from settings table
-            const taxMode = parseInt(response.data.tax_mode || '0', 10)
-            const taxPercentage = parseFloat(response.data.tax_percentage || '0')
-            const taxMenuPrice = parseInt(response.data.tax_menu_price || '1', 10)
+            // Backend returns vat_* fields, with tax_* accepted for legacy tenants.
+            const taxMode = parseInt(response.data.vat_mode || response.data.tax_mode || '0', 10)
+            const taxPercentage = parseFloat(response.data.vat_percentage || response.data.tax_percentage || '0')
+            const taxMenuPrice = parseInt(response.data.vat_menu_price || response.data.tax_menu_price || '1', 10)
             
-            console.log('✅ CMS Store: Parsed tax settings:', {
+            console.log('✅ CMS Store: Parsed VAT settings:', {
               enabled: taxMode === 1,
               percentage: taxPercentage,
               menuPrice: taxMenuPrice,
@@ -218,12 +224,13 @@ export const useCmsStore = create<CmsState>()(
               },
             })
           } else {
-            console.warn('⚠️ CMS Store: No tax data in response')
+            console.warn('⚠️ CMS Store: No VAT data in response')
           }
         } catch (error) {
-          console.error('❌ CMS Store: Failed to load tax settings:', error)
+          console.error('❌ CMS Store: Failed to load VAT settings:', error)
         }
       },
+      loadTaxSettings: async () => get().loadVATSettings(),
       validateCoupon: async (code: string, subtotal: number) => {
         try {
           console.log('🔄 CMS Store: Validating coupon code:', code)

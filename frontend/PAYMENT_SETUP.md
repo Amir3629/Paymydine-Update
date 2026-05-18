@@ -258,7 +258,7 @@ Ensure compliance with:
 - PCI DSS requirements
 - GDPR data protection
 - Local payment regulations
-- Tax reporting requirements
+- VAT reporting requirements
 
 ---
 

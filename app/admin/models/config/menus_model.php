@@ -262,6 +262,12 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'comment' => 'Optional serving size, for example 350g, 12 oz, or 1 bowl.',
         ],
+        'color' => [
+            'label' => 'Color',
+            'type' => 'colorpicker',
+            'span' => 'right',
+            'comment' => 'Optional hex color displayed as a small circular menu badge.',
+        ],
         'protein' => [
             'label' => 'Protein (g)',
             'type' => 'number',

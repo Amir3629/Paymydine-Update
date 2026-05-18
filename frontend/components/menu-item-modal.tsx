@@ -10,6 +10,7 @@ import { useLanguageStore } from "@/store/language-store"
 import type { TranslationKey } from "@/lib/translations"
 import { FoodAttributeTags } from "@/components/food-attribute-tags"
 import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
+import { FoodItemColorDot } from "@/components/food-item-color-dot"
 
 interface MenuItemModalProps {
   item: MenuItem | null
@@ -64,14 +65,17 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
 
               {/* Content */}
               <h2 className="font-serif text-3xl font-bold text-paydine-elegant-gray mb-3 text-center">{itemName}</h2>
-              <FoodAttributeTags
-                halal={item.halal}
-                vegetarian={item.vegetarian}
-                vegan={item.vegan}
-                allergens={item.allergens}
-                allergyTags={item.allergy_tags}
-                className="mb-4 justify-center"
-              />
+              <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
+                <FoodItemColorDot color={item.color} label={`${itemName} color`} />
+                <FoodAttributeTags
+                  halal={item.halal}
+                  vegetarian={item.vegetarian}
+                  vegan={item.vegan}
+                  allergens={item.allergens}
+                  allergyTags={item.allergy_tags}
+                  className="justify-center"
+                />
+              </div>
               <FoodNutritionSummary
                 calories={item.calories}
                 protein={item.protein}

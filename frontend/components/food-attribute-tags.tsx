@@ -26,9 +26,9 @@ type AttributeTag = {
 }
 
 const baseCompactTag =
-  "inline-flex h-7 w-7 items-center justify-center rounded-full border shadow-sm ring-1 ring-white/70 backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5"
+  "inline-flex h-7 w-7 items-center justify-center rounded-full border shadow-sm ring-1 ring-white/70 backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
 const baseExpandedTag =
-  "inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-xs font-medium leading-none shadow-sm ring-1 ring-white/70 backdrop-blur-sm"
+  "inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-xs font-medium leading-none shadow-sm ring-1 ring-white/70 backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
 const baseExpandedIcon = "inline-flex h-6 w-6 items-center justify-center rounded-full"
 
 export function FoodAttributeTags({
@@ -51,7 +51,11 @@ export function FoodAttributeTags({
             key: "halal",
             label: "Halal",
             title: "Halal",
-            icon: <span className="text-[9px] font-bold leading-none tracking-tight">حلال</span>,
+            icon: (
+              <span aria-hidden="true" className="font-[serif] text-[9px] font-bold leading-none tracking-tight">
+                حلال
+              </span>
+            ),
             compactClassName: "border-sky-200/80 bg-sky-50/95 text-sky-700",
             expandedClassName: "border-sky-200/80 bg-sky-50/95 text-sky-800",
             iconClassName: "bg-white/85 text-sky-700",
@@ -89,8 +93,8 @@ export function FoodAttributeTags({
       ? [
           {
             key: "allergens",
-            label: compact ? `${normalizedAllergens.length}` : `Allergens: ${normalizedAllergens.join(", ")}`,
-            title: `Allergens: ${normalizedAllergens.join(", ")}`,
+            label: `Allergens: ${normalizedAllergens.join(", ")}`,
+            title: `Allergy warning: ${normalizedAllergens.join(", ")}`,
             icon: <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />,
             compactClassName: "border-amber-200/80 bg-amber-50/95 text-amber-700",
             expandedClassName: "border-amber-200/80 bg-amber-50/95 text-amber-900",
@@ -107,16 +111,28 @@ export function FoodAttributeTags({
   return (
     <div
       className={cn("flex flex-wrap items-center gap-1.5", className)}
-      aria-label="Food attributes and allergies"
+      role="list"
+      aria-label="Food attributes and allergy warnings"
     >
       {tags.map((tag) => (
         <span
           key={tag.key}
-          className={cn(compact ? baseCompactTag : baseExpandedTag, compact ? tag.compactClassName : tag.expandedClassName)}
+          role="listitem"
+          tabIndex={0}
+          className={cn(
+            compact ? baseCompactTag : baseExpandedTag,
+            compact ? tag.compactClassName : tag.expandedClassName,
+          )}
           aria-label={tag.title}
           title={tag.title}
         >
-          <span className={cn(compact ? "inline-flex items-center justify-center" : baseExpandedIcon, !compact && tag.iconClassName)}>
+          <span
+            className={cn(
+              compact ? "inline-flex items-center justify-center" : baseExpandedIcon,
+              !compact && tag.iconClassName,
+            )}
+            aria-hidden="true"
+          >
             {tag.icon}
           </span>
           {!compact && <span>{tag.label}</span>}

@@ -1,5 +1,5 @@
 // ============================================
-// FIX MENU-GRID HOVER - Ensure Tax and Advanced buttons work
+// FIX MENU-GRID HOVER - Ensure VAT and Advanced buttons work
 // Forces hover effect to work even if blocked by other elements
 // CRITICAL: Makes menu-link cover entire menu-item and handles hover on both
 // ============================================

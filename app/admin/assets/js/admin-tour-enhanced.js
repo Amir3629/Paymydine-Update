@@ -264,7 +264,7 @@
                 return this.getSettingsMediaTour();
             }
             else if (path.includes('/admin/settings/edit/tax')) {
-                return this.getSettingsTaxTour();
+                return this.getSettingsVATTour();
             }
             else if (path.includes('/admin/settings/edit/advanced') || path.includes('/admin/settings/edit/server')) {
                 return this.getSettingsAdvancedTour();
@@ -526,7 +526,7 @@
                 },
                 {
                     element: '.control-card, .card, [class*="settings"]',
-                    intro: '<h3>Settings Categories</h3><p>These cards represent different settings sections. Click any card to open and configure that category:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li><strong>General</strong> - Business name, logo, contact info, geolocation</li><li><strong>Site/Localization</strong> - Language, currency, timezone, country</li><li><strong>Restaurant</strong> - Operating hours, delivery zones</li><li><strong>Mail</strong> - Email server and notification settings</li><li><strong>Media</strong> - File upload limits and storage</li><li><strong>Tax</strong> - Tax rates and calculations</li><li><strong>Setup</strong> - Initial setup and order/reservation emails</li><li><strong>User</strong> - Customer registration settings</li><li><strong>Advanced</strong> - System maintenance and logs</li></ul>',
+                    intro: '<h3>Settings Categories</h3><p>These cards represent different settings sections. Click any card to open and configure that category:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li><strong>General</strong> - Business name, logo, contact info, geolocation</li><li><strong>Site/Localization</strong> - Language, currency, timezone, country</li><li><strong>Restaurant</strong> - Operating hours, delivery zones</li><li><strong>Mail</strong> - Email server and notification settings</li><li><strong>Media</strong> - File upload limits and storage</li><li><strong>VAT</strong> - VAT rates and calculations</li><li><strong>Setup</strong> - Initial setup and order/reservation emails</li><li><strong>User</strong> - Customer registration settings</li><li><strong>Advanced</strong> - System maintenance and logs</li></ul>',
                     position: 'top'
                 }
             ];
@@ -571,7 +571,7 @@
                 },
                 {
                     element: '.form-fields, form, select[name*="country"], select[name*="language"], select[name*="currency"]',
-                    intro: '<h3>Localization Form</h3><p>Configure these settings:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li><strong>Default Country</strong> - Select your primary operating country (affects tax calculations and delivery zones)</li><li><strong>Default Language</strong> - Choose the main language for your website and admin panel</li><li><strong>Default Currency</strong> - Set the currency used for prices (USD, EUR, GBP, etc.)</li><li><strong>Currency Symbol</strong> - Choose where currency symbol appears (before or after amount)</li><li><strong>Timezone</strong> - Set your restaurant\'s timezone for accurate time display</li><li><strong>Date Format</strong> - Choose date display format (MM/DD/YYYY, DD/MM/YYYY, etc.)</li><li><strong>Time Format</strong> - Choose 12-hour or 24-hour time format</li></ul>',
+                    intro: '<h3>Localization Form</h3><p>Configure these settings:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li><strong>Default Country</strong> - Select your primary operating country (affects VAT calculations and delivery zones)</li><li><strong>Default Language</strong> - Choose the main language for your website and admin panel</li><li><strong>Default Currency</strong> - Set the currency used for prices (USD, EUR, GBP, etc.)</li><li><strong>Currency Symbol</strong> - Choose where currency symbol appears (before or after amount)</li><li><strong>Timezone</strong> - Set your restaurant\'s timezone for accurate time display</li><li><strong>Date Format</strong> - Choose date display format (MM/DD/YYYY, DD/MM/YYYY, etc.)</li><li><strong>Time Format</strong> - Choose 12-hour or 24-hour time format</li></ul>',
                     position: 'top'
                 },
                 {
@@ -642,36 +642,36 @@
             ];
         },
 
-        getSettingsTaxTour: function() {
+        getSettingsVATTour: function() {
             return [
                 {
                     element: '.page-content, .nk-block, .card-inner',
-                    intro: '<h3>Tax Settings Page</h3><p>This page lets you configure tax settings for your restaurant. You can enable or disable taxes, set tax rates, configure how taxes are applied to menu prices, and decide whether delivery charges are taxed.</p><p style="margin-top: 8px; color: #333333;">Tax settings control how taxes are calculated and displayed on customer orders and invoices. Let\'s go through each setting one by one from top to bottom.</p>',
+                    intro: '<h3>VAT Settings Page</h3><p>This page lets you configure VAT settings for your restaurant. You can enable or disable VAT, set VAT rates, configure how VAT is applied to menu prices, and decide whether delivery charges are VAT-applied.</p><p style="margin-top: 8px; color: #333333;">VAT settings control how VAT is calculated and displayed on customer orders and invoices. Let\'s go through each setting one by one from top to bottom.</p>',
                     position: 'bottom'
                 },
                 {
                     element: 'input[name="tax_mode"], [name="tax_mode"], .form-group:has([name="tax_mode"]), .form-group:has(input[name="tax_mode"])',
-                    intro: '<h3>Enable/Disable Tax Button</h3><p>This toggle switch controls whether tax calculation is enabled in your system.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click "Yes" or toggle ON to enable tax calculation - taxes will be calculated on all orders</li><li>Click "No" or toggle OFF to disable tax calculation - no taxes will be added to orders</li><li>When enabled, you must set a tax rate (see next step)</li><li>When disabled, all other tax settings are ignored</li></ul>',
+                    intro: '<h3>Enable/Disable VAT Button</h3><p>This toggle switch controls whether VAT calculation is enabled in your system.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click "Yes" or toggle ON to enable VAT calculation - VAT will be calculated on all orders</li><li>Click "No" or toggle OFF to disable VAT calculation - no VAT will be added to orders</li><li>When enabled, you must set a VAT rate (see next step)</li><li>When disabled, all other VAT settings are ignored</li></ul>',
                     position: 'bottom'
                 },
                 {
                     element: 'input[name="tax_percentage"], [name="tax_percentage"], input[type="number"][name*="tax_percentage"], .form-group:has([name="tax_percentage"])',
-                    intro: '<h3>Tax Rate Field</h3><p>This number field lets you set the tax percentage rate.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Enter a number representing the tax percentage (e.g., enter "10" for 10% tax)</li><li>This rate will be applied to order subtotals</li><li>For example: If order total is $100 and tax rate is 10%, customer pays $110</li><li>This field is required when tax mode is enabled</li><li>You can enter decimals like "8.5" for 8.5% tax rate</li></ul>',
+                    intro: '<h3>VAT Rate Field</h3><p>This number field lets you set the VAT percentage rate.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Enter a number representing the VAT percentage (e.g., enter "10" for 10% VAT)</li><li>This rate will be applied to order subtotals</li><li>For example: If order total is $100 and VAT rate is 10%, customer pays $110</li><li>This field is required when VAT mode is enabled</li><li>You can enter decimals like "8.5" for 8.5% VAT rate</li></ul>',
                     position: 'bottom'
                 },
                 {
                     element: 'select[name="tax_menu_price"], [name="tax_menu_price"], .form-group:has([name="tax_menu_price"])',
-                    intro: '<h3>Tax Menu Price Dropdown</h3><p>This dropdown lets you choose how tax is applied to menu item prices.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click the dropdown to see options</li><li><strong>Option 1: Menu price includes tax</strong> - The prices shown on your menu already include tax. When customer orders, they pay the menu price (tax is already included).</li><li><strong>Option 2: Apply tax on menu price</strong> - The prices shown on your menu do NOT include tax. Tax is added on top of menu prices when customer orders.</li><li>Example: If menu shows $10 and tax is 10%, with "includes tax" customer pays $10, with "apply tax" customer pays $11</li></ul>',
+                    intro: '<h3>VAT Menu Price Dropdown</h3><p>This dropdown lets you choose how VAT is applied to menu item prices.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click the dropdown to see options</li><li><strong>Option 1: Menu price includes VAT</strong> - The prices shown on your menu already include VAT. When customer orders, they pay the menu price (VAT is already included).</li><li><strong>Option 2: Apply VAT on menu price</strong> - The prices shown on your menu do NOT include VAT. VAT is added on top of menu prices when customer orders.</li><li>Example: If menu shows $10 and VAT is 10%, with "includes VAT" customer pays $10, with "apply VAT" customer pays $11</li></ul>',
                     position: 'bottom'
                 },
                 {
                     element: 'input[name="tax_delivery_charge"], [name="tax_delivery_charge"], .form-group:has([name="tax_delivery_charge"])',
-                    intro: '<h3>Tax Delivery Charge Toggle</h3><p>This toggle switch controls whether tax is applied to delivery charges.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click "Yes" or toggle ON to apply tax to delivery charges - delivery fee will be taxed</li><li>Click "No" or toggle OFF to exclude delivery charges from tax - delivery fee won\'t be taxed</li><li>Example: If delivery is $5 and tax is 10%, with "Yes" customer pays $5.50 for delivery, with "No" customer pays $5 flat</li><li>This only applies if tax mode is enabled</li></ul>',
+                    intro: '<h3>VAT Delivery Charge Toggle</h3><p>This toggle switch controls whether VAT is applied to delivery charges.</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click "Yes" or toggle ON to apply VAT to delivery charges - delivery fee will be VAT-applied</li><li>Click "No" or toggle OFF to exclude delivery charges from VAT - delivery fee won\'t be VAT-applied</li><li>Example: If delivery is $5 and VAT is 10%, with "Yes" customer pays $5.50 for delivery, with "No" customer pays $5 flat</li><li>This only applies if VAT mode is enabled</li></ul>',
                     position: 'bottom'
                 },
                 {
                     element: '.toolbar, .page-toolbar, button[type="submit"], .btn-primary, button.btn-primary',
-                    intro: '<h3>Save Button</h3><p>Click this "Save" button to save all your tax settings changes. Your changes will not be saved until you click this button.</p><p style="margin-top: 8px; color: #333333;">After saving, the new tax settings will immediately apply to all future orders. Test your tax calculations by placing a test order to verify taxes are calculated correctly.</p>',
+                    intro: '<h3>Save Button</h3><p>Click this "Save" button to save all your VAT settings changes. Your changes will not be saved until you click this button.</p><p style="margin-top: 8px; color: #333333;">After saving, the new VAT settings will immediately apply to all future orders. Test your VAT calculations by placing a test order to verify VAT is calculated correctly.</p>',
                     position: 'top'
                 }
             ];
@@ -1213,17 +1213,17 @@
             return [
                 {
                     element: '.page-content',
-                    intro: '<h3>Country Settings</h3><p>This page lets you configure which countries you serve. You can set up delivery zones, tax rates, and regional rules for different countries.</p><p style="margin-top: 8px; color: #333333;">This is important for international restaurants or if you deliver to multiple countries.</p>',
+                    intro: '<h3>Country Settings</h3><p>This page lets you configure which countries you serve. You can set up delivery zones, VAT rates, and regional rules for different countries.</p><p style="margin-top: 8px; color: #333333;">This is important for international restaurants or if you deliver to multiple countries.</p>',
                     position: 'bottom'
                 },
                 {
                     element: '.toolbar .btn-create, .page-toolbar .btn-create, [data-bs-toggle="toolbar-btn-create"]',
-                    intro: '<h3>Add Country Button</h3><p>Click this button to enable a new country. You can:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Select a country from the list</li><li>Enable or disable the country</li><li>Set default tax rates for that country</li><li>Configure delivery zones for that country</li><li>Set regional regulations and compliance rules</li></ul>',
+                    intro: '<h3>Add Country Button</h3><p>Click this button to enable a new country. You can:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Select a country from the list</li><li>Enable or disable the country</li><li>Set default VAT rates for that country</li><li>Configure delivery zones for that country</li><li>Set regional regulations and compliance rules</li></ul>',
                     position: 'left'
                 },
                 {
                     element: '.list-table, table, .control-list',
-                    intro: '<h3>Country List</h3><p>This table shows all enabled countries. You can:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click any country to edit its settings</li><li>Click edit to modify tax rates or delivery zones</li><li>Click delete to disable a country</li><li>See which countries are enabled</li><li>View tax rates for each country</li><li>See delivery zone configurations</li></ul>',
+                    intro: '<h3>Country List</h3><p>This table shows all enabled countries. You can:</p><ul style="text-align: left; margin: 8px 0; color: #333333;"><li>Click any country to edit its settings</li><li>Click edit to modify VAT rates or delivery zones</li><li>Click delete to disable a country</li><li>See which countries are enabled</li><li>View VAT rates for each country</li><li>See delivery zone configurations</li></ul>',
                     position: 'top'
                 }
             ];

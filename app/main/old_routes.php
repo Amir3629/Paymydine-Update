@@ -749,32 +749,38 @@ App::before(function () {
             ]);
         });
 
-        // Tax settings JSON for Next.js (serve from 8000) - same pattern as /simple-theme
-        Route::get('/tax-settings', function () {
+        // VAT settings JSON for Next.js (serve from 8000) - same pattern as /simple-theme
+        Route::get('/vat-settings', function () {
             try {
                 $settings = DB::table('settings')->get()->keyBy('item');
                 
                 return response()->json([
                     'success' => true,
                     'data' => [
-                        'tax_mode' => $settings['tax_mode']->value ?? '0',
-                        'tax_percentage' => $settings['tax_percentage']->value ?? '0',
-                        'tax_menu_price' => $settings['tax_menu_price']->value ?? '1',
+                        'vat_mode' => $settings['tax_mode']->value ?? '0',
+                        'vat_percentage' => $settings['tax_percentage']->value ?? '0',
+                        'vat_menu_price' => $settings['tax_menu_price']->value ?? '1',
+                        'tax_mode' => $settings['tax_mode']->value ?? '0', // Legacy compatibility
+                        'tax_percentage' => $settings['tax_percentage']->value ?? '0', // Legacy compatibility
+                        'tax_menu_price' => $settings['tax_menu_price']->value ?? '1', // Legacy compatibility
                     ],
                 ]);
             } catch (Exception $e) {
                 return response()->json([
                     'success' => true,
                     'data' => [
-                        'tax_mode' => '0',
-                        'tax_percentage' => '0',
-                        'tax_menu_price' => '1',
+                        'vat_mode' => '0',
+                        'vat_percentage' => '0',
+                        'vat_menu_price' => '1',
+                        'tax_mode' => '0', // Legacy compatibility
+                        'tax_percentage' => '0', // Legacy compatibility
+                        'tax_menu_price' => '1', // Legacy compatibility
                     ],
                 ]);
             }
         });
 
-        // Validate coupon code - same pattern as /tax-settings
+        // Validate coupon code - same pattern as /vat-settings
         Route::post('/validate-coupon', function (\Illuminate\Http\Request $request) {
             try {
                 $code = strtoupper(trim($request->input('code', '')));
@@ -869,7 +875,7 @@ App::before(function () {
                     '/api',
                     '/api-server.php',
                     '/simple-theme',
-                    '/tax-settings',
+                    '/vat-settings',
                     '/validate-coupon',
                 ];
                 foreach ($exclusions as $ex) {

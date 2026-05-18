@@ -493,7 +493,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
             </div>
           ) : null}
 
-          {/* Order Summary (prices incl. tax) */}
+          {/* Order Summary (prices incl. VAT) */}
           <div className="bg-paydine-rose-beige/20 rounded-2xl p-3 space-y-1 border border-paydine-champagne/20">
             <div className="flex justify-between text-xs text-gray-600">
               <span>{t("subtotal")}</span>

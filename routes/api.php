@@ -263,12 +263,12 @@ Route::middleware(['cors'])->group(function () {
             return response()->json(['success' => true, 'data' => $payload]);
         });
 
-        // 2) tax-settings: expose a stable endpoint for frontend
-        // If you store tax in settings, read from there; otherwise return safe defaults.
-        Route::get('/tax-settings', function () {
+        // 2) vat-settings: expose a stable endpoint for frontend
+        // If you store VAT in settings, read from there; otherwise return safe defaults.
+        Route::get('/vat-settings', function () {
             $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
 
-            // Try a few common keys; fallback to disabled tax
+            // Try a few common keys; fallback to disabled VAT
             $tax_mode       = $settings['tax_mode']->value ?? '0';
             $tax_percentage = $settings['tax_percentage']->value ?? '0';
             $tax_menu_price = $settings['tax_menu_price']->value ?? '1';
@@ -276,9 +276,12 @@ Route::middleware(['cors'])->group(function () {
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'tax_mode'       => (string)$tax_mode,
-                    'tax_percentage' => (string)$tax_percentage,
-                    'tax_menu_price' => (string)$tax_menu_price,
+                    'vat_mode'       => (string)$tax_mode,
+                    'vat_percentage' => (string)$tax_percentage,
+                    'vat_menu_price' => (string)$tax_menu_price,
+                    'tax_mode'       => (string)$tax_mode, // Legacy compatibility
+                    'tax_percentage' => (string)$tax_percentage, // Legacy compatibility
+                    'tax_menu_price' => (string)$tax_menu_price, // Legacy compatibility
                 ]
             ]);
         });
@@ -581,9 +584,6 @@ Route::get('api/v1/settings-wrapped', function () {
 });
 
 require __DIR__.'/api_r2o_webhook.php';
-
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 
 Route::get('/payment-methods-public', function () {
     $rows = DB::table('payment_methods')

@@ -1,354 +1,294 @@
-# AI Food Calories & Nutrition System — Investigation and Implementation Plan
+# AI Nutrition Suggestions System Plan
 
-Date: 2026-05-17
-Status: Investigation/design only. Do not ship production nutrition generation until a guarded admin workflow, provider keys, validation rules, and legal copy are approved.
+## Purpose
 
-## Executive recommendation
+Restaurant admins need a reviewable assistant that can turn a menu item name, description, and optional ingredient notes into suggested ingredients and estimated nutrition values. The system must never publish AI estimates automatically. It should store suggestions separately, show confidence/source details to the admin, and copy approved values into the menu item fields that the customer frontend already renders.
 
-Use a hybrid AI + nutrition-database architecture:
+## Current food-item fields
 
-1. AI parses restaurant menu text, multilingual ingredient descriptions, portion notes, and chef-entered free text into structured ingredients.
-2. A nutrition database supplies the actual nutrient values wherever possible.
-3. Admins review and approve generated nutrition before anything appears to guests.
-4. Frontend displays values as estimates with a clear disclaimer.
+Menu items already expose customer-safe dietary flags, allergens, and nutrition display fields:
 
-Do not rely on an LLM alone for calories or nutrition facts. LLMs are useful for normalization, translation, ambiguity handling, and explaining confidence, but authoritative nutrient values should come from a database or verified restaurant data.
+- `is_halal`, `is_vegetarian`, `is_vegan`
+- allergen relation data exposed as `allergens` and `allergy_tags`
+- `calories`, `protein`, `carbs`, `fat`, `sugar`, `serving_size`
+- `color` for an optional compact menu color badge
 
-## Current feature scope proposal
+The AI system should treat those as approved menu-item facts. Draft AI output should live in separate suggestion tables until an admin reviews and approves it.
 
-### Phase 1 — Safe admin-assisted estimates
+## External services and source strategy
 
-Admin-only flow:
+### OpenAI Responses API with Structured Outputs
 
-1. Admin opens a menu item.
-2. Admin enters ingredients with amount and unit, for example:
-   - `180g grilled chicken breast`
-   - `120g cooked basmati rice`
-   - `25g butter sauce`
-3. Admin optionally enters portion yield, serving size, cooking method, and notes.
-4. System generates a draft nutrition profile:
-   - calories
-   - protein
-   - fat
-   - carbohydrates
-   - sugar
-   - confidence score
-   - matched ingredient sources
-   - warnings / unmatched items
-5. Admin reviews, edits, and explicitly approves.
-6. Approved values appear on frontend with `Estimated nutrition` copy.
+Use the OpenAI Responses API for language normalization, multilingual ingredient extraction, ambiguity handling, and explanation generation. The current OpenAI API docs describe the Responses endpoint as the primary interface for model responses, with structured JSON configured through `text.format` using a `json_schema`. Structured Outputs are preferred over JSON mode because they enforce schema adherence, and `strict: true` can require supported JSON Schema fields to match exactly.
 
-### Phase 2 — Restaurant customization
+Recommended usage:
 
-Add restaurant-specific defaults:
+1. Send restaurant/menu context, tenant locale, item name, description, and admin-provided ingredient hints.
+2. Request a strict JSON object with ingredients, estimated serving size, calories/macros, uncertainty, dietary warnings, and questions for the admin.
+3. Never ask the model to be the source of truth for nutrition. Ask it to normalize the item and propose likely ingredients/portions that can be validated by nutrition databases.
 
-- preferred units
-- default serving sizes
-- house ingredients / sauces
-- country-specific nutrition source preference
-- language preference
-- disclaimer text override per tenant
-- whether nutrition is visible by default
+### Nutrition databases
 
-### Phase 3 — Bulk generation
+Use a provider adapter layer so each tenant can use the best available source without coupling admin UI to one vendor.
 
-For restaurants with large menus, add background batch jobs to generate drafts, never auto-publish.
+| Provider | Best use | Notes |
+| --- | --- | --- |
+| USDA FoodData Central | Public reference data and source IDs for raw/common foods | USDA documents Food Search and Food Details endpoints and requires a data.gov API key. Store FDC IDs and nutrient IDs for traceability. |
+| Edamam Nutrition Analysis | Recipe/ingredient-line NLP and multilingual workflows | Edamam documents recipe/text nutrition analysis, food/quantity extraction, health/diet/allergy labels, multilingual support, and possible caching limits by plan. |
+| Nutritionix | Branded/common restaurant-style foods and natural language queries | Use as a paid/commercial fallback where restaurant/menu items are better represented than USDA raw ingredients. Confirm plan terms before caching. |
 
-## Provider/API investigation
+## High-level flow
 
-### OpenAI role
+```mermaid
+flowchart TD
+    A[Admin edits menu item] --> B[Clicks Suggest Nutrition]
+    B --> C[Create ai_nutrition_suggestion draft]
+    C --> D[OpenAI Responses API normalizes item and proposes ingredients]
+    D --> E[Provider adapters query USDA / Edamam / Nutritionix]
+    E --> F[Validation service merges nutrients and calculates confidence]
+    F --> G[Admin reviews suggestion chips and nutrition panel]
+    G -->|Approve| H[Copy approved values to menus fields]
+    G -->|Edit| I[Save admin corrections and custom recipe]
+    G -->|Reject| J[Mark suggestion rejected]
+    H --> K[Customer menu cards and modals display approved values]
+```
 
-Recommended use: ingredient parsing, multilingual understanding, candidate matching, confidence explanations, and structured JSON output.
+## Proposed schema
 
-Relevant official OpenAI capabilities:
+### `ai_nutrition_suggestions`
 
-- Responses API supports text/image inputs, structured JSON/text outputs, function calling, and tools. Source: https://platform.openai.com/docs/api-reference/responses
-- Structured Outputs can constrain responses to a JSON Schema, which is important for predictable nutrition pipeline inputs. Source: https://platform.openai.com/docs/guides/structured-outputs
-- The current OpenAI model listing identifies GPT-5.2 as a frontier model and GPT-5 mini/nano as faster/cost-efficient options. Source: https://platform.openai.com/docs/models
-- Batch API can process asynchronous jobs and is suitable for large enrichment workloads. Source: https://platform.openai.com/docs/guides/batch
+Stores one AI/provider run per menu item and tenant.
 
-Recommended OpenAI approach:
+```sql
+CREATE TABLE ai_nutrition_suggestions (
+  suggestion_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  menu_id BIGINT UNSIGNED NOT NULL,
+  tenant_id BIGINT UNSIGNED NULL,
+  locale VARCHAR(12) NOT NULL DEFAULT 'en',
+  input_name VARCHAR(255) NOT NULL,
+  input_description TEXT NULL,
+  input_ingredients TEXT NULL,
+  normalized_name VARCHAR(255) NULL,
+  serving_size VARCHAR(64) NULL,
+  calories INT UNSIGNED NULL,
+  protein DECIMAL(8,2) NULL,
+  carbs DECIMAL(8,2) NULL,
+  fat DECIMAL(8,2) NULL,
+  sugar DECIMAL(8,2) NULL,
+  confidence_score DECIMAL(4,3) NOT NULL DEFAULT 0,
+  status ENUM('draft','needs_review','approved','rejected','superseded') NOT NULL DEFAULT 'draft',
+  model VARCHAR(80) NULL,
+  provider_summary JSON NULL,
+  validation_warnings JSON NULL,
+  admin_notes TEXT NULL,
+  approved_by BIGINT UNSIGNED NULL,
+  approved_at TIMESTAMP NULL,
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+  INDEX idx_ai_nutrition_menu_status (menu_id, status)
+);
+```
 
-- Use the Responses API with Structured Outputs.
-- Use a strict schema for parsed ingredients, units, grams, assumptions, warnings, and confidence.
-- Prefer a cost-efficient model for routine parsing and only escalate ambiguous items to a stronger model.
-- Keep all OpenAI calls server-side; never expose API keys to the frontend.
-- Log prompt version, model, request ID, and schema version for auditability.
+### `ai_nutrition_suggestion_ingredients`
 
-Example AI output schema concept:
+Stores ingredient chips shown below the admin description/ingredient fields.
+
+```sql
+CREATE TABLE ai_nutrition_suggestion_ingredients (
+  ingredient_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  suggestion_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(160) NOT NULL,
+  original_text VARCHAR(255) NULL,
+  quantity DECIMAL(10,3) NULL,
+  unit VARCHAR(40) NULL,
+  grams DECIMAL(10,2) NULL,
+  calories INT UNSIGNED NULL,
+  protein DECIMAL(8,2) NULL,
+  carbs DECIMAL(8,2) NULL,
+  fat DECIMAL(8,2) NULL,
+  sugar DECIMAL(8,2) NULL,
+  source_provider VARCHAR(40) NULL,
+  source_food_id VARCHAR(80) NULL,
+  confidence_score DECIMAL(4,3) NOT NULL DEFAULT 0,
+  selected_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL
+);
+```
+
+### `menu_nutrition_overrides`
+
+Optional restaurant-specific recipe memory. If a tenant always prepares “Chicken Pasta” a certain way, use this before generic database lookup.
+
+```sql
+CREATE TABLE menu_nutrition_overrides (
+  override_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  menu_id BIGINT UNSIGNED NULL,
+  tenant_id BIGINT UNSIGNED NULL,
+  canonical_name VARCHAR(255) NOT NULL,
+  locale VARCHAR(12) NOT NULL DEFAULT 'en',
+  ingredients JSON NOT NULL,
+  nutrition JSON NOT NULL,
+  source ENUM('admin','import','approved_ai') NOT NULL DEFAULT 'admin',
+  created_by BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+  INDEX idx_menu_nutrition_override_lookup (tenant_id, canonical_name, locale)
+);
+```
+
+## API design
+
+### `POST /admin/api/menus/{menu}/nutrition-suggestions`
+
+Creates a suggestion draft.
+
+Request:
 
 ```json
 {
-  "language_detected": "string",
-  "serving_size": { "quantity": 1, "unit": "serving", "grams": 350 },
-  "ingredients": [
-    {
-      "raw_text": "180g grilled chicken breast",
-      "canonical_name": "chicken breast, grilled",
-      "quantity": 180,
-      "unit": "g",
-      "grams": 180,
-      "preparation": "grilled",
-      "confidence": 0.92,
-      "needs_admin_review": false
-    }
-  ],
-  "warnings": ["Sauce recipe not provided; estimate may be inaccurate"]
+  "locale": "en",
+  "name": "Chicken shawarma wrap",
+  "description": "Grilled chicken, garlic sauce, pickles, fries",
+  "ingredient_hints": ["chicken", "garlic sauce", "flatbread"],
+  "serving_size": "1 wrap"
 }
 ```
 
-### Nutrition database options
+Response:
 
-#### USDA FoodData Central
-
-Pros:
-
-- Public, credible nutrition data source.
-- API offers food search and food detail endpoints.
-- Useful baseline for generic ingredients.
-
-Cons:
-
-- US-centric data and food naming.
-- Restaurant recipes require ingredient decomposition.
-- Admin still must validate matches and portion weights.
-
-Source: https://fdc.nal.usda.gov/api-guide
-
-#### Edamam Nutrition Analysis API
-
-Pros:
-
-- Designed for recipe/ingredient text nutrition analysis.
-- Supports NLP-style recipe analysis and multilingual capabilities on commercial plans.
-- Returns macro/micro nutrients and diet/allergy labels.
-
-Cons:
-
-- Paid/commercial licensing and caching restrictions must be reviewed carefully.
-- Vendor lock-in risk.
-- Need tenant-level cost controls.
-
-Sources:
-
-- https://developer.edamam.com/edamam-docs-nutrition-api
-- https://developer.edamam.com/edamam-nutrition-api
-
-#### Nutritionix
-
-Pros:
-
-- Has natural-language nutrient endpoint for text such as ingredient lists.
-- Useful for common and branded foods.
-
-Cons:
-
-- Commercial terms and coverage need review.
-- English-oriented docs/API behavior may require AI translation/normalization for multilingual admin input.
-
-Source: https://developer.nutritionix.com/docs/v2
-
-## Recommended architecture
-
-```text
-Admin UI
-  -> ingredient/portion form
-  -> Generate Draft button
-  -> backend validation
-  -> AI parsing service
-  -> nutrition provider service
-  -> draft nutrition snapshot
-  -> admin review/edit/approve
-  -> frontend read-only display
+```json
+{
+  "success": true,
+  "data": {
+    "suggestion_id": 123,
+    "status": "needs_review",
+    "ingredients": [
+      { "name": "grilled chicken", "quantity": 120, "unit": "g", "confidence_score": 0.84 },
+      { "name": "flatbread", "quantity": 1, "unit": "piece", "confidence_score": 0.72 }
+    ],
+    "nutrition": {
+      "calories": 620,
+      "protein": 34.5,
+      "carbs": 58.0,
+      "fat": 24.0,
+      "sugar": 4.8,
+      "serving_size": "1 wrap"
+    },
+    "warnings": ["Estimate only; verify sauce quantity."],
+    "disclaimer": "AI-assisted estimate. Admin approval required before display."
+  }
+}
 ```
 
-### Backend services
+### `PATCH /admin/api/menus/{menu}/nutrition-suggestions/{suggestion}`
 
-Suggested service boundaries:
+Allows admin edits, ingredient chip selection, and rejection notes.
 
-- `NutritionDraftService`
-  - Creates draft records.
-  - Applies tenant feature flags.
-  - Prevents auto-publication.
-- `IngredientParsingService`
-  - Calls OpenAI Responses API with Structured Outputs.
-  - Converts multilingual/free text to structured ingredient lines.
-- `NutritionProviderService`
-  - Abstract interface for USDA, Edamam, Nutritionix, or manual provider.
-- `NutritionCalculationService`
-  - Scales per-100g nutrient values to ingredient grams and serving count.
-- `NutritionApprovalService`
-  - Stores admin approvals and audit history.
+### `POST /admin/api/menus/{menu}/nutrition-suggestions/{suggestion}/approve`
 
-### Data model proposal
+Copies approved values to `menus.calories`, `menus.protein`, `menus.carbs`, `menus.fat`, `menus.sugar`, and `menus.serving_size`. It can also update allergens/dietary tags only if the admin explicitly checks those fields.
 
-Keep food attributes separate from nutrition. Do not overload allergens or menu flags.
+## Structured Output schema for OpenAI
 
-Proposed tables:
+Use a strict schema similar to:
 
-#### `menu_nutrition_profiles`
+```json
+{
+  "type": "json_schema",
+  "name": "menu_nutrition_suggestion",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["normalized_name", "locale", "ingredients", "nutrition", "confidence_score", "warnings", "admin_questions"],
+    "properties": {
+      "normalized_name": { "type": "string" },
+      "locale": { "type": "string" },
+      "ingredients": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "quantity", "unit", "grams", "confidence_score"],
+          "properties": {
+            "name": { "type": "string" },
+            "quantity": { "type": ["number", "null"] },
+            "unit": { "type": ["string", "null"] },
+            "grams": { "type": ["number", "null"] },
+            "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      },
+      "nutrition": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["calories", "protein", "carbs", "fat", "sugar", "serving_size"],
+        "properties": {
+          "calories": { "type": ["integer", "null"] },
+          "protein": { "type": ["number", "null"] },
+          "carbs": { "type": ["number", "null"] },
+          "fat": { "type": ["number", "null"] },
+          "sugar": { "type": ["number", "null"] },
+          "serving_size": { "type": ["string", "null"] }
+        }
+      },
+      "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+      "warnings": { "type": "array", "items": { "type": "string" } },
+      "admin_questions": { "type": "array", "items": { "type": "string" } }
+    }
+  }
+}
+```
 
-- `nutrition_profile_id`
-- `menu_id`
-- `tenant_id` or tenant connection context if applicable
-- `serving_size_label`
-- `serving_size_grams`
-- `calories_kcal`
-- `protein_g`
-- `fat_g`
-- `carbs_g`
-- `sugar_g`
-- `fiber_g` nullable
-- `sodium_mg` nullable
-- `status` enum: `draft`, `needs_review`, `approved`, `rejected`
-- `source_type` enum: `manual`, `ai_usda`, `ai_edamam`, `ai_nutritionix`, `imported`
-- `confidence_score`
-- `disclaimer_text`
-- `approved_by`
-- `approved_at`
-- timestamps
+## Admin UI behavior
 
-#### `menu_nutrition_ingredients`
+- Add a **Suggest nutrition** button next to the menu name/description/ingredient fields.
+- Show ingredient suggestions as selectable chips under the description/ingredient field.
+- Allow one-click insertion of chips into the ingredient field.
+- Show a review panel with calories/macros, confidence, provider source IDs, warnings, and the required disclaimer.
+- Require explicit **Approve and publish** before copying values into the menu item.
+- Keep rejected suggestions for audit and provider tuning, but never expose them to guests.
 
-- `nutrition_ingredient_id`
-- `nutrition_profile_id`
-- `raw_text`
-- `canonical_name`
-- `quantity`
-- `unit`
-- `grams`
-- `preparation`
-- `provider_food_id`
-- `provider_name`
-- `match_confidence`
-- `needs_review`
-- `notes`
-- timestamps
+## Customer frontend behavior
 
-#### `menu_nutrition_audit_logs`
+- Menu cards: show compact circular food attribute icons, optional color dot, and compact calories.
+- Detail modal: show expanded icon + label food attribute pills, optional color dot, and full nutrition summary.
+- If no approved nutrition exists, show nothing rather than an AI placeholder.
+- Include the disclaimer in detailed nutrition views when nutrition data is present.
 
-- `nutrition_audit_id`
-- `nutrition_profile_id`
-- `event_type`
-- `actor_id`
-- `before_json`
-- `after_json`
-- `provider_request_json`
-- `provider_response_json`
-- `model`
-- `prompt_version`
-- timestamps
+## Validation and safety rules
 
-## Admin UI design
+1. Validate schema server-side even with Structured Outputs enabled.
+2. Reject impossible values: negative nutrients, extreme calories, macros grossly inconsistent with calories, or missing serving size when calories are present.
+3. Store source provider IDs and confidence, not just final numbers.
+4. Keep tenant data isolated by tenant connection/tenant ID.
+5. Never provide medical advice; use an estimate disclaimer.
+6. Do not auto-set allergens from AI. Offer warnings for admin review only.
+7. Respect provider licensing and caching terms, especially for paid nutrition databases.
 
-Add a new admin section/tab after Food Attributes, not inside payment/order flows:
+## Implementation phases
 
-- Section title: `Calories & Nutrition`
-- Fields:
-  - Serving size label
-  - Serving size grams
-  - Ingredient lines repeater/free text
-  - Cooking/portion notes
-  - Generate draft button
-  - Results table with calories/macros
-  - Confidence and warnings panel
-  - Source/matches panel
-  - Approve / reject / edit manually controls
+1. **Schema and services**: migrations, provider adapter interfaces, OpenAI client service, validation service.
+2. **Admin draft UI**: Suggest button, ingredient chips, review/approve/reject actions.
+3. **Approval publishing**: copy approved values into `menus` fields; audit approver/time.
+4. **Frontend display**: read only approved menu fields already returned by API.
+5. **Evaluation**: compare suggestions to manually entered recipes; track admin edits and rejection reasons.
 
-Rules:
+## Server rollout
 
-- Draft values are never visible to guests.
-- Approved values can be shown.
-- Manual override must be allowed.
-- Changes must be audited.
-- Show source and timestamp to admin.
+```bash
+php artisan migrate
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+```
 
-## Frontend display design
+For the frontend:
 
-Guest-facing display should be compact and optional:
-
-- Menu card: show calories only, e.g. `~620 kcal`, if approved.
-- Item modal: show a nutrition panel with calories, protein, fat, carbs, sugar.
-- Add small text: `Estimated nutrition. Values may vary by preparation and portion size.`
-- Do not show low-confidence or unapproved drafts.
-- Add tenant setting to hide nutrition display entirely.
-
-## Multi-language handling
-
-- Store admin-entered ingredient text unchanged.
-- Use AI to detect language and create canonical English ingredient names for provider search.
-- Store display translations separately only if needed.
-- Show warnings when translation or ingredient matching is uncertain.
-- Do not auto-translate allergen/legal claims without review.
-
-## Accuracy and safety limitations
-
-Nutrition estimates can vary because of:
-
-- ingredient brands
-- cooking loss/yield
-- oil absorption
-- sauces and garnishes
-- portion variability
-- ingredient substitutions
-- ambiguous menu descriptions
-
-Required disclaimer:
-
-> Estimated nutrition only. Values may vary by ingredients, portion size, preparation, and supplier. Not intended as medical advice or certified nutrition labeling.
-
-Legal/compliance note:
-
-- If a jurisdiction requires certified menu labeling, AI-generated estimates should not be presented as certified values unless reviewed through the required legal/nutrition process.
-- Keep generated values marked as estimates unless certified by the restaurant or a qualified nutrition provider.
-
-## Rollout plan
-
-1. Add feature flag: `nutrition_ai_enabled` per tenant.
-2. Add provider credentials in server-side settings only.
-3. Build schema and admin draft UI behind the feature flag.
-4. Pilot with one internal/test tenant.
-5. Compare AI/database output against manually calculated benchmark items.
-6. Add bulk generation only after single-item workflow is stable.
-7. Enable frontend display only for approved records.
-
-## Testing plan
-
-Static/programmatic checks:
-
-- PHP syntax for new services/controllers/migrations.
-- Unit tests for gram conversion and nutrient scaling.
-- Contract tests for AI structured output schema validation.
-- Provider adapter tests using recorded fixtures.
-- Feature flag tests to prove nutrition UI/API stays hidden when disabled.
-- Regression tests to ensure payment/order/tenant routing is untouched.
-
-Manual QA:
-
-- Create draft from English ingredients.
-- Create draft from non-English ingredients.
-- Confirm uncertain matches require admin review.
-- Approve and verify frontend display.
-- Reject draft and verify frontend stays hidden.
-- Confirm tenant A nutrition does not leak to tenant B.
-
-## Implementation sequencing
-
-Recommended commits if/when implementation starts:
-
-1. Feature flag and database migrations only.
-2. Provider abstraction and calculation service with tests.
-3. Admin draft UI behind feature flag.
-4. OpenAI structured parsing service behind feature flag.
-5. Nutrition provider adapter(s).
-6. Frontend approved-only display.
-7. Bulk generation/background jobs.
-
-## Open questions before implementation
-
-- Which countries/regions are target restaurants in for nutrition compliance?
-- Is estimated nutrition enough, or does PayMyDine need certified nutrition labels?
-- Which provider terms allow caching and guest display for commercial use?
-- Expected monthly generated menu items per tenant?
-- Should restaurants pay per AI generation or include it in plan tiers?
-- What tenant-level budget/rate limits should be enforced?
+```bash
+cd frontend
+npm install
+npm run build
+```
