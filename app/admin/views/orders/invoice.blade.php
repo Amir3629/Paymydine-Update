@@ -42,8 +42,11 @@
     $__fSigCounter = $__fSigCounter ?? ($__orderRow->fiskaly_signature_counter ?? ($model->fiskaly_signature_counter ?? null));
     $__fSerial = $__fSerial ?? ($__orderRow->fiskaly_serial_number ?? ($model->fiskaly_serial_number ?? null));
 
-    $__pmdTaxLabelFromTotals = (string)($__taxTotal->title ?? 'Tax');
+    $__pmdTaxLabelFromTotals = (string)($__taxTotal->title ?? 'VAT');
     $__pmdTaxIncluded = stripos($__pmdTaxLabelFromTotals, 'included') !== false;
+    if (in_array(strtolower(trim($__pmdTaxLabelFromTotals)), ['tax', 'steuer'], true)) {
+        $__pmdTaxLabelFromTotals = 'VAT';
+    }
 
     $__pmdNetSubtotal = 0.0;
     foreach (($model->getOrderMenusWithOptions() ?? []) as $__menuCalc) {
@@ -461,8 +464,11 @@ TOTALS:
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $__pmdTaxLabel ?? 'Tax');
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $__pmdTaxLabel ?? 'VAT');
     $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
+    if (in_array(strtolower(trim($pmdTaxLabelFromTotals)), ['tax', 'steuer'], true)) {
+        $pmdTaxLabelFromTotals = 'VAT';
+    }
 
     $displayTotalItems = 0;
     $pmdDisplayedSubtotal = 0.0;
@@ -602,14 +608,14 @@ TOTALS:
                     @if($__pmdTaxIncluded)
                         <tr>
                             <td class="no-line"></td>
-                            <td class="no-line text-left">{{ $__taxTotal->title ?: 'VAT included' }}</td>
+                            <td class="no-line text-left">{{ $__pmdTaxLabel ?? 'VAT included' }}</td>
                             <td class="no-line"></td>
                             <td class="no-line text-right">{{ currency_format((float)$__taxTotal->value) }}</td>
                         </tr>
                     @elseif($__taxTotal && (float)$__taxTotal->value > 0)
                         <tr>
                             <td class="no-line"></td>
-                            <td class="no-line text-left">{{ $__taxTotal->title ?: 'VAT' }}</td>
+                            <td class="no-line text-left">{{ $__pmdTaxLabel ?? 'VAT' }}</td>
                             <td class="no-line"></td>
                             <td class="no-line text-right">{{ currency_format((float)$__taxTotal->value) }}</td>
                         </tr>

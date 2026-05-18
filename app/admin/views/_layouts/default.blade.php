@@ -725,7 +725,7 @@
 <script src="{{ asset('app/admin/assets/js/fix-form-field-focus-colors.js') }}?v={{ time() }}"></script>
 <!-- Fix Profile Dropdown Closed - Disables items when dropdown is closed -->
 <script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ time() }}"></script>
-<!-- Fix Menu-Grid Hover - Ensures Tax and Advanced buttons hover works properly -->
+<!-- Fix Menu-Grid Hover - Ensures VAT and Advanced buttons hover works properly -->
 <script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ time() }}"></script>
 <!-- Disable tooltips on Note, History, and settings menu-grid (redundant labels) -->
 <script src="{{ asset('app/admin/assets/js/fix-disable-tooltips.js') }}?v={{ time() }}"></script>

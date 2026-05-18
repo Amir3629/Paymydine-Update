@@ -257,7 +257,7 @@ class OrderController extends Controller
                 $orderTotals[] = [
                     'order_id' => $orderId,
                     'code' => 'tax',
-                    'title' => 'Tax',
+                    'title' => 'VAT',
                     'value' => $derivedTax,
                     'priority' => 2,
                     'created_at' => now(),

@@ -275,7 +275,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     'payload_all' => request()->all(),
                     'raw' => request()->getContent(),
                 ]);
-                        return response()->json(['success' => false, 'error' => 'Tax settings not found'], 404);
+                        return response()->json(['success' => false, 'error' => 'VAT settings not found'], 404);
                     }
                 });
 

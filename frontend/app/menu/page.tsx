@@ -2350,7 +2350,7 @@ case "cod":
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
-        {/* Order Summary (prices incl. tax) & Payment - Scrollable Content */}
+        {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">

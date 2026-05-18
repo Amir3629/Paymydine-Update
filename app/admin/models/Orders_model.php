@@ -564,7 +564,10 @@ class Orders_model extends Model
 
         $orderTotalsByCode = collect($model->getOrderTotals())->keyBy('code');
         $taxTotalRow = $orderTotalsByCode->get('tax');
-        $displayTaxTitle = htmlspecialchars_decode((string) optional($taxTotalRow)->title ?: 'Tax');
+        $displayTaxTitle = htmlspecialchars_decode((string) optional($taxTotalRow)->title ?: 'VAT');
+        if (in_array(strtolower(trim($displayTaxTitle)), ['tax', 'steuer'], true)) {
+            $displayTaxTitle = 'VAT';
+        }
         $pmdTaxIncluded = stripos($displayTaxTitle, 'included') !== false;
 
         $displaySubtotal = 0.0;

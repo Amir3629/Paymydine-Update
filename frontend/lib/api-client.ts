@@ -633,10 +633,10 @@ export class ApiClient {
         };
       }
       // If not found, return defaults
-      throw new Error('Tax settings not found');
+      throw new Error('VAT settings not found');
     } catch (error) {
-      console.error('Failed to fetch tax settings:', error);
-      // Return default tax settings
+      console.error('Failed to fetch VAT settings:', error);
+      // Return default VAT settings
       return {
         success: true,
         data: {

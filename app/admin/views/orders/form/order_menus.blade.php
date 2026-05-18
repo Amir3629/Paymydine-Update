@@ -119,8 +119,11 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? 'Tax');
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? 'VAT');
     $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
+    if (in_array(strtolower(trim($pmdTaxLabelFromTotals)), ['tax', 'steuer'], true)) {
+        $pmdTaxLabelFromTotals = 'VAT';
+    }
 
     $pmdNetSubtotal = 0.0;
     foreach (($model->getOrderMenusWithOptions() ?? []) as $__menuCalc) {
@@ -161,8 +164,11 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $pmdTaxLabel ?? 'Tax');
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $pmdTaxLabel ?? 'VAT');
     $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
+    if (in_array(strtolower(trim($pmdTaxLabelFromTotals)), ['tax', 'steuer'], true)) {
+        $pmdTaxLabelFromTotals = 'VAT';
+    }
 
     $displayTotalItems = 0;
     $pmdDisplayedSubtotal = 0.0;
@@ -295,7 +301,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                 </tr>
             @elseif($taxTotal && (float)$taxTotal->value > 0)
                 <tr>
-                    <td class="total-label order-bill-tax">{{ $taxTotal->title ?? 'VAT' }}</td>
+                    <td class="total-label order-bill-tax">{{ $pmdTaxLabel ?? 'VAT' }}</td>
                     <td></td>
                     <td class="total-value order-bill-tax text-right">{{ currency_format((float)$taxTotal->value) }}</td>
                 </tr>

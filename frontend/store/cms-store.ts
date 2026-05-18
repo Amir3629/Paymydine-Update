@@ -194,9 +194,9 @@ export const useCmsStore = create<CmsState>()(
 
       loadTaxSettings: async () => {
         try {
-          console.log('🔄 CMS Store: Loading tax settings from backend...')
+          console.log('🔄 CMS Store: Loading VAT settings from backend...')
           const response = await apiClient.getTaxSettings()
-          console.log('📡 CMS Store: Tax settings API response:', response)
+          console.log('📡 CMS Store: VAT settings API response:', response)
           
           if (response.success && response.data) {
             // Backend returns tax_mode, tax_percentage, tax_menu_price from settings table
@@ -204,7 +204,7 @@ export const useCmsStore = create<CmsState>()(
             const taxPercentage = parseFloat(response.data.tax_percentage || '0')
             const taxMenuPrice = parseInt(response.data.tax_menu_price || '1', 10)
             
-            console.log('✅ CMS Store: Parsed tax settings:', {
+            console.log('✅ CMS Store: Parsed VAT settings:', {
               enabled: taxMode === 1,
               percentage: taxPercentage,
               menuPrice: taxMenuPrice,
@@ -218,10 +218,10 @@ export const useCmsStore = create<CmsState>()(
               },
             })
           } else {
-            console.warn('⚠️ CMS Store: No tax data in response')
+            console.warn('⚠️ CMS Store: No VAT data in response')
           }
         } catch (error) {
-          console.error('❌ CMS Store: Failed to load tax settings:', error)
+          console.error('❌ CMS Store: Failed to load VAT settings:', error)
         }
       },
       validateCoupon: async (code: string, subtotal: number) => {
