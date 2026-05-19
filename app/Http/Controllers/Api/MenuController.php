@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MenuController extends Controller
 {
@@ -16,6 +17,7 @@ class MenuController extends Controller
         try {
             // Get menu items with categories (matching old API structure)
             $p = DB::connection()->getTablePrefix();
+            $nutritionSelect = $this->getNutritionRawSelect('m');
             $query = "
                 SELECT 
                     m.menu_id as id,
@@ -25,6 +27,19 @@ class MenuController extends Controller
                     COALESCE(c.name, 'Main') as category_name,
                     ma.name as image,
                     COALESCE(m.is_stock_out, 0) as is_stock_out,
+                    COALESCE(m.is_halal, 0) as halal,
+                    COALESCE(m.is_vegetarian, 0) as vegetarian,
+                    COALESCE(m.is_vegan, 0) as vegan,
+                    {$nutritionSelect},
+                    {$this->getOptionalMenuColumnExpression('color', 'm')},
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
+                        FROM {$p}allergenables aa
+                        INNER JOIN {$p}allergens a ON a.allergen_id = aa.allergen_id
+                        WHERE aa.allergenable_id = m.menu_id
+                            AND aa.allergenable_type IN ('menus', 'Admin\\Models\\Menus_model')
+                            AND a.status = 1
+                    ) as allergy_names,
                     CASE 
                         WHEN m.is_stock_out = 1 THEN 0
                         ELSE 1
@@ -44,6 +59,8 @@ class MenuController extends Controller
             // Convert prices to float, fix image paths, and add options
             foreach ($items as &$item) {
                 $item->price = (float)$item->price;
+                $this->normalizeFoodAttributes($item);
+                $this->normalizeNutrition($item);
                 $item->is_stock_out = (bool)($item->is_stock_out ?? 0);
                 $item->available = (bool)($item->available ?? 1);
                 
@@ -103,6 +120,19 @@ class MenuController extends Controller
                 // Combos are always available (no stock-out for combos yet)
                 $combo->is_stock_out = false;
                 $combo->available = true;
+                $combo->halal = false;
+                $combo->vegetarian = false;
+                $combo->vegan = false;
+                $combo->allergens = [];
+                $combo->allergy_tags = [];
+                $combo->calories = null;
+                $combo->protein = null;
+                $combo->carbs = null;
+                $combo->fat = null;
+                $combo->sugar = null;
+                $combo->serving_size = null;
+                $combo->color = null;
+                $combo->nutrition = null;
             }
             
             // Merge combos with regular menu items
@@ -170,6 +200,15 @@ class MenuController extends Controller
                     'menus.menu_photo as image',
                     'menus.stock_qty',
                     'menus.minimum_qty',
+                    'menus.is_halal as halal',
+                    'menus.is_vegetarian as vegetarian',
+                    'menus.is_vegan as vegan',
+                    DB::raw($this->getNutritionColumnExpression('calories', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('protein', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('carbs', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
                     'categories.category_id',
                     'categories.name as category_name'
                 ]);
@@ -189,6 +228,9 @@ class MenuController extends Controller
             }
 
             $items = $query->get()->map(function ($item) {
+                $this->normalizeFoodAttributes($item);
+                $this->normalizeNutrition($item);
+
                 return [
                     'id' => $item->id,
                     'name' => $item->name,
@@ -199,7 +241,19 @@ class MenuController extends Controller
                     'category_name' => $item->category_name,
                     'stock_qty' => $item->stock_qty,
                     'minimum_qty' => $item->minimum_qty ?? 1,
-                    'available' => $item->stock_qty > 0
+                    'available' => $item->stock_qty > 0,
+                    'halal' => $item->halal,
+                    'vegetarian' => $item->vegetarian,
+                    'vegan' => $item->vegan,
+                    'allergens' => $item->allergens,
+                    'allergy_tags' => $item->allergy_tags,
+                    'calories' => $item->calories,
+                    'protein' => $item->protein,
+                    'carbs' => $item->carbs,
+                    'fat' => $item->fat,
+                    'sugar' => $item->sugar,
+                    'serving_size' => $item->serving_size,
+                    'nutrition' => $item->nutrition
                 ];
             });
 
@@ -247,10 +301,23 @@ class MenuController extends Controller
                     'menus.menu_price as price',
                     'menus.menu_photo as image',
                     'menus.stock_qty',
-                    'menus.minimum_qty'
+                    'menus.minimum_qty',
+                    'menus.is_halal as halal',
+                    'menus.is_vegetarian as vegetarian',
+                    'menus.is_vegan as vegan',
+                    DB::raw($this->getNutritionColumnExpression('calories', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('protein', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('carbs', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
+                    DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('color', 'menus'))
                 ])
                 ->get()
                 ->map(function ($item) {
+                    $this->normalizeFoodAttributes($item);
+                $this->normalizeNutrition($item);
+
                     return [
                         'id' => $item->id,
                         'name' => $item->name,
@@ -259,7 +326,20 @@ class MenuController extends Controller
                         'image' => $item->image ? asset('uploads/' . $item->image) : null,
                         'stock_qty' => $item->stock_qty,
                         'minimum_qty' => $item->minimum_qty ?? 1,
-                        'available' => $item->stock_qty > 0
+                        'available' => $item->stock_qty > 0,
+                        'halal' => $item->halal,
+                        'vegetarian' => $item->vegetarian,
+                        'vegan' => $item->vegan,
+                        'allergens' => $item->allergens,
+                        'allergy_tags' => $item->allergy_tags,
+                        'calories' => $item->calories,
+                        'protein' => $item->protein,
+                        'carbs' => $item->carbs,
+                        'fat' => $item->fat,
+                        'sugar' => $item->sugar,
+                        'serving_size' => $item->serving_size,
+                        'color' => $item->color,
+                        'nutrition' => $item->nutrition
                     ];
                 });
 
@@ -341,6 +421,122 @@ class MenuController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+
+    /**
+     * Normalize dietary flags and allergen labels for API consumers.
+     */
+    private function normalizeFoodAttributes(&$item)
+    {
+        $allergyTags = [];
+
+        if (isset($item->allergy_names) && strlen((string)$item->allergy_names) > 0) {
+            $allergyTags = array_values(array_filter(explode('||', (string)$item->allergy_names)));
+            unset($item->allergy_names);
+        } elseif (isset($item->allergens) && is_array($item->allergens)) {
+            $allergyTags = $item->allergens;
+        } elseif (isset($item->id)) {
+            $allergyTags = $this->getAllergyTags((int)$item->id);
+        }
+
+        $item->halal = (bool)($item->halal ?? $item->is_halal ?? 0);
+        $item->vegetarian = (bool)($item->vegetarian ?? $item->is_vegetarian ?? 0);
+        $item->vegan = (bool)($item->vegan ?? $item->is_vegan ?? 0);
+        $item->allergens = $allergyTags;
+        $item->allergy_tags = $allergyTags;
+    }
+
+
+    /**
+     * Get active allergen names for endpoints built with the query builder.
+     */
+    private function getAllergyTags($menuId)
+    {
+        return DB::table('allergenables')
+            ->join('allergens', 'allergens.allergen_id', '=', 'allergenables.allergen_id')
+            ->where('allergenables.allergenable_id', $menuId)
+            ->whereIn('allergenables.allergenable_type', ['menus', 'Admin\Models\Menus_model'])
+            ->where('allergens.status', 1)
+            ->orderBy('allergens.name')
+            ->distinct()
+            ->pluck('allergens.name')
+            ->all();
+    }
+
+
+    /**
+     * Build a raw SELECT fragment for optional nutrition columns.
+     */
+    private function getNutritionRawSelect($tableAlias)
+    {
+        return implode(",
+                    ", array_map(function ($column) use ($tableAlias) {
+            return $this->getNutritionColumnExpression($column, $tableAlias);
+        }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']));
+    }
+
+    /**
+     * Return a safe aliased expression even before tenant migrations have run.
+     */
+    private function getNutritionColumnExpression($column, $tableAlias = 'menus')
+    {
+        return $this->getOptionalMenuColumnExpression($column, $tableAlias);
+    }
+
+    /**
+     * Return a safe aliased expression for optional menu columns before all tenants migrate.
+     */
+    private function getOptionalMenuColumnExpression($column, $tableAlias = 'menus')
+    {
+        if (Schema::hasColumn('menus', $column)) {
+            return $tableAlias.'.'.$column.' as '.$column;
+        }
+
+        return 'NULL as '.$column;
+    }
+
+    /**
+     * Normalize optional restaurant-provided nutrition estimates for API consumers.
+     */
+    private function normalizeNutrition(&$item)
+    {
+        $numericFields = ['protein', 'carbs', 'fat', 'sugar'];
+
+        $item->calories = isset($item->calories) && $item->calories !== null && $item->calories !== ''
+            ? (int)$item->calories
+            : null;
+
+        foreach ($numericFields as $field) {
+            $item->{$field} = isset($item->{$field}) && $item->{$field} !== null && $item->{$field} !== ''
+                ? (float)$item->{$field}
+                : null;
+        }
+
+        $item->serving_size = isset($item->serving_size) && $item->serving_size !== ''
+            ? (string)$item->serving_size
+            : null;
+
+        $hasNutrition = $item->calories !== null
+            || $item->protein !== null
+            || $item->carbs !== null
+            || $item->fat !== null
+            || $item->sugar !== null
+            || $item->serving_size !== null;
+
+        $item->color = isset($item->color) && preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/', (string)$item->color)
+            ? (string)$item->color
+            : null;
+
+        $item->nutrition = $hasNutrition ? [
+            'calories' => $item->calories,
+            'protein' => $item->protein,
+            'carbs' => $item->carbs,
+            'fat' => $item->fat,
+            'sugar' => $item->sugar,
+            'serving_size' => $item->serving_size,
+            'disclaimer' => 'Restaurant-provided estimates. Values may vary by portion size, ingredients, and preparation.',
+        ] : null;
     }
 
     /**

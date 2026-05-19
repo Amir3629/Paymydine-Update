@@ -16,8 +16,27 @@ export interface MenuItem {
   image: string;
   category_id?: number;
   category_name?: string;
-  calories?: number;
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  sugar?: number | null;
+  serving_size?: string | null;
+  color?: string | null;
+  nutrition?: {
+    calories?: number | null;
+    protein?: number | null;
+    carbs?: number | null;
+    fat?: number | null;
+    sugar?: number | null;
+    serving_size?: string | null;
+    disclaimer?: string;
+  } | null;
   allergens?: string[];
+  allergy_tags?: string[];
+  halal?: boolean;
+  vegetarian?: boolean;
+  vegan?: boolean;
   stock_qty?: number;
   minimum_qty?: number;
   available?: boolean;
@@ -585,49 +604,60 @@ export class ApiClient {
         data: {
           restaurant_name: 'PayMyDine Restaurant',
           currency: 'EUR',
-          tax_rate: 0.19,
+          vat_rate: 0.19,
           service_charge: 0.10,
         }
       };
     }
   }
 
-  async getTaxSettings(): Promise<{ success: boolean; data: any }> {
+  async getVATSettings(): Promise<{ success: boolean; data: any }> {
     try {
-      // Try /tax-settings endpoint first (like /simple-theme)
+      // Try /vat-settings endpoint first (like /simple-theme).
       const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
-      const res = await fetch(`${base}/tax-settings`, { headers: { Accept: 'application/json' } });
+      const res = await fetch(`${base}/vat-settings`, { headers: { Accept: 'application/json' } });
       if (res.ok) {
         const json = await res.json();
         return json;
       }
       // Fallback: try to get from /settings endpoint
       const settingsRes = await this.getSettings();
-      if (settingsRes && (settingsRes.tax_mode !== undefined || settingsRes.data?.tax_mode !== undefined)) {
-        const data = settingsRes.data || settingsRes;
+      const settingsData = settingsRes?.data || settingsRes;
+      if (settingsData && (settingsData.vat_mode !== undefined || settingsData.tax_mode !== undefined)) {
+        const data = settingsData;
         return {
           success: true,
           data: {
-            tax_mode: data.tax_mode || '0',
-            tax_percentage: data.tax_percentage || '0',
-            tax_menu_price: data.tax_menu_price || '1',
+            vat_mode: data.vat_mode || data.tax_mode || '0',
+            vat_percentage: data.vat_percentage || data.tax_percentage || '0',
+            vat_menu_price: data.vat_menu_price || data.tax_menu_price || '1',
+            tax_mode: data.tax_mode || data.vat_mode || '0',
+            tax_percentage: data.tax_percentage || data.vat_percentage || '0',
+            tax_menu_price: data.tax_menu_price || data.vat_menu_price || '1',
           }
         };
       }
       // If not found, return defaults
-      throw new Error('Tax settings not found');
+      throw new Error('VAT settings not found');
     } catch (error) {
-      console.error('Failed to fetch tax settings:', error);
-      // Return default tax settings
+      console.error('Failed to fetch VAT settings:', error);
+      // Return default VAT settings
       return {
         success: true,
         data: {
+          vat_mode: '0',
+          vat_percentage: '0',
+          vat_menu_price: '1',
           tax_mode: '0',
           tax_percentage: '0',
           tax_menu_price: '1',
         }
       };
     }
+  }
+
+  async getTaxSettings(): Promise<{ success: boolean; data: any }> {
+    return this.getVATSettings();
   }
 
   async validateCoupon(code: string, subtotal: number): Promise<{ success: boolean; data?: any; message?: string }> {

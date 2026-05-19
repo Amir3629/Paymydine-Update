@@ -12,6 +12,9 @@ import { applyTheme } from "@/lib/theme-system";
 import { Logo } from "@/components/logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
+import { FoodAttributeTags } from "@/components/food-attribute-tags";
+import { FoodNutritionSummary } from "@/components/food-nutrition-summary";
+import { FoodItemColorDot } from "@/components/food-item-color-dot";
 import { MenuItemModal } from "@/components/menu-item-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -697,16 +700,16 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrd
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
-  const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadTaxSettings, loadMerchantSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
+  const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadVATSettings, loadMerchantSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
 const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
   const [paypalPublicConfig, setPaypalPublicConfig] = useState<{ enabled: boolean; clientId: string; currency: string } | null>(null)
   const [paypalConfigLoading, setPaypalConfigLoading] = useState(false)
   
-  // Helper function to adjust price if tax is included in menu prices
-  const adjustPriceForTax = (price: number): number => {
+  // Helper function to adjust price if VAT is included in menu prices
+  const adjustPriceForVAT = (price: number): number => {
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // Tax is included in prices - increase price by tax percentage
+      // VAT is included in prices - increase price by VAT percentage
       return price * (1 + taxSettings.percentage / 100)
     }
     return price
@@ -892,7 +895,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     ? Object.values(selectedItems)
     : allItems.map(cartItem => ({
         item: cartItem.item,
-        price: adjustPriceForTax(cartItem.item.price || 0),
+        price: adjustPriceForVAT(cartItem.item.price || 0),
         quantity: cartItem.quantity
       }))
 
@@ -900,7 +903,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     () => itemsToPay.reduce((acc, inst) => {
       let itemTotal = inst.price * (inst.quantity || 1)
       
-      // Add option prices (with tax adjustment if needed)
+      // Add option prices (with VAT adjustment if needed)
       const itemOptions = selectedOptions[inst.item.id] || {}
       if (Object.keys(itemOptions).length > 0) {
         const menuItem = allItems.find(cartItem => cartItem.item.id === inst.item.id)
@@ -909,7 +912,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             menuItem.item.options!.forEach(option => {
               const optionValue = option.values.find(val => val.id.toString() === optionId)
               if (optionValue) {
-                itemTotal += adjustPriceForTax(optionValue.price) * (inst.quantity || 1)
+                itemTotal += adjustPriceForVAT(optionValue.price) * (inst.quantity || 1)
               }
             })
           })
@@ -920,11 +923,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }, 0),
     [itemsToPay, selectedOptions, allItems, taxSettings],
   )
-  // Calculate tax if enabled AND tax should be applied on checkout (not already included in prices)
-  // tax_menu_price: 0 = tax included in menu price, 1 = apply tax on checkout
+  // Calculate VAT if enabled AND VAT should be applied on checkout (not already included in prices)
+  // vat_menu_price: 0 = VAT included in menu price, 1 = apply VAT on checkout
   const taxAmount = useMemo(() => {
     if (!taxSettings.enabled || taxSettings.percentage === 0 || taxSettings.menuPrice === 0) {
-      return 0 // If tax is included in menu price (menuPrice = 0), don't add tax
+      return 0 // If VAT is included in menu price (menuPrice = 0), don't add VAT
     }
     return subtotal * (taxSettings.percentage / 100)
   }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
@@ -1268,9 +1271,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
   }, [])
   useEffect(() => {
-    // Load tax settings from backend on mount
-    loadTaxSettings()
-  }, [loadTaxSettings])
+    // Load VAT settings from backend on mount
+    loadVATSettings()
+  }, [loadVATSettings])
 
   const stripeUrlParams =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null
@@ -2348,7 +2351,7 @@ case "cod":
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
-        {/* Order Summary (prices incl. tax) & Payment - Scrollable Content */}
+        {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">
@@ -2714,7 +2717,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
     let itemToAdd = { ...item }
     
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // Revert the adjustment: divide by (1 + tax%)
+      // Revert the adjustment: divide by (1 + VAT%)
       itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
       // Also revert option prices
       if (itemToAdd.options) {
@@ -2753,6 +2756,26 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
       </div>
       <div className="flex-grow">
         <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <FoodAttributeTags
+            halal={item.halal}
+            vegetarian={item.vegetarian}
+            vegan={item.vegan}
+            allergens={item.allergens}
+            allergyTags={item.allergy_tags}
+            compact
+          />
+          <FoodItemColorDot color={item.color} label={`${itemName} color`} />
+          <FoodNutritionSummary
+            calories={item.calories}
+            protein={item.protein}
+            carbs={item.carbs}
+            fat={item.fat}
+            sugar={item.sugar}
+            servingSize={item.serving_size}
+            compact
+          />
+        </div>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
@@ -2805,7 +2828,7 @@ function ExpandingBottomToolbar({
 }: ExpandingBottomToolbarProps) {
   const { taxSettings } = useCmsStore()
   
-  // Helper to adjust price if tax is included
+  // Helper to adjust price if VAT is included
   const adjustPrice = (price: number): number => {
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
       return price * (1 + taxSettings.percentage / 100)
@@ -3392,7 +3415,7 @@ function MenuContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
-  const { menuItems, taxSettings, loadTaxSettings } = useCmsStore()
+  const { menuItems, taxSettings, loadVATSettings } = useCmsStore()
 
   // Debug logging for theme consistency
   if (typeof window !== 'undefined') {
@@ -3499,12 +3522,12 @@ function MenuContent() {
     }
   }, [apiMenuItems]);
 
-  // Load tax settings on mount
+  // Load VAT settings on mount
   
 
 useEffect(() => {
-    loadTaxSettings()
-  }, [loadTaxSettings])
+    loadVATSettings()
+  }, [loadVATSettings])
 
   // Load menu data from API on component mount
   useEffect(() => {
@@ -3643,10 +3666,10 @@ useEffect(() => {
     return ["All", ...categoryList];
   }, [dynamicCategories]);
 
-  // Adjust menu item prices if tax is included in prices (tax_menu_price = 0)
-  const adjustPriceForTax = (price: number): number => {
+  // Adjust menu item prices if VAT is included in prices (vat_menu_price = 0)
+  const adjustPriceForVAT = (price: number): number => {
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // Tax is included in prices - increase price by tax percentage
+      // VAT is included in prices - increase price by VAT percentage
       return price * (1 + taxSettings.percentage / 100)
     }
     return price
@@ -3657,16 +3680,16 @@ useEffect(() => {
     // Use API data if available, otherwise fallback to CMS store or static data
     const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData);
     
-    // Adjust prices if tax is included in menu prices
+    // Adjust prices if VAT is included in menu prices
     const itemsWithAdjustedPrices = availableItems.map(item => ({
       ...item,
-      price: adjustPriceForTax(item.price),
+      price: adjustPriceForVAT(item.price),
       // Also adjust option prices if they exist
       options: item.options?.map(option => ({
         ...option,
         values: option.values.map(value => ({
           ...value,
-          price: adjustPriceForTax(value.price)
+          price: adjustPriceForVAT(value.price)
         }))
       }))
     }))

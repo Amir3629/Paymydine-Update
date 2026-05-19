@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Schema;
 
 class TenantApiController extends Controller
 {
@@ -79,15 +80,17 @@ class TenantApiController extends Controller
         try {
             $categoryId = $request->query('category');
             
+            $menuSelect = array_merge([
+                'menu_id as id',
+                'menu_name as name',
+                'menu_description as description',
+                'menu_price as price',
+                'minimum_qty',
+            ], $this->foodAttributeSelectColumns(), $this->nutritionSelectColumns());
+
             $query = DB::table('menus')
                 ->where('menu_status', 1)
-                ->select(
-                    'menu_id as id',
-                    'menu_name as name',
-                    'menu_description as description',
-                    'menu_price as price',
-                    'minimum_qty'
-                )
+                ->select($menuSelect)
                 ->orderBy('menu_priority', 'asc');
 
             if ($categoryId) {
@@ -117,6 +120,8 @@ class TenantApiController extends Controller
                 
                 $item->image = $media ? $media->path : null;
                 $item->price = (float) $item->price;
+                $this->normalizeFoodAttributes($item);
+                $this->normalizeNutrition($item);
             }
 
             return Response::json($menuItems);
@@ -131,16 +136,18 @@ class TenantApiController extends Controller
     public function getMenuItem(Request $request, $itemId)
     {
         try {
+            $menuSelect = array_merge([
+                'menu_id as id',
+                'menu_name as name',
+                'menu_description as description',
+                'menu_price as price',
+                'minimum_qty',
+            ], $this->foodAttributeSelectColumns(), $this->nutritionSelectColumns());
+
             $item = DB::table('menus')
                 ->where('menu_id', $itemId)
                 ->where('menu_status', 1)
-                ->select(
-                    'menu_id as id',
-                    'menu_name as name',
-                    'menu_description as description',
-                    'menu_price as price',
-                    'minimum_qty'
-                )
+                ->select($menuSelect)
                 ->first();
 
             if (!$item) {
@@ -166,6 +173,8 @@ class TenantApiController extends Controller
             
             $item->image = $media ? $media->path : null;
             $item->price = (float) $item->price;
+            $this->normalizeFoodAttributes($item);
+            $this->normalizeNutrition($item);
 
             // Get menu options if available
             $options = DB::table('menu_item_options')
@@ -194,6 +203,104 @@ class TenantApiController extends Controller
         } catch (\Exception $e) {
             return Response::json(['error' => 'Failed to fetch menu item'], 500);
         }
+    }
+
+
+    /**
+     * Return a safe optional column expression for pre-migration tenants.
+     */
+    private function optionalMenuColumnExpression($column, $alias, $table = 'menus')
+    {
+        return DB::raw(Schema::hasColumn('menus', $column) ? $table.'.'.$column.' as '.$alias : 'NULL as '.$alias);
+    }
+
+    /**
+     * Return safe optional nutrition column expressions for pre-migration tenants.
+     */
+    private function nutritionSelectColumns($table = 'menus')
+    {
+        return array_map(function ($column) use ($table) {
+            return $this->optionalMenuColumnExpression($column, $column, $table);
+        }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']);
+    }
+
+    /**
+     * Return safe optional food attribute column expressions for pre-migration tenants.
+     */
+    private function foodAttributeSelectColumns($table = 'menus')
+    {
+        return [
+            $this->optionalMenuColumnExpression('is_halal', 'halal', $table),
+            $this->optionalMenuColumnExpression('is_vegetarian', 'vegetarian', $table),
+            $this->optionalMenuColumnExpression('is_vegan', 'vegan', $table),
+        ];
+    }
+
+    /**
+     * Get active allergen names for a menu item.
+     */
+    private function getAllergyTags($menuId)
+    {
+        if (!Schema::hasTable('allergenables') || !Schema::hasTable('allergens')) {
+            return [];
+        }
+
+        return DB::table('allergenables')
+            ->join('allergens', 'allergens.allergen_id', '=', 'allergenables.allergen_id')
+            ->where('allergenables.allergenable_id', $menuId)
+            ->whereIn('allergenables.allergenable_type', ['menus', 'Admin\Models\Menus_model'])
+            ->where('allergens.status', 1)
+            ->orderBy('allergens.name')
+            ->distinct()
+            ->pluck('allergens.name')
+            ->all();
+    }
+
+    /**
+     * Normalize dietary flags and allergen labels.
+     */
+    private function normalizeFoodAttributes($item)
+    {
+        $item->halal = (bool)($item->halal ?? 0);
+        $item->vegetarian = (bool)($item->vegetarian ?? 0);
+        $item->vegan = (bool)($item->vegan ?? 0);
+        $item->allergens = $this->getAllergyTags((int)$item->id);
+        $item->allergy_tags = $item->allergens;
+
+        return $item;
+    }
+
+    /**
+     * Normalize optional restaurant-provided nutrition estimate fields.
+     */
+    private function normalizeNutrition($item)
+    {
+        $item->calories = isset($item->calories) && $item->calories !== null && $item->calories !== '' ? (int)$item->calories : null;
+
+        foreach (['protein', 'carbs', 'fat', 'sugar'] as $field) {
+            $item->{$field} = isset($item->{$field}) && $item->{$field} !== null && $item->{$field} !== '' ? (float)$item->{$field} : null;
+        }
+
+        $item->serving_size = isset($item->serving_size) && $item->serving_size !== '' ? (string)$item->serving_size : null;
+
+        $hasNutrition = $item->calories !== null
+            || $item->protein !== null
+            || $item->carbs !== null
+            || $item->fat !== null
+            || $item->sugar !== null
+            || $item->serving_size !== null;
+
+        $item->nutrition = $hasNutrition ? [
+            'calories' => $item->calories,
+            'protein' => $item->protein,
+            'carbs' => $item->carbs,
+            'fat' => $item->fat,
+            'sugar' => $item->sugar,
+            'serving_size' => $item->serving_size,
+            'disclaimer' => 'Restaurant-provided estimates. Values may vary by portion size, ingredients, and preparation.',
+        ] : null;
+
+        return $item;
     }
 
     /**

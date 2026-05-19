@@ -21,6 +21,17 @@ class Menu extends FormRequest
             'menu_status' => lang('admin::lang.label_status'),
             'mealtime_id' => lang('admin::lang.menus.label_mealtime'),
             'menu_priority' => lang('admin::lang.menus.label_menu_priority'),
+            'is_halal' => 'Halal',
+            'is_vegetarian' => 'Vegetarian',
+            'is_vegan' => 'Vegan',
+            'allergens.*' => lang('admin::lang.menus.label_allergens'),
+            'calories' => 'Calories',
+            'protein' => 'Protein',
+            'carbs' => 'Carbs',
+            'fat' => 'Fat',
+            'sugar' => 'Sugar',
+            'serving_size' => 'Serving / portion size',
+            'color' => 'Color',
         ];
     }
 
@@ -39,6 +50,17 @@ class Menu extends FormRequest
             'menu_status' => ['boolean'],
             'mealtime_id' => ['nullable', 'integer'],
             'menu_priority' => ['min:0', 'integer'],
+            'is_halal' => ['boolean'],
+            'is_vegetarian' => ['boolean'],
+            'is_vegan' => ['boolean'],
+            'allergens.*' => ['integer'],
+            'calories' => ['nullable', 'integer', 'min:0'],
+            'protein' => ['nullable', 'numeric', 'min:0'],
+            'carbs' => ['nullable', 'numeric', 'min:0'],
+            'fat' => ['nullable', 'numeric', 'min:0'],
+            'sugar' => ['nullable', 'numeric', 'min:0'],
+            'serving_size' => ['nullable', 'string', 'max:64'],
+            'color' => ['nullable', 'regex:/^#(?:[0-9a-fA-F]{3}){1,2}$/'],
         ];
     }
 }
