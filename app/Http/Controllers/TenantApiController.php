@@ -233,6 +233,7 @@ class TenantApiController extends Controller
             $this->optionalMenuColumnExpression('is_halal', 'halal', $table),
             $this->optionalMenuColumnExpression('is_vegetarian', 'vegetarian', $table),
             $this->optionalMenuColumnExpression('is_vegan', 'vegan', $table),
+            $this->optionalMenuColumnExpression('color', 'color', $table),
         ];
     }
 
@@ -282,6 +283,9 @@ class TenantApiController extends Controller
         }
 
         $item->serving_size = isset($item->serving_size) && $item->serving_size !== '' ? (string)$item->serving_size : null;
+        $item->color = isset($item->color) && preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/', (string)$item->color)
+            ? (string)$item->color
+            : null;
 
         $hasNutrition = $item->calories !== null
             || $item->protein !== null
@@ -297,6 +301,7 @@ class TenantApiController extends Controller
             'fat' => $item->fat,
             'sugar' => $item->sugar,
             'serving_size' => $item->serving_size,
+            'color' => $item->color,
             'disclaimer' => 'Restaurant-provided estimates. Values may vary by portion size, ingredients, and preparation.',
         ] : null;
 

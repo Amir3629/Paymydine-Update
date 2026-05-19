@@ -209,6 +209,7 @@ class MenuController extends Controller
                     DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('color', 'menus')),
                     'categories.category_id',
                     'categories.name as category_name'
                 ]);
@@ -253,6 +254,7 @@ class MenuController extends Controller
                     'fat' => $item->fat,
                     'sugar' => $item->sugar,
                     'serving_size' => $item->serving_size,
+                    'color' => $item->color,
                     'nutrition' => $item->nutrition
                 ];
             });
