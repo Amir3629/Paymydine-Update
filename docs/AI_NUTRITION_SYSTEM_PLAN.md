@@ -29,3 +29,10 @@
 - Add per-tenant usage controls and rate limits.
 - Add explicit consent text before first use.
 - Add server-side timeout and retry policy with safe failure response.
+
+
+## Environment flags
+- `PMD_AI_NUTRITION_ENABLED=false` (default, recommended for production until provider is integrated)
+- `PMD_AI_NUTRITION_PROVIDER=openai` (optional future provider selector)
+
+When disabled, admin UI remains visible and returns the fallback message without generating or saving values.

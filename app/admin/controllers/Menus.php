@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
 use Admin\Models\Menu_options_model;
 use Igniter\Flame\Exception\ApplicationException;
+use Illuminate\Http\JsonResponse;
 
 class Menus extends AdminController
 {
@@ -84,4 +85,45 @@ class Menus extends AdminController
             ]),
         ];
     }
+
+
+    public function onEstimateNutritionAssistant(): JsonResponse
+    {
+        $enabled = filter_var(env('PMD_AI_NUTRITION_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
+        $provider = strtolower((string)env('PMD_AI_NUTRITION_PROVIDER', 'openai'));
+
+        $validated = request()->validate([
+            'action' => ['required', 'in:estimate,suggest-ingredients'],
+            'menu_name' => ['nullable', 'string', 'max:255'],
+            'menu_description' => ['nullable', 'string', 'max:2000'],
+            'ingredients' => ['nullable', 'string', 'max:3000'],
+            'portion' => ['nullable', 'string', 'max:120'],
+            'preparation_notes' => ['nullable', 'string', 'max:2000'],
+            'locale' => ['nullable', 'string', 'max:12'],
+        ]);
+
+        if (!$enabled || $provider === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.',
+                'data' => [
+                    'enabled' => false,
+                    'provider' => $provider,
+                    'suggestion' => null,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'AI provider is enabled, but draft generation is not implemented in this safe branch.',
+            'data' => [
+                'enabled' => true,
+                'provider' => $provider,
+                'suggestion' => null,
+                'requires_manual_review' => true,
+            ],
+        ]);
+    }
+
 }

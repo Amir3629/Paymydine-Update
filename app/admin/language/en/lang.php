@@ -930,13 +930,13 @@ return [
 
     'settings' => [
         'text_tab_setup' => 'Sales',
-        'text_tab_tax' => 'Tax',
+        'text_tab_tax' => 'VAT',
         'text_tab_user' => 'Customer registration',
         'text_tab_panel' => 'Panel settings',
 
         'text_tab_desc_user' => 'Configure registration email confirmation ...',
         'text_tab_desc_setup' => 'Configure order, reservation and invoicing settings',
-        'text_tab_desc_tax' => 'Configure tax settings',
+        'text_tab_desc_tax' => 'Configure VAT settings',
         'text_tab_desc_panel' => 'Configure panel behavior, maintenance mode, system logs, and activity tracking.',
 
         'label_after_save_action' => 'After saving action',
