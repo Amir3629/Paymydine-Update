@@ -5,7 +5,7 @@
         <div class="row" style="margin-bottom:10px;">
             <div class="col-md-12">
                 <label class="control-label" style="font-weight:600;">Ingredients (internal)</label>
-                <textarea class="form-control" rows="3" data-ai-input="ingredients" placeholder="chicken, tortilla, lettuce, tomato, garlic sauce, yogurt, oil"></textarea>
+                <textarea class="form-control" rows="3" data-ai-input="ingredients" placeholder="e.g. flour, tomato, mozzarella, basil, olive oil"></textarea>
             </div>
         </div>
 
@@ -30,7 +30,7 @@
         </div>
 
         <div class="alert alert-info" data-ai-status style="margin-bottom:10px;">
-            AI Nutrition Assistant is currently unavailable. Please enter estimates manually.
+            AI assistant is unavailable. You can still enter nutrition manually.
         </div>
 
         <div class="panel panel-default" data-ai-draft style="display:none; margin-bottom:0;">
@@ -60,6 +60,15 @@
     function set(name, val) { var f=formField(name); if (!f) return; f.value = val; if (window.jQuery) window.jQuery(f).trigger('change'); }
     function input(key) { return root.querySelector('[data-ai-input="' + key + '"]'); }
     function setStatus(msg, kind) { statusEl.className = 'alert alert-' + (kind || 'info'); statusEl.textContent = msg; }
+
+    function clearDraft() {
+        state.suggestions = null;
+        applyBtn.disabled = true;
+        draftPanel.style.display = 'none';
+        root.querySelector('[data-ai-draft-description]').textContent = '—';
+        root.querySelector('[data-ai-draft-ingredients]').textContent = '—';
+        root.querySelector('[data-ai-draft-nutrition]').textContent = '—';
+    }
 
     function renderDraft() {
         if (!state.suggestions) return;
@@ -107,22 +116,23 @@
         }
 
         setStatus('Contacting AI Nutrition Assistant…', 'info');
+        clearDraft();
         btn.disabled = true;
-        if (!(window.jQuery && typeof window.jQuery.request === 'function')) { btn.disabled = false; setStatus('AI Nutrition Assistant is currently unavailable. Please enter estimates manually.', 'warning'); return; }
+        if (!(window.jQuery && typeof window.jQuery.request === 'function')) { btn.disabled = false; clearDraft(); setStatus('AI assistant is unavailable. You can still enter nutrition manually.', 'warning'); return; }
 
         window.jQuery.request('onEstimateNutritionAssistant', {
             data: payload(action),
             success: function(resp){
                 btn.disabled = false;
-                if (!resp || resp.enabled === false) { setStatus((resp && resp.message) || 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.', 'warning'); return; }
+                if (!resp || resp.enabled === false) { clearDraft(); setStatus((resp && resp.message) || 'AI assistant is unavailable. You can still enter nutrition manually.', 'warning'); return; }
                 state.suggestions = resp.suggestions || null;
                 state.lastAction = action;
-                if (!state.suggestions) { setStatus('No draft suggestions returned. Please refine input and retry.', 'warning'); return; }
+                if (!state.suggestions) { clearDraft(); setStatus('AI assistant is unavailable. You can still enter nutrition manually.', 'warning'); return; }
                 renderDraft();
                 applyBtn.disabled = false;
                 setStatus((resp.disclaimer || 'AI nutrition values are estimates and should be reviewed before publishing.'), 'success');
             },
-            error: function(){ btn.disabled = false; setStatus('AI Nutrition Assistant is currently unavailable. Please enter estimates manually.', 'warning'); }
+            error: function(){ btn.disabled = false; clearDraft(); setStatus('AI assistant is unavailable. You can still enter nutrition manually.', 'warning'); }
         });
     });
 })();

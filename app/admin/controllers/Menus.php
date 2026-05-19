@@ -107,7 +107,7 @@ class Menus extends AdminController
         if (!$enabled || $provider !== 'openai' || $apiKey === '') {
             return response()->json([
                 'enabled' => false,
-                'message' => 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.',
+                'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
             ]);
         }
 
@@ -158,14 +158,19 @@ class Menus extends AdminController
             if ($raw === false || $err || $code >= 400) {
                 return response()->json([
                     'enabled' => false,
-                    'message' => 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.',
+                    'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
                 ]);
             }
 
             $json = json_decode((string)$raw, true);
             $content = $json['choices'][0]['message']['content'] ?? '{}';
             $suggestions = json_decode((string)$content, true);
-            if (!is_array($suggestions)) $suggestions = [];
+            if (!is_array($suggestions)) {
+                return response()->json([
+                    'enabled' => false,
+                    'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
+                ]);
+            }
 
             $num = function ($v, $min, $max) {
                 if ($v === null || $v === '' || !is_numeric($v)) return null;
@@ -177,6 +182,23 @@ class Menus extends AdminController
                 $ingredients = array_values(array_filter(array_map('trim', preg_split('/[\n,]+/', $ingredients))));
             }
             if (!is_array($ingredients)) $ingredients = [];
+
+
+            if (
+                empty($suggestions['description'])
+                && empty($suggestions['ingredients'])
+                && !isset($suggestions['calories'])
+                && !isset($suggestions['protein'])
+                && !isset($suggestions['carbs'])
+                && !isset($suggestions['fat'])
+                && !isset($suggestions['sugar'])
+                && empty($suggestions['serving_size'])
+            ) {
+                return response()->json([
+                    'enabled' => false,
+                    'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
+                ]);
+            }
 
             return response()->json([
                 'enabled' => true,
@@ -195,7 +217,7 @@ class Menus extends AdminController
         } catch (\Throwable $e) {
             return response()->json([
                 'enabled' => false,
-                'message' => 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.',
+                'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
             ]);
         }
     }
