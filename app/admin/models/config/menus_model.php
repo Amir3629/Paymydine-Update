@@ -250,13 +250,6 @@ $config['form']['tabs'] = [
             'span' => 'full',
             'comment' => 'Optional restaurant-provided nutrition estimates. Values may vary by portion size, ingredients, and preparation.',
         ],
-
-        'ai_nutrition_assistant' => [
-            'label' => 'AI Nutrition Assistant',
-            'type' => 'partial',
-            'path' => 'menus/form/ai_nutrition_assistant',
-            'span' => 'full',
-        ],
         'calories' => [
             'label' => 'Calories (kcal)',
             'type' => 'number',
@@ -274,6 +267,14 @@ $config['form']['tabs'] = [
             'type' => 'colorpicker',
             'span' => 'right',
             'comment' => 'Optional hex color displayed as a small circular menu badge.',
+        ],
+
+
+        'ai_nutrition_assistant' => [
+            'label' => 'AI Nutrition Assistant',
+            'type' => 'partial',
+            'path' => 'menus/form/ai_nutrition_assistant',
+            'span' => 'full',
         ],
         'protein' => [
             'label' => 'Protein (g)',

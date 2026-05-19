@@ -91,39 +91,113 @@ class Menus extends AdminController
     {
         $enabled = filter_var(env('PMD_AI_NUTRITION_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
         $provider = strtolower((string)env('PMD_AI_NUTRITION_PROVIDER', 'openai'));
+        $apiKey = (string)env('OPENAI_API_KEY', '');
+        $model = (string)env('PMD_AI_NUTRITION_MODEL', 'gpt-4.1-mini');
 
-        $validated = request()->validate([
-            'action' => ['required', 'in:estimate,suggest-ingredients'],
+        $payload = request()->validate([
+            'action' => ['required', 'in:suggest-ingredients,improve-description,estimate-nutrition'],
             'menu_name' => ['nullable', 'string', 'max:255'],
-            'menu_description' => ['nullable', 'string', 'max:2000'],
-            'ingredients' => ['nullable', 'string', 'max:3000'],
-            'portion' => ['nullable', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:3000'],
+            'ingredients' => ['nullable', 'string', 'max:4000'],
+            'serving_size' => ['nullable', 'string', 'max:120'],
             'preparation_notes' => ['nullable', 'string', 'max:2000'],
-            'locale' => ['nullable', 'string', 'max:12'],
+            'language' => ['nullable', 'string', 'max:16'],
         ]);
 
-        if (!$enabled || $provider === '') {
+        if (!$enabled || $provider !== 'openai' || $apiKey === '') {
             return response()->json([
-                'success' => false,
+                'enabled' => false,
                 'message' => 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.',
-                'data' => [
-                    'enabled' => false,
-                    'provider' => $provider,
-                    'suggestion' => null,
-                ],
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'AI provider is enabled, but draft generation is not implemented in this safe branch.',
-            'data' => [
-                'enabled' => true,
-                'provider' => $provider,
-                'suggestion' => null,
-                'requires_manual_review' => true,
+        $lang = $payload['language'] ?? 'auto';
+        $prompt = [
+            'action' => $payload['action'],
+            'menu_name' => $payload['menu_name'] ?? '',
+            'description' => $payload['description'] ?? '',
+            'ingredients' => $payload['ingredients'] ?? '',
+            'serving_size' => $payload['serving_size'] ?? '',
+            'preparation_notes' => $payload['preparation_notes'] ?? '',
+            'language' => $lang,
+            'supported_languages' => ['English','German','Persian','Arabic','Turkish'],
+            'requirements' => [
+                'Provide draft suggestions only.',
+                'Nutrition values are estimates.',
+                'Return JSON object only with keys: description, ingredients(array), calories, protein, carbs, fat, sugar, serving_size.',
             ],
-        ]);
+        ];
+
+        $body = [
+            'model' => $model,
+            'messages' => [
+                ['role' => 'system', 'content' => 'You are a nutrition assistant for restaurant admins. Return compact JSON only.'],
+                ['role' => 'user', 'content' => json_encode($prompt, JSON_UNESCAPED_UNICODE)],
+            ],
+            'temperature' => 0.2,
+            'response_format' => ['type' => 'json_object'],
+        ];
+
+        try {
+            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Bearer '.$apiKey,
+                    'Content-Type: application/json',
+                ],
+                CURLOPT_POSTFIELDS => json_encode($body),
+                CURLOPT_TIMEOUT => 20,
+            ]);
+            $raw = curl_exec($ch);
+            $err = curl_error($ch);
+            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($raw === false || $err || $code >= 400) {
+                return response()->json([
+                    'enabled' => false,
+                    'message' => 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.',
+                ]);
+            }
+
+            $json = json_decode((string)$raw, true);
+            $content = $json['choices'][0]['message']['content'] ?? '{}';
+            $suggestions = json_decode((string)$content, true);
+            if (!is_array($suggestions)) $suggestions = [];
+
+            $num = function ($v, $min, $max) {
+                if ($v === null || $v === '' || !is_numeric($v)) return null;
+                return max($min, min($max, (float)$v));
+            };
+
+            $ingredients = $suggestions['ingredients'] ?? [];
+            if (is_string($ingredients)) {
+                $ingredients = array_values(array_filter(array_map('trim', preg_split('/[\n,]+/', $ingredients))));
+            }
+            if (!is_array($ingredients)) $ingredients = [];
+
+            return response()->json([
+                'enabled' => true,
+                'suggestions' => [
+                    'description' => isset($suggestions['description']) ? (string)$suggestions['description'] : null,
+                    'ingredients' => array_values(array_map('strval', $ingredients)),
+                    'calories' => $num($suggestions['calories'] ?? null, 0, 5000),
+                    'protein' => $num($suggestions['protein'] ?? null, 0, 1000),
+                    'carbs' => $num($suggestions['carbs'] ?? null, 0, 1000),
+                    'fat' => $num($suggestions['fat'] ?? null, 0, 1000),
+                    'sugar' => $num($suggestions['sugar'] ?? null, 0, 1000),
+                    'serving_size' => isset($suggestions['serving_size']) ? (string)$suggestions['serving_size'] : ($payload['serving_size'] ?? null),
+                ],
+                'disclaimer' => 'AI nutrition values are estimates and should be reviewed before publishing.',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'enabled' => false,
+                'message' => 'AI Nutrition Assistant is currently unavailable. Please enter estimates manually.',
+            ]);
+        }
     }
 
 }

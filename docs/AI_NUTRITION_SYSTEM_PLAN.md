@@ -36,3 +36,7 @@
 - `PMD_AI_NUTRITION_PROVIDER=openai` (optional future provider selector)
 
 When disabled, admin UI remains visible and returns the fallback message without generating or saving values.
+
+- `PMD_AI_NUTRITION_MODEL=gpt-4.1-mini` (optional; defaults to gpt-4.1-mini)
+
+When enabled with valid `OPENAI_API_KEY`, the admin-only menu form assistant returns **draft JSON suggestions only** (description, ingredients, and nutrition estimates). It never saves automatically.
