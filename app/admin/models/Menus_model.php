@@ -42,6 +42,14 @@ class Menus_model extends Model
         'menu_status' => 'boolean',
         'menu_priority' => 'integer',
         'is_stock_out' => 'boolean',
+        'is_halal' => 'boolean',
+        'is_vegetarian' => 'boolean',
+        'is_vegan' => 'boolean',
+        'calories' => 'integer',
+        'protein' => 'float',
+        'carbs' => 'float',
+        'fat' => 'float',
+        'sugar' => 'float',
     ];
 
     public $relation = [

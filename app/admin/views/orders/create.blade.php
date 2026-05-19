@@ -1198,7 +1198,7 @@ foreach ($menu_ids as $key => $menu_id) {
             ->get(['table_id','table_no','table_name','min_capacity','max_capacity','table_status','qr_code']);
         //$menuData = DB::table('menus')->get();
         // Load all menus including stock-out items (they will be shown but disabled)
-        $menuData = \Admin\Models\Menus_model::with(['media', 'categories'])->get();
+        $menuData = \Admin\Models\Menus_model::with(['media', 'categories', 'allergens'])->get();
         
         // Load combos
         $comboData = \Admin\Models\Menu_combos_model::with(['media', 'combo_items.menu', 'locations'])
@@ -1394,6 +1394,13 @@ $unavailableTables = DB::table('orders')
                     $menuCategories = $menuRow->categories->pluck('category_id')->toArray();
                     $menuCategoriesJson = json_encode($menuCategories);
                     $isStockOut = $menuRow->is_stock_out ?? false;
+                    $orderCreateAllergens = $menuRow->allergens ? $menuRow->allergens->pluck('name')->filter()->values()->all() : [];
+                    $orderCreateHasNutrition = !empty($menuRow->calories)
+                        || $menuRow->protein !== null
+                        || $menuRow->carbs !== null
+                        || $menuRow->fat !== null
+                        || $menuRow->sugar !== null
+                        || !empty($menuRow->serving_size);
                 ?>
                     <div class="interactive-card {{ $isStockOut ? 'stock-out disabled' : '' }}" 
                      data-id="{{ $menuRow->menu_id }}" 
@@ -1424,6 +1431,23 @@ $unavailableTables = DB::table('orders')
                         <div class="menu-info">
                             <span class="menu-name">{{ $menuRow->menu_name }}</span>
                             <span class="menu-price">{{ $menuRow->menu_price }}{{ app('currency')->getDefault()->currency_symbol }}</span>
+                            <div class="admin-food-tags" aria-label="Food attributes and nutrition for {{ e($menuRow->menu_name) }}">
+                                @if($menuRow->is_halal)
+                                    <span class="admin-food-tag tag-halal" title="Halal" aria-label="Halal">حلال</span>
+                                @endif
+                                @if($menuRow->is_vegetarian)
+                                    <span class="admin-food-tag tag-vegetarian" title="Vegetarian" aria-label="Vegetarian"><i class="fa fa-leaf" aria-hidden="true"></i></span>
+                                @endif
+                                @if($menuRow->is_vegan)
+                                    <span class="admin-food-tag tag-vegan" title="Vegan" aria-label="Vegan"><i class="fa fa-seedling" aria-hidden="true"></i></span>
+                                @endif
+                                @if(!empty($orderCreateAllergens))
+                                    <span class="admin-food-tag tag-allergen" title="Allergens: {{ e(implode(', ', $orderCreateAllergens)) }}" aria-label="Allergens: {{ e(implode(', ', $orderCreateAllergens)) }}"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>
+                                @endif
+                                @if(!empty($menuRow->calories))
+                                    <span class="admin-food-tag tag-calories" title="Estimated calories: {{ (int)$menuRow->calories }} kcal" aria-label="Estimated calories: {{ (int)$menuRow->calories }} kcal">{{ (int)$menuRow->calories }}</span>
+                                @endif
+                            </div>
                         </div>
                     </div>
                     
@@ -1432,6 +1456,24 @@ $unavailableTables = DB::table('orders')
                         <div class="back-header">
                             <h4>{{ $menuRow->menu_name }} Options</h4>
                         </div>
+                        @if($orderCreateHasNutrition || !empty($orderCreateAllergens))
+                            <div class="admin-menu-meta-panel">
+                                @if($orderCreateHasNutrition)
+                                    <div class="admin-menu-meta-title">Nutrition estimates</div>
+                                    <div class="admin-menu-nutrition-grid">
+                                        @if(!empty($menuRow->calories))<span>{{ (int)$menuRow->calories }} kcal</span>@endif
+                                        @if($menuRow->protein !== null)<span>P {{ (float)$menuRow->protein }}g</span>@endif
+                                        @if($menuRow->carbs !== null)<span>C {{ (float)$menuRow->carbs }}g</span>@endif
+                                        @if($menuRow->fat !== null)<span>F {{ (float)$menuRow->fat }}g</span>@endif
+                                        @if($menuRow->sugar !== null)<span>Sugar {{ (float)$menuRow->sugar }}g</span>@endif
+                                        @if(!empty($menuRow->serving_size))<span>{{ e($menuRow->serving_size) }}</span>@endif
+                                    </div>
+                                @endif
+                                @if(!empty($orderCreateAllergens))
+                                    <div class="admin-menu-allergens"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> {{ e(implode(', ', $orderCreateAllergens)) }}</div>
+                                @endif
+                            </div>
+                        @endif
                         <div class="options-content">
                             <div class="options-list">
                                 <!-- Options will be populated by JavaScript -->
@@ -1806,6 +1848,72 @@ $unavailableTables = DB::table('orders')
     text-align: center !important;
     line-height: 1.4 !important;
     color: #000000 !important;
+}
+
+.admin-food-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 7px;
+}
+
+.admin-food-tag {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.admin-food-tag i { font-size: 11px; }
+.tag-halal { color: #0369a1; background: #f0f9ff; border-color: #bae6fd; font-size: 8px; letter-spacing: -0.03em; }
+.tag-vegetarian { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+.tag-vegan { color: #4d7c0f; background: #f7fee7; border-color: #bef264; }
+.tag-allergen { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+.tag-calories { width: auto; min-width: 31px; padding: 0 6px; color: #7c3aed; background: #f5f3ff; border-color: #ddd6fe; font-size: 9px; }
+
+.admin-menu-meta-panel {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f8fafc;
+    padding: 8px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: #334155;
+}
+
+.admin-menu-meta-title {
+    font-weight: 700;
+    font-size: 11px;
+    margin-bottom: 5px;
+    color: #0f172a;
+}
+
+.admin-menu-nutrition-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.admin-menu-nutrition-grid span {
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 3px 6px;
+    white-space: nowrap;
+}
+
+.admin-menu-allergens {
+    margin-top: 6px;
+    color: #92400e;
 }
 
 

@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Plus, Minus } from 'lucide-react';
+import { FoodAttributeTags } from '@/components/food-attribute-tags';
+import { FoodNutritionSummary } from '@/components/food-nutrition-summary';
+import { FoodItemColorDot } from '@/components/food-item-color-dot';
 
 interface MenuItem {
   id: number;
@@ -18,6 +21,18 @@ interface MenuItem {
   image?: string;
   category_id: number;
   available: boolean;
+  halal?: boolean;
+  vegetarian?: boolean;
+  vegan?: boolean;
+  allergens?: string[];
+  allergy_tags?: string[];
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  sugar?: number | null;
+  serving_size?: string | null;
+  color?: string | null;
 }
 
 interface Category {
@@ -150,7 +165,27 @@ export function TenantMenu() {
                       {item.available ? "Available" : "Unavailable"}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{item.description}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <FoodAttributeTags
+                      halal={item.halal}
+                      vegetarian={item.vegetarian}
+                      vegan={item.vegan}
+                      allergens={item.allergens}
+                      allergyTags={item.allergy_tags}
+                      compact
+                    />
+                    <FoodItemColorDot color={item.color} label={`${item.name} color`} />
+                    <FoodNutritionSummary
+                      calories={item.calories}
+                      protein={item.protein}
+                      carbs={item.carbs}
+                      fat={item.fat}
+                      sugar={item.sugar}
+                      servingSize={item.serving_size}
+                      compact
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">{item.description}</p>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between items-center">

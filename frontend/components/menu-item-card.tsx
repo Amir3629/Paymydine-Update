@@ -13,6 +13,9 @@ import type { TranslationKey } from "@/lib/translations"
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { getMenuImageUrl } from "@/lib/api-client"
 import { truncateText } from "@/lib/utils"
+import { FoodAttributeTags } from "@/components/food-attribute-tags"
+import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
+import { FoodItemColorDot } from "@/components/food-item-color-dot"
 
 interface MenuItemCardProps {
   item: MenuItem
@@ -66,6 +69,26 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
       </div>
       <div className="flex-grow">
         <h3 className="font-serif text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <FoodAttributeTags
+            halal={item.halal}
+            vegetarian={item.vegetarian}
+            vegan={item.vegan}
+            allergens={item.allergens}
+            allergyTags={item.allergy_tags}
+            compact
+          />
+          <FoodItemColorDot color={item.color} label={`${itemName} color`} />
+          <FoodNutritionSummary
+            calories={item.calories}
+            protein={item.protein}
+            carbs={item.carbs}
+            fat={item.fat}
+            sugar={item.sugar}
+            servingSize={item.serving_size}
+            compact
+          />
+        </div>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
           <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price)}</p>
