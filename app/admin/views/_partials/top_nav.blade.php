@@ -100,16 +100,6 @@ if (!empty($imgSrcDashboard)) {
             </div>
 
             <div class="navbar navbar-right">
-                <!-- Guide Tour Icon Button -->
-                <button
-                    type="button"
-                    id="guide-tour-btn"
-                    class="navbar-tour-btn"
-                    title="Show page guide"
-                    aria-label="Show page guide">
-                    <i class="fa fa-info-circle"></i>
-                </button>
-
                 <button
                     type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navSidebar"
                     aria-controls="navSidebar" aria-expanded="false" aria-label="Toggle navigation">

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Plus, Minus } from 'lucide-react';
 import { FoodAttributeTags } from '@/components/food-attribute-tags';
 import { FoodNutritionSummary } from '@/components/food-nutrition-summary';
+import { FoodItemColorDot } from '@/components/food-item-color-dot';
 
 interface MenuItem {
   id: number;
@@ -31,6 +32,7 @@ interface MenuItem {
   fat?: number | null;
   sugar?: number | null;
   serving_size?: string | null;
+  color?: string | null;
 }
 
 interface Category {
@@ -172,6 +174,7 @@ export function TenantMenu() {
                       allergyTags={item.allergy_tags}
                       compact
                     />
+                    <FoodItemColorDot color={item.color} label={`${item.name} color`} />
                     <FoodNutritionSummary
                       calories={item.calories}
                       protein={item.protein}

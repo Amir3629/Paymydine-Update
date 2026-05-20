@@ -196,6 +196,12 @@ $config['form']['tabs'] = [
             'type' => 'text',
             'span' => 'left',
         ],
+        'ai_nutrition_assistant' => [
+            'label' => 'AI Nutrition Assistant',
+            'type' => 'partial',
+            'path' => 'menus/form/ai_nutrition_assistant',
+            'span' => 'full',
+        ],
         'menu_price' => [
             'label' => 'lang:admin::lang.menus.label_price',
             'type' => 'currency',
@@ -286,6 +292,13 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'comment' => 'Optional estimated grams per serving.',
         ],
+        'color' => [
+            'label' => 'Color',
+            'type' => 'colorpicker',
+            'span' => 'right',
+            'comment' => 'Optional hex color displayed as a small circular menu badge.',
+        ],
+
         'mealtimes' => [
             'label' => 'lang:admin::lang.menus.label_mealtime',
             'type' => 'relation',

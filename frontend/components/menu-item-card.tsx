@@ -15,6 +15,7 @@ import { getMenuImageUrl } from "@/lib/api-client"
 import { truncateText } from "@/lib/utils"
 import { FoodAttributeTags } from "@/components/food-attribute-tags"
 import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
+import { FoodItemColorDot } from "@/components/food-item-color-dot"
 
 interface MenuItemCardProps {
   item: MenuItem
@@ -77,6 +78,7 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
             allergyTags={item.allergy_tags}
             compact
           />
+          <FoodItemColorDot color={item.color} label={`${itemName} color`} />
           <FoodNutritionSummary
             calories={item.calories}
             protein={item.protein}

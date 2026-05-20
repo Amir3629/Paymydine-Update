@@ -31,6 +31,7 @@ class Menu extends FormRequest
             'fat' => 'Fat',
             'sugar' => 'Sugar',
             'serving_size' => 'Serving / portion size',
+            'color' => 'Color',
         ];
     }
 
@@ -59,6 +60,7 @@ class Menu extends FormRequest
             'fat' => ['nullable', 'numeric', 'min:0'],
             'sugar' => ['nullable', 'numeric', 'min:0'],
             'serving_size' => ['nullable', 'string', 'max:64'],
+            'color' => ['nullable', 'regex:/^#(?:[0-9a-fA-F]{3}){1,2}$/'],
         ];
     }
 }

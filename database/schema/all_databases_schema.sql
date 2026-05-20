@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Mon May 18 09:31:45 UTC 2026
+-- Generated UTC: Wed May 20 16:59:29 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 -- This file is intended for GitHub documentation/development only
@@ -1751,6 +1751,16 @@ CREATE TABLE `ti_menus` (
   `order_restriction` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `is_halal` tinyint(1) NOT NULL DEFAULT 0,
+  `is_vegetarian` tinyint(1) NOT NULL DEFAULT 0,
+  `is_vegan` tinyint(1) NOT NULL DEFAULT 0,
+  `calories` int(10) unsigned DEFAULT NULL,
+  `protein` decimal(8,2) DEFAULT NULL,
+  `carbs` decimal(8,2) DEFAULT NULL,
+  `fat` decimal(8,2) DEFAULT NULL,
+  `sugar` decimal(8,2) DEFAULT NULL,
+  `serving_size` varchar(64) DEFAULT NULL,
+  `color` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`menu_id`),
   KEY `ti_menus_is_stock_out_index` (`is_stock_out`)
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -3112,7 +3122,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-18  9:31:45
+-- Dump completed on 2026-05-20 16:59:29
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -3905,7 +3915,7 @@ CREATE TABLE `ti_fiskaly_transactions` (
   KEY `ti_fiskaly_transactions_client_id_index` (`client_id`),
   KEY `ti_fiskaly_transactions_tx_id_index` (`tx_id`),
   KEY `ti_fiskaly_transactions_status_index` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=647 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=648 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4843,9 +4853,10 @@ CREATE TABLE `ti_menus` (
   `order_restriction` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `color` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`menu_id`),
   KEY `idx_is_stock_out` (`is_stock_out`)
-) ENGINE=InnoDB AUTO_INCREMENT=130 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=134 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4871,7 +4882,7 @@ CREATE TABLE `ti_menus_specials` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`special_id`),
   UNIQUE KEY `ti_menus_specials_special_id_menu_id_unique` (`special_id`,`menu_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5934,7 +5945,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-18  9:31:45
+-- Dump completed on 2026-05-20 16:59:30
 
 -- ============================================================
 -- DATABASE: rosana
@@ -7404,6 +7415,7 @@ CREATE TABLE `ti_menus` (
   `order_restriction` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `color` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`menu_id`),
   KEY `idx_is_stock_out` (`is_stock_out`)
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -7790,7 +7802,7 @@ CREATE TABLE `ti_request_logs` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5066 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5072 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -8246,7 +8258,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-18  9:31:46
+-- Dump completed on 2026-05-20 16:59:30
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -9454,6 +9466,16 @@ CREATE TABLE `ti_menus` (
   `order_restriction` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `is_halal` tinyint(1) NOT NULL DEFAULT 0,
+  `is_vegetarian` tinyint(1) NOT NULL DEFAULT 0,
+  `is_vegan` tinyint(1) NOT NULL DEFAULT 0,
+  `calories` int(10) unsigned DEFAULT NULL,
+  `protein` decimal(8,2) DEFAULT NULL,
+  `carbs` decimal(8,2) DEFAULT NULL,
+  `fat` decimal(8,2) DEFAULT NULL,
+  `sugar` decimal(8,2) DEFAULT NULL,
+  `serving_size` varchar(64) DEFAULT NULL,
+  `color` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`menu_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -10144,4 +10166,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-18  9:31:46
+-- Dump completed on 2026-05-20 16:59:30

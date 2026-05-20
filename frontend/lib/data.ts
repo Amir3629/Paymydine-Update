@@ -19,6 +19,7 @@ export type MenuItem = {
   fat?: number | null
   sugar?: number | null
   serving_size?: string | null
+  color?: string | null
   nutrition?: {
     calories?: number | null
     protein?: number | null
@@ -100,6 +101,7 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     fat: toNumberOrNull(apiItem.fat ?? apiItem.nutrition?.fat),
     sugar: toNumberOrNull(apiItem.sugar ?? apiItem.nutrition?.sugar),
     serving_size: apiItem.serving_size || apiItem.nutrition?.serving_size || null,
+    color: apiItem.color || null,
     nutrition: apiItem.nutrition || null,
     allergens: apiItem.allergens || [],
     allergy_tags: apiItem.allergy_tags || apiItem.allergens || [],

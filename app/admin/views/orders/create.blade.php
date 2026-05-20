@@ -30,6 +30,8 @@
   if (!$cashierUrl) {
     $cashierUrl = '#';
   }
+  $canManageTableLayout = $canManageTableLayout ?? false;
+  $tableMapBackgroundImage = $tableMapBackgroundImage ?? null;
 @endphp
 
 <style>
@@ -474,6 +476,15 @@
   #table-grid,
   .table-grid-container,
   .table-grid,
+
+
+.table-grid-container.has-custom-bg {
+    background-image: var(--tablemap-bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 12px;
+}
   .working-area-indicator,
   .grid-overlay,
   .table-item,
@@ -667,6 +678,7 @@
         </div>
         <div class="page-header-actions">
             <div class="header-controls" style="display: none;" id="header-controls">
+                @if($canManageTableLayout)
                 <div class="zoom-controls">
                     <div class="zoom-level-indicator" id="zoom-level">100%</div>
                     <button type="button" class="zoom-btn" id="zoom-in" style="opacity: 1 !important; cursor: pointer; pointer-events: auto !important; display: inline-block !important; visibility: visible !important; position: relative !important; z-index: 99999 !important;" aria-label="Zoom In (Ctrl + Scroll Up)" data-bs-original-title="Zoom In (Ctrl + Scroll Up)">
@@ -682,6 +694,10 @@
                 <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-edit"></i> Edit Layout
                 </button>
+                <button type="button" id="merge-tables-btn" class="btn btn-outline-warning btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
+                    <i class="fa fa-object-group"></i> Merge Tables
+                </button>
+                @endif
                 <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-exchange-alt"></i> Move Table
                 </button>
@@ -1129,7 +1145,7 @@ foreach ($menu_ids as $key => $menu_id) {
             $orderTotals[] = [
                 'order_id' => $last_order_id,
                 'code' => 'tax',
-                'title' => 'Tax',
+                'title' => 'VAT',
                 'priority' => 2,
                 'value' => $tax_amount,
                 'is_summable' => 1,
@@ -1608,7 +1624,7 @@ $unavailableTables = DB::table('orders')
                             <span id="summary-subtotal">$0.00</span>
                         </div>
                         <div class="summary-row" id="tax-row" style="display: none;">
-                            <span>Tax:</span>
+                            <span>VAT:</span>
                             <span id="summary-tax">$0.00</span>
                         </div>
                         <div class="summary-row" id="tip-row" style="display: none;">
@@ -4106,9 +4122,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Also initialize when the menu is shown (for the new table-to-menu flow)
             window.initializeCategoryFiltering = initializeCategoryFiltering;
 
-            // ========== PAYMENT, TAX, COUPON, TIP FUNCTIONALITY ==========
+            // ========== PAYMENT, VAT, COUPON, TIP FUNCTIONALITY ==========
             
-            // Tax settings from backend
+            // VAT settings from backend
             const taxSettings = {
                 enabled: {{ isset($taxSettings['enabled']) && $taxSettings['enabled'] ? 'true' : 'false' }},
                 percentage: {{ $taxSettings['percentage'] ?? 0 }},
@@ -5080,9 +5096,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const tableGridContainer = document.getElementById("table-grid");
     const gridOverlay = document.getElementById("grid-overlay");
     const zoomInBtn = document.getElementById("zoom-in");
+    const canManageTableLayout = @json($canManageTableLayout);
     const zoomOutBtn = document.getElementById("zoom-out");
     const resetZoomBtn = document.getElementById("reset-zoom");
     const zoomLevelIndicator = document.getElementById("zoom-level");
+    const tableMapBackgroundImage = @json($tableMapBackgroundImage ? uploads_url($tableMapBackgroundImage) : null);
+    if (tableMapBackgroundImage) {
+        const gridContainer = document.querySelector(".table-grid-container");
+        if (gridContainer) {
+            gridContainer.classList.add("has-custom-bg");
+            gridContainer.style.setProperty("--tablemap-bg-image", `url(${tableMapBackgroundImage})`);
+        }
+    }
     
     let isEditMode = false;
     let isDragging = false;
@@ -5191,6 +5216,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    if (!canManageTableLayout) {
+        return;
+    }
+
     // Edit layout toggle
     editLayoutBtn.addEventListener("click", function () {
         isEditMode = !isEditMode;
@@ -5235,7 +5264,14 @@ document.addEventListener("DOMContentLoaded", function () {
     let isMoveMode = false;
     let moveSourceTable = null;
     const moveTableBtn = document.getElementById('move-table-btn');
+    const mergeTablesBtn = document.getElementById('merge-tables-btn');
     let moveInstructionElement = null;
+
+    if (mergeTablesBtn) {
+        mergeTablesBtn.addEventListener('click', function () {
+            alert('Merge Tables is in research phase (coming soon). No data has been changed.');
+        });
+    }
 
     // Function to show move instruction as flash message
     function showMoveInstruction(message) {

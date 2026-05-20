@@ -9,6 +9,7 @@ use Admin\Controllers\Api\CashDrawerController;
 use Admin\Controllers\Api\PosAgentController;
 use App\Admin\Controllers\NotificationsApiController;
 use App\Admin\Classes\TerminalDevicesPlatformController;
+use Admin\Facades\AdminAuth;
 use Illuminate\Http\Request;
 require_once base_path('app/system/helpers/r2o_outbound_dryrun_helper.php');
 use Illuminate\Support\Facades\DB;
@@ -5118,7 +5119,7 @@ return response()->json([
                 $totalsRows[] = [
                     'order_id' => $orderId,
                     'code' => 'tax',
-                    'title' => 'Tax',
+                    'title' => 'VAT',
                     'value' => $taxAmount,
                     'priority' => 2,
                     'is_summable' => 1,

@@ -28,15 +28,55 @@
 
 
     /**
-     * PayMyDine admin toolbar normalization.
+     * PayMyDine admin toolbar splitting.
      *
-     * Keep this classifier conservative: it marks toolbar containers/actions and
-     * lets CSS handle flex ordering. It must not physically move existing
-     * data-request/data-control/data-toggle/record-editor toolbar nodes because
-     * TastyIgniter binds behavior to their original DOM context.
+     * Keeps the first/primary toolbar action on the left and moves all other
+     * direct toolbar actions into a right-aligned `.right-buttons` group. The
+     * helper is intentionally defensive so it can run on DOMContentLoaded,
+     * after AJAX refreshes, and on already-split toolbars without duplicating
+     * wrappers or breaking modal/media-manager controls.
      */
-    var PMD_TOOLBAR_SPLIT_OBSERVER = null;
-    var PMD_TOOLBAR_SPLIT_PENDING = false;
+    var PMD_TOOLBAR_SPLIT_STYLE_ID = 'pmd-toolbar-split-runtime-style';
+    var PMD_TOOLBAR_SPLIT_PAGES = [
+        {
+            name: 'staffs-index',
+            routePattern: /\/admin\/staffs$/,
+            primarySelector: 'a.btn-primary[href*="staffs/create"], a[href*="staffs/create"]',
+            splitClass: 'pmd-staff-toolbar-split',
+            rightLabel: 'Secondary staff toolbar actions'
+        }
+    ];
+
+    function ensureToolbarSplitStyles() {
+        if (document.getElementById(PMD_TOOLBAR_SPLIT_STYLE_ID)) return;
+
+        var style = document.createElement('style');
+        style.id = PMD_TOOLBAR_SPLIT_STYLE_ID;
+        style.textContent = [
+            '.progress-indicator-container.pmd-toolbar-split,.toolbar-action.pmd-toolbar-split{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;width:100%!important;min-width:0!important;}',
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons,.toolbar-action.pmd-toolbar-split>.right-buttons{display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin-left:auto!important;flex:0 0 auto!important;}',
+            '.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn,.progress-indicator-container.pmd-toolbar-split>.right-buttons>.btn-group,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn,.toolbar-action.pmd-toolbar-split>.right-buttons>.btn-group{margin-left:0!important;margin-right:0!important;}'
+        ].join('\n');
+        document.head.appendChild(style);
+    }
+
+    function getActiveToolbarSplitConfig() {
+        var path = (window.location.pathname || '').replace(/\/+$/, '');
+
+        for (var i = 0; i < PMD_TOOLBAR_SPLIT_PAGES.length; i++) {
+            if (PMD_TOOLBAR_SPLIT_PAGES[i].routePattern.test(path)) {
+                return PMD_TOOLBAR_SPLIT_PAGES[i];
+            }
+        }
+
+        return {
+            name: 'generic-admin-toolbar',
+            routePattern: /\/admin(?:\/|$)/,
+            primarySelector: '.btn-primary, [data-primary-action], [data-toolbar-primary]',
+            splitClass: 'pmd-toolbar-split',
+            rightLabel: 'Secondary toolbar actions'
+        };
+    }
 
     function toolbarChildContains(child, selector) {
         if (!child || !selector) return false;
@@ -44,267 +84,109 @@
             (child.querySelector && child.querySelector(selector));
     }
 
-    function getToolbarActionText(child) {
-        if (!child || child.nodeType !== 1) return '';
-        return (child.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    }
+    function getOrCreateRightButtons(container, config) {
+        var children = Array.prototype.slice.call(container.children);
+        for (var i = 0; i < children.length; i++) {
+            if (children[i].classList && children[i].classList.contains('right-buttons')) {
+                children[i].classList.add('pmd-toolbar-right-buttons');
+                children[i].setAttribute('aria-label', config.rightLabel || 'Secondary toolbar actions');
+                return children[i];
+            }
+        }
 
-    function isHiddenToolbarAction(child) {
-        if (!child || child.nodeType !== 1) return true;
-        if (child.hidden || child.getAttribute('aria-hidden') === 'true') return true;
-        if (child.matches && child.matches('input[type="hidden"], [type="hidden"], script, style, template, .d-none, .hide, [hidden]')) return true;
-        if (child.style && child.style.display === 'none') return true;
-        return false;
-    }
-
-    function isToolbarBackAction(child) {
-        if (!child || child.nodeType !== 1 || isHiddenToolbarAction(child)) return false;
-        if (child.matches && child.matches('[data-pmd-toolbar-back], .pmd-toolbar-back-action')) return true;
-        if (/^(back|cancel)(\b|\s|$)/.test(getToolbarActionText(child))) return true;
-        return !!(child.querySelector && child.querySelector('.fa-arrow-left, .fa-arrow-circle-left, .fa-chevron-left, i[class*="fa-arrow-left"], i[class*="fa-chevron-left"]'));
+        var rightButtons = document.createElement('div');
+        rightButtons.className = 'right-buttons pmd-toolbar-right-buttons';
+        rightButtons.setAttribute('aria-label', config.rightLabel || 'Secondary toolbar actions');
+        return rightButtons;
     }
 
     function isToolbarActionChild(child) {
-        if (!child || child.nodeType !== 1 || isHiddenToolbarAction(child)) return false;
+        if (!child || child.nodeType !== 1) return false;
         if (child.tagName === 'INPUT' || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') return false;
         if (child.classList && child.classList.contains('progress-indicator')) return false;
         if (child.classList && child.classList.contains('right-buttons')) return true;
 
-        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group') || child.classList.contains('dropdown') || child.classList.contains('form-group'))) ||
-            (child.hasAttribute && (child.hasAttribute('data-pmd-toolbar-secondary') || child.hasAttribute('data-pmd-toolbar-primary') || child.hasAttribute('data-request') || child.hasAttribute('data-control') || child.hasAttribute('data-toggle') || child.hasAttribute('data-bs-toggle'))) ||
-            (child.querySelector && child.querySelector('.btn, .btn-group, [data-pmd-toolbar-secondary], [data-pmd-toolbar-primary], [data-request], [data-control], [data-toggle], [data-bs-toggle]'));
-    }
-
-    function toolbarPrimaryScore(child) {
-        if (!isToolbarActionChild(child) || isToolbarBackAction(child)) return 0;
-        var text = getToolbarActionText(child);
-        var request = '';
-        var requestNode = null;
-
-        if (child.matches && child.matches('[data-request]')) requestNode = child;
-        if (!requestNode && child.querySelector) requestNode = child.querySelector('[data-request]');
-        if (requestNode) request = (requestNode.getAttribute('data-request') || '').toLowerCase();
-
-        if (request === 'onsave') return 100;
-        if (child.matches && child.matches('[data-pmd-toolbar-primary]')) return 95;
-        if (/\b(save|create)\b/.test(text)) return 90;
-        if (/\bedit layout\b/.test(text)) return 85;
-        if (toolbarChildContains(child, '.btn-primary, .btn-success')) {
-            if (/check for updates|check updates|update check/.test(text) || request === 'oncheckupdates') return 45;
-            return 75;
-        }
-        if (/^(new|add)(\b|\s|$)/.test(text) || /\badd\b/.test(text)) return 65;
-        return 0;
-    }
-
-    function normalizeToolbarBackAction(child) {
-        if (!child || child.nodeType !== 1) return;
-        child.classList.add('pmd-toolbar-back-action', 'pmd-toolbar-secondary-action');
-        child.classList.remove('pmd-toolbar-primary-action', 'pmd-toolbar-secondary-first');
-        child.setAttribute('data-pmd-toolbar-back', 'true');
-    }
-
-    function normalizeToolbarPrimaryAction(child) {
-        if (!child || child.nodeType !== 1) return;
-        child.classList.add('pmd-toolbar-primary-action');
-        child.classList.remove('pmd-toolbar-secondary-action', 'pmd-toolbar-secondary-first');
-    }
-
-    function findDirectProgressContainer(toolbarAction) {
-        if (!toolbarAction || !toolbarAction.children) return null;
-        for (var i = 0; i < toolbarAction.children.length; i++) {
-            if (toolbarAction.children[i].classList && toolbarAction.children[i].classList.contains('progress-indicator-container')) {
-                return toolbarAction.children[i];
-            }
-        }
-        return null;
+        return (child.classList && (child.classList.contains('btn') || child.classList.contains('btn-group') || child.classList.contains('dropdown'))) ||
+            (child.querySelector && child.querySelector('.btn, .btn-group'));
     }
 
     function getToolbarContainers() {
-        var containers = [];
-        function add(container) {
-            if (!container || containers.indexOf(container) !== -1 || shouldSkipToolbarContainer(container)) return;
-            containers.push(container);
-        }
-
-        Array.prototype.forEach.call(document.querySelectorAll('.toolbar-action'), function (toolbarAction) {
-            add(findDirectProgressContainer(toolbarAction) || toolbarAction);
-        });
-
-        Array.prototype.forEach.call(document.querySelectorAll('.progress-indicator-container'), function (container) {
-            if (!container.closest('.toolbar-action')) add(container);
-        });
-
-        return containers;
+        return document.querySelectorAll('.toolbar-action > .progress-indicator-container, .toolbar-action');
     }
 
     function shouldSkipToolbarContainer(container) {
-        if (!container || container.closest('.modal, .modal-footer, .media-manager, .media-toolbar, [data-control="media-manager"], .pagination, .filters, .filter-scope, .list-filter, .list-search')) return true;
+        if (!container || container.closest('.modal, .media-manager, .media-toolbar, [data-control="media-manager"]')) return true;
         if (container.classList && container.classList.contains('right-buttons')) return true;
         if (container.closest('.right-buttons')) return true;
-        if (container.closest('tr, tbody, .list-table, .table, .control-list, .list-widget')) return true;
         return false;
     }
 
-    function collectToolbarState(container) {
-        var state = {
-            children: Array.prototype.slice.call(container.children),
-            rightButtons: null,
-            primaryAction: null,
-            backActions: [],
-            secondaryActions: []
-        };
-        var bestScore = 0;
+    function findPrimaryAction(children, config) {
+        var primaryAction = null;
 
-        state.children.forEach(function (child) {
-            if (child.classList && child.classList.contains('right-buttons')) {
-                state.rightButtons = child;
-                return;
-            }
-            if (!isToolbarActionChild(child)) return;
-            if (isToolbarBackAction(child)) {
-                state.backActions.push(child);
-                return;
-            }
-            var score = toolbarPrimaryScore(child);
-            if (score > bestScore) {
-                bestScore = score;
-                state.primaryAction = child;
+        children.forEach(function (child) {
+            if (!primaryAction && toolbarChildContains(child, config.primarySelector)) {
+                primaryAction = child;
             }
         });
 
-        state.children.forEach(function (child) {
-            if (!isToolbarActionChild(child) || child === state.rightButtons || isToolbarBackAction(child) || child === state.primaryAction) return;
-            state.secondaryActions.push(child);
-        });
+        if (primaryAction) return primaryAction;
 
-        if (state.rightButtons) {
-            Array.prototype.forEach.call(state.rightButtons.children, function (child) {
-                if (isToolbarBackAction(child)) state.backActions.push(child);
-                else if (isToolbarActionChild(child)) state.secondaryActions.push(child);
+        for (var i = 0; i < children.length; i++) {
+            if (isToolbarActionChild(children[i]) && !(children[i].classList && children[i].classList.contains('right-buttons'))) {
+                return children[i];
+            }
+        }
+
+        return null;
+    }
+
+    function applyToolbarSplit(config) {
+        ensureToolbarSplitStyles();
+
+        Array.prototype.forEach.call(getToolbarContainers(), function (container) {
+            if (shouldSkipToolbarContainer(container)) return;
+
+            var children = Array.prototype.slice.call(container.children);
+            var primaryAction = findPrimaryAction(children, config);
+            if (!primaryAction) return;
+
+            var rightButtons = getOrCreateRightButtons(container, config);
+            var secondaryActions = [];
+
+            Array.prototype.slice.call(container.children).forEach(function (child) {
+                if (!isToolbarActionChild(child) || child === rightButtons) return;
+                if (child === primaryAction) return;
+                secondaryActions.push(child);
             });
-        }
 
-        return state;
-    }
+            if (!secondaryActions.length && rightButtons.parentElement !== container) return;
 
-    function clearToolbarMarkers(container) {
-        Array.prototype.forEach.call(container.querySelectorAll('.pmd-toolbar-primary-action, .pmd-toolbar-secondary-action, .pmd-toolbar-secondary-first'), function (action) {
-            action.classList.remove('pmd-toolbar-primary-action', 'pmd-toolbar-secondary-action', 'pmd-toolbar-secondary-first');
-        });
-    }
+            container.classList.add('pmd-toolbar-split');
+            if (config.splitClass) container.classList.add(config.splitClass);
+            primaryAction.classList.add('pmd-toolbar-primary-action');
 
-    function markSecondaryActions(state) {
-        var firstSecondary = null;
-
-        if (state.rightButtons) {
-            state.rightButtons.classList.add('pmd-toolbar-right-buttons', 'pmd-toolbar-secondary-first');
-            state.rightButtons.setAttribute('aria-label', state.rightButtons.getAttribute('aria-label') || 'Secondary toolbar actions');
-            firstSecondary = state.rightButtons;
-        }
-
-        state.secondaryActions.forEach(function (action) {
-            if (!action || isToolbarBackAction(action) || action === state.primaryAction) return;
-            action.classList.add('pmd-toolbar-secondary-action');
-            if (!firstSecondary && action.parentElement && action.parentElement.classList && action.parentElement.classList.contains('right-buttons')) {
-                firstSecondary = action.parentElement;
+            if (rightButtons.parentElement !== container) {
+                container.appendChild(rightButtons);
             }
-            if (!firstSecondary && action.parentElement) firstSecondary = action;
+
+            secondaryActions.forEach(function (button) {
+                button.classList.add('pmd-toolbar-secondary-action');
+                rightButtons.appendChild(button);
+            });
         });
-
-        if (firstSecondary) firstSecondary.classList.add('pmd-toolbar-secondary-first');
-    }
-
-    function normalizeToolbar(container) {
-        if (shouldSkipToolbarContainer(container)) return;
-        container.classList.add('pmd-toolbar-normalized');
-        if (container.querySelector('.right-buttons')) container.classList.add('pmd-toolbar-split');
-        else container.classList.remove('pmd-toolbar-split', 'pmd-staff-toolbar-split');
-
-        clearToolbarMarkers(container);
-        var state = collectToolbarState(container);
-
-        state.backActions.forEach(normalizeToolbarBackAction);
-        if (state.primaryAction) normalizeToolbarPrimaryAction(state.primaryAction);
-        markSecondaryActions(state);
     }
 
     function applyScopedToolbarSplits() {
-        Array.prototype.forEach.call(getToolbarContainers(), normalizeToolbar);
-    }
+        var config = getActiveToolbarSplitConfig();
+        if (!config || (config.routePattern && !config.routePattern.test((window.location.pathname || '').replace(/\/+$/, '')))) return;
 
-
-    function syncPaymentsModeToggleLabels() {
-        var toggles = document.querySelectorAll('.pmd-payments-mode-toggle[data-methods-label][data-providers-label]');
-        if (!toggles.length) return;
-
-        var search = window.location.search || '';
-        var isProvidersMode = /(?:^|[?&])mode=providers(?:&|$)/.test(search);
-
-        Array.prototype.forEach.call(toggles, function (toggle) {
-            var nextLabel = isProvidersMode ? toggle.getAttribute('data-methods-label') : toggle.getAttribute('data-providers-label');
-            var nextHref = isProvidersMode ? toggle.getAttribute('data-methods-href') : toggle.getAttribute('data-providers-href');
-
-            if (nextLabel) toggle.textContent = nextLabel;
-            if (nextHref) toggle.setAttribute('href', nextHref);
-
-            if (toggle.dataset.paymentsToggleBound === '1') return;
-            toggle.dataset.paymentsToggleBound = '1';
-            toggle.addEventListener('click', function () {
-                var pendingLabel = isProvidersMode ? toggle.getAttribute('data-providers-label') : toggle.getAttribute('data-methods-label');
-                if (pendingLabel) toggle.textContent = pendingLabel;
-            });
-        });
-    }
-
-    function queueToolbarSplitRefresh() {
-        if (PMD_TOOLBAR_SPLIT_PENDING) return;
-        PMD_TOOLBAR_SPLIT_PENDING = true;
-
-        window.setTimeout(function () {
-            PMD_TOOLBAR_SPLIT_PENDING = false;
-            syncPaymentsModeToggleLabels();
-            applyScopedToolbarSplits();
-        }, 50);
-    }
-
-    function mutationMayContainToolbar(mutation) {
-        if (!mutation.addedNodes || !mutation.addedNodes.length) return false;
-
-        for (var i = 0; i < mutation.addedNodes.length; i++) {
-            var node = mutation.addedNodes[i];
-            if (!node || node.nodeType !== 1) continue;
-            if (node.matches && node.matches('.toolbar-action, .progress-indicator-container, .right-buttons, .btn, .btn-group')) return true;
-            if (node.querySelector && node.querySelector('.toolbar-action, .progress-indicator-container, .right-buttons, .btn, .btn-group')) return true;
-        }
-
-        return false;
-    }
-
-    function initToolbarSplitObserver() {
-        if (PMD_TOOLBAR_SPLIT_OBSERVER || !window.MutationObserver || !document.body) return;
-
-        PMD_TOOLBAR_SPLIT_OBSERVER = new MutationObserver(function (mutations) {
-            for (var i = 0; i < mutations.length; i++) {
-                if (mutationMayContainToolbar(mutations[i])) {
-                    queueToolbarSplitRefresh();
-                    return;
-                }
-            }
-        });
-
-        var observerTarget = document.querySelector('.page-content') || document.querySelector('.page-wrapper') || document.body;
-        PMD_TOOLBAR_SPLIT_OBSERVER.observe(observerTarget, { childList: true, subtree: true });
+        applyToolbarSplit(config);
     }
 
     function scheduleToolbarSplit() {
-        syncPaymentsModeToggleLabels();
         applyScopedToolbarSplits();
-        window.setTimeout(function () {
-            syncPaymentsModeToggleLabels();
-            applyScopedToolbarSplits();
-            initToolbarSplitObserver();
-        }, 100);
+        window.setTimeout(applyScopedToolbarSplits, 100);
     }
 
     if (document.readyState === 'loading') {
@@ -313,11 +195,6 @@
     else {
         scheduleToolbarSplit();
     }
-
-    if (window.jQuery) {
-        window.jQuery(document).on('ajaxComplete render', queueToolbarSplitRefresh);
-    }
-
     function applyGreenButtonBase(element) {
         // Never overwrite while hovered/focused so hover effect stays until mouse out
         if (element.matches && (element.matches(':hover') || document.activeElement === element)) return;

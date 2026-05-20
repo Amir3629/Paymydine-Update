@@ -97,9 +97,9 @@ export const translations = {
 
     // Payment
     confirmPayment: "Confirm Payment",
-    subtotal: "Subtotal (incl. tax)",
+    subtotal: "Subtotal (incl. VAT)",
     service: "Service (10%)",
-    tax: "Tax",
+    tax: "VAT",
     coupon: "Coupon",
     couponCode: "Coupon Code",
     apply: "Apply",
@@ -115,7 +115,7 @@ export const translations = {
     cvc: "CVC",
     processing: "Processing...",
     payNow: "Pay Now",
-    orderSummary: "Order Summary (prices incl. tax)",
+    orderSummary: "Order Summary (prices incl. VAT)",
 
     // Modals
     details: "Details",
@@ -258,7 +258,7 @@ export const translations = {
     confirmPayment: "Zahlung bestätigen",
     subtotal: "Zwischensumme",
     service: "Service (10%)",
-    tax: "Steuer",
+    tax: "MwSt.",
     coupon: "Gutschein",
     couponCode: "Gutscheincode",
     apply: "Anwenden",

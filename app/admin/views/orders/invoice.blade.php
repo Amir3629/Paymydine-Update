@@ -42,7 +42,7 @@
     $__fSigCounter = $__fSigCounter ?? ($__orderRow->fiskaly_signature_counter ?? ($model->fiskaly_signature_counter ?? null));
     $__fSerial = $__fSerial ?? ($__orderRow->fiskaly_serial_number ?? ($model->fiskaly_serial_number ?? null));
 
-    $__pmdTaxLabelFromTotals = (string)($__taxTotal->title ?? 'Tax');
+    $__pmdTaxLabelFromTotals = (string)($__taxTotal->title ?? 'VAT');
     $__pmdTaxIncluded = stripos($__pmdTaxLabelFromTotals, 'included') !== false;
 
     $__pmdNetSubtotal = 0.0;
@@ -461,7 +461,7 @@ TOTALS:
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $__pmdTaxLabel ?? 'Tax');
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $__pmdTaxLabel ?? 'VAT');
     $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
 
     $displayTotalItems = 0;

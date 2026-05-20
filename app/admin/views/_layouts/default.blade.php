@@ -32,9 +32,6 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-modals-unified.css') }}?v={{ time() }}">
     <!-- Rounded corners for notification panel, settings menu, profile dropdown, toast -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-cards-rounded.css') }}?v={{ time() }}">
-    <!-- Admin Tour Enhanced Styles -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/introjs.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-tour-enhanced.css') }}">
     <!-- Blue Buttons Override - Replace all green buttons with login button style -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
@@ -741,10 +738,6 @@
 
 <!-- Debug Redirects (Remove this in production) -->
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
-
-<!-- Admin Tour Enhanced System -->
-<script src="{{ asset('app/admin/assets/js/introjs.min.js') }}"></script>
-<script src="{{ asset('app/admin/assets/js/admin-tour-enhanced.js') }}?v={{ time() }}"></script>
 
 <!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
 <!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->

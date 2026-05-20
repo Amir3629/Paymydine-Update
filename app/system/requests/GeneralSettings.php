@@ -13,6 +13,7 @@ class GeneralSettings extends FormRequest
             'site_email' => lang('system::lang.settings.label_site_email'),
             'site_logo' => lang('system::lang.settings.label_site_logo'), // validationData() returns post('setting') which is already the nested array
             'maps_api_key' => lang('system::lang.settings.label_maps_api_key'),
+            'table_map_background_image' => lang('system::lang.settings.label_table_map_background_image'),
             'distance_unit' => lang('system::lang.settings.label_distance_unit'),
         ];
     }
@@ -23,6 +24,7 @@ class GeneralSettings extends FormRequest
             'site_name' => ['required', 'min:2', 'max:128'],
             'site_email' => ['required', 'email:filter', 'max:96'],
             'site_logo' => ['nullable', 'string'], // Optional - allows empty values like dashboard_logo and favicon_logo
+            'table_map_background_image' => ['nullable', 'string'],
             'menus_page' => ['required', 'string'],
             'reservation_page' => ['required', 'string'],
         ];
