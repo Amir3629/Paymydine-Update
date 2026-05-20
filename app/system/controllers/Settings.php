@@ -134,9 +134,6 @@ class Settings extends \Admin\Classes\AdminController
         if (array_key_exists('table_map_background_image', $rawSettingInput)) {
             $saveData['table_map_background_image'] = $rawSettingInput['table_map_background_image'];
         }
-        if (array_key_exists('table_map_background_image', $rawSettingInput)) {
-            $saveData['table_map_background_image'] = $rawSettingInput['table_map_background_image'];
-        }
 
         \Log::info('PMD_SETTINGS_LOGO_DEBUG', [
             'site_logo' => $saveData['site_logo'] ?? null,

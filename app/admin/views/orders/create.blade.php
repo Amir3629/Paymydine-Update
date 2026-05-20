@@ -5216,10 +5216,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    if (!canManageTableLayout) {
-        return;
-    }
-
+    if (canManageTableLayout) {
     // Edit layout toggle
     editLayoutBtn.addEventListener("click", function () {
         isEditMode = !isEditMode;
@@ -5259,6 +5256,7 @@ document.addEventListener("DOMContentLoaded", function () {
             saveLayout();
         }
     });
+    }
 
     // Move Table Mode
     let isMoveMode = false;

@@ -597,6 +597,11 @@ App::before(function () {
     });
 
     Route::post('/orders/save-table-layout', function (Request $request) {
+        $user = AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.ManageTables')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
         try {
             $layout = $request->input('layout');
             
