@@ -5118,7 +5118,7 @@ return response()->json([
                 $totalsRows[] = [
                     'order_id' => $orderId,
                     'code' => 'tax',
-                    'title' => 'Tax',
+                    'title' => 'VAT',
                     'value' => $taxAmount,
                     'priority' => 2,
                     'is_summable' => 1,

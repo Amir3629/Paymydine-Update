@@ -1129,7 +1129,7 @@ foreach ($menu_ids as $key => $menu_id) {
             $orderTotals[] = [
                 'order_id' => $last_order_id,
                 'code' => 'tax',
-                'title' => 'Tax',
+                'title' => 'VAT',
                 'priority' => 2,
                 'value' => $tax_amount,
                 'is_summable' => 1,
@@ -1608,7 +1608,7 @@ $unavailableTables = DB::table('orders')
                             <span id="summary-subtotal">$0.00</span>
                         </div>
                         <div class="summary-row" id="tax-row" style="display: none;">
-                            <span>Tax:</span>
+                            <span>VAT:</span>
                             <span id="summary-tax">$0.00</span>
                         </div>
                         <div class="summary-row" id="tip-row" style="display: none;">
@@ -4106,9 +4106,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Also initialize when the menu is shown (for the new table-to-menu flow)
             window.initializeCategoryFiltering = initializeCategoryFiltering;
 
-            // ========== PAYMENT, TAX, COUPON, TIP FUNCTIONALITY ==========
+            // ========== PAYMENT, VAT, COUPON, TIP FUNCTIONALITY ==========
             
-            // Tax settings from backend
+            // VAT settings from backend
             const taxSettings = {
                 enabled: {{ isset($taxSettings['enabled']) && $taxSettings['enabled'] ? 'true' : 'false' }},
                 percentage: {{ $taxSettings['percentage'] ?? 0 }},

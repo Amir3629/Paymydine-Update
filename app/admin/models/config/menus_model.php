@@ -262,12 +262,6 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'comment' => 'Optional serving size, for example 350g, 12 oz, or 1 bowl.',
         ],
-        'color' => [
-            'label' => 'Color',
-            'type' => 'colorpicker',
-            'span' => 'right',
-            'comment' => 'Optional hex color displayed as a small circular menu badge.',
-        ],
         'protein' => [
             'label' => 'Protein (g)',
             'type' => 'number',
@@ -291,6 +285,19 @@ $config['form']['tabs'] = [
             'type' => 'number',
             'span' => 'right',
             'comment' => 'Optional estimated grams per serving.',
+        ],
+        'color' => [
+            'label' => 'Color',
+            'type' => 'colorpicker',
+            'span' => 'right',
+            'comment' => 'Optional hex color displayed as a small circular menu badge.',
+        ],
+
+        'ai_nutrition_assistant' => [
+            'label' => 'AI Nutrition Assistant',
+            'type' => 'partial',
+            'path' => 'menus/form/ai_nutrition_assistant',
+            'span' => 'full',
         ],
         'mealtimes' => [
             'label' => 'lang:admin::lang.menus.label_mealtime',
