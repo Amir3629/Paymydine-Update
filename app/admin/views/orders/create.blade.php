@@ -694,10 +694,13 @@
                 <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-edit"></i> Edit Layout
                 </button>
+                <button type="button" id="merge-tables-btn" class="btn btn-outline-warning btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
+                    <i class="fa fa-object-group"></i> Merge Tables
+                </button>
+                @endif
                 <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-exchange-alt"></i> Move Table
                 </button>
-                @endif
             </div>
             <div id="selected-table-info" class="selected-table-info" style="display: none;">
                 <span class="badge badge-primary"><span>Table&nbsp;</span><span id="current-table-name"></span><span>&nbsp;-&nbsp;</span><span id="table-status-badge-text">Available</span></span>
@@ -5261,7 +5264,14 @@ document.addEventListener("DOMContentLoaded", function () {
     let isMoveMode = false;
     let moveSourceTable = null;
     const moveTableBtn = document.getElementById('move-table-btn');
+    const mergeTablesBtn = document.getElementById('merge-tables-btn');
     let moveInstructionElement = null;
+
+    if (mergeTablesBtn) {
+        mergeTablesBtn.addEventListener('click', function () {
+            alert('Merge Tables is in research phase (coming soon). No data has been changed.');
+        });
+    }
 
     // Function to show move instruction as flash message
     function showMoveInstruction(message) {

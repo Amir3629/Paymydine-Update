@@ -48,6 +48,7 @@ return [
                 'label' => 'lang:system::lang.settings.label_table_map_background_image',
                 'tab' => 'lang:system::lang.settings.text_tab_restaurant',
                 'type' => 'mediafinder',
+                'mode' => 'grid',
                 'comment' => 'lang:system::lang.settings.help_table_map_background_image',
             ],
             'menus_page' => [

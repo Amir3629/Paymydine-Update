@@ -419,11 +419,6 @@ App::before(function () {
 
     // Move order between tables
     Route::post('/orders/move-table', function (Request $request) {
-        $user = AdminAuth::getUser();
-        if (!$user || !$user->hasPermission('Admin.ManageTables')) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
         try {
             $sourceTableName = $request->input('source_table_name');
             $sourceTableId = $request->input('source_table_id');
@@ -602,11 +597,6 @@ App::before(function () {
     });
 
     Route::post('/orders/save-table-layout', function (Request $request) {
-        $user = AdminAuth::getUser();
-        if (!$user || !$user->hasPermission('Admin.ManageTables')) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
         try {
             $layout = $request->input('layout');
             
