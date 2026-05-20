@@ -102,7 +102,7 @@ class Menus extends AdminController
         $apiKey = $provider === 'gemini' ? $geminiKey : $openAiKey;
 
         $payload = request()->validate([
-            'action' => ['required', 'in:suggest-ingredients,improve-description,estimate-nutrition'],
+            'action' => ['required', 'in:suggest-ingredients,improve-description,estimate-nutrition,auto-fill'],
             'menu_name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:3000'],
             'ingredients' => ['nullable', 'string', 'max:4000'],
@@ -221,14 +221,16 @@ class Menus extends AdminController
             return response()->json([
                 'enabled' => true,
                 'suggestions' => [
-                    'description' => isset($suggestions['description']) ? (string)$suggestions['description'] : null,
-                    'ingredients' => array_values(array_map('strval', $ingredients)),
+                    'description' => isset($suggestions['description']) ? mb_substr((string)$suggestions['description'], 0, 2000) : null,
+                    'ingredients' => array_slice(array_values(array_map(function ($item) {
+                        return mb_substr((string)$item, 0, 120);
+                    }, $ingredients)), 0, 30),
                     'calories' => $num($suggestions['calories'] ?? null, 0, 5000),
                     'protein' => $num($suggestions['protein'] ?? null, 0, 1000),
                     'carbs' => $num($suggestions['carbs'] ?? null, 0, 1000),
                     'fat' => $num($suggestions['fat'] ?? null, 0, 1000),
                     'sugar' => $num($suggestions['sugar'] ?? null, 0, 1000),
-                    'serving_size' => isset($suggestions['serving_size']) ? (string)$suggestions['serving_size'] : ($payload['serving_size'] ?? null),
+                    'serving_size' => isset($suggestions['serving_size']) ? mb_substr((string)$suggestions['serving_size'], 0, 120) : ($payload['serving_size'] ?? null),
                 ],
                 'disclaimer' => 'AI nutrition values are estimates and should be reviewed before publishing.',
             ]);
