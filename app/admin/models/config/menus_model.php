@@ -196,6 +196,12 @@ $config['form']['tabs'] = [
             'type' => 'text',
             'span' => 'left',
         ],
+        'ai_nutrition_assistant' => [
+            'label' => 'AI Nutrition Assistant',
+            'type' => 'partial',
+            'path' => 'menus/form/ai_nutrition_assistant',
+            'span' => 'full',
+        ],
         'menu_price' => [
             'label' => 'lang:admin::lang.menus.label_price',
             'type' => 'currency',
@@ -293,12 +299,6 @@ $config['form']['tabs'] = [
             'comment' => 'Optional hex color displayed as a small circular menu badge.',
         ],
 
-        'ai_nutrition_assistant' => [
-            'label' => 'AI Nutrition Assistant',
-            'type' => 'partial',
-            'path' => 'menus/form/ai_nutrition_assistant',
-            'span' => 'full',
-        ],
         'mealtimes' => [
             'label' => 'lang:admin::lang.menus.label_mealtime',
             'type' => 'relation',
