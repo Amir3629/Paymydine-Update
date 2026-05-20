@@ -1,6 +1,6 @@
 Orange is a modern & responsive TastyIgniter theme for restaurant online ordering based on Bootstrap.
 
-With Orange, you can showcase unlimited menu items on your branded webpage as well as an booking and a gallery page.
+With Orange, you can showcase unlimited menu items on your branded webpage as well as a booking and a gallery page.
 
 Orange is easy to customise. If you’re a professional designer and you are putting together a site for a restaurant,
 this is something that you should take a look at, as well. The simplicity of use and the special features make this
