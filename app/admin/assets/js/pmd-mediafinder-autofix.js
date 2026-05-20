@@ -2,6 +2,12 @@
   'use strict';
 
   var BASE = '/app/admin/assets/vendor/pmd-mediafix/';
+  var path = (window.location && window.location.pathname || '').toLowerCase();
+  var inSettingsOrMedia = path.indexOf('/settings/') !== -1 || path.indexOf('/media_manager') !== -1;
+  if (inSettingsOrMedia || document.querySelector('[data-control="media-manager"], #media-manager, .media-modal')) {
+    return;
+  }
+
   var loaded = {};
 
   function log() {

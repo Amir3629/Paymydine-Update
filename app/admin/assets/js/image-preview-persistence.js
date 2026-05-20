@@ -12,10 +12,11 @@
 (function() {
     'use strict';
     
-    // Only run on settings pages with MediaFinder widgets
-    if (window.location.pathname.indexOf('/admin/settings/edit/general') === -1) {
+    var path = (window.location && window.location.pathname || '').toLowerCase();
+    if (path.indexOf('/settings/') !== -1 || path.indexOf('/media_manager') !== -1) {
         return;
     }
+
     
     console.log('%c🔧 IMAGE PREVIEW PERSISTENCE FIX', 'background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 5px;');
     

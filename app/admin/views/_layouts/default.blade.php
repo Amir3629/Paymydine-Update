@@ -692,7 +692,9 @@
 <script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ time() }}"></script>
 
 <!-- Modal Performance Fix - MUST LOAD FIRST to prevent freeze -->
+@if(!request()->is('admin/settings*') && !request()->is('admin/media_manager*'))
 <script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ time() }}"></script>
+@endif
 
 <!-- Fix Bootstrap Dropdown _menu null (Folders/Filter/Sort dropdowns on Media Manager) -->
 <script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ time() }}"></script>
@@ -731,10 +733,14 @@
 <script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
 
 <!-- Media Manager Search Icon Fix -->
+@if(!request()->is('admin/settings*') && !request()->is('admin/media_manager*'))
 <script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
+@endif
 
 <!-- Image Preview Persistence Fix -->
+@if(!request()->is('admin/settings*') && !request()->is('admin/media_manager*'))
 <script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ time() }}"></script>
+@endif
 
 <!-- Debug Redirects (Remove this in production) -->
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
@@ -942,7 +948,7 @@
 })();
 </script>
 
-    @if(request()->is('admin/orders*'))
+    @if(request()->is('admin/orders*') && !request()->is('admin/settings*') && !request()->is('admin/media_manager*'))
     <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
     @endif
 </body>

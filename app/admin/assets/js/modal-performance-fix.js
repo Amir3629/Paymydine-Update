@@ -5,6 +5,12 @@
     'use strict';
     
     console.log('🚀 Modal Performance Fix: Initializing...');
+    const path = (window.location && window.location.pathname || '').toLowerCase();
+    if (path.indexOf('/settings/') !== -1 || path.indexOf('/media_manager') !== -1 ||
+        document.querySelector('#media-manager, .media-modal, [data-control="media-manager"]')) {
+        return;
+    }
+
     
     // Global flag - all observers should check this
     window.MODAL_IS_OPEN = false;
