@@ -9,6 +9,7 @@ use Admin\Controllers\Api\CashDrawerController;
 use Admin\Controllers\Api\PosAgentController;
 use App\Admin\Controllers\NotificationsApiController;
 use App\Admin\Classes\TerminalDevicesPlatformController;
+use Admin\Facades\AdminAuth;
 use Illuminate\Http\Request;
 require_once base_path('app/system/helpers/r2o_outbound_dryrun_helper.php');
 use Illuminate\Support\Facades\DB;
@@ -418,6 +419,11 @@ App::before(function () {
 
     // Move order between tables
     Route::post('/orders/move-table', function (Request $request) {
+        $user = AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.ManageTables')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
         try {
             $sourceTableName = $request->input('source_table_name');
             $sourceTableId = $request->input('source_table_id');
@@ -596,6 +602,11 @@ App::before(function () {
     });
 
     Route::post('/orders/save-table-layout', function (Request $request) {
+        $user = AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.ManageTables')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
         try {
             $layout = $request->input('layout');
             

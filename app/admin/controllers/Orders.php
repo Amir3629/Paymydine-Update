@@ -131,6 +131,9 @@ class Orders extends \Admin\Classes\AdminController
         $this->vars['taxSettings'] = $taxSettings;
         $this->vars['existingOrder'] = $existingOrder;
         $this->vars['existingOrderItems'] = $existingOrderItems;
+        $user = $this->getUser();
+        $this->vars['canManageTableLayout'] = $user ? $user->hasPermission('Admin.ManageTables') : false;
+        $this->vars['tableMapBackgroundImage'] = setting('table_map_background_image');
         
         return $this->asExtension('FormController')->create();
     }

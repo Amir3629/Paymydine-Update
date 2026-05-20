@@ -421,6 +421,7 @@ return [
         'label_site_name' => 'Restaurant Name',
         'label_site_email' => 'Restaurant Email',
         'label_site_logo' => 'Restaurant Logo',
+        'label_table_map_background_image' => 'Table Map Background Image',
         'label_dashboard_logo' => 'Dashboard Logo',
         'label_loader_logo' => 'Loader Logo',
         'label_favicon_logo' => 'Favicon Logo',

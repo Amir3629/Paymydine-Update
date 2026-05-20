@@ -44,6 +44,12 @@ return [
                 'type' => 'mediafinder',
                 'comment' => 'Upload your favicon (recommended: 32x32px or 64x64px .ico, .png, or .svg). Need help? Create one at <a href="https://realfavicongenerator.net" target="_blank">realfavicongenerator.net</a>',
             ],
+            'table_map_background_image' => [
+                'label' => 'lang:system::lang.settings.label_table_map_background_image',
+                'tab' => 'lang:system::lang.settings.text_tab_restaurant',
+                'type' => 'mediafinder',
+                'comment' => 'lang:system::lang.settings.help_table_map_background_image',
+            ],
             'menus_page' => [
                 'label' => 'lang:system::lang.settings.label_menus_page',
                 'tab' => 'lang:system::lang.settings.text_tab_title_order',

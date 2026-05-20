@@ -30,6 +30,8 @@
   if (!$cashierUrl) {
     $cashierUrl = '#';
   }
+  $canManageTableLayout = $canManageTableLayout ?? false;
+  $tableMapBackgroundImage = $tableMapBackgroundImage ?? null;
 @endphp
 
 <style>
@@ -474,6 +476,15 @@
   #table-grid,
   .table-grid-container,
   .table-grid,
+
+
+.table-grid-container.has-custom-bg {
+    background-image: var(--tablemap-bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 12px;
+}
   .working-area-indicator,
   .grid-overlay,
   .table-item,
@@ -667,6 +678,7 @@
         </div>
         <div class="page-header-actions">
             <div class="header-controls" style="display: none;" id="header-controls">
+                @if($canManageTableLayout)
                 <div class="zoom-controls">
                     <div class="zoom-level-indicator" id="zoom-level">100%</div>
                     <button type="button" class="zoom-btn" id="zoom-in" style="opacity: 1 !important; cursor: pointer; pointer-events: auto !important; display: inline-block !important; visibility: visible !important; position: relative !important; z-index: 99999 !important;" aria-label="Zoom In (Ctrl + Scroll Up)" data-bs-original-title="Zoom In (Ctrl + Scroll Up)">
@@ -685,6 +697,7 @@
                 <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-exchange-alt"></i> Move Table
                 </button>
+                @endif
             </div>
             <div id="selected-table-info" class="selected-table-info" style="display: none;">
                 <span class="badge badge-primary"><span>Table&nbsp;</span><span id="current-table-name"></span><span>&nbsp;-&nbsp;</span><span id="table-status-badge-text">Available</span></span>
@@ -5080,9 +5093,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const tableGridContainer = document.getElementById("table-grid");
     const gridOverlay = document.getElementById("grid-overlay");
     const zoomInBtn = document.getElementById("zoom-in");
+    const canManageTableLayout = @json($canManageTableLayout);
     const zoomOutBtn = document.getElementById("zoom-out");
     const resetZoomBtn = document.getElementById("reset-zoom");
     const zoomLevelIndicator = document.getElementById("zoom-level");
+    const tableMapBackgroundImage = @json($tableMapBackgroundImage ? uploads_url($tableMapBackgroundImage) : null);
+    if (tableMapBackgroundImage) {
+        const gridContainer = document.querySelector(".table-grid-container");
+        if (gridContainer) {
+            gridContainer.classList.add("has-custom-bg");
+            gridContainer.style.setProperty("--tablemap-bg-image", `url(${tableMapBackgroundImage})`);
+        }
+    }
     
     let isEditMode = false;
     let isDragging = false;
@@ -5190,6 +5212,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    if (!canManageTableLayout) {
+        return;
+    }
 
     // Edit layout toggle
     editLayoutBtn.addEventListener("click", function () {
