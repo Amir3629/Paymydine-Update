@@ -694,9 +694,6 @@
                 <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-edit"></i> Edit Layout
                 </button>
-                <button type="button" id="merge-tables-btn" class="btn btn-outline-warning btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
-                    <i class="fa fa-object-group"></i> Merge Tables
-                </button>
                 @endif
                 <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-exchange-alt"></i> Move Table
@@ -5216,60 +5213,36 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    if (!canManageTableLayout) {
-        return;
-    }
-
-    // Edit layout toggle
-    editLayoutBtn.addEventListener("click", function () {
-        isEditMode = !isEditMode;
-        
-        if (isEditMode) {
-            // Enter edit mode
-            this.classList.add("active");
-            this.innerHTML = '<i class="fa fa-save"></i> Save Layout';
-            tableGrid.classList.add("edit-mode");
-            tableItems.forEach(item => item.classList.add("edit-mode"));
-            
-            // Show grid overlay for alignment
-            gridOverlay.classList.add("active");
-            
-            // Enable free positioning drag and drop
-            enableTableDragging();
-            
-            // Enable panning
-            enablePanning();
-        } else {
-            // Exit edit mode
-            this.classList.remove("active");
-            this.innerHTML = '<i class="fa fa-edit"></i> Edit Layout';
-            tableGrid.classList.remove("edit-mode");
-            tableItems.forEach(item => item.classList.remove("edit-mode"));
-            
-            // Hide grid overlay
-            gridOverlay.classList.remove("active");
-            
-            // Disable table dragging
-            disableTableDragging();
-            
-            // Disable panning
-            disablePanning();
-            
-            // Save layout to localStorage and database
-            saveLayout();
-        }
-    });
 
     // Move Table Mode
     let isMoveMode = false;
     let moveSourceTable = null;
     const moveTableBtn = document.getElementById('move-table-btn');
-    const mergeTablesBtn = document.getElementById('merge-tables-btn');
     let moveInstructionElement = null;
 
-    if (mergeTablesBtn) {
-        mergeTablesBtn.addEventListener('click', function () {
-            alert('Merge Tables is in research phase (coming soon). No data has been changed.');
+    // Edit layout remains admin-only
+    if (canManageTableLayout && editLayoutBtn) {
+        editLayoutBtn.addEventListener("click", function () {
+            isEditMode = !isEditMode;
+
+            if (isEditMode) {
+                this.classList.add("active");
+                this.innerHTML = '<i class="fa fa-save"></i> Save Layout';
+                tableGrid.classList.add("edit-mode");
+                tableItems.forEach(item => item.classList.add("edit-mode"));
+                gridOverlay.classList.add("active");
+                enableTableDragging();
+                enablePanning();
+            } else {
+                this.classList.remove("active");
+                this.innerHTML = '<i class="fa fa-edit"></i> Edit Layout';
+                tableGrid.classList.remove("edit-mode");
+                tableItems.forEach(item => item.classList.remove("edit-mode"));
+                gridOverlay.classList.remove("active");
+                disableTableDragging();
+                disablePanning();
+                saveLayout();
+            }
         });
     }
 

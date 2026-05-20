@@ -134,9 +134,6 @@ class Settings extends \Admin\Classes\AdminController
         if (array_key_exists('table_map_background_image', $rawSettingInput)) {
             $saveData['table_map_background_image'] = $rawSettingInput['table_map_background_image'];
         }
-        if (array_key_exists('table_map_background_image', $rawSettingInput)) {
-            $saveData['table_map_background_image'] = $rawSettingInput['table_map_background_image'];
-        }
 
         \Log::info('PMD_SETTINGS_LOGO_DEBUG', [
             'site_logo' => $saveData['site_logo'] ?? null,
@@ -147,15 +144,6 @@ class Settings extends \Admin\Classes\AdminController
             'raw_favicon_logo' => $rawSettingInput['favicon_logo'] ?? null,
         ]);
 
-        // PMD FIX: force logo fields from raw request so site_logo does not get overwritten
-        $rawSettingInput = (array)request()->input('setting', []);
-        if (array_key_exists('site_logo', $rawSettingInput)) {
-            $saveData['site_logo'] = $rawSettingInput['site_logo'];
-        }
-        if (array_key_exists('favicon_logo', $rawSettingInput)) {
-            $saveData['favicon_logo'] = $rawSettingInput['favicon_logo'];
-        }
-        
         // CRITICAL: Ensure site_name and site_email are never empty or null
         // If they're empty in form data, prevent saving empty values that could cause defaults to be applied
         if (isset($saveData['site_name']) && empty(trim($saveData['site_name']))) {

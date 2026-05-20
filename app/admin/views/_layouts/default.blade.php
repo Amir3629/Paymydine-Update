@@ -942,6 +942,8 @@
 })();
 </script>
 
+    @if(request()->is('admin/orders*'))
     <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+    @endif
 </body>
 </html>

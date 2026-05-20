@@ -597,9 +597,17 @@ App::before(function () {
     });
 
     Route::post('/orders/save-table-layout', function (Request $request) {
+        $user = auth('admin')->user();
+        if (!$user || !$user->hasPermission('Admin.ManageTables')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Forbidden'
+            ], 403);
+        }
+
         try {
             $layout = $request->input('layout');
-            
+
             if (!$layout || !is_array($layout)) {
                 return response()->json([
                     'success' => false,
@@ -607,10 +615,6 @@ App::before(function () {
                 ]);
             }
 
-            // Save layout to database or session
-            // For now, we'll just return success
-            // You can implement actual saving logic here
-            
             return response()->json([
                 'success' => true,
                 'message' => 'Layout saved successfully',
@@ -622,7 +626,7 @@ App::before(function () {
                 'error' => $e->getMessage()
             ]);
         }
-    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    });
 
     // Get table QR code URL for frontend menu integration
     Route::get('/orders/get-table-qr-url', function (Request $request) {
