@@ -91,8 +91,15 @@ class Menus extends AdminController
     {
         $enabled = filter_var(env('PMD_AI_NUTRITION_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
         $provider = strtolower((string)env('PMD_AI_NUTRITION_PROVIDER', 'openai'));
-        $apiKey = (string)env('OPENAI_API_KEY', '');
+        $openAiKey = (string)env('OPENAI_API_KEY', '');
+        $geminiKey = (string)env('GEMINI_API_KEY', '');
         $model = (string)env('PMD_AI_NUTRITION_MODEL', 'gpt-4.1-mini');
+
+        $baseUrl = $provider === 'gemini'
+            ? 'https://generativelanguage.googleapis.com/v1beta/openai'
+            : 'https://api.openai.com/v1';
+        $endpoint = $baseUrl.'/chat/completions';
+        $apiKey = $provider === 'gemini' ? $geminiKey : $openAiKey;
 
         $payload = request()->validate([
             'action' => ['required', 'in:suggest-ingredients,improve-description,estimate-nutrition'],
@@ -111,8 +118,8 @@ class Menus extends AdminController
 
         \Log::info('AI nutrition request started', ['enabled' => $enabled, 'provider' => $provider, 'action' => $payload['action'] ?? null]);
 
-        if (!$enabled || $provider !== 'openai' || $apiKey === '') {
-            \Log::warning('AI nutrition disabled/unconfigured', ['enabled' => $enabled, 'provider' => $provider, 'has_api_key' => $apiKey !== '']);
+        if (!$enabled || !in_array($provider, ['openai', 'gemini'], true) || $apiKey === '') {
+            \Log::warning('AI nutrition disabled/unconfigured', ['enabled' => $enabled, 'provider' => $provider, 'has_openai_key' => $openAiKey !== '', 'has_gemini_key' => $geminiKey !== '']);
             return response()->json([
                 'enabled' => false,
                 'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
@@ -147,7 +154,7 @@ class Menus extends AdminController
         ];
 
         try {
-            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            $ch = curl_init($endpoint);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST => true,
@@ -164,7 +171,7 @@ class Menus extends AdminController
             curl_close($ch);
 
             if ($raw === false || $err || $code >= 400) {
-                \Log::error('AI nutrition provider call failed', ['http_code' => $code, 'curl_error' => $err ?: null]);
+                \Log::error('AI nutrition provider call failed', ['provider' => $provider, 'http_code' => $code, 'curl_error' => $err ?: null]);
                 return response()->json([
                     'enabled' => false,
                     'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
