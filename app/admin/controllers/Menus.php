@@ -102,9 +102,17 @@ class Menus extends AdminController
             'serving_size' => ['nullable', 'string', 'max:120'],
             'preparation_notes' => ['nullable', 'string', 'max:2000'],
             'language' => ['nullable', 'string', 'max:16'],
+            'calories' => ['nullable', 'numeric', 'min:0', 'max:5000'],
+            'protein' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'carbs' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'fat' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'sugar' => ['nullable', 'numeric', 'min:0', 'max:1000'],
         ]);
 
+        \Log::info('AI nutrition request started', ['enabled' => $enabled, 'provider' => $provider, 'action' => $payload['action'] ?? null]);
+
         if (!$enabled || $provider !== 'openai' || $apiKey === '') {
+            \Log::warning('AI nutrition disabled/unconfigured', ['enabled' => $enabled, 'provider' => $provider, 'has_api_key' => $apiKey !== '']);
             return response()->json([
                 'enabled' => false,
                 'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
@@ -156,6 +164,7 @@ class Menus extends AdminController
             curl_close($ch);
 
             if ($raw === false || $err || $code >= 400) {
+                \Log::error('AI nutrition provider call failed', ['http_code' => $code, 'curl_error' => $err ?: null]);
                 return response()->json([
                     'enabled' => false,
                     'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
@@ -166,6 +175,7 @@ class Menus extends AdminController
             $content = $json['choices'][0]['message']['content'] ?? '{}';
             $suggestions = json_decode((string)$content, true);
             if (!is_array($suggestions)) {
+                \Log::warning('AI nutrition invalid JSON payload returned');
                 return response()->json([
                     'enabled' => false,
                     'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
@@ -194,6 +204,7 @@ class Menus extends AdminController
                 && !isset($suggestions['sugar'])
                 && empty($suggestions['serving_size'])
             ) {
+                \Log::warning('AI nutrition suggestions empty after parsing');
                 return response()->json([
                     'enabled' => false,
                     'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
@@ -215,6 +226,7 @@ class Menus extends AdminController
                 'disclaimer' => 'AI nutrition values are estimates and should be reviewed before publishing.',
             ]);
         } catch (\Throwable $e) {
+            \Log::error('AI nutrition unexpected exception', ['message' => $e->getMessage()]);
             return response()->json([
                 'enabled' => false,
                 'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
