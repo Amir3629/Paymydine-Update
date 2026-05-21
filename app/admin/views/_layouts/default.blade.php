@@ -56,7 +56,9 @@
     <!-- Fix Green Buttons and Text - Change btn-default, btn-outline-default, and text-muted from green to dark blue/gray -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
     <!-- Modern Media Finder - Elegant image uploader redesign -->
+    @if(!request()->is('admin/settings*') && !request()->is('admin/media_manager*'))
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ time() }}">
+    @endif
     <!-- Media Finder Widget CSS - Required for image uploader fields -->
     <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ time() }}">
     <!-- Date range picker: load last so overrides (bigger card, buttons, ranges) win over .btn-sm etc -->
@@ -598,7 +600,9 @@
  /* ===== END MOBILE HEADER HIDE UNTIL STABLE ===== */
 </script>
 
+    @if(!request()->is('admin/settings*') && !request()->is('admin/media_manager*'))
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ time() }}">
+    @endif
     {{-- Final admin toolbar button override: keep after legacy/admin/page CSS because older files override toolbar button sizing and colors. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ time() }}">
 </head>
@@ -709,7 +713,9 @@
 <script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ time() }}"></script>
 
 <!-- Fix Media Finder Inline Styles -->
+@if(!request()->is('admin/settings*') && !request()->is('admin/media_manager*'))
 <script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ time() }}"></script>
+@endif
 <!-- Fix History Button Text Centering - Removes inline styles that prevent flexbox centering -->
 <script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ time() }}"></script>
 <!-- Fix Notification Buttons Bottom Border - Ensures bottom border is visible -->

@@ -6,6 +6,12 @@
 (function() {
     'use strict';
 
+    const path = (window.location && window.location.pathname || '').toLowerCase();
+    if (path.indexOf('/admin/media_manager') !== -1 || path.indexOf('/admin/settings') !== -1 ||
+        document.querySelector('#media-manager, .media-modal, [data-control="media-manager"]')) {
+        return;
+    }
+
     function fixMediaFinderStyles() {
         // Find all media finder inline mode instances
         const mediaFinders = document.querySelectorAll('.mediafinder.inline-mode, .mediafinder[data-mode="inline"]');
