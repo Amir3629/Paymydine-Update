@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+@php
+    $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+@endphp
+
 
 
 
@@ -56,7 +60,9 @@
     <!-- Fix Green Buttons and Text - Change btn-default, btn-outline-default, and text-muted from green to dark blue/gray -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
     <!-- Modern Media Finder - Elegant image uploader redesign -->
+    @unless($pmdIsNativeMediaContext)
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ time() }}">
+    @endunless
     <!-- Media Finder Widget CSS - Required for image uploader fields -->
     <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ time() }}">
     <!-- Date range picker: load last so overrides (bigger card, buttons, ranges) win over .btn-sm etc -->
@@ -598,7 +604,9 @@
  /* ===== END MOBILE HEADER HIDE UNTIL STABLE ===== */
 </script>
 
+    @unless($pmdIsNativeMediaContext)
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ time() }}">
+    @endunless
     {{-- Final admin toolbar button override: keep after legacy/admin/page CSS because older files override toolbar button sizing and colors. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ time() }}">
 </head>
@@ -671,6 +679,10 @@
 {!! $this->makePartial('confirm_modal') !!}
 {!! Assets::getJsVars() !!}
 {{-- Use asset combiner to ensure all widget JS files are included --}}
+@php
+    $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+@endphp
+
 
 
 
@@ -692,7 +704,9 @@
 <script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ time() }}"></script>
 
 <!-- Modal Performance Fix - MUST LOAD FIRST to prevent freeze -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ time() }}"></script>
+@endunless
 
 <!-- Fix Bootstrap Dropdown _menu null (Folders/Filter/Sort dropdowns on Media Manager) -->
 <script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ time() }}"></script>
@@ -707,7 +721,9 @@
 <script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ time() }}"></script>
 
 <!-- Fix Media Finder Inline Styles -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ time() }}"></script>
+@endunless
 <!-- Fix History Button Text Centering - Removes inline styles that prevent flexbox centering -->
 <script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ time() }}"></script>
 <!-- Fix Notification Buttons Bottom Border - Ensures bottom border is visible -->
@@ -731,10 +747,14 @@
 <script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
 
 <!-- Media Manager Search Icon Fix -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
+@endunless
 
 <!-- Image Preview Persistence Fix -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ time() }}"></script>
+@endunless
 
 <!-- Debug Redirects (Remove this in production) -->
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
@@ -942,6 +962,8 @@
 })();
 </script>
 
-    <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+    @unless($pmdIsNativeMediaContext)
+<script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+@endunless
 </body>
 </html>

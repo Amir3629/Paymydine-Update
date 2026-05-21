@@ -12,6 +12,15 @@
 (function() {
     'use strict';
     
+    // PMD_NATIVE_MEDIA_CONTEXT_GUARD
+    var pmdNativeMediaPath = window.location && window.location.pathname ? window.location.pathname : '';
+    if (/\/admin\/settings(\/|$)/.test(pmdNativeMediaPath) || /\/admin\/media_manager(\/|$)/.test(pmdNativeMediaPath)) {
+        if (window.console) console.log('[PMD] custom media helper skipped on native settings/media manager page:', pmdNativeMediaPath);
+        return;
+    }
+
+
+    
     // Only run on settings pages with MediaFinder widgets
     if (window.location.pathname.indexOf('/admin/settings/edit/general') === -1) {
         return;

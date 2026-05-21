@@ -133,7 +133,30 @@ class Orders extends \Admin\Classes\AdminController
         $this->vars['existingOrderItems'] = $existingOrderItems;
         $user = $this->getUser();
         $this->vars['canManageTableLayout'] = $user ? $user->hasPermission('Admin.ManageTables') : false;
-        $this->vars['tableMapBackgroundImage'] = setting('table_map_background_image');
+        // PMD_TABLE_MAP_BACKGROUND_SETTING_FALLBACK_START
+        $tableMapBackgroundImage = setting('table_map_background_image');
+
+        if (empty($tableMapBackgroundImage)) {
+            try {
+                // Use the current tenant DB connection directly as fallback.
+                // DB::table('settings') respects the configured table prefix (ti_).
+                $tableMapBackgroundImage = \DB::table('settings')
+                    ->where('item', 'table_map_background_image')
+                    ->value('value');
+            } catch (\Throwable $e) {
+                try {
+                    // Extra fallback for environments where prefix is not applied.
+                    $tableMapBackgroundImage = \DB::table('ti_settings')
+                        ->where('item', 'table_map_background_image')
+                        ->value('value');
+                } catch (\Throwable $ignored) {
+                    $tableMapBackgroundImage = null;
+                }
+            }
+        }
+
+        $this->vars['tableMapBackgroundImage'] = $tableMapBackgroundImage;
+        // PMD_TABLE_MAP_BACKGROUND_SETTING_FALLBACK_END
         
         return $this->asExtension('FormController')->create();
     }

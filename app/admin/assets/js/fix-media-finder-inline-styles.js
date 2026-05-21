@@ -1,3 +1,17 @@
+;(function () {
+  // PMD_NATIVE_MEDIA_CONTEXT_GUARD_STRICT
+  var pmdPath = window.location && window.location.pathname ? window.location.pathname : "";
+  var isNativeMediaPage =
+    /\/admin\/settings(\/|$)/.test(pmdPath) ||
+    /\/admin\/media_manager(\/|$)/.test(pmdPath);
+
+  if (isNativeMediaPage) {
+    if (window.console) {
+      console.log("[PMD] fix-media-finder-inline-styles skipped on native MediaManager/settings page:", pmdPath);
+    }
+    return;
+  }
+
 /**
  * Fix Media Finder Inline Styles
  * Removes problematic inline styles that override our beautiful CSS
@@ -237,3 +251,5 @@
         });
     }
 })();
+
+})(); // PMD_NATIVE_MEDIA_CONTEXT_GUARD_STRICT

@@ -6140,3 +6140,120 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+{{-- PMD_TABLE_MAP_BACKGROUND_RUNTIME_FIX_START --}}
+@php
+    $pmdTableMapBackgroundRaw = $tableMapBackgroundImage ?? null;
+
+    if (empty($pmdTableMapBackgroundRaw) && function_exists('setting')) {
+        $pmdTableMapBackgroundRaw = setting('table_map_background_image');
+    }
+
+    $pmdTableMapBackgroundUrl = null;
+    $pmdTableMapBackgroundRaw = is_string($pmdTableMapBackgroundRaw) ? trim($pmdTableMapBackgroundRaw) : '';
+
+    if ($pmdTableMapBackgroundRaw !== '') {
+        if (preg_match('#^https?://#i', $pmdTableMapBackgroundRaw)) {
+            $pmdTableMapBackgroundUrl = $pmdTableMapBackgroundRaw;
+        }
+        elseif (preg_match('#^/assets/media/#', $pmdTableMapBackgroundRaw)) {
+            $pmdTableMapBackgroundUrl = $pmdTableMapBackgroundRaw;
+        }
+        elseif (preg_match('#^assets/media/#', $pmdTableMapBackgroundRaw)) {
+            $pmdTableMapBackgroundUrl = '/'.$pmdTableMapBackgroundRaw;
+        }
+        elseif (function_exists('uploads_url')) {
+            $pmdTableMapBackgroundUrl = uploads_url(ltrim($pmdTableMapBackgroundRaw, '/'));
+        }
+        else {
+            $pmdTableMapBackgroundUrl = '/assets/media/uploads/'.ltrim($pmdTableMapBackgroundRaw, '/');
+        }
+    }
+@endphp
+
+<style id="pmd-table-map-background-runtime-style">
+    #merge-tables-btn {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    .pmd-table-map-has-bg {
+        background-repeat: no-repeat !important;
+        background-position: center center !important;
+        background-size: 100% 100% !important;
+        background-color: #f8fafc !important;
+    }
+</style>
+
+<script id="pmd-table-map-background-runtime-script">
+(function () {
+    var bgUrl = @json($pmdTableMapBackgroundUrl);
+
+    function removeFakeMergeButton() {
+        var btn = document.getElementById('merge-tables-btn');
+        if (btn && btn.parentNode) {
+            btn.parentNode.removeChild(btn);
+        }
+    }
+
+    function findTableMapSurface() {
+        var container = document.getElementById('table-grid');
+        var innerGrid = container ? container.querySelector('.table-grid') : null;
+
+        return innerGrid
+            || container
+            || document.querySelector('.table-grid')
+            || document.querySelector('.table-map')
+            || document.querySelector('.table-map-container')
+            || document.querySelector('.tables-layout')
+            || document.querySelector('.restaurant-layout')
+            || document.querySelector('[data-control="table-map"]');
+    }
+
+    function applyBackground() {
+        removeFakeMergeButton();
+
+        if (!bgUrl) {
+            return false;
+        }
+
+        var el = findTableMapSurface();
+
+        if (!el) {
+            return false;
+        }
+
+        el.classList.add('pmd-table-map-has-bg');
+        el.style.setProperty('background-image', 'linear-gradient(rgba(255,255,255,0.15), rgba(255,255,255,0.15)), url("' + bgUrl + '")', 'important');
+        el.style.setProperty('background-repeat', 'no-repeat', 'important');
+        el.style.setProperty('background-position', 'center center', 'important');
+        el.style.setProperty('background-size', '100% 100%', 'important');
+        el.style.setProperty('background-color', '#f8fafc', 'important');
+        el.style.setProperty('background-attachment', 'local', 'important');
+
+        if (window.console) {
+            console.log('[PMD TableMap] background applied:', bgUrl, el);
+        }
+
+        return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var tries = 0;
+        var timer = setInterval(function () {
+            tries += 1;
+            applyBackground();
+
+            if (tries >= 20) {
+                clearInterval(timer);
+            }
+        }, 300);
+    });
+
+    window.PMDApplyTableMapBackground = applyBackground;
+})();
+</script>
+{{-- PMD_TABLE_MAP_BACKGROUND_RUNTIME_FIX_END --}}
+
