@@ -694,9 +694,11 @@
                 <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-edit"></i> Edit Layout
                 </button>
+                @if(($canMergeTables ?? false))
                 <button type="button" id="merge-tables-btn" class="btn btn-outline-warning btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-object-group"></i> Merge Tables
                 </button>
+                @endif
                 @endif
                 <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-exchange-alt"></i> Move Table
@@ -5267,11 +5269,48 @@ document.addEventListener("DOMContentLoaded", function () {
     const mergeTablesBtn = document.getElementById('merge-tables-btn');
     let moveInstructionElement = null;
 
-    if (mergeTablesBtn) {
-        mergeTablesBtn.addEventListener('click', function () {
-            alert('Merge Tables is in research phase (coming soon). No data has been changed.');
-        });
+    let isMergeMode = false;
+    let selectedMergeTableIds = new Set();
+    function getLocationId(){ return parseInt(document.querySelector('input[name=\"location_id\"]')?.value || '0', 10) || 0; }
+    function paintMergedTables(groups){
+        document.querySelectorAll('.table-item').forEach(el=>{ el.classList.remove('table-merged'); el.removeAttribute('data-table-group-id'); });
+        (groups||[]).forEach(g => (g.table_ids||[]).forEach(id => { const el = document.querySelector('.table-item[data-id=\"'+id+'\"]'); if(el){ el.classList.add('table-merged'); el.setAttribute('data-table-group-id', g.table_group_id); el.setAttribute('title', g.name); } }));
     }
+    async function loadGroups(){
+        const fd = new FormData(); fd.append('_handler','onGetTableGroups'); fd.append('location_id', String(getLocationId()));
+        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
+        const json = await res.json(); if (json && json.groups) paintMergedTables(json.groups);
+    }
+    if (mergeTablesBtn) mergeTablesBtn.addEventListener('click', async function () {
+        isMergeMode = !isMergeMode; selectedMergeTableIds.clear();
+        this.classList.toggle('active', isMergeMode);
+        this.innerHTML = isMergeMode ? '<i class=\"fa fa-save\"></i> Confirm Merge' : '<i class=\"fa fa-object-group\"></i> Merge Tables';
+        if (!isMergeMode) return;
+        alert('Select 2 or more tables to merge, then click Merge Tables again to confirm.');
+    });
+    tableItems.forEach(item => item.addEventListener("click", async function(event){
+        if (!isMergeMode) return;
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+        const tid = parseInt(this.dataset.id || '0', 10); if (!tid) return;
+        if (selectedMergeTableIds.has(tid)) { selectedMergeTableIds.delete(tid); this.classList.remove('merge-selected'); } else { selectedMergeTableIds.add(tid); this.classList.add('merge-selected'); }
+        if (selectedMergeTableIds.size >= 2 && mergeTablesBtn.innerHTML.indexOf('Confirm Merge') !== -1) {
+            const name = prompt('Optional group name', '') || '';
+            const fd = new FormData(); fd.append('_handler','onMergeTables'); fd.append('location_id', String(getLocationId())); fd.append('name', name); selectedMergeTableIds.forEach(id=>fd.append('table_ids[]', String(id)));
+            const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
+            const json = await res.json();
+            if (json.success) { isMergeMode = false; mergeTablesBtn.classList.remove('active'); mergeTablesBtn.innerHTML = '<i class=\"fa fa-object-group\"></i> Merge Tables'; document.querySelectorAll('.table-item.merge-selected').forEach(el=>el.classList.remove('merge-selected')); await loadGroups(); }
+            else alert(json.message || 'Merge failed');
+        }
+    }, true));
+    document.addEventListener('dblclick', async function(e){
+        const el = e.target.closest('.table-item.table-merged'); if (!el || !mergeTablesBtn) return;
+        const gid = el.getAttribute('data-table-group-id'); if (!gid) return;
+        if (!confirm('Unmerge this table group?')) return;
+        const fd = new FormData(); fd.append('_handler','onUnmergeTableGroup'); fd.append('table_group_id', gid);
+        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
+        const json = await res.json(); if (json.success) await loadGroups(); else alert(json.message || 'Unmerge failed');
+    });
+    setTimeout(loadGroups, 400);
 
     // Function to show move instruction as flash message
     function showMoveInstruction(message) {
@@ -6173,11 +6212,8 @@ document.addEventListener("DOMContentLoaded", function () {
 @endphp
 
 <style id="pmd-table-map-background-runtime-style">
-    #merge-tables-btn {
-        display: none !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-    }
+    .table-item.table-merged .table-circle{box-shadow:0 0 0 3px #f59e0b inset!important;}
+    .table-item.merge-selected .table-circle{box-shadow:0 0 0 3px #2563eb inset!important;}
 
     .pmd-table-map-has-bg {
         background-repeat: no-repeat !important;
@@ -6191,12 +6227,6 @@ document.addEventListener("DOMContentLoaded", function () {
 (function () {
     var bgUrl = @json($pmdTableMapBackgroundUrl);
 
-    function removeFakeMergeButton() {
-        var btn = document.getElementById('merge-tables-btn');
-        if (btn && btn.parentNode) {
-            btn.parentNode.removeChild(btn);
-        }
-    }
 
     function findTableMapSurface() {
         var container = document.getElementById('table-grid');
@@ -6213,8 +6243,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function applyBackground() {
-        removeFakeMergeButton();
-
         if (!bgUrl) {
             return false;
         }
@@ -6256,4 +6284,3 @@ document.addEventListener("DOMContentLoaded", function () {
 })();
 </script>
 {{-- PMD_TABLE_MAP_BACKGROUND_RUNTIME_FIX_END --}}
-

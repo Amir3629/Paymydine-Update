@@ -21,7 +21,7 @@ return [
             'image_manager[max_size]' => [
                 'label' => 'lang:system::lang.settings.label_media_max_size',
                 'type' => 'number',
-                'default' => 300,
+                'default' => 30,
                 'comment' => 'lang:system::lang.settings.help_media_max_size',
             ],
             'image_manager[uploads]' => [
