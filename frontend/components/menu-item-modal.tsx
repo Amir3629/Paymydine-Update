@@ -80,7 +80,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
             </Button>
 
             <div className="p-6 overflow-y-auto max-h-[88vh]">
-              <div className="relative w-full h-[200px] md:h-[260px] mb-6 rounded-2xl border border-neutral-200/70 bg-neutral-50/70">
+              <div className="relative w-full h-[180px] md:h-[230px] mb-6 rounded-2xl overflow-hidden flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`${item?.id}-${activeImageIndex}`}
@@ -88,13 +88,13 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0.25 }}
                     transition={{ duration: 0.45 }}
-                    className="absolute inset-0 p-3 md:p-4"
+                    className="absolute inset-0 p-2 md:p-3 flex items-center justify-center"
                   >
                     <OptimizedImage
                       src={getMenuImageUrl(itemImages[activeImageIndex] || item.image) || "/placeholder.svg"}
                       alt={itemName}
                       fill
-                      className="object-contain rounded-2xl"
+                      className="object-contain max-h-full max-w-full w-auto h-auto rounded-2xl"
                       style={{ objectPosition: "center" }}
                     />
                   </motion.div>

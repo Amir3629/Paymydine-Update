@@ -250,20 +250,42 @@ class Menus_model extends Model
 
     protected function syncMenuImages(array $rows): void
     {
-        $this->menu_images()->delete();
+        $normalizedRows = [];
+        foreach ($rows as $key => $row) {
+            $path = '';
+            $sortOrder = null;
 
-        $position = 1;
-        foreach ($rows as $row) {
-            $path = trim((string)($row['image_path'] ?? ''));
+            if (is_string($row)) {
+                $path = trim($row);
+            } elseif (is_array($row)) {
+                $imagePathRaw = $row['image_path'] ?? $row['path'] ?? '';
+                if (is_array($imagePathRaw)) {
+                    $imagePathRaw = $imagePathRaw['path'] ?? $imagePathRaw['value'] ?? reset($imagePathRaw);
+                }
+                $path = trim((string)$imagePathRaw);
+                $sortOrder = $row['sort_order'] ?? $row['order'] ?? $row['position'] ?? null;
+            } elseif (is_object($row)) {
+                $path = trim((string)($row->image_path ?? $row->path ?? ''));
+                $sortOrder = $row->sort_order ?? null;
+            }
+
             if ($path === '') continue;
-
-            $this->menu_images()->create([
+            $normalizedRows[] = [
                 'image_path' => $path,
-                'sort_order' => isset($row['sort_order']) && is_numeric($row['sort_order'])
-                    ? max(1, (int)$row['sort_order'])
-                    : $position,
+                'sort_order' => is_numeric($sortOrder) ? max(1, (int)$sortOrder) : (is_numeric($key) ? ((int)$key + 1) : 9999),
+            ];
+        }
+
+        usort($normalizedRows, function ($a, $b) {
+            return $a['sort_order'] <=> $b['sort_order'];
+        });
+
+        $this->menu_images()->delete();
+        foreach (array_values($normalizedRows) as $index => $row) {
+            $this->menu_images()->create([
+                'image_path' => $row['image_path'],
+                'sort_order' => $index + 1,
             ]);
-            $position++;
         }
     }
 

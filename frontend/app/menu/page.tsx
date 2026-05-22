@@ -2748,7 +2748,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
     >
       <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
         <OptimizedImage
-          src={item.image || "/placeholder.svg"}
+          src={item.image || (Array.isArray((item as any).images) ? (item as any).images[0] : "") || "/placeholder.svg"}
           alt={itemName}
           fill
           priority={prioritizeImage}

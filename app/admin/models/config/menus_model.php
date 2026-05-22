@@ -359,24 +359,16 @@ $config['form']['tabs'] = [
         ],
         'menu_images' => [
             'label' => 'Additional Images',
-            'type' => 'repeater',
+            'tab' => 'lang:admin::lang.menus.text_tab_general',
+            'type' => 'connector',
             'span' => 'full',
-            'prompt' => 'Add image',
+            'nameFrom' => 'image_path',
+            'formName' => 'Menu gallery image',
+            'form' => 'menu_images_model',
+            'popupSize' => 'modal-lg',
             'sortable' => true,
             'comment' => 'Optional ordered gallery images for frontend product modal rotation.',
-            'form' => [
-                'fields' => [
-                    'image_path' => [
-                        'label' => 'Image',
-                        'type' => 'mediafinder',
-                    ],
-                    'sort_order' => [
-                        'label' => 'Order',
-                        'type' => 'number',
-                        'default' => 1,
-                    ],
-                ],
-            ],
+            'context' => ['edit', 'preview'],
         ],
 
         '_options' => [
