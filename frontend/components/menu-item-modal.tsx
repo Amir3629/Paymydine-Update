@@ -13,6 +13,7 @@ import { FoodAttributeTags } from "@/components/food-attribute-tags"
 import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
 import { FoodItemColorDot } from "@/components/food-item-color-dot"
 import { createPortal } from "react-dom"
+import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
 
 interface MenuItemModalProps {
   item: MenuItem | null
@@ -216,7 +217,7 @@ const handleModalClose = (event?: any) => {
               </div>
 
               {/* Content */}
-              <h2 className="font-serif text-3xl font-bold text-paydine-elegant-gray mb-3 text-center">{itemName}</h2>
+              <h2 dir={getTextDirection(itemName)} className={`font-serif text-3xl font-bold text-paydine-elegant-gray mb-3 ${getTextAlignClass(itemName)}`}>{itemName}</h2>
               <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
                 <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
                 <FoodAttributeTags
@@ -228,7 +229,7 @@ const handleModalClose = (event?: any) => {
                   className="justify-center"
                 />
               </div>
-              <p className="text-gray-600 text-lg leading-relaxed text-center mb-4">{itemDescription}</p>
+              <p dir={getTextDirection(itemDescription)} className={`text-gray-600 text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
               <FoodNutritionSummary
                 calories={renderedItem?.calories}
                 protein={renderedItem?.protein}

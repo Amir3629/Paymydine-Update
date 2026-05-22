@@ -170,7 +170,7 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
 }
 
 // FIXED: Update getMenuData to return categoryNames from API
-export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[] }> {
+export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[], isFrontendConfigured: boolean }> {
   try {
     const menuResponse = await apiClient.getMenu()
     
@@ -197,10 +197,10 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
     
     const categories = Object.values(categoryGroups)
     
-    return { categories, menuItems, categoryNames }
+    return { categories, menuItems, categoryNames, isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false }
   } catch (error) {
     console.error('Failed to fetch menu data from API:', error)
-    return { categories: [], menuItems: [], categoryNames: [] }
+    return { categories: [], menuItems: [], categoryNames: [], isFrontendConfigured: true }
   }
 }
 

@@ -16,6 +16,8 @@ import { truncateText } from "@/lib/utils"
 import { FoodAttributeTags } from "@/components/food-attribute-tags"
 import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
 import { FoodItemColorDot } from "@/components/food-item-color-dot"
+import { ActionTooltip } from "@/components/action-tooltip"
+import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
 
 interface MenuItemCardProps {
   item: MenuItem
@@ -68,7 +70,7 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
         />
       </div>
       <div className="flex-grow">
-        <h3 className="font-serif text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
+        <h3 dir={getTextDirection(itemName)} className={`font-serif text-lg font-bold text-paydine-elegant-gray ${getTextAlignClass(itemName)}`}>{itemName}</h3>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <FoodAttributeTags
             halal={item.halal}
@@ -89,19 +91,23 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
             compact
           />
         </div>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
+        <p dir={getTextDirection(truncatedDescription)} className={`text-sm text-gray-500 mt-1 line-clamp-2 ${getTextAlignClass(truncatedDescription)}`}>{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
           <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price)}</p>
+          <ActionTooltip label="Add item">
           <Button
             size="icon"
             variant="ghost"
             className="rounded-full bg-paydine-rose-beige/50 hover:bg-paydine-champagne w-10 h-10"
             style={{ color: 'var(--theme-background)' }}
             onClick={handleAddToCart}
+            aria-label="Add item"
+            title="Add item"
           >
             <Plus className="h-5 w-5" style={{ color: 'var(--theme-background)', fill: 'var(--theme-background)' }} />
             <span className="sr-only">Add to cart</span>
           </Button>
+          </ActionTooltip>
         </div>
       </div>
     </motion.div>
