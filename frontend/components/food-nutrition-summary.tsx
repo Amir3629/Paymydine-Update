@@ -68,21 +68,21 @@ export function FoodNutritionSummary({
   }
 
   return (
-    <div className={cn("rounded-2xl border border-violet-100 bg-violet-50/60 p-3 text-left", className)}>
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-900">
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-violet-200 bg-white text-violet-700">
+    <div className={cn("rounded-2xl border border-neutral-200 bg-neutral-50/60 p-3 text-left", className)}>
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-neutral-800">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-600">
           <Flame className="h-4 w-4" aria-hidden="true" />
         </span>
-        Nutrition estimates
+        Nutrition
       </div>
-      <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 text-xs text-neutral-700 sm:grid-cols-3">
         {caloriesValue !== null && <NutritionPill label="Calories" value={`${caloriesValue} kcal`} />}
         {servingSize && <NutritionPill label="Serving" value={servingSize} />}
         {macros.map((macro) => (
           <NutritionPill key={macro.label} label={macro.label} value={macro.value!} />
         ))}
       </div>
-      <p className="mt-2 text-[11px] leading-snug text-slate-500">
+      <p className="mt-2 text-[11px] leading-snug text-neutral-500">
         Restaurant-provided estimates. Values may vary by portion size, ingredients, and preparation.
       </p>
     </div>
@@ -91,9 +91,9 @@ export function FoodNutritionSummary({
 
 function NutritionPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/80 bg-white/75 px-2 py-1.5">
-      <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="font-semibold text-slate-700">{value}</div>
+    <div className="rounded-xl border border-neutral-200 bg-white/90 px-2 py-1.5">
+      <div className="text-[10px] uppercase tracking-wide text-neutral-400">{label}</div>
+      <div className="font-semibold text-neutral-700">{value}</div>
     </div>
   )
 }

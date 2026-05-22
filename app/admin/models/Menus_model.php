@@ -56,6 +56,7 @@ class Menus_model extends Model
         'hasMany' => [
             'menu_options' => ['Admin\Models\Menu_item_options_model', 'delete' => true],
             'prices' => ['Admin\Models\Menu_prices_model', 'delete' => true],
+            'menu_images' => ['Admin\Models\Menu_images_model', 'delete' => true],
         ],
         'hasOne' => [
             'special' => ['Admin\Models\Menus_specials_model', 'delete' => true],
@@ -70,7 +71,7 @@ class Menus_model extends Model
         ],
     ];
 
-    protected $purgeable = ['menu_options', 'special', 'prices'];
+    protected $purgeable = ['menu_options', 'special', 'prices', 'menu_images'];
 
     public $mediable = ['thumb'];
 
@@ -242,6 +243,28 @@ class Menus_model extends Model
 
         if (array_key_exists('prices', $this->attributes))
             $this->addMenuPrices((array)$this->attributes['prices']);
+
+        if (array_key_exists('menu_images', $this->attributes))
+            $this->syncMenuImages((array)$this->attributes['menu_images']);
+    }
+
+    protected function syncMenuImages(array $rows): void
+    {
+        $this->menu_images()->delete();
+
+        $position = 1;
+        foreach ($rows as $row) {
+            $path = trim((string)($row['image_path'] ?? ''));
+            if ($path === '') continue;
+
+            $this->menu_images()->create([
+                'image_path' => $path,
+                'sort_order' => isset($row['sort_order']) && is_numeric($row['sort_order'])
+                    ? max(1, (int)$row['sort_order'])
+                    : $position,
+            ]);
+            $position++;
+        }
     }
 
     protected function beforeDelete()

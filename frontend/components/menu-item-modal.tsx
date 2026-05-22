@@ -80,7 +80,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
             </Button>
 
             <div className="p-6 overflow-y-auto max-h-[88vh]">
-              <div className="relative w-40 h-40 md:w-[220px] md:h-[220px] mx-auto mb-6">
+              <div className="relative w-full h-[200px] md:h-[260px] mb-6 rounded-2xl border border-neutral-200/70 bg-neutral-50/70">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`${item?.id}-${activeImageIndex}`}
@@ -88,13 +88,13 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0.25 }}
                     transition={{ duration: 0.45 }}
-                    className="absolute inset-0"
+                    className="absolute inset-0 p-3 md:p-4"
                   >
                     <OptimizedImage
                       src={getMenuImageUrl(itemImages[activeImageIndex] || item.image) || "/placeholder.svg"}
                       alt={itemName}
                       fill
-                      className="object-cover rounded-2xl"
+                      className="object-contain rounded-2xl"
                       style={{ objectPosition: "center" }}
                     />
                   </motion.div>
@@ -114,6 +114,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
                   className="justify-center"
                 />
               </div>
+              <p className="text-gray-600 text-lg leading-relaxed text-center mb-4">{itemDescription}</p>
               <FoodNutritionSummary
                 calories={item.calories}
                 protein={item.protein}
@@ -121,9 +122,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
                 fat={item.fat}
                 sugar={item.sugar}
                 servingSize={item.serving_size}
-                className="mb-4"
               />
-              <p className="text-gray-600 text-lg leading-relaxed text-center">{itemDescription}</p>
             </div>
           </motion.div>
         </motion.div>

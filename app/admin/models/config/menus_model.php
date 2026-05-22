@@ -357,6 +357,27 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'useAttachment' => true,
         ],
+        'menu_images' => [
+            'label' => 'Additional Images',
+            'type' => 'repeater',
+            'span' => 'full',
+            'prompt' => 'Add image',
+            'sortable' => true,
+            'comment' => 'Optional ordered gallery images for frontend product modal rotation.',
+            'form' => [
+                'fields' => [
+                    'image_path' => [
+                        'label' => 'Image',
+                        'type' => 'mediafinder',
+                    ],
+                    'sort_order' => [
+                        'label' => 'Order',
+                        'type' => 'number',
+                        'default' => 1,
+                    ],
+                ],
+            ],
+        ],
 
         '_options' => [
             'label' => 'lang:admin::lang.menus.label_option',
