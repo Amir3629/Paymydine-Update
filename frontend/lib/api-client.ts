@@ -14,6 +14,9 @@ export interface MenuItem {
   descriptionKey?: string;
   price: number;
   image: string;
+  images?: string[];
+  gallery?: string[];
+  media?: Array<{ url?: string; image?: string; src?: string }>;
   category_id?: number;
   category_name?: string;
   calories?: number | null;

@@ -223,9 +223,6 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             </motion.div>
             <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-primary)' }}>
               {t("menuCard")}
-              <span className="block text-sm font-normal mt-1" style={{ color: 'var(--theme-accent)' }}>
-                {t("menuCardDescription") || "Browse our menu"}
-              </span>
             </h2>
           </motion.div>
         </MotionLink>
@@ -272,9 +269,6 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             </motion.div>
             <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-primary)' }}>
               {t("valetParking")}
-              <span className="block text-sm font-normal mt-1" style={{ color: 'var(--theme-accent)' }}>
-                {t("valetParkingDescription") || "Valet service"}
-              </span>
             </h2>
           </motion.div>
         </MotionLink>
