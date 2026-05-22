@@ -358,10 +358,10 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 
 /* PMD_FINAL_TINY_GALLERY_X_START */
 #menu-inline-gallery .menu-inline-gallery__remove-overlay {
-    width: 26px !important;
-    height: 26px !important;
-    min-width: 26px !important;
-    min-height: 26px !important;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
     top: 8px !important;
     right: 8px !important;
     border-radius: 999px !important;
@@ -728,7 +728,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
         if ($.ti && $.ti.mediaManager && $.ti.mediaManager.modal) {
             new $.ti.mediaManager.modal({
                 alias: 'mediamanager',
-                selectMode: 'single',
+                selectMode: 'multi',
                 chooseButton: true,
                 chooseButtonText: 'Select',
                 onInsert: function(items) {
@@ -737,23 +737,30 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
                         return;
                     }
 
-                    var selected = items[0];
-                    var holder = null;
+                    var selectedCollection = Array.isArray(items) ? items : [items];
+                    var addedCount = 0;
 
-                    try {
-                        holder = $(selected).closest('.media-item');
-                    } catch (e) {
-                        holder = $();
-                    }
+                    selectedCollection.forEach(function(selected) {
+                        var holder = null;
 
-                    var media = normalizeSelectedMedia(items, selected, holder);
+                        try {
+                            holder = $(selected).closest('.media-item');
+                        } catch (e) {
+                            holder = $();
+                        }
 
-                    if (!media.path) {
+                        var media = normalizeSelectedMedia(selectedCollection, selected, holder);
+
+                        if (media.path) {
+                            appendImage(media.path, media.publicUrl);
+                            addedCount++;
+                        }
+                    });
+
+                    if (!addedCount) {
                         flashError('Could not read selected image path. Check console for PMD inline gallery debug output.');
                         return;
                     }
-
-                    appendImage(media.path, media.publicUrl);
 
                     if (this.hide) this.hide();
                 }

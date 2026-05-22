@@ -39,7 +39,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   const closeTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (item) {
+    if (item && !isLocallyClosed) {
       if (closeTimerRef.current) {
         window.clearTimeout(closeTimerRef.current)
         closeTimerRef.current = null
@@ -54,7 +54,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
       setRenderedItem(null)
       setActiveImageIndex(0)
       closeTimerRef.current = null
-    }, 250)
+    }, 320)
 
     return () => {
       if (closeTimerRef.current) {
@@ -62,7 +62,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
         closeTimerRef.current = null
       }
     }
-  }, [renderedItem])
+  }, [item, isLocallyClosed])
 
   const itemName = renderedItem ? t(renderedItem.nameKey as TranslationKey) || renderedItem.name : ""
   const itemDescription = renderedItem ? t(renderedItem.descriptionKey as TranslationKey) || renderedItem.description : ""
@@ -84,6 +84,16 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   useEffect(() => {
     setActiveImageIndex(0)
   }, [renderedItem?.id])
+
+  useEffect(() => {
+    if (!renderedItem) return
+    console.info("PMD_MODAL_GALLERY_IMAGES", {
+      id: (renderedItem as any)?.id || (renderedItem as any)?.menu_id,
+      name: renderedItem?.name,
+      count: itemImages.length,
+      images: itemImages,
+    })
+  }, [renderedItem, itemImages])
 
   useEffect(() => {
     if (!isVisible || !renderedItem || itemImages.length <= 1) return
@@ -139,7 +149,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: isVisible ? 1 : 0.97, y: isVisible ? 0 : 8, opacity: isVisible ? 1 : 0 }}
             exit={{ scale: 0.97, y: 8, opacity: 0 }}
-            transition={{ duration: 0.322, ease: "easeOut" }}
+            transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
             className="relative surface rounded-3xl shadow-2xl w-full max-w-xl max-h-[88vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
@@ -158,10 +168,10 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`${renderedItem?.id}-${activeImageIndex}`}
-                    initial={{ opacity: 0.25 }}
+                    initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    exit={{ opacity: 0.25 }}
-                    transition={{ duration: 0.45 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.55, ease: "easeInOut" }}
                     className="absolute inset-0 p-2 md:p-3 flex items-center justify-center"
                   >
                     <OptimizedImage
