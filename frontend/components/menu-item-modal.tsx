@@ -22,6 +22,19 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   const { t } = useLanguageStore()
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [renderedItem, setRenderedItem] = useState<MenuItem | null>(item)
+  const [isLocallyClosed, setIsLocallyClosed] = useState(false)
+
+  // PMD_MODAL_OPEN_SYNC_FIX_START
+  // The modal component can mount with item=null and later receive the clicked item.
+  // Keep renderedItem in sync so clicking a food item always opens the detail card.
+  useEffect(() => {
+    if (item) {
+      setIsLocallyClosed(false)
+      setRenderedItem(item)
+      setActiveImageIndex(0)
+    }
+  }, [item])
+  // PMD_MODAL_OPEN_SYNC_FIX_END
   const [isVisible, setIsVisible] = useState(Boolean(item))
   const closeTimerRef = useRef<number | null>(null)
 
@@ -80,15 +93,25 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
     return () => window.clearInterval(timer)
   }, [isVisible, renderedItem, itemImages])
 
+  // PMD_MODAL_CLOSE_LOCAL_STATE_FIX_START
+  const isModalOpen = Boolean(item && renderedItem && !isLocallyClosed)
+
+  const handleModalClose = (event?: any) => {
+    event?.stopPropagation?.()
+    setIsLocallyClosed(true)
+    onClose()
+  }
+  // PMD_MODAL_CLOSE_LOCAL_STATE_FIX_END
+
   return (
     <AnimatePresence>
-      {renderedItem && (
+      {isModalOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: isVisible ? 1 : 0 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={onClose}
+          onClick={handleModalClose}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
@@ -102,7 +125,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={handleModalClose}
               className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white/90 rounded-full shadow-lg border border-white/20"
             >
               <X className="h-5 w-5 text-gray-600" />
