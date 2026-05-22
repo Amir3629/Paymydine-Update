@@ -360,15 +360,15 @@ $config['form']['tabs'] = [
         'menu_images' => [
             'label' => 'Additional Images',
             'tab' => 'lang:admin::lang.menus.text_tab_general',
-            'type' => 'connector',
+            'type' => 'recordeditor',
             'span' => 'full',
-            'nameFrom' => 'image_path',
-            'formName' => 'Menu gallery image',
             'form' => 'menu_images_model',
+            'modelClass' => 'Admin\Models\Menu_images_model',
+            'prompt' => 'Add image',
+            'formName' => 'Menu gallery image',
             'popupSize' => 'modal-lg',
-            'sortable' => true,
-            'comment' => 'Optional ordered gallery images for frontend product modal rotation.',
             'context' => ['edit', 'preview'],
+            'comment' => 'Optional ordered gallery images for frontend product modal rotation.',
         ],
 
         '_options' => [
