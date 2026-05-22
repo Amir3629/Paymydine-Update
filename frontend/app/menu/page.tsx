@@ -2698,7 +2698,7 @@ case "cod":
   )
 }
 
-function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: MenuItem; onSelect: (item: MenuItem) => void; onFirstAdd: () => void }) {
+function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeImage = false }: { item: MenuItem; onSelect: (item: MenuItem) => void; onFirstAdd: () => void; prioritizeImage?: boolean }) {
   const addToCart = useCartStore((state) => state.addToCart)
   const { items } = useCartStore()
   const { t } = useLanguageStore()
@@ -2748,9 +2748,10 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
     >
       <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
         <OptimizedImage
-          src={item.image || "/placeholder.svg"}
+          src={item.image || (Array.isArray((item as any).images) ? (item as any).images[0] : "") || "/placeholder.svg"}
           alt={itemName}
           fill
+          priority={prioritizeImage}
           className="object-contain transition-transform duration-700 ease-in-out group-hover:scale-110"
         />
       </div>
@@ -3135,16 +3136,13 @@ const EnhancedWaiterDialog = ({
   const [showSuccess, setShowSuccess] = useState(false)
 
   const handleConfirm = async () => {
-    if (!tableId) {
-      toast({ title: 'Error', description: 'Missing table_id', variant: 'destructive' });
-      return;
-    }
     // Backend needs a non-empty string; use "." when user leaves it blank
     const msg = '.';
-    console.debug('[waiter-call] payload', { tableId: tableId, msg });
+    const resolvedTableId = tableId || "delivery";
+    console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? "table" : "delivery_menu" });
     try {
-      await apiClient.callWaiter(String(tableId), msg);
-      toast({ title: 'Waiter Called', description: 'We are on the way!' });
+      await apiClient.callWaiter(String(resolvedTableId), msg);
+      toast({ title: 'Waiter Called', description: tableId ? 'We are on the way!' : 'We received your assistance request.' });
     } catch (e: any) {
       toast({ title: 'Error', description: (e?.message || 'Failed to call waiter'), variant: 'destructive' });
       throw e;
@@ -3475,6 +3473,11 @@ function MenuContent() {
   }, [existingOrderId, items])
 
   const searchParams = useSearchParams()
+  const MENU_CACHE_TTL_MS = 5 * 60 * 1000
+  const getMenuCacheKey = () => {
+    if (typeof window === "undefined") return ""
+    return `pmd-menu-cache:${window.location.host}:${window.location.pathname}?${window.location.search}`
+  }
 
   useEffect(() => {
     __pmdWalletDebugInstallOnce()
@@ -3535,6 +3538,27 @@ useEffect(() => {
       try {
         setIsLoading(true)
         console.log('Loading menu data...')
+        const cacheKey = getMenuCacheKey()
+        if (cacheKey) {
+          try {
+            const rawCache = localStorage.getItem(cacheKey)
+            if (rawCache) {
+              const parsed = JSON.parse(rawCache)
+              const isFresh = parsed?.timestamp && (Date.now() - Number(parsed.timestamp) < MENU_CACHE_TTL_MS)
+              if (isFresh) {
+                setApiMenuItems(Array.isArray(parsed.items) ? parsed.items : [])
+                setDynamicCategories(Array.isArray(parsed.categories) ? parsed.categories : [])
+                console.info("PMD_MENU_CACHE_HIT")
+              } else {
+                console.info("PMD_MENU_CACHE_MISS")
+              }
+            } else {
+              console.info("PMD_MENU_CACHE_MISS")
+            }
+          } catch {
+            console.info("PMD_MENU_CACHE_MISS")
+          }
+        }
         
         // Check if we have table parameters - prefer table_no
         const table_id = searchParams.get("table_id")
@@ -3646,6 +3670,14 @@ useEffect(() => {
         
         setApiMenuItems(menuResult.menuItems)
         setDynamicCategories(menuResult.categoryNames)
+        if (cacheKey) {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            categories: menuResult.categoryNames,
+            items: menuResult.menuItems,
+            timestamp: Date.now(),
+          }))
+          console.info("PMD_MENU_CACHE_REFRESHED")
+        }
         
       } catch (error) {
         console.error('Failed to load menu data:', error)
@@ -3759,11 +3791,6 @@ useEffect(() => {
     }
   }
   const handleSendNote = async () => {
-    if (!tableIdString) { 
-      toast({ title: 'Error', description: 'Missing table_id', variant: 'destructive' }); 
-      return; 
-    }
-
     const trimmedNote = (note ?? '').trim();
     if (!trimmedNote) {
       toast({ 
@@ -3784,9 +3811,10 @@ useEffect(() => {
       return;
     }
 
-    console.debug('[table-note] payload', { tableId: tableIdString, note: trimmedNote });
+    const resolvedTableId = tableIdString || "delivery"
+    console.debug('[table-note] payload', { tableId: resolvedTableId, note: trimmedNote, source: tableIdString ? "table" : "delivery_menu" });
     try {
-      await apiClient.callTableNote(String(tableIdString), trimmedNote, new Date().toISOString());
+      await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString());
       setNote("")
       setNoteModalOpen(false)
       toast({
@@ -3833,12 +3861,13 @@ useEffect(() => {
           />
           <section className="w-full mb-12">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4">
-              {filteredItems.map((item: MenuItem) => (
+              {filteredItems.map((item: MenuItem, index: number) => (
                 <ExpandingToolbarMenuItemCard
                   key={item.id}
                   item={item}
                   onSelect={handleItemSelect}
                   onFirstAdd={() => handleFirstAdd(item)}
+                  prioritizeImage={index < 4}
                 />
               ))}
             </div>
@@ -3874,8 +3903,8 @@ useEffect(() => {
         onCartClick={handleCartClick}
         onWaiterClick={tableIdString ? handleWaiterClick : undefined}
         onNoteClick={tableIdString ? handleNoteClick : undefined}
-        waiterDisabled={!tableIdString}
-        noteDisabled={!tableIdString}
+        waiterDisabled={false}
+        noteDisabled={false}
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
       />

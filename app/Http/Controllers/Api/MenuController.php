@@ -55,6 +55,7 @@ class MenuController extends Controller
             ";
             
             $items = DB::select($query);
+            $menuImagesByMenuId = $this->getOrderedMenuImagesByMenuIds(array_map(fn($menu) => (int)$menu->id, $items));
             
             // Convert prices to float, fix image paths, and add options
             foreach ($items as &$item) {
@@ -75,6 +76,7 @@ class MenuController extends Controller
                 // Mark as regular menu item (not a combo)
                 $item->isCombo = false;
                 $item->comboId = null;
+                $item->images = $menuImagesByMenuId[(int)$item->id] ?? [];
                 
                 // Fetch menu options for this item
                 $item->options = $this->getMenuItemOptions($item->id);
@@ -180,6 +182,33 @@ class MenuController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function getOrderedMenuImagesByMenuIds(array $menuIds): array
+    {
+        if (empty($menuIds) || !Schema::hasTable('menu_images')) {
+            return [];
+        }
+
+        $rows = DB::table('menu_images')
+            ->whereIn('menu_id', $menuIds)
+            ->orderBy('menu_id')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['menu_id', 'image_path']);
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $url = trim((string)$row->image_path);
+            if ($url === '') {
+                continue;
+            }
+            if (!str_starts_with($url, '/api/media/')) {
+                $url = '/api/media/'.$url;
+            }
+            $grouped[(int)$row->menu_id][] = $url;
+        }
+        return $grouped;
     }
 
     /**

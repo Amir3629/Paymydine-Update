@@ -199,14 +199,7 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
   return (
     <div className={cn("relative w-full", className)}>
       <div className="absolute left-2 md:left-4 top-4">
-        {isHomePage ? (
-          <Link href={homeUrl}>
-            <Button variant="ghost" size="sm" className="text-paydine-elegant-gray hover:text-paydine-rose-beige">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-          </Link>
-        ) : (
+        {isHomePage ? null : (
           <Link href={homeUrl}>
             <Button variant="ghost" size="sm" className="text-paydine-elegant-gray hover:text-paydine-rose-beige">
               <ArrowLeft className="h-4 w-4 mr-1" />

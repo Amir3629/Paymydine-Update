@@ -56,6 +56,7 @@ class Menus_model extends Model
         'hasMany' => [
             'menu_options' => ['Admin\Models\Menu_item_options_model', 'delete' => true],
             'prices' => ['Admin\Models\Menu_prices_model', 'delete' => true],
+            'menu_images' => ['Admin\Models\Menu_images_model', 'delete' => true],
         ],
         'hasOne' => [
             'special' => ['Admin\Models\Menus_specials_model', 'delete' => true],
@@ -70,7 +71,7 @@ class Menus_model extends Model
         ],
     ];
 
-    protected $purgeable = ['menu_options', 'special', 'prices'];
+    protected $purgeable = ['menu_options', 'special', 'prices', 'menu_images'];
 
     public $mediable = ['thumb'];
 
@@ -242,6 +243,50 @@ class Menus_model extends Model
 
         if (array_key_exists('prices', $this->attributes))
             $this->addMenuPrices((array)$this->attributes['prices']);
+
+        if (array_key_exists('menu_images', $this->attributes))
+            $this->syncMenuImages((array)$this->attributes['menu_images']);
+    }
+
+    protected function syncMenuImages(array $rows): void
+    {
+        $normalizedRows = [];
+        foreach ($rows as $key => $row) {
+            $path = '';
+            $sortOrder = null;
+
+            if (is_string($row)) {
+                $path = trim($row);
+            } elseif (is_array($row)) {
+                $imagePathRaw = $row['image_path'] ?? $row['path'] ?? '';
+                if (is_array($imagePathRaw)) {
+                    $imagePathRaw = $imagePathRaw['path'] ?? $imagePathRaw['value'] ?? reset($imagePathRaw);
+                }
+                $path = trim((string)$imagePathRaw);
+                $sortOrder = $row['sort_order'] ?? $row['order'] ?? $row['position'] ?? null;
+            } elseif (is_object($row)) {
+                $path = trim((string)($row->image_path ?? $row->path ?? ''));
+                $sortOrder = $row->sort_order ?? null;
+            }
+
+            if ($path === '') continue;
+            $normalizedRows[] = [
+                'image_path' => $path,
+                'sort_order' => is_numeric($sortOrder) ? max(1, (int)$sortOrder) : (is_numeric($key) ? ((int)$key + 1) : 9999),
+            ];
+        }
+
+        usort($normalizedRows, function ($a, $b) {
+            return $a['sort_order'] <=> $b['sort_order'];
+        });
+
+        $this->menu_images()->delete();
+        foreach (array_values($normalizedRows) as $index => $row) {
+            $this->menu_images()->create([
+                'image_path' => $row['image_path'],
+                'sort_order' => $index + 1,
+            ]);
+        }
     }
 
     protected function beforeDelete()
