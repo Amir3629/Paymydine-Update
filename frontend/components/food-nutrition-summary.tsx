@@ -53,7 +53,7 @@ export function FoodNutritionSummary({
     return (
       <div className={cn("flex flex-wrap items-center gap-1.5", className)} aria-label="Nutrition estimates">
         {caloriesValue !== null && (
-          <span className="inline-flex h-6 items-center rounded-full bg-black/5 px-2 text-[11px] font-medium text-neutral-600" title="Estimated calories per serving" aria-label={`Estimated calories: ${caloriesValue} kcal`}>{caloriesValue} kcal</span>
+          <span className="inline-flex h-6 items-center rounded-full bg-black/5 px-2 text-[11px] font-medium text-neutral-700" title="Estimated calories per serving" aria-label={`Estimated calories: ${caloriesValue} kcal`}>{caloriesValue} kcal</span>
         )}
       </div>
     )
@@ -65,13 +65,13 @@ export function FoodNutritionSummary({
   ].filter(Boolean)
 
   return (
-    <div className={cn("text-left text-sm text-neutral-500", className)}>
+    <div className={cn("text-left text-sm text-neutral-700", className)}>
       <p className="leading-relaxed">
-        <span className="font-medium text-neutral-600">Nutrition</span>
+        <span className="font-medium text-neutral-700">Nutrition</span>
         {facts.length > 0 ? ` · ${facts.join(" · ")}` : ""}
       </p>
-      {servingSize ? <p className="mt-1 text-xs text-neutral-400">Serving: {servingSize}</p> : null}
-      <p className="mt-1 text-[10px] text-neutral-400">Estimated values. Actual values may vary.</p>
+      {servingSize ? <p className="mt-1 text-xs text-neutral-700">Serving: {servingSize}</p> : null}
+      <p className="mt-1 text-[10px] text-neutral-700">Estimated values. Actual values may vary.</p>
     </div>
   )
 }

@@ -12,6 +12,7 @@ import type { TranslationKey } from "@/lib/translations"
 import { FoodAttributeTags } from "@/components/food-attribute-tags"
 import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
 import { FoodItemColorDot } from "@/components/food-item-color-dot"
+import { createPortal } from "react-dom"
 
 interface MenuItemModalProps {
   item: MenuItem | null
@@ -23,6 +24,13 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [renderedItem, setRenderedItem] = useState<MenuItem | null>(item)
   const [isLocallyClosed, setIsLocallyClosed] = useState(false)
+  const [isPortalMounted, setIsPortalMounted] = useState(false)
+
+  // PMD_MODAL_PORTAL_MOUNT_START
+  useEffect(() => {
+    setIsPortalMounted(true)
+  }, [])
+  // PMD_MODAL_PORTAL_MOUNT_END
 
   // PMD_MODAL_OPEN_SYNC_FIX_START
   // The modal component can mount with item=null and later receive the clicked item.
@@ -39,7 +47,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   const closeTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (item) {
+    if (item && !isLocallyClosed) {
       if (closeTimerRef.current) {
         window.clearTimeout(closeTimerRef.current)
         closeTimerRef.current = null
@@ -54,7 +62,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
       setRenderedItem(null)
       setActiveImageIndex(0)
       closeTimerRef.current = null
-    }, 250)
+    }, 320)
 
     return () => {
       if (closeTimerRef.current) {
@@ -62,7 +70,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
         closeTimerRef.current = null
       }
     }
-  }, [renderedItem])
+  }, [item, isLocallyClosed])
 
   const itemName = renderedItem ? t(renderedItem.nameKey as TranslationKey) || renderedItem.name : ""
   const itemDescription = renderedItem ? t(renderedItem.descriptionKey as TranslationKey) || renderedItem.description : ""
@@ -86,10 +94,22 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   }, [renderedItem?.id])
 
   useEffect(() => {
+    if (!renderedItem) return
+    console.info("PMD_MODAL_GALLERY_IMAGES", {
+      id: (renderedItem as any)?.id || (renderedItem as any)?.menu_id,
+      name: renderedItem?.name,
+      count: itemImages.length,
+      images: itemImages,
+    })
+  }, [renderedItem, itemImages])
+
+  useEffect(() => {
     if (!isVisible || !renderedItem || itemImages.length <= 1) return
-    const timer = window.setInterval(() => {
+    const timer = // PMD_SLOW_GALLERY_ROTATION_FIX_START
+    window.setInterval(() => {
       setActiveImageIndex((prev) => (prev + 1) % itemImages.length)
-    }, 3000)
+    }, 5000)
+    // PMD_SLOW_GALLERY_ROTATION_FIX_END
     return () => window.clearInterval(timer)
   }, [isVisible, renderedItem, itemImages])
 
@@ -107,7 +127,25 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
 // PMD_MODAL_CLOSE_LOCAL_STATE_FIX_START
   const isModalOpen = Boolean(item && renderedItem && !isLocallyClosed)
 
-  const handleModalClose = (event?: any) => {
+  
+  // PMD_FOOD_MODAL_BODY_SCROLL_LOCK_START
+  useEffect(() => {
+    if (!isModalOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    const previousOverscroll = document.body.style.overscrollBehavior
+
+    document.body.style.overflow = "hidden"
+    document.body.style.overscrollBehavior = "none"
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.overscrollBehavior = previousOverscroll
+    }
+  }, [isModalOpen])
+  // PMD_FOOD_MODAL_BODY_SCROLL_LOCK_END
+
+const handleModalClose = (event?: any) => {
     event?.stopPropagation?.()
 
     if (isLocallyClosed) return
@@ -125,22 +163,24 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   }
   // PMD_MODAL_CLOSE_LOCAL_STATE_FIX_END
 
-  return (
+  if (!isPortalMounted) return null
+
+  return createPortal(
     <AnimatePresence>
       {isModalOpen && (
-        <motion.div
+        <motion.div data-pmd-food-modal-overlay="true" data-pmd-overlay-fix="no-scale-fullscreen"
           initial={{ opacity: 0 }}
-          animate={{ opacity: isVisible ? 1 : 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed -inset-8 z-[999999] flex h-[calc(100dvh+4rem)] min-h-[calc(100vh+4rem)] w-[calc(100vw+4rem)] max-w-none items-center justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-lg overscroll-contain"
           onClick={handleModalClose}
-        >
+         style={{ position: "fixed", inset: "-32px", width: "calc(100vw + 64px)", height: "calc(100dvh + 64px)", minHeight: "calc(100vh + 64px)", maxWidth: "none", transformOrigin: "center center" }} transition={{ duration: 0.35, ease: "easeOut" }}>
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: isVisible ? 1 : 0.97, y: isVisible ? 0 : 8, opacity: isVisible ? 1 : 0 }}
             exit={{ scale: 0.97, y: 8, opacity: 0 }}
-            transition={{ duration: 0.322, ease: "easeOut" }}
-            className="relative surface rounded-3xl shadow-2xl w-full max-w-xl max-h-[88vh] overflow-hidden"
+            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+            className="relative surface rounded-3xl shadow-2xl w-full max-w-xl max-h-[90dvh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
@@ -153,15 +193,15 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
               <X className="h-5 w-5 text-gray-600" />
             </Button>
 
-            <div className="p-6 overflow-y-auto max-h-[88vh]">
+            <div className="p-6 overflow-y-auto overscroll-contain max-h-[90dvh]">
               <div className="relative w-full h-[180px] md:h-[230px] mb-6 rounded-2xl overflow-hidden flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`${renderedItem?.id}-${activeImageIndex}`}
-                    initial={{ opacity: 0.25 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0.25 }}
-                    transition={{ duration: 0.45 }}
+                    initial={{ opacity: 0, scale: 0.985 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.015 }}
+                    transition={{ duration: 1.15, ease: "easeInOut" }}
                     className="absolute inset-0 p-2 md:p-3 flex items-center justify-center"
                   >
                     <OptimizedImage
@@ -201,6 +241,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

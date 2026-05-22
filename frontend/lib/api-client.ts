@@ -1003,25 +1003,63 @@ export const apiClient = new ApiClient();
 // This helper returns a usable image URL (or empty string if missing).
 export function getMenuImageUrl(image: string | null | undefined): string {
   if (!image) return ""
-  const s = String(image).trim()
-  if (!s) return ""
 
-  // If already absolute URL, return as-is
-  if (/^https?:\/\//i.test(s)) return s
+  const raw = String(image).trim()
+  if (!raw) return ""
 
-  // Normalize slashes
-  const clean = s.replace(/^\/+/, "")
-
-  // If it already looks like a known public path, keep it
-  if (
-    clean.startsWith("storage/") ||
-    clean.startsWith("uploads/") ||
-    clean.startsWith("images/") ||
-    clean.startsWith("media/")
-  ) {
-    return "/" + clean
+  // PMD_FORCE_GET_MENU_IMAGE_URL_FIX_START
+  // Backend gallery images now arrive as /assets/media/uploads/...
+  // Keep those paths EXACTLY as media URLs. Never prefix them with /storage.
+  if (/^https?:\/\//i.test(raw)) {
+    return raw
   }
 
-  // Default: many setups expose uploaded images under /storage/...
-  return "/storage/" + clean
+  if (raw.startsWith("/assets/media/")) {
+    return raw
+  }
+
+  if (raw.startsWith("assets/media/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/api/media/")) {
+    return raw
+  }
+
+  if (raw.startsWith("api/media/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/storage/")) {
+    // Keep existing true storage URLs, but do not create /storage/assets...
+    return raw
+  }
+
+  if (raw.startsWith("storage/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/attachments/public/")) {
+    return `/assets/media${raw}`
+  }
+
+  if (raw.startsWith("attachments/public/")) {
+    return `/assets/media/${raw}`
+  }
+
+  if (raw.startsWith("/uploads/")) {
+    return `/assets/media${raw}`
+  }
+
+  if (raw.startsWith("uploads/")) {
+    return `/assets/media/${raw}`
+  }
+
+  // Plain filenames from ti_menu_images, e.g. ata.webp
+  if (/\.(png|jpe?g|webp|gif|svg)(\?|#)?$/i.test(raw)) {
+    return `/assets/media/uploads/${raw}`
+  }
+
+  return raw
+  // PMD_FORCE_GET_MENU_IMAGE_URL_FIX_END
 }

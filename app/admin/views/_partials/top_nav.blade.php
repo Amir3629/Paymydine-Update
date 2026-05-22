@@ -129,8 +129,8 @@ if (!empty($imgSrcDashboard)) {
     }
     
     if ($isInvalid) {
-        DB::table('logos')->update(['dashboard_logo' => null]);
-        DB::table('settings')->where('item', 'dashboard_logo')->update(['value' => '']);
+        // PMD disabled: never clear dashboard_logo during navbar render.
+        // PMD disabled: never clear dashboard_logo setting during navbar render.
         $imgSrcDashboard = null;
     }
 }
@@ -138,7 +138,87 @@ if (!empty($imgSrcDashboard)) {
 @if(AdminAuth::isLogged())
     <nav class="navbar navbar-top navbar-expand navbar-fixed-top" role="navigation">
         <div class="container-fluid">
-            <div class="navbar-brand" style="height:88px;">
+            
+<?php
+// PMD_TOPLEFT_DASHBOARD_LOGO_RENDER_FINAL_START
+// Final source of truth for top-left dashboard logo.
+// Read from tenant DB by host. Never fallback to site_logo/images.jpeg/images.png.
+try {
+    $pmdHost = (string)request()->getHost();
+    $pmdTenant = strtolower(explode('.', $pmdHost)[0] ?? '');
+    $pmdBadLogoNames = ['images.jpeg', 'image.jpeg', 'images.jpg', 'image.jpg', 'images.png', 'image.png'];
+
+    $pmdNormalizeTopLeftDashboardLogo = function ($value) use ($pmdTenant, $pmdBadLogoNames) {
+        $value = trim((string)$value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $pathForName = parse_url($value, PHP_URL_PATH) ?: $value;
+        $baseName = strtolower(basename($pathForName));
+
+        if (in_array($baseName, $pmdBadLogoNames, true)) {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $value)) {
+            return $value;
+        }
+
+        $value = ltrim($value, '/');
+
+        if (strpos($value, 'assets/media/') === 0) {
+            return 'https://' . $pmdTenant . '.paymydine.com/' . $value;
+        }
+
+        if (strpos($value, 'uploads/') === 0) {
+            return 'https://' . $pmdTenant . '.paymydine.com/assets/media/' . $value;
+        }
+
+        if (strpos($value, 'attachments/public/') === 0) {
+            return 'https://' . $pmdTenant . '.paymydine.com/assets/media/' . $value;
+        }
+
+        return 'https://' . $pmdTenant . '.paymydine.com/assets/media/uploads/' . $value;
+    };
+
+    $pmdValue = '';
+
+    if ($pmdTenant !== '' && !in_array($pmdTenant, ['www', 'paymydine'], true) && preg_match('/^[A-Za-z0-9_]+$/', $pmdTenant)) {
+        $schemaExists = DB::selectOne(
+            'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ? LIMIT 1',
+            [$pmdTenant]
+        );
+
+        if ($schemaExists) {
+            $safeDb = str_replace('`', '``', $pmdTenant);
+
+            $row = DB::selectOne(
+                "SELECT value FROM `{$safeDb}`.`ti_settings` WHERE item = ? ORDER BY setting_id DESC LIMIT 1",
+                ['dashboard_logo']
+            );
+
+            $pmdValue = $row ? trim((string)$row->value) : '';
+
+            if ($pmdValue === '') {
+                $row = DB::selectOne(
+                    "SELECT dashboard_logo FROM `{$safeDb}`.`ti_logos` ORDER BY id DESC LIMIT 1"
+                );
+
+                $pmdValue = $row ? trim((string)$row->dashboard_logo) : '';
+            }
+        }
+    }
+
+    $imgSrcDashboard = $pmdNormalizeTopLeftDashboardLogo($pmdValue);
+} catch (\Throwable $e) {
+    $imgSrcDashboard = '';
+}
+// PMD_TOPLEFT_DASHBOARD_LOGO_RENDER_FINAL_END
+?>
+
+<div class="navbar-brand" style="height:88px;">
                 <a class="logo" href="{{ admin_url('dashboard') }}" style="margin-left: 44px; margin-top: 4px;">
                     @if(!empty($imgSrcDashboard))
                         <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" class="pmd-dashboard-logo-img" style="max-height: 76px; max-width: 340px; width: auto; height: auto; object-fit: contain;">

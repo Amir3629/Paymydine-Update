@@ -1,4 +1,92 @@
 <?php
+
+// PMD_MENU_GALLERY_IMAGES_HELPERS_START
+if (!function_exists('pmd_menu_gallery_image_url')) {
+    function pmd_menu_gallery_image_url($path) {
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        $path = ltrim($path, '/');
+
+        if (strpos($path, 'api/media/') === 0) {
+            return '/'.$path;
+        }
+
+        if (strpos($path, 'assets/media/') === 0) {
+            return '/'.$path;
+        }
+
+        if (strpos($path, 'attachments/public/') === 0) {
+            return '/assets/media/'.$path;
+        }
+
+        if (strpos($path, 'uploads/') === 0) {
+            return '/assets/media/'.$path;
+        }
+
+        return '/assets/media/uploads/'.$path;
+    }
+}
+
+if (!function_exists('pmd_menu_gallery_images_for_id')) {
+    function pmd_menu_gallery_images_for_id($menuId) {
+        static $galleryByMenuId = null;
+
+        if ($galleryByMenuId === null) {
+            $galleryByMenuId = [];
+
+            try {
+                if (!\Schema::hasTable('menu_images')) {
+                    return [];
+                }
+
+                $rows = \DB::table('menu_images')
+                    ->select('menu_id', 'image_path')
+                    ->whereNotNull('image_path')
+                    ->orderBy('menu_id')
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $url = pmd_menu_gallery_image_url($row->image_path ?? '');
+
+                    if (!$url) {
+                        continue;
+                    }
+
+                    $id = (int)$row->menu_id;
+
+                    if (!isset($galleryByMenuId[$id])) {
+                        $galleryByMenuId[$id] = [];
+                    }
+
+                    if (!in_array($url, $galleryByMenuId[$id], true)) {
+                        $galleryByMenuId[$id][] = $url;
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error('PMD /api/v1/menu gallery load failed', [
+                    'error' => $e->getMessage(),
+                ]);
+
+                $galleryByMenuId = [];
+            }
+        }
+
+        return $galleryByMenuId[(int)$menuId] ?? [];
+    }
+}
+// PMD_MENU_GALLERY_IMAGES_HELPERS_END
+
+
 require_once __DIR__.'/routes_sumup.php';
 
 // Helper function to get menu item options
@@ -339,6 +427,11 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             $item->isCombo = false;
                             $item->comboId = null;
                             // Fetch menu options for this item (uses default connection = tenant)
+                            // PMD_MENU_GALLERY_IMAGES_RESPONSE_START
+                            $item->images = pmd_menu_gallery_images_for_id((int)$item->id);
+                            $item->gallery = $item->images;
+                            $item->media = $item->images;
+                            // PMD_MENU_GALLERY_IMAGES_RESPONSE_END
                             $item->options = getMenuItemOptions($item->id);
                         }
                         
