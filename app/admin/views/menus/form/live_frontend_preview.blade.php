@@ -1,0 +1,9 @@
+<div id="pmd-live-preview" style="position:sticky;top:12px;border:1px solid #ddd;border-radius:12px;padding:10px;background:#fff">
+  <details open><summary><strong>Live Frontend Preview</strong></summary>
+  <img id="pmd-prev-img" src="{{ ($formModel->getThumb() ?: url('/app/admin/assets/images/default-image.png')) }}" style="width:100%;height:140px;object-fit:contain;background:#f7f7f7;border-radius:8px">
+  <h5 id="pmd-prev-name" style="text-align:center;margin-top:8px">{{ $formModel->menu_name ?: 'Item name' }}</h5>
+  <p id="pmd-prev-desc" style="font-size:12px">{{ $formModel->menu_description ?: 'Description preview' }}</p>
+  <div id="pmd-prev-price">{{ currency_format($formModel->menu_price ?: 0) }}</div>
+  </details>
+</div>
+<script>(function(){function q(n){return document.querySelector('[name="Menu['+n+']"],[name="'+n+'"]')} function upd(){var n=q('menu_name'),d=q('menu_description'),p=q('menu_price');document.getElementById('pmd-prev-name').textContent=(n&&n.value)||'Item name';var dv=(d&&d.value)||'Description preview';document.getElementById('pmd-prev-desc').textContent=dv;document.getElementById('pmd-prev-desc').style.direction=/[؀-ۿ]/.test(dv)?'rtl':'ltr';document.getElementById('pmd-prev-price').textContent=(p&&p.value)?p.value:'0';var img=document.querySelector('[data-control="mediafinder"] img');if(img&&img.src)document.getElementById('pmd-prev-img').src=img.src;}['menu_name','menu_description','menu_price','calories','protein','carbs','fat','sugar','spice_level'].forEach(function(f){var el=q(f); if(el){el.addEventListener('input',upd);el.addEventListener('change',upd);}});document.addEventListener('change',function(e){if(e.target.closest('[data-control="mediafinder"]')) setTimeout(upd,100)});setInterval(upd,1000);upd();})();</script>
