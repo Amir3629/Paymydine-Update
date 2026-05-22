@@ -33,6 +33,11 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
             <div class="menu-inline-gallery__item" data-gallery-item>
                 <div class="menu-inline-gallery__thumb-wrap">
                     <img class="menu-inline-gallery__thumb" src="{{ $thumb }}" alt="Additional image">
+                    @unless($isPreview)
+                        <button type="button" class="menu-inline-gallery__remove-overlay" data-gallery-remove title="Remove image" aria-label="Remove image">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    @endunless
                 </div>
                 <div class="menu-inline-gallery__controls">
                     <input type="number" min="1" class="form-control form-control-sm" data-gallery-order name="menu_images_inline[{{ $index }}][sort_order]" value="{{ $sortOrder }}" {{ $isPreview ? 'disabled' : '' }}>
@@ -76,7 +81,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 #menu-inline-gallery.menu-inline-gallery {
     display: flex !important;
     align-items: flex-start !important;
-    gap: 8px !important;
+    gap: 12px !important;
     flex-wrap: wrap !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -85,28 +90,28 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 #menu-inline-gallery .menu-inline-gallery__list {
     display: flex !important;
     align-items: flex-start !important;
-    gap: 8px !important;
+    gap: 12px !important;
     flex-wrap: wrap !important;
     margin: 0 !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__item {
-    width: 74px !important;
-    min-width: 74px !important;
+    width: 136px !important;
+    min-width: 136px !important;
     border: 1px solid #dce4ef !important;
     border-radius: 14px !important;
-    padding: 5px !important;
+    padding: 8px !important;
     background: #fff !important;
     box-shadow: 0 4px 14px rgba(31, 45, 61, .06) !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__thumb-wrap {
-    width: 62px !important;
-    height: 52px !important;
+    width: 120px !important;
+    height: 120px !important;
     overflow: hidden !important;
     border-radius: 10px !important;
     background: #f7f9fc !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 8px !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__thumb {
@@ -118,23 +123,24 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 
 #menu-inline-gallery .menu-inline-gallery__controls {
     display: flex !important;
-    gap: 4px !important;
+    gap: 6px !important;
     align-items: center !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__controls input {
-    width: 38px !important;
-    height: 24px !important;
-    min-height: 24px !important;
+    flex: 1 1 auto !important;
+    width: 64px !important;
+    height: 30px !important;
+    min-height: 30px !important;
     padding: 1px 4px !important;
-    font-size: 11px !important;
-    border-radius: 8px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__controls button {
     width: 24px !important;
-    height: 24px !important;
-    min-height: 24px !important;
+    height: 30px !important;
+    min-height: 30px !important;
     padding: 0 !important;
     border-radius: 8px !important;
     display: inline-flex !important;
@@ -143,9 +149,9 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 }
 
 #menu-inline-gallery .menu-inline-gallery__add {
-    width: 74px !important;
+    width: 136px !important;
     height: 74px !important;
-    min-width: 74px !important;
+    min-width: 136px !important;
     border: 2px dashed #344966 !important;
     border-radius: 14px !important;
     background: #fff !important;
@@ -153,7 +159,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 22px !important;
+    font-size: 16px !important;
     cursor: pointer !important;
     box-shadow: 0 4px 14px rgba(31, 45, 61, .04) !important;
 }
@@ -161,6 +167,219 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 #menu-inline-gallery .menu-inline-gallery__add:hover {
     background: #f8fafc !important;
 }
+
+/* PMD_ADMIN_INLINE_GALLERY_FRAME_POLISH_START
+   Make selected additional image feel like a real preview card.
+   Keep the plus button compact. */
+#menu-inline-gallery .menu-inline-gallery__item {
+    width: 170px !important;
+    min-width: 170px !important;
+    border: 2px solid #dfe7f2 !important;
+    border-radius: 22px !important;
+    padding: 10px !important;
+    background: #fff !important;
+    box-shadow: 0 14px 35px rgba(31, 45, 61, .08) !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__thumb-wrap {
+    width: 148px !important;
+    height: 148px !important;
+    overflow: hidden !important;
+    border-radius: 18px !important;
+    background: #f8fafc !important;
+    margin: 0 0 10px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__thumb {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    display: block !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__controls {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__controls input[data-gallery-order] {
+    width: 82px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 6px 10px !important;
+    border-radius: 14px !important;
+    font-size: 18px !important;
+    text-align: center !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__controls button[data-gallery-remove] {
+    width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    border-radius: 14px !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__add {
+    width: 86px !important;
+    height: 86px !important;
+    min-width: 86px !important;
+    align-self: flex-start !important;
+    border-radius: 18px !important;
+    font-size: 24px !important;
+}
+/* PMD_ADMIN_INLINE_GALLERY_FRAME_POLISH_END */
+
+
+/* PMD_GALLERY_REMOVE_VISIBLE_CONTROLS_START
+   Hide the bottom order/delete control bar and make the + frame match image cards. */
+#menu-inline-gallery .menu-inline-gallery__controls {
+    display: none !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__item,
+#menu-inline-gallery .menu-inline-gallery__add {
+    width: 170px !important;
+    height: 170px !important;
+    min-width: 170px !important;
+    min-height: 170px !important;
+    border-radius: 22px !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__item {
+    padding: 10px !important;
+    border: 2px solid #dfe7f2 !important;
+    background: #fff !important;
+    box-shadow: 0 14px 35px rgba(31, 45, 61, .08) !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__thumb-wrap {
+    width: 148px !important;
+    height: 148px !important;
+    margin: 0 !important;
+    border-radius: 18px !important;
+    background: #f8fafc !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__thumb {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__add {
+    padding: 0 !important;
+    align-self: flex-start !important;
+    border: 3px dashed #344966 !important;
+    background: #fff !important;
+    color: #344966 !important;
+    font-size: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+/* PMD_GALLERY_REMOVE_VISIBLE_CONTROLS_END */
+
+
+/* PMD_GALLERY_REMOVE_OVERLAY_START
+   Keep controls hidden, but show a compact X button on each additional image frame. */
+#menu-inline-gallery .menu-inline-gallery__thumb-wrap {
+    position: relative !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 999px !important;
+    border: 3px solid #fff !important;
+    background: #e94458 !important;
+    color: #fff !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    box-shadow: 0 10px 24px rgba(233, 68, 88, .28) !important;
+    z-index: 5 !important;
+    cursor: pointer !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay:hover {
+    background: #d92d45 !important;
+    transform: translateY(-1px) !important;
+}
+/* PMD_GALLERY_REMOVE_OVERLAY_END */
+
+
+/* PMD_SMALL_ADDITIONAL_IMAGE_REMOVE_X_START
+   Final override: keep the additional image remove button small like the native mediafinder X. */
+#menu-inline-gallery .menu-inline-gallery__remove-overlay {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    top: 8px !important;
+    right: 8px !important;
+    border-radius: 999px !important;
+    border: 3px solid #fff !important;
+    background: #e84d5b !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    box-shadow: 0 8px 18px rgba(232, 77, 91, .22) !important;
+    padding: 0 !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay i {
+    font-size: 13px !important;
+    line-height: 1 !important;
+}
+/* PMD_SMALL_ADDITIONAL_IMAGE_REMOVE_X_END */
+
+
+/* PMD_FINAL_TINY_GALLERY_X_START */
+#menu-inline-gallery .menu-inline-gallery__remove-overlay {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    top: 8px !important;
+    right: 8px !important;
+    border-radius: 999px !important;
+    border: 3px solid #fff !important;
+    background: #e84d5b !important;
+    color: #fff !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+    box-shadow: 0 6px 16px rgba(232, 77, 91, .22) !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay i {
+    font-size: 11px !important;
+    line-height: 1 !important;
+}
+/* PMD_FINAL_TINY_GALLERY_X_END */
+
 </style>
 
 @unless($isPreview)
@@ -169,6 +388,14 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
     var root = document.getElementById('menu-inline-gallery');
     if (!root || root.dataset.initialized === '1') return;
     root.dataset.initialized = '1';
+
+    function removeVisibleGalleryControls() {
+        root.querySelectorAll('.menu-inline-gallery__controls').forEach(function(el) {
+            el.remove();
+        });
+    }
+
+    removeVisibleGalleryControls();
 
     function getJQ() {
         return window.jQuery || window.$ || null;
@@ -431,6 +658,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
         div.innerHTML =
             '<div class="menu-inline-gallery__thumb-wrap">' +
                 '<img class="menu-inline-gallery__thumb" src="' + publicUrl + '" alt="Additional image">' +
+                '<button type="button" class="menu-inline-gallery__remove-overlay" data-gallery-remove title="Remove image" aria-label="Remove image"><i class="fa fa-times"></i></button>' +
             '</div>' +
             '<div class="menu-inline-gallery__controls">' +
                 '<input type="number" min="1" class="form-control form-control-sm" data-gallery-order name="menu_images_inline[' + idx + '][sort_order]" value="' + (idx + 1) + '">' +
@@ -440,6 +668,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 
         root.querySelector('[data-gallery-list]').appendChild(div);
         reindex();
+        removeVisibleGalleryControls();
     }
 
     function moveBesideMainThumb() {

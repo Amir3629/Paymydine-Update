@@ -2,7 +2,7 @@
 
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { X } from "lucide-react"
 import type { MenuItem } from "@/lib/data"
 import { getMenuImageUrl } from "@/lib/api-client"
@@ -21,51 +21,125 @@ interface MenuItemModalProps {
 export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
   const { t } = useLanguageStore()
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [renderedItem, setRenderedItem] = useState<MenuItem | null>(item)
+  const [isLocallyClosed, setIsLocallyClosed] = useState(false)
 
-  const itemName = item ? t(item.nameKey as TranslationKey) || item.name : ""
-  const itemDescription = item ? t(item.descriptionKey as TranslationKey) || item.description : ""
+  // PMD_MODAL_OPEN_SYNC_FIX_START
+  // The modal component can mount with item=null and later receive the clicked item.
+  // Keep renderedItem in sync so clicking a food item always opens the detail card.
+  useEffect(() => {
+    if (item) {
+      setIsLocallyClosed(false)
+      setRenderedItem(item)
+      setActiveImageIndex(0)
+    }
+  }, [item])
+  // PMD_MODAL_OPEN_SYNC_FIX_END
+  const [isVisible, setIsVisible] = useState(Boolean(item))
+  const closeTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (item) {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current)
+        closeTimerRef.current = null
+      }
+      setRenderedItem(item)
+      setIsVisible(true)
+      return
+    }
+
+    setIsVisible(false)
+    closeTimerRef.current = window.setTimeout(() => {
+      setRenderedItem(null)
+      setActiveImageIndex(0)
+      closeTimerRef.current = null
+    }, 250)
+
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current)
+        closeTimerRef.current = null
+      }
+    }
+  }, [renderedItem])
+
+  const itemName = renderedItem ? t(renderedItem.nameKey as TranslationKey) || renderedItem.name : ""
+  const itemDescription = renderedItem ? t(renderedItem.descriptionKey as TranslationKey) || renderedItem.description : ""
   const itemImages = useMemo(() => {
-    if (!item) return []
+    if (!renderedItem) return []
     const fromArray = (value: unknown): string[] => Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && v.trim().length > 0) : []
-    const mediaUrls = Array.isArray((item as any).media)
-      ? (item as any).media.map((m: any) => m?.url || m?.image || m?.src).filter(Boolean)
+    const mediaUrls = Array.isArray((renderedItem as any).media)
+      ? (renderedItem as any).media.map((m: any) => m?.url || m?.image || m?.src).filter(Boolean)
       : []
     const merged = [
-      ...fromArray((item as any).images),
-      ...fromArray((item as any).gallery),
+      renderedItem.image,
+      ...fromArray((renderedItem as any).images),
+      ...fromArray((renderedItem as any).gallery),
       ...fromArray(mediaUrls),
-      item.image,
     ].filter(Boolean) as string[]
     return Array.from(new Set(merged))
-  }, [item])
+  }, [renderedItem])
 
   useEffect(() => {
     setActiveImageIndex(0)
-  }, [item?.id])
+  }, [renderedItem?.id])
 
   useEffect(() => {
-    if (!item || itemImages.length <= 1) return
+    if (!isVisible || !renderedItem || itemImages.length <= 1) return
     const timer = window.setInterval(() => {
       setActiveImageIndex((prev) => (prev + 1) % itemImages.length)
     }, 3000)
     return () => window.clearInterval(timer)
-  }, [item, itemImages])
+  }, [isVisible, renderedItem, itemImages])
+
+  
+  // PMD_MODAL_CLOSE_TIMER_CLEANUP_START
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current)
+      }
+    }
+  }, [])
+  // PMD_MODAL_CLOSE_TIMER_CLEANUP_END
+
+// PMD_MODAL_CLOSE_LOCAL_STATE_FIX_START
+  const isModalOpen = Boolean(item && renderedItem && !isLocallyClosed)
+
+  const handleModalClose = (event?: any) => {
+    event?.stopPropagation?.()
+
+    if (isLocallyClosed) return
+
+    setIsLocallyClosed(true)
+
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current)
+    }
+
+    // Delay parent teardown so the exit animation can actually be seen.
+    closeTimerRef.current = setTimeout(() => {
+      onClose()
+    }, 320)
+  }
+  // PMD_MODAL_CLOSE_LOCAL_STATE_FIX_END
 
   return (
     <AnimatePresence>
-      {item && (
+      {isModalOpen && (
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={{ opacity: isVisible ? 1 : 0 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={onClose}
+          onClick={handleModalClose}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            animate={{ scale: isVisible ? 1 : 0.97, y: isVisible ? 0 : 8, opacity: isVisible ? 1 : 0 }}
+            exit={{ scale: 0.97, y: 8, opacity: 0 }}
+            transition={{ duration: 0.322, ease: "easeOut" }}
             className="relative surface rounded-3xl shadow-2xl w-full max-w-xl max-h-[88vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
@@ -73,7 +147,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={handleModalClose}
               className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white/90 rounded-full shadow-lg border border-white/20"
             >
               <X className="h-5 w-5 text-gray-600" />
@@ -83,7 +157,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
               <div className="relative w-full h-[180px] md:h-[230px] mb-6 rounded-2xl overflow-hidden flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={`${item?.id}-${activeImageIndex}`}
+                    key={`${renderedItem?.id}-${activeImageIndex}`}
                     initial={{ opacity: 0.25 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0.25 }}
@@ -91,7 +165,7 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
                     className="absolute inset-0 p-2 md:p-3 flex items-center justify-center"
                   >
                     <OptimizedImage
-                      src={getMenuImageUrl(itemImages[activeImageIndex] || item.image) || "/placeholder.svg"}
+                      src={getMenuImageUrl(itemImages[activeImageIndex] || renderedItem.image) || "/placeholder.svg"}
                       alt={itemName}
                       fill
                       className="object-contain max-h-full max-w-full w-auto h-auto rounded-2xl"
@@ -104,24 +178,24 @@ export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
               {/* Content */}
               <h2 className="font-serif text-3xl font-bold text-paydine-elegant-gray mb-3 text-center">{itemName}</h2>
               <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
-                <FoodItemColorDot color={item.color} label={`${itemName} color`} />
+                <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
                 <FoodAttributeTags
-                  halal={item.halal}
-                  vegetarian={item.vegetarian}
-                  vegan={item.vegan}
-                  allergens={item.allergens}
-                  allergyTags={item.allergy_tags}
+                  halal={renderedItem?.halal}
+                  vegetarian={renderedItem?.vegetarian}
+                  vegan={renderedItem?.vegan}
+                  allergens={renderedItem?.allergens}
+                  allergyTags={renderedItem?.allergy_tags}
                   className="justify-center"
                 />
               </div>
               <p className="text-gray-600 text-lg leading-relaxed text-center mb-4">{itemDescription}</p>
               <FoodNutritionSummary
-                calories={item.calories}
-                protein={item.protein}
-                carbs={item.carbs}
-                fat={item.fat}
-                sugar={item.sugar}
-                servingSize={item.serving_size}
+                calories={renderedItem?.calories}
+                protein={renderedItem?.protein}
+                carbs={renderedItem?.carbs}
+                fat={renderedItem?.fat}
+                sugar={renderedItem?.sugar}
+                servingSize={renderedItem?.serving_size}
               />
             </div>
           </motion.div>

@@ -203,9 +203,27 @@ class MenuController extends Controller
             if ($url === '') {
                 continue;
             }
-            if (!str_starts_with($url, '/api/media/')) {
-                $url = '/api/media/'.$url;
+            // PMD_GALLERY_IMAGE_URL_FIX_START
+            // Additional menu images are stored as upload filenames/paths, not thumb attachment hashes.
+            // Upload files are publicly served from /assets/media/uploads or /assets/media.
+            if (preg_match('#^https?://#i', $url)) {
+                // keep full URL
+            } else {
+                $url = ltrim($url, '/');
+
+                if (str_starts_with($url, 'api/media/')) {
+                    $url = '/'.$url;
+                } elseif (str_starts_with($url, 'assets/media/')) {
+                    $url = '/'.$url;
+                } elseif (str_starts_with($url, 'attachments/public/')) {
+                    $url = '/assets/media/'.$url;
+                } elseif (str_starts_with($url, 'uploads/')) {
+                    $url = '/assets/media/'.$url;
+                } else {
+                    $url = '/assets/media/uploads/'.$url;
+                }
             }
+            // PMD_GALLERY_IMAGE_URL_FIX_END
             $grouped[(int)$row->menu_id][] = $url;
         }
         return $grouped;
