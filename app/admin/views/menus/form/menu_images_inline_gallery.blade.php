@@ -76,7 +76,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 #menu-inline-gallery.menu-inline-gallery {
     display: flex !important;
     align-items: flex-start !important;
-    gap: 8px !important;
+    gap: 12px !important;
     flex-wrap: wrap !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -85,28 +85,28 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 #menu-inline-gallery .menu-inline-gallery__list {
     display: flex !important;
     align-items: flex-start !important;
-    gap: 8px !important;
+    gap: 12px !important;
     flex-wrap: wrap !important;
     margin: 0 !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__item {
-    width: 74px !important;
-    min-width: 74px !important;
+    width: 136px !important;
+    min-width: 136px !important;
     border: 1px solid #dce4ef !important;
     border-radius: 14px !important;
-    padding: 5px !important;
+    padding: 8px !important;
     background: #fff !important;
     box-shadow: 0 4px 14px rgba(31, 45, 61, .06) !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__thumb-wrap {
-    width: 62px !important;
-    height: 52px !important;
+    width: 120px !important;
+    height: 120px !important;
     overflow: hidden !important;
     border-radius: 10px !important;
     background: #f7f9fc !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 8px !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__thumb {
@@ -118,23 +118,24 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 
 #menu-inline-gallery .menu-inline-gallery__controls {
     display: flex !important;
-    gap: 4px !important;
+    gap: 6px !important;
     align-items: center !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__controls input {
-    width: 38px !important;
-    height: 24px !important;
-    min-height: 24px !important;
+    flex: 1 1 auto !important;
+    width: 64px !important;
+    height: 30px !important;
+    min-height: 30px !important;
     padding: 1px 4px !important;
-    font-size: 11px !important;
-    border-radius: 8px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
 }
 
 #menu-inline-gallery .menu-inline-gallery__controls button {
     width: 24px !important;
-    height: 24px !important;
-    min-height: 24px !important;
+    height: 30px !important;
+    min-height: 30px !important;
     padding: 0 !important;
     border-radius: 8px !important;
     display: inline-flex !important;
@@ -143,9 +144,9 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
 }
 
 #menu-inline-gallery .menu-inline-gallery__add {
-    width: 74px !important;
+    width: 136px !important;
     height: 74px !important;
-    min-width: 74px !important;
+    min-width: 136px !important;
     border: 2px dashed #344966 !important;
     border-radius: 14px !important;
     background: #fff !important;
@@ -153,7 +154,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 22px !important;
+    font-size: 16px !important;
     cursor: pointer !important;
     box-shadow: 0 4px 14px rgba(31, 45, 61, .04) !important;
 }
