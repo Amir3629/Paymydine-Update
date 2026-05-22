@@ -52,7 +52,7 @@ if (!function_exists('validateImageExists')) {
     }
 }
 
-$imgSrcDashboard = DB::table('logos')->orderBy('id', 'desc')->value('dashboard_logo');
+
 
 // Check for invalid thumbnail patterns
 $invalidThumbPatterns = [
@@ -61,6 +61,56 @@ $invalidThumbPatterns = [
 ];
 
 // Validate the image exists, if not clear it from database
+// PMD_TOPNAV_DASHBOARD_LOGO_RENDER_FIX_START
+// Read Dashboard Logo from the current tenant DB and normalize it for browser rendering.
+// IMPORTANT: Do not fallback to site_logo. If dashboard_logo is empty, no dashboard logo should show.
+try {
+    $pmdHost = (string)request()->getHost();
+    $pmdTenant = strtolower(explode('.', $pmdHost)[0] ?? '');
+
+    $pmdNormalizeDashboardLogo = function ($value) use ($pmdTenant) {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $value)) {
+            $path = parse_url($value, PHP_URL_PATH) ?: '';
+            if (strpos($path, '/assets/media/uploads/') !== false) {
+                return 'https://' . $pmdTenant . '.paymydine.com' . $path;
+            }
+            return $value;
+        }
+
+        if (strpos($value, '/assets/media/uploads/') === 0) {
+            return 'https://' . $pmdTenant . '.paymydine.com' . $value;
+        }
+
+        if (strpos($value, '/storage/temp/') === 0) {
+            return 'https://' . $pmdTenant . '.paymydine.com' . $value;
+        }
+
+        return 'https://' . $pmdTenant . '.paymydine.com/assets/media/uploads/' . ltrim($value, '/');
+    };
+
+    if ($pmdTenant !== '' && !in_array($pmdTenant, ['www', 'paymydine'], true) && preg_match('/^[A-Za-z0-9_]+$/', $pmdTenant)) {
+        $safeDb = str_replace('`', '``', $pmdTenant);
+
+        $pmdRow = DB::selectOne("SELECT value FROM `{$safeDb}`.`ti_settings` WHERE item = ? ORDER BY setting_id DESC LIMIT 1", ['dashboard_logo']);
+        $pmdValue = $pmdRow ? trim((string)$pmdRow->value) : '';
+
+        if ($pmdValue === '') {
+            $pmdRow = DB::selectOne("SELECT dashboard_logo FROM `{$safeDb}`.`ti_logos` ORDER BY id DESC LIMIT 1");
+            $pmdValue = $pmdRow ? trim((string)$pmdRow->dashboard_logo) : '';
+        }
+
+        $imgSrcDashboard = $pmdNormalizeDashboardLogo($pmdValue);
+    }
+} catch (\Throwable $pmdLogoError) {
+    // Keep existing value if this fallback fails.
+}
+// PMD_TOPNAV_DASHBOARD_LOGO_RENDER_FIX_END
+
 if (!empty($imgSrcDashboard)) {
     // Check if it matches invalid patterns
     $isInvalid = false;
@@ -73,7 +123,9 @@ if (!empty($imgSrcDashboard)) {
     
     // Also validate file existence
     if (!$isInvalid && !validateImageExists($imgSrcDashboard)) {
-        $isInvalid = true;
+        // PMD fix: never clear dashboard_logo from DB during navbar render.
+        // Rendering should not mutate settings. If validation fails, still allow browser to try the normalized URL.
+        // This prevents Dashboard Logo from disappearing after save.
     }
     
     if ($isInvalid) {
@@ -86,10 +138,10 @@ if (!empty($imgSrcDashboard)) {
 @if(AdminAuth::isLogged())
     <nav class="navbar navbar-top navbar-expand navbar-fixed-top" role="navigation">
         <div class="container-fluid">
-            <div class="navbar-brand" style="height:63px;">
-                <a class="logo" href="{{ admin_url('dashboard') }}" style="margin-left: 28px; margin-top: 12px;">
+            <div class="navbar-brand" style="height:88px;">
+                <a class="logo" href="{{ admin_url('dashboard') }}" style="margin-left: 44px; margin-top: 4px;">
                     @if(!empty($imgSrcDashboard))
-                        <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" style="max-height: 105px; max-width: 400px; object-fit: contain;">
+                        <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" class="pmd-dashboard-logo-img" style="max-height: 76px; max-width: 340px; width: auto; height: auto; object-fit: contain;">
                     @endif
                     <i class="logo-svg"></i>
                 </a>

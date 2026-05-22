@@ -3662,7 +3662,7 @@ useEffect(() => {
 
   // Add "All" to categories - FIXED VERSION
   const allCategories = useMemo(() => {
-    const categoryList = dynamicCategories.length > 0 ? dynamicCategories : ['Appetizer', 'Mains', 'Desserts', 'Drinks'];
+    const categoryList = dynamicCategories;
     return ["All", ...categoryList];
   }, [dynamicCategories]);
 

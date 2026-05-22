@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Thu May 21 09:09:32 UTC 2026
+-- Generated UTC: Fri May 22 12:16:56 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 -- This file is intended for GitHub documentation/development only
@@ -3122,7 +3122,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-21  9:09:32
+-- Dump completed on 2026-05-22 12:16:56
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -4643,7 +4643,7 @@ CREATE TABLE `ti_media_attachments` (
   PRIMARY KEY (`id`),
   KEY `ti_media_attachments_attachment_type_attachment_id_index` (`attachment_type`,`attachment_id`),
   KEY `ti_media_attachments_tag_index` (`tag`)
-) ENGINE=InnoDB AUTO_INCREMENT=317 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=346 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4882,7 +4882,7 @@ CREATE TABLE `ti_menus_specials` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`special_id`),
   UNIQUE KEY `ti_menus_specials_special_id_menu_id_unique` (`special_id`,`menu_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4922,7 +4922,7 @@ CREATE TABLE `ti_notifications` (
   KEY `idx_status_created` (`status`,`created_at` DESC),
   KEY `idx_type` (`type`),
   KEY `idx_table_id` (`table_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=627 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=629 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4968,7 +4968,7 @@ CREATE TABLE `ti_order_menus` (
   `combo_items_description` text DEFAULT NULL COMMENT 'Description of combo items',
   PRIMARY KEY (`order_menu_id`),
   KEY `idx_combo_id` (`combo_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2032 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2037 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5059,7 +5059,7 @@ CREATE TABLE `ti_order_totals` (
   `priority` tinyint(1) NOT NULL DEFAULT 0,
   `is_summable` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`order_total_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3577 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3582 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5120,7 +5120,7 @@ CREATE TABLE `ti_orders` (
   KEY `idx_orders_fiskaly_status` (`fiskaly_status`),
   KEY `idx_orders_fiskaly_transaction_id_ref` (`fiskaly_transaction_id_ref`),
   KEY `ti_orders_settlement_status_index` (`settlement_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=1166 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1167 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5487,7 +5487,7 @@ CREATE TABLE `ti_request_logs` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=570 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=573 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5576,7 +5576,7 @@ CREATE TABLE `ti_settings` (
   `serialized` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`setting_id`),
   UNIQUE KEY `ti_settings_sort_item_unique` (`sort`,`item`)
-) ENGINE=InnoDB AUTO_INCREMENT=280 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=291 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5945,7 +5945,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-21  9:09:32
+-- Dump completed on 2026-05-22 12:16:56
 
 -- ============================================================
 -- DATABASE: rosana
@@ -7802,7 +7802,7 @@ CREATE TABLE `ti_request_logs` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5072 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5074 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -8258,7 +8258,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-21  9:09:33
+-- Dump completed on 2026-05-22 12:16:57
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -10166,4 +10166,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-21  9:09:33
+-- Dump completed on 2026-05-22 12:16:57

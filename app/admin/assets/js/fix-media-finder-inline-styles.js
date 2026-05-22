@@ -1,3 +1,5 @@
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
+if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
 ;(function () {
   // PMD_NATIVE_MEDIA_CONTEXT_GUARD_STRICT
   var pmdPath = window.location && window.location.pathname ? window.location.pathname : "";
@@ -253,3 +255,6 @@
 })();
 
 })(); // PMD_NATIVE_MEDIA_CONTEXT_GUARD_STRICT
+
+}
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_END */

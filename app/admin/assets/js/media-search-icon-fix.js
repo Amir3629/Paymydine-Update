@@ -1,3 +1,5 @@
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
+if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
 // Global Media Manager Search Icon Fix
 // This script adds a search icon to the media manager search input
 // It works regardless of how the modal is opened
@@ -223,3 +225,6 @@
     }, 1000);
 })();
 
+
+}
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_END */

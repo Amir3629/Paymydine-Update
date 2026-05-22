@@ -20,22 +20,39 @@ import { stickySearch } from '@/lib/sticky-query';
 import { getHomeHrefFallback } from '@/lib/table-home-util';
 
 type SettingsResponse = {
+  success?: boolean;
   site_logo?: string | null;
+  site_logo_url?: string | null;
+  logo_url?: string | null;
   site_name?: string | null;
   favicon_logo?: string | null;
+  favicon_logo_url?: string | null;
   data?: {
     site_logo?: string | null;
+    site_logo_url?: string | null;
+    logo_url?: string | null;
     site_name?: string | null;
     favicon_logo?: string | null;
+    favicon_logo_url?: string | null;
   } | null;
 };
 
 const toBackendAssetUrl = (rel?: string | null) => {
   if (!rel) return '';
   if (/^https?:\/\//i.test(rel)) return rel;
+
   const normalized = rel.startsWith('/') ? rel : `/${rel}`;
   const base = window.location.origin.replace(/\/$/, '');
-  return `${base}/api-server-multi-tenant.php/api/v1/images?file=${encodeURIComponent(normalized)}`;
+
+  if (normalized.startsWith('/assets/media/uploads/')) {
+    return `${base}${normalized}`;
+  }
+
+  if (normalized.startsWith('/storage/')) {
+    return `${base}${normalized}`;
+  }
+
+  return `${base}/assets/media/uploads${normalized}`;
 };
 
 // FIXED: Create a component that uses useSearchParams
@@ -49,24 +66,53 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
   
   // Dynamic logo state
   const [logoUrl, setLogoUrl] = useState<string>('')
+  const [logoLoadedFromSettings, setLogoLoadedFromSettings] = useState<boolean>(false)
   const [apiRestaurantName, setApiRestaurantName] = useState<string>('')
   
   // Fetch settings info on mount
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(
-          `${EnvironmentConfig.getInstance().backendBaseUrl().replace(/\/$/, '')}/api-server-multi-tenant.php/api/v1/settings`,
-          { credentials: 'omit', cache: 'no-store' }
-        );
+        // PMD fix: use the local Next.js /settings route.
+        // That route already proxies /api/v1/settings and normalizes media URLs.
+        const res = await fetch(`/settings?ts=${Date.now()}`, {
+          credentials: 'omit',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+
         if (!res.ok) throw new Error(`settings ${res.status}`);
+
         const json: SettingsResponse = await res.json();
-        const siteName = json?.site_name || json?.data?.site_name || 'Restaurant';
-        const siteLogo = json?.site_logo || json?.data?.site_logo || '';
+
+        const siteName =
+          json?.site_name ||
+          json?.data?.site_name ||
+          'Restaurant';
+
+        const siteLogo =
+          json?.site_logo_url ||
+          json?.logo_url ||
+          json?.site_logo ||
+          json?.data?.site_logo_url ||
+          json?.data?.logo_url ||
+          json?.data?.site_logo ||
+          '';
+
         setApiRestaurantName(siteName);
-        if (siteLogo) setLogoUrl(toBackendAssetUrl(siteLogo));
+
+        if (siteLogo) {
+          setLogoUrl(toBackendAssetUrl(siteLogo));
+        } else {
+          console.warn('Logo: settings response has no logo field', json);
+          setLogoUrl('/images/logo.png');
+        }
+
+        setLogoLoadedFromSettings(true);
       } catch (e) {
         console.warn('Logo: falling back to /images/logo.png', e);
+        setLogoUrl('/images/logo.png');
+        setLogoLoadedFromSettings(true);
       }
     })()
   }, [])
@@ -138,8 +184,17 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
   // FIXED: Determine home URL using saved home URL with fallback
   const homeUrl = getHomeHrefFallback({ pathParam: pathTableId, tableInfo })
 
-  // Don't render anything until logo is loaded to prevent flash
-  if (!logoUrl) return null;
+  useEffect(() => {
+    console.info('PMD_FRONTEND_LOGO_COMPONENT_ACTIVE', {
+      pathname,
+      logoUrl,
+      effectiveLogoUrl: logoLoadedFromSettings ? (logoUrl || '/images/logo.png') : '',
+      displayTableNumber,
+    });
+  }, [pathname, logoUrl, logoLoadedFromSettings, displayTableNumber])
+
+  // PMD fix: do not render null forever. Use safe fallback until settings logo loads.
+  const effectiveLogoUrl = logoLoadedFromSettings ? (logoUrl || '/images/logo.png') : '';
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -168,13 +223,17 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
           // FIXED: Show full logo on both main homepage AND table home pages
           <div className="flex flex-col items-center">
             {/* Dynamic logo from admin settings */}
-            <OptimizedImage
-              src={logoUrl}
-              alt={apiRestaurantName || 'Restaurant logo'}
-              width={220}
-              height={64}
-              priority
-            />
+            {effectiveLogoUrl ? (
+              <OptimizedImage
+                src={effectiveLogoUrl}
+                alt={apiRestaurantName || 'Restaurant logo'}
+                width={220}
+                height={64}
+                priority
+              />
+            ) : (
+              <div aria-hidden="true" style={{ width: 220, height: 64 }} />
+            )}
             <p className="text-lg text-paydine-elegant-gray tracking-[0.2em] uppercase font-medium bg-paydine-champagne/10 inline-block px-6 py-1 rounded-full">
               {displayTableNumber}
             </p>

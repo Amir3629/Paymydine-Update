@@ -609,6 +609,192 @@
     @endunless
     {{-- Final admin toolbar button override: keep after legacy/admin/page CSS because older files override toolbar button sizing and colors. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ time() }}">
+
+<!-- PMD_DASHBOARD_LOGO_SIZE_FIX_START -->
+<style id="pmd-dashboard-logo-size-fix">
+    /* Keep admin/dashboard logos inside the header frame */
+    .navbar-top,
+    .navbar-fixed-top {
+        overflow: visible !important;
+    }
+
+    .navbar-top .navbar-brand,
+    .navbar-fixed-top .navbar-brand,
+    .navbar-top .navbar-brand a,
+    .navbar-fixed-top .navbar-brand a {
+        display: flex !important;
+        align-items: center !important;
+        min-height: 56px !important;
+        max-height: 76px !important;
+        overflow: hidden !important;
+    }
+
+    .navbar-top .navbar-brand img,
+    .navbar-fixed-top .navbar-brand img,
+    .navbar-top img.dashboard-logo,
+    .navbar-fixed-top img.dashboard-logo,
+    .navbar-top .dashboard-logo img,
+    .navbar-fixed-top .dashboard-logo img,
+    .navbar-top img[src*="/assets/media/"]:not(.navbar-profile-avatar):not(.rounded-circle),
+    .navbar-fixed-top img[src*="/assets/media/"]:not(.navbar-profile-avatar):not(.rounded-circle) {
+        max-height: 76px !important;
+        max-width: 340px !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        object-position: center center !important;
+        display: block !important;
+    }
+
+    /* Settings page media previews should never explode layout */
+    body[class*="settings"] img[src*="/assets/media/"],
+    .page-content img[src*="/assets/media/uploads/"],
+    .form-widget img[src*="/assets/media/uploads/"],
+    .field-mediafinder img,
+    [data-control="mediafinder"] img {
+        max-width: 240px !important;
+        max-height: 160px !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    /* But do not shrink table-map background because it is CSS background, not img */
+</style>
+<!-- PMD_DASHBOARD_LOGO_SIZE_FIX_END -->
+
+
+
+
+<style id="pmd-force-dashboard-logo-right-style">
+
+/* PMD_FORCE_DASHBOARD_LOGO_RIGHT_START */
+.navbar-top .navbar-brand a.logo,
+.navbar-fixed-top .navbar-brand a.logo {
+    margin-left: 44px !important;
+    transform: translateX(0) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.navbar-top .navbar-brand a.logo img.pmd-dashboard-logo-img,
+.navbar-fixed-top .navbar-brand a.logo img.pmd-dashboard-logo-img {
+    max-height: 76px !important;
+    max-width: 340px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+/* PMD_FORCE_DASHBOARD_LOGO_RIGHT_END */
+
+</style>
+<style id="pmd-media-manager-preview-toolbar-fix">
+/* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_START */
+/* Fix broken large square action buttons in Media Manager right preview sidebar.
+   Scoped only to native media manager preview toolbar. */
+body .media-manager .media-sidebar .sidebar-preview-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 0 10px 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar .btn-group,
+body .media-manager .media-sidebar .sidebar-preview-toolbar .btn-group-sm {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar .media-toolbar-tooltip-wrap {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 34px !important;
+
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    max-width: 34px !important;
+    max-height: 34px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 9px !important;
+
+    line-height: 1 !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+    transform: none !important;
+    position: relative !important;
+    inset: auto !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+    line-height: 1 !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-default {
+    background: #fff !important;
+    border: 1px solid #dbe3f0 !important;
+    color: #334155 !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-default:hover {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #1e293b !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-danger {
+    background: #fff !important;
+    border: 1px solid #dc3545 !important;
+    color: #dc3545 !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-danger:hover {
+    background: #fff5f6 !important;
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+}
+/* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_END */
+</style>
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -965,5 +1151,11 @@
     @unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
 @endunless
+
+
+
+
+
+
 </body>
 </html>

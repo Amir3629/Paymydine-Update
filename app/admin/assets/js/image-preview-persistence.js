@@ -1,3 +1,5 @@
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
+if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
 /**
  * 🔧 Image Preview Persistence Fix
  * 
@@ -998,3 +1000,6 @@
     window.restoreImagePreviews = restoreAllPreviews;
     
 })();
+
+}
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_END */
