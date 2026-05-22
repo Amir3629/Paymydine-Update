@@ -131,6 +131,12 @@ class Settings extends \Admin\Classes\AdminController
         if (array_key_exists('favicon_logo', $rawSettingInput)) {
             $saveData['favicon_logo'] = $rawSettingInput['favicon_logo'];
         }
+        if (array_key_exists('table_map_background_image', $rawSettingInput)) {
+            $saveData['table_map_background_image'] = $rawSettingInput['table_map_background_image'];
+        }
+        if (array_key_exists('table_map_background_image', $rawSettingInput)) {
+            $saveData['table_map_background_image'] = $rawSettingInput['table_map_background_image'];
+        }
 
         \Log::info('PMD_SETTINGS_LOGO_DEBUG', [
             'site_logo' => $saveData['site_logo'] ?? null,
@@ -159,6 +165,24 @@ class Settings extends \Admin\Classes\AdminController
             unset($saveData['site_email']); // Don't save empty value
         }
         
+        
+        // PMD_DASHBOARD_LOGO_NEVER_COPY_SITE_LOGO_START
+        // Keep dashboard_logo independent from site_logo.
+        // If dashboard_logo is not posted by the General form, do not infer/copy it from site_logo.
+        if (isset($saveData) && is_array($saveData) && isset($saveData['site_logo'])) {
+            if (!isset($rawSettingInput) || !is_array($rawSettingInput) || !array_key_exists('dashboard_logo', $rawSettingInput)) {
+                unset($saveData['dashboard_logo']);
+            }
+        }
+
+        if (isset($saveData['dashboard_logo'])) {
+            $pmdDashboardLogoCheck = strtolower(basename(parse_url((string)$saveData['dashboard_logo'], PHP_URL_PATH) ?: (string)$saveData['dashboard_logo']));
+            if (in_array($pmdDashboardLogoCheck, ['images.jpeg', 'image.jpeg', 'images.jpg', 'image.jpg', 'images.png', 'image.png'], true)) {
+                $saveData['dashboard_logo'] = '';
+            }
+        }
+        // PMD_DASHBOARD_LOGO_NEVER_COPY_SITE_LOGO_END
+
         // Sync dashboard_logo to logos table if it exists in save data (for navbar display)
         if (isset($saveData['dashboard_logo'])) {
             $dashboardLogo = $saveData['dashboard_logo'];
