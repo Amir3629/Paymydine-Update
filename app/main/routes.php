@@ -505,12 +505,29 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 ];
                             }
                         }
+
+                        $settings = $conn->table('settings')->whereIn('item', ['site_logo', 'site_name', 'mail_from_address'])->get()->keyBy('item');
+                        $logoValue = trim((string) optional($settings->get('site_logo'))->value);
+                        $siteNameValue = trim((string) optional($settings->get('site_name'))->value);
+                        $mailValue = trim((string) optional($settings->get('mail_from_address'))->value);
+                        $hasCategories = count($categories) > 0;
+                        $hasMenuItems = count($allItems) > 0;
+                        $hasLogo = $logoValue !== '' && stripos($logoValue, 'default') === false && stripos($logoValue, 'placeholder') === false;
+                        $hasCustomSettings = ($siteNameValue !== '' && strcasecmp($siteNameValue, 'PayMyDine') !== 0) || $mailValue !== '';
+                        $isFrontendConfigured = $hasCategories || $hasMenuItems || $hasLogo || $hasCustomSettings;
                         
                         return response()->json([
                             'success' => true,
                             'data' => [
                                 'items' => $allItems,
-                                'categories' => $categories
+                                'categories' => $categories,
+                                'is_frontend_configured' => $isFrontendConfigured,
+                                'setup_status' => [
+                                    'has_categories' => $hasCategories,
+                                    'has_menu_items' => $hasMenuItems,
+                                    'has_logo' => $hasLogo,
+                                    'has_custom_settings' => $hasCustomSettings,
+                                ],
                             ]
                         ]);
 

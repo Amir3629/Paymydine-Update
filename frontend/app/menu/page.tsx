@@ -232,6 +232,9 @@ function useThemeBackgroundColor() {
 import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
 import { wsClient } from '@/lib/websocket-client'
+import { ActionTooltip } from "@/components/action-tooltip"
+import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
+import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 
 /* WALLET_STRIPE_PAY_COMPONENT */
 function WalletStripePay(props: {
@@ -2756,7 +2759,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
         />
       </div>
       <div className="flex-grow">
-        <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
+        <h3 dir={getTextDirection(itemName)} className={`text-lg font-bold text-paydine-elegant-gray ${getTextAlignClass(itemName)}`}>{itemName}</h3>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <FoodAttributeTags
             halal={item.halal}
@@ -2777,7 +2780,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
             compact
           />
         </div>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
+        <p dir={getTextDirection(truncatedDescription)} className={`text-sm text-gray-500 mt-1 line-clamp-2 ${getTextAlignClass(truncatedDescription)}`}>{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
           <div className="relative">
@@ -3065,6 +3068,7 @@ function ExpandingBottomToolbar({
             marginTop: "auto",
           }}
         >
+          <ActionTooltip label="Call waiter">
           <motion.button
             whileTap={{ scale: waiterDisabled ? 1 : 0.92 }}
             whileHover={{ scale: waiterDisabled ? 1 : 1.12 }}
@@ -3076,6 +3080,8 @@ function ExpandingBottomToolbar({
           >
             <HandPlatter className={`h-8 w-8 ${waiterDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
           </motion.button>
+          </ActionTooltip>
+          <ActionTooltip label="Add note">
           <motion.button
             whileTap={{ scale: noteDisabled ? 1 : 0.92 }}
             whileHover={{ scale: noteDisabled ? 1 : 1.12 }}
@@ -3087,6 +3093,8 @@ function ExpandingBottomToolbar({
           >
             <NotebookPen className={`h-8 w-8 ${noteDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
           </motion.button>
+          </ActionTooltip>
+          <ActionTooltip label="Checkout">
           <motion.button
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.12 }}
@@ -3104,6 +3112,7 @@ function ExpandingBottomToolbar({
               </span>
             )}
           </motion.button>
+          </ActionTooltip>
         </div>
       </div>
     </motion.div>
@@ -3411,6 +3420,7 @@ function MenuContent() {
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
   const { menuItems, taxSettings, loadVATSettings } = useCmsStore()
@@ -3670,6 +3680,7 @@ useEffect(() => {
         
         setApiMenuItems(menuResult.menuItems)
         setDynamicCategories(menuResult.categoryNames)
+        setIsFrontendConfigured(menuResult.isFrontendConfigured ?? true)
         if (cacheKey) {
           localStorage.setItem(cacheKey, JSON.stringify({
             categories: menuResult.categoryNames,
@@ -3860,6 +3871,9 @@ useEffect(() => {
             }}
           />
           <section className="w-full mb-12">
+            {!isFrontendConfigured && filteredItems.length === 0 ? (
+              <TenantSetupSplash />
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4">
               {filteredItems.map((item: MenuItem, index: number) => (
                 <ExpandingToolbarMenuItemCard
@@ -3871,6 +3885,7 @@ useEffect(() => {
                 />
               ))}
             </div>
+            )}
           </section>
         </main>
       </Suspense>

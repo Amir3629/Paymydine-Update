@@ -73,6 +73,13 @@ export interface MenuResponse {
   data: {
     items?: MenuItem[];
     categories?: Category[];
+    is_frontend_configured?: boolean;
+    setup_status?: {
+      has_categories: boolean;
+      has_menu_items: boolean;
+      has_logo: boolean;
+      has_custom_settings: boolean;
+    };
   };
 }
 
