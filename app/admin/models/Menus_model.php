@@ -71,7 +71,7 @@ class Menus_model extends Model
         ],
     ];
 
-    protected $purgeable = ['menu_options', 'special', 'prices'];
+    protected $purgeable = ['menu_options', 'special', 'prices', 'menu_images_inline'];
 
     public $mediable = ['thumb'];
 
@@ -244,8 +244,43 @@ class Menus_model extends Model
         if (array_key_exists('prices', $this->attributes))
             $this->addMenuPrices((array)$this->attributes['prices']);
 
+        if (array_key_exists('menu_images_inline', $this->attributes))
+            $this->syncMenuImagesInline((array)$this->attributes['menu_images_inline']);
+
     }
 
+
+
+    protected function syncMenuImagesInline(array $rows): void
+    {
+        $menuId = $this->getKey();
+        if (!is_numeric($menuId))
+            return;
+
+        $normalizedRows = [];
+        foreach ($rows as $key => $row) {
+            if (!is_array($row)) continue;
+            $path = trim((string)($row['image_path'] ?? ''));
+            if ($path === '') continue;
+
+            $sortOrder = $row['sort_order'] ?? null;
+            $normalizedRows[] = [
+                'image_path' => ltrim($path, '/'),
+                'sort_order' => is_numeric($sortOrder) ? max(1, (int)$sortOrder) : (is_numeric($key) ? ((int)$key + 1) : 9999),
+            ];
+        }
+
+        usort($normalizedRows, fn($a, $b) => $a['sort_order'] <=> $b['sort_order']);
+
+        $this->menu_images()->delete();
+        foreach (array_values($normalizedRows) as $index => $row) {
+            $this->menu_images()->create([
+                'menu_id' => $menuId,
+                'image_path' => $row['image_path'],
+                'sort_order' => $index + 1,
+            ]);
+        }
+    }
 
     protected function beforeDelete()
     {

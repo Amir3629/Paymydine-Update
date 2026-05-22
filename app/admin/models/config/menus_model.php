@@ -357,18 +357,13 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'useAttachment' => true,
         ],
-        'menu_images' => [
+        'menu_images_inline' => [
             'label' => 'Additional Images',
             'tab' => 'lang:admin::lang.menus.text_tab_general',
-            'type' => 'recordeditor',
-            'span' => 'full',
-            'form' => 'menu_images_model',
-            'modelClass' => 'Admin\Models\Menu_images_model',
-            'prompt' => 'Add image',
-            'formName' => 'Menu gallery image',
-            'popupSize' => 'modal-lg',
-            'context' => ['edit', 'preview'],
-            'comment' => 'Optional ordered gallery images for frontend product modal rotation.',
+            'type' => 'partial',
+            'path' => 'menus/form/menu_images_inline_gallery',
+            'span' => 'left',
+            'context' => ['create', 'edit', 'preview'],
         ],
 
         '_options' => [
