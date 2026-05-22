@@ -4,7 +4,7 @@ $config['form']['fields'] = [
     'image_path' => [
         'label' => 'Image',
         'type' => 'mediafinder',
-        'comment' => 'Select an image from Media Manager.',
+        'comment' => 'Select an additional product image.',
     ],
     'sort_order' => [
         'label' => 'Order',

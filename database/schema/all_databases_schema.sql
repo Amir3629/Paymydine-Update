@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Fri May 22 15:07:02 UTC 2026
+-- Generated UTC: Fri May 22 19:23:43 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 -- This file is intended for GitHub documentation/development only
@@ -3141,7 +3141,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-22 15:07:02
+-- Dump completed on 2026-05-22 19:23:43
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -4742,7 +4742,7 @@ CREATE TABLE `ti_menu_images` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `ti_menu_images_menu_id_sort_order_index` (`menu_id`,`sort_order`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5983,7 +5983,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-22 15:07:03
+-- Dump completed on 2026-05-22 19:23:43
 
 -- ============================================================
 -- DATABASE: rosana
@@ -8315,7 +8315,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-22 15:07:03
+-- Dump completed on 2026-05-22 19:23:44
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -10242,4 +10242,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-22 15:07:03
+-- Dump completed on 2026-05-22 19:23:44

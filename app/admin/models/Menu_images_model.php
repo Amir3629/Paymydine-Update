@@ -13,5 +13,9 @@ class Menu_images_model extends Model
         'image_path',
         'sort_order',
     ];
+
+    protected $casts = [
+        'sort_order' => 'integer',
+    ];
 }
 
