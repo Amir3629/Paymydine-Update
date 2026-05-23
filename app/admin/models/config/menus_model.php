@@ -196,6 +196,26 @@ $config['form']['tabs'] = [
             'type' => 'text',
             'span' => 'left',
         ],
+        'food_name_autocomplete' => [
+            'type' => 'partial',
+            'path' => 'menus/form/food_name_autocomplete',
+            'span' => 'left',
+            'context' => ['create', 'edit', 'preview'],
+        ],
+        'ai_nutrition_assistant' => [
+            'label' => 'AI Nutrition Assistant',
+            'type' => 'partial',
+            'path' => 'menus/form/ai_nutrition_assistant',
+            'span' => 'full',
+        ],
+
+        'live_frontend_preview' => [
+            'label' => 'Live Frontend Preview',
+            'type' => 'partial',
+            'path' => 'menus/form/live_frontend_preview',
+            'span' => 'right',
+            'context' => ['create', 'edit', 'preview'],
+        ],
         'menu_price' => [
             'label' => 'lang:admin::lang.menus.label_price',
             'type' => 'currency',
@@ -262,12 +282,6 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'comment' => 'Optional serving size, for example 350g, 12 oz, or 1 bowl.',
         ],
-        'color' => [
-            'label' => 'Color',
-            'type' => 'colorpicker',
-            'span' => 'right',
-            'comment' => 'Optional hex color displayed as a small circular menu badge.',
-        ],
         'protein' => [
             'label' => 'Protein (g)',
             'type' => 'number',
@@ -292,6 +306,13 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'comment' => 'Optional estimated grams per serving.',
         ],
+        'color' => [
+            'label' => 'Color',
+            'type' => 'colorpicker',
+            'span' => 'right',
+            'comment' => 'Optional hex color displayed as a small circular menu badge.',
+        ],
+
         'mealtimes' => [
             'label' => 'lang:admin::lang.menus.label_mealtime',
             'type' => 'relation',
@@ -350,10 +371,19 @@ $config['form']['tabs'] = [
             'span' => 'right',
             'useAttachment' => true,
         ],
+        'menu_images_inline' => [
+            'label' => ' ',
+            'tab' => 'lang:admin::lang.menus.text_tab_general',
+            'type' => 'partial',
+            'path' => 'menus/form/menu_images_inline_gallery',
+            'span' => 'right',
+            'context' => ['create', 'edit', 'preview'],
+            'cssClass' => 'pmd-menu-images-inline-field',
+        ],
 
         '_options' => [
             'label' => 'lang:admin::lang.menus.label_option',
-            'tab' => 'lang:admin::lang.menus.text_tab_menu_option',
+            'tab' => 'Options',
             'type' => 'recordeditor',
             'context' => ['edit', 'preview'],
             'form' => 'menu_options_model',
@@ -373,7 +403,7 @@ $config['form']['tabs'] = [
         ],
         'menu_options' => [
             'label' => 'lang:admin::lang.menus.label_menu_option',
-            'tab' => 'lang:admin::lang.menus.text_tab_menu_option',
+            'tab' => 'Options',
             'type' => 'connector',
             'partial' => 'form/menu_options',
             'nameFrom' => 'option_name',
