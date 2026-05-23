@@ -780,7 +780,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
-  const [checkoutStep, setCheckoutStep] = useState<'review'|'payment'>('review')
+  const [checkoutStep, setCheckoutStep] = useState<'review'|'payment'>(existingOrderId ? 'payment' : 'review')
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(null)
 
   const [stripeConfig, setStripeConfig] = useState<{
@@ -3140,7 +3140,7 @@ function ExpandingBottomToolbar({
             <NotebookPen className={`h-8 w-8 ${noteDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
           </motion.button>
           </ActionTooltip>
-          {typeof window !== "undefined" && localStorage.getItem(`pmd_open_order:${window.location.host}:${String(tableInfo?.table_id || tableInfo?.table_no || "delivery")}`) ? (
+          {hasLocalOpenOrder ? (
           <button onClick={() => setPaymentModalOpen(true)} className="rounded-full px-3 py-1 text-xs bg-blue-600 text-white">My Order / Pay</button>
         ) : null}
           <ActionTooltip label="Checkout">
@@ -3491,6 +3491,7 @@ function MenuContent() {
   const [tableInfo, setTableInfoState] = useState<any>(null)
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
   const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
+  const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const shouldHideCartSheet = !!existingOrderId
 
