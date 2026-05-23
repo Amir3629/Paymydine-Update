@@ -202,6 +202,14 @@ $config['form']['tabs'] = [
             'path' => 'menus/form/ai_nutrition_assistant',
             'span' => 'full',
         ],
+
+        'live_frontend_preview' => [
+            'label' => 'Live Frontend Preview',
+            'type' => 'partial',
+            'path' => 'menus/form/live_frontend_preview',
+            'span' => 'right',
+            'context' => ['create', 'edit', 'preview'],
+        ],
         'menu_price' => [
             'label' => 'lang:admin::lang.menus.label_price',
             'type' => 'currency',

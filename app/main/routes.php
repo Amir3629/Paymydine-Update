@@ -407,7 +407,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 AND ma.attachment_id = m.menu_id 
                                 AND ma.tag = 'thumb'
                             WHERE m.menu_status = 1
-                            ORDER BY c.priority ASC, m.menu_name ASC
+                            ORDER BY c.priority ASC, COALESCE(m.menu_priority, 999999) ASC, m.menu_name ASC
                         ";
                         
                         $items = $conn->select($query);

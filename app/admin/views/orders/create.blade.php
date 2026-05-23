@@ -696,7 +696,7 @@
                 </button>
                 @if(($canMergeTables ?? false))
                 <button type="button" id="merge-tables-btn" class="btn btn-outline-warning btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
-                    <i class="fa fa-object-group"></i> Merge Tables
+                    <i class="fa fa-object-group"></i> Drag to Merge
                 </button>
                 @endif
                 @endif
@@ -5284,9 +5284,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (mergeTablesBtn) mergeTablesBtn.addEventListener('click', async function () {
         isMergeMode = !isMergeMode; selectedMergeTableIds.clear();
         this.classList.toggle('active', isMergeMode);
-        this.innerHTML = isMergeMode ? '<i class=\"fa fa-save\"></i> Confirm Merge' : '<i class=\"fa fa-object-group\"></i> Merge Tables';
+        this.innerHTML = isMergeMode ? '<i class=\"fa fa-save\"></i> Confirm Merge' : '<i class=\"fa fa-object-group\"></i> Drag to Merge';
         if (!isMergeMode) return;
-        alert('Select 2 or more tables to merge, then click Merge Tables again to confirm.');
+        alert('Select 2 or more tables to merge, then click Drag to Merge again to confirm.');
     });
     tableItems.forEach(item => item.addEventListener("click", async function(event){
         if (!isMergeMode) return;
@@ -5298,7 +5298,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const fd = new FormData(); fd.append('_handler','onMergeTables'); fd.append('location_id', String(getLocationId())); fd.append('name', name); selectedMergeTableIds.forEach(id=>fd.append('table_ids[]', String(id)));
             const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
             const json = await res.json();
-            if (json.success) { isMergeMode = false; mergeTablesBtn.classList.remove('active'); mergeTablesBtn.innerHTML = '<i class=\"fa fa-object-group\"></i> Merge Tables'; document.querySelectorAll('.table-item.merge-selected').forEach(el=>el.classList.remove('merge-selected')); await loadGroups(); }
+            if (json.success) { isMergeMode = false; mergeTablesBtn.classList.remove('active'); mergeTablesBtn.innerHTML = '<i class=\"fa fa-object-group\"></i> Drag to Merge'; document.querySelectorAll('.table-item.merge-selected').forEach(el=>el.classList.remove('merge-selected')); await loadGroups(); }
             else alert(json.message || 'Merge failed');
         }
     }, true));

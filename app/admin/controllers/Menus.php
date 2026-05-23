@@ -7,6 +7,8 @@ use Admin\Facades\AdminMenu;
 use Admin\Models\Menu_options_model;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Admin\Models\Menus_model;
 
 class Menus extends AdminController
 {
@@ -241,6 +243,29 @@ class Menus extends AdminController
                 'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
             ]);
         }
+    }
+
+
+    public function onSaveCardOrder(): JsonResponse
+    {
+        $user = admin_auth()->user();
+        if (!$user || !$user->hasPermission('Admin.Menus')) {
+            abort(403);
+        }
+
+        $ordered = (array)post('ordered_ids', []);
+        $ordered = array_values(array_filter(array_map('intval', $ordered)));
+        if (!count($ordered)) {
+            return response()->json(['ok' => false, 'message' => 'No items provided'], 422);
+        }
+
+        DB::transaction(function () use ($ordered) {
+            foreach ($ordered as $i => $menuId) {
+                Menus_model::query()->where('menu_id', $menuId)->update(['menu_priority' => $i + 1]);
+            }
+        });
+
+        return response()->json(['ok' => true]);
     }
 
 }
