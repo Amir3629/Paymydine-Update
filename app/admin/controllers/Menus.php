@@ -436,18 +436,34 @@ class Menus extends AdminController
         }
 
         $ordered = (array)post('ordered_ids', []);
-        $ordered = array_values(array_filter(array_map('intval', $ordered)));
+        $ordered = array_values(array_unique(array_filter(array_map('intval', $ordered))));
         if (!count($ordered)) {
             return response()->json(['ok' => false, 'message' => 'No items provided'], 422);
         }
 
-        DB::transaction(function () use ($ordered) {
-            foreach ($ordered as $i => $menuId) {
-                Menus_model::query()->where('menu_id', $menuId)->update(['menu_priority' => $i + 1]);
+        $validIds = Menus_model::query()->whereIn('menu_id', $ordered)->pluck('menu_id')->map(function ($id) {
+            return (int)$id;
+        })->all();
+        $validSet = array_flip($validIds);
+
+        $sequence = [];
+        foreach ($ordered as $menuId) {
+            if (isset($validSet[$menuId])) {
+                $sequence[] = $menuId;
+            }
+        }
+
+        if (!count($sequence)) {
+            return response()->json(['ok' => false, 'message' => 'No valid items provided'], 422);
+        }
+
+        DB::transaction(function () use ($sequence) {
+            foreach ($sequence as $index => $menuId) {
+                Menus_model::query()->where('menu_id', $menuId)->update(['menu_priority' => $index + 1]);
             }
         });
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'updated' => count($sequence)]);
     }
 
 }
