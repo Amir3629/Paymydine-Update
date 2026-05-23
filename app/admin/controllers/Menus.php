@@ -9,6 +9,7 @@ use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Admin\Models\Menus_model;
+use Admin\Classes\FoodNameSuggestions;
 
 class Menus extends AdminController
 {
@@ -243,6 +244,105 @@ class Menus extends AdminController
                 'message' => 'AI assistant is unavailable. You can still enter nutrition manually.',
             ]);
         }
+    }
+
+    public function onSuggestFoodNames(): JsonResponse
+    {
+        $query = (string)request()->input('query', '');
+        $categoryId = (int)request()->input('category_id', 0);
+        $queryNorm = FoodNameSuggestions::normalize($query);
+        if (mb_strlen($queryNorm, 'UTF-8') < 2) {
+            return response()->json(['success' => true, 'suggestions' => []]);
+        }
+
+        $menusQuery = Menus_model::query()->select(['menu_name']);
+        if ($categoryId > 0) {
+            $menusQuery->whereHas('categories', function ($q) use ($categoryId) {
+                $q->where('categories.category_id', $categoryId);
+            });
+        }
+
+        $tenantExisting = $menusQuery->where('menu_name', 'like', '%'.$query.'%')
+            ->limit(30)
+            ->pluck('menu_name')
+            ->filter()
+            ->map(fn($name) => trim((string)$name))
+            ->unique()
+            ->values()
+            ->all();
+
+        $cuisine = $this->detectCuisine($tenantExisting);
+        $templates = FoodNameSuggestions::templates();
+        $templatePool = array_merge($templates['english'], $templates['cafe'], $templates['fast_food']);
+        if (isset($templates[$cuisine])) {
+            $templatePool = array_merge($templates[$cuisine], $templatePool);
+        }
+
+        $rows = [];
+        foreach ($tenantExisting as $name) $rows[] = ['name' => $name, 'source' => 'tenant_existing', 'cuisine' => $cuisine];
+        foreach ($templatePool as $name) $rows[] = ['name' => $name, 'source' => 'template', 'cuisine' => $cuisine];
+
+        $seen = [];
+        $matches = [];
+        foreach ($rows as $row) {
+            $nameNorm = FoodNameSuggestions::normalize($row['name']);
+            if (!$nameNorm || isset($seen[$nameNorm])) continue;
+            $pos = mb_strpos($nameNorm, $queryNorm, 0, 'UTF-8');
+            if ($pos === false) continue;
+            $starts = $pos === 0;
+            $score = ($starts ? 200 : 120) + ($row['source'] === 'tenant_existing' ? 50 : 0);
+            $matches[] = [
+                'name' => $row['name'],
+                'language' => $this->guessLanguage($row['name']),
+                'cuisine' => $row['cuisine'],
+                'source' => $row['source'],
+                'category_hint' => null,
+                'confidence' => $starts ? 0.95 : 0.8,
+                '_score' => $score,
+            ];
+            $seen[$nameNorm] = true;
+        }
+        usort($matches, fn($a, $b) => $b['_score'] <=> $a['_score']);
+        $matches = array_slice($matches, 0, 8);
+        foreach ($matches as &$match) unset($match['_score']);
+
+        return response()->json(['success' => true, 'suggestions' => $matches]);
+    }
+
+    protected function detectCuisine(array $tenantExisting): string
+    {
+        $raw = (string)setting('cuisine', setting('restaurant_type', setting('business_type', '')));
+        $raw .= ' '.(string)setting('site_name', '');
+        $raw .= ' '.implode(' ', array_slice($tenantExisting, 0, 20));
+        $normalized = FoodNameSuggestions::normalize($raw);
+
+        $map = [
+            'persian' => ['persian', 'iran', 'iranian', 'کباب', 'چلو', 'جوجه', 'خورشت'],
+            'arabic' => ['arabic', 'middle eastern', 'shawarma', 'falafel', 'حمص', 'شاورما', 'فلافل'],
+            'turkish' => ['turkish', 'doner', 'döner', 'kebap', 'lahmacun', 'köfte'],
+            'german' => ['german', 'deutsch', 'schnitzel', 'bratwurst', 'currywurst'],
+            'cafe' => ['cafe', 'coffee', 'latte', 'espresso'],
+            'fast_food' => ['fast food', 'burger', 'pizza', 'fries', 'wrap'],
+        ];
+
+        foreach ($map as $cuisine => $needles) {
+            foreach ($needles as $needle) {
+                if (mb_strpos($normalized, FoodNameSuggestions::normalize($needle), 0, 'UTF-8') !== false) {
+                    return $cuisine;
+                }
+            }
+        }
+        return 'english';
+    }
+
+    protected function guessLanguage(string $name): string
+    {
+        if (preg_match('/[\x{0600}-\x{06FF}]/u', $name)) {
+            return str_contains($name, 'ی') || str_contains($name, 'ک') ? 'fa' : 'ar';
+        }
+        if (preg_match('/[çğıöşüÇĞİÖŞÜ]/u', $name)) return 'tr';
+        if (preg_match('/[äöüßÄÖÜ]/u', $name)) return 'de';
+        return 'en';
     }
 
 

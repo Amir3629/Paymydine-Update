@@ -196,6 +196,12 @@ $config['form']['tabs'] = [
             'type' => 'text',
             'span' => 'left',
         ],
+        'food_name_autocomplete' => [
+            'type' => 'partial',
+            'path' => 'menus/form/food_name_autocomplete',
+            'span' => 'left',
+            'context' => ['create', 'edit', 'preview'],
+        ],
         'ai_nutrition_assistant' => [
             'label' => 'AI Nutrition Assistant',
             'type' => 'partial',
