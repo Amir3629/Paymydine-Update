@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Admin\Models\Menus_model;
+use Admin\Models\Categories_model;
 use Admin\Classes\FoodNameSuggestions;
 
 class Menus extends AdminController
@@ -427,6 +428,45 @@ class Menus extends AdminController
         return 'en';
     }
 
+
+
+    public function onSaveCategoryOrder(): JsonResponse
+    {
+        $user = admin_auth()->user();
+        if (!$user || !$user->hasPermission('Admin.Categories')) {
+            abort(403);
+        }
+
+        $ordered = (array)post('ordered_category_ids', []);
+        $ordered = array_values(array_unique(array_filter(array_map('intval', $ordered))));
+        if (!count($ordered)) {
+            return response()->json(['ok' => false, 'message' => 'No categories provided'], 422);
+        }
+
+        $validIds = Categories_model::query()->whereIn('category_id', $ordered)->pluck('category_id')->map(function ($id) {
+            return (int)$id;
+        })->all();
+        $validSet = array_flip($validIds);
+
+        $sequence = [];
+        foreach ($ordered as $categoryId) {
+            if (isset($validSet[$categoryId])) {
+                $sequence[] = $categoryId;
+            }
+        }
+
+        if (!count($sequence)) {
+            return response()->json(['ok' => false, 'message' => 'No valid categories provided'], 422);
+        }
+
+        DB::transaction(function () use ($sequence) {
+            foreach ($sequence as $index => $categoryId) {
+                Categories_model::query()->where('category_id', $categoryId)->update(['priority' => $index + 1]);
+            }
+        });
+
+        return response()->json(['ok' => true, 'updated' => count($sequence)]);
+    }
 
     public function onSaveCardOrder(): JsonResponse
     {
