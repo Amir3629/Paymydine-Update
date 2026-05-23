@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Sat May 23 10:01:31 UTC 2026
+-- Generated UTC: Sat May 23 13:52:49 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 -- This file is intended for GitHub documentation/development only
@@ -3141,7 +3141,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-23 10:01:32
+-- Dump completed on 2026-05-23 13:52:49
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -5983,7 +5983,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-23 10:01:32
+-- Dump completed on 2026-05-23 13:52:49
 
 -- ============================================================
 -- DATABASE: rosana
@@ -8315,7 +8315,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-23 10:01:32
+-- Dump completed on 2026-05-23 13:52:50
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -10242,4 +10242,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-23 10:01:33
+-- Dump completed on 2026-05-23 13:52:50

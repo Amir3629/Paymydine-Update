@@ -168,7 +168,7 @@
             descEl.style.textAlign = rtl ? 'right' : 'left';
         }
 
-        if (priceEl) priceEl.textContent = price !== '' ? price : '0';
+        if (priceEl) priceEl.textContent = price !== '' ? price : '{{ currency_format(0) }}';
 
         renderImage();
         renderBadges();
@@ -189,7 +189,18 @@
         }
     });
 
-    setInterval(update, 1200);
+    var form = document.querySelector('form');
+    if (form && window.MutationObserver) {
+        var observer = new MutationObserver(function (mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                if (mutations[i].type === 'attributes' || mutations[i].addedNodes.length) {
+                    update();
+                    break;
+                }
+            }
+        });
+        observer.observe(form, {subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'value', 'checked']});
+    }
     update();
 })();
 </script>

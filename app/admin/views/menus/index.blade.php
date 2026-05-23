@@ -1,5 +1,19 @@
 @php
 $cards = \Admin\Models\Menus_model::with(['categories','media'])->orderBy('menu_priority','asc')->orderBy('menu_id','desc')->get();
+$pmdSafeThumb = function ($menu) {
+    $fallback = url('/app/admin/assets/images/default-image.png');
+    if (!$menu) return $fallback;
+    try {
+        if (method_exists($menu, 'getThumb')) {
+            $thumb = $menu->getThumb();
+            if (is_string($thumb) && trim($thumb) !== '') {
+                return $thumb;
+            }
+        }
+    } catch (\Throwable $e) {
+    }
+    return $fallback;
+};
 @endphp
 <div class="row-fluid">
     {!! $this->renderList() !!}
@@ -9,7 +23,7 @@ $cards = \Admin\Models\Menus_model::with(['categories','media'])->orderBy('menu_
   <div id="pmd-menu-grid" class="pmd-menu-grid">
     <a class="pmd-menu-card pmd-add-card" href="{{ admin_url('menus/create') }}">+ Add New Item</a>
     @foreach($cards as $m)
-      @php $img = $m->getThumb() ?: url('/app/admin/assets/images/default-image.png'); @endphp
+      @php $img = $pmdSafeThumb($m); @endphp
       <div class="pmd-menu-card" draggable="true" data-menu-id="{{ $m->menu_id }}">
         <img src="{{ $img }}" alt="{{ e($m->menu_name) }}">
         <strong>{{ $m->menu_name }}</strong>
