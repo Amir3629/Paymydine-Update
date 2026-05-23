@@ -8,6 +8,7 @@ use Admin\Models\Menu_options_model;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Admin\Models\Menus_model;
 use Admin\Classes\FoodNameSuggestions;
 
@@ -281,6 +282,11 @@ class Menus extends AdminController
         $rows = [];
         foreach ($tenantExisting as $name) $rows[] = ['name' => $name, 'source' => 'tenant_existing', 'cuisine' => $cuisine];
         foreach ($templatePool as $name) $rows[] = ['name' => $name, 'source' => 'template', 'cuisine' => $cuisine];
+        $aiEnabled = false;
+        foreach ($this->fetchGeminiFoodNameSuggestions($query, $cuisine, $tenantExisting) as $name) {
+            $rows[] = ['name' => $name, 'source' => 'ai_gemini', 'cuisine' => $cuisine];
+            $aiEnabled = true;
+        }
 
         $seen = [];
         $matches = [];
@@ -290,7 +296,12 @@ class Menus extends AdminController
             $pos = mb_strpos($nameNorm, $queryNorm, 0, 'UTF-8');
             if ($pos === false) continue;
             $starts = $pos === 0;
-            $score = ($starts ? 200 : 120) + ($row['source'] === 'tenant_existing' ? 50 : 0);
+            $sourceBoost = match ($row['source']) {
+                'tenant_existing' => 45,
+                'ai_gemini' => 30,
+                default => 10,
+            };
+            $score = ($starts ? 220 : 110) + $sourceBoost + ($row['cuisine'] === $cuisine ? 20 : 0);
             $matches[] = [
                 'name' => $row['name'],
                 'language' => $this->guessLanguage($row['name']),
@@ -306,7 +317,78 @@ class Menus extends AdminController
         $matches = array_slice($matches, 0, 8);
         foreach ($matches as &$match) unset($match['_score']);
 
-        return response()->json(['success' => true, 'suggestions' => $matches]);
+        return response()->json(['success' => true, 'ai_enabled' => $aiEnabled, 'suggestions' => $matches]);
+    }
+
+    protected function fetchGeminiFoodNameSuggestions(string $query, string $cuisine, array $tenantExisting): array
+    {
+        $enabled = filter_var(env('PMD_AI_NUTRITION_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
+        $provider = strtolower((string)env('PMD_AI_NUTRITION_PROVIDER', 'openai'));
+        $geminiKey = (string)env('GEMINI_API_KEY', '');
+        if (!$enabled || $provider !== 'gemini' || $geminiKey === '') {
+            return [];
+        }
+
+        $cacheKey = 'pmd_food_suggest:'.md5(implode('|', [
+            (string)setting('site_name', ''),
+            $cuisine,
+            FoodNameSuggestions::normalize($query),
+        ]));
+
+        return Cache::remember($cacheKey, now()->addMinutes(20), function () use ($query, $cuisine, $tenantExisting) {
+            $model = (string)env('PMD_AI_NUTRITION_MODEL', 'gpt-4.1-mini');
+            $endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+            $payload = [
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You generate short restaurant menu item names only. Return compact JSON only.'],
+                    ['role' => 'user', 'content' => json_encode([
+                        'task' => 'suggest_food_names',
+                        'query' => $query,
+                        'cuisine' => $cuisine,
+                        'restaurant_name' => (string)setting('site_name', ''),
+                        'existing_examples' => array_slice($tenantExisting, 0, 12),
+                        'languages' => ['fa', 'ar', 'tr', 'de', 'en'],
+                        'rules' => [
+                            'Return JSON: {"suggestions":["..."]}',
+                            'Max 8 suggestions',
+                            'Each suggestion should be a short food name only',
+                        ],
+                    ], JSON_UNESCAPED_UNICODE)],
+                ],
+                'temperature' => 0.3,
+                'response_format' => ['type' => 'json_object'],
+            ];
+
+            try {
+                $ch = curl_init($endpoint);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_HTTPHEADER => [
+                        'Authorization: Bearer '.(string)env('GEMINI_API_KEY', ''),
+                        'Content-Type: application/json',
+                    ],
+                    CURLOPT_POSTFIELDS => json_encode($payload),
+                    CURLOPT_TIMEOUT => 8,
+                ]);
+                $raw = curl_exec($ch);
+                $err = curl_error($ch);
+                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if ($raw === false || $err || $code >= 400) return [];
+                $json = json_decode((string)$raw, true);
+                $content = $json['choices'][0]['message']['content'] ?? '{}';
+                $parsed = json_decode((string)$content, true);
+                $list = $parsed['suggestions'] ?? [];
+                if (!is_array($list)) return [];
+                return array_values(array_filter(array_map(function ($item) {
+                    return mb_substr(trim((string)$item), 0, 80);
+                }, $list)));
+            } catch (\Throwable $e) {
+                return [];
+            }
+        });
     }
 
     protected function detectCuisine(array $tenantExisting): string
