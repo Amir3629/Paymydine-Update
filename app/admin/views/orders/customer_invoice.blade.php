@@ -7,7 +7,7 @@
     <style>
         @page { size: 80mm auto; margin: 4mm; }
         body { margin:0; padding:8px; font-family: Arial, Helvetica, sans-serif; background:#f6f6f6; color:#111; }
-        .receipt { width:72mm; max-width:72mm; margin:0 auto; background:#fff; padding:8px 6px; box-sizing:border-box; }
+        .receipt { width:72mm; max-width:72mm; margin:0 auto; background:#fff; padding:8px 6px; box-sizing:border-box; border:1px solid #ddd; }
         .center { text-align:center; }
         .small { font-size:11px; }
         .xs { font-size:10px; }
@@ -15,12 +15,13 @@
         .sep { border-top:1px dashed #000; margin:6px 0; }
         .row { display:flex; justify-content:space-between; gap:8px; }
         .items td { font-size:11px; padding:2px 0; vertical-align:top; }
-        .items td:last-child { text-align:right; white-space:nowrap; }
+        .items td:first-child { width:78%; word-break:break-word; }
+        .items td:last-child { width:22%; text-align:right; white-space:nowrap; }
         .badge { display:inline-block; border:1px solid #111; padding:2px 6px; font-size:10px; margin-top:4px; }
-        .print-btn { margin:10px auto 0; display:block; border:1px solid #222; background:#fff; color:#111; padding:6px 10px; font-size:12px; cursor:pointer; }
+        .print-btn { margin:10px auto 0; display:block; border:1px solid #222; background:#fff; color:#111; padding:6px 10px; font-size:12px; cursor:pointer; border-radius:6px; }
         @media print {
             body { background:#fff; padding:0; }
-            .receipt { width:100%; max-width:100%; margin:0; padding:0; }
+            .receipt { width:100%; max-width:100%; margin:0; padding:0; border:0; }
             .print-btn { display:none; }
         }
     </style>
@@ -42,14 +43,14 @@
             <img src="{{ uploads_url(setting('invoice_logo') ?: setting('site_logo')) }}" alt="logo" style="max-height:38px; max-width:64mm; margin-bottom:4px;">
         @endif
         <div style="font-weight:700; font-size:14px;">{{ setting('site_name') }}</div>
-        <div class="small" style="font-weight:700; margin-top:4px;">Customer Invoice / Order Summary</div>
-        <div class="xs muted">Not a fiscal invoice</div>
+        <div class="small" style="font-weight:700; margin-top:4px; letter-spacing:.2px;">Customer Invoice / Order Summary</div>
+        <div class="xs muted">Not a fiscal invoice / tax receipt</div>
         <div class="badge">Payment {{ $isPaid ? 'Paid' : 'Pending' }}</div>
     </div>
 
     <div class="sep"></div>
 
-    <div class="small">
+    <div class="small" style="line-height:1.45;">
         <div class="row"><span>Order #</span><strong>{{ $model->order_id }}</strong></div>
         <div class="row"><span>Date</span><span>{{ optional($model->created_at)->format('Y-m-d H:i') }}</span></div>
         <div class="row"><span>Context</span><span>{{ $model->order_type_name ?? $model->order_type }}</span></div>
@@ -74,7 +75,7 @@
 
     <div class="sep"></div>
 
-    <div class="small">
+    <div class="small" style="line-height:1.5;">
         <div class="row"><span>Subtotal</span><strong>{{ number_format($orderTotal, 2) }}</strong></div>
         <div class="row"><span>VAT</span><span>Included as configured</span></div>
         <div class="row"><span>Total</span><strong>{{ number_format($orderTotal, 2) }}</strong></div>
