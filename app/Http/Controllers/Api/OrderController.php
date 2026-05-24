@@ -63,6 +63,7 @@ class OrderController extends Controller
 
             $orderNumber = $this->generateOrderNumber();
             $tableId = $request->table_id;
+            $guestSessionId = trim((string)($request->guest_session_id ?? ''));
 
             if (!$tableId) {
                 $orderType = 'delivery';
@@ -84,9 +85,19 @@ class OrderController extends Controller
                     ->where('location_id', $request->location_id ?? 1)
                     ->where('table_id', $tableId)
                     ->where('status_id', 1)
+                    ->where(function ($q) {
+                        $q->whereNull('payment')->orWhere('payment', 'cash')->orWhere('payment', 'cod');
+                    })
                     ->first();
 
                 if ($existing) {
+                    $existingComment = (string)($existing->comment ?? '');
+                    if ($guestSessionId !== '' && preg_match('/\[guest_session:([^\]]+)\]/', $existingComment, $m)) {
+                        $orderGuestSession = trim((string)($m[1] ?? ''));
+                        if ($orderGuestSession !== '' && hash_equals($orderGuestSession, $guestSessionId) === false) {
+                            throw new \Exception('This open order belongs to another device session.');
+                        }
+                    }
                     $orderId = (int)$existing->order_id;
                 }
             }
@@ -105,7 +116,7 @@ class OrderController extends Controller
                     'order_time' => now()->format('H:i:s'),
                     'status_id' => 1,
                     'assignee_id' => null,
-                    'comment' => $request->special_instructions,
+                    'comment' => trim((string)$request->special_instructions).(($guestSessionId !== '') ? ' [guest_session:'.$guestSessionId.']' : ''),
                     'processed' => 1,
                     'created_at' => now(),
                     'updated_at' => now()

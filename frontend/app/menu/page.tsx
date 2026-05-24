@@ -816,6 +816,19 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return v
   }
 
+  const buildOpenOrderStorageKeys = () => {
+    const tenant = getTenantKey()
+    const tableKey = getTableKey()
+    const guestSessionId = ensureGuestSession()
+    return {
+      sessionKey: `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`,
+      legacyKey: `pmd_open_order:${tenant}:${tableKey}`,
+      guestSessionId,
+      tenant,
+      tableKey,
+    }
+  }
+
   const effectivePayPalClientId =
     paypalPublicConfig?.enabled && paypalPublicConfig?.clientId
       ? paypalPublicConfig.clientId
@@ -981,8 +994,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return Number(finalTotal || 0)
   }, [checkoutStep, submittedSnapshot, existingOrderId, pendingSummary, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
-    const quantity = (items || []).reduce((acc, item) => acc + Number(item?.quantity || 1), 0)
-    return Math.max(15, Math.min(45, 15 + quantity * 4))
+    const normalized = (items || []).map((item) => ({
+      quantity: Math.max(1, Number(item?.quantity || 1)),
+      prep: Math.max(0, Number(item?.prep_time_minutes ?? item?.item?.prep_time_minutes ?? 15) || 15),
+    }))
+    const quantity = normalized.reduce((acc, item) => acc + item.quantity, 0)
+    const base = normalized.reduce((acc, item) => Math.max(acc, item.prep), 15)
+    const buffer = Math.min(15, Math.max(0, (quantity - 1) * 2))
+    return Math.max(10, Math.min(90, Math.round(base + buffer)))
   }
   const estimatedMinutes = useMemo(
     () => estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay),
@@ -998,9 +1017,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
   const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
     try {
-      const tenant = getTenantKey()
-      const tableKey = getTableKey()
-      const sessionKey = `pmd_open_order:${tenant}:${tableKey}`
+      const sessionKey = buildOpenOrderStorageKeys().sessionKey
       const raw = localStorage.getItem(sessionKey)
       if (!raw) return
       const parsed = JSON.parse(raw)
@@ -1226,7 +1243,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const guestSessionId = ensureGuestSession()
           const tenant = getTenantKey()
           const tableKey = getTableKey()
-          const sessionKey = `pmd_open_order:${tenant}:${tableKey}`
+          const sessionKey = buildOpenOrderStorageKeys().sessionKey
           const orderIdVal = response.order_id ? String(response.order_id) : ''
           const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
@@ -4048,9 +4065,26 @@ useEffect(() => {
     if (typeof window === "undefined") return
     const tenant = window.location.host
     const tableKey = String(tableInfo?.table_id || tableInfo?.table_no || searchParams?.get("table") || searchParams?.get("table_id") || searchParams?.get("table_no") || (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? "delivery"))
-    const key = `pmd_open_order:${tenant}:${tableKey}`
+    const guestSessionId = localStorage.getItem('pmd_guest_session_id') || `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`
+    localStorage.setItem('pmd_guest_session_id', guestSessionId)
+    const key = `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`
+    const legacyKey = `pmd_open_order:${tenant}:${tableKey}`
     try {
-      const raw = localStorage.getItem(key)
+      let raw = localStorage.getItem(key)
+      if (!raw) {
+        const legacyRaw = localStorage.getItem(legacyKey)
+        if (legacyRaw) {
+          try {
+            const legacy = JSON.parse(legacyRaw)
+            if (!legacy?.guestSessionId || legacy.guestSessionId === guestSessionId) {
+              const migrated = { ...legacy, guestSessionId }
+              localStorage.setItem(key, JSON.stringify(migrated))
+              localStorage.removeItem(legacyKey)
+              raw = JSON.stringify(migrated)
+            }
+          } catch {}
+        }
+      }
       if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
       const parsed = JSON.parse(raw)
       if (parsed?.paymentStatus === "paid") { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
@@ -4147,9 +4181,9 @@ useEffect(() => {
             setPaymentModalInitialStep('submitted')
             setPaymentModalOpen(true)
           }}
-          className="fixed bottom-24 right-4 z-40 rounded-full bg-black text-white px-4 py-2 text-sm shadow-lg"
+          className="fixed bottom-24 right-4 z-40 rounded-full px-4 py-2 text-sm shadow-lg border" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
         >
-          My Order / Pay
+          My Order / Pay{localOpenOrder?.orderId ? ` #${localOpenOrder.orderId}` : ''}
         </button>
       )}
       <PaymentModal
