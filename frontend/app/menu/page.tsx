@@ -988,7 +988,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     () => estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay),
     [submittedSnapshot?.submittedItems, itemsToPay]
   )
-  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed bg-[color:var(--theme-secondary)] text-[color:var(--theme-background)]"
+  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+  const modalPrimaryBtnStyle: React.CSSProperties = {
+    background: "var(--theme-secondary)",
+    color: "#111827",
+    border: "1px solid rgba(255,255,255,0.12)",
+  }
   const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
   const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
   const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
@@ -2435,7 +2440,7 @@ case "cod":
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          {checkoutStep === "payment" && pendingSummary && (
+          {false && checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
                 <span className="muted">Total</span>
@@ -2452,7 +2457,7 @@ case "cod":
             </div>
           )}
           {/* Split Bill Toggle */}
-          {checkoutStep === "payment" && <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
+          {false && checkoutStep === "payment" && <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} />
               <span className="text-xs muted">{t("splitBill")}</span>
@@ -2473,7 +2478,7 @@ case "cod":
           </div>}
 
           {/* Items List */}
-          {(checkoutStep === "review" || checkoutStep === "payment") && (isSplitting && checkoutStep === "payment" ? (
+          {false && (checkoutStep === "review" || checkoutStep === "payment") && (isSplitting && checkoutStep === "payment" ? (
             <div className="surface-sub rounded-2xl p-3 overflow-hidden">
               <h3 className="mb-2 text-xs">{t("selectItemsToPay")}</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -2521,7 +2526,7 @@ case "cod":
           ))}
 
           {/* Tip Section */}
-          {checkoutStep === "payment" && tipSettings.enabled && (
+          {false && checkoutStep === "payment" && tipSettings.enabled && (
             <div className="surface-sub rounded-2xl p-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative h-4 w-4 flex items-center justify-center">
@@ -2580,7 +2585,7 @@ case "cod":
           )}
 
           {/* Coupon Code Input */}
-          {checkoutStep === "payment" && <div className="surface-sub rounded-2xl p-3 space-y-2">
+          {false && checkoutStep === "payment" && <div className="surface-sub rounded-2xl p-3 space-y-2">
             {!appliedCoupon ? (
               <div className="flex gap-2">
                 <input
@@ -2657,7 +2662,7 @@ case "cod":
 
           
 {/* Totals */}
-          {(checkoutStep === "review" || checkoutStep === "payment") && <div className="surface-sub rounded-2xl p-3 space-y-1">
+          {checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span>{t("subtotal")}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
@@ -2702,7 +2707,7 @@ case "cod":
                   aria-label="Submit order"
                   disabled={isLoading}
                   onClick={() => handlePayment(undefined, { method_code: "cod", provider_code: null })}
-                  className={modalPrimaryBtn}
+                  className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
                 >
                   {isLoading ? "Submitting..." : (submittedSnapshot ? "Add to order" : "Submit order")}
                 </button>
@@ -2722,13 +2727,13 @@ case "cod":
           {(checkoutStep === "submitted" || checkoutStep === "payment" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div layout className="mt-2 p-1 space-y-4">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)] text-[color:var(--theme-background)]">
-                  <CheckCircle className="h-5 w-5" />
+                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
+                  <CheckCircle className="h-5 w-5" style={{ color: "#111827" }} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
-                    <span className="text-xs rounded-full px-2 py-1 surface-sub">Estimated ~{estimatedMinutes} min</span>
+                    <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="relative h-14 w-14 shrink-0 rounded-full p-[2px]" style={{ background: `conic-gradient(var(--theme-secondary) 75%, rgba(148,163,184,.25) 0)` }}><div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-[color:var(--theme-surface)] text-[color:var(--theme-text-primary)]"><span className="text-xs font-bold leading-none">~{estimatedMinutes}</span><span className="text-[10px] leading-none opacity-70">min</span></div></div>
                   </div>
                   <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
                 </div>
@@ -2770,7 +2775,7 @@ case "cod":
                 <button
                   type="button"
                   onClick={() => setCheckoutStep('payment')}
-                  className={modalPrimaryBtn}
+                  className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
                 >
                   Pay now
                 </button>
@@ -2874,6 +2879,21 @@ case "cod":
               </motion.div>
             ) : null}
           </AnimatePresence>
+          {checkoutStep === "payment" && (
+            <>
+              {pendingSummary && (
+                <div className="surface-sub rounded-2xl p-3 text-xs">
+                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
+                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
+                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
+                </div>
+              )}
+              <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
+                <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs muted">{t("splitBill")}</span></div>
+                <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
+              </div>
+            </>
+          )}
 </div>
       </motion.div>
     </div>
