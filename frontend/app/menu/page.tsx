@@ -1003,10 +1003,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     const buffer = Math.min(15, Math.max(0, (quantity - 1) * 2))
     return Math.max(10, Math.min(90, Math.round(base + buffer)))
   }
-  const estimatedMinutes = useMemo(
-    () => estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay),
-    [submittedSnapshot?.submittedItems, itemsToPay]
-  )
+  const estimatedMinutes = useMemo(() => {
+    const backendEta = Number(submittedSnapshot?.etaMinutes || submittedSnapshot?.estimated_prep_minutes || 0)
+    if (backendEta > 0) return backendEta
+    return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
+  }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "var(--theme-secondary)",
@@ -1245,7 +1246,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const tableKey = getTableKey()
           const sessionKey = buildOpenOrderStorageKeys().sessionKey
           const orderIdVal = response.order_id ? String(response.order_id) : ''
-          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
+          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes), showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
           setSubmittedSnapshot(snapshot)
           onOpenOrderUpdate?.(snapshot)
@@ -2752,7 +2753,7 @@ case "cod":
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
-                    <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="shrink-0 rounded-2xl border px-2 py-1 text-center" style={{ background: "var(--theme-secondary)", borderColor: "var(--theme-border)", color: "#111827" }}><div className="text-[10px] font-semibold uppercase tracking-wide">ETA</div><div className="text-sm font-bold leading-none">~{estimatedMinutes}</div><div className="text-[10px] leading-none">min</div></div>
+                    {(submittedSnapshot?.showCustomerEta ?? true) && <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="shrink-0 rounded-2xl border px-2 py-1 text-center" style={{ background: "var(--theme-secondary)", borderColor: "var(--theme-border)", color: "#111827" }}><div className="text-[10px] font-semibold uppercase tracking-wide">Smart ETA</div><div className="text-sm font-bold leading-none">~{estimatedMinutes}</div><div className="text-[10px] leading-none">min</div></div>}
                   </div>
                   <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
                 </div>
@@ -4185,7 +4186,7 @@ useEffect(() => {
           }}
           className="fixed bottom-24 right-4 z-40 w-56 rounded-2xl px-3 py-2 text-left shadow-xl border" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
         >
-          <div className='text-xs opacity-70'>My Order</div><div className='text-sm font-semibold'>#{localOpenOrder?.orderId || '—'} · {formatCurrency(Number(localOpenOrder?.total||0))}</div><div className='text-xs opacity-80'>Tap to view / pay</div>
+          <div className='text-xs opacity-70'>My Order</div><div className='text-sm font-semibold'>#{localOpenOrder?.orderId || '—'} · {formatCurrency(Number(localOpenOrder?.total||0))}</div><div className='text-xs opacity-80'>{(localOpenOrder?.etaMinutes||localOpenOrder?.estimated_prep_minutes) ? `~${Number(localOpenOrder?.etaMinutes||localOpenOrder?.estimated_prep_minutes)} min` : 'Ready soon'}</div>
         </button>
       )}
       <PaymentModal

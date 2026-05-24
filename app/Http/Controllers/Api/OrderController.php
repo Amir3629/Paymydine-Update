@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Helpers\NotificationHelper;
+use App\Services\OrderEtaService;
 
 class OrderController extends Controller
 {
@@ -76,6 +77,8 @@ class OrderController extends Controller
             $expectedTotal  = round((float) $request->total_amount, 2);
             $tipAmount      = round((float) ($request->tip_amount ?? 0), 2);
             $couponDiscount = round((float) ($request->coupon_discount ?? 0), 2);
+            $etaItems = [];
+
 
             $orderId = null;
             $isAppend = (bool)$request->boolean('append_to_order') && !empty($request->existing_order_id);
@@ -145,6 +148,7 @@ class OrderController extends Controller
                 }
 
                 $baseSubtotal = round($basePrice * $qty, 2);
+                $etaItems[] = ['quantity'=>$qty,'prep_time_minutes'=>(int)($menuItem->prep_time_minutes ?? 15)];
 
                 $orderMenuId = DB::table('order_menus')->insertGetId([
                     'order_id' => $orderId,
@@ -352,10 +356,12 @@ class OrderController extends Controller
             DB::table('order_totals')->where('order_id', $orderId)->delete();
             DB::table('order_totals')->insert($orderTotals);
 
+            $eta = OrderEtaService::calculate($etaItems, (int)($request->location_id ?? 1));
             DB::table('orders')
                 ->where('order_id', $orderId)
                 ->update([
                     'order_total' => $expectedTotal,
+                    'estimated_prep_minutes' => $eta['eta_minutes'],
                     'updated_at' => now()
                 ]);
 
@@ -398,7 +404,10 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'order_id' => $orderId,
-                'message' => 'Order placed successfully'
+                'message' => 'Order placed successfully',
+                'eta_minutes' => $eta['eta_minutes'] ?? null,
+                'estimated_prep_minutes' => $eta['eta_minutes'] ?? null,
+                'show_customer_eta' => (bool)($eta['show_customer_eta'] ?? true)
             ]);
 
         } catch (\Exception $e) {
@@ -471,6 +480,7 @@ class OrderController extends Controller
                 'table_name' => $order->table_name,
                 'order_type' => $order->order_type,
                 'total_amount' => (float)$order->order_total,
+                'estimated_prep_minutes' => isset($order->estimated_prep_minutes) ? (int)$order->estimated_prep_minutes : null,
                 'status' => [
                     'id' => $order->status_id,
                     'name' => $order->status_name,

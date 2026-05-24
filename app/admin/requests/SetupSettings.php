@@ -34,6 +34,17 @@ class SetupSettings extends FormRequest
             'invoice_print_hint' => lang('system::lang.settings.label_invoice_print_hint'),
             'invoice_customer_template' => 'Customer Invoice Template',
             'invoice_customer_footer_text' => 'Customer Invoice Footer',
+            'enable_customer_eta' => 'Show ETA to customers',
+            'smart_eta_enabled' => 'Smart ETA',
+            'eta_default_prep_minutes' => 'Default prep time',
+            'eta_order_load_window_minutes' => 'Kitchen load window',
+            'eta_busy_order_threshold' => 'Busy threshold',
+            'eta_very_busy_order_threshold' => 'Very busy threshold',
+            'eta_busy_extra_minutes' => 'Busy extra minutes',
+            'eta_very_busy_extra_minutes' => 'Very busy extra minutes',
+            'eta_round_to_nearest_minutes' => 'Round ETA',
+            'eta_max_minutes' => 'Maximum ETA',
+            'eta_hint_text' => 'ETA note',
         ];
     }
 
@@ -55,6 +66,17 @@ class SetupSettings extends FormRequest
             'invoice_print_hint' => ['nullable', 'string'],
             'invoice_customer_template' => ['nullable', 'in:classic,modern,minimal'],
             'invoice_customer_footer_text' => ['nullable', 'string'],
+            'enable_customer_eta' => ['nullable','integer'],
+            'smart_eta_enabled' => ['nullable','integer'],
+            'eta_default_prep_minutes' => ['nullable','integer','min:1','max:240'],
+            'eta_order_load_window_minutes' => ['nullable','integer','in:15,30,45,60'],
+            'eta_busy_order_threshold' => ['nullable','integer','min:1','max:200'],
+            'eta_very_busy_order_threshold' => ['nullable','integer','min:1','max:300'],
+            'eta_busy_extra_minutes' => ['nullable','integer','min:0','max:120'],
+            'eta_very_busy_extra_minutes' => ['nullable','integer','min:0','max:180'],
+            'eta_round_to_nearest_minutes' => ['nullable','integer','in:1,5,10'],
+            'eta_max_minutes' => ['nullable','integer','min:10','max:240'],
+            'eta_hint_text' => ['nullable','string'],
         ];
     }
 

@@ -78,6 +78,25 @@ return [
                     'comment' => 'lang:system::lang.settings.help_canceled_order_status',
                 ],
 
+
+                'eta_section' => [
+                    'tab' => 'lang:system::lang.settings.text_tab_title_order',
+                    'type' => 'section',
+                    'label' => 'Order Timing & Smart ETA',
+                    'comment' => 'Smart ETA uses item prep times and current order load. No external AI required.',
+                ],
+                'enable_customer_eta' => ['label'=>'Show ETA to customers','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'switch','default'=>true,'on'=>'lang:admin::lang.text_yes','off'=>'lang:admin::lang.text_no'],
+                'smart_eta_enabled' => ['label'=>'Smart ETA','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'switch','default'=>true,'on'=>'lang:admin::lang.text_yes','off'=>'lang:admin::lang.text_no'],
+                'eta_default_prep_minutes' => ['label'=>'Default prep time','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'number','default'=>15,'attributes'=>['min'=>1,'max'=>240]],
+                'eta_order_load_window_minutes' => ['label'=>'Kitchen load window','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'select','default'=>30,'options'=>[15=>'15',30=>'30',45=>'45',60=>'60']],
+                'eta_busy_order_threshold' => ['label'=>'Busy threshold','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'number','default'=>6],
+                'eta_very_busy_order_threshold' => ['label'=>'Very busy threshold','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'number','default'=>13],
+                'eta_busy_extra_minutes' => ['label'=>'Busy extra minutes','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'number','default'=>5],
+                'eta_very_busy_extra_minutes' => ['label'=>'Very busy extra minutes','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'number','default'=>10],
+                'eta_round_to_nearest_minutes' => ['label'=>'Round ETA','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'select','default'=>5,'options'=>[1=>'1',5=>'5',10=>'10']],
+                'eta_max_minutes' => ['label'=>'Maximum ETA','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'number','default'=>90,'attributes'=>['min'=>10,'max'=>240]],
+                'eta_hint_text' => ['label'=>'ETA note','tab'=>'lang:system::lang.settings.text_tab_title_order','type'=>'textarea','default'=>'Estimated time may change depending on kitchen load.'],
+
                 'reservation_email' => [
                     'label' => 'lang:system::lang.settings.label_reservation_email',
                     'tab' => 'lang:system::lang.settings.text_tab_title_reservation',
