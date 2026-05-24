@@ -229,6 +229,14 @@ $config['form']['tabs'] = [
             'default' => 0,
             'cssClass' => 'flex-width',
         ],
+        'prep_time_minutes' => [
+            'label' => 'Prep time',
+            'type' => 'number',
+            'span' => 'left',
+            'default' => 15,
+            'comment' => 'Estimated preparation time for this item. Used for customer ETA (minutes).',
+            'attributes' => ['min' => 0, 'max' => 240],
+        ],
         'categories' => [
             'label' => 'lang:admin::lang.menus.label_category',
             'type' => 'relation',

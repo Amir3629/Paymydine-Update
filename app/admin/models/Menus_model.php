@@ -41,6 +41,7 @@ class Menus_model extends Model
         'order_restriction' => 'array',
         'menu_status' => 'boolean',
         'menu_priority' => 'integer',
+        'prep_time_minutes' => 'integer',
         'is_stock_out' => 'boolean',
         'is_halal' => 'boolean',
         'is_vegetarian' => 'boolean',

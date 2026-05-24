@@ -1010,7 +1010,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "var(--theme-secondary)",
-    color: "#111827",
+    color: "#ffffff", textShadow: "0 1px 1px rgba(0,0,0,.25)",
     border: "1px solid rgba(255,255,255,0.12)",
   }
   const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
@@ -2678,7 +2678,9 @@ case "cod":
           </div>}
 
           
-{/* Totals */}
+{checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Selected items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>}
+
+          {/* Totals */}
           {checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span>{t("subtotal")}</span>
@@ -2750,7 +2752,7 @@ case "cod":
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
-                    <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="relative h-14 w-14 shrink-0 rounded-full p-[2px]" style={{ background: `conic-gradient(var(--theme-secondary) 75%, rgba(148,163,184,.25) 0)` }}><div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-[color:var(--theme-surface)] text-[color:var(--theme-text-primary)]"><span className="text-xs font-bold leading-none">~{estimatedMinutes}</span><span className="text-[10px] leading-none opacity-70">min</span></div></div>
+                    <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="shrink-0 rounded-2xl border px-2 py-1 text-center" style={{ background: "var(--theme-secondary)", borderColor: "var(--theme-border)", color: "#111827" }}><div className="text-[10px] font-semibold uppercase tracking-wide">ETA</div><div className="text-sm font-bold leading-none">~{estimatedMinutes}</div><div className="text-[10px] leading-none">min</div></div>
                   </div>
                   <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
                 </div>
@@ -2814,6 +2816,15 @@ case "cod":
             </motion.div>
           )}
 
+          {checkoutStep === "payment" && (
+            <>
+              {pendingSummary && (
+                <div className="surface-sub rounded-2xl p-3 text-xs">
+                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
+                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
+                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
+                </div>
+              )}
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
             {checkoutStep === "payment" && !selectedPaymentMethod ? (
@@ -2896,15 +2907,6 @@ case "cod":
               </motion.div>
             ) : null}
           </AnimatePresence>
-          {checkoutStep === "payment" && (
-            <>
-              {pendingSummary && (
-                <div className="surface-sub rounded-2xl p-3 text-xs">
-                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
-                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
-                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
-                </div>
-              )}
               <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
                 <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs muted">{t("splitBill")}</span></div>
                 <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
@@ -4181,9 +4183,9 @@ useEffect(() => {
             setPaymentModalInitialStep('submitted')
             setPaymentModalOpen(true)
           }}
-          className="fixed bottom-24 right-4 z-40 rounded-full px-4 py-2 text-sm shadow-lg border" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
+          className="fixed bottom-24 right-4 z-40 w-56 rounded-2xl px-3 py-2 text-left shadow-xl border" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
         >
-          My Order / Pay{localOpenOrder?.orderId ? ` #${localOpenOrder.orderId}` : ''}
+          <div className='text-xs opacity-70'>My Order</div><div className='text-sm font-semibold'>#{localOpenOrder?.orderId || '—'} · {formatCurrency(Number(localOpenOrder?.total||0))}</div><div className='text-xs opacity-80'>Tap to view / pay</div>
         </button>
       )}
       <PaymentModal

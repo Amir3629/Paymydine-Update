@@ -41,6 +41,7 @@ export type MenuItem = {
   minimum_qty?: number
   available?: boolean
   options?: MenuItemOption[]
+  prep_time_minutes?: number
 }
 
 export interface MenuItemOption {
@@ -165,7 +166,8 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     stock_qty: apiItem.stock_qty,
     minimum_qty: apiItem.minimum_qty || 1,
     available: apiItem.available !== false && (apiItem.stock_qty === null || (apiItem.stock_qty ?? 0) > 0),
-    options: apiItem.options || []
+    options: apiItem.options || [],
+    prep_time_minutes: Number((apiItem as any).prep_time_minutes || 15)
   }
 }
 
