@@ -143,6 +143,7 @@ class Menus extends AdminController
             'language' => $lang,
             'supported_languages' => ['English','German','Persian','Arabic','Turkish'],
             'requirements' => [
+                'Also return prep_time_minutes as integer 1..240.',
                 'Provide draft suggestions only.',
                 'Nutrition values are estimates.',
                 'Return JSON object only with keys: description, ingredients(array), calories, protein, carbs, fat, sugar, serving_size.',
@@ -237,6 +238,7 @@ class Menus extends AdminController
                     'fat' => $num($suggestions['fat'] ?? null, 0, 1000),
                     'sugar' => $num($suggestions['sugar'] ?? null, 0, 1000),
                     'serving_size' => isset($suggestions['serving_size']) ? mb_substr((string)$suggestions['serving_size'], 0, 120) : ($payload['serving_size'] ?? null),
+                    'prep_time_minutes' => $num($suggestions['prep_time_minutes'] ?? null, 1, 240) ?: (int)(\Illuminate\Support\Facades\DB::table('settings')->where('item','eta_default_prep_minutes')->orderByDesc('setting_id')->value('value') ?: 15),
                 ],
                 'disclaimer' => 'AI nutrition values are estimates and should be reviewed before publishing.',
             ]);
@@ -248,7 +250,6 @@ class Menus extends AdminController
             ]);
         }
     }
-
     public function onSuggestFoodNames(): JsonResponse
     {
         $query = (string)request()->input('query', '');

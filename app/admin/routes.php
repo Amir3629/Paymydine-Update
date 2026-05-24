@@ -4941,6 +4941,8 @@ return response()->json([
             $baseItemsSubtotal = 0.0;
             $optionsSubtotal = 0.0;
             $itemsSubtotal = 0.0;
+            $etaItems = [];
+
 
             // PMD_R2O_LIVE_NAME_PRICE_FIX_V1
             $isImportedReady2Order =
@@ -4973,6 +4975,15 @@ return response()->json([
                 $effectiveName = ($isImportedReady2Order && $incomingName !== '')
                     ? $incomingName
                     : ($menuItem->menu_name ?? $item['name']);
+
+                $prepFromItem = (int)($item['prep_time_minutes'] ?? 0);
+                $prepFromMenu = (int)($menuItem->prep_time_minutes ?? 0);
+                $fallbackPrep = 15;
+                try {
+                    $fallbackPrep = (int)(\Illuminate\Support\Facades\DB::table('settings')->where('item', 'eta_default_prep_minutes')->orderByDesc('setting_id')->value('value') ?: 15);
+                } catch (\Throwable $ignored) {}
+                $resolvedPrep = $prepFromItem > 0 ? $prepFromItem : ($prepFromMenu > 0 ? $prepFromMenu : max(1, $fallbackPrep));
+                $etaItems[] = ['menu_id'=>(int)$item['menu_id'],'quantity'=>$qty,'prep_time_minutes'=>$resolvedPrep];
 
                 $baseSubtotal = round($effectiveUnitPrice * $qty, 4);
                 $baseItemsSubtotal += $baseSubtotal;
@@ -5299,12 +5310,35 @@ return response()->json([
                 ]);
             }
 
+            $etaResult = ['show_customer_eta' => true, 'eta_minutes' => null, 'active_order_count' => null];
+            try {
+                \Log::info('PMD_ACTIVE_ORDER_ETA_INPUT', [
+                    'order_id' => $orderId,
+                    'location_id' => (int)($request->location_id ?? 1),
+                    'menu_ids' => array_map(fn($x) => (int)($x['menu_id'] ?? 0), $etaItems),
+                    'prep_times' => array_map(fn($x) => (int)($x['prep_time_minutes'] ?? 0), $etaItems),
+                ]);
+                $etaResult = \App\Services\OrderEtaService::calculate($etaItems, (int)($request->location_id ?? 1), ['exclude_order_id' => (int)$orderId]);
+                \Log::info('PMD_ACTIVE_ORDER_ETA_COMPUTED', array_merge(['order_id' => $orderId, 'location_id' => (int)($request->location_id ?? 1)], $etaResult));
+            } catch (\Throwable $e) {
+                \Log::warning('PMD_ACTIVE_ORDER_ETA_FAILED', ['order_id' => $orderId, 'location_id' => (int)($request->location_id ?? 1), 'error' => $e->getMessage()]);
+            }
+
             DB::table('orders')
                 ->where('order_id', $orderId)
                 ->update([
                     'order_total' => $orderTotal,
+                    'estimated_prep_minutes' => isset($etaResult['eta_minutes']) ? (int)$etaResult['eta_minutes'] : null,
                     'updated_at' => now(),
                 ]);
+
+            \Log::info('PMD_ACTIVE_ORDER_ETA_STORED', [
+                'order_id' => $orderId,
+                'eta_minutes' => $etaResult['eta_minutes'] ?? null,
+                'show_customer_eta' => $etaResult['show_customer_eta'] ?? true,
+                'active_order_count' => $etaResult['active_order_count'] ?? null,
+                'location_id' => (int)($request->location_id ?? 1),
+            ]);
 
             DB::commit();
 
@@ -5411,6 +5445,9 @@ return response()->json([
                 'success' => true,
                 'order_id' => $orderId,
                 'message' => 'Order placed successfully',
+                'eta_minutes' => $etaResult['eta_minutes'] ?? null,
+                'estimated_prep_minutes' => $etaResult['eta_minutes'] ?? null,
+                'show_customer_eta' => (bool)($etaResult['show_customer_eta'] ?? true),
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {

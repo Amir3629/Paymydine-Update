@@ -1170,7 +1170,23 @@ div.toolbar-action a.btn-send-invoice {
         <div class="order-info-item invoice-combined">
             <label class="order-info-label">Invoice</label>
             <div class="invoice-buttons-container">
-            <a
+            
+{{-- PMD_ORDER_ETA_BADGE_START --}}
+@if(!empty($formModel->estimated_prep_minutes))
+    <a
+        class="btn btn-default"
+        href="javascript:;"
+        title="Estimated preparation time"
+        aria-label="Estimated preparation time"
+        style="min-width:40px;"
+    >
+        <i class="fa fa-clock-o"></i>
+        <span class="hidden-xs">~{{ (int)$formModel->estimated_prep_minutes }} min</span>
+    </a>
+@endif
+{{-- PMD_ORDER_ETA_BADGE_END --}}
+
+<a
                 class="invoice-icon-btn"
                 href="{{ admin_url('orders/customerInvoice/'.$formModel->order_id) }}"
                 target="_blank"

@@ -106,6 +106,7 @@
     maybeSet('carbs', s.carbs);
     maybeSet('fat', s.fat);
     maybeSet('sugar', s.sugar);
+    maybeSet('prep_time_minutes', s.prep_time_minutes);
     if(Array.isArray(s.ingredients) && input('ingredients')) {
       var joined=s.ingredients.join(', ');
       var curr=(input('ingredients').value||'').trim();

@@ -95,6 +95,7 @@ export interface OrderRequest {
     price: number;
     special_instructions?: string;
     options?: Record<string, string>;
+  prep_time_minutes?: number;
   }[];
   customer_name: string;
   customer_email: string;
@@ -109,6 +110,9 @@ export interface OrderRequest {
   tip_amount?: number;
   special_instructions?: string;
   stripe_payment_intent_id?: string;
+  existing_order_id?: number;
+  append_to_order?: boolean;
+  guest_session_id?: string;
 }
 
 export interface OrderResponse {

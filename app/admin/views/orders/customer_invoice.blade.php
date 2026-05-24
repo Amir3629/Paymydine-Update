@@ -74,9 +74,9 @@
         }
     @endphp
     <style>
-        @page { size: 80mm auto; margin: 4mm; }
+        @page { size: var(--pmd-page-width,80mm) auto; margin: 4mm; }
         body { margin:0; padding:8px; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; color:#111; }
-        .receipt { width:72mm; max-width:72mm; margin:0 auto; background:#fff; padding:9px 7px; box-sizing:border-box; border:1px solid #ddd; }
+        .receipt { width:var(--pmd-receipt-width,72mm); max-width:var(--pmd-receipt-width,72mm); margin:0 auto; background:#fff; padding:9px 7px; box-sizing:border-box; border:1px solid #ddd; }
         .center { text-align:center; }
         .small { font-size:11px; }
         .xs { font-size:10px; }
@@ -130,10 +130,19 @@
         }
     }
 @endphp
-<body class="template-{{ $tpl === 'modern' ? 'modern' : ($tpl === 'minimal' ? 'minimal' : 'classic') }}">
+@php
+$receiptMode=(string)$pmdSetting('invoice_receipt_mode','1')==='1';
+$paper=(string)$pmdSetting('invoice_paper_width','80mm');
+$wMap=['58mm'=>'50mm','80mm'=>'72mm','112mm'=>'102mm','a4'=>'190mm'];
+$rw=$wMap[$paper]??'72mm';
+$compact=(string)$pmdSetting('invoice_compact_mode','1')==='1';
+$font=(string)$pmdSetting('invoice_font_size_preset','normal');
+$auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
+@endphp
+<body style="--pmd-page-width:{{$paper}};--pmd-receipt-width:{{$rw}};" class="template-{{ $tpl === 'modern' ? 'modern' : ($tpl === 'minimal' ? 'minimal' : 'classic') }}">
 <div class="receipt">
     <div class="center">
-        @if($logoUrl !== '')
+        @if(((string)$pmdSetting('invoice_show_logo','1')==='1') && $logoUrl !== '')
             <img src="{{ $logoUrl }}" alt="logo" style="max-height:42px; max-width:64mm; margin-bottom:5px; object-fit:contain;">
         @endif
         <div style="font-weight:700; font-size:14px;">{{ $pmdSetting('site_name') }}</div>
@@ -186,5 +195,6 @@
     @endif
 </div>
 <button class="print-btn" onclick="window.print()">Print receipt</button>
+@if($auto)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
 </body>
 </html>

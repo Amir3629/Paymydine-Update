@@ -1294,5 +1294,23 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 </script>
 <!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_END -->
 
+
+<script>
+(function(){
+ if(!/admin\/settings\/edit\/setup/.test(window.location.pathname)) return;
+ function v(n){var e=document.querySelector('[name="setting['+n+']"]'); return e?e.value:'';}
+ function on(){
+  var p=document.getElementById('pmd-invoice-preview'); if(!p) return;
+  var preset=document.querySelector('[name="setting[invoice_prefix_preset]"]'); var prefix=document.querySelector('[name="setting[invoice_prefix]"]');
+  if(preset && prefix){ if(preset.value && preset.value!=='custom'){ prefix.value=preset.value; } }
+  var showLogo=(v('invoice_show_logo')==='1'||v('invoice_show_logo')==='true'||v('invoice_show_logo')==='on');
+  var logo=v('invoice_logo'); var l=document.getElementById('pmd-prev-logo'); if(l){ l.textContent=(showLogo && !logo)?'LOGO':''; if(showLogo&&logo){l.innerHTML='<small>Logo selected</small>';} }
+  var no=document.getElementById('pmd-prev-no'); if(no){ no.textContent='#'+(v('invoice_prefix')||'')+'2026-001180'; }
+  var f=document.getElementById('pmd-prev-footer'); if(f) f.textContent=v('invoice_customer_footer_text')||'';
+ }
+ document.addEventListener('change',on,true); document.addEventListener('input',on,true); setTimeout(on,300);
+})();
+</script>
+
 </body>
 </html>

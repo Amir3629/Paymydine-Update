@@ -816,6 +816,19 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return v
   }
 
+  const buildOpenOrderStorageKeys = () => {
+    const tenant = getTenantKey()
+    const tableKey = getTableKey()
+    const guestSessionId = ensureGuestSession()
+    return {
+      sessionKey: `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`,
+      legacyKey: `pmd_open_order:${tenant}:${tableKey}`,
+      guestSessionId,
+      tenant,
+      tableKey,
+    }
+  }
+
   const effectivePayPalClientId =
     paypalPublicConfig?.enabled && paypalPublicConfig?.clientId
       ? paypalPublicConfig.clientId
@@ -981,26 +994,31 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return Number(finalTotal || 0)
   }, [checkoutStep, submittedSnapshot, existingOrderId, pendingSummary, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
-    const quantity = (items || []).reduce((acc, item) => acc + Number(item?.quantity || 1), 0)
-    return Math.max(15, Math.min(45, 15 + quantity * 4))
+    const normalized = (items || []).map((item) => ({
+      quantity: Math.max(1, Number(item?.quantity || 1)),
+      prep: Math.max(0, Number(item?.prep_time_minutes ?? item?.item?.prep_time_minutes ?? 15) || 15),
+    }))
+    const quantity = normalized.reduce((acc, item) => acc + item.quantity, 0)
+    const base = normalized.reduce((acc, item) => Math.max(acc, item.prep), 15)
+    const buffer = Math.min(15, Math.max(0, (quantity - 1) * 2))
+    return Math.max(10, Math.min(90, Math.round(base + buffer)))
   }
-  const estimatedMinutes = useMemo(
-    () => estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay),
-    [submittedSnapshot?.submittedItems, itemsToPay]
-  )
+  const estimatedMinutes = useMemo(() => {
+    const backendEta = Number(submittedSnapshot?.etaMinutes || submittedSnapshot?.estimated_prep_minutes || 0)
+    if (backendEta > 0) return backendEta
+    return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
+  }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "var(--theme-secondary)",
-    color: "#111827",
+    color: "#ffffff", textShadow: "0 1px 1px rgba(0,0,0,.25)",
     border: "1px solid rgba(255,255,255,0.12)",
   }
   const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
   const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
   const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
     try {
-      const tenant = getTenantKey()
-      const tableKey = getTableKey()
-      const sessionKey = `pmd_open_order:${tenant}:${tableKey}`
+      const sessionKey = buildOpenOrderStorageKeys().sessionKey
       const raw = localStorage.getItem(sessionKey)
       if (!raw) return
       const parsed = JSON.parse(raw)
@@ -1226,9 +1244,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const guestSessionId = ensureGuestSession()
           const tenant = getTenantKey()
           const tableKey = getTableKey()
-          const sessionKey = `pmd_open_order:${tenant}:${tableKey}`
+          const sessionKey = buildOpenOrderStorageKeys().sessionKey
           const orderIdVal = response.order_id ? String(response.order_id) : ''
-          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
+          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes), showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
           setSubmittedSnapshot(snapshot)
           onOpenOrderUpdate?.(snapshot)
@@ -2661,7 +2679,9 @@ case "cod":
           </div>}
 
           
-{/* Totals */}
+{checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Selected items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>}
+
+          {/* Totals */}
           {checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span>{t("subtotal")}</span>
@@ -2733,7 +2753,7 @@ case "cod":
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
-                    <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="relative h-14 w-14 shrink-0 rounded-full p-[2px]" style={{ background: `conic-gradient(var(--theme-secondary) 75%, rgba(148,163,184,.25) 0)` }}><div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-[color:var(--theme-surface)] text-[color:var(--theme-text-primary)]"><span className="text-xs font-bold leading-none">~{estimatedMinutes}</span><span className="text-[10px] leading-none opacity-70">min</span></div></div>
+                    {(submittedSnapshot?.showCustomerEta ?? true) && <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="shrink-0 rounded-2xl border px-2 py-1 text-center" style={{ background: "var(--theme-secondary)", borderColor: "var(--theme-border)", color: "#111827" }}><div className="text-[10px] font-semibold uppercase tracking-wide">Smart ETA</div><div className="text-sm font-bold leading-none">~{estimatedMinutes}</div><div className="text-[10px] leading-none">min</div></div>}
                   </div>
                   <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
                 </div>
@@ -2797,6 +2817,15 @@ case "cod":
             </motion.div>
           )}
 
+          {checkoutStep === "payment" && (
+            <>
+              {pendingSummary && (
+                <div className="surface-sub rounded-2xl p-3 text-xs">
+                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
+                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
+                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
+                </div>
+              )}
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
             {checkoutStep === "payment" && !selectedPaymentMethod ? (
@@ -2879,15 +2908,6 @@ case "cod":
               </motion.div>
             ) : null}
           </AnimatePresence>
-          {checkoutStep === "payment" && (
-            <>
-              {pendingSummary && (
-                <div className="surface-sub rounded-2xl p-3 text-xs">
-                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
-                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
-                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
-                </div>
-              )}
               <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
                 <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs muted">{t("splitBill")}</span></div>
                 <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
@@ -4048,9 +4068,26 @@ useEffect(() => {
     if (typeof window === "undefined") return
     const tenant = window.location.host
     const tableKey = String(tableInfo?.table_id || tableInfo?.table_no || searchParams?.get("table") || searchParams?.get("table_id") || searchParams?.get("table_no") || (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? "delivery"))
-    const key = `pmd_open_order:${tenant}:${tableKey}`
+    const guestSessionId = localStorage.getItem('pmd_guest_session_id') || `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`
+    localStorage.setItem('pmd_guest_session_id', guestSessionId)
+    const key = `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`
+    const legacyKey = `pmd_open_order:${tenant}:${tableKey}`
     try {
-      const raw = localStorage.getItem(key)
+      let raw = localStorage.getItem(key)
+      if (!raw) {
+        const legacyRaw = localStorage.getItem(legacyKey)
+        if (legacyRaw) {
+          try {
+            const legacy = JSON.parse(legacyRaw)
+            if (!legacy?.guestSessionId || legacy.guestSessionId === guestSessionId) {
+              const migrated = { ...legacy, guestSessionId }
+              localStorage.setItem(key, JSON.stringify(migrated))
+              localStorage.removeItem(legacyKey)
+              raw = JSON.stringify(migrated)
+            }
+          } catch {}
+        }
+      }
       if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
       const parsed = JSON.parse(raw)
       if (parsed?.paymentStatus === "paid") { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
@@ -4147,9 +4184,9 @@ useEffect(() => {
             setPaymentModalInitialStep('submitted')
             setPaymentModalOpen(true)
           }}
-          className="fixed bottom-24 right-4 z-40 rounded-full bg-black text-white px-4 py-2 text-sm shadow-lg"
+          className="fixed bottom-24 right-4 z-40 w-56 rounded-2xl px-3 py-2 text-left shadow-xl border" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
         >
-          My Order / Pay
+          <div className='text-xs opacity-70'>My Order</div><div className='text-sm font-semibold'>#{localOpenOrder?.orderId || '—'} · {formatCurrency(Number(localOpenOrder?.total||0))}</div><div className='text-xs opacity-80'>{(localOpenOrder?.etaMinutes||localOpenOrder?.estimated_prep_minutes) ? `~${Number(localOpenOrder?.etaMinutes||localOpenOrder?.estimated_prep_minutes)} min` : 'Ready soon'}</div>
         </button>
       )}
       <PaymentModal
