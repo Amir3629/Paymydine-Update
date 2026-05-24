@@ -780,6 +780,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
+  const [checkoutStep, setCheckoutStep] = useState<'review'|'payment'>(existingOrderId ? 'payment' : 'review')
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(null)
 
   const [stripeConfig, setStripeConfig] = useState<{
     publishableKey: string
@@ -793,6 +795,30 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
   } | null>(null)
   const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
+
+
+  useEffect(() => {
+    if (!isOpen) return
+    setCheckoutStep(existingOrderId ? 'payment' : 'review')
+  }, [isOpen, existingOrderId])
+
+  const getTenantKey = () => {
+    if (typeof window === 'undefined') return 'tenant'
+    return window.location.host
+  }
+  const getTableKey = () => {
+    const p = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    const qTable = p?.get('table') || p?.get('table_id') || p?.get('table_no')
+    const routeTable = typeof window !== 'undefined' ? (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? null) : null
+    return String(tableInfo?.table_id || tableInfo?.table_no || qTable || routeTable || 'delivery')
+  }
+  const ensureGuestSession = () => {
+    if (typeof window === 'undefined') return ''
+    const key = 'pmd_guest_session_id'
+    let v = localStorage.getItem(key)
+    if (!v) { v = `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`; localStorage.setItem(key, v) }
+    return v
+  }
 
   const effectivePayPalClientId =
     paypalPublicConfig?.enabled && paypalPublicConfig?.clientId
@@ -958,7 +984,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   ) => {
     const effectiveMethodCode = forcedPaymentContext?.method_code || selectedPaymentMethod
     const selectedMethodForSubmit = visiblePaymentMethods.find(method => method.code === effectiveMethodCode)
-    const selectedProviderCodeForSubmit = forcedPaymentContext?.provider_code || (selectedMethodForSubmit as any)?.provider_code || null
+    const selectedProviderCodeForSubmit =
+      effectiveMethodCode === "cod"
+        ? null
+        : (forcedPaymentContext?.provider_code || (selectedMethodForSubmit as any)?.provider_code || null)
     const isStripeMethodForSubmit =
       selectedProviderCodeForSubmit === "stripe" &&
       (effectiveMethodCode === "card" || effectiveMethodCode === "apple_pay" || effectiveMethodCode === "google_pay" || effectiveMethodCode === "wero")
@@ -1156,9 +1185,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         if (orderId) params.set("order_id", orderId)
         params.set("return_url", returnUrl)
 
+        try {
+          const guestSessionId = ensureGuestSession()
+          const tenant = getTenantKey()
+          const tableKey = getTableKey()
+          const sessionKey = `pmd_open_order:${tenant}:${tableKey}`
+          const orderIdVal = response.order_id ? String(response.order_id) : ''
+          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number(finalTotal || 0), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
+          localStorage.setItem(sessionKey, JSON.stringify(snapshot))
+          setSubmittedSnapshot(snapshot)
+        } catch {}
         clearCart()
-        onClose()
-        router.push(`/order-placed?${params.toString()}`)
+        setCheckoutStep('payment')
         return
       } else {
         throw new Error('Order submission failed')
@@ -2350,7 +2388,7 @@ case "cod":
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg">{t("yourOrder")}</h2>
+          <h2 className="text-lg">{checkoutStep === "review" ? "Review order" : "My Order / Payment"}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
@@ -2442,7 +2480,7 @@ case "cod":
           )}
 
           {/* Tip Section */}
-          {tipSettings.enabled && (
+          {checkoutStep === "payment" && tipSettings.enabled && (
             <div className="surface-sub rounded-2xl p-3 rounded-full">
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative h-4 w-4 flex items-center justify-center">
@@ -2501,7 +2539,7 @@ case "cod":
           )}
 
           {/* Coupon Code Input */}
-          <div className="surface-sub rounded-2xl p-3 space-y-2 rounded-full">
+          {checkoutStep === "payment" && <div className="surface-sub rounded-2xl p-3 space-y-2 rounded-full">
             {!appliedCoupon ? (
               <div className="flex gap-2">
                 <input
@@ -2574,7 +2612,7 @@ case "cod":
             {couponError && (
               <p className="text-xs text-red-600 dark:text-red-400">{couponError}</p>
             )}
-          </div>
+          </div>}
 
           
 {/* Totals */}
@@ -2607,15 +2645,46 @@ case "cod":
             </div>
           </div>
 
-          {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
+          {checkoutStep === "payment" && selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
             <div className="pt-3">
               {renderPaymentForm()}
             </div>
           )}
 
+          {checkoutStep === "review" && (
+            <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.22)]">
+              <div className="flex items-center justify-between gap-3 text-xs text-white/65">
+                <span>{tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : 'Delivery')}</span>
+                <span className="font-semibold text-white">{formatCurrency(finalTotal)}</span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  data-pmd-review-submit="true"
+                  aria-label="Submit order"
+                  disabled={isLoading}
+                  onClick={() => handlePayment(undefined, { method_code: "cod", provider_code: null })}
+                  className="min-h-12 rounded-2xl px-5 py-3 text-sm font-bold shadow-sm transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60" style={{ backgroundColor: "#f0b9a3", color: "#111827", border: "1px solid rgba(255,255,255,0.08)" }}
+                >
+                  {isLoading ? "Submitting..." : (submittedSnapshot ? "Add to order" : "Submit order")}
+                </button>
+
+                <button
+                  type="button"
+                  data-pmd-review-continue="true"
+                  onClick={onClose}
+                  className="min-h-12 rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08] active:scale-[0.99]"
+                >
+                  Continue menu
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
-            {!selectedPaymentMethod ? (
+            {checkoutStep === "payment" && !selectedPaymentMethod ? (
               <motion.div
                 key="payment-methods"
                 initial={{ opacity: 0, height: 0 }}
@@ -3094,6 +3163,7 @@ function ExpandingBottomToolbar({
             <NotebookPen className={`h-8 w-8 ${noteDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
           </motion.button>
           </ActionTooltip>
+          
           <ActionTooltip label="Checkout">
           <motion.button
             whileTap={{ scale: 0.92 }}
@@ -3442,6 +3512,7 @@ function MenuContent() {
   const [tableInfo, setTableInfoState] = useState<any>(null)
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
   const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
+  const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const shouldHideCartSheet = !!existingOrderId
 

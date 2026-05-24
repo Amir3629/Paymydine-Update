@@ -4,12 +4,14 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminAuth;
 use Admin\Models\Menu_options_model;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Admin\Models\Menus_model;
+use Admin\Models\Categories_model;
 use Admin\Classes\FoodNameSuggestions;
 
 class Menus extends AdminController
@@ -428,26 +430,112 @@ class Menus extends AdminController
     }
 
 
+
+
+    public function onToggleMenuStatus(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Menus')) abort(403);
+
+        $menuId = (int)post('menu_id');
+        $menu = Menus_model::query()->find($menuId);
+        if (!$menu) return response()->json(['ok' => false, 'message' => 'Menu not found'], 404);
+
+        $menu->menu_status = $menu->menu_status ? 0 : 1;
+        $menu->save();
+
+        return response()->json(['ok' => true, 'menu_status' => (int)$menu->menu_status]);
+    }
+
+    public function onToggleMenuStock(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Menus')) abort(403);
+
+        $menuId = (int)post('menu_id');
+        $menu = Menus_model::query()->find($menuId);
+        if (!$menu) return response()->json(['ok' => false, 'message' => 'Menu not found'], 404);
+
+        $menu->is_stock_out = $menu->is_stock_out ? 0 : 1;
+        $menu->save();
+
+        return response()->json(['ok' => true, 'is_stock_out' => (int)$menu->is_stock_out]);
+    }
+
+    public function onSaveCategoryOrder(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Categories')) {
+            abort(403);
+        }
+
+        $ordered = (array)post('ordered_category_ids', []);
+        $ordered = array_values(array_unique(array_filter(array_map('intval', $ordered))));
+        if (!count($ordered)) {
+            return response()->json(['ok' => false, 'message' => 'No categories provided'], 422);
+        }
+
+        $validIds = Categories_model::query()->whereIn('category_id', $ordered)->pluck('category_id')->map(function ($id) {
+            return (int)$id;
+        })->all();
+        $validSet = array_flip($validIds);
+
+        $sequence = [];
+        foreach ($ordered as $categoryId) {
+            if (isset($validSet[$categoryId])) {
+                $sequence[] = $categoryId;
+            }
+        }
+
+        if (!count($sequence)) {
+            return response()->json(['ok' => false, 'message' => 'No valid categories provided'], 422);
+        }
+
+        DB::transaction(function () use ($sequence) {
+            foreach ($sequence as $index => $categoryId) {
+                Categories_model::query()->where('category_id', $categoryId)->update(['priority' => $index + 1]);
+            }
+        });
+
+        return response()->json(['ok' => true, 'updated' => count($sequence)]);
+    }
+
     public function onSaveCardOrder(): JsonResponse
     {
-        $user = admin_auth()->user();
+        $user = \Admin\Facades\AdminAuth::getUser();
         if (!$user || !$user->hasPermission('Admin.Menus')) {
             abort(403);
         }
 
         $ordered = (array)post('ordered_ids', []);
-        $ordered = array_values(array_filter(array_map('intval', $ordered)));
+        $ordered = array_values(array_unique(array_filter(array_map('intval', $ordered))));
         if (!count($ordered)) {
             return response()->json(['ok' => false, 'message' => 'No items provided'], 422);
         }
 
-        DB::transaction(function () use ($ordered) {
-            foreach ($ordered as $i => $menuId) {
-                Menus_model::query()->where('menu_id', $menuId)->update(['menu_priority' => $i + 1]);
+        $validIds = Menus_model::query()->whereIn('menu_id', $ordered)->pluck('menu_id')->map(function ($id) {
+            return (int)$id;
+        })->all();
+        $validSet = array_flip($validIds);
+
+        $sequence = [];
+        foreach ($ordered as $menuId) {
+            if (isset($validSet[$menuId])) {
+                $sequence[] = $menuId;
+            }
+        }
+
+        if (!count($sequence)) {
+            return response()->json(['ok' => false, 'message' => 'No valid items provided'], 422);
+        }
+
+        DB::transaction(function () use ($sequence) {
+            foreach ($sequence as $index => $menuId) {
+                Menus_model::query()->where('menu_id', $menuId)->update(['menu_priority' => $index + 1]);
             }
         });
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'updated' => count($sequence)]);
     }
 
 }
