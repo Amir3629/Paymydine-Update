@@ -773,6 +773,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
   )
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  const toPositiveNumber = (value: unknown): number | null => {
+    const n = Number(value)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
 
   const [stripeConfig, setStripeConfig] = useState<{
     publishableKey: string
@@ -987,12 +991,19 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
   const payableTotal = useMemo(() => {
-    if (checkoutStep === "payment") {
-      if (submittedSnapshot?.total != null) return Number(submittedSnapshot.total || 0)
-      if (existingOrderId) return Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
+    const submittedTotal = toPositiveNumber(submittedSnapshot?.total)
+    const pendingRemaining = toPositiveNumber(pendingSummary?.remainingAmount)
+    const reviewTotal = toPositiveNumber(finalTotal)
+
+    if (checkoutStep === "submitted" || checkoutStep === "payment" || checkoutStep === "paid") {
+      if (submittedTotal) return submittedTotal
+      if (pendingRemaining) return pendingRemaining
+      if (reviewTotal) return reviewTotal
+      return 0
     }
-    return Number(finalTotal || 0)
-  }, [checkoutStep, submittedSnapshot, existingOrderId, pendingSummary, finalTotal])
+
+    return reviewTotal ?? 0
+  }, [checkoutStep, submittedSnapshot, pendingSummary, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -1137,7 +1148,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         payment_provider: selectedProviderCodeForSubmit || undefined,
         payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
         stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
-        total_amount: Number(finalTotal || 0),
+        total_amount: Number(checkoutStep === "review" ? finalTotal : payableTotal || finalTotal || 0),
         tip_amount: Number(tipAmount || 0),
         coupon_code: appliedCoupon?.code ? String(appliedCoupon.code) : null,
         coupon_discount: Number(couponDiscount || 0),
@@ -1178,7 +1189,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
         const existingOrderAmount = isSplitting
           ? null
-          : Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
+          : Number(payableTotal || pendingSummary?.remainingAmount || finalTotal || 0)
 
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
@@ -1246,7 +1257,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const tableKey = getTableKey()
           const sessionKey = buildOpenOrderStorageKeys().sessionKey
           const orderIdVal = response.order_id ? String(response.order_id) : ''
-          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes), showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
+          const responseTotal = toPositiveNumber((response as any)?.total)
+          const snapshot = { guestSessionId, tenant, tableKey, context: tableInfo?.table_id ? "table" : "delivery", tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number(responseTotal || payableTotal || finalTotal || 0), etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes), showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
           setSubmittedSnapshot(snapshot)
           onOpenOrderUpdate?.(snapshot)
@@ -4090,7 +4102,15 @@ useEffect(() => {
       }
       if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
       const parsed = JSON.parse(raw)
-      if (parsed?.paymentStatus === "paid") { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
+      const parsedTotal = Number(parsed?.total || 0)
+      const isPaid = parsed?.paymentStatus === "paid" || parsed?.status === "paid"
+      const malformed = !parsed?.orderId || !Number.isFinite(parsedTotal) || parsedTotal <= 0
+      if (isPaid || malformed) {
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        if (malformed) localStorage.removeItem(key)
+        return
+      }
       setHasLocalOpenOrder(!!parsed?.orderId)
       setLocalOpenOrder(parsed)
       if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
