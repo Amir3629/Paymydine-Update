@@ -986,13 +986,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [appliedCoupon, subtotal])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
+  const toPositiveAmount = (value: unknown): number | null => {
+    const amount = Number(value)
+    return Number.isFinite(amount) && amount > 0 ? amount : null
+  }
   const payableTotal = useMemo(() => {
-    if (checkoutStep === "payment") {
-      if (submittedSnapshot?.total != null) return Number(submittedSnapshot.total || 0)
-      if (existingOrderId) return Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
-    }
-    return Number(finalTotal || 0)
-  }, [checkoutStep, submittedSnapshot, existingOrderId, pendingSummary, finalTotal])
+    const submittedTotal = toPositiveAmount(submittedSnapshot?.total)
+    const remainingAmount = toPositiveAmount(pendingSummary?.remainingAmount)
+    const reviewTotal = toPositiveAmount(finalTotal)
+    if (checkoutStep === "payment") return submittedTotal ?? remainingAmount ?? reviewTotal ?? 0
+    return reviewTotal ?? submittedTotal ?? remainingAmount ?? 0
+  }, [checkoutStep, submittedSnapshot?.total, pendingSummary?.remainingAmount, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -1448,6 +1452,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
   const startHostedRedirectCheckout = async () => {
     if (!selectedMethod || !["card", "wero", "paypal", "apple_pay", "google_pay"].includes(selectedMethod.code)) return
+    if (!(payableTotal > 0)) {
+      setProviderInlineError("Invalid payable amount. Please review your order and try again.")
+      toast({
+        title: "Payment Amount Error",
+        description: "Unable to start payment because the amount is invalid.",
+        variant: "destructive",
+      })
+      return
+    }
     setProviderInlineError(null)
     setIsLoading(true)
     let shouldFallbackFromWero = false
@@ -3368,7 +3381,9 @@ const EnhancedWaiterDialog = ({
     // Backend needs a non-empty string; use "." when user leaves it blank
     const msg = '.';
     const resolvedTableId = tableId || "delivery";
-    console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? "table" : "delivery_menu" });
+    if (process.env.NODE_ENV !== "production") {
+      console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? "table" : "delivery_menu" });
+    }
     try {
       await apiClient.callWaiter(String(resolvedTableId), msg);
       toast({ title: 'Waiter Called', description: tableId ? 'We are on the way!' : 'We received your assistance request.' });
@@ -4041,7 +4056,9 @@ useEffect(() => {
     }
 
     const resolvedTableId = tableIdString || "delivery"
-    console.debug('[table-note] payload', { tableId: resolvedTableId, note: trimmedNote, source: tableIdString ? "table" : "delivery_menu" });
+    if (process.env.NODE_ENV !== "production") {
+      console.debug('[table-note] payload', { tableId: resolvedTableId, note: trimmedNote, source: tableIdString ? "table" : "delivery_menu" });
+    }
     try {
       await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString());
       setNote("")
@@ -4090,7 +4107,25 @@ useEffect(() => {
       }
       if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
       const parsed = JSON.parse(raw)
-      if (parsed?.paymentStatus === "paid") { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
+      const isValidSnapshot =
+        parsed &&
+        typeof parsed === "object" &&
+        String(parsed?.guestSessionId || "") === guestSessionId &&
+        String(parsed?.tenant || "") === tenant &&
+        String(parsed?.tableKey || "") === tableKey &&
+        Number(parsed?.orderId || 0) > 0
+      if (!isValidSnapshot) {
+        localStorage.removeItem(key)
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        return
+      }
+      if (parsed?.paymentStatus === "paid" || parsed?.status === "paid") {
+        localStorage.removeItem(key)
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        return
+      }
       setHasLocalOpenOrder(!!parsed?.orderId)
       setLocalOpenOrder(parsed)
       if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
