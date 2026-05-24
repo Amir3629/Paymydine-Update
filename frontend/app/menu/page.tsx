@@ -503,6 +503,7 @@ interface PaymentModalProps {
     settledAmount: number;
     remainingAmount: number;
   } | null;
+  initialSubmittedOrder?: any | null;
 }
 
 interface ExpandingBottomToolbarProps {
@@ -699,7 +700,7 @@ function OrderItemWithOptions({
   )
 }
 
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder }: PaymentModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
@@ -781,7 +782,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     phone: "",
   })
   const [checkoutStep, setCheckoutStep] = useState<'review'|'payment'>(existingOrderId ? 'payment' : 'review')
-  const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(null)
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
 
   const [stripeConfig, setStripeConfig] = useState<{
     publishableKey: string
@@ -801,6 +802,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     if (!isOpen) return
     setCheckoutStep(existingOrderId ? 'payment' : 'review')
   }, [isOpen, existingOrderId])
+
+  useEffect(() => {
+    if (!initialSubmittedOrder) return
+    setSubmittedSnapshot(initialSubmittedOrder)
+  }, [initialSubmittedOrder])
 
   const getTenantKey = () => {
     if (typeof window === 'undefined') return 'tenant'
@@ -977,6 +983,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [appliedCoupon, subtotal])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
+  const payableTotal = useMemo(() => {
+    if (checkoutStep === "payment") {
+      if (submittedSnapshot?.total != null) return Number(submittedSnapshot.total || 0)
+      if (existingOrderId) return Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
+    }
+    return Number(finalTotal || 0)
+  }, [checkoutStep, submittedSnapshot, existingOrderId, pendingSummary, finalTotal])
+
 
   const handlePayment = async (
     stripePaymentIntentId?: string,
@@ -1191,7 +1205,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const tableKey = getTableKey()
           const sessionKey = `pmd_open_order:${tenant}:${tableKey}`
           const orderIdVal = response.order_id ? String(response.order_id) : ''
-          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number(finalTotal || 0), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
+          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
           setSubmittedSnapshot(snapshot)
         } catch {}
@@ -1367,7 +1381,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const selectedProviderCode = (selectedMethod as any)?.provider_code || null
 
   const stripePaymentData = {
-    amount: finalTotal,
+    amount: payableTotal,
     currency: (stripeConfig?.currency || merchantSettings?.currency || "EUR"),
     items: itemsToPay.map((item: any) => ({
       id: String(item.item.id),
@@ -1430,7 +1444,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: finalTotal,
+          amount: payableTotal,
           currency: (merchantSettings?.currency || "EUR"),
           return_url: returnUrl,
           cancel_url: cancelUrl,
@@ -1489,7 +1503,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                amount: finalTotal,
+                amount: payableTotal,
                 currency: (merchantSettings?.currency || "EUR"),
                 return_url: fallbackReturnUrl,
                 cancel_url: cancelUrl,
@@ -1798,7 +1812,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   <PayPalForm
                     paypalFundingSource="card"
                     paymentData={{
-                      amount: finalTotal,
+                      amount: payableTotal,
                       payment_method: "card",
                       currency: effectivePayPalCurrency.toLowerCase(),
                       items: itemsToPay.map((item: any) => ({
@@ -1849,7 +1863,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 </div>
                 <WorldlineInlineCardForm
                   paymentData={{
-                    amount: finalTotal,
+                    amount: payableTotal,
                     payment_method: "card",
                     currency: (merchantSettings?.currency || "EUR"),
                     items: itemsToPay.map((item: any) => ({
@@ -1898,7 +1912,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 className="space-y-3 overflow-hidden"
               >
                 <SumUpHostedCheckout
-                  amount={finalTotal}
+                  amount={payableTotal}
                   currency={merchantSettings?.currency || "EUR"}
                   description="PayMyDine SumUp checkout"
                   successUrl={sumupReturnUrl}
@@ -2078,7 +2092,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   <PayPalForm
                     paypalFundingSource="paypal"
                     paymentData={{
-                      amount: finalTotal,
+                      amount: payableTotal,
                       payment_method: "paypal",
                       currency: effectivePayPalCurrency.toLowerCase(),
                     items: itemsToPay.map((item: any) => ({
@@ -2169,7 +2183,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <Elements stripe={stripePromise}>
                   <WalletStripePay
                     method={selectedPaymentMethod as "apple_pay" | "google_pay"}
-                    amount={finalTotal}
+                    amount={payableTotal}
                     currency={(stripeConfig?.currency || merchantSettings?.currency || "EUR")}
                     countryCode={(stripeConfig?.countryCode || "DE")}
                     restaurantId={stripeResolvedRestaurantId || "1"}
@@ -2286,7 +2300,7 @@ case "cod":
                   Please have the exact amount ready when the waiter comes to collect payment.
                 </p>
                 <div className="text-lg font-bold text-paydine-elegant-gray">
-        Total: {formatCurrency(finalTotal)}
+        Total: {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
                 </div>
               </div>
             </div>
@@ -2329,7 +2343,7 @@ case "cod":
     const getButtonText = () => {
       switch (selectedMethod.code) {
         case "card":
-  return `Pay ${formatCurrency(finalTotal)}`
+  return `Pay ${formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}`
         case "paypal":
           return "Pay with PayPal"
         case "apple_pay":
@@ -2641,7 +2655,7 @@ case "cod":
             )}
             <div className="flex justify-between items-center divider pt-2 mt-2">
               <span className="text-base">{t("total")}</span>
-          <span className="text-base font-bold">{formatCurrency(finalTotal)}</span>
+          <span className="text-base font-bold">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
             </div>
           </div>
 
@@ -2655,7 +2669,7 @@ case "cod":
             <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.22)]">
               <div className="flex items-center justify-between gap-3 text-xs text-white/65">
                 <span>{tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : 'Delivery')}</span>
-                <span className="font-semibold text-white">{formatCurrency(finalTotal)}</span>
+                <span className="font-semibold text-white">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -3513,6 +3527,7 @@ function MenuContent() {
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
   const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
   const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
+  const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const shouldHideCartSheet = !!existingOrderId
 
@@ -3917,6 +3932,22 @@ useEffect(() => {
     setIsClient(true)
   }, [])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const tenant = window.location.host
+    const tableKey = String(tableInfo?.table_id || tableInfo?.table_no || searchParams?.get("table") || searchParams?.get("table_id") || searchParams?.get("table_no") || (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? "delivery"))
+    const key = `pmd_open_order:${tenant}:${tableKey}`
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
+      const parsed = JSON.parse(raw)
+      if (parsed?.paymentStatus === "paid") { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
+      setHasLocalOpenOrder(!!parsed?.orderId)
+      setLocalOpenOrder(parsed)
+      if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
+    } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
+  }, [tableInfo, searchParams, existingOrderId])
+
   if (!isClient) {
     return <LoadingSpinner />
   }
@@ -3998,6 +4029,16 @@ useEffect(() => {
       <CartSheet />
       )}
       <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+      {hasLocalOpenOrder && (
+        <button
+          onClick={() => {
+            setPaymentModalOpen(true)
+          }}
+          className="fixed bottom-24 right-4 z-40 rounded-full bg-black text-white px-4 py-2 text-sm shadow-lg"
+        >
+          My Order / Pay
+        </button>
+      )}
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
@@ -4005,6 +4046,7 @@ useEffect(() => {
         tableInfo={tableInfo}
         existingOrderId={existingOrderId}
         pendingSummary={pendingSettlementSummary}
+        initialSubmittedOrder={localOpenOrder}
       />
       <EnhancedWaiterDialog
         isOpen={isWaiterConfirmOpen}
