@@ -32,6 +32,8 @@ class SetupSettings extends FormRequest
             'invoice_compact_mode' => lang('system::lang.settings.label_invoice_compact_mode'),
             'invoice_font_size_preset' => lang('system::lang.settings.label_invoice_font_size_preset'),
             'invoice_print_hint' => lang('system::lang.settings.label_invoice_print_hint'),
+            'invoice_customer_template' => 'Customer Invoice Template',
+            'invoice_customer_footer_text' => 'Customer Invoice Footer',
         ];
     }
 
@@ -51,6 +53,8 @@ class SetupSettings extends FormRequest
             'invoice_paper_width' => ['nullable', 'in:80mm,a4'],
             'invoice_font_size_preset' => ['nullable', 'in:small,normal'],
             'invoice_print_hint' => ['nullable', 'string'],
+            'invoice_customer_template' => ['nullable', 'in:classic,modern,minimal'],
+            'invoice_customer_footer_text' => ['nullable', 'string'],
         ];
     }
 }

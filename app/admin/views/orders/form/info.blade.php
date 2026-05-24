@@ -1143,50 +1143,6 @@ div.toolbar-action a.btn-send-invoice {
             || ((float)($formModel->order_total ?? 0) > 0 && (float)($formModel->settled_amount ?? 0) >= (float)($formModel->order_total ?? 0))
             || ((bool)($formModel->processed ?? false) && in_array($__statusName, ['paid', 'complete', 'completed'], true));
     @endphp
-    @if($formModel->order_id)
-        <div class="order-info-separator"></div>
-        
-        <!-- Invoice - Combined card with both buttons -->
-        <div class="order-info-item invoice-combined">
-            <label class="order-info-label">Invoice</label>
-            <div class="invoice-buttons-container">
-            <a
-                class="invoice-icon-btn"
-                href="{{ admin_url('orders/customerInvoice/'.$formModel->order_id) }}"
-                target="_blank"
-                title="Customer Invoice / Order Summary (Not fiscal)"
-            >
-                <i class="fa fa-file-text"></i>
-            </a>
-            @if($__isPaidOrder)
-                <a
-                class="invoice-icon-btn"
-                href="{{ (((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
-? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
-: admin_url('orders/invoice/'.$formModel->order_id) }}"
-                target="_blank"
-                aria-label="View Fiscal / Business Invoice"
-                title="View Fiscal / Business Invoice"
-            >
-                <i class="fa fa-file-invoice"></i>
-                </a>
-            @endif
-            @if($__isPaidOrder)
-            <a
-                class="send-invoice-icon-btn"
-                role="button"
-                data-request="onSendInvoiceEmail"
-                data-request-confirm="Send fiscal invoice to customer email?"
-                data-progress-indicator="Sending invoice..."
-                title="Send Fiscal Invoice via Email"
-            >
-                <i class="fa fa-envelope"></i>
-            </a>
-            @endif
-            </div>
-        </div>
-    @endif
-    
     <div class="order-info-separator"></div>
     
     <!-- Note - Add staff note button -->
@@ -1206,6 +1162,48 @@ div.toolbar-action a.btn-send-invoice {
             </a>
         </div>
     </div>
+    
+    @if($formModel->order_id)
+        <div class="order-info-separator"></div>
+        
+        <!-- Invoice - Combined card with both buttons -->
+        <div class="order-info-item invoice-combined">
+            <label class="order-info-label">Invoice</label>
+            <div class="invoice-buttons-container">
+            <a
+                class="invoice-icon-btn"
+                href="{{ admin_url('orders/customerInvoice/'.$formModel->order_id) }}"
+                target="_blank"
+                title="Customer Invoice"
+            >
+                <i class="fa fa-file-text"></i>
+            </a>
+            @if($__isPaidOrder)
+                <a
+                class="invoice-icon-btn"
+                href="{{ (((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
+? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
+: admin_url('orders/invoice/'.$formModel->order_id) }}"
+                target="_blank"
+                aria-label="View Fiscal / Business Invoice"
+                title="View Fiscal / Business Invoice"
+            >
+                <i class="fa fa-file-invoice"></i>
+                </a>
+                <a
+                    class="send-invoice-icon-btn"
+                    role="button"
+                    data-request="onSendInvoiceEmail"
+                    data-request-confirm="Send fiscal invoice to customer email?"
+                    data-progress-indicator="Sending invoice..."
+                    title="Send Fiscal Invoice via Email"
+                >
+                    <i class="fa fa-envelope"></i>
+                </a>
+            @endif
+            </div>
+        </div>
+    @endif
 </div>
 
 <script>
