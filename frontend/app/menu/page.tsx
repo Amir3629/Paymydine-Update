@@ -1182,6 +1182,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             order_id: Number(paymentOrderIdCandidate),
             payment_method: String(effectiveMethodCode || "card"),
             provider: selectedProviderCodeForSubmit || undefined,
+            payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
             guest_session_id: ensureGuestSession(),
             table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
             table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
@@ -1190,6 +1191,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           if (String(effectiveMethodCode || "") === "cod") {
             setIsLoading(false)
             toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
+            return
+          }
+          if (stripePaymentIntentId) {
+            setIsLoading(false)
+            toast({ title: t("paymentSuccessful"), description: `Order #${paymentOrderIdCandidate} paid successfully!` })
+            markOpenOrderAsPaid(paymentOrderIdCandidate)
+            setCheckoutStep("paid")
             return
           }
         } catch (e) {

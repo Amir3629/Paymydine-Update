@@ -7683,6 +7683,7 @@ Route::group([
             'order_id' => 'required|integer|min:1',
             'payment_method' => 'required|string|max:50',
             'provider' => 'nullable|string|max:50',
+            'payment_reference' => 'nullable|string|max:255',
             'guest_session_id' => 'nullable|string|max:191',
             'table_id' => 'nullable|string|max:50',
             'table_no' => 'nullable|string|max:50',
@@ -7720,6 +7721,23 @@ Route::group([
         $provider = strtolower((string)($payload['provider'] ?? ''));
         if ($provider === '') {
             $provider = $method === 'paypal' ? 'paypal' : 'stripe';
+        }
+
+        if (!empty($payload['payment_reference']) && in_array($method, ['card', 'paypal', 'apple_pay', 'google_pay', 'wero'], true)) {
+            $paidStatusId = (int)(\Illuminate\Support\Facades\DB::table('statuses')
+                ->whereRaw('LOWER(status_name) = ?', ['paid'])
+                ->value('status_id') ?? 10);
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) $order->settlement_status = 'paid';
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settled_amount')) $order->settled_amount = $orderTotal;
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_method')) $order->settlement_method = $method;
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_reference')) $order->settlement_reference = (string)$payload['payment_reference'];
+                $order->status_id = $paidStatusId;
+                $order->processed = 1;
+                $order->save();
+            } catch (\Throwable $e) {
+                \Log::warning('PMD_START_PAYMENT_FINALIZE_FAILED', ['order_id' => (int)$order->order_id, 'message' => $e->getMessage()]);
+            }
         }
 
         return response()->json([
