@@ -980,6 +980,32 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
     return Number(finalTotal || 0)
   }, [checkoutStep, submittedSnapshot, existingOrderId, pendingSummary, finalTotal])
+  const estimatePrepMinutes = (items: Array<any>) => {
+    const quantity = (items || []).reduce((acc, item) => acc + Number(item?.quantity || 1), 0)
+    return Math.max(15, Math.min(45, 15 + quantity * 4))
+  }
+  const estimatedMinutes = useMemo(
+    () => estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay),
+    [submittedSnapshot?.submittedItems, itemsToPay]
+  )
+  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed bg-[color:var(--theme-secondary)] text-[color:var(--theme-background)]"
+  const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
+  const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
+  const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
+    try {
+      const tenant = getTenantKey()
+      const tableKey = getTableKey()
+      const sessionKey = `pmd_open_order:${tenant}:${tableKey}`
+      const raw = localStorage.getItem(sessionKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (orderIdLike && parsed?.orderId && String(parsed.orderId) !== String(orderIdLike)) return
+      parsed.paymentStatus = "paid"
+      parsed.status = "paid"
+      localStorage.setItem(sessionKey, JSON.stringify(parsed))
+      onOpenOrderUpdate?.(null)
+    } catch {}
+  }
 
 
   const handlePayment = async (
@@ -1150,9 +1176,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           params.set("order_id", orderId)
           params.set("return_url", returnUrl)
 
-          clearCart()
-          onClose()
-          router.push(`/order-placed?${params.toString()}`)
+          markOpenOrderAsPaid(existingOrderId)
+          setCheckoutStep("paid")
           return
         }
       }
@@ -1194,7 +1219,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           onOpenOrderUpdate?.(snapshot)
         } catch {}
         clearCart()
-        setCheckoutStep('submitted')
+        if (checkoutStep === "payment") {
+          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null)
+          setCheckoutStep("paid")
+        } else {
+          setCheckoutStep('submitted')
+        }
         return
       } else {
         throw new Error('Order submission failed')
@@ -2381,18 +2411,21 @@ case "cod":
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClose}
-            className="text-gray-500 -ml-2"
+            onClick={() => {
+              if (checkoutStep === "payment") setCheckoutStep("submitted")
+              else onClose()
+            }}
+            className={iconBackBtn}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg">{checkoutStep === "review" ? "Review order" : "My Order / Payment"}</h2>
+          <h2 className="text-lg">{checkoutStep === "review" ? "Review order" : "My Order"}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          {(checkoutStep === "review" || checkoutStep === "payment") && pendingSummary && (
+          {checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">
               <div className="flex justify-between">
                 <span className="muted">Total</span>
@@ -2409,7 +2442,7 @@ case "cod":
             </div>
           )}
           {/* Split Bill Toggle */}
-          {(checkoutStep === "review" || checkoutStep === "payment") && <div className="flex items-center justify-between p-3 surface-sub rounded-xl rounded-full">
+          {checkoutStep === "payment" && <div className="flex items-center justify-between p-3 surface-sub rounded-xl rounded-full">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} />
               <span className="text-xs muted">{t("splitBill")}</span>
@@ -2430,7 +2463,7 @@ case "cod":
           </div>}
 
           {/* Items List */}
-          {(checkoutStep === "review" || checkoutStep === "payment") && (isSplitting ? (
+          {(checkoutStep === "review" || checkoutStep === "payment") && (isSplitting && checkoutStep === "payment" ? (
             <div className="surface-sub rounded-2xl p-3 overflow-hidden rounded-full">
               <h3 className="mb-2 text-xs">{t("selectItemsToPay")}</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -2650,20 +2683,16 @@ case "cod":
           )}
 
           {checkoutStep === "review" && (
-            <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.22)]">
-              <div className="flex items-center justify-between gap-3 text-xs text-white/65">
-                <span>{tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : 'Delivery')}</span>
-                <span className="font-semibold text-white">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-3 space-y-3">
+              <p className="text-xs muted">{tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : 'Delivery')}</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   data-pmd-review-submit="true"
                   aria-label="Submit order"
                   disabled={isLoading}
                   onClick={() => handlePayment(undefined, { method_code: "cod", provider_code: null })}
-                  className="min-h-12 rounded-2xl px-5 py-3 text-sm font-bold shadow-sm transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60" style={{ backgroundColor: "#f0b9a3", color: "#111827", border: "1px solid rgba(255,255,255,0.08)" }}
+                  className={modalPrimaryBtn}
                 >
                   {isLoading ? "Submitting..." : (submittedSnapshot ? "Add to order" : "Submit order")}
                 </button>
@@ -2672,7 +2701,7 @@ case "cod":
                   type="button"
                   data-pmd-review-continue="true"
                   onClick={onClose}
-                  className="min-h-12 rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08] active:scale-[0.99]"
+                  className={modalSecondaryBtn}
                 >
                   Continue menu
                 </button>
@@ -2680,15 +2709,18 @@ case "cod":
             </div>
           )}
 
-          {checkoutStep === "submitted" && submittedSnapshot && (
-            <div className="mt-5 rounded-3xl border border-[color:var(--theme-border)]/50 bg-[color:var(--theme-muted)]/40 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.12)] space-y-4">
+          {(checkoutStep === "submitted" || checkoutStep === "payment" || checkoutStep === "paid") && submittedSnapshot && (
+            <motion.div layout className="mt-2 p-1 space-y-4">
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)] text-[color:var(--theme-background)]">
                   <CheckCircle className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="text-base font-semibold">We received your order</p>
-                  <p className="text-xs muted">You can pay now or continue ordering.</p>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
+                    <span className="text-xs rounded-full px-2 py-1 surface-sub">Estimated ~{estimatedMinutes} min</span>
+                  </div>
+                  <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
                 </div>
               </div>
 
@@ -2723,36 +2755,31 @@ case "cod":
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {checkoutStep !== "paid" && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {checkoutStep === "submitted" && (
                 <button
                   type="button"
                   onClick={() => setCheckoutStep('payment')}
-                  className="min-h-12 rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99]"
-                  style={{
-                    background: "var(--theme-accent, var(--theme-secondary))",
-                    color: "var(--theme-accent-foreground, var(--theme-text-on-secondary, #fff))",
-                    border: "1px solid color-mix(in srgb, var(--theme-border) 45%, transparent)",
-                  }}
+                  className={modalPrimaryBtn}
                 >
                   Pay now
                 </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     onOpenOrderUpdate?.(submittedSnapshot || initialSubmittedOrder || null)
                     onClose()
                   }}
-                  className="min-h-12 rounded-2xl px-5 py-3 text-sm font-semibold transition hover:bg-white/10 active:scale-[0.99]"
-                  style={{
-                    background: "color-mix(in srgb, var(--theme-surface, transparent) 28%, transparent)",
-                    color: "var(--theme-text-primary, inherit)",
-                    border: "1px solid color-mix(in srgb, var(--theme-border) 62%, transparent)",
-                  }}
+                  className={checkoutStep === "payment" ? "sm:col-span-2 " + modalSecondaryBtn : modalSecondaryBtn}
                 >
                   Continue ordering
                 </button>
-              </div>
-            </div>
+              </div>}
+              {checkoutStep === "paid" && (
+                <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+              )}
+            </motion.div>
           )}
 
           {/* Payment Methods */}
