@@ -5318,7 +5318,7 @@ return response()->json([
                     'menu_ids' => array_map(fn($x) => (int)($x['menu_id'] ?? 0), $etaItems),
                     'prep_times' => array_map(fn($x) => (int)($x['prep_time_minutes'] ?? 0), $etaItems),
                 ]);
-                $etaResult = \App\Services\OrderEtaService::calculate($etaItems, (int)($request->location_id ?? 1));
+                $etaResult = \App\Services\OrderEtaService::calculate($etaItems, (int)($request->location_id ?? 1), ['exclude_order_id' => (int)$orderId]);
                 \Log::info('PMD_ACTIVE_ORDER_ETA_COMPUTED', array_merge(['order_id' => $orderId, 'location_id' => (int)($request->location_id ?? 1)], $etaResult));
             } catch (\Throwable $e) {
                 \Log::warning('PMD_ACTIVE_ORDER_ETA_FAILED', ['order_id' => $orderId, 'location_id' => (int)($request->location_id ?? 1), 'error' => $e->getMessage()]);
