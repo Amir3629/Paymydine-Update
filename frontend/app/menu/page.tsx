@@ -1176,6 +1176,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         return
       }
       const shouldUsePayExisting = !!(checkoutStep === "payment" && pendingSummary && existingOrderId && paymentOrderIdCandidate && Number(existingOrderId) === Number(paymentOrderIdCandidate))
+      if (checkoutStep === "payment" && paymentOrderIdCandidate && !shouldUsePayExisting) {
+        setIsLoading(false)
+        toast({
+          title: "Payment unavailable",
+          description: "Payment for this existing order is not available here yet. Please ask staff to complete payment.",
+          variant: "destructive",
+        })
+        return
+      }
       if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = isSplitting
