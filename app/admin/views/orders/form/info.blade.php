@@ -1152,11 +1152,8 @@ div.toolbar-action a.btn-send-invoice {
             >
                 <i class="fa fa-file-invoice"></i>
                 </a>
-            @else
-                <a class="invoice-icon-btn" role="button" style="opacity:.45;cursor:not-allowed;" title="Fiscal invoice available after payment.">
-                    <i class="fa fa-file-invoice"></i>
-                </a>
             @endif
+            @if($__isPaidOrder)
             <a
                 class="send-invoice-icon-btn"
                 role="button"
@@ -1167,6 +1164,7 @@ div.toolbar-action a.btn-send-invoice {
             >
                 <i class="fa fa-envelope"></i>
             </a>
+            @endif
             @if(!$__isPaidOrder)
                 <div style="font-size:11px;color:#7a869a;margin-top:6px;">Fiscal invoice available after payment.</div>
             @endif
