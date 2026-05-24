@@ -1012,6 +1012,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     if (backendEta > 0) return backendEta
     return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
   }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
+  // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
+  const vatLabels = useMemo(() => {
+    if (!taxSettings.enabled || taxSettings.percentage <= 0) {
+      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+    }
+    if (taxSettings.menuPrice === 0) {
+      return { summary: "Order Summary (prices incl. VAT)", subtotal: "Subtotal (incl. VAT)", total: "Total" }
+    }
+    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+  }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "var(--theme-secondary)",
@@ -1182,7 +1192,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
         const existingOrderAmount = isSplitting
           ? null
-          : Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
+          : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)
 
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
@@ -1269,13 +1279,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     } catch (error) {
     setIsLoading(false)
       console.error('Order submission error:', error)
+      const normalizedMessage =
+        error instanceof Error && /given data was invalid|unprocessable|amount|selected items amount mismatch/i.test(error.message)
+          ? "Payment could not be started. Please ask staff or try again."
+          : null
       const validationDetails = (error as any)?.details as Record<string, string[]> | undefined
       const firstValidationMessage = validationDetails
         ? Object.values(validationDetails).flat().find(Boolean)
         : null
       toast({ 
         title: "Order Failed", 
-        description: firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
+        description: normalizedMessage || firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
         variant: "destructive"
       })
     }
@@ -2541,7 +2555,7 @@ case "cod":
             </div>
           ) : (
             <div className="surface-sub rounded-2xl p-3">
-              <h3 className="mb-2 text-xs">{t("orderSummary")}</h3>
+              <h3 className="mb-2 text-xs">{vatLabels.summary}</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {allItems.map((cartItem) => (
                   <OrderItemWithOptions 
@@ -2697,7 +2711,7 @@ case "cod":
           {/* Totals */}
           {checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
-              <span>{t("subtotal")}</span>
+              <span>{vatLabels.subtotal}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
             </div>
             {taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1 && (
@@ -2719,16 +2733,10 @@ case "cod":
               </div>
             )}
             <div className="flex justify-between items-center divider pt-2 mt-2">
-              <span className="text-base">{t("total")}</span>
+              <span className="text-base">{vatLabels.total}</span>
           <span className="text-base font-bold">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
             </div>
           </div>}
-
-          {checkoutStep === "payment" && selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
-            <div className="pt-3">
-              {renderPaymentForm()}
-            </div>
-          )}
 
           {checkoutStep === "review" && (
             <div className="mt-3 space-y-3">
@@ -2759,14 +2767,14 @@ case "cod":
 
           {(checkoutStep === "submitted" || checkoutStep === "payment" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div layout className="mt-2 p-1 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
                   <CheckCircle className="h-5 w-5" style={{ color: "#111827" }} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
-                    {(submittedSnapshot?.showCustomerEta ?? true) && <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="shrink-0 rounded-2xl border px-2 py-1 text-center" style={{ background: "var(--theme-secondary)", borderColor: "var(--theme-border)", color: "#111827" }}><div className="text-[10px] font-semibold uppercase tracking-wide">Smart ETA</div><div className="text-sm font-bold leading-none">~{estimatedMinutes}</div><div className="text-[10px] leading-none">min</div></div>}
+                    {(submittedSnapshot?.showCustomerEta ?? true) && <div aria-label={`Estimated time ${estimatedMinutes} minutes`} className="shrink-0 rounded-xl border px-2 py-1 text-center" style={{ background: "color-mix(in srgb, var(--theme-secondary) 18%, var(--theme-surface) 82%)", borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }}><div className="text-xs font-semibold leading-none">Est. {estimatedMinutes} min</div></div>}
                   </div>
                   <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
                 </div>
@@ -2775,16 +2783,16 @@ case "cod":
               <div className="surface-sub rounded-2xl p-3 space-y-1 text-xs">
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
-                    <span className="muted">Order #</span>
+                    <span className="muted">Order Number:</span>
                     <span className="font-semibold">{submittedSnapshot.orderId}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="muted">{t("total")}</span>
+                  <span className="muted">Order Total:</span>
                   <span className="font-semibold">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="muted">Context</span>
+                  <span className="muted">Table:</span>
                   <span className="font-semibold">
                     {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
                   </span>
@@ -2841,7 +2849,7 @@ case "cod":
               )}
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
-            {checkoutStep === "payment" && !selectedPaymentMethod ? (
+            {checkoutStep === "payment" ? (
               <motion.div
                 key="payment-methods"
                 initial={{ opacity: 0, height: 0 }}
@@ -2918,6 +2926,11 @@ case "cod":
                     ))
                   )}
                 </div>
+                {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
+                  <div className="pt-2">
+                    {renderPaymentForm()}
+                  </div>
+                )}
               </motion.div>
             ) : null}
           </AnimatePresence>
