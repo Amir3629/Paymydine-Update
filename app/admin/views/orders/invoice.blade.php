@@ -1,3 +1,10 @@
+@php
+$__s=function($k,$d=null){try{return \Illuminate\Support\Facades\DB::table('settings')->where('item',$k)->orderByDesc('setting_id')->value('value')??$d;}catch(\Throwable $e){return setting($k,$d);} };
+$__showQr=(string)$__s('invoice_show_qr','1')==='1';
+$__showFiskalyCfg=(string)$__s('invoice_show_fiskaly','1')==='1';
+$__showLogo=(string)$__s('invoice_show_logo','1')==='1';
+$__autoPrint=(string)$__s('invoice_auto_print_dialog','0')==='1';
+@endphp
 
 @php
     $__pmdOrderCommentRaw = (string) ($model->comment ?? '');
@@ -379,7 +386,7 @@ TOTALS:
 
     <div class="row">
         <div class="col-12 text-center" style="margin-bottom: 8px;">
-            @if(setting('invoice_logo') || setting('site_logo'))
+            @if($__showLogo && (setting('invoice_logo') || setting('site_logo')))
                 <img class="img-responsive" src="{{ uploads_url(setting('invoice_logo') ?: setting('site_logo')) }}" alt="" style="max-height:50px; margin-bottom:5px;" />
                 <br>
             @endif
@@ -652,13 +659,13 @@ TOTALS:
         </div>
     </div>
 
-    @if($__showFiskaly)
+    @if($__showFiskaly && $__showFiskalyCfg)
         <div class="pmd-fiskaly-box">
             <div class="pmd-fiskaly-title">TSE / Fiskaly Signaturdaten</div>
             <div class="pmd-fiskaly-intro">TSE/Fiskaly data loaded directly from order/transaction data.</div>
 
             <div class="pmd-fiskaly-grid">
-                @if(!empty($__fQr))
+                @if($__showQr && !empty($__fQr))
                     <div class="pmd-fiskaly-qr">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ urlencode($__fQr) }}" alt="Fiskaly QR Code">
                     </div>
@@ -719,5 +726,6 @@ TOTALS:
     <p class="thanks">Thank you for your Visit</p>
 </div>
 
+@if($__autoPrint)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
 </body>
 </html>

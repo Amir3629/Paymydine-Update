@@ -338,6 +338,13 @@ class Settings extends \Admin\Classes\AdminController
             }
         }
         
+        $this->pmdCleanupDuplicateSettingsRows([
+            'site_name','site_email','site_logo','dashboard_logo','favicon_logo','invoice_logo','invoice_prefix',
+            'invoice_customer_template','invoice_customer_footer_text','invoice_receipt_mode','invoice_paper_width',
+            'invoice_auto_print_after_paid','invoice_auto_print_dialog','invoice_show_logo','invoice_show_qr',
+            'invoice_show_fiskaly','invoice_compact_mode','invoice_font_size_preset','invoice_print_hint',
+        ]);
+
         // Save settings - only save if we have data to save
         if (!empty($saveData)) {
             setting()->set($saveData);
@@ -516,4 +523,23 @@ class Settings extends \Admin\Classes\AdminController
 
         return app()->make($requestClass);
     }
+    protected function pmdCleanupDuplicateSettingsRows(array $keys): void
+    {
+        try {
+            foreach ($keys as $key) {
+                $rows = DB::table('settings')->where('item', $key)->orderByDesc('setting_id')->get(['setting_id','value']);
+                if ($rows->count() <= 1) continue;
+                $keepId = null;
+                foreach ($rows as $row) {
+                    if (trim((string)$row->value) !== '') { $keepId = (int)$row->setting_id; break; }
+                }
+                if (!$keepId) $keepId = (int)$rows->first()->setting_id;
+                $deleteIds = $rows->pluck('setting_id')->filter(fn($id)=>(int)$id !== $keepId)->values()->all();
+                if ($deleteIds) DB::table('settings')->whereIn('setting_id', $deleteIds)->delete();
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('PMD_SETTINGS_DEDUP_FAILED',['error'=>$e->getMessage()]);
+        }
+    }
+
 }

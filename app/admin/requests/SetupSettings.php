@@ -50,7 +50,7 @@ class SetupSettings extends FormRequest
             'guest_order' => ['required', 'integer'],
             'location_order' => ['required', 'integer'],
             'invoice_logo' => ['nullable'],
-            'invoice_paper_width' => ['nullable', 'in:80mm,a4'],
+            'invoice_paper_width' => ['nullable', 'in:58mm,80mm,112mm,a4'],
             'invoice_font_size_preset' => ['nullable', 'in:small,normal'],
             'invoice_print_hint' => ['nullable', 'string'],
             'invoice_customer_template' => ['nullable', 'in:classic,modern,minimal'],
