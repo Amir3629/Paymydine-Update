@@ -1177,13 +1177,30 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       }
       const shouldUsePayExisting = !!(checkoutStep === "payment" && pendingSummary && existingOrderId && paymentOrderIdCandidate && Number(existingOrderId) === Number(paymentOrderIdCandidate))
       if (checkoutStep === "payment" && paymentOrderIdCandidate && !shouldUsePayExisting) {
-        setIsLoading(false)
-        toast({
-          title: "Payment unavailable",
-          description: "Payment for this existing order is not available here yet. Please ask staff to complete payment.",
-          variant: "destructive",
-        })
-        return
+        try {
+          const started = await apiClient.startExistingOrderPayment({
+            order_id: Number(paymentOrderIdCandidate),
+            payment_method: String(effectiveMethodCode || "card"),
+            provider: selectedProviderCodeForSubmit || undefined,
+            guest_session_id: ensureGuestSession(),
+            table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+            table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+            source: "menu_existing_submitted",
+          })
+          if (String(effectiveMethodCode || "") === "cod") {
+            setIsLoading(false)
+            toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
+            return
+          }
+        } catch (e) {
+          setIsLoading(false)
+          toast({
+            title: "Payment unavailable",
+            description: "Payment could not be started. Please ask staff or try again.",
+            variant: "destructive",
+          })
+          return
+        }
       }
       if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
@@ -1491,6 +1508,22 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
+      let existingOrderStart: any = null
+      const existingSubmittedOrderId =
+        checkoutStep === "payment" && !pendingSummary
+          ? (existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null)
+          : null
+      if (existingSubmittedOrderId) {
+        existingOrderStart = await apiClient.startExistingOrderPayment({
+          order_id: Number(existingSubmittedOrderId),
+          payment_method: String(selectedMethod.code),
+          provider: String((selectedMethod as any)?.provider_code || ""),
+          guest_session_id: ensureGuestSession(),
+          table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+          table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+          source: "menu_existing_submitted",
+        })
+      }
       const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
       const providerCode = selectedMethod.code === "wero"
         ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
@@ -1530,12 +1563,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: payableTotal,
-          currency: (merchantSettings?.currency || "EUR"),
+          amount: Number(existingOrderStart?.amount || payableTotal),
+          currency: String(existingOrderStart?.currency || merchantSettings?.currency || "EUR"),
           return_url: returnUrl,
           cancel_url: cancelUrl,
           customer_email: paymentFormData.email || "",
           merchant_reference: merchantReference,
+          order_id: existingSubmittedOrderId ? Number(existingSubmittedOrderId) : undefined,
           items: itemsToPay.map((item: any) => ({
             id: String(item.item.id),
             name: item.item.name,

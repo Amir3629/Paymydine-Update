@@ -865,6 +865,28 @@ export class ApiClient {
     return data;
   }
 
+  async startExistingOrderPayment(payload: {
+    order_id: number;
+    payment_method: string;
+    provider?: string | null;
+    guest_session_id?: string | null;
+    table_id?: string | number | null;
+    table_no?: string | number | null;
+    source?: string | null;
+    payment_reference?: string | null;
+  }) {
+    const response = await fetch('/api/v1/orders/start-payment', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to start existing order payment');
+    }
+    return data;
+  }
+
   async getThemeSettings(): Promise<{ success: boolean; data: any }> {
     try {
       // Always hit same-origin to avoid port mismatch (proxy keeps URL on 8000)
