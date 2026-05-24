@@ -1119,7 +1119,13 @@ div.toolbar-action a.btn-send-invoice {
         </a>
     </div>
     
-    @if($formModel->hasInvoice())
+    @php
+        $__statusName = strtolower((string)optional($formModel->status)->status_name);
+        $__isPaidOrder = !empty($formModel->settled_at)
+            || ((float)($formModel->order_total ?? 0) > 0 && (float)($formModel->settled_amount ?? 0) >= (float)($formModel->order_total ?? 0))
+            || ((bool)($formModel->processed ?? false) && in_array($__statusName, ['paid', 'complete', 'completed'], true));
+    @endphp
+    @if($formModel->order_id)
         <div class="order-info-separator"></div>
         
         <!-- Invoice - Combined card with both buttons -->
@@ -1128,39 +1134,42 @@ div.toolbar-action a.btn-send-invoice {
             <div class="invoice-buttons-container">
             <a
                 class="invoice-icon-btn"
+                href="{{ admin_url('orders/customerInvoice/'.$formModel->order_id) }}"
+                target="_blank"
+                title="Customer Invoice / Order Summary (Not fiscal)"
+            >
+                <i class="fa fa-file-text"></i>
+            </a>
+            @if($__isPaidOrder)
+                <a
+                class="invoice-icon-btn"
                 href="{{ (((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
 ? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
 : admin_url('orders/invoice/'.$formModel->order_id) }}"
                 target="_blank"
-                title="View Invoice"
+                aria-label="View Fiscal / Business Invoice"
+                title="View Fiscal / Business Invoice"
             >
-                <i class="fa fa-file-text"></i>
-            </a>
-            @if(
-                (int)($formModel->is_imported_ready2order ?? 0) === 1 ||
-                stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false ||
-                stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false
-            )
-            <a
-                class="invoice-icon-btn"
-                href="{{ preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdBon) ? admin_url('orders/pos-bon/'.$formModel->order_id).'?invoice_id='.($__pmdBon[1] ?? '') : admin_url('orders/pos-invoice/'.$formModel->order_id) }}"
-                target="_blank"
-                aria-label="View Bon 80mm"
-                title="View Bon 80mm"
-            >
-                <i class="fa fa-receipt"></i>
-            </a>
+                <i class="fa fa-file-invoice"></i>
+                </a>
+            @else
+                <a class="invoice-icon-btn" role="button" style="opacity:.45;cursor:not-allowed;" title="Fiscal invoice available after payment.">
+                    <i class="fa fa-file-invoice"></i>
+                </a>
             @endif
             <a
                 class="send-invoice-icon-btn"
                 role="button"
                 data-request="onSendInvoiceEmail"
-                data-request-confirm="Send invoice to customer email?"
+                data-request-confirm="Send fiscal invoice to customer email?"
                 data-progress-indicator="Sending invoice..."
-                title="Send Invoice via Email"
+                title="Send Fiscal Invoice via Email"
             >
                 <i class="fa fa-envelope"></i>
             </a>
+            @if(!$__isPaidOrder)
+                <div style="font-size:11px;color:#7a869a;margin-top:6px;">Fiscal invoice available after payment.</div>
+            @endif
             </div>
         </div>
     @endif

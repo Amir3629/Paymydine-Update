@@ -455,6 +455,37 @@ class Orders extends \Admin\Classes\AdminController
 
 
 
+
+    protected function isOrderPaid(\Admin\Models\Orders_model $order): bool
+    {
+        $orderTotal = (float)($order->order_total ?? 0);
+        $settledAmount = (float)($order->settled_amount ?? 0);
+        $statusName = strtolower((string)optional($order->status)->status_name);
+
+        if (!empty($order->settled_at)) return true;
+        if ($orderTotal > 0 && $settledAmount >= $orderTotal) return true;
+        if ((bool)($order->processed ?? false) && in_array($statusName, ['paid','complete','completed'], true)) return true;
+
+        try {
+            return \Admin\Models\Payment_logs_model::query()
+                ->where('order_id', (int)$order->order_id)
+                ->where('is_success', 1)
+                ->exists();
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    protected function canGenerateFiscalInvoice(\Admin\Models\Orders_model $order): bool
+    {
+        return $this->isOrderPaid($order);
+    }
+
+    protected function canGenerateCustomerInvoice(\Admin\Models\Orders_model $order): bool
+    {
+        return !empty($order->order_id);
+    }
+
     public function invoice($context, $recordId = null)
     {
         $recordId = (int)$recordId;
@@ -515,6 +546,11 @@ class Orders extends \Admin\Classes\AdminController
             );
         }
 
+        if (!$this->canGenerateFiscalInvoice($model)) {
+            flash()->error('Fiscal invoice can only be generated after payment is confirmed.')->now();
+            return $this->redirectBack();
+        }
+
         try {
             $needsFinalize = !in_array((string)($model->fiskaly_status ?? ''), ['finished', 'skipped'], true);
 
@@ -573,6 +609,27 @@ class Orders extends \Admin\Classes\AdminController
 
 
 
+
+    public function customerInvoice($context, $recordId = null)
+    {
+        $recordId = (int)$recordId;
+        $model = \Admin\Models\Orders_model::query()->where('order_id', $recordId)->first();
+
+        if (!$model) {
+            flash()->error('Order not found.')->now();
+            return $this->redirectBack();
+        }
+        if (!$this->canGenerateCustomerInvoice($model)) {
+            flash()->error('Customer invoice is not available for this order.')->now();
+            return $this->redirectBack();
+        }
+
+        $this->vars['model'] = $model;
+        $this->vars['isFiscalInvoice'] = false;
+        $this->suppressLayout = true;
+        return $this->makeView('customer_invoice');
+    }
+
     public function edit_onSendInvoiceEmail($context, $recordId = null)
     {
         $recordId = (int)$recordId;
@@ -604,6 +661,10 @@ class Orders extends \Admin\Classes\AdminController
 
         if (!$model) {
             flash()->error('Order not found.')->now();
+            return $this->redirectBack();
+        }
+        if (!$this->canGenerateFiscalInvoice($model)) {
+            flash()->error('Fiscal invoice can only be generated after payment is confirmed.')->now();
             return $this->redirectBack();
         }
 
