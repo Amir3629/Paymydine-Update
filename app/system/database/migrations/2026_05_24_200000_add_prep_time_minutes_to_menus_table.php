@@ -10,7 +10,9 @@ class AddPrepTimeMinutesToMenusTable extends Migration
 {
     public function up()
     {
-        if (!Schema::hasColumn('menus', 'prep_time_minutes')) {
+        $has = false;
+        try { $has = !empty(\Illuminate\Support\Facades\DB::select("SHOW COLUMNS FROM `".DB::getTablePrefix()."menus` LIKE 'prep_time_minutes'")); } catch (\Throwable $e) { $has = Schema::hasColumn('menus', 'prep_time_minutes'); }
+        if (!$has) {
             Schema::table('menus', function (Blueprint $table) {
                 $table->unsignedSmallInteger('prep_time_minutes')->default(15)->after('menu_priority');
             });
