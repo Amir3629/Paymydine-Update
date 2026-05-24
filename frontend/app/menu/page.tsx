@@ -504,6 +504,7 @@ interface PaymentModalProps {
     remainingAmount: number;
   } | null;
   initialSubmittedOrder?: any | null;
+  initialCheckoutStep?: 'review' | 'submitted' | 'payment';
 }
 
 interface ExpandingBottomToolbarProps {
@@ -700,7 +701,7 @@ function OrderItemWithOptions({
   )
 }
 
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep }: PaymentModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
@@ -736,20 +737,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [merchantSettings])
 
   useEffect(() => {
-    try {
-      ;(window as any).__PMD_PAYMENT_METHODS__ = paymentMethods
-      console.log('[PMD] paymentMethods =>', paymentMethods)
-    } catch (e) {}
-  }, [paymentMethods])
-
-  useEffect(() => {
-    try {
-      console.log('[PMD] paymentMethods', paymentMethods)
-      console.log('[PMD] selectedPaymentMethod', selectedPaymentMethod)
-    } catch (e) {}
-  }, [paymentMethods, selectedPaymentMethod])
-
-  useEffect(() => {
     const detectDarkTheme = () => {
       const themeName = document.documentElement.getAttribute('data-theme') || 'clean-light'
       setIsDarkTheme(themeName === 'modern-dark' || themeName === 'gold-luxury')
@@ -781,7 +768,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
-  const [checkoutStep, setCheckoutStep] = useState<'review'|'payment'>(existingOrderId ? 'payment' : 'review')
+  const [checkoutStep, setCheckoutStep] = useState<'review'|'submitted'|'payment'>(
+    initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
+  )
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
 
   const [stripeConfig, setStripeConfig] = useState<{
@@ -800,8 +789,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
   useEffect(() => {
     if (!isOpen) return
-    setCheckoutStep(existingOrderId ? 'payment' : 'review')
-  }, [isOpen, existingOrderId])
+    setCheckoutStep(initialCheckoutStep || (existingOrderId ? 'submitted' : 'review'))
+  }, [isOpen, existingOrderId, initialCheckoutStep])
 
   useEffect(() => {
     if (!initialSubmittedOrder) return
@@ -1210,7 +1199,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           setSubmittedSnapshot(snapshot)
         } catch {}
         clearCart()
-        setCheckoutStep('payment')
+        setCheckoutStep('submitted')
         return
       } else {
         throw new Error('Order submission failed')
@@ -2696,6 +2685,78 @@ case "cod":
             </div>
           )}
 
+          {checkoutStep === "submitted" && submittedSnapshot && (
+            <div className="mt-5 rounded-3xl border border-[color:var(--theme-border)]/50 bg-[color:var(--theme-muted)]/40 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.12)] space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)] text-[color:var(--theme-background)]">
+                  <CheckCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold">We received your order</p>
+                  <p className="text-xs muted">You can pay now or continue ordering.</p>
+                </div>
+              </div>
+
+              <div className="surface-sub rounded-2xl p-3 space-y-1 text-xs">
+                {submittedSnapshot?.orderId && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted">Order #</span>
+                    <span className="font-semibold">{submittedSnapshot.orderId}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="muted">{t("total")}</span>
+                  <span className="font-semibold">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="muted">Context</span>
+                  <span className="font-semibold">
+                    {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
+                  </span>
+                </div>
+              </div>
+
+              <div className="surface-sub rounded-2xl p-3">
+                <h3 className="mb-2 text-xs">{t("orderSummary")}</h3>
+                <div className="space-y-2 max-h-44 overflow-y-auto">
+                  {(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
+                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-xs">
+                      <span className="truncate">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
+                      <span className="font-semibold">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setCheckoutStep('payment')}
+                  className="min-h-12 rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99]"
+                  style={{
+                    background: "var(--theme-accent, var(--theme-secondary))",
+                    color: "var(--theme-accent-foreground, var(--theme-text-on-secondary, #fff))",
+                    border: "1px solid color-mix(in srgb, var(--theme-border) 45%, transparent)",
+                  }}
+                >
+                  Pay now
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="min-h-12 rounded-2xl px-5 py-3 text-sm font-semibold transition hover:bg-white/10 active:scale-[0.99]"
+                  style={{
+                    background: "color-mix(in srgb, var(--theme-surface, transparent) 28%, transparent)",
+                    color: "var(--theme-text-primary, inherit)",
+                    border: "1px solid color-mix(in srgb, var(--theme-border) 62%, transparent)",
+                  }}
+                >
+                  Continue ordering
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
             {checkoutStep === "payment" && !selectedPaymentMethod ? (
@@ -3503,6 +3564,7 @@ function MenuContent() {
   const [toolbarState, setToolbarState] = useState<ToolbarState>("collapsed")
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<'review' | 'submitted' | 'payment'>('review')
   const [isLoading, setIsLoading] = useState(true)
   const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
@@ -3559,6 +3621,7 @@ function MenuContent() {
       }
 
       try {
+        setPaymentModalInitialStep('submitted')
         setPaymentModalOpen(true)
       } catch (e) {
         console.error('[PMD] open real checkout bill failed', e)
@@ -3884,6 +3947,7 @@ useEffect(() => {
   const handleNoteClick = () => setNoteModalOpen(true)
   const handleCartClick = () => {
     if (items.length > 0) {
+      setPaymentModalInitialStep('review')
       setPaymentModalOpen(true)
     }
   }
@@ -4032,6 +4096,7 @@ useEffect(() => {
       {hasLocalOpenOrder && (
         <button
           onClick={() => {
+            setPaymentModalInitialStep('submitted')
             setPaymentModalOpen(true)
           }}
           className="fixed bottom-24 right-4 z-40 rounded-full bg-black text-white px-4 py-2 text-sm shadow-lg"
@@ -4047,6 +4112,7 @@ useEffect(() => {
         existingOrderId={existingOrderId}
         pendingSummary={pendingSettlementSummary}
         initialSubmittedOrder={localOpenOrder}
+        initialCheckoutStep={paymentModalInitialStep}
       />
       <EnhancedWaiterDialog
         isOpen={isWaiterConfirmOpen}
