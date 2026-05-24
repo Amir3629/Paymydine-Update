@@ -23,7 +23,11 @@ class GeneralSettings extends FormRequest
         return [
             'site_name' => ['required', 'min:2', 'max:128'],
             'site_email' => ['required', 'email:filter', 'max:96'],
-            'site_logo' => ['nullable', 'string'], // Optional - allows empty values like dashboard_logo and favicon_logo
+            'site_logo' => ['nullable'],
+            'dashboard_logo' => ['nullable'],
+            'favicon_logo' => ['nullable'],
+            'invoice_logo' => ['nullable'],
+            'pmd_sync_dashboard_logo_to_invoice' => ['nullable'], // Optional - allows empty values like dashboard_logo and favicon_logo
             'table_map_background_image' => ['nullable', 'string'],
             'menus_page' => ['required', 'string'],
             'reservation_page' => ['required', 'string'],

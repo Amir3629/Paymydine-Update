@@ -369,7 +369,7 @@
     flex: 0 0 52px !important;
     width: 52px !important;
     min-width: 52px !important;
-    max-width: 52px !important;
+    max-width: 190px !important;
     height: 44px !important;
     min-height: 44px !important;
     margin: 0 !important;
@@ -625,7 +625,7 @@
         display: flex !important;
         align-items: center !important;
         min-height: 56px !important;
-        max-height: 76px !important;
+        max-height: 48px !important;
         overflow: hidden !important;
     }
 
@@ -637,8 +637,8 @@
     .navbar-fixed-top .dashboard-logo img,
     .navbar-top img[src*="/assets/media/"]:not(.navbar-profile-avatar):not(.rounded-circle),
     .navbar-fixed-top img[src*="/assets/media/"]:not(.navbar-profile-avatar):not(.rounded-circle) {
-        max-height: 76px !important;
-        max-width: 340px !important;
+        max-height: 48px !important;
+        max-width: 190px !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
@@ -652,8 +652,8 @@
     .form-widget img[src*="/assets/media/uploads/"],
     .field-mediafinder img,
     [data-control="mediafinder"] img {
-        max-width: 240px !important;
-        max-height: 160px !important;
+        max-width: 190px !important;
+        max-height: 48px !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
@@ -679,8 +679,8 @@
 
 .navbar-top .navbar-brand a.logo img.pmd-dashboard-logo-img,
 .navbar-fixed-top .navbar-brand a.logo img.pmd-dashboard-logo-img {
-    max-height: 76px !important;
-    max-width: 340px !important;
+    max-height: 48px !important;
+    max-width: 190px !important;
     width: auto !important;
     height: auto !important;
     object-fit: contain !important;
@@ -745,8 +745,8 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn {
     height: 34px !important;
     min-width: 34px !important;
     min-height: 34px !important;
-    max-width: 34px !important;
-    max-height: 34px !important;
+    max-width: 190px !important;
+    max-height: 48px !important;
 
     padding: 0 !important;
     margin: 0 !important;
@@ -1156,6 +1156,143 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 
 
 
+
+
+<!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_START -->
+<script id="pmd-dashboard-logo-invoice-sync-prompt-v1">
+(function () {
+    if (!/\/admin\/settings\/edit\/general(?:$|[?#\/])/.test(window.location.pathname)) {
+        return;
+    }
+
+    var initialDashboardLogo = null;
+    var alreadyAskedForThisSave = false;
+
+    function normalizeLogoValue(value) {
+        value = String(value || '').trim();
+        if (!value) return '';
+
+        try {
+            var url = new URL(value, window.location.origin);
+            value = url.pathname || value;
+        } catch (e) {}
+
+        value = value.split('?')[0];
+
+        var match = value.match(/\/assets\/media\/uploads\/([^\/]+)$/);
+        if (match) return '/' + match[1];
+
+        return value;
+    }
+
+    function basename(value) {
+        value = normalizeLogoValue(value);
+        return value.split('/').pop().toLowerCase();
+    }
+
+    function isBrokenPlaceholder(value) {
+        var b = basename(value);
+        return !b || [
+            'images.png',
+            'images.jpeg',
+            'image.png',
+            'image.jpeg',
+            'placeholder.svg',
+            'no-image.png'
+        ].indexOf(b) !== -1;
+    }
+
+    function getFieldValue(key) {
+        var selectors = [
+            'input[name="setting[' + key + ']"]',
+            'input[name="' + key + '"]',
+            'input[data-field-name="' + key + '"]'
+        ];
+
+        for (var i = 0; i < selectors.length; i++) {
+            var el = document.querySelector(selectors[i]);
+            if (el && el.value) {
+                return normalizeLogoValue(el.value);
+            }
+        }
+
+        return '';
+    }
+
+    function setHiddenSetting(form, key, value) {
+        var name = 'setting[' + key + ']';
+        var input = form.querySelector('input[name="' + name + '"]');
+
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.setAttribute('data-pmd-injected', '1');
+            form.appendChild(input);
+        }
+
+        input.value = normalizeLogoValue(value);
+    }
+
+    function findMainSettingsForm(el) {
+        var form = el && el.closest ? el.closest('form') : null;
+        if (form) return form;
+
+        return document.querySelector('form') || document.body;
+    }
+
+    function maybePromptAndInject(form) {
+        var current = normalizeLogoValue(getFieldValue('dashboard_logo'));
+
+        if (!current || isBrokenPlaceholder(current)) return;
+        if (initialDashboardLogo === null) initialDashboardLogo = current;
+        if (current === initialDashboardLogo) return;
+        if (alreadyAskedForThisSave) return;
+
+        alreadyAskedForThisSave = true;
+
+        var useForInvoice = window.confirm(
+            'Do you also want to use this Dashboard Logo for the Invoice logo?'
+        );
+
+        if (useForInvoice) {
+            setHiddenSetting(form, 'invoice_logo', current);
+            setHiddenSetting(form, 'pmd_sync_dashboard_logo_to_invoice', '1');
+        }
+    }
+
+    function captureInitialLogo() {
+        initialDashboardLogo = normalizeLogoValue(getFieldValue('dashboard_logo'));
+    }
+
+    window.addEventListener('load', function () {
+        setTimeout(captureInitialLogo, 600);
+        setTimeout(captureInitialLogo, 1600);
+    });
+
+    document.addEventListener('submit', function (event) {
+        maybePromptAndInject(event.target);
+    }, true);
+
+    document.addEventListener('click', function (event) {
+        var target = event.target && event.target.closest
+            ? event.target.closest('button, a, input[type="submit"]')
+            : null;
+
+        if (!target) return;
+
+        var text = String(target.textContent || target.value || '').toLowerCase();
+        var looksLikeSave =
+            text.indexOf('save') !== -1 ||
+            target.matches('[data-request*="onSave"], [data-request*="save"], .btn-primary, button[type="submit"], input[type="submit"]');
+
+        if (!looksLikeSave) return;
+
+        maybePromptAndInject(findMainSettingsForm(target));
+    }, true);
+})();
+</script>
+<!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_END -->
 
 </body>
 </html>

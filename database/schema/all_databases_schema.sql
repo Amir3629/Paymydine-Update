@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Sun May 24 11:40:06 UTC 2026
+-- Generated UTC: Sun May 24 14:13:42 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 -- This file is intended for GitHub documentation/development only
@@ -3141,7 +3141,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-24 11:40:07
+-- Dump completed on 2026-05-24 14:13:43
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -5614,8 +5614,99 @@ CREATE TABLE `ti_settings` (
   `serialized` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`setting_id`),
   UNIQUE KEY `ti_settings_sort_item_unique` (`sort`,`item`)
-) ENGINE=InnoDB AUTO_INCREMENT=293 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=310 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_logo_settings_guard_bi`
+BEFORE INSERT ON `ti_settings`
+FOR EACH ROW
+BEGIN
+    IF NEW.item IN ('site_logo','dashboard_logo','invoice_logo','restaurant_logo')
+       AND LOWER(TRIM(COALESCE(NEW.value, ''))) IN ('images.png','/images.png','images.jpeg','/images.jpeg','image.png','/image.png','image.jpeg','/image.jpeg','placeholder.svg','/placeholder.svg','no-image.png','/no-image.png')
+    THEN
+        SET NEW.value = '/Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png';
+        SET NEW.serialized = 0;
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_identity_settings_guard_bu`
+BEFORE UPDATE ON `ti_settings`
+FOR EACH ROW
+BEGIN
+    IF NEW.item = 'site_name'
+       AND LOWER(TRIM(COALESCE(NEW.value, ''))) IN ('', 'tastyigniter', 'paymydine')
+       AND LOWER(TRIM(COALESCE(OLD.value, ''))) NOT IN ('', 'tastyigniter', 'paymydine')
+    THEN
+        SET NEW.value = OLD.value;
+        SET NEW.serialized = OLD.serialized;
+    END IF;
+
+    IF NEW.item = 'site_email'
+       AND LOWER(TRIM(COALESCE(NEW.value, ''))) IN ('', 'admin@domain.tld', 'admin@example.com')
+       AND LOWER(TRIM(COALESCE(OLD.value, ''))) NOT IN ('', 'admin@domain.tld', 'admin@example.com')
+    THEN
+        SET NEW.value = OLD.value;
+        SET NEW.serialized = OLD.serialized;
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_logo_settings_guard_bu`
+BEFORE UPDATE ON `ti_settings`
+FOR EACH ROW
+BEGIN
+    IF NEW.item IN ('site_logo','dashboard_logo','invoice_logo','restaurant_logo')
+       AND LOWER(TRIM(COALESCE(NEW.value, ''))) IN ('images.png','/images.png','images.jpeg','/images.jpeg','image.png','/image.png','image.jpeg','/image.jpeg','placeholder.svg','/placeholder.svg','no-image.png','/no-image.png')
+    THEN
+        IF LOWER(TRIM(COALESCE(OLD.value, ''))) NOT IN ('images.png','/images.png','images.jpeg','/images.jpeg','image.png','/image.png','image.jpeg','/image.jpeg','placeholder.svg','/placeholder.svg','no-image.png','/no-image.png')
+           AND TRIM(COALESCE(OLD.value, '')) <> ''
+        THEN
+            SET NEW.value = OLD.value;
+            SET NEW.serialized = OLD.serialized;
+        ELSE
+            SET NEW.value = '/Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png';
+            SET NEW.serialized = 0;
+        END IF;
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `ti_staff_groups`
@@ -5983,7 +6074,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-24 11:40:07
+-- Dump completed on 2026-05-24 14:13:43
 
 -- ============================================================
 -- DATABASE: rosana
@@ -8315,7 +8406,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-24 11:40:07
+-- Dump completed on 2026-05-24 14:13:43
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -10242,4 +10333,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-24 11:40:08
+-- Dump completed on 2026-05-24 14:13:43

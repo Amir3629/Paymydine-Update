@@ -183,6 +183,139 @@ class Settings extends \Admin\Classes\AdminController
         }
         // PMD_DASHBOARD_LOGO_NEVER_COPY_SITE_LOGO_END
 
+        
+        // PMD_SETUP_SAVE_PROTECT_GENERAL_IDENTITY_START
+        // The Setup/Invoice settings form must never overwrite General settings
+        // such as Restaurant Name, Email, Restaurant Logo, Dashboard Logo, or Favicon.
+        // It may save invoice_logo and invoice_* fields only.
+        try {
+            $pmdPath = trim((string)request()->path(), '/');
+            $pmdIsSetupSave = (strpos($pmdPath, 'admin/settings/edit/setup') !== false)
+                || (strpos((string)request()->fullUrl(), '/admin/settings/edit/setup') !== false);
+
+            if ($pmdIsSetupSave && isset($saveData) && is_array($saveData)) {
+                foreach ([
+                    'site_name',
+                    'site_email',
+                    'site_logo',
+                    'dashboard_logo',
+                    'favicon_logo',
+                    'restaurant_logo',
+                    'mail_from_name',
+                    'mail_from_address',
+                ] as $pmdProtectedSettingKey) {
+                    unset($saveData[$pmdProtectedSettingKey]);
+                }
+            }
+        } catch (\Throwable $e) {
+            try { \Log::warning('PMD_SETUP_SAVE_PROTECT_GENERAL_IDENTITY_FAILED', ['error' => $e->getMessage()]); } catch (\Throwable $ignored) {}
+        }
+        // PMD_SETUP_SAVE_PROTECT_GENERAL_IDENTITY_END
+
+
+        // PMD_SYNC_INVOICE_LOGO_FROM_DASHBOARD_YES_START
+        // When General Settings asks "use Dashboard Logo for invoice?" and user clicks Yes,
+        // persist invoice_logo server-side. The General settings model does not normally own invoice_logo.
+        try {
+            $pmdRawSettingInput = isset($rawSettingInput) && is_array($rawSettingInput)
+                ? $rawSettingInput
+                : (array)request()->input('setting', []);
+
+            $pmdSyncInvoiceLogo = !empty($pmdRawSettingInput['pmd_sync_dashboard_logo_to_invoice'])
+                || !empty(request()->input('setting.pmd_sync_dashboard_logo_to_invoice'));
+
+            if ($pmdSyncInvoiceLogo) {
+                $pmdDashboardLogoForInvoice = $pmdRawSettingInput['dashboard_logo']
+                    ?? ($saveData['dashboard_logo'] ?? null);
+
+                $pmdNormalizeLogo = function ($value) {
+                    if (is_array($value)) {
+                        foreach (['path', 'publicUrl', 'url', 'file', 'value', 'name'] as $key) {
+                            if (!empty($value[$key])) {
+                                return $value[$key];
+                            }
+                        }
+                        foreach ($value as $item) {
+                            if (!empty($item)) {
+                                return $item;
+                            }
+                        }
+                        return '';
+                    }
+
+                    if (is_object($value)) {
+                        return '';
+                    }
+
+                    $value = trim((string)$value);
+                    if ($value === '') {
+                        return '';
+                    }
+
+                    $value = strtok($value, '?') ?: $value;
+
+                    if (preg_match('~/assets/media/uploads/([^/]+)$~', $value, $m)) {
+                        return '/'.$m[1];
+                    }
+
+                    if (preg_match('~^https?://~i', $value)) {
+                        $path = parse_url($value, PHP_URL_PATH);
+                        if ($path && preg_match('~/assets/media/uploads/([^/]+)$~', $path, $m)) {
+                            return '/'.$m[1];
+                        }
+                    }
+
+                    return $value;
+                };
+
+                $pmdIsBrokenLogo = function ($value) {
+                    $value = trim((string)$value);
+                    if ($value === '') {
+                        return true;
+                    }
+
+                    $base = strtolower(basename(strtok($value, '?') ?: $value));
+
+                    return in_array($base, [
+                        'images.png',
+                        'images.jpeg',
+                        'image.png',
+                        'image.jpeg',
+                        'placeholder.svg',
+                        'no-image.png',
+                    ], true);
+                };
+
+                $pmdDashboardLogoForInvoice = $pmdNormalizeLogo($pmdDashboardLogoForInvoice);
+
+                if ($pmdDashboardLogoForInvoice !== '' && !$pmdIsBrokenLogo($pmdDashboardLogoForInvoice)) {
+                    \Illuminate\Support\Facades\DB::table('settings')->updateOrInsert(
+                        ['item' => 'invoice_logo'],
+                        [
+                            'sort' => 0,
+                            'value' => $pmdDashboardLogoForInvoice,
+                            'serialized' => 0,
+                        ]
+                    );
+
+                    $saveData['invoice_logo'] = $pmdDashboardLogoForInvoice;
+
+                    try {
+                        setting()->set('invoice_logo', $pmdDashboardLogoForInvoice);
+                    } catch (\Throwable $ignored) {}
+
+                    try {
+                        \Log::info('PMD_SYNCED_INVOICE_LOGO_FROM_DASHBOARD', [
+                            'invoice_logo' => $pmdDashboardLogoForInvoice,
+                        ]);
+                    } catch (\Throwable $ignored) {}
+                }
+            }
+        } catch (\Throwable $e) {
+            try { \Log::warning('PMD_SYNC_INVOICE_LOGO_FROM_DASHBOARD_FAILED', ['error' => $e->getMessage()]); } catch (\Throwable $ignored) {}
+        }
+        // PMD_SYNC_INVOICE_LOGO_FROM_DASHBOARD_YES_END
+
         // Sync dashboard_logo to logos table if it exists in save data (for navbar display)
         if (isset($saveData['dashboard_logo'])) {
             $dashboardLogo = $saveData['dashboard_logo'];

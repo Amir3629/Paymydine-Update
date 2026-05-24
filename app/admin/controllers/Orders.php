@@ -464,16 +464,8 @@ class Orders extends \Admin\Classes\AdminController
 
         if (!empty($order->settled_at)) return true;
         if ($orderTotal > 0 && $settledAmount >= $orderTotal) return true;
-        if ((bool)($order->processed ?? false) && in_array($statusName, ['paid','complete','completed'], true)) return true;
-
-        try {
-            return \Admin\Models\Payment_logs_model::query()
-                ->where('order_id', (int)$order->order_id)
-                ->where('is_success', 1)
-                ->exists();
-        } catch (\Throwable $e) {
-            return false;
-        }
+        if ((bool)($order->processed ?? false) && in_array($statusName, ['paid', 'complete', 'completed'], true)) return true;
+        return false;
     }
 
     protected function canGenerateFiscalInvoice(\Admin\Models\Orders_model $order): bool

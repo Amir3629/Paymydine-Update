@@ -1,42 +1,158 @@
+@php
+    /**
+     * PMD tenant-safe settings reader.
+     *
+     * In this multi-tenant setup, setting('invoice_*') may read the base/default
+     * settings context instead of the active tenant context. The customer invoice
+     * page is already rendered under the tenant request/connection, so DB::table('settings')
+     * is the reliable source here. Laravel automatically applies the ti_ prefix.
+     */
+    $pmdSetting = function ($key, $default = null) {
+        static $pmdSettings = null;
+
+        if ($pmdSettings === null) {
+            $pmdSettings = [];
+
+            try {
+                $rows = \Illuminate\Support\Facades\DB::table('settings')
+                    ->get(['item', 'value', 'serialized']);
+
+                foreach ($rows as $row) {
+                    $value = $row->value;
+
+                    if ((int)($row->serialized ?? 0) === 1 && is_string($value)) {
+                        $decoded = @unserialize($value);
+                        if ($decoded !== false || $value === 'b:0;') {
+                            $value = $decoded;
+                        }
+                    }
+
+                    $pmdSettings[(string)$row->item] = $value;
+                }
+            } catch (\Throwable $e) {
+                $pmdSettings = [];
+            }
+        }
+
+        if (array_key_exists($key, $pmdSettings) && $pmdSettings[$key] !== null && $pmdSettings[$key] !== '') {
+            return $pmdSettings[$key];
+        }
+
+        try {
+            $fallback = setting($key, $default);
+            return ($fallback !== null && $fallback !== '') ? $fallback : $default;
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    };
+@endphp
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Customer Invoice - Order #{{ $model->order_id }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Invoice #{{ $model->order_id }}</title>
+    @php
+        $tpl = (string)($pmdSetting('invoice_customer_template') ?: 'classic');
+        $footerText = trim((string)($pmdSetting('invoice_customer_footer_text') ?: ''));
+
+        $resolveLogoPath = function ($val) {
+            if (is_string($val)) return trim($val);
+            if (is_array($val)) return trim((string)($val['path'] ?? $val['publicUrl'] ?? $val['url'] ?? ''));
+            if (is_object($val)) return trim((string)($val->path ?? $val->publicUrl ?? $val->url ?? ''));
+            return '';
+        };
+
+        $invoiceLogoPath = $resolveLogoPath($pmdSetting('invoice_logo'));
+        $siteLogoPath = $resolveLogoPath($pmdSetting('site_logo'));
+        $dashboardLogoPath = $resolveLogoPath($pmdSetting('dashboard_logo'));
+        $logoPath = $invoiceLogoPath !== '' ? $invoiceLogoPath : ($siteLogoPath !== '' ? $siteLogoPath : $dashboardLogoPath);
+        $logoUrl = '';
+        if ($logoPath !== '') {
+            $logoUrl = preg_match('#^https?://#i', $logoPath) ? $logoPath : uploads_url($logoPath);
+        }
+    @endphp
     <style>
-        body { font-family: Arial, sans-serif; color:#111; margin:20px; }
-        .wrap { max-width:800px; margin:0 auto; }
-        .muted { color:#555; font-size:12px; }
-        table { width:100%; border-collapse:collapse; margin-top:12px; }
-        th,td { border-bottom:1px solid #ddd; padding:6px; font-size:13px; text-align:left; }
-        .right { text-align:right; }
-        .badge { display:inline-block; padding:4px 8px; border:1px solid #222; font-size:11px; }
-        @media print { .no-print { display:none; } }
+        @page { size: 80mm auto; margin: 4mm; }
+        body { margin:0; padding:8px; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; color:#111; }
+        .receipt { width:72mm; max-width:72mm; margin:0 auto; background:#fff; padding:9px 7px; box-sizing:border-box; border:1px solid #ddd; }
+        .center { text-align:center; }
+        .small { font-size:11px; }
+        .xs { font-size:10px; }
+        .muted { color:#5d5d5d; }
+        .sep { border-top:1px dashed #777; margin:7px 0; }
+        .row { display:flex; justify-content:space-between; gap:6px; }
+        .items td { font-size:11px; padding:2px 0; vertical-align:top; }
+        .items td:first-child { width:76%; word-break:break-word; }
+        .items td:last-child { width:24%; text-align:right; white-space:nowrap; }
+        .badge { display:inline-block; border:1px solid #222; padding:2px 7px; font-size:10px; margin-top:5px; border-radius:10px; }
+        .print-btn { margin:10px auto 0; display:block; border:1px solid #222; background:#fff; color:#111; padding:7px 11px; font-size:12px; border-radius:6px; cursor:pointer; }
+        .totals .row { margin:2px 0; }
+        .totals .total { font-weight:700; font-size:12px; }
+
+        body.template-modern .receipt { border-color:#cfcfcf; box-shadow:0 1px 2px rgba(0,0,0,0.06); }
+        body.template-modern .sep { border-top-style:solid; border-top-color:#d7d7d7; }
+        body.template-modern .badge { border-color:#444; }
+
+        body.template-minimal .receipt { border:0; }
+        body.template-minimal .sep { border-top-color:#c9c9c9; }
+        body.template-minimal .badge { border-radius:0; padding:1px 6px; }
+
+        @media print {
+            body { background:#fff; padding:0; }
+            .receipt { width:100%; max-width:100%; margin:0; padding:0; border:0; box-shadow:none; }
+            .print-btn { display:none; }
+        }
     </style>
 </head>
-<body>
-<div class="wrap">
-    <h2>Customer Invoice / Order Summary</h2>
-    <p class="muted">Not a fiscal invoice. Fiscal invoice is available only after payment confirmation.</p>
+@php
+    $orderTotal = (float)($model->order_total ?? 0);
+    $statusName = strtolower((string)optional($model->status)->status_name);
+    $isPaid = !empty($model->settled_at)
+        || ($orderTotal > 0 && (float)($model->settled_amount ?? 0) >= $orderTotal)
+        || ((bool)($model->processed ?? false) && in_array($statusName, ['paid', 'complete', 'completed'], true));
+    $rows = $model->getOrderMenusWithOptions();
 
-    <div>
-        <strong>{{ setting('site_name') }}</strong><br>
-        <span class="muted">Order #{{ $model->order_id }}</span><br>
-        <span class="muted">Date: {{ optional($model->created_at)->format('Y-m-d H:i') }}</span><br>
-        <span class="muted">Context: {{ $model->order_type_name ?? $model->order_type }}</span><br>
-        <span class="muted">Customer: {{ $model->customer_name ?: 'Guest' }}</span><br>
-        @php
-            $isPaid = !empty($model->settled_at) || ((float)($model->settled_amount ?? 0) >= (float)($model->order_total ?? 0) && (float)($model->order_total ?? 0) > 0);
-        @endphp
-        <span class="badge">Payment {{ $isPaid ? 'Paid' : 'Pending' }}</span>
+    $taxEnabled = (string)($pmdSetting('tax_mode', '0')) === '1';
+    $taxPct = (float)($pmdSetting('tax_percentage', 0));
+    $taxMenuPrice = (string)($pmdSetting('tax_menu_price', '1')); // 0 included, 1 add on checkout
+
+    $subtotal = $orderTotal;
+    $vatAmount = null;
+    if ($taxEnabled && $taxPct > 0) {
+        if ($taxMenuPrice === '0') {
+            $vatAmount = $orderTotal * $taxPct / (100 + $taxPct);
+            $subtotal = $orderTotal - $vatAmount;
+        } else {
+            $subtotal = $orderTotal / (1 + ($taxPct / 100));
+            $vatAmount = $orderTotal - $subtotal;
+        }
+    }
+@endphp
+<body class="template-{{ $tpl === 'modern' ? 'modern' : ($tpl === 'minimal' ? 'minimal' : 'classic') }}">
+<div class="receipt">
+    <div class="center">
+        @if($logoUrl !== '')
+            <img src="{{ $logoUrl }}" alt="logo" style="max-height:42px; max-width:64mm; margin-bottom:5px; object-fit:contain;">
+        @endif
+        <div style="font-weight:700; font-size:14px;">{{ $pmdSetting('site_name') }}</div>
+        <div class="small" style="font-weight:700; margin-top:4px; letter-spacing:.2px;">Invoice</div>
+        <div class="badge">{{ $isPaid ? 'Paid' : 'Payment pending' }}</div>
     </div>
 
-    <table>
-        <thead>
-            <tr><th>Item</th><th class="right">Qty</th><th class="right">Unit</th><th class="right">Total</th></tr>
-        </thead>
-        <tbody>
-        @php $rows = $model->getOrderMenusWithOptions(); @endphp
+    <div class="sep"></div>
+
+    <div class="small" style="line-height:1.45;">
+        <div class="row"><span>Invoice #</span><strong>{{ $model->order_id }}</strong></div>
+        <div class="row"><span>Date</span><span>{{ optional($model->created_at)->format('Y-m-d H:i') }}</span></div>
+        <div class="row"><span>Context</span><span>{{ $model->order_type_name ?? $model->order_type }}</span></div>
+        <div class="row"><span>Customer</span><span>{{ $model->customer_name ?: 'Guest' }}</span></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <table class="items" width="100%" cellspacing="0" cellpadding="0">
         @foreach($rows as $row)
             @php
                 $qty = (float)($row->quantity ?? 0);
@@ -44,22 +160,31 @@
                 $line = $qty * $unit;
             @endphp
             <tr>
-                <td>{{ $row->name }}</td>
-                <td class="right">{{ rtrim(rtrim(number_format($qty,2,'.',''),'0'),'.') }}</td>
-                <td class="right">{{ number_format($unit,2) }}</td>
-                <td class="right">{{ number_format($line,2) }}</td>
+                <td>{{ rtrim(rtrim(number_format($qty,2,'.',''),'0'),'.') }} x {{ $row->name }}</td>
+                <td>{{ number_format($line, 2) }}</td>
             </tr>
         @endforeach
-        </tbody>
-        <tfoot>
-            <tr><td colspan="3" class="right"><strong>Subtotal</strong></td><td class="right">{{ number_format((float)($model->order_total ?? 0),2) }}</td></tr>
-            <tr><td colspan="3" class="right"><strong>VAT</strong></td><td class="right">Included as configured</td></tr>
-            <tr><td colspan="3" class="right"><strong>Total</strong></td><td class="right"><strong>{{ number_format((float)($model->order_total ?? 0),2) }}</strong></td></tr>
-        </tfoot>
     </table>
 
-    <p class="muted" style="margin-top:16px;">This document is a customer order summary / proforma invoice and not a fiscal invoice.</p>
-    <button class="no-print" onclick="window.print()">Print</button>
+    <div class="sep"></div>
+
+    <div class="small totals" style="line-height:1.5;">
+        @if($taxEnabled && $taxPct > 0 && $vatAmount !== null)
+            <div class="row"><span>Subtotal</span><strong>{{ number_format($subtotal, 2) }}</strong></div>
+            @if($taxMenuPrice === '0')
+                <div class="row"><span>VAT included ({{ rtrim(rtrim(number_format($taxPct,2,'.',''),'0'),'.') }}%)</span><span>{{ number_format($vatAmount,2) }}</span></div>
+            @else
+                <div class="row"><span>VAT {{ rtrim(rtrim(number_format($taxPct,2,'.',''),'0'),'.') }}%</span><span>{{ number_format($vatAmount,2) }}</span></div>
+            @endif
+        @endif
+        <div class="row total"><span>Total</span><strong>{{ number_format($orderTotal, 2) }}</strong></div>
+    </div>
+
+    @if($footerText !== '')
+        <div class="sep"></div>
+        <div class="xs muted center">{{ $footerText }}</div>
+    @endif
 </div>
+<button class="print-btn" onclick="window.print()">Print receipt</button>
 </body>
 </html>
