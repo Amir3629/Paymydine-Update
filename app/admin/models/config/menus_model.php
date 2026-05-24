@@ -237,6 +237,11 @@ $config['form']['tabs'] = [
             'comment' => 'Estimated preparation time for this item. Used for customer ETA (minutes).',
             'attributes' => ['min' => 0, 'max' => 240],
         ],
+        'prep_time_ai' => [
+            'type' => 'partial',
+            'path' => 'menus/form/prep_time_ai_suggest',
+            'span' => 'right',
+        ],
         'categories' => [
             'label' => 'lang:admin::lang.menus.label_category',
             'type' => 'relation',

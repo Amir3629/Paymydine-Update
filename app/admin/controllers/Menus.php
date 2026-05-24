@@ -249,6 +249,30 @@ class Menus extends AdminController
         }
     }
 
+
+    public function onSuggestPrepTimeAi(): JsonResponse
+    {
+        $payload = request()->validate([
+            'menu_name' => ['nullable','string','max:255'],
+            'category' => ['nullable','string','max:120'],
+            'description' => ['nullable','string','max:2000'],
+        ]);
+        $enabled = filter_var(env('PMD_AI_NUTRITION_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
+        $provider = strtolower((string)env('PMD_AI_NUTRITION_PROVIDER', 'openai'));
+        $geminiKey = (string)env('GEMINI_API_KEY', '');
+        if (!$enabled || $provider !== 'gemini' || $geminiKey === '') {
+            return response()->json(['enabled'=>false,'message'=>'Gemini is not configured.']);
+        }
+        $body = ['model'=>(string)env('PMD_AI_NUTRITION_MODEL','gemini-2.0-flash'),'messages'=>[['role'=>'user','content'=>'Estimate preparation time in minutes for this restaurant menu item. Return only a number between 1 and 240. Item name: '.($payload['menu_name']??'').'. Category: '.($payload['category']??'').'. Description: '.($payload['description']??'')]],'temperature'=>0.1];
+        $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$geminiKey,'Content-Type: application/json'],CURLOPT_POSTFIELDS=>json_encode($body),CURLOPT_TIMEOUT=>15]);
+        $raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
+        if (!$raw || $code>=400) return response()->json(['enabled'=>false,'message'=>'Gemini request failed']);
+        $json=json_decode((string)$raw,true); $txt=(string)($json['choices'][0]['message']['content'] ?? '');
+        preg_match('/(\d{1,3})/',$txt,$m); $v=isset($m[1])?max(1,min(240,(int)$m[1])):null;
+        return response()->json(['enabled'=>(bool)$v,'prep_time_minutes'=>$v,'message'=>$v?null:'No numeric result']);
+    }
+
     public function onSuggestFoodNames(): JsonResponse
     {
         $query = (string)request()->input('query', '');
