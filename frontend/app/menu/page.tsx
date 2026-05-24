@@ -726,6 +726,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const [cashCollectionConfirmed, setCashCollectionConfirmed] = useState(false)
   const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [isDarkTheme, setIsDarkTheme] = useState(false)
@@ -1174,7 +1175,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         })
         return
       }
-      if (paymentOrderIdCandidate) {
+      const shouldUsePayExisting = !!(checkoutStep === "payment" && pendingSummary && existingOrderId && paymentOrderIdCandidate && Number(existingOrderId) === Number(paymentOrderIdCandidate))
+      if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = isSplitting
           ? Object.values(selectedItems).reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, instance) => {
@@ -1323,6 +1325,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const handleBackToMethods = () => {
     setProviderInlineError(null)
     setSelectedPaymentMethod(null)
+    setCashCollectionConfirmed(false)
   }
 
   const handleFormChange = (field: keyof PaymentFormData, value: string) => {
@@ -2074,21 +2077,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                       variant: "destructive",
                     })
                   }}
-                  footerSlot={
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleBackToMethods}
-                        className="p-2 h-9 w-9"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-paydine-elegant-gray" />
-                      </div>
-                    </>
-                  }
                 />
               </Elements>
             )}
@@ -2367,16 +2355,30 @@ case "cod":
               </div>
             </div>
 
-            <div className="text-center space-y-4">
-              <div className="bg-gray-50 rounded-xl p-6">
-                <Wallet className="h-12 w-12 text-paydine-champagne mx-auto mb-3" />
-                <p className="text-sm text-gray-600 mb-4">
-                  Please have the exact amount ready when the waiter comes to collect payment.
-                </p>
+            <div className="space-y-3">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="text-sm font-medium text-paydine-elegant-gray mb-2">Total due</div>
                 <div className="text-lg font-bold text-paydine-elegant-gray">
-        Total: {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
+                  {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
                 </div>
               </div>
+              <Button
+                type="button"
+                disabled={isLoading}
+                onClick={async () => {
+                  setCashCollectionConfirmed(true)
+                  await handlePayment(undefined, { method_code: "cod", provider_code: null })
+                }}
+                className="w-full"
+                style={modalPrimaryBtnStyle}
+              >
+                {isLoading ? "Submitting..." : "Confirm cash payment"}
+              </Button>
+              {cashCollectionConfirmed && (
+                <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}>
+                  Please have the exact amount ready when the waiter comes to collect payment.
+                </div>
+              )}
             </div>
           </motion.div>
         )
@@ -2780,32 +2782,32 @@ case "cod":
                 </div>
               </div>
 
-              <div className="surface-sub rounded-2xl p-3 space-y-1 text-xs">
+              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ color: "var(--theme-text-primary)" }}>
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
-                    <span className="muted">Order Number:</span>
-                    <span className="font-semibold">{submittedSnapshot.orderId}</span>
+                    <span className="muted font-medium">Order Number:</span>
+                    <span className="font-semibold text-[15px]">{submittedSnapshot.orderId}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="muted">Order Total:</span>
-                  <span className="font-semibold">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
+                  <span className="muted font-medium">Order Total:</span>
+                  <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="muted">Table:</span>
-                  <span className="font-semibold">
+                  <span className="muted font-medium">Table:</span>
+                  <span className="font-semibold text-[15px]">
                     {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
                   </span>
                 </div>
               </div>
 
               <div className="surface-sub rounded-2xl p-3">
-                <h3 className="mb-2 text-xs">{t("orderSummary")}</h3>
+                <h3 className="mb-2 text-sm font-semibold">{t("orderSummary")}</h3>
                 <div className="space-y-2 max-h-44 overflow-y-auto">
                   {(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
-                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-xs">
-                      <span className="truncate">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
-                      <span className="font-semibold">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
+                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
                     </div>
                   ))}
                 </div>
