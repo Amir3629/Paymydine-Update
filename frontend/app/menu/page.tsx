@@ -1127,7 +1127,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         ;(orderData as any).append_to_order = true
         ;(orderData as any).guest_session_id = ensureGuestSession()
       }
-      if (existingOrderId) {
+      const paymentOrderIdCandidate = existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null
+      if (checkoutStep === "payment" && !paymentOrderIdCandidate) {
+        setIsLoading(false)
+        toast({
+          title: "Order not found",
+          description: "Order not found. Please reopen your order.",
+          variant: "destructive",
+        })
+        return
+      }
+      if (paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = isSplitting
           ? Object.values(selectedItems).reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, instance) => {
@@ -1147,7 +1157,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           ? null
           : Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
 
-        const paidResponse = await apiClient.payExistingQrOrder(existingOrderId, {
+        const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
           amount: existingOrderAmount,
@@ -1161,10 +1171,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           setIsLoading(false)
           toast({
             title: t("paymentSuccessful"),
-            description: `Order #${existingOrderId} paid successfully!`
+            description: `Order #${paymentOrderIdCandidate} paid successfully!`
           })
 
-          const orderId = String(existingOrderId)
+          const orderId = String(paymentOrderIdCandidate)
           localStorage.setItem("lastOrderId", orderId)
 
           const returnUrl =
@@ -1176,7 +1186,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           params.set("order_id", orderId)
           params.set("return_url", returnUrl)
 
-          markOpenOrderAsPaid(existingOrderId)
+          markOpenOrderAsPaid(paymentOrderIdCandidate)
           setCheckoutStep("paid")
           return
         }
@@ -2058,8 +2068,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <img
                   src={iconForPayment(selectedPaymentMethod || "card")}
                   alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
-                  width={method.code === "wero" ? 56 : 42}
-                  height={method.code === "wero" ? 32 : 24}
+                  width={selectedMethod?.code === "wero" ? 56 : 42}
+                  height={selectedMethod?.code === "wero" ? 32 : 24}
                   className="object-contain scale-125"
                 />
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
@@ -2407,7 +2417,7 @@ case "cod":
         className="w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header with close button */}
-        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-full">
+        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl">
           <Button
             variant="ghost"
             size="sm"
@@ -2426,7 +2436,7 @@ case "cod":
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
           {checkoutStep === "payment" && pendingSummary && (
-            <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">
+            <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
                 <span className="muted">Total</span>
                 <span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span>
@@ -2442,7 +2452,7 @@ case "cod":
             </div>
           )}
           {/* Split Bill Toggle */}
-          {checkoutStep === "payment" && <div className="flex items-center justify-between p-3 surface-sub rounded-xl rounded-full">
+          {checkoutStep === "payment" && <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} />
               <span className="text-xs muted">{t("splitBill")}</span>
@@ -2464,7 +2474,7 @@ case "cod":
 
           {/* Items List */}
           {(checkoutStep === "review" || checkoutStep === "payment") && (isSplitting && checkoutStep === "payment" ? (
-            <div className="surface-sub rounded-2xl p-3 overflow-hidden rounded-full">
+            <div className="surface-sub rounded-2xl p-3 overflow-hidden">
               <h3 className="mb-2 text-xs">{t("selectItemsToPay")}</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {allItemInstances.map((instance) => (
@@ -2494,7 +2504,7 @@ case "cod":
               </div>
             </div>
           ) : (
-            <div className="surface-sub rounded-2xl p-3 rounded-full">
+            <div className="surface-sub rounded-2xl p-3">
               <h3 className="mb-2 text-xs">{t("orderSummary")}</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {allItems.map((cartItem) => (
@@ -2512,7 +2522,7 @@ case "cod":
 
           {/* Tip Section */}
           {checkoutStep === "payment" && tipSettings.enabled && (
-            <div className="surface-sub rounded-2xl p-3 rounded-full">
+            <div className="surface-sub rounded-2xl p-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative h-4 w-4 flex items-center justify-center">
                   <svg 
@@ -2570,7 +2580,7 @@ case "cod":
           )}
 
           {/* Coupon Code Input */}
-          {checkoutStep === "payment" && <div className="surface-sub rounded-2xl p-3 space-y-2 rounded-full">
+          {checkoutStep === "payment" && <div className="surface-sub rounded-2xl p-3 space-y-2">
             {!appliedCoupon ? (
               <div className="flex gap-2">
                 <input
@@ -2647,7 +2657,7 @@ case "cod":
 
           
 {/* Totals */}
-          {(checkoutStep === "review" || checkoutStep === "payment") && <div className="surface-sub rounded-2xl p-3 space-y-1 rounded-full">
+          {(checkoutStep === "review" || checkoutStep === "payment") && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span>{t("subtotal")}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
@@ -3596,13 +3606,6 @@ function MenuContent() {
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
   const { menuItems, taxSettings, loadVATSettings } = useCmsStore()
 
-  // Debug logging for theme consistency
-  if (typeof window !== 'undefined') {
-    console.info("MENU PAGE ACTIVE FILE ✅");
-    console.log("data-theme:", document.documentElement.getAttribute('data-theme'));
-    console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
-    console.log("body bg:", getComputedStyle(document.body).background);
-  }
   const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
   const themeBackgroundColor = useThemeBackgroundColor()
   const { t } = useLanguageStore()
