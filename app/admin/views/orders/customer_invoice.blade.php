@@ -7,7 +7,22 @@
     @php
         $tpl = (string)(setting('invoice_customer_template') ?: 'classic');
         $footerText = trim((string)(setting('invoice_customer_footer_text') ?: ''));
-        $logo = setting('invoice_logo') ?: (setting('site_logo') ?: setting('dashboard_logo'));
+
+        $resolveLogoPath = function ($val) {
+            if (is_string($val)) return trim($val);
+            if (is_array($val)) return trim((string)($val['path'] ?? $val['publicUrl'] ?? $val['url'] ?? ''));
+            if (is_object($val)) return trim((string)($val->path ?? $val->publicUrl ?? $val->url ?? ''));
+            return '';
+        };
+
+        $invoiceLogoPath = $resolveLogoPath(setting('invoice_logo'));
+        $siteLogoPath = $resolveLogoPath(setting('site_logo'));
+        $dashboardLogoPath = $resolveLogoPath(setting('dashboard_logo'));
+        $logoPath = $invoiceLogoPath !== '' ? $invoiceLogoPath : ($siteLogoPath !== '' ? $siteLogoPath : $dashboardLogoPath);
+        $logoUrl = '';
+        if ($logoPath !== '') {
+            $logoUrl = preg_match('#^https?://#i', $logoPath) ? $logoPath : uploads_url($logoPath);
+        }
     @endphp
     <style>
         @page { size: 80mm auto; margin: 4mm; }
@@ -69,8 +84,8 @@
 <body class="template-{{ $tpl === 'modern' ? 'modern' : ($tpl === 'minimal' ? 'minimal' : 'classic') }}">
 <div class="receipt">
     <div class="center">
-        @if($logo)
-            <img src="{{ uploads_url($logo) }}" alt="logo" style="max-height:42px; max-width:64mm; margin-bottom:5px; object-fit:contain;">
+        @if($logoUrl !== '')
+            <img src="{{ $logoUrl }}" alt="logo" style="max-height:42px; max-width:64mm; margin-bottom:5px; object-fit:contain;">
         @endif
         <div style="font-weight:700; font-size:14px;">{{ setting('site_name') }}</div>
         <div class="small" style="font-weight:700; margin-top:4px; letter-spacing:.2px;">Invoice</div>
