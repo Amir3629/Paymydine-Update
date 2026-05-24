@@ -504,7 +504,8 @@ interface PaymentModalProps {
     remainingAmount: number;
   } | null;
   initialSubmittedOrder?: any | null;
-  initialCheckoutStep?: 'review' | 'submitted' | 'payment';
+  initialCheckoutStep?: 'review' | 'submitted' | 'payment' | 'paid';
+  onOpenOrderUpdate?: (snapshot: any | null) => void;
 }
 
 interface ExpandingBottomToolbarProps {
@@ -701,7 +702,7 @@ function OrderItemWithOptions({
   )
 }
 
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, onOpenOrderUpdate }: PaymentModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
@@ -768,7 +769,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
-  const [checkoutStep, setCheckoutStep] = useState<'review'|'submitted'|'payment'>(
+  const [checkoutStep, setCheckoutStep] = useState<'review'|'submitted'|'payment'|'paid'>(
     initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
   )
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
@@ -1094,19 +1095,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         special_instructions: "",
       }
 
-      console.log("[PMD submitOrder payload]", {
-        table_id: orderData.table_id,
-        table_name: orderData.table_name,
-        location_id: orderData.location_id,
-        payment_method: orderData.payment_method,
-        payment_method_raw: orderData.payment_method_raw,
-        payment_provider: orderData.payment_provider,
-        has_stripe_payment_intent_id: !!orderData.stripe_payment_intent_id,
-        total_amount: orderData.total_amount,
-        customer_name: orderData.customer_name,
-        items_count: orderData.items.length,
-        first_item: orderData.items[0] || null,
-      })
+      const existingLocalOrder = initialSubmittedOrder?.paymentStatus !== "paid" ? initialSubmittedOrder : null
+      if (existingLocalOrder?.orderId) {
+        ;(orderData as any).existing_order_id = Number(existingLocalOrder.orderId)
+        ;(orderData as any).append_to_order = true
+        ;(orderData as any).guest_session_id = ensureGuestSession()
+      }
       if (existingOrderId) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = isSplitting
@@ -1197,6 +1191,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
           setSubmittedSnapshot(snapshot)
+          onOpenOrderUpdate?.(snapshot)
         } catch {}
         clearCart()
         setCheckoutStep('submitted')
@@ -2397,7 +2392,7 @@ case "cod":
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          {pendingSummary && (
+          {(checkoutStep === "review" || checkoutStep === "payment") && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">
               <div className="flex justify-between">
                 <span className="muted">Total</span>
@@ -2414,7 +2409,7 @@ case "cod":
             </div>
           )}
           {/* Split Bill Toggle */}
-          <div className="flex items-center justify-between p-3 surface-sub rounded-xl rounded-full">
+          {(checkoutStep === "review" || checkoutStep === "payment") && <div className="flex items-center justify-between p-3 surface-sub rounded-xl rounded-full">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} />
               <span className="text-xs muted">{t("splitBill")}</span>
@@ -2432,10 +2427,10 @@ case "cod":
             >
               {isSplitting ? "ON" : "OFF"}
             </Button>
-          </div>
+          </div>}
 
           {/* Items List */}
-          {isSplitting ? (
+          {(checkoutStep === "review" || checkoutStep === "payment") && (isSplitting ? (
             <div className="surface-sub rounded-2xl p-3 overflow-hidden rounded-full">
               <h3 className="mb-2 text-xs">{t("selectItemsToPay")}</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -2480,7 +2475,7 @@ case "cod":
                 ))}
               </div>
             </div>
-          )}
+          ))}
 
           {/* Tip Section */}
           {checkoutStep === "payment" && tipSettings.enabled && (
@@ -2619,7 +2614,7 @@ case "cod":
 
           
 {/* Totals */}
-          <div className="surface-sub rounded-2xl p-3 space-y-1 rounded-full">
+          {(checkoutStep === "review" || checkoutStep === "payment") && <div className="surface-sub rounded-2xl p-3 space-y-1 rounded-full">
             <div className="flex justify-between text-xs">
               <span>{t("subtotal")}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
@@ -2646,7 +2641,7 @@ case "cod":
               <span className="text-base">{t("total")}</span>
           <span className="text-base font-bold">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
             </div>
-          </div>
+          </div>}
 
           {checkoutStep === "payment" && selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
             <div className="pt-3">
@@ -2743,7 +2738,10 @@ case "cod":
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => {
+                    onOpenOrderUpdate?.(submittedSnapshot || initialSubmittedOrder || null)
+                    onClose()
+                  }}
                   className="min-h-12 rounded-2xl px-5 py-3 text-sm font-semibold transition hover:bg-white/10 active:scale-[0.99]"
                   style={{
                     background: "color-mix(in srgb, var(--theme-surface, transparent) 28%, transparent)",
@@ -4113,6 +4111,17 @@ useEffect(() => {
         pendingSummary={pendingSettlementSummary}
         initialSubmittedOrder={localOpenOrder}
         initialCheckoutStep={paymentModalInitialStep}
+        onOpenOrderUpdate={(snapshot) => {
+          if (snapshot?.paymentStatus === "paid") {
+            setHasLocalOpenOrder(false)
+            setLocalOpenOrder(null)
+            return
+          }
+          if (snapshot?.orderId) {
+            setLocalOpenOrder(snapshot)
+            setHasLocalOpenOrder(true)
+          }
+        }}
       />
       <EnhancedWaiterDialog
         isOpen={isWaiterConfirmOpen}

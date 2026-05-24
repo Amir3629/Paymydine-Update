@@ -41,6 +41,9 @@ class OrderController extends Controller
             'coupon_discount' => 'nullable|numeric|min:0',
             'payment_method' => 'required|string|in:cash,cod,card,paypal',
             'special_instructions' => 'nullable|string|max:500'
+            ,'existing_order_id' => 'nullable|integer'
+            ,'append_to_order' => 'nullable|boolean'
+            ,'guest_session_id' => 'nullable|string|max:100'
         ]);
 
         if ($validator->fails()) {
@@ -73,24 +76,41 @@ class OrderController extends Controller
             $tipAmount      = round((float) ($request->tip_amount ?? 0), 2);
             $couponDiscount = round((float) ($request->coupon_discount ?? 0), 2);
 
-            $orderId = DB::table('orders')->insertGetId([
-                'order_id' => $orderNumber,
-                'customer_name' => $request->customer_name,
-                'email' => $request->customer_email,
-                'telephone' => $request->customer_phone,
-                'location_id' => $request->location_id ?? 1,
-                'table_id' => $tableId,
-                'order_type' => $orderType,
-                'order_total' => $expectedTotal,
-                'order_date' => now(),
-                'order_time' => now()->format('H:i:s'),
-                'status_id' => 1,
-                'assignee_id' => null,
-                'comment' => $request->special_instructions,
-                'processed' => 1,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            $orderId = null;
+            $isAppend = (bool)$request->boolean('append_to_order') && !empty($request->existing_order_id);
+            if ($isAppend) {
+                $existing = DB::table('orders')
+                    ->where('order_id', (int)$request->existing_order_id)
+                    ->where('location_id', $request->location_id ?? 1)
+                    ->where('table_id', $tableId)
+                    ->where('status_id', 1)
+                    ->first();
+
+                if ($existing) {
+                    $orderId = (int)$existing->order_id;
+                }
+            }
+
+            if (!$orderId) {
+                $orderId = DB::table('orders')->insertGetId([
+                    'order_id' => $orderNumber,
+                    'customer_name' => $request->customer_name,
+                    'email' => $request->customer_email,
+                    'telephone' => $request->customer_phone,
+                    'location_id' => $request->location_id ?? 1,
+                    'table_id' => $tableId,
+                    'order_type' => $orderType,
+                    'order_total' => $expectedTotal,
+                    'order_date' => now(),
+                    'order_time' => now()->format('H:i:s'),
+                    'status_id' => 1,
+                    'assignee_id' => null,
+                    'comment' => $request->special_instructions,
+                    'processed' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
 
             \Log::info('PMD_API_ORDER_STORE_ORDER_CREATED', [
                 'order_id' => $orderId,
@@ -318,6 +338,7 @@ class OrderController extends Controller
                 'updated_at' => now(),
             ];
 
+            DB::table('order_totals')->where('order_id', $orderId)->delete();
             DB::table('order_totals')->insert($orderTotals);
 
             DB::table('orders')
