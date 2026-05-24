@@ -7694,7 +7694,9 @@ Route::group([
         if (strtolower((string)($order->payment ?? '')) === 'qr_pay_later') {
             return response()->json(['success' => false, 'error' => 'Use pay-existing for qr_pay_later orders'], 422);
         }
-        if ((int)($order->processed ?? 0) === 1 || in_array((int)($order->status_id ?? 0), [5, 10], true)) {
+        $statusId = (int)($order->status_id ?? 0);
+        $settlementStatus = strtolower((string)($order->settlement_status ?? ''));
+        if (in_array($statusId, [5, 10], true) || in_array($settlementStatus, ['paid', 'cancelled', 'failed'], true)) {
             return response()->json(['success' => false, 'error' => 'Order is already paid or closed'], 422);
         }
 

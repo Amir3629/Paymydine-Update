@@ -628,8 +628,8 @@ export class ApiClient {
   async getVATSettings(): Promise<{ success: boolean; data: any }> {
     try {
       // Try /vat-settings endpoint first (like /simple-theme).
-      const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
-      const res = await fetch(`${base}/vat-settings`, { headers: { Accept: 'application/json' } });
+      const endpoint = this.envConfig.getApiEndpoint('/vat-settings');
+      const res = await fetch(endpoint, { headers: { Accept: 'application/json' } });
       if (res.ok) {
         const json = await res.json();
         return json;
