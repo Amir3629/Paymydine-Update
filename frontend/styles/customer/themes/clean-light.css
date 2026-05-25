@@ -1,0 +1,23 @@
+html[data-theme="clean-light"] {
+  --pmd-v2-frame-border: #EDEDED;
+  --pmd-v2-input-bg: #FFFFFF;
+  --pmd-v2-input-text: #3B3B3B;
+  --pmd-v2-input-border: #EDEDED;
+  --pmd-v2-card-bg: #fbece3;
+  --pmd-v2-card-sub-bg: #fbece3;
+  --pmd-v2-action-bg: #f0c6b1;
+  --pmd-v2-action-text: #111827;
+  --pmd-v2-action-border: #c9a99a;
+  --pmd-v2-badge-bg: #f0c6b1;
+  --pmd-v2-badge-text: #111827;
+  --pmd-v2-badge-border: #c9a99a;
+  --pmd-v2-context-pill-bg: #f0c6b1;
+  --pmd-v2-context-pill-text: #111827;
+  --pmd-v2-context-pill-border: #c9a99a;
+  --pmd-v2-price: #f0c6b1;
+  --pmd-v2-category-active: #f0c6b1;
+  --pmd-v2-category-active-text: #111827;
+  --pmd-v2-page-bg: #ffeee2;
+  --pmd-v2-text: #111827;
+  --pmd-v2-text-muted: #111827;
+}

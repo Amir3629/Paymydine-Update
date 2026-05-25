@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 
-const PAGE_BG = "#fdf7f4"
+const PAGE_BG = "#ffeee2"
 const ROSE = "#f0c6b1"
 const ROSE_EDGE = "#c7a798"
 const BLACK = "#111827"
@@ -63,6 +63,11 @@ function isCleanLightTheme() {
 
 function markGuarded(el: Element | null | undefined) {
   if (!el) return
+  if (
+    (el as HTMLElement).closest?.(
+      ".pmd-v2-page, .pmd-v2-card, .pmd-v2-card-sub, .pmd-v2-action-circle, .pmd-v2-action-button"
+    )
+  ) return
   el.setAttribute(GUARD_ATTR, "1")
 }
 
@@ -131,8 +136,8 @@ function applyHomeStyles(pathname: string | null) {
   document.querySelectorAll<HTMLElement>(".home-action-card").forEach((el) => {
     // Single owner for Clean Light homepage cards.
     // This prevents white/pink flicker and fixes computedBg becoming transparent.
-    setImportant(el, "background", "#fbebe3")
-    setImportant(el, "background-color", "#fbebe3")
+    setImportant(el, "background", "#ffeee2")
+    setImportant(el, "background-color", "#ffeee2")
     setImportant(el, "border-color", "rgba(199, 167, 152, 0.45)")
     setImportant(el, "color", "#111827")
   })
@@ -284,9 +289,6 @@ function applyCleanLightCustomerUI(pathname: string | null) {
   }
 
   applyBaseBackground(pathname)
-  applyHomeStyles(pathname)
-  applyValetStyles(pathname)
-  applySharedControlStyles(pathname)
 }
 
 export default function CleanLightCustomerGuard() {

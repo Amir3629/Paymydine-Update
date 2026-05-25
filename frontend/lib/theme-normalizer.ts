@@ -1,4 +1,4 @@
-export const PMD_CLEAN_LIGHT_PAGE_BG = "#fdf7f4"
+export const PMD_CLEAN_LIGHT_PAGE_BG = "#fff8f3"
 export const PMD_CLEAN_LIGHT_SURFACE = "#FAFAFA"
 export const PMD_CLEAN_LIGHT_ROSE = "#f0c6b1"
 export const PMD_CLEAN_LIGHT_ROSE_EDGE = "#c7a798"

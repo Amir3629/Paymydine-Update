@@ -1,0 +1,23 @@
+html[data-theme="vibrant-colors"] {
+  --pmd-v2-page-bg: #e2ceb1;
+  --pmd-v2-frame-border: #E2E8F0;
+  --pmd-v2-input-bg: #FFFFFF;
+  --pmd-v2-input-border: #E2E8F0;
+  --pmd-v2-context-pill-bg: #efc6b1;
+  --pmd-v2-context-pill-border: #c9a99a;
+  --pmd-v2-category-active: #efc6b1;
+  --pmd-v2-action-bg: #efc6b1;
+  --pmd-v2-action-border: #c9a99a;
+  --pmd-v2-badge-bg: #efc6b1;
+  --pmd-v2-badge-border: #c9a99a;
+  --pmd-v2-action-text: #111827;
+  --pmd-v2-badge-text: #111827;
+  --pmd-v2-context-pill-text: #111827;
+  --pmd-v2-category-active-text: #111827;
+  --pmd-v2-price: #111827;
+  --pmd-v2-input-text: #111827;
+  --pmd-v2-card-bg: #ddc7a6;
+  --pmd-v2-card-sub-bg: #ddc7a6;
+  --pmd-v2-text: #111827;
+  --pmd-v2-text-muted: #111827;
+}

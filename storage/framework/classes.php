@@ -173,4 +173,7 @@
   'Admin\\FormWidgets\\MapArea' => 'app/admin/formwidgets/MapArea.php',
   'Admin\\Models\\Location_areas_model' => 'app/admin/models/Location_areas_model.php',
   'System\\Models\\Countries_model' => 'app/system/models/Countries_model.php',
+  'Admin\\Controllers\\tables' => 'app/admin/controllers/Tables.php',
+  'Admin\\Models\\Tables_model' => 'app/admin/models/Tables_model.php',
+  'System\\Models\\Languages_model' => 'app/system/models/Languages_model.php',
 );

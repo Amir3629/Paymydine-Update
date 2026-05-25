@@ -8,7 +8,6 @@ import { type TranslationKey } from "@/lib/translations";
 import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
-import { applyTheme } from "@/lib/theme-system";
 import { Logo } from "@/components/logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
@@ -606,7 +605,7 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, -1);
             }}
-            className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
             <Minus className="w-3 h-3" />
           </button>
@@ -618,9 +617,9 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, 1);
             }}
-            className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Plus className="w-3 h-3" strokeWidth={3.5} style={{ color: "var(--theme-text-primary)" }} />
+            <Plus className="w-3 h-3" strokeWidth={3.5} />
           </button>
         </div>
       </div>
@@ -671,7 +670,7 @@ function OrderItemWithOptions({
                                 handleOptionChange(option.name, currentValue === value.id.toString() ? '' : value.id.toString())
                               }
                             }}
-                            className="w-3 h-3 text-paydine-champagne"
+                            className="w-3 h-3 pmd-customer-price"
                           />
                           <span className="text-paydine-elegant-gray">{value.value}</span>
                           {value.price > 0 && (() => {
@@ -683,7 +682,7 @@ function OrderItemWithOptions({
                               return price
                             }
                             return (
-                              <span className="text-paydine-champagne font-medium">
+                              <span className="pmd-customer-price font-medium">
                                 +{formatCurrency(adjustPrice(value.price))}
                               </span>
                             )
@@ -1920,7 +1919,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               className="space-y-3 overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9">
+                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9 pmd-v2-action-circle">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex items-center gap-2">
@@ -2411,7 +2410,7 @@ case "cod":
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <Wallet className="h-6 w-6 text-paydine-champagne" />
+                <Wallet className="h-6 w-6 pmd-customer-price" />
                 <span className="font-semibold text-paydine-elegant-gray">Cash Payment</span>
               </div>
             </div>
@@ -3099,20 +3098,41 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
           <div className="relative">
             <button
-              className="quantity-btn w-12 h-12 font-bold text-lg"
+              className="quantity-btn pmd-v2-action-circle w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
             >
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
               ) : (
-                <Plus className="h-5 w-5" strokeWidth={3.5} style={{ color: "var(--theme-text-primary)" }} />
+                <Plus className="h-5 w-5" strokeWidth={3.5} />
               )}
               <span className="sr-only">Add to cart</span>
             </button>
             {quantity > 0 && (
-              <button
-                className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10"
-                style={{ color: 'var(--theme-secondary)' }}
+                <button
+                  className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10 pmd-v2-action-circle"
+style={{
+  top: "-0.72rem",
+  right: "-0.72rem",
+  width: "1.55rem",
+  height: "1.55rem",
+  minWidth: "1.55rem",
+  minHeight: "1.55rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "9999px",
+  border: "1px solid var(--pmd-v2-action-border)",
+  background: "var(--pmd-v2-action-bg)",
+  color: "var(--pmd-v2-action-text)",
+  WebkitTextFillColor: "var(--pmd-v2-action-text)",
+  lineHeight: "1",
+  fontWeight: 800,
+  fontSize: "0.9rem",
+  padding: 0,
+  boxShadow: "none"
+}}
+                  style={{ color: 'var(--pmd-customer-action-text)' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAdd(e);
@@ -3331,7 +3351,7 @@ function ExpandingBottomToolbar({
                           </div>
                         </div>
                         <motion.div
-                          className="font-semibold menu-item-price text-lg"
+                          className="font-semibold menu-item-price pmd-customer-price text-lg"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
@@ -3359,7 +3379,7 @@ function ExpandingBottomToolbar({
                         Total
                       </motion.span>
                       <motion.span
-                        className="font-bold text-2xl text-paydine-champagne"
+                        className="font-bold text-2xl pmd-customer-price"
                         initial={{ x: 10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                       >
@@ -3441,8 +3461,18 @@ function ExpandingBottomToolbar({
             <ShoppingCart className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
             {totalItems > 0 && (
               <span 
-                className="cart-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
-                style={{ fontSize: '12px' }}>
+                className="cart-badge pmd-v2-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
+                style={{
+                  background: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
+                  backgroundColor: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
+                  backgroundImage: "none",
+                  color: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
+                  WebkitTextFillColor: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
+                  border: "1px solid var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  borderColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  outlineColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  zIndex: 9999999,
+                }}>
                 {totalItems}
               </span>
             )}
@@ -4378,42 +4408,6 @@ useEffect(() => {
 
 // Main component with Suspense wrapper
 export default function ExpandingBottomToolbarMenu() {
-  // Safety net: Force theme application on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentTheme = localStorage.getItem('paymydine-theme') || 'clean-light';
-      applyTheme(currentTheme);
-      
-      // NUCLEAR OPTION: Directly set background colors
-      const themeColors = {
-        'clean-light': '#fdf7f4',
-        'modern-dark': '#0A0E12',
-        'gold-luxury': '#0F0B05',
-        'vibrant-colors': '#e2ceb1',
-        'minimal': '#CFEBF7'
-      };
-      
-      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#fdf7f4';
-      
-      // Force background on body and html
-      document.body.style.background = bgColor;
-      document.documentElement.style.background = bgColor;
-      
-      // Force background on page elements
-      const pageElement = document.querySelector('.page--menu .min-h-screen');
-      if (pageElement) {
-        (pageElement as HTMLElement).style.background = bgColor;
-      }
-      
-      // Debug logging for verification
-      console.info("MENU PAGE THEME SAFETY NET APPLIED");
-      console.log("Applied theme:", currentTheme);
-      console.log("Forced background color:", bgColor);
-      console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
-      console.log("body background:", getComputedStyle(document.body).background);
-    }
-  }, []);
-
   return (
     <div className="page--menu">
       <Suspense fallback={<div>Loading...</div>}>

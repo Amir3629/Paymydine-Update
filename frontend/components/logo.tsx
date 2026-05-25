@@ -201,7 +201,7 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
       <div className="absolute left-2 md:left-4 top-4">
         {isHomePage ? null : (
           <Link href={homeUrl}>
-            <Button variant="ghost" size="sm" className="text-paydine-elegant-gray hover:text-paydine-rose-beige">
+            <Button variant="ghost" size="sm" className="pmd-v2-action-circle hover:opacity-90">
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
@@ -210,10 +210,10 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
       </div>
       <div
         className={cn(
-          "absolute top-4",
+          "absolute",
           (isMainHomePage || isTableHomePage)
-            ? "left-1/2 translate-x-[225px] md:translate-x-[245px]"
-            : "right-2 md:right-4"
+            ? "top-[4.35rem] md:top-[4.55rem] left-1/2 translate-x-[225px] md:translate-x-[245px]"
+            : "top-4 right-2 md:right-4"
         )}
       >
         <LanguageSwitcher />
@@ -235,14 +235,14 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
             ) : (
               <div aria-hidden="true" style={{ width: 220, height: 64 }} />
             )}
-            <p className="text-lg text-paydine-elegant-gray tracking-[0.2em] uppercase font-medium bg-paydine-champagne/10 inline-block px-6 py-1 rounded-full">
+            <p className="text-base tracking-[0.18em] uppercase font-medium inline-block px-5 py-0.5 rounded-full pmd-v2-pill">
               {displayTableNumber}
             </p>
           </div>
         ) : (
           // Other pages (menu, valet, etc.): Just show the table number
           <div className="flex flex-col items-center">
-            <p className="text-lg text-paydine-elegant-gray tracking-[0.2em] uppercase font-medium bg-paydine-champagne/10 inline-block px-6 py-1 rounded-full">
+            <p className="text-base tracking-[0.18em] uppercase font-medium inline-block px-5 py-0.5 rounded-full pmd-v2-pill">
               {displayTableNumber}
             </p>
           </div>

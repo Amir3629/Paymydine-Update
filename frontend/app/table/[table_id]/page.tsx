@@ -164,8 +164,8 @@ export default function TableHomePage({ params }: { params: { table_id: string }
     // ✅ Fix dependency to use pathParam instead of undefined table_id
   }, [pathParam, qr, router, setTableInfo])
 
-  const cardStyles = "relative flex flex-col items-center backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border w-72 h-56 justify-center surface-sub"
-  const iconContainerStyles = "rounded-full p-6 mb-6"
+  const cardStyles = "relative flex flex-col items-center pmd-v2-card-sub backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 w-72 h-56 justify-center surface-sub"
+  const iconContainerStyles = "rounded-full pmd-v2-action-circle p-6 mb-6"
 
   if (loading) {
     return (
@@ -176,7 +176,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
   }
 
   return (
-    <div className="min-h-screen bg-theme-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-theme-background pmd-v2-page flex flex-col items-center justify-center p-4">
       {/* FIXED: Use Logo without tableNumber prop - it will get it from cart store */}
       <Logo className="mb-8" />
       

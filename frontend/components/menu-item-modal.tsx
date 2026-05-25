@@ -184,7 +184,7 @@ const handleModalClose = (event?: any) => {
  animate={{ scale: isVisible ? 1 : 0.97, y: isVisible ? 0 : 8, opacity: isVisible ? 1 : 0 }}
  exit={{ scale: 0.97, y: 8, opacity: 0 }}
  transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
- className="relative surface rounded-3xl shadow-2xl w-full max-w-xl max-h-[90dvh] overflow-hidden"
+	 className="relative surface pmd-v2-card rounded-3xl shadow-2xl w-full max-w-xl max-h-[90dvh] overflow-hidden"
  onClick={(e) => e.stopPropagation()}
  >
  {/* Close button */}
@@ -192,7 +192,7 @@ const handleModalClose = (event?: any) => {
  variant="ghost"
  size="icon"
  onClick={handleModalClose}
- className="inline-flex items-center justify-center absolute top-4 left-4 z-10 h-10 w-10 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] shadow-lg hover:opacity-90"
+	 className="inline-flex items-center justify-center absolute top-4 left-4 z-10 h-10 w-10 pmd-v2-action-circle shadow-lg hover:opacity-90"
 >
  <ArrowLeft className="h-5 w-5" />
  </Button>
@@ -220,7 +220,7 @@ const handleModalClose = (event?: any) => {
  </div>
 
  {/* Content */}
- <h2 dir="auto" className="font-serif text-3xl font-bold text-paydine-elegant-gray mb-3 text-center">{itemName}</h2>
+	 <h2 dir="auto" className="font-serif text-3xl font-bold pmd-v2-text mb-3 text-center">{itemName}</h2>
  <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
  <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
  <FoodAttributeTags
@@ -232,7 +232,7 @@ const handleModalClose = (event?: any) => {
  className="justify-center"
  />
  </div>
- <p dir={getTextDirection(itemDescription)} className={`text-gray-600 text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
+	 <p dir={getTextDirection(itemDescription)} className={`pmd-v2-text-muted text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
  <FoodNutritionSummary
  calories={renderedItem?.calories}
  protein={renderedItem?.protein}
