@@ -1018,9 +1018,19 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     if (!taxSettings.enabled || taxSettings.percentage <= 0) {
       return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
     }
+
     if (taxSettings.menuPrice === 0) {
-      return { summary: "Order Summary (prices incl. VAT)", subtotal: "Subtotal (incl. VAT)", total: "Total" }
+      const vatPct = Number.isInteger(taxSettings.percentage)
+        ? String(taxSettings.percentage)
+        : String(Number(taxSettings.percentage.toFixed(2)))
+
+      return {
+        summary: `Order Summary (prices incl. ${vatPct}% VAT)`,
+        subtotal: `Subtotal (incl. ${vatPct}% VAT)`,
+        total: "Total",
+      }
     }
+
     return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
