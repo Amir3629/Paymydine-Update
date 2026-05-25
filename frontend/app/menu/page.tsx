@@ -1019,7 +1019,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
     }
     if (taxSettings.menuPrice === 0) {
-      return { summary: "Order Summary (prices incl. VAT)", subtotal: "Subtotal (incl. VAT)", total: "Total" }
+      const vatPct = Number.isInteger(taxSettings.percentage)
+        ? String(taxSettings.percentage)
+        : String(Number(taxSettings.percentage.toFixed(2)))
+      return {
+        summary: `Order Summary (prices incl. ${vatPct}% VAT)`,
+        subtotal: `Subtotal (incl. ${vatPct}% VAT)`,
+        total: "Total"
+      }
     }
     return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
