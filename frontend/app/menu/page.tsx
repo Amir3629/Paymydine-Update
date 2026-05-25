@@ -8,7 +8,6 @@ import { type TranslationKey } from "@/lib/translations";
 import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
-import { applyTheme } from "@/lib/theme-system";
 import { Logo } from "@/components/logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
@@ -4378,42 +4377,6 @@ useEffect(() => {
 
 // Main component with Suspense wrapper
 export default function ExpandingBottomToolbarMenu() {
-  // Safety net: Force theme application on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentTheme = localStorage.getItem('paymydine-theme') || 'clean-light';
-      applyTheme(currentTheme);
-      
-      // NUCLEAR OPTION: Directly set background colors
-      const themeColors = {
-        'clean-light': '#fdf7f4',
-        'modern-dark': '#0A0E12',
-        'gold-luxury': '#0F0B05',
-        'vibrant-colors': '#e2ceb1',
-        'minimal': '#CFEBF7'
-      };
-      
-      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#fdf7f4';
-      
-      // Force background on body and html
-      document.body.style.background = bgColor;
-      document.documentElement.style.background = bgColor;
-      
-      // Force background on page elements
-      const pageElement = document.querySelector('.page--menu .min-h-screen');
-      if (pageElement) {
-        (pageElement as HTMLElement).style.background = bgColor;
-      }
-      
-      // Debug logging for verification
-      console.info("MENU PAGE THEME SAFETY NET APPLIED");
-      console.log("Applied theme:", currentTheme);
-      console.log("Forced background color:", bgColor);
-      console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
-      console.log("body background:", getComputedStyle(document.body).background);
-    }
-  }, []);
-
   return (
     <div className="page--menu">
       <Suspense fallback={<div>Loading...</div>}>
