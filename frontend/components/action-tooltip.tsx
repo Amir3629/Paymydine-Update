@@ -24,7 +24,7 @@ export function ActionTooltip({
       <span
         className={cn(
           "pointer-events-none absolute left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium",
-          "bg-black/55 text-neutral-900 backdrop-blur-md ring-1 ring-white/30",
+          "bg-[color:var(--theme-surface,#ffffff)] text-[color:var(--theme-text-primary,#111827)] backdrop-blur-md ring-1 ring-[color:var(--theme-border,#2f2f2f)] shadow-md",
           "opacity-0 translate-y-1 transition-all duration-200 ease-out",
           "group-hover/action-tooltip:opacity-100 group-hover/action-tooltip:translate-y-0",
           "group-focus-within/action-tooltip:opacity-100 group-focus-within/action-tooltip:translate-y-0",

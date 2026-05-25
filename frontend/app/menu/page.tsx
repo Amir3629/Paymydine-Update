@@ -1016,7 +1016,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
   const vatLabels = useMemo(() => {
     if (!taxSettings.enabled || taxSettings.percentage <= 0) {
-      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+      return { summary: "Order Summary", summaryNote: null, subtotal: "Subtotal", total: "Total" }
     }
 
     if (taxSettings.menuPrice === 0) {
@@ -1025,13 +1025,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         : String(Number(taxSettings.percentage.toFixed(2)))
 
       return {
-        summary: `Order Summary (prices incl. ${vatPct}% VAT)`,
+        summary: "Order Summary",
+        summaryNote: `prices incl. ${vatPct}% VAT`,
         subtotal: `Subtotal (incl. ${vatPct}% VAT)`,
         total: "Total",
       }
     }
 
-    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+    return { summary: "Order Summary", summaryNote: null, subtotal: "Subtotal", total: "Total" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
@@ -2855,8 +2856,11 @@ case "cod":
               </div>
 
               <div className="surface-sub rounded-2xl p-3">
-                <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
-                <div className="space-y-2 max-h-44 overflow-y-auto">
+              <h3 className="text-sm font-semibold">{vatLabels.summary}</h3>
+              {vatLabels.summaryNote && (
+                <p className="mb-2 text-xs font-medium muted">{vatLabels.summaryNote}</p>
+              )}
+              <div className="space-y-2 max-h-44 overflow-y-auto">
                   {(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
                     <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
@@ -3087,6 +3091,11 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
             <button
               className="quantity-btn w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
+              style={{
+                color: "var(--theme-text-primary, #111827)",
+                borderColor: "var(--theme-border, #2f2f2f)",
+                background: "var(--theme-surface, #ffffff)",
+              }}
             >
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
@@ -3139,14 +3148,24 @@ function ExpandingBottomToolbar({
     }
     return price
   }
+  const iconButtonStyle: React.CSSProperties = {
+    background: "var(--theme-surface, #ffffff)",
+    border: "1px solid var(--theme-border, #2f2f2f)",
+    color: "var(--theme-text-primary, #111827)",
+    borderRadius: "9999px",
+    width: "3rem",
+    height: "3rem",
+  }
+
   // Heights for each state
   const collapsedHeight = 76
   const previewHeight = 180
   const expandedHeight = 420
 
+  const hasToolbarContent = items.length > 0 && (toolbarState === "preview" || toolbarState === "expanded")
   let height = collapsedHeight
-  if (toolbarState === "preview") height = previewHeight
-  if (toolbarState === "expanded") height = expandedHeight
+  if (hasToolbarContent && toolbarState === "preview") height = previewHeight
+  if (hasToolbarContent && toolbarState === "expanded") height = expandedHeight
 
   // Safety net: Ensure toolbar background is applied correctly
   useEffect(() => {
@@ -3245,7 +3264,7 @@ function ExpandingBottomToolbar({
 
         {/* Bill preview/expanded */}
         <AnimatePresence mode="popLayout">
-          {(toolbarState === "preview" || toolbarState === "expanded") && (
+          {hasToolbarContent && (
             <motion.div
               key="bill"
               initial={{ opacity: 0, y: 20 }}
@@ -3373,12 +3392,12 @@ function ExpandingBottomToolbar({
             whileTap={{ scale: waiterDisabled ? 1 : 0.92 }}
             whileHover={{ scale: waiterDisabled ? 1 : 1.12 }}
             className={`flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            style={iconButtonStyle}
             onClick={waiterDisabled ? undefined : onWaiterClick}
             disabled={waiterDisabled}
             aria-label={t("callWaiter")}
           >
-            <HandPlatter className={`h-8 w-8 ${waiterDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
+            <HandPlatter className={`h-6 w-6 ${waiterDisabled ? 'text-gray-400' : ''}`} style={!waiterDisabled ? { color: "var(--theme-text-primary, #111827)" } : undefined} />
           </motion.button>
           </ActionTooltip>
           <ActionTooltip label="Add note">
@@ -3386,12 +3405,12 @@ function ExpandingBottomToolbar({
             whileTap={{ scale: noteDisabled ? 1 : 0.92 }}
             whileHover={{ scale: noteDisabled ? 1 : 1.12 }}
             className={`flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            style={iconButtonStyle}
             onClick={noteDisabled ? undefined : onNoteClick}
             disabled={noteDisabled}
             aria-label={t("leaveNote")}
           >
-            <NotebookPen className={`h-8 w-8 ${noteDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
+            <NotebookPen className={`h-6 w-6 ${noteDisabled ? 'text-gray-400' : ''}`} style={!noteDisabled ? { color: "var(--theme-text-primary, #111827)" } : undefined} />
           </motion.button>
           </ActionTooltip>
           
@@ -3400,11 +3419,11 @@ function ExpandingBottomToolbar({
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.12 }}
             className="flex items-center justify-center relative focus:outline-none transition-all"
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            style={iconButtonStyle}
             onClick={onCartClick}
             aria-label={t("viewCart")}
           >
-            <ShoppingCart className="h-8 w-8 text-paydine-elegant-gray" />
+            <ShoppingCart className="h-6 w-6" style={{ color: "var(--theme-text-primary, #111827)" }} />
             {totalItems > 0 && (
               <span 
                 className="cart-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
@@ -4304,7 +4323,10 @@ useEffect(() => {
       )}
       <PaymentModal
         isOpen={isPaymentModalOpen}
-        onClose={() => setPaymentModalOpen(false)}
+        onClose={() => {
+          setPaymentModalOpen(false)
+          setToolbarState(items.length > 0 ? "preview" : "collapsed")
+        }}
         items={items}
         tableInfo={tableInfo}
         existingOrderId={existingOrderId}
