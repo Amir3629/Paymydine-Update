@@ -1209,6 +1209,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
             return
           }
+          markOpenOrderAsPaid(paymentOrderIdCandidate)
+          setCheckoutStep("paid")
+          setIsLoading(false)
+          toast({
+            title: t("paymentSuccessful"),
+            description: `Order #${paymentOrderIdCandidate} paid successfully!`,
+          })
+          return
         } catch (e) {
           setIsLoading(false)
           toast({
@@ -1305,7 +1313,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const tableKey = getTableKey()
           const sessionKey = buildOpenOrderStorageKeys().sessionKey
           const orderIdVal = response.order_id ? String(response.order_id) : ''
-          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', total: Number((response as any)?.total ?? finalTotal ?? 0), etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes), showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
+          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', subtotal: Number(subtotal || 0), vatAmount: Number(taxAmount || 0), vatPercentage: Number(taxSettings?.percentage || 0), total: Number((response as any)?.total ?? finalTotal ?? 0), etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes), showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
           setSubmittedSnapshot(snapshot)
           onOpenOrderUpdate?.(snapshot)
@@ -2848,6 +2856,18 @@ case "cod":
                     <span className="muted font-medium">Order Number:</span>
                     <span className="font-semibold text-[15px]">{submittedSnapshot.orderId}</span>
                   </div>
+                )}
+                {taxSettings.enabled && taxSettings.menuPrice === 1 && Number(submittedSnapshot?.vatAmount ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="muted font-medium">Subtotal:</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.subtotal ?? 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="muted font-medium">VAT {Number(submittedSnapshot?.vatPercentage ?? taxSettings?.percentage ?? 0)}%:</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.vatAmount ?? 0))}</span>
+                    </div>
+                  </>
                 )}
                 <div className="flex items-center justify-between">
                   <span className="muted font-medium">Order Total:</span>
