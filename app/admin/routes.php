@@ -7677,5 +7677,58 @@ Route::group([
 
         return response()->json(['success' => true, 'data' => $data]);
     });
+
+    Route::post('/orders/start-payment', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'order_id' => 'required|integer|min:1',
+            'payment_method' => 'required|string|max:50',
+            'provider' => 'nullable|string|max:50',
+            'guest_session_id' => 'nullable|string|max:191',
+            'table_id' => 'nullable|string|max:50',
+            'table_no' => 'nullable|string|max:50',
+            'source' => 'nullable|string|max:50',
+        ]);
+
+        $order = \Admin\Models\Orders_model::query()->where('order_id', (int)$payload['order_id'])->first();
+        if (!$order) return response()->json(['success' => false, 'error' => 'Order not found'], 404);
+        if (strtolower((string)($order->payment ?? '')) === 'qr_pay_later') {
+            return response()->json(['success' => false, 'error' => 'Use pay-existing for qr_pay_later orders'], 422);
+        }
+        $pmdStartPaymentSettlementStatus = strtolower((string)($order->settlement_status ?? 'unpaid'));
+        if (in_array((int)($order->status_id ?? 0), [5, 10], true) || in_array($pmdStartPaymentSettlementStatus, ['paid', 'cancelled', 'failed'], true)) {
+            return response()->json(['success' => false, 'error' => 'Order is already paid or closed'], 422);
+        }
+
+        $orderTotal = round((float)($order->order_total ?? 0), 4);
+        $settled = round((float)($order->settled_amount ?? 0), 4);
+        $amount = $settled > 0 ? max(0, round($orderTotal - $settled, 4)) : $orderTotal;
+        if ($amount <= 0) return response()->json(['success' => false, 'error' => 'No payable amount remaining'], 422);
+
+        $method = strtolower((string)$payload['payment_method']);
+        if (in_array($method, ['cash', 'cod'], true)) {
+            return response()->json([
+                'success' => true,
+                'order_id' => (int)$order->order_id,
+                'amount' => $amount,
+                'currency' => strtoupper((string)(setting('currency_code', 'EUR') ?: 'EUR')),
+                'provider' => 'cash',
+                'message' => 'Cash collection requested',
+            ]);
+        }
+
+        $provider = strtolower((string)($payload['provider'] ?? ''));
+        if ($provider === '') {
+            $provider = $method === 'paypal' ? 'paypal' : 'stripe';
+        }
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int)$order->order_id,
+            'amount' => $amount,
+            'currency' => strtoupper((string)(setting('currency_code', 'EUR') ?: 'EUR')),
+            'provider' => $provider,
+            'payment_method' => $method,
+        ]);
+    });
 });
 // === /QR PAY LATER ACTIVE API ROUTES ===

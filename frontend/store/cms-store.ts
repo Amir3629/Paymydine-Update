@@ -205,20 +205,26 @@ export const useCmsStore = create<CmsState>()(
           console.log('📡 CMS Store: VAT settings API response:', response)
           
           if (response.success && response.data) {
+            const parseModeEnabled = (raw: any): boolean => {
+              const normalized = String(raw ?? '').trim().toLowerCase()
+              if (['1', 'true', 'enabled', 'on'].includes(normalized)) return true
+              if (['0', 'false', 'disabled', 'off', ''].includes(normalized)) return false
+              return Number(normalized) === 1
+            }
             // Backend returns vat_* fields, with tax_* accepted for legacy tenants.
-            const taxMode = parseInt(response.data.vat_mode || response.data.tax_mode || '0', 10)
+            const taxModeRaw = response.data.vat_mode ?? response.data.tax_mode ?? '0'
             const taxPercentage = parseFloat(response.data.vat_percentage || response.data.tax_percentage || '0')
             const taxMenuPrice = parseInt(response.data.vat_menu_price || response.data.tax_menu_price || '1', 10)
             
             console.log('✅ CMS Store: Parsed VAT settings:', {
-              enabled: taxMode === 1,
+              enabled: parseModeEnabled(taxModeRaw),
               percentage: taxPercentage,
               menuPrice: taxMenuPrice,
             })
             
             set({
               taxSettings: {
-                enabled: taxMode === 1,
+                enabled: parseModeEnabled(taxModeRaw),
                 percentage: taxPercentage,
                 menuPrice: taxMenuPrice,
               },

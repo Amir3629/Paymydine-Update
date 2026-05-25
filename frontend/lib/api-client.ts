@@ -629,7 +629,7 @@ export class ApiClient {
     try {
       // Try /vat-settings endpoint first (like /simple-theme).
       const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
-      const res = await fetch(`${base}/vat-settings`, { headers: { Accept: 'application/json' } });
+      const res = await fetch(this.envConfig.getApiEndpoint('/vat-settings'), { headers: { Accept: 'application/json' } });
       if (res.ok) {
         const json = await res.json();
         return json;
@@ -861,6 +861,28 @@ export class ApiClient {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data?.error || data?.message || 'Failed to pay existing order');
+    }
+    return data;
+  }
+
+  async startExistingOrderPayment(payload: {
+    order_id: number;
+    payment_method: string;
+    provider?: string | null;
+    guest_session_id?: string | null;
+    table_id?: string | number | null;
+    table_no?: string | number | null;
+    source?: string | null;
+    payment_reference?: string | null;
+  }) {
+    const response = await fetch('/api/v1/orders/start-payment', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to start existing order payment');
     }
     return data;
   }

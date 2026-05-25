@@ -726,6 +726,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const [cashCollectionConfirmed, setCashCollectionConfirmed] = useState(false)
   const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [isDarkTheme, setIsDarkTheme] = useState(false)
@@ -986,13 +987,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [appliedCoupon, subtotal])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
+  const toPositiveAmount = (value: unknown): number | null => {
+    const amount = Number(value)
+    return Number.isFinite(amount) && amount > 0 ? amount : null
+  }
   const payableTotal = useMemo(() => {
-    if (checkoutStep === "payment") {
-      if (submittedSnapshot?.total != null) return Number(submittedSnapshot.total || 0)
-      if (existingOrderId) return Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
-    }
-    return Number(finalTotal || 0)
-  }, [checkoutStep, submittedSnapshot, existingOrderId, pendingSummary, finalTotal])
+    const submittedTotal = toPositiveAmount(submittedSnapshot?.total)
+    const remainingAmount = toPositiveAmount(pendingSummary?.remainingAmount)
+    const reviewTotal = toPositiveAmount(finalTotal)
+    if (checkoutStep === "payment") return submittedTotal ?? remainingAmount ?? reviewTotal ?? 0
+    return reviewTotal ?? submittedTotal ?? remainingAmount ?? 0
+  }, [checkoutStep, submittedSnapshot?.total, pendingSummary?.remainingAmount, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -1008,6 +1013,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     if (backendEta > 0) return backendEta
     return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
   }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
+  // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
+  const vatLabels = useMemo(() => {
+    if (!taxSettings.enabled || taxSettings.percentage <= 0) {
+      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+    }
+    if (taxSettings.menuPrice === 0) {
+      return { summary: "Order Summary (prices incl. VAT)", subtotal: "Subtotal (incl. VAT)", total: "Total" }
+    }
+    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+  }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "var(--theme-secondary)",
@@ -1160,7 +1175,34 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         })
         return
       }
-      if (paymentOrderIdCandidate) {
+      const shouldUsePayExisting = !!(checkoutStep === "payment" && pendingSummary && existingOrderId && paymentOrderIdCandidate && Number(existingOrderId) === Number(paymentOrderIdCandidate))
+      if (checkoutStep === "payment" && paymentOrderIdCandidate && !shouldUsePayExisting) {
+        try {
+          const started = await apiClient.startExistingOrderPayment({
+            order_id: Number(paymentOrderIdCandidate),
+            payment_method: String(effectiveMethodCode || "card"),
+            provider: selectedProviderCodeForSubmit || undefined,
+            guest_session_id: ensureGuestSession(),
+            table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+            table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+            source: "menu_existing_submitted",
+          })
+          if (String(effectiveMethodCode || "") === "cod") {
+            setIsLoading(false)
+            toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
+            return
+          }
+        } catch (e) {
+          setIsLoading(false)
+          toast({
+            title: "Payment unavailable",
+            description: "Payment could not be started. Please ask staff or try again.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+      if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = isSplitting
           ? Object.values(selectedItems).reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, instance) => {
@@ -1178,7 +1220,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
         const existingOrderAmount = isSplitting
           ? null
-          : Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
+          : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)
 
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
@@ -1265,13 +1307,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     } catch (error) {
     setIsLoading(false)
       console.error('Order submission error:', error)
+      const normalizedMessage =
+        error instanceof Error && /given data was invalid|unprocessable|amount|selected items amount mismatch/i.test(error.message)
+          ? "Payment could not be started. Please ask staff or try again."
+          : null
       const validationDetails = (error as any)?.details as Record<string, string[]> | undefined
       const firstValidationMessage = validationDetails
         ? Object.values(validationDetails).flat().find(Boolean)
         : null
       toast({ 
         title: "Order Failed", 
-        description: firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
+        description: normalizedMessage || firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
         variant: "destructive"
       })
     }
@@ -1305,6 +1351,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const handleBackToMethods = () => {
     setProviderInlineError(null)
     setSelectedPaymentMethod(null)
+    setCashCollectionConfirmed(false)
   }
 
   const handleFormChange = (field: keyof PaymentFormData, value: string) => {
@@ -1448,10 +1495,35 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
   const startHostedRedirectCheckout = async () => {
     if (!selectedMethod || !["card", "wero", "paypal", "apple_pay", "google_pay"].includes(selectedMethod.code)) return
+    if (!(payableTotal > 0)) {
+      setProviderInlineError("Invalid payable amount. Please review your order and try again.")
+      toast({
+        title: "Payment Amount Error",
+        description: "Unable to start payment because the amount is invalid.",
+        variant: "destructive",
+      })
+      return
+    }
     setProviderInlineError(null)
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
+      let existingOrderStart: any = null
+      const existingSubmittedOrderId =
+        checkoutStep === "payment" && !pendingSummary
+          ? (existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null)
+          : null
+      if (existingSubmittedOrderId) {
+        existingOrderStart = await apiClient.startExistingOrderPayment({
+          order_id: Number(existingSubmittedOrderId),
+          payment_method: String(selectedMethod.code),
+          provider: String((selectedMethod as any)?.provider_code || ""),
+          guest_session_id: ensureGuestSession(),
+          table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+          table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+          source: "menu_existing_submitted",
+        })
+      }
       const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
       const providerCode = selectedMethod.code === "wero"
         ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
@@ -1491,12 +1563,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: payableTotal,
-          currency: (merchantSettings?.currency || "EUR"),
+          amount: Number(existingOrderStart?.amount || payableTotal),
+          currency: String(existingOrderStart?.currency || merchantSettings?.currency || "EUR"),
           return_url: returnUrl,
           cancel_url: cancelUrl,
           customer_email: paymentFormData.email || "",
           merchant_reference: merchantReference,
+          order_id: existingSubmittedOrderId ? Number(existingSubmittedOrderId) : undefined,
           items: itemsToPay.map((item: any) => ({
             id: String(item.item.id),
             name: item.item.name,
@@ -2047,21 +2120,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                       variant: "destructive",
                     })
                   }}
-                  footerSlot={
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleBackToMethods}
-                        className="p-2 h-9 w-9"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-paydine-elegant-gray" />
-                      </div>
-                    </>
-                  }
                 />
               </Elements>
             )}
@@ -2340,16 +2398,30 @@ case "cod":
               </div>
             </div>
 
-            <div className="text-center space-y-4">
-              <div className="bg-gray-50 rounded-xl p-6">
-                <Wallet className="h-12 w-12 text-paydine-champagne mx-auto mb-3" />
-                <p className="text-sm text-gray-600 mb-4">
-                  Please have the exact amount ready when the waiter comes to collect payment.
-                </p>
+            <div className="space-y-3">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="text-sm font-medium text-paydine-elegant-gray mb-2">Total due</div>
                 <div className="text-lg font-bold text-paydine-elegant-gray">
-        Total: {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
+                  {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
                 </div>
               </div>
+              <Button
+                type="button"
+                disabled={isLoading}
+                onClick={async () => {
+                  setCashCollectionConfirmed(true)
+                  await handlePayment(undefined, { method_code: "cod", provider_code: null })
+                }}
+                className="w-full"
+                style={modalPrimaryBtnStyle}
+              >
+                {isLoading ? "Submitting..." : "Confirm cash payment"}
+              </Button>
+              {cashCollectionConfirmed && (
+                <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}>
+                  Please have the exact amount ready when the waiter comes to collect payment.
+                </div>
+              )}
             </div>
           </motion.div>
         )
@@ -2528,7 +2600,7 @@ case "cod":
             </div>
           ) : (
             <div className="surface-sub rounded-2xl p-3">
-              <h3 className="mb-2 text-xs">{t("orderSummary")}</h3>
+              <h3 className="mb-2 text-xs">{vatLabels.summary}</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {allItems.map((cartItem) => (
                   <OrderItemWithOptions 
@@ -2684,7 +2756,7 @@ case "cod":
           {/* Totals */}
           {checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
-              <span>{t("subtotal")}</span>
+              <span>{vatLabels.subtotal}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
             </div>
             {taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1 && (
@@ -2706,16 +2778,10 @@ case "cod":
               </div>
             )}
             <div className="flex justify-between items-center divider pt-2 mt-2">
-              <span className="text-base">{t("total")}</span>
+              <span className="text-base">{vatLabels.total}</span>
           <span className="text-base font-bold">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
             </div>
           </div>}
-
-          {checkoutStep === "payment" && selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
-            <div className="pt-3">
-              {renderPaymentForm()}
-            </div>
-          )}
 
           {checkoutStep === "review" && (
             <div className="mt-3 space-y-3">
@@ -2746,45 +2812,45 @@ case "cod":
 
           {(checkoutStep === "submitted" || checkoutStep === "payment" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div layout className="mt-2 p-1 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
                   <CheckCircle className="h-5 w-5" style={{ color: "#111827" }} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
-                    {(submittedSnapshot?.showCustomerEta ?? true) && <div aria-label={`Estimated preparation time ${estimatedMinutes} minutes`} className="shrink-0 rounded-2xl border px-2 py-1 text-center" style={{ background: "var(--theme-secondary)", borderColor: "var(--theme-border)", color: "#111827" }}><div className="text-[10px] font-semibold uppercase tracking-wide">Smart ETA</div><div className="text-sm font-bold leading-none">~{estimatedMinutes}</div><div className="text-[10px] leading-none">min</div></div>}
+                    {(submittedSnapshot?.showCustomerEta ?? true) && <div aria-label={`Estimated time ${estimatedMinutes} minutes`} className="shrink-0 rounded-xl border px-2 py-1 text-center" style={{ background: "color-mix(in srgb, var(--theme-secondary) 18%, var(--theme-surface) 82%)", borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }}><div className="text-xs font-semibold leading-none">Est. {estimatedMinutes} min</div></div>}
                   </div>
                   <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
                 </div>
               </div>
 
-              <div className="surface-sub rounded-2xl p-3 space-y-1 text-xs">
+              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ color: "var(--theme-text-primary)" }}>
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
-                    <span className="muted">Order #</span>
-                    <span className="font-semibold">{submittedSnapshot.orderId}</span>
+                    <span className="muted font-medium">Order Number:</span>
+                    <span className="font-semibold text-[15px]">{submittedSnapshot.orderId}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="muted">{t("total")}</span>
-                  <span className="font-semibold">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
+                  <span className="muted font-medium">Order Total:</span>
+                  <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="muted">Context</span>
-                  <span className="font-semibold">
+                  <span className="muted font-medium">Table:</span>
+                  <span className="font-semibold text-[15px]">
                     {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
                   </span>
                 </div>
               </div>
 
               <div className="surface-sub rounded-2xl p-3">
-                <h3 className="mb-2 text-xs">{t("orderSummary")}</h3>
+                <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
                 <div className="space-y-2 max-h-44 overflow-y-auto">
                   {(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
-                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-xs">
-                      <span className="truncate">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
-                      <span className="font-semibold">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
+                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
                     </div>
                   ))}
                 </div>
@@ -2828,7 +2894,7 @@ case "cod":
               )}
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
-            {checkoutStep === "payment" && !selectedPaymentMethod ? (
+            {checkoutStep === "payment" ? (
               <motion.div
                 key="payment-methods"
                 initial={{ opacity: 0, height: 0 }}
@@ -2905,6 +2971,11 @@ case "cod":
                     ))
                   )}
                 </div>
+                {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
+                  <div className="pt-2">
+                    {renderPaymentForm()}
+                  </div>
+                )}
               </motion.div>
             ) : null}
           </AnimatePresence>
@@ -3368,7 +3439,9 @@ const EnhancedWaiterDialog = ({
     // Backend needs a non-empty string; use "." when user leaves it blank
     const msg = '.';
     const resolvedTableId = tableId || "delivery";
-    console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? "table" : "delivery_menu" });
+    if (process.env.NODE_ENV !== "production") {
+      console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? "table" : "delivery_menu" });
+    }
     try {
       await apiClient.callWaiter(String(resolvedTableId), msg);
       toast({ title: 'Waiter Called', description: tableId ? 'We are on the way!' : 'We received your assistance request.' });
@@ -4041,7 +4114,9 @@ useEffect(() => {
     }
 
     const resolvedTableId = tableIdString || "delivery"
-    console.debug('[table-note] payload', { tableId: resolvedTableId, note: trimmedNote, source: tableIdString ? "table" : "delivery_menu" });
+    if (process.env.NODE_ENV !== "production") {
+      console.debug('[table-note] payload', { tableId: resolvedTableId, note: trimmedNote, source: tableIdString ? "table" : "delivery_menu" });
+    }
     try {
       await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString());
       setNote("")
@@ -4074,23 +4149,51 @@ useEffect(() => {
     const legacyKey = `pmd_open_order:${tenant}:${tableKey}`
     try {
       let raw = localStorage.getItem(key)
+      let restoredFromLegacy = false
       if (!raw) {
         const legacyRaw = localStorage.getItem(legacyKey)
         if (legacyRaw) {
           try {
             const legacy = JSON.parse(legacyRaw)
-            if (!legacy?.guestSessionId || legacy.guestSessionId === guestSessionId) {
-              const migrated = { ...legacy, guestSessionId }
+            const hasValidCore = Number(legacy?.orderId || 0) > 0 && Number(legacy?.total || 0) > 0
+            const isPaid = legacy?.paymentStatus === "paid" || legacy?.status === "paid"
+            const tenantConflict = legacy?.tenant != null && String(legacy.tenant) !== tenant
+            const tableConflict = legacy?.tableKey != null && String(legacy.tableKey) !== tableKey
+            if (!hasValidCore || isPaid || tenantConflict || tableConflict) {
+              localStorage.removeItem(legacyKey)
+            } else {
+              const migrated = { ...legacy, guestSessionId, tenant, tableKey }
               localStorage.setItem(key, JSON.stringify(migrated))
               localStorage.removeItem(legacyKey)
               raw = JSON.stringify(migrated)
+              restoredFromLegacy = true
             }
           } catch {}
         }
       }
       if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
       const parsed = JSON.parse(raw)
-      if (parsed?.paymentStatus === "paid") { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
+      const hasValidCore =
+        parsed &&
+        typeof parsed === "object" &&
+        Number(parsed?.total || 0) > 0 &&
+        Number(parsed?.orderId || 0) > 0
+      const matchesContext =
+        String(parsed?.guestSessionId || "") === guestSessionId &&
+        String(parsed?.tenant || "") === tenant &&
+        String(parsed?.tableKey || "") === tableKey
+      if (!hasValidCore || (!restoredFromLegacy && !matchesContext)) {
+        localStorage.removeItem(key)
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        return
+      }
+      if (parsed?.paymentStatus === "paid" || parsed?.status === "paid") {
+        localStorage.removeItem(key)
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        return
+      }
       setHasLocalOpenOrder(!!parsed?.orderId)
       setLocalOpenOrder(parsed)
       if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
