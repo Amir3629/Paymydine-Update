@@ -1,3 +1,4 @@
+import { normalizeThemeForCustomerPages, enforceCustomerPageTheme, PMD_CLEAN_LIGHT_PAGE_BG } from "@/lib/theme-normalizer"
  // Theme System for PayMyDine
 
 // Helper function to convert hex to RGB
@@ -63,7 +64,7 @@ export interface ThemeColors {
         primary: '#E7CBA9',        // paydine-champagne
         secondary: '#EFC7B1',      // paydine-rose-beige
         accent: '#3B3B3B',         // paydine-elegant-gray
-        background: '#FAFAFA',     // paydine-soft-white
+        background: PMD_CLEAN_LIGHT_PAGE_BG,     // paydine-soft-white
         
         textPrimary: '#3B3B3B',    // paydine-elegant-gray
         textSecondary: '#7E7E7E',  // paydine-muted-gray

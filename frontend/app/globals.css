@@ -3246,3 +3246,456 @@ body[data-theme="light"] form[data-pmd-stripe-form="1"] input#phone::placeholder
   -webkit-text-fill-color: #6B7280 !important;
 }
 /* === /PMD FORCE STRIPE FIELDS === */
+
+/* PMD CLEAN LIGHT REAL CANONICAL FIX START */
+
+/*
+  Clean Light strategy:
+  - #fdf7f4 = page background
+  - #FAFAFA / white = cards and surfaces
+  - #f0c6b1 = rose controls
+  - no random global frames
+  - only scoped customer-facing fixes
+*/
+
+html[data-theme="clean-light"],
+body[data-theme="clean-light"],
+[data-theme="clean-light"] {
+  --theme-background: #fdf7f4 !important;
+  --theme-surface: #FAFAFA;
+  --pmd-rose-fill: #f0c6b1;
+  --pmd-rose-edge: #c7a798;
+}
+
+/* Page background: strong because ThemeStore injects inline theme vars later. */
+html[data-theme="clean-light"],
+html[data-theme="clean-light"] body,
+body[data-theme="clean-light"],
+[data-theme="clean-light"] body,
+html[data-theme="clean-light"] main,
+body[data-theme="clean-light"] main,
+[data-theme="clean-light"] main,
+html[data-theme="clean-light"] .bg-theme-background,
+body[data-theme="clean-light"] .bg-theme-background,
+[data-theme="clean-light"] .bg-theme-background,
+html[data-theme="clean-light"] .page--home,
+body[data-theme="clean-light"] .page--home,
+[data-theme="clean-light"] .page--home,
+html[data-theme="clean-light"] .page--menu,
+body[data-theme="clean-light"] .page--menu,
+[data-theme="clean-light"] .page--menu,
+html[data-theme="clean-light"] .page--valet,
+body[data-theme="clean-light"] .page--valet,
+[data-theme="clean-light"] .page--valet,
+html[data-theme="clean-light"] .min-h-screen,
+body[data-theme="clean-light"] .min-h-screen,
+[data-theme="clean-light"] .min-h-screen {
+  background-color: #fdf7f4 !important;
+  background: #fdf7f4 !important;
+}
+
+/* Homepage cards */
+[data-theme="clean-light"] .home-action-card {
+  background-color: rgba(255, 255, 255, 0.80) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(240, 198, 177, 0.28) !important;
+}
+
+[data-theme="clean-light"] .home-action-card h2 {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Homepage icon circle and icon */
+[data-theme="clean-light"] .home-action-icon-wrap {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid rgba(199, 167, 152, 0.95) !important;
+  border-radius: 9999px !important;
+  box-shadow:
+    0 12px 26px rgba(17,24,39,.10),
+    inset 0 0 0 1px rgba(255,255,255,.32) !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap svg,
+[data-theme="clean-light"] .home-action-icon-wrap svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  fill: none !important;
+}
+
+/* Valet button: shadcn/default Button adds bg-primary, so this must win but only for valet CTA. */
+[data-theme="clean-light"] button.valet-request-btn,
+[data-theme="clean-light"] .valet-request-btn,
+[data-theme="clean-light"] button.valet-request-btn.bg-primary {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid rgba(199,167,152,.85) !important;
+  box-shadow: 0 10px 22px rgba(17,24,39,.08) !important;
+}
+
+[data-theme="clean-light"] button.valet-request-btn:hover:not(:disabled),
+[data-theme="clean-light"] .valet-request-btn:hover:not(:disabled) {
+  background: #efbea6 !important;
+  background-color: #efbea6 !important;
+}
+
+/* Intended rose text edge only */
+[data-theme="clean-light"] .menu-item-price,
+[data-theme="clean-light"] .category-tab.is-active > span,
+[data-theme="clean-light"] button[aria-label="Increase quantity"] {
+  color: #f0c6b1 !important;
+  -webkit-text-stroke: .45px #c7a798;
+  paint-order: stroke fill;
+  text-shadow:
+    .35px 0 0 #c7a798,
+   -.35px 0 0 #c7a798,
+    0 .35px 0 #c7a798,
+    0 -.35px 0 #c7a798;
+}
+
+/* No ugly frames */
+[data-theme="clean-light"] .menu-item-price,
+[data-theme="clean-light"] .category-tab {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Cart badge number readable */
+[data-theme="clean-light"] .cart-badge {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* PMD CLEAN LIGHT REAL CANONICAL FIX END */
+
+/* PMD CLEAN LIGHT RUNTIME GUARD SUPPORT START */
+
+/*
+  CSS support only.
+  The final clean-light customer page background is enforced centrally by
+  CleanLightCustomerGuard because ThemeStore/ThemeLoader can update colors after hydration.
+*/
+
+[data-theme="clean-light"] .home-action-card h2 {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border-color: #c7a798 !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap svg,
+[data-theme="clean-light"] .home-action-icon-wrap svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+[data-theme="clean-light"] .valet-request-btn {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* PMD CLEAN LIGHT RUNTIME GUARD SUPPORT END */
+
+/* PMD CLEAN LIGHT CONTROL POLISH FINAL START */
+
+/* Quantity selected numbers inside rose buttons must be black. */
+[data-theme="clean-light"] .quantity-btn,
+[data-theme="clean-light"] .quantity-btn span {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+/* Chevron-up rose icon with subtle darker outside edge. */
+[data-theme="clean-light"] svg.lucide-chevron-up,
+[data-theme="clean-light"] svg.text-paydine-champagne {
+  color: #f0c6b1 !important;
+  stroke: #f0c6b1 !important;
+  filter:
+    drop-shadow(0.35px 0 0 #c7a798)
+    drop-shadow(-0.35px 0 0 #c7a798)
+    drop-shadow(0 0.35px 0 #c7a798)
+    drop-shadow(0 -0.35px 0 #c7a798) !important;
+}
+
+/* Back button: round rose button, black arrow, hide text label. */
+@supports selector(button:has(svg)) {
+  [data-theme="clean-light"] button:has(svg.lucide-arrow-left) {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    border-radius: 9999px !important;
+    border: 1px solid #c7a798 !important;
+    background: #f0c6b1 !important;
+    background-color: #f0c6b1 !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    box-shadow:
+      0 8px 18px rgba(17, 24, 39, 0.10),
+      inset 0 0 0 1px rgba(255,255,255,0.32) !important;
+  }
+
+  [data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    margin: 0 !important;
+    color: #111827 !important;
+    stroke: #111827 !important;
+    filter: none !important;
+  }
+}
+
+/* PMD CLEAN LIGHT CONTROL POLISH FINAL END */
+
+/* PMD CLEAN LIGHT FINAL ICON POLISH START */
+
+/* Bottom menu bar buttons: no circle/frame, black icons. */
+[data-theme="clean-light"] button[aria-label="Call Waiter"],
+[data-theme="clean-light"] button[aria-label="Leave Note"],
+[data-theme="clean-light"] button[aria-label="View Cart"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #111827 !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg,
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg *,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg *,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* Bottom menu labels: no hover tooltip; always show under each icon. */
+[data-theme="clean-light"] .group\/action-tooltip {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.15rem !important;
+}
+
+[data-theme="clean-light"] .group\/action-tooltip > span.pointer-events-none {
+  position: static !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: none !important;
+  box-shadow: none !important;
+  ring: none !important;
+  backdrop-filter: none !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+  pointer-events: none !important;
+}
+
+/* Minus icon black. */
+[data-theme="clean-light"] svg.lucide-minus,
+[data-theme="clean-light"] .quantity-btn svg.lucide-minus {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* Homepage icon circle a bit smaller. */
+[data-theme="clean-light"] .home-action-icon-wrap {
+  padding: 1.15rem !important;
+  margin-bottom: 1.25rem !important;
+  transform: scale(1) !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap svg {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+}
+
+/* Valet page decorative car/key icons: rose circle, black icon. */
+[data-theme="clean-light"] .page--valet svg.lucide-car,
+[data-theme="clean-light"] .page--valet svg.lucide-car-front,
+[data-theme="clean-light"] .page--valet svg.lucide-key-round,
+[data-theme="clean-light"] .page--valet svg.lucide-concierge-bell,
+[data-theme="clean-light"] .page--valet svg.lucide-circle-parking,
+[data-theme="clean-light"] .page--valet svg.lucide-parking-circle {
+  box-sizing: content-box !important;
+  padding: 0.65rem !important;
+  border-radius: 9999px !important;
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid #c7a798 !important;
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+[data-theme="clean-light"] .page--valet svg.lucide-car *,
+[data-theme="clean-light"] .page--valet svg.lucide-car-front *,
+[data-theme="clean-light"] .page--valet svg.lucide-key-round *,
+[data-theme="clean-light"] .page--valet svg.lucide-concierge-bell *,
+[data-theme="clean-light"] .page--valet svg.lucide-circle-parking *,
+[data-theme="clean-light"] .page--valet svg.lucide-parking-circle * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+/* Back buttons: rose circle, black arrow. */
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) {
+  border-radius: 9999px !important;
+  color: #111827 !important;
+}
+
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg,
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* PMD CLEAN LIGHT FINAL ICON POLISH END */
+
+/* PMD CLEAN LIGHT FINAL TOOLBAR MODAL POLISH START */
+
+/* Bottom menu bar buttons: no frame, black icons. */
+[data-theme="clean-light"] button[aria-label="Call Waiter"],
+[data-theme="clean-light"] button[aria-label="Leave Note"],
+[data-theme="clean-light"] button[aria-label="View Cart"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #111827 !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg,
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg *,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg *,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* Show labels always under icons, not as hover bubbles. */
+[data-theme="clean-light"] .group\/action-tooltip {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.15rem !important;
+}
+
+[data-theme="clean-light"] .group\/action-tooltip > span.pointer-events-none {
+  position: static !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+  pointer-events: none !important;
+}
+
+/* Cart badge number black, even if old inline color says white. */
+[data-theme="clean-light"] .cart-badge,
+[data-theme="clean-light"] .cart-badge * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Bottom toolbar preview: remove gold/rose text edge and make totals neutral. */
+[data-theme="clean-light"] #toolbar-inner-fixed .bottom-toolbar-item-border {
+  border-color: rgba(199, 167, 152, 0.28) !important;
+}
+
+[data-theme="clean-light"] #toolbar-inner-fixed .menu-item-price,
+[data-theme="clean-light"] #toolbar-inner-fixed .text-paydine-champagne {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  -webkit-text-stroke: 0 !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+[data-theme="clean-light"] #toolbar-inner-fixed .border-t {
+  border-top-color: rgba(199, 167, 152, 0.35) !important;
+}
+
+[data-theme="clean-light"] #toolbar-inner-fixed .bg-paydine-rose-beige\/10 {
+  background-color: rgba(240, 198, 177, 0.10) !important;
+  border: 1px solid rgba(199, 167, 152, 0.35) !important;
+}
+
+/* Review modal buttons: visible edge/frame. */
+[data-theme="clean-light"] button[data-pmd-review-submit="true"] {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid #c7a798 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08), inset 0 0 0 1px rgba(255,255,255,0.30) !important;
+}
+
+[data-theme="clean-light"] button[data-pmd-review-continue="true"] {
+  background: rgba(255, 255, 255, 0.72) !important;
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid #c7a798 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+}
+
+/* Back buttons: rose circle, black arrow. */
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) {
+  border-radius: 9999px !important;
+  color: #111827 !important;
+}
+
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg,
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg *,
+[data-theme="clean-light"] svg.lucide-arrow-left,
+[data-theme="clean-light"] svg.lucide-arrow-left * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* PMD CLEAN LIGHT FINAL TOOLBAR MODAL POLISH END */

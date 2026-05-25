@@ -26,14 +26,14 @@ export default function ThemeBackgroundLab() {
     
     // NUCLEAR OPTION: Force background colors directly
     const themeColors = {
-      'clean-light': '#FAFAFA',
+      'clean-light': '#fdf7f4',
       'modern-dark': '#0A0E12',
       'gold-luxury': '#0F0B05',
       'vibrant-colors': '#e2ceb1',
       'minimal': '#CFEBF7'
     };
     
-    const bgColor = themeColors[themeId as keyof typeof themeColors] || '#FAFAFA';
+    const bgColor = themeColors[themeId as keyof typeof themeColors] || '#fdf7f4';
     
     // Force background on body and html
     document.body.style.background = bgColor;

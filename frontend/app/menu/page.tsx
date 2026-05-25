@@ -175,7 +175,7 @@ function __pmdRemoteConsoleInstallOnce() {
 }
 
 function useThemeBackgroundColor() {
-  const [color, setColor] = useState('#FAFAFA');
+  const [color, setColor] = useState('#fdf7f4');
   const [themeId, setThemeId] = useState('clean-light');
 
   // __PMD_CALL_LMS__
@@ -213,7 +213,7 @@ function useThemeBackgroundColor() {
       } else if (currentTheme === 'minimal') {
         setColor('#CFEBF7'); // Light Blue
       } else {
-        setColor(themeBg || '#FAFAFA');
+        setColor(themeBg || '#fdf7f4');
       }
       setThemeId(currentTheme);
     };
@@ -620,7 +620,7 @@ function OrderItemWithOptions({
             }}
             className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Plus className="w-3 h-3" strokeWidth={3.5} />
+            <Plus className="w-3 h-3" strokeWidth={3.5} style={{ color: "var(--theme-text-primary)" }} />
           </button>
         </div>
       </div>
@@ -1016,7 +1016,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
   const vatLabels = useMemo(() => {
     if (!taxSettings.enabled || taxSettings.percentage <= 0) {
-      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
     }
 
     if (taxSettings.menuPrice === 0) {
@@ -1025,22 +1025,30 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         : String(Number(taxSettings.percentage.toFixed(2)))
 
       return {
-        summary: `Order Summary (prices incl. ${vatPct}% VAT)`,
+        summary: "Order Summary",
         subtotal: `Subtotal (incl. ${vatPct}% VAT)`,
         total: "Total",
+        includedNote: `prices incl. ${vatPct}% VAT`,
       }
     }
 
-    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total" }
+    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "var(--theme-secondary)",
-    color: "#ffffff", textShadow: "0 1px 1px rgba(0,0,0,.25)",
+    color: "var(--theme-text-primary)", textShadow: "none",
     border: "1px solid rgba(255,255,255,0.12)",
   }
   const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
   const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
+  const toolbarIconBtnStyle: React.CSSProperties = {
+    background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+    border: "1px solid var(--theme-border)",
+    color: "var(--theme-text-primary)",
+    boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+  }
   const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
     try {
       const sessionKey = buildOpenOrderStorageKeys().sessionKey
@@ -2610,7 +2618,7 @@ case "cod":
             </div>
           ) : (
             <div className="surface-sub rounded-2xl p-3">
-              <h3 className="mb-2 text-xs">{vatLabels.summary}</h3>
+              <div className="mb-2"><h3 className="text-xs font-semibold">{vatLabels.summary}</h3>{vatLabels.includedNote && <p className="mt-0.5 text-[11px] font-medium opacity-70">{vatLabels.includedNote}</p>}</div>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {allItems.map((cartItem) => (
                   <OrderItemWithOptions 
@@ -2824,7 +2832,7 @@ case "cod":
             <motion.div layout className="mt-2 p-1 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
-                  <CheckCircle className="h-5 w-5" style={{ color: "#111827" }} />
+                  <CheckCircle className="h-5 w-5" style={{ color: "var(--theme-text-primary)" }} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
@@ -2852,6 +2860,12 @@ case "cod":
                     {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
                   </span>
                 </div>
+                {vatLabels.includedNote && (
+                  <div className="flex items-center justify-between pt-1 text-xs opacity-75">
+                    <span className="muted font-medium">VAT:</span>
+                    <span className="font-medium">{vatLabels.includedNote}</span>
+                  </div>
+                )}
               </div>
 
               <div className="surface-sub rounded-2xl p-3">
@@ -3091,7 +3105,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
               ) : (
-                <Plus className="h-5 w-5" strokeWidth={3.5} />
+                <Plus className="h-5 w-5" strokeWidth={3.5} style={{ color: "var(--theme-text-primary)" }} />
               )}
               <span className="sr-only">Add to cart</span>
             </button>
@@ -3143,10 +3157,12 @@ function ExpandingBottomToolbar({
   const collapsedHeight = 76
   const previewHeight = 180
   const expandedHeight = 420
+  const hasToolbarContent = items.length > 0
+  const effectiveToolbarState = hasToolbarContent ? toolbarState : "collapsed"
 
   let height = collapsedHeight
-  if (toolbarState === "preview") height = previewHeight
-  if (toolbarState === "expanded") height = expandedHeight
+  if (effectiveToolbarState === "preview") height = previewHeight
+  if (effectiveToolbarState === "expanded") height = expandedHeight
 
   // Safety net: Ensure toolbar background is applied correctly
   useEffect(() => {
@@ -3245,7 +3261,7 @@ function ExpandingBottomToolbar({
 
         {/* Bill preview/expanded */}
         <AnimatePresence mode="popLayout">
-          {(toolbarState === "preview" || toolbarState === "expanded") && (
+          {hasToolbarContent && (effectiveToolbarState === "preview" || effectiveToolbarState === "expanded") && (
             <motion.div
               key="bill"
               initial={{ opacity: 0, y: 20 }}
@@ -3254,9 +3270,9 @@ function ExpandingBottomToolbar({
               transition={{ duration: 0.3 }}
               className="w-full px-6 pt-8 pb-2 scrollbar-hide"
               style={{
-                maxHeight: toolbarState === "expanded" ? 320 : 90,
-                overflowY: toolbarState === "expanded" ? "auto" : "visible",
-                height: toolbarState === "expanded" ? "auto" : undefined,
+                maxHeight: effectiveToolbarState === "expanded" ? 320 : 90,
+                overflowY: effectiveToolbarState === "expanded" ? "auto" : "visible",
+                height: effectiveToolbarState === "expanded" ? "auto" : undefined,
                 msOverflowStyle: "none",
                 scrollbarWidth: "none",
               }}
@@ -3264,7 +3280,7 @@ function ExpandingBottomToolbar({
               <div className="flex flex-col">
                 <div className="space-y-2">
                   <AnimatePresence mode="popLayout">
-                    {items.slice(toolbarState === "preview" ? -1 : 0).map((item: CartItem) => (
+                    {items.slice(effectiveToolbarState === "preview" ? -1 : 0).map((item: CartItem) => (
                       <motion.div
                         key={item.item.id}
                         layout
@@ -3327,7 +3343,7 @@ function ExpandingBottomToolbar({
                   </AnimatePresence>
                 </div>
                 {/* Show total only in expanded */}
-                {toolbarState === "expanded" && (
+                {effectiveToolbarState === "expanded" && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -3372,26 +3388,38 @@ function ExpandingBottomToolbar({
           <motion.button
             whileTap={{ scale: waiterDisabled ? 1 : 0.92 }}
             whileHover={{ scale: waiterDisabled ? 1 : 1.12 }}
-            className={`flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{
+              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+              border: "1px solid var(--theme-border)",
+              color: "var(--theme-text-primary)",
+              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+            }}
             onClick={waiterDisabled ? undefined : onWaiterClick}
             disabled={waiterDisabled}
             aria-label={t("callWaiter")}
           >
-            <HandPlatter className={`h-8 w-8 ${waiterDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
+            <HandPlatter className="h-7 w-7" style={{ color: waiterDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
           </motion.button>
           </ActionTooltip>
           <ActionTooltip label="Add note">
           <motion.button
             whileTap={{ scale: noteDisabled ? 1 : 0.92 }}
             whileHover={{ scale: noteDisabled ? 1 : 1.12 }}
-            className={`flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{
+              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+              border: "1px solid var(--theme-border)",
+              color: "var(--theme-text-primary)",
+              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+            }}
             onClick={noteDisabled ? undefined : onNoteClick}
             disabled={noteDisabled}
             aria-label={t("leaveNote")}
           >
-            <NotebookPen className={`h-8 w-8 ${noteDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
+            <NotebookPen className="h-7 w-7" style={{ color: noteDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
           </motion.button>
           </ActionTooltip>
           
@@ -3399,12 +3427,18 @@ function ExpandingBottomToolbar({
           <motion.button
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.12 }}
-            className="flex items-center justify-center relative focus:outline-none transition-all"
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+              border: "1px solid var(--theme-border)",
+              color: "var(--theme-text-primary)",
+              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+            }}
             onClick={onCartClick}
             aria-label={t("viewCart")}
           >
-            <ShoppingCart className="h-8 w-8 text-paydine-elegant-gray" />
+            <ShoppingCart className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
             {totalItems > 0 && (
               <span 
                 className="cart-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
@@ -4352,14 +4386,14 @@ export default function ExpandingBottomToolbarMenu() {
       
       // NUCLEAR OPTION: Directly set background colors
       const themeColors = {
-        'clean-light': '#FAFAFA',
+        'clean-light': '#fdf7f4',
         'modern-dark': '#0A0E12',
         'gold-luxury': '#0F0B05',
         'vibrant-colors': '#e2ceb1',
         'minimal': '#CFEBF7'
       };
       
-      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#FAFAFA';
+      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#fdf7f4';
       
       // Force background on body and html
       document.body.style.background = bgColor;

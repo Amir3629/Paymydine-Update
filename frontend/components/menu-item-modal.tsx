@@ -3,7 +3,7 @@
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { X } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import type { MenuItem } from "@/lib/data"
 import { getMenuImageUrl } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
@@ -192,9 +192,9 @@ const handleModalClose = (event?: any) => {
  variant="ghost"
  size="icon"
  onClick={handleModalClose}
- className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white/90 rounded-full shadow-lg border border-white/20"
- >
- <X className="h-5 w-5 text-gray-600" />
+ className="inline-flex items-center justify-center absolute top-4 left-4 z-10 h-10 w-10 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] shadow-lg hover:opacity-90"
+>
+ <ArrowLeft className="h-5 w-5" />
  </Button>
 
  <div className="p-6 overflow-y-auto overscroll-contain max-h-[90dvh]">

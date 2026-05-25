@@ -905,7 +905,7 @@ export class ApiClient {
           primary_color: '#E7CBA9',
           secondary_color: '#EFC7B1',
           accent_color: '#3B3B3B',
-          background_color: '#FAFAFA'
+          background_color: '#fdf7f4'
         }
       };
     }

@@ -44,14 +44,14 @@ export default function TableHomePage({ params }: { params: { table_id: string }
       
       // NUCLEAR OPTION: Directly set background colors
       const themeColors = {
-        'clean-light': '#FAFAFA',
+        'clean-light': '#fdf7f4',
         'modern-dark': '#0A0E12',
         'gold-luxury': '#0F0B05',
         'vibrant-colors': '#e2ceb1',
         'minimal': '#CFEBF7'
       };
       
-      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#FAFAFA';
+      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#fdf7f4';
       
       // Force background on body and html
       document.body.style.background = bgColor;
