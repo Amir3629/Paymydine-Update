@@ -4924,3 +4924,41 @@ body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
 .pmd-customer-badge svg,
 .pmd-customer-badge svg * { color: currentColor !important; stroke: currentColor !important; }
 .pmd-customer-input { background: var(--pmd-customer-input-bg); color: var(--pmd-customer-input-text); border: 1px solid var(--pmd-customer-border); }
+
+/* PMD FINAL: semantic customer action wins over legacy theme/button overrides */
+.pmd-customer-action-circle,
+button.pmd-customer-action-circle,
+a.pmd-customer-action-circle,
+span.pmd-customer-action-circle,
+div.pmd-customer-action-circle,
+p.pmd-customer-action-circle {
+  background: var(--pmd-customer-action-bg) !important;
+  background-color: var(--pmd-customer-action-bg) !important;
+  color: var(--pmd-customer-action-text) !important;
+  border-color: var(--pmd-customer-action-border) !important;
+}
+
+.pmd-customer-action-button,
+button.pmd-customer-action-button {
+  background: var(--pmd-customer-action-bg) !important;
+  background-color: var(--pmd-customer-action-bg) !important;
+  color: var(--pmd-customer-action-text) !important;
+  border-color: var(--pmd-customer-action-border) !important;
+}
+
+.pmd-customer-badge,
+span.pmd-customer-badge,
+button.pmd-customer-badge {
+  background: var(--pmd-customer-badge-bg) !important;
+  background-color: var(--pmd-customer-badge-bg) !important;
+  color: var(--pmd-customer-badge-text) !important;
+  border-color: var(--pmd-customer-badge-border) !important;
+}
+
+.pmd-customer-action-circle svg,
+.pmd-customer-action-circle svg *,
+.pmd-customer-action-button svg,
+.pmd-customer-action-button svg * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
