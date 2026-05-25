@@ -620,7 +620,7 @@ function OrderItemWithOptions({
             }}
             className="quantity-btn pmd-customer-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Plus className="w-3 h-3" strokeWidth={3.5} style={{ color: "var(--theme-text-primary)" }} />
+            <Plus className="w-3 h-3" strokeWidth={3.5} />
           </button>
         </div>
       </div>
@@ -1920,7 +1920,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               className="space-y-3 overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9">
+                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9 pmd-customer-action-circle">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex items-center gap-2">
@@ -3105,7 +3105,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
               ) : (
-                <Plus className="h-5 w-5" strokeWidth={3.5} style={{ color: "var(--theme-text-primary)" }} />
+                <Plus className="h-5 w-5" strokeWidth={3.5} />
               )}
               <span className="sr-only">Add to cart</span>
             </button>

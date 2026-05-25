@@ -235,14 +235,14 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
             ) : (
               <div aria-hidden="true" style={{ width: 220, height: 64 }} />
             )}
-            <p className="text-lg text-paydine-elegant-gray tracking-[0.2em] uppercase font-medium bg-paydine-champagne/10 inline-block px-6 py-1 rounded-full">
+            <p className="text-lg tracking-[0.2em] uppercase font-medium inline-block px-6 py-1 rounded-full pmd-customer-action-circle">
               {displayTableNumber}
             </p>
           </div>
         ) : (
           // Other pages (menu, valet, etc.): Just show the table number
           <div className="flex flex-col items-center">
-            <p className="text-lg text-paydine-elegant-gray tracking-[0.2em] uppercase font-medium bg-paydine-champagne/10 inline-block px-6 py-1 rounded-full">
+            <p className="text-lg tracking-[0.2em] uppercase font-medium inline-block px-6 py-1 rounded-full pmd-customer-action-circle">
               {displayTableNumber}
             </p>
           </div>
