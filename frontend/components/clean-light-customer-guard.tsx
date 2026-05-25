@@ -63,6 +63,11 @@ function isCleanLightTheme() {
 
 function markGuarded(el: Element | null | undefined) {
   if (!el) return
+  if (
+    (el as HTMLElement).closest?.(
+      ".pmd-v2-page, .pmd-v2-card, .pmd-v2-card-sub, .pmd-v2-action-circle, .pmd-v2-action-button"
+    )
+  ) return
   el.setAttribute(GUARD_ATTR, "1")
 }
 

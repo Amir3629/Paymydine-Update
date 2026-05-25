@@ -605,7 +605,7 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, -1);
             }}
-            className="quantity-btn pmd-customer-action-circle w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
             <Minus className="w-3 h-3" />
           </button>
@@ -617,7 +617,7 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, 1);
             }}
-            className="quantity-btn pmd-customer-action-circle w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
             <Plus className="w-3 h-3" strokeWidth={3.5} />
           </button>
@@ -1919,7 +1919,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               className="space-y-3 overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9 pmd-customer-action-circle">
+                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9 pmd-v2-action-circle">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex items-center gap-2">
@@ -3098,7 +3098,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
           <div className="relative">
             <button
-              className="quantity-btn pmd-customer-action-circle w-12 h-12 font-bold text-lg"
+              className="quantity-btn pmd-v2-action-circle w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
             >
               {quantity > 0 ? (
@@ -3110,7 +3110,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
             </button>
             {quantity > 0 && (
                 <button
-                  className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10 pmd-customer-action-circle"
+                  className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10 pmd-v2-action-circle"
                   style={{ color: 'var(--pmd-customer-action-text)' }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3440,7 +3440,7 @@ function ExpandingBottomToolbar({
             <ShoppingCart className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
             {totalItems > 0 && (
               <span 
-                className="cart-badge pmd-customer-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
+                className="cart-badge pmd-v2-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
                 style={{ fontSize: '12px' }}>
                 {totalItems}
               </span>

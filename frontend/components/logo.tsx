@@ -201,7 +201,7 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
       <div className="absolute left-2 md:left-4 top-4">
         {isHomePage ? null : (
           <Link href={homeUrl}>
-            <Button variant="ghost" size="sm" className="pmd-customer-action-circle hover:opacity-90">
+            <Button variant="ghost" size="sm" className="pmd-v2-action-circle hover:opacity-90">
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
@@ -235,14 +235,14 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
             ) : (
               <div aria-hidden="true" style={{ width: 220, height: 64 }} />
             )}
-            <p className="text-lg tracking-[0.2em] uppercase font-medium inline-block px-6 py-1 rounded-full pmd-customer-action-circle">
+            <p className="text-lg tracking-[0.2em] uppercase font-medium inline-block px-6 py-1 rounded-full pmd-v2-action-circle">
               {displayTableNumber}
             </p>
           </div>
         ) : (
           // Other pages (menu, valet, etc.): Just show the table number
           <div className="flex flex-col items-center">
-            <p className="text-lg tracking-[0.2em] uppercase font-medium inline-block px-6 py-1 rounded-full pmd-customer-action-circle">
+            <p className="text-lg tracking-[0.2em] uppercase font-medium inline-block px-6 py-1 rounded-full pmd-v2-action-circle">
               {displayTableNumber}
             </p>
           </div>

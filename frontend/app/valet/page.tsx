@@ -40,7 +40,7 @@ export default function ValetPage() {
 
   return (
     <div className="page--valet">
-      <div className="min-h-screen bg-theme-background pmd-customer-page p-4 sm:p-6">
+      <div className="min-h-screen bg-theme-background pmd-v2-page p-4 sm:p-6">
       <div className="max-w-md mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -54,7 +54,7 @@ export default function ValetPage() {
           {!isSuccess ? (
             <motion.div 
               key="form"
-              className="rounded-2xl shadow-sm p-4 sm:p-6 dark-surface pmd-customer-card"
+              className="rounded-2xl shadow-sm p-4 sm:p-6 dark-surface pmd-v2-card"
               style={{ backgroundColor: 'var(--theme-input, #121923)' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -62,7 +62,7 @@ export default function ValetPage() {
               transition={{ duration: 0.5 }}
             >
               <div className="flex items-center mb-6">
-                <span className="inline-flex items-center justify-center pmd-customer-action-circle w-10 h-10 mr-3">
+                <span className="inline-flex items-center justify-center pmd-v2-action-circle w-10 h-10 mr-3">
                   <Car className="h-6 w-6" />
                 </span>
                 <h2 className="text-xl font-semibold text-paydine-elegant-gray">{t("valetService")}</h2>
@@ -75,13 +75,13 @@ export default function ValetPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.3 }}
                 >
-                  <Label htmlFor="name" className="pmd-customer-text">{t("enterName")} *</Label>
+                  <Label htmlFor="name" className="pmd-v2-text">{t("enterName")} *</Label>
                   <Input 
                     id="name" 
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder={t("enterName")}
-                    className="pmd-customer-input"
+                    className="pmd-v2-input"
                     required
                   />
                 </motion.div>
@@ -92,13 +92,13 @@ export default function ValetPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.4 }}
                 >
-                  <Label htmlFor="plate" className="pmd-customer-text">{t("licensePlate")} *</Label>
+                  <Label htmlFor="plate" className="pmd-v2-text">{t("licensePlate")} *</Label>
                   <Input 
                     id="plate" 
                     value={formData.plate}
                     onChange={handleInputChange}
                     placeholder={t("enterLicensePlate")}
-                    className="pmd-customer-input"
+                    className="pmd-v2-input"
                     required
                   />
                 </motion.div>
@@ -109,16 +109,16 @@ export default function ValetPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.5 }}
                 >
-                  <Label htmlFor="car" className="pmd-customer-text flex items-center">
+                  <Label htmlFor="car" className="pmd-v2-text flex items-center">
                     {t("carDetails")}
-                    <span className="text-sm pmd-customer-muted-text ml-2">{t("optional")}</span>
+                    <span className="text-sm pmd-v2-text-muted ml-2">{t("optional")}</span>
                   </Label>
                   <Input 
                     id="car" 
                     value={formData.car}
                     onChange={handleInputChange}
                     placeholder={t("enterCarDetails")}
-                    className="pmd-customer-input"
+                    className="pmd-v2-input"
                   />
                 </motion.div>
                 
@@ -128,7 +128,7 @@ export default function ValetPage() {
                   transition={{ duration: 0.3, delay: 0.6 }}
                 >
                   <Button 
-                    className="w-full valet-request-btn transition-colors pmd-customer-action-button"
+                    className="w-full valet-request-btn transition-colors pmd-v2-action-button"
                     size="lg"
                     type="submit"
                     disabled={isSubmitting}
@@ -141,7 +141,7 @@ export default function ValetPage() {
           ) : (
             <motion.div
               key="success"
-              className="rounded-2xl shadow-sm p-6 sm:p-8 text-center dark-surface pmd-customer-card"
+              className="rounded-2xl shadow-sm p-6 sm:p-8 text-center dark-surface pmd-v2-card"
               style={{ backgroundColor: 'var(--theme-input, #121923)' }}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -156,16 +156,16 @@ export default function ValetPage() {
                 <CheckCircle2 className="w-8 h-8" />
               </motion.div>
               
-              <h2 className="text-2xl font-semibold pmd-customer-text mb-4">
+              <h2 className="text-2xl font-semibold pmd-v2-text mb-4">
                 {t("valetRequestSuccess")}
               </h2>
               
-              <p className="pmd-customer-muted-text mb-8">
+              <p className="pmd-v2-text-muted mb-8">
                 {t("valetConfirmation")}
               </p>
               
               <Button
-                className="valet-request-btn transition-colors pmd-customer-action-button"
+                className="valet-request-btn transition-colors pmd-v2-action-button"
                 size="lg"
                 onClick={() => window.location.href = '/'}
               >
@@ -176,7 +176,7 @@ export default function ValetPage() {
         </AnimatePresence>
         
         <motion.div 
-          className="mt-4 text-sm pmd-customer-muted-text rounded-xl p-4 dark-surface pmd-customer-card-sub"
+          className="mt-4 text-sm pmd-v2-text-muted rounded-xl p-4 dark-surface pmd-v2-card-sub"
           style={{ backgroundColor: '#222529' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

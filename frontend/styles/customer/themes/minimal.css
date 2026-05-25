@@ -1,0 +1,17 @@
+html[data-theme="minimal"] {
+  --pmd-v2-page-bg: #CFEBF7;
+  --pmd-v2-card-bg: #FFFFFF;
+  --pmd-v2-card-sub-bg: #FFFFFF;
+  --pmd-v2-text: #1A202C;
+  --pmd-v2-text-muted: #2D3748;
+  --pmd-v2-action-bg: #2D3748;
+  --pmd-v2-action-text: #F8FAFC;
+  --pmd-v2-action-border: #E2E8F0;
+  --pmd-v2-frame-border: #E2E8F0;
+  --pmd-v2-input-bg: #FFFFFF;
+  --pmd-v2-input-text: #1A202C;
+  --pmd-v2-input-border: #E2E8F0;
+  --pmd-v2-price: #4A5568;
+  --pmd-v2-category-active: #4A5568;
+  --pmd-v2-category-active-text: #F8FAFC;
+}

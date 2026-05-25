@@ -1,0 +1,17 @@
+html[data-theme="clean-light"] {
+  --pmd-v2-page-bg: #fff8f3;
+  --pmd-v2-card-bg: #faece3;
+  --pmd-v2-card-sub-bg: #fbebe3;
+  --pmd-v2-text: #3B3B3B;
+  --pmd-v2-text-muted: #7E7E7E;
+  --pmd-v2-action-bg: #E7CBA9;
+  --pmd-v2-action-text: #111827;
+  --pmd-v2-action-border: #EDEDED;
+  --pmd-v2-frame-border: #EDEDED;
+  --pmd-v2-input-bg: #FFFFFF;
+  --pmd-v2-input-text: #3B3B3B;
+  --pmd-v2-input-border: #EDEDED;
+  --pmd-v2-price: #EFC7B1;
+  --pmd-v2-category-active: #E7CBA9;
+  --pmd-v2-category-active-text: #111827;
+}
