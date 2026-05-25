@@ -17,11 +17,11 @@ function HomePageContent() {
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
 
-  const cardStyles = "relative flex flex-col items-center bg-[#fbebe3] backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border border-paydine-rose-beige/20 w-72 h-56 justify-center home-action-card"
-  const iconContainerStyles = "rounded-full bg-gradient-to-br from-paydine-rose-beige/20 to-paydine-champagne/10 p-6 mb-6 home-action-icon-wrap"
+  const cardStyles = "relative flex flex-col items-center pmd-customer-card backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 w-72 h-56 justify-center home-action-card"
+  const iconContainerStyles = "rounded-full pmd-customer-action-circle p-6 mb-6 home-action-icon-wrap"
 
   return (
-        <div className="min-h-screen bg-theme-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-theme-background pmd-customer-page flex flex-col items-center justify-center p-4">
       <Logo className="mb-8" />
       
       <div className="flex flex-row flex-wrap gap-6 justify-center">

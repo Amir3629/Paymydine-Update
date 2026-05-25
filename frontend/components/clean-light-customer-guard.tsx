@@ -284,9 +284,7 @@ function applyCleanLightCustomerUI(pathname: string | null) {
   }
 
   applyBaseBackground(pathname)
-  applyHomeStyles(pathname)
   applyValetStyles(pathname)
-  applySharedControlStyles(pathname)
 }
 
 export default function CleanLightCustomerGuard() {

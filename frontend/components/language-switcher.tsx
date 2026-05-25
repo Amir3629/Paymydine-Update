@@ -16,7 +16,7 @@ export function LanguageSwitcher() {
       variant="ghost"
       size="icon"
       onClick={toggleLanguage}
-      className="relative w-12 h-10 rounded-full text-paydine-elegant-gray hover:bg-paydine-champagne/20 overflow-hidden font-semibold"
+      className="relative w-12 h-10 pmd-customer-action-circle overflow-hidden font-semibold hover:opacity-90"
     >
       <motion.div
         key={language}

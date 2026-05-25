@@ -201,7 +201,7 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
       <div className="absolute left-2 md:left-4 top-4">
         {isHomePage ? null : (
           <Link href={homeUrl}>
-            <Button variant="ghost" size="sm" className="text-paydine-elegant-gray hover:text-paydine-rose-beige">
+            <Button variant="ghost" size="sm" className="pmd-customer-action-circle hover:opacity-90">
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>

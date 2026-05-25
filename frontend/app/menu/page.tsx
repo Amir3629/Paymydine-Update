@@ -606,7 +606,7 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, -1);
             }}
-            className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-customer-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
             <Minus className="w-3 h-3" />
           </button>
@@ -618,7 +618,7 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, 1);
             }}
-            className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-customer-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
             <Plus className="w-3 h-3" strokeWidth={3.5} style={{ color: "var(--theme-text-primary)" }} />
           </button>
@@ -671,7 +671,7 @@ function OrderItemWithOptions({
                                 handleOptionChange(option.name, currentValue === value.id.toString() ? '' : value.id.toString())
                               }
                             }}
-                            className="w-3 h-3 text-paydine-champagne"
+                            className="w-3 h-3 pmd-customer-price"
                           />
                           <span className="text-paydine-elegant-gray">{value.value}</span>
                           {value.price > 0 && (() => {
@@ -683,7 +683,7 @@ function OrderItemWithOptions({
                               return price
                             }
                             return (
-                              <span className="text-paydine-champagne font-medium">
+                              <span className="pmd-customer-price font-medium">
                                 +{formatCurrency(adjustPrice(value.price))}
                               </span>
                             )
@@ -2411,7 +2411,7 @@ case "cod":
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <Wallet className="h-6 w-6 text-paydine-champagne" />
+                <Wallet className="h-6 w-6 pmd-customer-price" />
                 <span className="font-semibold text-paydine-elegant-gray">Cash Payment</span>
               </div>
             </div>
@@ -3099,7 +3099,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
           <div className="relative">
             <button
-              className="quantity-btn w-12 h-12 font-bold text-lg"
+              className="quantity-btn pmd-customer-action-circle w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
             >
               {quantity > 0 ? (
@@ -3331,7 +3331,7 @@ function ExpandingBottomToolbar({
                           </div>
                         </div>
                         <motion.div
-                          className="font-semibold menu-item-price text-lg"
+                          className="font-semibold menu-item-price pmd-customer-price text-lg"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
@@ -3359,7 +3359,7 @@ function ExpandingBottomToolbar({
                         Total
                       </motion.span>
                       <motion.span
-                        className="font-bold text-2xl text-paydine-champagne"
+                        className="font-bold text-2xl pmd-customer-price"
                         initial={{ x: 10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                       >
@@ -3441,7 +3441,7 @@ function ExpandingBottomToolbar({
             <ShoppingCart className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
             {totalItems > 0 && (
               <span 
-                className="cart-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
+                className="cart-badge pmd-customer-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
                 style={{ fontSize: '12px' }}>
                 {totalItems}
               </span>

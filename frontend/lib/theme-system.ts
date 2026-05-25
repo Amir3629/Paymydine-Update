@@ -295,6 +295,23 @@ export interface ThemeColors {
       '--theme-warning': colors.warning,
       '--theme-error': colors.error,
       '--theme-info': colors.info,
+      '--pmd-customer-page-bg': colors.background,
+      '--pmd-customer-surface': colors.cartBackground,
+      '--pmd-customer-surface-sub': colors.menuItemBackground,
+      '--pmd-customer-text': colors.textPrimary,
+      '--pmd-customer-text-muted': colors.textSecondary,
+      '--pmd-customer-action-bg': colors.button,
+      '--pmd-customer-action-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
+      '--pmd-customer-action-border': colors.border,
+      '--pmd-customer-border': colors.border,
+      '--pmd-customer-input-bg': colors.input,
+      '--pmd-customer-input-text': colors.textPrimary,
+      '--pmd-customer-price-text': colors.priceColor,
+      '--pmd-customer-category-active-bg': colors.categoryActive,
+      '--pmd-customer-category-active-text': (theme.id === 'modern-dark' || theme.id === 'gold-luxury') ? '#111827' : colors.textPrimary,
+      '--pmd-customer-badge-bg': colors.button,
+      '--pmd-customer-badge-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
+      '--pmd-customer-badge-border': colors.border,
     };
   }
   
