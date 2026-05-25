@@ -3110,9 +3110,9 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
               <span className="sr-only">Add to cart</span>
             </button>
             {quantity > 0 && (
-              <button
-                className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10"
-                style={{ color: 'var(--theme-secondary)' }}
+                <button
+                  className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10 pmd-customer-action-circle"
+                  style={{ color: 'var(--pmd-customer-action-text)' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAdd(e);

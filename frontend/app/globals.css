@@ -4879,35 +4879,38 @@ body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
   --pmd-customer-surface-sub: var(--theme-menu-item-bg);
   --pmd-customer-text: var(--theme-text-primary);
   --pmd-customer-text-muted: var(--theme-text-secondary);
-  --pmd-customer-action-bg: var(--theme-button);
-  --pmd-customer-action-text: #111827;
-  --pmd-customer-action-border: var(--theme-border);
+  --pmd-customer-button-icons1-bg: var(--theme-button);
+  --pmd-customer-button-icons1-text: #111827;
+  --pmd-customer-button-icons1-border: var(--theme-border);
+  --pmd-customer-action-bg: var(--pmd-customer-button-icons1-bg);
+  --pmd-customer-action-text: var(--pmd-customer-button-icons1-text);
+  --pmd-customer-action-border: var(--pmd-customer-button-icons1-border);
   --pmd-customer-border: var(--theme-border);
   --pmd-customer-input-bg: var(--theme-input);
   --pmd-customer-input-text: var(--theme-text-primary);
   --pmd-customer-price-text: var(--theme-price);
   --pmd-customer-category-active-bg: var(--theme-category-active);
   --pmd-customer-category-active-text: var(--theme-text-primary);
-  --pmd-customer-badge-bg: var(--theme-button);
-  --pmd-customer-badge-text: #111827;
-  --pmd-customer-badge-border: var(--theme-border);
+  --pmd-customer-badge-bg: var(--pmd-customer-button-icons1-bg);
+  --pmd-customer-badge-text: var(--pmd-customer-button-icons1-text);
+  --pmd-customer-badge-border: var(--pmd-customer-button-icons1-border);
 }
 
 .pmd-customer-page { background: var(--pmd-customer-page-bg); color: var(--pmd-customer-text); }
 .pmd-customer-card { background: var(--pmd-customer-surface); border: 1px solid var(--pmd-customer-border); color: var(--pmd-customer-text); }
 .pmd-customer-card-sub { background: var(--pmd-customer-surface-sub); border: 1px solid var(--pmd-customer-border); color: var(--pmd-customer-text); }
-.pmd-customer-action-circle { background: var(--pmd-customer-action-bg); border: 1px solid var(--pmd-customer-action-border); color: var(--pmd-customer-action-text); border-radius: 9999px; }
+.pmd-customer-action-circle { background: var(--pmd-customer-action-bg) !important; border: 1px solid var(--pmd-customer-action-border) !important; color: var(--pmd-customer-action-text) !important; border-radius: 9999px; }
 .pmd-customer-action-circle svg,
-.pmd-customer-action-circle svg * { color: currentColor; stroke: currentColor; }
-.pmd-customer-action-button { background: var(--pmd-customer-action-bg); border: 1px solid var(--pmd-customer-action-border); color: var(--pmd-customer-action-text); }
+.pmd-customer-action-circle svg * { color: currentColor !important; stroke: currentColor !important; }
+.pmd-customer-action-button { background: var(--pmd-customer-action-bg) !important; border: 1px solid var(--pmd-customer-action-border) !important; color: var(--pmd-customer-action-text) !important; }
 .pmd-customer-action-button svg,
-.pmd-customer-action-button svg * { color: currentColor; stroke: currentColor; }
+.pmd-customer-action-button svg * { color: currentColor !important; stroke: currentColor !important; }
 .pmd-customer-secondary-button { background: var(--pmd-customer-surface-sub); border: 1px solid var(--pmd-customer-border); color: var(--pmd-customer-text); }
 .pmd-customer-border { border-color: var(--pmd-customer-border); }
 .pmd-customer-muted-text { color: var(--pmd-customer-text-muted); }
 .pmd-customer-price { color: var(--pmd-customer-price-text); }
 .pmd-customer-category-active { background: var(--pmd-customer-category-active-bg); color: var(--pmd-customer-category-active-text); }
-.pmd-customer-badge { background: var(--pmd-customer-badge-bg); color: var(--pmd-customer-badge-text); border: 1px solid var(--pmd-customer-badge-border); }
+.pmd-customer-badge { background: var(--pmd-customer-badge-bg) !important; color: var(--pmd-customer-badge-text) !important; border: 1px solid var(--pmd-customer-badge-border) !important; }
 .pmd-customer-badge svg,
-.pmd-customer-badge svg * { color: currentColor; stroke: currentColor; }
+.pmd-customer-badge svg * { color: currentColor !important; stroke: currentColor !important; }
 .pmd-customer-input { background: var(--pmd-customer-input-bg); color: var(--pmd-customer-input-text); border: 1px solid var(--pmd-customer-border); }

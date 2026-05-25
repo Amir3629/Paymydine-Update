@@ -62,7 +62,9 @@ export default function ValetPage() {
               transition={{ duration: 0.5 }}
             >
               <div className="flex items-center mb-6">
-                <Car className="h-6 w-6 valet-icon mr-3" />
+                <span className="inline-flex items-center justify-center pmd-customer-action-circle w-10 h-10 mr-3">
+                  <Car className="h-6 w-6 valet-icon" />
+                </span>
                 <h2 className="text-xl font-semibold text-paydine-elegant-gray">{t("valetService")}</h2>
               </div>
         

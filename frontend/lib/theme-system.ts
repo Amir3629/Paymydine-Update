@@ -191,7 +191,7 @@ export interface ThemeColors {
 
         border: '#E2E8F0',         // Light slate border
         input: '#FFFFFF',
-        button: '#FF6B6B',         // Electric coral
+        button: '#efc6b1',         // BUTTON/ICONS1 source color
         buttonHover: '#FF5252',
 
         menuItemBackground: '#FAF7F2',
@@ -202,7 +202,7 @@ export interface ThemeColors {
 
         cartBackground: '#FAF7F2',
         cartBorder: '#E8E0D5',
-        paymentButton: '#FF6B6B',
+        paymentButton: '#efc6b1',
         paymentButtonHover: '#FF5252',
 
         success: '#FF9F43',
@@ -301,8 +301,11 @@ export interface ThemeColors {
       '--pmd-customer-text': colors.textPrimary,
       '--pmd-customer-text-muted': colors.textSecondary,
       '--pmd-customer-action-bg': colors.button,
+      '--pmd-customer-button-icons1-bg': colors.button,
       '--pmd-customer-action-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
+      '--pmd-customer-button-icons1-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
       '--pmd-customer-action-border': colors.border,
+      '--pmd-customer-button-icons1-border': colors.border,
       '--pmd-customer-border': colors.border,
       '--pmd-customer-input-bg': colors.input,
       '--pmd-customer-input-text': colors.textPrimary,
