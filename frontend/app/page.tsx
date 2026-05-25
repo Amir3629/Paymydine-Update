@@ -17,7 +17,7 @@ function HomePageContent() {
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
 
-  const cardStyles = "relative flex flex-col items-center bg-white/80 backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border border-paydine-rose-beige/20 w-72 h-56 justify-center home-action-card"
+  const cardStyles = "relative flex flex-col items-center bg-[#fbebe3] backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border border-paydine-rose-beige/20 w-72 h-56 justify-center home-action-card"
   const iconContainerStyles = "rounded-full bg-gradient-to-br from-paydine-rose-beige/20 to-paydine-champagne/10 p-6 mb-6 home-action-icon-wrap"
 
   return (

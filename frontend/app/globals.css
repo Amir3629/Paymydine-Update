@@ -3699,3 +3699,1176 @@ body[data-theme="clean-light"] .min-h-screen,
 }
 
 /* PMD CLEAN LIGHT FINAL TOOLBAR MODAL POLISH END */
+
+/* PMD UNIVERSAL CUSTOMER BACK BUTTON V1 START */
+
+/*
+  Universal customer back button:
+  Same shape in all frontend customer themes.
+  Colors come from each active theme.
+  This is CSS-only and does not touch order/payment/localStorage logic.
+*/
+
+/* Theme-aware back button tokens */
+[data-theme="clean-light"] {
+  --pmd-back-btn-bg: #f0c6b1;
+  --pmd-back-btn-border: #c7a798;
+  --pmd-back-btn-icon: #111827;
+  --pmd-back-btn-shadow: 0 8px 18px rgba(17, 24, 39, 0.10), inset 0 0 0 1px rgba(255,255,255,0.32);
+}
+
+[data-theme="modern-dark"] {
+  --pmd-back-btn-bg: var(--theme-secondary, #E8B4A0);
+  --pmd-back-btn-border: color-mix(in srgb, var(--theme-secondary, #E8B4A0) 72%, #ffffff 28%);
+  --pmd-back-btn-icon: #0A0E12;
+  --pmd-back-btn-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255,255,255,0.16);
+}
+
+[data-theme="gold-luxury"] {
+  --pmd-back-btn-bg: var(--theme-secondary, #FFF8DC);
+  --pmd-back-btn-border: color-mix(in srgb, var(--theme-secondary, #FFF8DC) 62%, #C7A24A 38%);
+  --pmd-back-btn-icon: #0F0B05;
+  --pmd-back-btn-shadow: 0 8px 20px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+[data-theme="vibrant-colors"] {
+  --pmd-back-btn-bg: var(--theme-secondary, #FF6B6B);
+  --pmd-back-btn-border: color-mix(in srgb, var(--theme-secondary, #FF6B6B) 72%, #111827 28%);
+  --pmd-back-btn-icon: #111827;
+  --pmd-back-btn-shadow: 0 8px 20px rgba(17, 24, 39, 0.20), inset 0 0 0 1px rgba(255,255,255,0.20);
+}
+
+[data-theme="minimal"] {
+  --pmd-back-btn-bg: var(--theme-secondary, #4B8FE2);
+  --pmd-back-btn-border: color-mix(in srgb, var(--theme-secondary, #4B8FE2) 68%, #0F172A 32%);
+  --pmd-back-btn-icon: #FFFFFF;
+  --pmd-back-btn-shadow: 0 8px 18px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+/*
+  Apply only on customer pages/components.
+  :has(.page--menu/.page--valet/.page--home) catches modal buttons too,
+  even when modal DOM is rendered outside the direct page wrapper.
+*/
+@supports selector(button:has(svg.lucide-arrow-left)) {
+  body:has(.page--home) button:has(svg.lucide-arrow-left),
+  body:has(.page--menu) button:has(svg.lucide-arrow-left),
+  body:has(.page--valet) button:has(svg.lucide-arrow-left),
+  body:has([data-pmd-customer-page]) button:has(svg.lucide-arrow-left),
+  .page--home button:has(svg.lucide-arrow-left),
+  .page--menu button:has(svg.lucide-arrow-left),
+  .page--valet button:has(svg.lucide-arrow-left),
+  [data-pmd-customer-page] button:has(svg.lucide-arrow-left),
+  .pmd-customer-back-btn {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    border: 1px solid var(--pmd-back-btn-border, var(--theme-border)) !important;
+    background: var(--pmd-back-btn-bg, var(--theme-secondary)) !important;
+    background-color: var(--pmd-back-btn-bg, var(--theme-secondary)) !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    box-shadow: var(--pmd-back-btn-shadow, 0 8px 18px rgba(17, 24, 39, 0.10)) !important;
+  }
+
+  body:has(.page--home) button:has(svg.lucide-arrow-left) svg,
+  body:has(.page--home) button:has(svg.lucide-arrow-left) svg *,
+  body:has(.page--menu) button:has(svg.lucide-arrow-left) svg,
+  body:has(.page--menu) button:has(svg.lucide-arrow-left) svg *,
+  body:has(.page--valet) button:has(svg.lucide-arrow-left) svg,
+  body:has(.page--valet) button:has(svg.lucide-arrow-left) svg *,
+  body:has([data-pmd-customer-page]) button:has(svg.lucide-arrow-left) svg,
+  body:has([data-pmd-customer-page]) button:has(svg.lucide-arrow-left) svg *,
+  .page--home button:has(svg.lucide-arrow-left) svg,
+  .page--home button:has(svg.lucide-arrow-left) svg *,
+  .page--menu button:has(svg.lucide-arrow-left) svg,
+  .page--menu button:has(svg.lucide-arrow-left) svg *,
+  .page--valet button:has(svg.lucide-arrow-left) svg,
+  .page--valet button:has(svg.lucide-arrow-left) svg *,
+  [data-pmd-customer-page] button:has(svg.lucide-arrow-left) svg,
+  [data-pmd-customer-page] button:has(svg.lucide-arrow-left) svg *,
+  .pmd-customer-back-btn svg,
+  .pmd-customer-back-btn svg * {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    margin: 0 !important;
+    color: var(--pmd-back-btn-icon, var(--theme-text-primary)) !important;
+    stroke: var(--pmd-back-btn-icon, var(--theme-text-primary)) !important;
+    filter: none !important;
+  }
+}
+
+/* PMD UNIVERSAL CUSTOMER BACK BUTTON V1 END */
+
+/* PMD CUSTOMER ACCENT CONTENT + TOOLBAR NOFRAME V1 START */
+
+/*
+  Customer UI visual-only patch:
+  - Accent/rose circular controls keep dark readable content.
+  - Bottom toolbar action buttons have no individual circle/frame, only icons + always-visible labels.
+  - CSS only. No order/payment/localStorage logic.
+*/
+
+/* Theme-aware readable content color for accent controls */
+[data-theme="clean-light"] {
+  --pmd-accent-control-content: #111827;
+  --pmd-bottom-toolbar-icon: #111827;
+  --pmd-bottom-toolbar-label: #111827;
+}
+
+[data-theme="modern-dark"] {
+  --pmd-accent-control-content: #0A0E12;
+  --pmd-bottom-toolbar-icon: var(--theme-text-primary, #F8FAFC);
+  --pmd-bottom-toolbar-label: var(--theme-text-primary, #F8FAFC);
+}
+
+[data-theme="gold-luxury"] {
+  --pmd-accent-control-content: #0F0B05;
+  --pmd-bottom-toolbar-icon: var(--theme-text-primary, #FFF8DC);
+  --pmd-bottom-toolbar-label: var(--theme-text-primary, #FFF8DC);
+}
+
+[data-theme="vibrant-colors"] {
+  --pmd-accent-control-content: #111827;
+  --pmd-bottom-toolbar-icon: var(--theme-text-primary, #111827);
+  --pmd-bottom-toolbar-label: var(--theme-text-primary, #111827);
+}
+
+[data-theme="minimal"] {
+  --pmd-accent-control-content: #FFFFFF;
+  --pmd-bottom-toolbar-icon: var(--theme-text-primary, #0F172A);
+  --pmd-bottom-toolbar-label: var(--theme-text-primary, #0F172A);
+}
+
+/* Quantity / plus / minus controls: content readable inside colored button */
+.quantity-btn,
+.quantity-btn span,
+.quantity-btn svg,
+.quantity-btn svg *,
+button[aria-label="Increase quantity"],
+button[aria-label="Increase quantity"] *,
+button[aria-label="Decrease quantity"],
+button[aria-label="Decrease quantity"] *,
+button[aria-label="Add item"],
+button[aria-label="Add item"] *,
+button[aria-label="Add to cart"],
+button[aria-label="Add to cart"] * {
+  color: var(--pmd-accent-control-content, var(--theme-text-primary)) !important;
+  -webkit-text-fill-color: var(--pmd-accent-control-content, var(--theme-text-primary)) !important;
+  stroke: var(--pmd-accent-control-content, var(--theme-text-primary)) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Cart badge number/content readable */
+.cart-badge,
+.cart-badge * {
+  color: var(--pmd-accent-control-content, var(--theme-text-primary)) !important;
+  -webkit-text-fill-color: var(--pmd-accent-control-content, var(--theme-text-primary)) !important;
+  text-shadow: none !important;
+}
+
+/* Homepage accent icon circles and valet accent icon circles: inside icon readable */
+.home-action-icon-wrap svg,
+.home-action-icon-wrap svg *,
+.page--valet svg.lucide-car,
+.page--valet svg.lucide-car *,
+.page--valet svg.lucide-car-front,
+.page--valet svg.lucide-car-front *,
+.page--valet svg.lucide-key-round,
+.page--valet svg.lucide-key-round *,
+.page--valet svg.lucide-concierge-bell,
+.page--valet svg.lucide-concierge-bell *,
+.page--valet svg.lucide-circle-parking,
+.page--valet svg.lucide-circle-parking *,
+.page--valet svg.lucide-parking-circle,
+.page--valet svg.lucide-parking-circle * {
+  color: var(--pmd-accent-control-content, var(--theme-text-primary)) !important;
+  stroke: var(--pmd-accent-control-content, var(--theme-text-primary)) !important;
+  filter: none !important;
+}
+
+/* Bottom toolbar action buttons: remove individual circle/frame completely */
+button[aria-label="Call Waiter"],
+button[aria-label="Leave Note"],
+button[aria-label="View Cart"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: var(--pmd-bottom-toolbar-icon, var(--theme-text-primary)) !important;
+}
+
+/* Bottom toolbar icons only, no frame */
+button[aria-label="Call Waiter"] svg,
+button[aria-label="Call Waiter"] svg *,
+button[aria-label="Leave Note"] svg,
+button[aria-label="Leave Note"] svg *,
+button[aria-label="View Cart"] svg,
+button[aria-label="View Cart"] svg * {
+  color: var(--pmd-bottom-toolbar-icon, var(--theme-text-primary)) !important;
+  stroke: var(--pmd-bottom-toolbar-icon, var(--theme-text-primary)) !important;
+  filter: none !important;
+}
+
+/* Bottom toolbar labels always visible/readable, no hover bubble */
+.group\/action-tooltip {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.15rem !important;
+}
+
+.group\/action-tooltip > span.pointer-events-none {
+  position: static !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--pmd-bottom-toolbar-label, var(--theme-text-primary)) !important;
+  -webkit-text-fill-color: var(--pmd-bottom-toolbar-label, var(--theme-text-primary)) !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+  pointer-events: none !important;
+}
+
+/* PMD CUSTOMER ACCENT CONTENT + TOOLBAR NOFRAME V1 END */
+
+/* PMD RESTORE FLOATING INCREASE QUANTITY PLUS V1 START */
+
+/*
+  Restore the small floating + button on item cards.
+  It must use the active theme secondary/accent color, not black.
+  Main .quantity-btn content remains readable from the previous rule.
+*/
+button[aria-label="Increase quantity"]:not(.quantity-btn) {
+  color: var(--theme-secondary) !important;
+  -webkit-text-fill-color: var(--theme-secondary) !important;
+  stroke: var(--theme-secondary) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+button[aria-label="Increase quantity"]:not(.quantity-btn) * {
+  color: var(--theme-secondary) !important;
+  -webkit-text-fill-color: var(--theme-secondary) !important;
+  stroke: var(--theme-secondary) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* PMD RESTORE FLOATING INCREASE QUANTITY PLUS V1 END */
+
+/* PMD VALET LANG FLOATING PLUS ARROW REPAIR V1 START */
+
+/*
+  Visual-only repair:
+  - Floating card + button keeps theme accent/secondary color, not black.
+  - Valet car icon gets a colored circle in every theme, with black icon inside.
+  - Language EN button gets readable black text on themed circle.
+  - Arrow-left paths are not resized/distorted.
+*/
+
+/* 1) Floating + button on menu item cards: restore active theme accent color */
+button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+button[aria-label="Increase quantity"]:not(.quantity-btn):not([class*="w-12"]):not([class*="h-12"]) {
+  color: var(--theme-secondary) !important;
+  -webkit-text-fill-color: var(--theme-secondary) !important;
+  stroke: var(--theme-secondary) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+button.absolute.-top-2.-right-2[aria-label="Increase quantity"] *,
+button[aria-label="Increase quantity"]:not(.quantity-btn):not([class*="w-12"]):not([class*="h-12"]) * {
+  color: var(--theme-secondary) !important;
+  -webkit-text-fill-color: var(--theme-secondary) !important;
+  stroke: var(--theme-secondary) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* 2) Valet icon circle in all themes */
+.page--valet svg.valet-icon.lucide-car,
+.page--valet svg.lucide-car.valet-icon,
+[data-pmd-customer-page="valet"] svg.valet-icon.lucide-car,
+body:has(.page--valet) svg.valet-icon.lucide-car {
+  box-sizing: content-box !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  padding: 0.65rem !important;
+  margin-right: 0.75rem !important;
+  border-radius: 9999px !important;
+  background: var(--theme-secondary) !important;
+  background-color: var(--theme-secondary) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-secondary) 70%, var(--theme-border) 30%) !important;
+  color: #111827 !important;
+  stroke: #111827 !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14), inset 0 0 0 1px rgba(255,255,255,0.22) !important;
+  filter: none !important;
+}
+
+.page--valet svg.valet-icon.lucide-car *,
+.page--valet svg.lucide-car.valet-icon *,
+[data-pmd-customer-page="valet"] svg.valet-icon.lucide-car *,
+body:has(.page--valet) svg.valet-icon.lucide-car * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  fill: none !important;
+  filter: none !important;
+}
+
+/* 3) Language EN button: black text on themed accent circle */
+.page--menu header button.relative.w-12.h-10.rounded-full,
+.page--valet header button.relative.w-12.h-10.rounded-full,
+.page--home header button.relative.w-12.h-10.rounded-full,
+body:has(.page--menu) header button.relative.w-12.h-10.rounded-full,
+body:has(.page--valet) header button.relative.w-12.h-10.rounded-full,
+body:has(.page--home) header button.relative.w-12.h-10.rounded-full {
+  background: var(--theme-secondary) !important;
+  background-color: var(--theme-secondary) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-secondary) 70%, var(--theme-border) 30%) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.10), inset 0 0 0 1px rgba(255,255,255,0.22) !important;
+}
+
+.page--menu header button.relative.w-12.h-10.rounded-full *,
+.page--valet header button.relative.w-12.h-10.rounded-full *,
+.page--home header button.relative.w-12.h-10.rounded-full *,
+body:has(.page--menu) header button.relative.w-12.h-10.rounded-full *,
+body:has(.page--valet) header button.relative.w-12.h-10.rounded-full *,
+body:has(.page--home) header button.relative.w-12.h-10.rounded-full * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* 4) Repair arrow-left SVG: never apply width/height to path children */
+button:has(svg.lucide-arrow-left) svg.lucide-arrow-left {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+button:has(svg.lucide-arrow-left) svg.lucide-arrow-left path,
+button:has(svg.lucide-arrow-left) svg.lucide-arrow-left line,
+button:has(svg.lucide-arrow-left) svg.lucide-arrow-left polyline {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* PMD VALET LANG FLOATING PLUS ARROW REPAIR V1 END */
+
+/* PMD FINAL BACK LANG QUANTITY V1 START */
+
+/*
+  Final visual-only override:
+  1) All customer back buttons match the clean-light menu back button exactly.
+  2) EN language button becomes the same circular size/style as the back button.
+  3) Main quantity buttons keep #c7a798 outer edge.
+  4) Floating + stays theme-secondary, not black.
+*/
+
+:root {
+  --pmd-final-rose-fill: #f0c6b1;
+  --pmd-final-rose-edge: #c7a798;
+  --pmd-final-icon-black: #111827;
+}
+
+/* 1) Back buttons: exact same circular icon-only style everywhere in customer pages */
+@supports selector(button:has(svg.lucide-arrow-left)) {
+  body:has(.page--home) button:has(svg.lucide-arrow-left),
+  body:has(.page--menu) button:has(svg.lucide-arrow-left),
+  body:has(.page--valet) button:has(svg.lucide-arrow-left),
+  body:has([data-pmd-customer-page]) button:has(svg.lucide-arrow-left),
+  .page--home button:has(svg.lucide-arrow-left),
+  .page--menu button:has(svg.lucide-arrow-left),
+  .page--valet button:has(svg.lucide-arrow-left),
+  [data-pmd-customer-page] button:has(svg.lucide-arrow-left),
+  .pmd-customer-back-btn {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+    max-width: 2.25rem !important;
+    max-height: 2.25rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    row-gap: 0 !important;
+    column-gap: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    border: 1px solid var(--pmd-final-rose-edge) !important;
+    background: var(--pmd-final-rose-fill) !important;
+    background-color: var(--pmd-final-rose-fill) !important;
+    color: var(--pmd-final-icon-black) !important;
+    -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    overflow: visible !important;
+    box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10), inset 0 0 0 1px rgba(255,255,255,0.32) !important;
+  }
+
+  body:has(.page--home) button:has(svg.lucide-arrow-left) svg,
+  body:has(.page--menu) button:has(svg.lucide-arrow-left) svg,
+  body:has(.page--valet) button:has(svg.lucide-arrow-left) svg,
+  body:has([data-pmd-customer-page]) button:has(svg.lucide-arrow-left) svg,
+  .page--home button:has(svg.lucide-arrow-left) svg,
+  .page--menu button:has(svg.lucide-arrow-left) svg,
+  .page--valet button:has(svg.lucide-arrow-left) svg,
+  [data-pmd-customer-page] button:has(svg.lucide-arrow-left) svg,
+  .pmd-customer-back-btn svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    min-width: 1.25rem !important;
+    min-height: 1.25rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: var(--pmd-final-icon-black) !important;
+    stroke: var(--pmd-final-icon-black) !important;
+    fill: none !important;
+    filter: none !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  body:has(.page--home) button:has(svg.lucide-arrow-left) svg *,
+  body:has(.page--menu) button:has(svg.lucide-arrow-left) svg *,
+  body:has(.page--valet) button:has(svg.lucide-arrow-left) svg *,
+  body:has([data-pmd-customer-page]) button:has(svg.lucide-arrow-left) svg *,
+  .page--home button:has(svg.lucide-arrow-left) svg *,
+  .page--menu button:has(svg.lucide-arrow-left) svg *,
+  .page--valet button:has(svg.lucide-arrow-left) svg *,
+  [data-pmd-customer-page] button:has(svg.lucide-arrow-left) svg *,
+  .pmd-customer-back-btn svg * {
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: var(--pmd-final-icon-black) !important;
+    stroke: var(--pmd-final-icon-black) !important;
+    fill: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+}
+
+/* 2) EN/language button: same circle size/style as back button */
+body:has(.page--home) header button.relative.w-12.h-10.rounded-full,
+body:has(.page--menu) header button.relative.w-12.h-10.rounded-full,
+body:has(.page--valet) header button.relative.w-12.h-10.rounded-full,
+.page--home header button.relative.w-12.h-10.rounded-full,
+.page--menu header button.relative.w-12.h-10.rounded-full,
+.page--valet header button.relative.w-12.h-10.rounded-full {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  min-width: 2.25rem !important;
+  min-height: 2.25rem !important;
+  max-width: 2.25rem !important;
+  max-height: 2.25rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--pmd-final-rose-edge) !important;
+  background: var(--pmd-final-rose-fill) !important;
+  background-color: var(--pmd-final-rose-fill) !important;
+  color: var(--pmd-final-icon-black) !important;
+  -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+  font-size: 0.75rem !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10), inset 0 0 0 1px rgba(255,255,255,0.32) !important;
+}
+
+body:has(.page--home) header button.relative.w-12.h-10.rounded-full *,
+body:has(.page--menu) header button.relative.w-12.h-10.rounded-full *,
+body:has(.page--valet) header button.relative.w-12.h-10.rounded-full *,
+.page--home header button.relative.w-12.h-10.rounded-full *,
+.page--menu header button.relative.w-12.h-10.rounded-full *,
+.page--valet header button.relative.w-12.h-10.rounded-full * {
+  color: var(--pmd-final-icon-black) !important;
+  -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+}
+
+/* 3) Main quantity buttons: keep rose edge around the circle */
+button.quantity-btn,
+.quantity-btn {
+  border: 1px solid var(--pmd-final-rose-edge) !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10), inset 0 0 0 1px rgba(255,255,255,0.32) !important;
+}
+
+button.quantity-btn svg,
+button.quantity-btn svg *,
+.quantity-btn svg,
+.quantity-btn svg *,
+button.quantity-btn span:not(.sr-only),
+.quantity-btn span:not(.sr-only) {
+  color: var(--pmd-final-icon-black) !important;
+  -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+  stroke: var(--pmd-final-icon-black) !important;
+  fill: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+/* 4) Floating small + button stays accent-colored, not black */
+button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+button[aria-label="Increase quantity"]:not(.quantity-btn):not([class*="w-12"]):not([class*="h-12"]) {
+  color: var(--theme-secondary) !important;
+  -webkit-text-fill-color: var(--theme-secondary) !important;
+  stroke: var(--theme-secondary) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+button.absolute.-top-2.-right-2[aria-label="Increase quantity"] *,
+button[aria-label="Increase quantity"]:not(.quantity-btn):not([class*="w-12"]):not([class*="h-12"]) * {
+  color: var(--theme-secondary) !important;
+  -webkit-text-fill-color: var(--theme-secondary) !important;
+  stroke: var(--theme-secondary) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* PMD FINAL BACK LANG QUANTITY V1 END */
+
+/* PMD CART EN VALET CARD POLISH V1 START */
+
+/*
+  Visual-only customer polish:
+  1) cart-badge gets #c7a798 edge.
+  2) EN language button matches the circular back-button style on menu/home/valet.
+  3) valet confirmation check icon uses #f0c6b1 instead of gold.
+  4) customer cards use a slightly darker version of each theme background.
+*/
+
+:root {
+  --pmd-final-rose-fill: #f0c6b1;
+  --pmd-final-rose-edge: #c7a798;
+  --pmd-final-icon-black: #111827;
+}
+
+/* Per-theme soft card backgrounds: same as page bg, but slightly darker */
+[data-theme="clean-light"] {
+  --pmd-soft-customer-card-bg: color-mix(in srgb, var(--theme-background, #fdf7f4) 92%, #000000 8%);
+  --pmd-soft-customer-card-border: rgba(199, 167, 152, 0.35);
+}
+
+[data-theme="modern-dark"] {
+  --pmd-soft-customer-card-bg: color-mix(in srgb, var(--theme-background, #0A0E12) 84%, #000000 16%);
+  --pmd-soft-customer-card-border: color-mix(in srgb, var(--theme-secondary, #E8B4A0) 40%, transparent);
+}
+
+[data-theme="gold-luxury"] {
+  --pmd-soft-customer-card-bg: color-mix(in srgb, var(--theme-background, #0F0B05) 86%, #000000 14%);
+  --pmd-soft-customer-card-border: color-mix(in srgb, var(--theme-secondary, #FFF8DC) 38%, transparent);
+}
+
+[data-theme="vibrant-colors"] {
+  --pmd-soft-customer-card-bg: color-mix(in srgb, var(--theme-background, #e2ceb1) 90%, #000000 10%);
+  --pmd-soft-customer-card-border: color-mix(in srgb, var(--theme-secondary, #FF6B6B) 34%, transparent);
+}
+
+[data-theme="minimal"] {
+  --pmd-soft-customer-card-bg: color-mix(in srgb, var(--theme-background, #CFEBF7) 90%, #000000 10%);
+  --pmd-soft-customer-card-border: color-mix(in srgb, var(--theme-secondary, #4B8FE2) 34%, transparent);
+}
+
+/* 1) Cart badge: keep themed fill, add #c7a798 edge, black readable number */
+.cart-badge {
+  border: 1px solid var(--pmd-final-rose-edge) !important;
+  outline: none !important;
+  color: var(--pmd-final-icon-black) !important;
+  -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12), inset 0 0 0 1px rgba(255,255,255,0.30) !important;
+}
+
+.cart-badge * {
+  color: var(--pmd-final-icon-black) !important;
+  -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+}
+
+/* 2) EN/language button: same size/frame as back button on all customer pages */
+body:has(.page--home) header button.relative.w-12.h-10.rounded-full,
+body:has(.page--menu) header button.relative.w-12.h-10.rounded-full,
+body:has(.page--valet) header button.relative.w-12.h-10.rounded-full,
+.page--home header button.relative.w-12.h-10.rounded-full,
+.page--menu header button.relative.w-12.h-10.rounded-full,
+.page--valet header button.relative.w-12.h-10.rounded-full {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  min-width: 2.25rem !important;
+  min-height: 2.25rem !important;
+  max-width: 2.25rem !important;
+  max-height: 2.25rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--pmd-final-rose-edge) !important;
+  background: var(--pmd-final-rose-fill) !important;
+  background-color: var(--pmd-final-rose-fill) !important;
+  color: var(--pmd-final-icon-black) !important;
+  -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+  font-size: 0.75rem !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10), inset 0 0 0 1px rgba(255,255,255,0.32) !important;
+}
+
+body:has(.page--home) header button.relative.w-12.h-10.rounded-full *,
+body:has(.page--menu) header button.relative.w-12.h-10.rounded-full *,
+body:has(.page--valet) header button.relative.w-12.h-10.rounded-full *,
+.page--home header button.relative.w-12.h-10.rounded-full *,
+.page--menu header button.relative.w-12.h-10.rounded-full *,
+.page--valet header button.relative.w-12.h-10.rounded-full * {
+  color: var(--pmd-final-icon-black) !important;
+  -webkit-text-fill-color: var(--pmd-final-icon-black) !important;
+}
+
+/* 3) Valet confirmation check icon: rose, not gold */
+.page--valet svg.lucide-circle-check.valet-icon,
+.page--valet svg.valet-icon.lucide-circle-check,
+body:has(.page--valet) svg.lucide-circle-check.valet-icon {
+  color: var(--pmd-final-rose-fill) !important;
+  stroke: var(--pmd-final-rose-fill) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.page--valet svg.lucide-circle-check.valet-icon *,
+.page--valet svg.valet-icon.lucide-circle-check *,
+body:has(.page--valet) svg.lucide-circle-check.valet-icon * {
+  color: var(--pmd-final-rose-fill) !important;
+  stroke: var(--pmd-final-rose-fill) !important;
+  filter: none !important;
+}
+
+/* 4) Customer cards: slightly darker than background, theme-aware */
+.page--home .home-action-card,
+.page--home .surface-sub,
+.page--menu .surface-sub,
+.page--menu #toolbar-inner-fixed,
+.page--valet .surface,
+.page--valet .surface-sub,
+.page--valet form,
+.page--valet .rounded-3xl.border,
+body:has(.page--valet) .surface,
+body:has(.page--valet) .surface-sub,
+body:has(.page--valet) form.rounded-3xl,
+body:has(.page--valet) .rounded-3xl.border {
+  background: var(--pmd-soft-customer-card-bg) !important;
+  background-color: var(--pmd-soft-customer-card-bg) !important;
+  border-color: var(--pmd-soft-customer-card-border) !important;
+}
+
+/* PMD CART EN VALET CARD POLISH V1 END */
+
+/* PMD CLEAN LIGHT VALET CARD FAECE3 V1 START */
+
+/*
+  Clean Light only:
+  Valet/customer card surfaces must use exact #faece3.
+  Visual-only CSS patch.
+*/
+
+[data-theme="clean-light"] {
+  --pmd-clean-light-card-bg-exact: #faece3;
+}
+
+/* Valet page main cards/forms */
+[data-theme="clean-light"] .page--valet .surface,
+[data-theme="clean-light"] .page--valet .surface-sub,
+[data-theme="clean-light"] .page--valet form,
+[data-theme="clean-light"] .page--valet form.rounded-3xl,
+[data-theme="clean-light"] .page--valet .rounded-3xl.border,
+[data-theme="clean-light"] body:has(.page--valet) .surface,
+[data-theme="clean-light"] body:has(.page--valet) .surface-sub,
+[data-theme="clean-light"] body:has(.page--valet) form.rounded-3xl,
+[data-theme="clean-light"] body:has(.page--valet) .rounded-3xl.border {
+  background: var(--pmd-clean-light-card-bg-exact) !important;
+  background-color: var(--pmd-clean-light-card-bg-exact) !important;
+  border-color: rgba(199, 167, 152, 0.42) !important;
+}
+
+/* Customer modal/card body surfaces in clean-light, including the p-6 overflow card content you showed */
+[data-theme="clean-light"] body:has(.page--menu) .p-6.overflow-y-auto,
+[data-theme="clean-light"] body:has(.page--valet) .p-6.overflow-y-auto,
+[data-theme="clean-light"] .page--menu .p-6.overflow-y-auto,
+[data-theme="clean-light"] .page--valet .p-6.overflow-y-auto {
+  background: var(--pmd-clean-light-card-bg-exact) !important;
+  background-color: var(--pmd-clean-light-card-bg-exact) !important;
+}
+
+/* Keep text readable on that exact card color */
+[data-theme="clean-light"] .page--valet .surface *,
+[data-theme="clean-light"] .page--valet .surface-sub *,
+[data-theme="clean-light"] .page--valet form *,
+[data-theme="clean-light"] body:has(.page--valet) .surface *,
+[data-theme="clean-light"] body:has(.page--valet) .surface-sub *,
+[data-theme="clean-light"] body:has(.page--valet) form *,
+[data-theme="clean-light"] body:has(.page--menu) .p-6.overflow-y-auto *,
+[data-theme="clean-light"] body:has(.page--valet) .p-6.overflow-y-auto * {
+  color: rgb(59, 59, 59) !important;
+}
+
+/* PMD CLEAN LIGHT VALET CARD FAECE3 V1 END */
+
+/* PMD REAL CLEAN LIGHT VALET DARK SURFACE FAECE3 V1 START */
+
+/*
+  Clean Light only:
+  The real valet cards use .dark-surface with inline background-color: var(--theme-input).
+  Force the whole valet card and info card to exact #faece3.
+  Visual-only CSS patch.
+*/
+
+[data-theme="clean-light"] {
+  --pmd-clean-light-valet-card-exact: #faece3;
+  --pmd-clean-light-valet-card-border: rgba(199, 167, 152, 0.45);
+  --pmd-clean-light-valet-text: rgb(59, 59, 59);
+}
+
+/* Main valet form card + lower info card */
+html[data-theme="clean-light"] body:has(svg.valet-icon.lucide-car) .dark-surface,
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface,
+html[data-theme="clean-light"] .page--valet .dark-surface,
+html[data-theme="clean-light"] .page--valet div.dark-surface,
+[data-theme="clean-light"] body:has(svg.valet-icon.lucide-car) .dark-surface,
+[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface,
+[data-theme="clean-light"] .page--valet .dark-surface,
+[data-theme="clean-light"] .page--valet div.dark-surface {
+  background: var(--pmd-clean-light-valet-card-exact) !important;
+  background-color: var(--pmd-clean-light-valet-card-exact) !important;
+  border-color: var(--pmd-clean-light-valet-card-border) !important;
+  color: var(--pmd-clean-light-valet-text) !important;
+}
+
+/* Everything inside those valet cards should stay readable */
+html[data-theme="clean-light"] body:has(svg.valet-icon.lucide-car) .dark-surface *,
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface *,
+html[data-theme="clean-light"] .page--valet .dark-surface *,
+[data-theme="clean-light"] body:has(svg.valet-icon.lucide-car) .dark-surface *,
+[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface *,
+[data-theme="clean-light"] .page--valet .dark-surface * {
+  color: var(--pmd-clean-light-valet-text) !important;
+}
+
+/* Keep inputs white inside the #faece3 card */
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface input,
+html[data-theme="clean-light"] .page--valet .dark-surface input,
+[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface input,
+[data-theme="clean-light"] .page--valet .dark-surface input {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: var(--pmd-clean-light-valet-text) !important;
+  -webkit-text-fill-color: var(--pmd-clean-light-valet-text) !important;
+  border-color: rgba(199, 167, 152, 0.35) !important;
+}
+
+/* Preserve valet car icon and button colors after global text rule */
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface svg.valet-icon,
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface svg.valet-icon *,
+[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface svg.valet-icon,
+[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface svg.valet-icon * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface .valet-request-btn,
+[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface .valet-request-btn {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid #c7a798 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* PMD REAL CLEAN LIGHT VALET DARK SURFACE FAECE3 V1 END */
+
+/* PMD CLEAN LIGHT FAECE3 CUSTOMER CARDS V1 START */
+
+/*
+  Clean Light only:
+  Apply exact #faece3 to customer cards:
+  - homepage Menu / Valet action cards
+  - menu checkout/review/order summary/payment cards
+  - valet main/info cards
+  Visual-only CSS patch.
+*/
+
+html[data-theme="clean-light"],
+body[data-theme="clean-light"],
+[data-theme="clean-light"] {
+  --pmd-clean-light-card-bg-exact: #faece3;
+  --pmd-clean-light-card-border: rgba(199, 167, 152, 0.45);
+  --pmd-clean-light-card-text: rgb(59, 59, 59);
+}
+
+/* Homepage two action cards */
+html[data-theme="clean-light"] .home-action-card,
+body[data-theme="clean-light"] .home-action-card,
+[data-theme="clean-light"] .home-action-card {
+  background: var(--pmd-clean-light-card-bg-exact) !important;
+  background-color: var(--pmd-clean-light-card-bg-exact) !important;
+  border-color: var(--pmd-clean-light-card-border) !important;
+  color: var(--pmd-clean-light-card-text) !important;
+  box-shadow: 0 10px 26px rgba(17, 24, 39, 0.06) !important;
+}
+
+html[data-theme="clean-light"] .home-action-card *,
+body[data-theme="clean-light"] .home-action-card *,
+[data-theme="clean-light"] .home-action-card * {
+  color: var(--pmd-clean-light-card-text) !important;
+  -webkit-text-fill-color: var(--pmd-clean-light-card-text) !important;
+}
+
+/* Keep homepage icon circle/icon styling inside #faece3 cards */
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid #c7a798 !important;
+}
+
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  stroke: #111827 !important;
+  fill: none !important;
+}
+
+/* Menu checkout/review/submitted/payment cards */
+html[data-theme="clean-light"] body:has(.page--menu) .surface-sub,
+body[data-theme="clean-light"]:has(.page--menu) .surface-sub,
+[data-theme="clean-light"] body:has(.page--menu) .surface-sub,
+html[data-theme="clean-light"] .page--menu .surface-sub,
+body[data-theme="clean-light"] .page--menu .surface-sub,
+[data-theme="clean-light"] .page--menu .surface-sub,
+html[data-theme="clean-light"] body:has(.page--menu) [data-pmd-review-submit],
+body[data-theme="clean-light"]:has(.page--menu) [data-pmd-review-submit],
+[data-theme="clean-light"] body:has(.page--menu) [data-pmd-review-submit] {
+  border-color: var(--pmd-clean-light-card-border) !important;
+}
+
+/* The cards themselves, not the submit button */
+html[data-theme="clean-light"] body:has(.page--menu) div.surface-sub,
+body[data-theme="clean-light"]:has(.page--menu) div.surface-sub,
+[data-theme="clean-light"] body:has(.page--menu) div.surface-sub,
+html[data-theme="clean-light"] .page--menu div.surface-sub,
+body[data-theme="clean-light"] .page--menu div.surface-sub,
+[data-theme="clean-light"] .page--menu div.surface-sub {
+  background: var(--pmd-clean-light-card-bg-exact) !important;
+  background-color: var(--pmd-clean-light-card-bg-exact) !important;
+  border-color: var(--pmd-clean-light-card-border) !important;
+  color: var(--pmd-clean-light-card-text) !important;
+}
+
+/* Payment modal common rounded card sections */
+html[data-theme="clean-light"] body:has(.page--menu) [role="dialog"] div.rounded-2xl,
+body[data-theme="clean-light"]:has(.page--menu) [role="dialog"] div.rounded-2xl,
+[data-theme="clean-light"] body:has(.page--menu) [role="dialog"] div.rounded-2xl {
+  background-color: var(--pmd-clean-light-card-bg-exact) !important;
+  border-color: var(--pmd-clean-light-card-border) !important;
+}
+
+/* Keep actual inputs/payment method buttons white if they are inside those cards */
+html[data-theme="clean-light"] body:has(.page--menu) [role="dialog"] input,
+html[data-theme="clean-light"] body:has(.page--menu) [role="dialog"] textarea,
+body[data-theme="clean-light"]:has(.page--menu) [role="dialog"] input,
+body[data-theme="clean-light"]:has(.page--menu) [role="dialog"] textarea,
+[data-theme="clean-light"] body:has(.page--menu) [role="dialog"] input,
+[data-theme="clean-light"] body:has(.page--menu) [role="dialog"] textarea {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: var(--pmd-clean-light-card-text) !important;
+  -webkit-text-fill-color: var(--pmd-clean-light-card-text) !important;
+}
+
+/* Valet main/info cards: exact #faece3 */
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface,
+body[data-theme="clean-light"]:has(.valet-request-btn) .dark-surface,
+[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface,
+html[data-theme="clean-light"] .page--valet .dark-surface,
+body[data-theme="clean-light"] .page--valet .dark-surface,
+[data-theme="clean-light"] .page--valet .dark-surface {
+  background: var(--pmd-clean-light-card-bg-exact) !important;
+  background-color: var(--pmd-clean-light-card-bg-exact) !important;
+  border-color: var(--pmd-clean-light-card-border) !important;
+  color: var(--pmd-clean-light-card-text) !important;
+}
+
+/* Text readability inside all #faece3 customer cards */
+html[data-theme="clean-light"] .home-action-card,
+html[data-theme="clean-light"] .home-action-card *,
+html[data-theme="clean-light"] body:has(.page--menu) div.surface-sub,
+html[data-theme="clean-light"] body:has(.page--menu) div.surface-sub *,
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface,
+html[data-theme="clean-light"] body:has(.valet-request-btn) .dark-surface *,
+body[data-theme="clean-light"] .home-action-card,
+body[data-theme="clean-light"] .home-action-card *,
+body[data-theme="clean-light"]:has(.page--menu) div.surface-sub,
+body[data-theme="clean-light"]:has(.page--menu) div.surface-sub *,
+body[data-theme="clean-light"]:has(.valet-request-btn) .dark-surface,
+body[data-theme="clean-light"]:has(.valet-request-btn) .dark-surface * {
+  color: var(--pmd-clean-light-card-text) !important;
+}
+
+/* Preserve rose primary buttons/icons after text readability rule */
+html[data-theme="clean-light"] .valet-request-btn,
+html[data-theme="clean-light"] [data-pmd-review-submit],
+body[data-theme="clean-light"] .valet-request-btn,
+body[data-theme="clean-light"] [data-pmd-review-submit],
+[data-theme="clean-light"] .valet-request-btn,
+[data-theme="clean-light"] [data-pmd-review-submit] {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid #c7a798 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* PMD CLEAN LIGHT FAECE3 CUSTOMER CARDS V1 END */
+
+/* PMD REAL HOMEPAGE CARDS FAECE3 FALLBACK V1 START */
+html[data-theme="clean-light"] .home-action-card,
+body[data-theme="clean-light"] .home-action-card,
+[data-theme="clean-light"] .home-action-card {
+  background: #faece3 !important;
+  background-color: #faece3 !important;
+  border-color: rgba(199, 167, 152, 0.45) !important;
+  color: rgb(59, 59, 59) !important;
+}
+
+html[data-theme="clean-light"] .home-action-card h2,
+body[data-theme="clean-light"] .home-action-card h2,
+[data-theme="clean-light"] .home-action-card h2 {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+/* PMD REAL HOMEPAGE CARDS FAECE3 FALLBACK V1 END */
+
+/* PMD STABLE HOMEPAGE CARDS FAECE3 SINGLE SOURCE V1 START */
+
+/*
+  Clean Light homepage cards:
+  Stable single source of truth.
+  Card background comes from CSS/source, not JS timers.
+*/
+
+html[data-theme="clean-light"] .home-action-card,
+body[data-theme="clean-light"] .home-action-card,
+[data-theme="clean-light"] .home-action-card {
+  background: #faece3 !important;
+  background-color: #faece3 !important;
+  border-color: rgba(199, 167, 152, 0.45) !important;
+  color: #111827 !important;
+  box-shadow: 0 10px 26px rgba(17, 24, 39, 0.06) !important;
+}
+
+html[data-theme="clean-light"] .home-action-card h2,
+html[data-theme="clean-light"] .home-action-card h2 *,
+body[data-theme="clean-light"] .home-action-card h2,
+body[data-theme="clean-light"] .home-action-card h2 *,
+[data-theme="clean-light"] .home-action-card h2,
+[data-theme="clean-light"] .home-action-card h2 * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid #c7a798 !important;
+}
+
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  fill: none !important;
+  filter: none !important;
+}
+
+/* PMD STABLE HOMEPAGE CARDS FAECE3 SINGLE SOURCE V1 END */
+
+/* PMD HOMEPAGE CARDS FBEBE3 V1 START */
+
+/*
+  Clean Light homepage cards only:
+  Menu / Valet Parking action cards use #fbebe3.
+  This is the final source for homepage cards, no JS background overwrite.
+*/
+
+html[data-theme="clean-light"] .home-action-card,
+body[data-theme="clean-light"] .home-action-card,
+[data-theme="clean-light"] .home-action-card {
+  background: #fbebe3 !important;
+  background-color: #fbebe3 !important;
+  border-color: rgba(199, 167, 152, 0.45) !important;
+  color: #111827 !important;
+  box-shadow: 0 10px 26px rgba(17, 24, 39, 0.06) !important;
+}
+
+html[data-theme="clean-light"] .home-action-card h2,
+html[data-theme="clean-light"] .home-action-card h2 *,
+body[data-theme="clean-light"] .home-action-card h2,
+body[data-theme="clean-light"] .home-action-card h2 *,
+[data-theme="clean-light"] .home-action-card h2,
+[data-theme="clean-light"] .home-action-card h2 * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid #c7a798 !important;
+}
+
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+html[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg,
+[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  fill: none !important;
+  filter: none !important;
+}
+
+/* PMD HOMEPAGE CARDS FBEBE3 V1 END */
+
+/* PMD UNIVERSAL LANGUAGE BUTTON FRAME V1 START */
+
+/*
+  Customer language button / EN:
+  Same circular frame as menu page on homepage, menu, and valet.
+  Visual-only CSS patch.
+*/
+
+:root {
+  --pmd-lang-btn-bg: #f0c6b1;
+  --pmd-lang-btn-border: #c7a798;
+  --pmd-lang-btn-text: #111827;
+}
+
+/* Match the real EN button structure:
+   <button class="relative ...">
+     <div class="absolute inset-0 flex items-center justify-center">EN</div>
+   </button>
+*/
+@supports selector(button:has(> div.absolute.inset-0)) {
+  body:has(.home-action-card) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center),
+  body:has(.page--home) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center),
+  body:has(.page--menu) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center),
+  body:has(.page--valet) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center),
+  body:has(.valet-request-btn) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center),
+  .page--home button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center),
+  .page--menu button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center),
+  .page--valet button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+    max-width: 2.25rem !important;
+    max-height: 2.25rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    border: 1px solid var(--pmd-lang-btn-border) !important;
+    background: var(--pmd-lang-btn-bg) !important;
+    background-color: var(--pmd-lang-btn-bg) !important;
+    color: var(--pmd-lang-btn-text) !important;
+    -webkit-text-fill-color: var(--pmd-lang-btn-text) !important;
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+    overflow: hidden !important;
+    box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10), inset 0 0 0 1px rgba(255,255,255,0.32) !important;
+  }
+
+  body:has(.home-action-card) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div,
+  body:has(.page--home) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div,
+  body:has(.page--menu) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div,
+  body:has(.page--valet) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div,
+  body:has(.valet-request-btn) button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div,
+  .page--home button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div,
+  .page--menu button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div,
+  .page--valet button.relative:has(> div.absolute.inset-0.flex.items-center.justify-center) > div {
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--pmd-lang-btn-text) !important;
+    -webkit-text-fill-color: var(--pmd-lang-btn-text) !important;
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* PMD UNIVERSAL LANGUAGE BUTTON FRAME V1 END */
+

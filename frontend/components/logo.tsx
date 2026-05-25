@@ -208,13 +208,20 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
           </Link>
         )}
       </div>
-      <div className="absolute right-2 md:right-4 top-4">
+      <div
+        className={cn(
+          "absolute top-4",
+          (isMainHomePage || isTableHomePage)
+            ? "left-1/2 translate-x-[225px] md:translate-x-[245px]"
+            : "right-2 md:right-4"
+        )}
+      >
         <LanguageSwitcher />
       </div>
       <div className="text-center">
         {(isMainHomePage || isTableHomePage) ? (
           // FIXED: Show full logo on both main homepage AND table home pages
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center -translate-y-3">
             {/* Dynamic logo from admin settings */}
             {effectiveLogoUrl ? (
               <OptimizedImage
@@ -223,7 +230,8 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
                 width={220}
                 height={64}
                 priority
-              />
+              
+                className="-translate-y-4"/>
             ) : (
               <div aria-hidden="true" style={{ width: 220, height: 64 }} />
             )}

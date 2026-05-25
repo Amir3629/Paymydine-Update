@@ -129,8 +129,12 @@ function applyHomeStyles(pathname: string | null) {
   if (pathname !== "/") return
 
   document.querySelectorAll<HTMLElement>(".home-action-card").forEach((el) => {
-    setImportant(el, "background-color", "rgba(255, 255, 255, 0.80)")
-    setImportant(el, "border-color", "rgba(240, 198, 177, 0.28)")
+    // Single owner for Clean Light homepage cards.
+    // This prevents white/pink flicker and fixes computedBg becoming transparent.
+    setImportant(el, "background", "#fbebe3")
+    setImportant(el, "background-color", "#fbebe3")
+    setImportant(el, "border-color", "rgba(199, 167, 152, 0.45)")
+    setImportant(el, "color", "#111827")
   })
 
   document.querySelectorAll<HTMLElement>(".home-action-card h2, .home-action-card h2 *").forEach((el) => {
@@ -318,6 +322,9 @@ export default function CleanLightCustomerGuard() {
       document.removeEventListener("touchend", onInteraction, true)
     }
   }, [pathname])
+
+  
+
 
   return null
 }
