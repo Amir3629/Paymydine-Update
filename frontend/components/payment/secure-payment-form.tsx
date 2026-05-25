@@ -56,11 +56,11 @@ export function StripeCardForm({
   const fieldTheme = useMemo(() => {
     if (typeof window === "undefined") {
       return {
-        text: "#111827",
+        text: "var(--pmd-customer-control-text, #111827)",
         muted: "#6B7280",
         border: "rgba(17,24,39,0.12)",
         bg: "rgba(255,255,255,0.96)",
-        label: "#111827",
+        label: "var(--pmd-customer-control-text, #111827)",
       }
     }
 
@@ -84,11 +84,11 @@ export function StripeCardForm({
       }
 
       return {
-        text: "#111827",
+        text: "var(--pmd-customer-control-text, #111827)",
         muted: "#6B7280",
         border: "rgba(17,24,39,0.12)",
         bg: "rgba(255,255,255,0.96)",
-        label: "#111827",
+        label: "var(--pmd-customer-control-text, #111827)",
       }
     } catch {
       return {
@@ -176,7 +176,7 @@ export function StripeCardForm({
     const dark = luminance < 0.45
 
     const bg = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.96)"
-    const text = dark ? "#F8FAFC" : "#111827"
+    const text = dark ? "#F8FAFC" : "var(--pmd-customer-control-text, #111827)"
     const muted = dark ? "rgba(248,250,252,0.60)" : "#6B7280"
     const border = dark ? "rgba(255,255,255,0.14)" : "rgba(17,24,39,0.12)"
     const focus = "rgba(99,91,255,0.70)"

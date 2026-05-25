@@ -1041,7 +1041,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     border: "1px solid rgba(255,255,255,0.12)",
   }
   const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
-  const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
+  const iconBackBtn = "pmd-customer-back-btn"
   const toolbarIconBtnStyle: React.CSSProperties = {
     background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
     border: "1px solid var(--theme-border)",

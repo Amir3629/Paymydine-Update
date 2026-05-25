@@ -192,7 +192,7 @@ const handleModalClose = (event?: any) => {
  variant="ghost"
  size="icon"
  onClick={handleModalClose}
- className="inline-flex items-center justify-center absolute top-4 left-4 z-10 h-10 w-10 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] shadow-lg hover:opacity-90"
+ className="pmd-customer-back-btn inline-flex items-center justify-center absolute top-4 left-4 z-10"
 >
  <ArrowLeft className="h-5 w-5" />
  </Button>
