@@ -4882,6 +4882,7 @@ body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
   --pmd-customer-button-icons1-bg: var(--theme-button);
   --pmd-customer-button-icons1-text: #111827;
   --pmd-customer-button-icons1-border: var(--theme-border);
+  --pmd-customer-frame-border: var(--pmd-customer-button-icons1-border);
   --pmd-customer-action-bg: var(--pmd-customer-button-icons1-bg);
   --pmd-customer-action-text: var(--pmd-customer-button-icons1-text);
   --pmd-customer-action-border: var(--pmd-customer-button-icons1-border);
@@ -4897,11 +4898,20 @@ body[data-theme="clean-light"] .home-action-card .home-action-icon-wrap svg *,
 }
 
 .pmd-customer-page { background: var(--pmd-customer-page-bg); color: var(--pmd-customer-text); }
-.pmd-customer-card { background: var(--pmd-customer-surface); border: 1px solid var(--pmd-customer-border); color: var(--pmd-customer-text); }
-.pmd-customer-card-sub { background: var(--pmd-customer-surface-sub); border: 1px solid var(--pmd-customer-border); color: var(--pmd-customer-text); }
+.pmd-customer-card { background: var(--pmd-customer-surface); border: 1px solid var(--pmd-customer-frame-border); color: var(--pmd-customer-text); }
+.pmd-customer-card-sub { background: var(--pmd-customer-surface-sub); border: 1px solid var(--pmd-customer-frame-border); color: var(--pmd-customer-text); }
+.pmd-customer-frame { border: 1px solid var(--pmd-customer-frame-border) !important; }
 .pmd-customer-action-circle { background: var(--pmd-customer-action-bg) !important; border: 1px solid var(--pmd-customer-action-border) !important; color: var(--pmd-customer-action-text) !important; border-radius: 9999px; }
 .pmd-customer-action-circle svg,
 .pmd-customer-action-circle svg * { color: currentColor !important; stroke: currentColor !important; }
+.pmd-customer-action-circle .valet-icon,
+.pmd-customer-action-circle svg.valet-icon {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 .pmd-customer-action-button { background: var(--pmd-customer-action-bg) !important; border: 1px solid var(--pmd-customer-action-border) !important; color: var(--pmd-customer-action-text) !important; }
 .pmd-customer-action-button svg,
 .pmd-customer-action-button svg * { color: currentColor !important; stroke: currentColor !important; }

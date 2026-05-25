@@ -55,7 +55,7 @@ export default function ValetPage() {
             <motion.div 
               key="form"
               className="rounded-2xl shadow-sm p-4 sm:p-6 dark-surface pmd-customer-card"
-              style={{ backgroundColor: 'var(--theme-input, #121923)', border: '1px solid var(--theme-menu-item-border, #223042)' }}
+              style={{ backgroundColor: 'var(--theme-input, #121923)' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -63,7 +63,7 @@ export default function ValetPage() {
             >
               <div className="flex items-center mb-6">
                 <span className="inline-flex items-center justify-center pmd-customer-action-circle w-10 h-10 mr-3">
-                  <Car className="h-6 w-6 valet-icon" />
+                  <Car className="h-6 w-6" />
                 </span>
                 <h2 className="text-xl font-semibold text-paydine-elegant-gray">{t("valetService")}</h2>
               </div>
@@ -142,7 +142,7 @@ export default function ValetPage() {
             <motion.div
               key="success"
               className="rounded-2xl shadow-sm p-6 sm:p-8 text-center dark-surface pmd-customer-card"
-              style={{ backgroundColor: 'var(--theme-input, #121923)', border: '1px solid var(--theme-menu-item-border, #223042)' }}
+              style={{ backgroundColor: 'var(--theme-input, #121923)' }}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
@@ -153,7 +153,7 @@ export default function ValetPage() {
                 transition={{ type: "spring", duration: 0.6, delay: 0.1 }}
                 className="mx-auto w-16 h-16 rounded-full bg-paydine-champagne/10 flex items-center justify-center mb-6"
               >
-                <CheckCircle2 className="w-8 h-8 valet-icon" />
+                <CheckCircle2 className="w-8 h-8" />
               </motion.div>
               
               <h2 className="text-2xl font-semibold pmd-customer-text mb-4">
@@ -177,7 +177,7 @@ export default function ValetPage() {
         
         <motion.div 
           className="mt-4 text-sm pmd-customer-muted-text rounded-xl p-4 dark-surface pmd-customer-card-sub"
-          style={{ backgroundColor: '#222529', border: '1px solid var(--theme-menu-item-border, #223042)' }}
+          style={{ backgroundColor: '#222529' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.8 }}

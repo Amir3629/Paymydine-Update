@@ -306,6 +306,7 @@ export interface ThemeColors {
       '--pmd-customer-button-icons1-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
       '--pmd-customer-action-border': colors.border,
       '--pmd-customer-button-icons1-border': colors.border,
+      '--pmd-customer-frame-border': colors.border,
       '--pmd-customer-border': colors.border,
       '--pmd-customer-input-bg': colors.input,
       '--pmd-customer-input-text': colors.textPrimary,
