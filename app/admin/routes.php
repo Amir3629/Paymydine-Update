@@ -7982,6 +7982,38 @@ Route::group([
                 }
             }
 
+            if (\Illuminate\Support\Facades\Schema::hasTable('payment_logs')) {
+                $existingPaymentLog = \Illuminate\Support\Facades\DB::table('payment_logs')
+                    ->where('order_id', (int)$lockedOrder->order_id)
+                    ->where('payment_code', 'stripe')
+                    ->where('request', 'like', '%'.$paymentIntentId.'%')
+                    ->exists();
+
+                if (!$existingPaymentLog) {
+                    \Illuminate\Support\Facades\DB::table('payment_logs')->insert([
+                        'order_id' => (int)$lockedOrder->order_id,
+                        'payment_name' => 'Stripe Card',
+                        'message' => 'Payment received: €'.number_format((float)$paidAmount, 2, '.', ''),
+                        'request' => json_encode([
+                            'payment_intent_id' => $paymentIntentId,
+                            'provider' => strtolower((string)($payload['provider'] ?? 'stripe')),
+                            'payment_method' => strtolower((string)($payload['payment_method'] ?? 'card')),
+                        ], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                        'response' => json_encode([
+                            'amount' => (float)$paidAmount,
+                            'settled_amount' => (float)$newSettled,
+                            'settlement_status' => $newStatus,
+                            'is_paid' => $newStatus === 'paid',
+                        ], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                        'is_success' => 1,
+                        'payment_code' => 'stripe',
+                        'is_refundable' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
             return [
                 'already_paid' => false,
                 'order' => $lockedOrder,
