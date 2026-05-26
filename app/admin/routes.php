@@ -5565,10 +5565,53 @@ return response()->json([
                 'order_total' => $orderTotal,
             ]);
 
+            $combinedItems = DB::table('order_menus')
+                ->where('order_id', $orderId)
+                ->select(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal', 'comment', 'option_values'])
+                ->orderBy('order_menu_id')
+                ->get()
+                ->map(function ($row) {
+                    return [
+                        'order_menu_id' => (int)($row->order_menu_id ?? 0),
+                        'menu_id' => (int)($row->menu_id ?? 0),
+                        'name' => (string)($row->name ?? ''),
+                        'quantity' => (float)($row->quantity ?? 0),
+                        'price' => (float)($row->price ?? 0),
+                        'subtotal' => (float)($row->subtotal ?? 0),
+                        'comment' => (string)($row->comment ?? ''),
+                        'option_values' => $row->option_values,
+                    ];
+                })->values();
+
+            $combinedTotalsRows = DB::table('order_totals')
+                ->where('order_id', $orderId)
+                ->orderBy('priority')
+                ->get(['code', 'title', 'value', 'priority', 'is_summable']);
+
+            $combinedTotals = $combinedTotalsRows->mapWithKeys(function ($row) {
+                return [(string)$row->code => (float)$row->value];
+            });
+
+            $finalOrderTotal = round((float)($combinedTotals['total'] ?? $canonicalOrderTotal ?? $orderTotal), 4);
+            $settledAmount = round((float)DB::table('orders')->where('order_id', $orderId)->value('settled_amount'), 4);
+            $remainingAmount = round(max(0, $finalOrderTotal - $settledAmount), 4);
+            $settlementStatus = $remainingAmount <= 0.0001 ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid');
+
             return response()->json([
                 'success' => true,
                 'order_id' => $orderId,
                 'message' => 'Order placed successfully',
+                'order_total' => $finalOrderTotal,
+                'total' => $finalOrderTotal,
+                'total_items' => (int)DB::table('order_menus')->where('order_id', $orderId)->sum('quantity'),
+                'items' => $combinedItems,
+                'order_totals' => $combinedTotalsRows,
+                'settlement' => [
+                    'orderTotal' => $finalOrderTotal,
+                    'settledAmount' => $settledAmount,
+                    'remainingAmount' => $remainingAmount,
+                    'settlementStatus' => $settlementStatus,
+                ],
                 'eta_minutes' => $etaResult['eta_minutes'] ?? null,
                 'estimated_prep_minutes' => $etaResult['eta_minutes'] ?? null,
                 'show_customer_eta' => (bool)($etaResult['show_customer_eta'] ?? true),

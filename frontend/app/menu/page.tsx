@@ -991,12 +991,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return Number.isFinite(amount) && amount > 0 ? amount : null
   }
   const payableTotal = useMemo(() => {
-    const submittedTotal = toPositiveAmount(submittedSnapshot?.total)
     const remainingAmount = toPositiveAmount(pendingSummary?.remainingAmount)
+    const submittedRemaining = toPositiveAmount(submittedSnapshot?.remainingAmount)
+    const submittedTotal = toPositiveAmount(submittedSnapshot?.total ?? submittedSnapshot?.orderTotal)
     const reviewTotal = toPositiveAmount(finalTotal)
-    if (checkoutStep === "payment") return submittedTotal ?? remainingAmount ?? reviewTotal ?? 0
+    if (checkoutStep === "payment") return remainingAmount ?? submittedRemaining ?? submittedTotal ?? 0
     return reviewTotal ?? submittedTotal ?? remainingAmount ?? 0
-  }, [checkoutStep, submittedSnapshot?.total, pendingSummary?.remainingAmount, finalTotal])
+  }, [checkoutStep, submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -1324,7 +1325,44 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           const tableKey = getTableKey()
           const sessionKey = buildOpenOrderStorageKeys().sessionKey
           const orderIdVal = response.order_id ? String(response.order_id) : ''
-          const snapshot = { guestSessionId, tenant, tableKey, tableNumber: tableInfo?.table_no || tableInfo?.table_id || null, orderId: orderIdVal || null, status: 'submitted', paymentStatus: 'unpaid', subtotal: Number(subtotal || 0), vatAmount: Number(taxAmount || 0), vatPercentage: Number(taxSettings?.percentage || 0), total: Number((response as any)?.total ?? finalTotal ?? 0), etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes), showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true), currency: String(merchantSettings?.currency || 'EUR'), submittedItems: normalizedItemsForOrder, createdAt: Date.now() }
+          const responseTotals = Array.isArray((response as any)?.order_totals) ? (response as any).order_totals : []
+          const getTotalByCode = (code: string) => {
+            const found = responseTotals.find((row: any) => String(row?.code || '') === code)
+            const amount = Number(found?.value ?? 0)
+            return Number.isFinite(amount) ? amount : 0
+          }
+          const responseItems = Array.isArray((response as any)?.items) ? (response as any).items : []
+          const combinedSubmittedItems = responseItems.length > 0
+            ? responseItems.map((item: any) => ({
+                id: Number(item?.menu_id || item?.id || 0),
+                name: String(item?.name || 'Item'),
+                quantity: Number(item?.quantity || 0),
+                price: Number(item?.price || 0),
+                subtotal: Number(item?.subtotal || (Number(item?.quantity || 0) * Number(item?.price || 0))),
+              }))
+            : normalizedItemsForOrder
+          const settlement = (response as any)?.settlement || {}
+          const serverOrderTotal = Number((response as any)?.order_total ?? (response as any)?.total ?? 0)
+          const snapshot = {
+            guestSessionId, tenant, tableKey,
+            tableNumber: tableInfo?.table_no || tableInfo?.table_id || null,
+            orderId: orderIdVal || null,
+            status: 'submitted',
+            paymentStatus: 'unpaid',
+            subtotal: Number(getTotalByCode('subtotal') || subtotal || 0),
+            vatAmount: Number(getTotalByCode('tax') || taxAmount || 0),
+            vatPercentage: Number(taxSettings?.percentage || 0),
+            total: Number(serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0)),
+            orderTotal: Number(serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0)),
+            settledAmount: Number(settlement?.settledAmount || 0),
+            remainingAmount: Number(settlement?.remainingAmount ?? (serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0))),
+            settlementStatus: String(settlement?.settlementStatus || 'unpaid'),
+            etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes),
+            showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true),
+            currency: String(merchantSettings?.currency || 'EUR'),
+            submittedItems: combinedSubmittedItems,
+            createdAt: Date.now()
+          }
           localStorage.setItem(sessionKey, JSON.stringify(snapshot))
           setSubmittedSnapshot(snapshot)
           onOpenOrderUpdate?.(snapshot)
@@ -1532,10 +1570,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const startHostedRedirectCheckout = async () => {
     if (!selectedMethod || !["card", "wero", "paypal", "apple_pay", "google_pay"].includes(selectedMethod.code)) return
     if (!(payableTotal > 0)) {
-      setProviderInlineError("Invalid payable amount. Please review your order and try again.")
+      setProviderInlineError("Order total is still updating. Please reopen My Order.")
       toast({
-        title: "Payment Amount Error",
-        description: "Unable to start payment because the amount is invalid.",
+        title: "Order total unavailable",
+        description: "Order total is still updating. Please reopen My Order.",
         variant: "destructive",
       })
       return
