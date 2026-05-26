@@ -16,14 +16,35 @@ $pmdSplitTransactions = collect();
 $pmdSplitItemsByTx = [];
 
 if ($pmdHasSplitTables) {
-    $pmdAllocationColumn = function_exists('pmdResolveSplitAllocationColumn')
+    $pmdResolverValue = function_exists('pmdResolveSplitAllocationColumn')
         ? pmdResolveSplitAllocationColumn()
-        : (Schema::hasColumn('order_payment_transaction_items', 'order_item_id')
-            ? 'order_item_id'
-            : (Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
-                ? 'order_menu_id' : 'menu_id'));
+        : null;
+    if (is_array($pmdResolverValue)) {
+        $pmdResolverValue = reset($pmdResolverValue);
+    }
+    $pmdResolverValue = is_string($pmdResolverValue) ? trim($pmdResolverValue) : '';
+
+    $pmdCandidateColumns = array_values(array_unique(array_filter([
+        $pmdResolverValue,
+        'order_menu_id',
+        'order_item_id',
+        'menu_id',
+    ], static function ($column) {
+        return is_string($column) && $column !== '';
+    })));
+
+    $pmdAllocationColumn = null;
+    foreach ($pmdCandidateColumns as $pmdCandidateColumn) {
+        if (in_array($pmdCandidateColumn, ['order_menu_id', 'order_item_id', 'menu_id'], true)
+            && Schema::hasColumn('order_payment_transaction_items', $pmdCandidateColumn)
+        ) {
+            $pmdAllocationColumn = $pmdCandidateColumn;
+            break;
+        }
+    }
 
     $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
+    $pmdJoinRight = $pmdAllocationColumn === 'menu_id' ? 'ti.menu_id' : 'ti.order_menu_id';
 
     $pmdSplitTransactions = DB::table('order_payment_transactions')
         ->where('order_id', (int)$formModel->order_id)
@@ -32,9 +53,9 @@ if ($pmdHasSplitTables) {
 
     $pmdTxIds = $pmdSplitTransactions->pluck('id')->all();
 
-    if (!empty($pmdTxIds)) {
+    if (!empty($pmdTxIds) && is_string($pmdAllocationColumn) && $pmdAllocationColumn !== '') {
         $pmdItemRows = DB::table('order_payment_transaction_items as ti')
-            ->leftJoin('order_menus as om', $pmdJoinLeft, '=', 'ti.' . $pmdAllocationColumn)
+            ->leftJoin('order_menus as om', $pmdJoinLeft, '=', $pmdJoinRight)
             ->whereIn('ti.transaction_id', $pmdTxIds)
             ->get([
                 'ti.transaction_id',
