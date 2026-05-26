@@ -874,6 +874,24 @@ export class ApiClient {
     return data;
   }
 
+
+  async finalizeExistingOrderStripePayment(payload: {
+    order_id: number;
+    payment_intent_id: string;
+    payment_method?: string | null;
+    provider?: string | null;
+  }) {
+    const response = await fetch('/api/v1/orders/finalize-payment', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to finalize existing order payment');
+    }
+    return data;
+  }
   async startExistingOrderPayment(payload: {
     order_id: number;
     payment_method: string;

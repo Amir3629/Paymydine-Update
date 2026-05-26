@@ -1209,12 +1209,29 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
             return
           }
-          markOpenOrderAsPaid(paymentOrderIdCandidate)
-          setCheckoutStep("paid")
+          if (isStripeMethodForSubmit && stripePaymentIntentId) {
+            const finalized = await apiClient.finalizeExistingOrderStripePayment({
+              order_id: Number(paymentOrderIdCandidate),
+              payment_intent_id: String(stripePaymentIntentId),
+              payment_method: String(effectiveMethodCode || "card"),
+              provider: String(selectedProviderCodeForSubmit || "stripe"),
+            })
+            if (!finalized?.success) {
+              throw new Error("Payment finalization failed")
+            }
+            markOpenOrderAsPaid(paymentOrderIdCandidate)
+            setCheckoutStep("paid")
+            setIsLoading(false)
+            toast({
+              title: t("paymentSuccessful"),
+              description: `Order #${paymentOrderIdCandidate} paid successfully!`,
+            })
+            return
+          }
           setIsLoading(false)
           toast({
-            title: t("paymentSuccessful"),
-            description: `Order #${paymentOrderIdCandidate} paid successfully!`,
+            title: "Payment initiated",
+            description: "Your payment is being verified. Please wait a moment and refresh if needed.",
           })
           return
         } catch (e) {
