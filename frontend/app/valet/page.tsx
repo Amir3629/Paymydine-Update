@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { useLanguageStore } from "@/store/language-store"
 import { useCmsStore } from "@/store/cms-store"
 import { Logo } from "@/components/logo"
@@ -10,12 +10,29 @@ import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { motion, AnimatePresence } from "framer-motion"
+import { useSearchParams } from "next/navigation"
+import { apiClient } from "@/lib/api-client"
 
 export default function ValetPage() {
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
+  const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const tableId = useMemo(() => {
+    const candidates = [
+      searchParams.get("table_id"),
+      searchParams.get("table"),
+      searchParams.get("table_no"),
+    ]
+    for (const c of candidates) {
+      const v = String(c || "").trim()
+      if (v) return v
+    }
+    return null
+  }, [searchParams])
+
   const [formData, setFormData] = useState({
     name: "",
     car: "",
@@ -29,13 +46,29 @@ export default function ValetPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError(null)
+    if (!tableId) {
+      setSubmitError("Please scan your table QR code to request valet service.")
+      return
+    }
+
     setIsSubmitting(true)
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    setIsSubmitting(false)
-    setIsSuccess(true)
+    try {
+      await apiClient.createValetRequest({
+        table_id: tableId,
+        name: formData.name.trim(),
+        license_plate: formData.plate.trim(),
+        car_make: formData.car.trim() || undefined,
+      })
+      setIsSuccess(true)
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[PMD valet submit failed]", { table_id: tableId, error })
+      }
+      setSubmitError("Could not send valet request. Please ask staff for assistance.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -120,6 +153,10 @@ export default function ValetPage() {
                   />
                 </motion.div>
                 
+                {submitError && (
+                  <p className="text-sm text-red-400">{submitError}</p>
+                )}
+
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

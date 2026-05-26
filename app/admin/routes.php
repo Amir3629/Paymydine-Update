@@ -7729,7 +7729,7 @@ Route::group([
             'provider' => $provider,
             'payment_method' => $method,
         ]);
-
+    });
 
     Route::post('/orders/finalize-payment', function (\Illuminate\Http\Request $request) {
         $payload = $request->validate([
@@ -7821,7 +7821,6 @@ Route::group([
             'settlement_status' => (string)(($result['settlement_status'] ?? ($result['order']->settlement_status ?? 'paid'))),
             'settled_amount' => (float)(($result['settled_amount'] ?? ($result['order']->settled_amount ?? 0))),
         ]);
-    });
     });
 });
 // === /QR PAY LATER ACTIVE API ROUTES ===
