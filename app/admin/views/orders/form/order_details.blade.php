@@ -92,10 +92,16 @@ if ($pmdHasSplitTables) {
     }
 }
 
-// گرفتن مالیات و جمع کل
-$taxAmount = floatval($formModel->tax_amount ?? 0);
-$subtotal = floatval($formModel->subtotal ?? 0);
-$finalTotal = floatval($formModel->total ?? ($subtotal + $taxAmount));
+// Canonical totals from persisted order_totals/order_total
+$totals = collect($formModel->getOrderTotals() ?? []);
+$subtotal = (float) optional($totals->firstWhere('code', 'subtotal'))->value;
+$taxRow = $totals->firstWhere('code', 'tax');
+$taxAmount = (float) optional($taxRow)->value;
+$taxTitle = (string) (optional($taxRow)->title ?? 'VAT');
+$finalTotal = (float) optional($totals->firstWhere('code', 'total'))->value;
+if ($finalTotal <= 0) {
+    $finalTotal = (float) ($formModel->order_total ?? ($subtotal + $taxAmount));
+}
 @endphp
 
 {{-- نمایش سفارشات تقسیم‌شده --}}
@@ -144,10 +150,12 @@ $finalTotal = floatval($formModel->total ?? ($subtotal + $taxAmount));
 <td>Subtotal</td>
 <td>{{ currency_format($subtotal) }}</td>
 </tr>
+@if ($taxAmount > 0)
 <tr>
-<td>VAT included</td>
+<td>{{ $taxTitle }}</td>
 <td>{{ currency_format($taxAmount) }}</td>
 </tr>
+@endif
 <tr>
 <td>Total</td>
 <td>{{ currency_format($finalTotal) }}</td>
