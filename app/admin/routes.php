@@ -41,7 +41,7 @@ App::before(function () {
                 $host = request()->getHost();
                 $tenantFromDb = DB::connection('mysql')->table('tenants')
                     ->where('domain', $host)
-                    ->where('status', 'active')
+                    ->where('status', 'new')
                     ->first();
                 
                 if ($tenantFromDb && !empty($tenantFromDb->domain)) {
@@ -5396,7 +5396,7 @@ return response()->json([
                         'table_id' => (int)($request->table_id ?? 0),
                         'table_name' => (string)($request->table_name ?? ''),
                         'payload' => json_encode($notificationPayload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-                        'status' => 'active',
+                        'status' => 'new',
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
