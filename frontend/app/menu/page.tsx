@@ -1173,6 +1173,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         tip_amount: Number(tipAmount || 0),
         coupon_code: appliedCoupon?.code ? String(appliedCoupon.code) : null,
         coupon_discount: Number(couponDiscount || 0),
+        guest_session_id: ensureGuestSession(),
         special_instructions: "",
       }
 
@@ -1180,7 +1181,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (existingLocalOrder?.orderId) {
         ;(orderData as any).existing_order_id = Number(existingLocalOrder.orderId)
         ;(orderData as any).append_to_order = true
-        ;(orderData as any).guest_session_id = ensureGuestSession()
       }
       const paymentOrderIdCandidate = existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null
       if (checkoutStep === "payment" && !paymentOrderIdCandidate) {

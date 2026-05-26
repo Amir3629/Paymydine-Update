@@ -5324,6 +5324,11 @@ return response()->json([
             // === PMD_BILLING_SNAPSHOT_WRITE_END ===
 
 
+            $canonicalOrderTotal = round((float) DB::table('order_totals')
+                ->where('order_id', $orderId)
+                ->where('code', 'total')
+                ->value('value'), 4);
+
             $writtenTotalsCount = DB::table('order_totals')
                 ->where('order_id', $orderId)
                 ->count();
@@ -5371,11 +5376,59 @@ return response()->json([
             DB::table('orders')
                 ->where('order_id', $orderId)
                 ->update([
-                    'order_total' => $orderTotal,
+                    'order_total' => $canonicalOrderTotal > 0 ? $canonicalOrderTotal : $orderTotal,
                     'total_items' => DB::table('order_menus')->where('order_id', $orderId)->sum('quantity'),
                     'estimated_prep_minutes' => isset($etaResult['eta_minutes']) ? (int)$etaResult['eta_minutes'] : null,
                     'updated_at' => now(),
                 ]);
+
+            if ($appendToOrder && !$isAppendFlow) {
+                $appendRejectReason = 'missing_existing_order';
+                if (!$existingOrderId) {
+                    $appendRejectReason = 'missing_existing_order';
+                } elseif ($guestSessionId === '') {
+                    $appendRejectReason = 'missing_guest_session_in_request';
+                } else {
+                    $candidateOrderForLog = DB::table('orders')
+                        ->where('order_id', $existingOrderId)
+                        ->where('location_id', $request->location_id ?? 1)
+                        ->first();
+
+                    if (!$candidateOrderForLog) {
+                        $appendRejectReason = 'missing_existing_order';
+                    } else {
+                        $paidOrSettled = !empty($candidateOrderForLog->settled_at)
+                            || in_array(strtolower((string)($candidateOrderForLog->settlement_status ?? '')), ['paid', 'settled'], true)
+                            || (float)($candidateOrderForLog->settled_amount ?? 0) >= (float)($candidateOrderForLog->order_total ?? 0)
+                            || (int)($candidateOrderForLog->status_id ?? 0) === 10;
+                        if ($paidOrSettled) {
+                            $appendRejectReason = 'paid_or_settled';
+                        } else {
+                            $expectedContext = (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)));
+                            if ((string)($candidateOrderForLog->order_type ?? '') !== $expectedContext) {
+                                $appendRejectReason = 'context_mismatch';
+                            } else {
+                                $storedGuestSessionIdForLog = '';
+                                if (preg_match('/\[guest_session:([^\]]+)\]/', (string)($candidateOrderForLog->comment ?? ''), $guestMatchesForLog)) {
+                                    $storedGuestSessionIdForLog = trim((string)($guestMatchesForLog[1] ?? ''));
+                                }
+                                if ($storedGuestSessionIdForLog === '') {
+                                    $appendRejectReason = 'missing_guest_session_on_order';
+                                } elseif (!hash_equals($storedGuestSessionIdForLog, $guestSessionId)) {
+                                    $appendRejectReason = 'guest_session_mismatch';
+                                }
+                            }
+                        }
+                    }
+                }
+                \Log::warning('PMD_APPEND_REJECTED', [
+                    'reason' => $appendRejectReason,
+                    'existing_order_id' => $existingOrderId,
+                    'new_order_id' => $orderId,
+                    'location_id' => $request->location_id ?? 1,
+                    'table_id' => $request->table_id ?? null,
+                ]);
+            }
 
             if ($isAppendFlow) {
                 $notificationPayload = [
@@ -5386,7 +5439,7 @@ return response()->json([
                 $existingAppendNotification = DB::table('notifications')
                     ->where('type', 'order_append')
                     ->where('title', 'Customer added new items to order #'.$orderId)
-                    ->where('status', 'active')
+                    ->where('status', 'new')
                     ->where('created_at', '>=', now()->subSeconds(10))
                     ->first();
                 if (!$existingAppendNotification) {
