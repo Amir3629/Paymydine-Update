@@ -7437,11 +7437,7 @@ html[data-theme="vibrant-colors"] span.pmd-v2-badge {
 }
 
 /* 3) Food modal overlay in all themes: only blur, no blue/black/color layer */
-[data-pmd-food-modal-overlay="true"],
-html[data-theme] [data-pmd-food-modal-overlay="true"],
-div[data-pmd-food-modal-overlay="true"],
-.fixed[data-pmd-food-modal-overlay="true"],
-[data-pmd-food-modal-overlay="true"].bg-black\/70 {
+html[data-theme] [data-pmd-food-modal-overlay="true"] {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
@@ -7449,35 +7445,9 @@ div[data-pmd-food-modal-overlay="true"],
   -webkit-backdrop-filter: blur(16px) saturate(110%) !important;
 }
 
-/* Do not let overlay recolor page behind modal */
-html[data-theme] body:has([data-pmd-food-modal-overlay="true"]) .pmd-v2-page,
-html[data-theme] body:has([data-pmd-food-modal-overlay="true"]) .page--menu {
-  background: var(--pmd-v2-page-bg, var(--theme-background)) !important;
-  background-color: var(--pmd-v2-page-bg, var(--theme-background)) !important;
-  background-image: none !important;
-}
-
 /* PMD FINAL FLICKER BADGE MODAL OVERLAY FIX END */
 
 /* PMD FINAL CLEAN BG + MINIMAL PLUS FIRST PAINT START */
-
-/* Clean Light: force page backgrounds on home/menu/valet */
-html[data-theme="clean-light"],
-html[data-theme="clean-light"] body,
-html[data-theme="clean-light"] main,
-html[data-theme="clean-light"] .pmd-v2-page,
-html[data-theme="clean-light"] .page--home,
-html[data-theme="clean-light"] .page--menu,
-html[data-theme="clean-light"] .page--valet,
-html[data-theme="clean-light"] [class*="page--home"],
-html[data-theme="clean-light"] [class*="page--menu"],
-html[data-theme="clean-light"] [class*="page--valet"] {
-  --pmd-v2-page-bg: #ffeee2;
-  --theme-background: #ffeee2;
-  background: #ffeee2 !important;
-  background-color: #ffeee2 !important;
-  background-image: none !important;
-}
 
 /* Minimal: small top-right plus must have circle frame from first paint */
 html[data-theme="minimal"] button[aria-label="Increase quantity"]:not(.quantity-btn),
@@ -7520,54 +7490,48 @@ html[data-theme="minimal"] button[aria-label="Increase quantity"]:not(.quantity-
 
 /* PMD FINAL CLEAN BG + MINIMAL PLUS FIRST PAINT END */
 
-/* PMD ABSOLUTE FINAL CLEAN LIGHT BACKGROUND SOURCE FIX START */
-html[data-theme="clean-light"],
-html[data-theme="clean-light"] body,
-html[data-theme="clean-light"] main,
-html[data-theme="clean-light"] .pmd-v2-page,
-html[data-theme="clean-light"] .page--home,
-html[data-theme="clean-light"] .page--menu,
-html[data-theme="clean-light"] .page--valet {
-  --pmd-v2-page-bg: #ffeee2;
-  --theme-background: #ffeee2;
-  background: #ffeee2 !important;
-  background-color: #ffeee2 !important;
-  background-image: none !important;
-}
-/* PMD ABSOLUTE FINAL CLEAN LIGHT BACKGROUND SOURCE FIX END */
-
-/* PMD CLEAN LIGHT RUNTIME BG FORCE CSS START */
-html[data-theme="clean-light"],
-html[data-theme="clean-light"] body,
-html[data-theme="clean-light"] main,
-html[data-theme="clean-light"] .pmd-v2-page,
+/* Consolidated scoped customer surface stabilization */
 html[data-theme="clean-light"] .page--home,
 html[data-theme="clean-light"] .page--menu,
 html[data-theme="clean-light"] .page--valet,
-html[data-theme="clean-light"] [data-pmd-clean-light-guard] {
+html[data-theme="clean-light"] .page--home .min-h-screen,
+html[data-theme="clean-light"] .page--menu .min-h-screen,
+html[data-theme="clean-light"] .page--valet .min-h-screen {
   --pmd-v2-page-bg: #ffeee2;
   --theme-background: #ffeee2;
   background: #ffeee2 !important;
   background-color: #ffeee2 !important;
   background-image: none !important;
 }
-/* PMD CLEAN LIGHT RUNTIME BG FORCE CSS END */
 
-/* PMD FINAL CLEAN LIGHT FAFAFA OVERRIDE FIX START */
-html[data-theme="clean-light"],
-html[data-theme="clean-light"] body,
-html[data-theme="clean-light"] main,
-html[data-theme="clean-light"] .pmd-v2-page,
-html[data-theme="clean-light"] .page--home,
-html[data-theme="clean-light"] .page--menu,
-html[data-theme="clean-light"] .page--valet {
-  --pmd-v2-page-bg: #ffeee2;
-  --theme-background: #ffeee2;
-  background: #ffeee2 !important;
-  background-color: #ffeee2 !important;
-  background-image: none !important;
+/* Main customer cards get visible frame by theme action border */
+html[data-theme] .page--home .home-action-card,
+html[data-theme] .page--menu .pmd-v2-card,
+html[data-theme] .page--menu [data-pmd-review-submit],
+html[data-theme] .page--valet .pmd-v2-card {
+  border-color: var(--pmd-v2-action-border, var(--theme-border)) !important;
 }
-/* PMD FINAL CLEAN LIGHT FAFAFA OVERRIDE FIX END */
+
+/* Checkout top header is part of checkout card; no separate frame */
+html[data-theme] .page--menu [data-pmd-review-submit] > .sticky.top-0:first-child {
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Checkout selected item rows follow theme frame color */
+html[data-theme] .page--menu [data-pmd-review-submit] .space-y-2 > div.rounded-lg {
+  border-color: var(--pmd-v2-action-border, var(--theme-border)) !important;
+}
+
+/* Gold/Modern valet card readability */
+html[data-theme="modern-dark"] .page--valet .dark-surface,
+html[data-theme="gold-luxury"] .page--valet .dark-surface {
+  background: var(--theme-input) !important;
+  background-color: var(--theme-input) !important;
+}
 
 /* PMD FINAL VALET CAR ICON CIRCLE ALL THEMES START */
 /* Valet top car icon must always sit inside a proper circle frame in every theme */
