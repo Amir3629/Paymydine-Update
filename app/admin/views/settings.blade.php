@@ -24,7 +24,6 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-mobile-sidebar-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-sidebar-visibility-fix.css') }}?ver={{ time() }}">
     <!-- Blue Buttons Override - Replace all green buttons with login button style -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?ver={{ time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?ver={{ time() }}">
     <!-- CRITICAL: Inject curve fix element IMMEDIATELY - runs before DOMContentLoaded -->
@@ -33,8 +32,6 @@
     <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?ver={{ time() }}" defer></script>
     <!-- Mobile Sidebar Toggle -->
     <script src="{{ asset('app/admin/assets/js/mobile-sidebar-toggle.js') }}?ver={{ time() }}" defer></script>
-    <!-- Force Blue Buttons Override -->
-    <script src="{{ asset('app/admin/assets/js/force-blue-buttons.js') }}?ver={{ time() }}"></script>
 </head>
 
 <body class="nk-body bg-lighter npc-general has-sidebar ">
