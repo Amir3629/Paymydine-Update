@@ -1209,6 +1209,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
             return
           }
+          if (isStripeMethodForSubmit) {
+            if (!stripePaymentIntentId) {
+              throw new Error("Stripe payment confirmation is missing")
+            }
+            await apiClient.finalizeExistingOrderPayment({
+              order_id: Number(paymentOrderIdCandidate),
+              payment_intent_id: String(stripePaymentIntentId),
+              payment_method: String(effectiveMethodCode || "card"),
+              provider: selectedProviderCodeForSubmit || "stripe",
+            })
+          }
           markOpenOrderAsPaid(paymentOrderIdCandidate)
           setCheckoutStep("paid")
           setIsLoading(false)

@@ -7763,6 +7763,12 @@ Route::group([
         }
 
         if (($intent->status ?? '') !== 'succeeded') {
+            \Log::warning('PMD finalize-payment not succeeded', [
+                'order_id' => (int)$payload['order_id'],
+                'provider' => strtolower((string)($payload['provider'] ?? 'stripe')),
+                'payment_intent_id' => $paymentIntentId,
+                'intent_status' => (string)($intent->status ?? 'unknown'),
+            ]);
             return response()->json(['success' => false, 'error' => 'Payment is not completed yet'], 422);
         }
 
@@ -7788,8 +7794,6 @@ Route::group([
             $lockedOrder->settlement_method = strtolower((string)($payload['payment_method'] ?? 'card'));
             $lockedOrder->settlement_reference = $paymentIntentId;
             $lockedOrder->stripe_payment_intent_id = $paymentIntentId;
-            $lockedOrder->payment_provider = strtolower((string)($payload['provider'] ?? 'stripe'));
-            $lockedOrder->payment_reference = $paymentIntentId;
             $lockedOrder->save();
 
             if (\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
@@ -7802,9 +7806,37 @@ Route::group([
                         'order_id' => (int)$lockedOrder->order_id,
                         'payment_method' => strtolower((string)($payload['payment_method'] ?? 'card')),
                         'payment_reference' => $paymentIntentId,
-                        'amount' => $newSettled,
-                        'settlement_status' => $newStatus,
+                        'amount' => $paidAmount,
+                        'settlement_status' => $newStatus === 'paid' ? 'paid' : $newStatus,
                         'paid_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            if ($newStatus === 'paid' && \Illuminate\Support\Facades\Schema::hasTable('notifications')) {
+                $existingPaymentNotification = \Illuminate\Support\Facades\DB::table('notifications')
+                    ->where('type', 'order_payment_success')
+                    ->where('order_id', (int)$lockedOrder->order_id)
+                    ->where('status', 'new')
+                    ->exists();
+
+                if (!$existingPaymentNotification) {
+                    \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                        'type' => 'order_payment_success',
+                        'title' => 'Payment received for order #'.(int)$lockedOrder->order_id,
+                        'order_id' => (int)$lockedOrder->order_id,
+                        'table_id' => $lockedOrder->table_id ? (string)$lockedOrder->table_id : null,
+                        'table_name' => (string)($lockedOrder->order_type ?? ''),
+                        'payload' => json_encode([
+                            'order_id' => (int)$lockedOrder->order_id,
+                            'payment_method' => strtolower((string)($payload['payment_method'] ?? 'card')),
+                            'provider' => strtolower((string)($payload['provider'] ?? 'stripe')),
+                            'payment_intent_id' => $paymentIntentId,
+                            'settled_amount' => $newSettled,
+                        ], JSON_UNESCAPED_UNICODE),
+                        'status' => 'new',
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
