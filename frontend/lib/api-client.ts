@@ -420,10 +420,19 @@ export class ApiClient {
           parsedBody = null;
         }
 
-        console.error('[PMD submitOrder non-200]', {
-          status: response.status,
-          body: parsedBody ?? responseText,
-        });
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[PMD submitOrder non-200]', {
+            status: response.status,
+            message: parsedBody?.message || parsedBody?.error || null,
+            details: parsedBody?.details || null,
+            body: parsedBody ?? responseText,
+          });
+        } else {
+          console.error('[PMD submitOrder non-200]', {
+            status: response.status,
+            message: parsedBody?.message || parsedBody?.error || 'Request failed',
+          });
+        }
 
         const apiMessage = parsedBody?.message || parsedBody?.error || `HTTP error! status: ${response.status}`;
         const error = new Error(apiMessage) as Error & { status?: number; details?: Record<string, string[]> };

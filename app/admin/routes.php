@@ -7730,5 +7730,97 @@ Route::group([
             'payment_method' => $method,
         ]);
     });
+
+    Route::post('/orders/finalize-payment', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'order_id' => 'required|integer|min:1',
+            'payment_intent_id' => 'required|string|max:255',
+            'payment_method' => 'nullable|string|max:50',
+            'provider' => 'nullable|string|max:50',
+        ]);
+
+        $order = \Admin\Models\Orders_model::query()->where('order_id', (int)$payload['order_id'])->first();
+        if (!$order) return response()->json(['success' => false, 'error' => 'Order not found'], 404);
+        if (strtolower((string)($order->payment ?? '')) === 'qr_pay_later') {
+            return response()->json(['success' => false, 'error' => 'Use pay-existing for qr_pay_later orders'], 422);
+        }
+
+        $paymentIntentId = trim((string)$payload['payment_intent_id']);
+        $payment = \Admin\Models\Payments_model::isEnabled()->where('code', 'stripe')->first();
+        if (!$payment) return response()->json(['success' => false, 'error' => 'Stripe not configured'], 404);
+
+        $data = (array)$payment->data;
+        $mode = $data['transaction_mode'] ?? 'test';
+        $secretKey = $mode === 'live' ? ($data['live_secret_key'] ?? null) : ($data['test_secret_key'] ?? null);
+        if (!$secretKey) return response()->json(['success' => false, 'error' => 'Stripe secret key not configured'], 503);
+
+        try {
+            \Stripe\Stripe::setApiKey($secretKey);
+            $intent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+        } catch (\Throwable $e) {
+            \Log::warning('PMD finalize-payment stripe retrieve failed', ['order_id' => (int)$payload['order_id'], 'payment_intent_id' => $paymentIntentId, 'message' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Unable to verify payment intent'], 422);
+        }
+
+        if (($intent->status ?? '') !== 'succeeded') {
+            return response()->json(['success' => false, 'error' => 'Payment is not completed yet'], 422);
+        }
+
+        $result = \Illuminate\Support\Facades\DB::transaction(function () use ($order, $payload, $paymentIntentId, $intent) {
+            $lockedOrder = \Admin\Models\Orders_model::query()->where('order_id', (int)$order->order_id)->lockForUpdate()->firstOrFail();
+            $orderTotal = round((float)($lockedOrder->order_total ?? 0), 4);
+            $currentSettled = max(0, round((float)($lockedOrder->settled_amount ?? 0), 4));
+            $currentStatus = strtolower((string)($lockedOrder->settlement_status ?? 'unpaid'));
+
+            if ($currentStatus === 'paid' || ($orderTotal > 0 && $currentSettled >= $orderTotal - 0.0001)) {
+                return ['already_paid' => true, 'order' => $lockedOrder];
+            }
+
+            $paidAmount = round(((float)($intent->amount_received ?? 0)) / 100, 4);
+            if ($paidAmount <= 0) $paidAmount = $orderTotal;
+            $newSettled = $orderTotal > 0 ? min($orderTotal, $paidAmount) : $paidAmount;
+            $newStatus = ($orderTotal <= 0 || $newSettled >= $orderTotal - 0.0001) ? 'paid' : 'partial';
+
+            $lockedOrder->settlement_status = $newStatus;
+            $lockedOrder->settled_amount = $newSettled;
+            $lockedOrder->settled_at = $newStatus === 'paid' ? now() : $lockedOrder->settled_at;
+            $lockedOrder->processed = $newStatus === 'paid' ? 1 : (int)($lockedOrder->processed ?? 0);
+            $lockedOrder->settlement_method = strtolower((string)($payload['payment_method'] ?? 'card'));
+            $lockedOrder->settlement_reference = $paymentIntentId;
+            $lockedOrder->stripe_payment_intent_id = $paymentIntentId;
+            $lockedOrder->payment_provider = strtolower((string)($payload['provider'] ?? 'stripe'));
+            $lockedOrder->payment_reference = $paymentIntentId;
+            $lockedOrder->save();
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')) {
+                $existsTx = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                    ->where('order_id', (int)$lockedOrder->order_id)
+                    ->where('payment_reference', $paymentIntentId)
+                    ->exists();
+                if (!$existsTx) {
+                    \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insert([
+                        'order_id' => (int)$lockedOrder->order_id,
+                        'payment_method' => strtolower((string)($payload['payment_method'] ?? 'card')),
+                        'payment_reference' => $paymentIntentId,
+                        'amount' => $newSettled,
+                        'settlement_status' => $newStatus,
+                        'paid_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            return ['already_paid' => false, 'order' => $lockedOrder, 'settled_amount' => $newSettled, 'settlement_status' => $newStatus];
+        });
+
+        return response()->json([
+            'success' => true,
+            'order_id' => (int)$order->order_id,
+            'already_paid' => (bool)($result['already_paid'] ?? false),
+            'settlement_status' => (string)(($result['settlement_status'] ?? ($result['order']->settlement_status ?? 'paid'))),
+            'settled_amount' => (float)(($result['settled_amount'] ?? ($result['order']->settled_amount ?? 0))),
+        ]);
+    });
 });
 // === /QR PAY LATER ACTIVE API ROUTES ===

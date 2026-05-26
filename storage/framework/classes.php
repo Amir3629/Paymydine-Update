@@ -176,4 +176,8 @@
   'Admin\\Controllers\\tables' => 'app/admin/controllers/Tables.php',
   'Admin\\Models\\Tables_model' => 'app/admin/models/Tables_model.php',
   'System\\Models\\Languages_model' => 'app/system/models/Languages_model.php',
+  'Admin\\Models\\Menu_item_options_model' => 'app/admin/models/Menu_item_options_model.php',
+  'Admin\\Models\\Addresses_model' => 'app/admin/models/Addresses_model.php',
+  'System\\Facades\\Country' => 'app/system/facades/Country.php',
+  'System\\Libraries\\Country' => 'app/system/libraries/Country.php',
 );
