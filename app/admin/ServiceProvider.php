@@ -20,6 +20,8 @@ use System\Classes\MailManager;
 use System\Libraries\Assets;
 use System\Models\Settings_model;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Admin\Controllers\SuperAdminController;
 use App\Helpers\TenantContextHelper;
 
@@ -54,6 +56,37 @@ class ServiceProvider extends AppServiceProvider
         $this->registerActivityTypes();
         $this->registerMailTemplates();
         $this->registerSchedule();
+        Route::middleware('web')
+        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class])
+        ->group(function () {
+            // Keep working Super Admin GET routes
+            Route::get('/superadmin/new', [SuperAdminController::class, 'showNewPage'])->name('superadmin.new')->middleware('superadmin.auth');
+            Route::get('/superadmin/index', [SuperAdminController::class, 'showIndex'])->name('superadmin.index')->middleware('superadmin.auth');
+            Route::get('/superadmin/settings', [SuperAdminController::class, 'settings'])->name('superadmin.settings')->middleware('superadmin.auth');
+            Route::get('/superadmin/location-requests', [SuperAdminController::class, 'locationRequests'])->name('superadmin.location-requests')->middleware('superadmin.auth');
+
+            // Super Admin auth endpoints remain unprotected
+            Route::get('/superadmin/login', [SuperAdminController::class, 'login'])->name('login.new');
+            Route::post('/superadmin/sign', [SuperAdminController::class, 'sign']);
+            Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut']);
+
+            // Ensure scoped tenant management routes are in same web/session layer
+            Route::post('/superadmin/new/store', [SuperAdminController::class, 'store'])->name('superadmin.store.scoped')->middleware('superadmin.auth');
+            Route::get('/superadmin/new/store', function () {
+                return redirect('/superadmin/new');
+            })->middleware('superadmin.auth');
+
+            Route::post('/superadmin/tenants/update', [SuperAdminController::class, 'update'])->name('tenants.update.scoped')->middleware('superadmin.auth');
+            Route::get('/superadmin/tenants/delete/{id}', [SuperAdminController::class, 'delete'])->name('tenants.delete.scoped')->middleware('superadmin.auth');
+
+            Route::post('/superadmin/tenant/update-status', function (Request $request) {
+                $id = $request->input('id');
+                $status = $request->input('status') === 'activate' ? 'active' : 'disabled';
+                $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+                return response()->json($updated ? ['success' => true] : ['success' => false, 'error' => 'Failed to update']);
+            })->name('tenant.update-status.scoped')->middleware('superadmin.auth');
+        });
+
         if ($this->app->runningInAdmin()) {
             $this->registerSystemSettings();
             $this->registerFiskalySettingsBridge();
@@ -1091,4 +1124,3 @@ class ServiceProvider extends AppServiceProvider
         });
     }
 }
-
