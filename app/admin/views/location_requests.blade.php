@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-scrollbar-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-spacing-fix.css') }}?ver={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-mobile-sidebar-fix.css') }}?ver={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/superadmin-sidebar-visibility-fix.css') }}?ver={{ time() }}">
     <!-- Blue Buttons Override - Replace all green buttons with login button style -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?ver={{ time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
@@ -161,21 +162,21 @@
                         <div class="nk-sidebar-menu" data-simplebar>
                             <ul class="nk-menu">
                                 <li class="nk-menu-item">
-                                    <a href="/superadmin/index" class="nk-menu-link">
+                                    <a href="/superadmin/index" class="nk-menu-link {{ request()->is('superadmin/index') ? 'active' : '' }}">
                                         <span class="nk-menu-icon"><em class="icon ni ni-dashboard-fill"></em></span>
                                         <span class="nk-menu-text">Dashboard</span>
                                     </a>
                                 </li><!-- .nk-menu-item -->
                               
                                 <li class="nk-menu-item">
-                                    <a href="/superadmin/new" class="nk-menu-link">
+                                    <a href="/superadmin/new" class="nk-menu-link {{ request()->is('superadmin/new') ? 'active' : '' }}">
                                         <span class="nk-menu-icon"><em class="icon ni ni-user-list-fill"></em></span>
                                         <span class="nk-menu-text">Restaurants</span>
                                     </a>
                                 </li><!-- .nk-menu-item -->
 
                                 <li class="nk-menu-item">
-                                    <a href="/superadmin/location-requests" class="nk-menu-link">
+                                    <a href="/superadmin/location-requests" class="nk-menu-link {{ request()->is('superadmin/location-requests') ? 'active' : '' }}">
                                         <span class="nk-menu-icon"><em class="icon ni ni-map-pin-fill"></em></span>
                                         <span class="nk-menu-text">Location Requests</span>
                                     </a>
@@ -183,7 +184,7 @@
                              
                             
                                 <li class="nk-menu-item">
-                                    <a href="/superadmin/settings" class="nk-menu-link">
+                                    <a href="/superadmin/settings" class="nk-menu-link {{ request()->is('superadmin/settings') ? 'active' : '' }}">
                                         <span class="nk-menu-icon"><em class="icon ni ni-setting-alt-fill"></em></span>
                                         <span class="nk-menu-text">Settings</span>
                                     </a>
