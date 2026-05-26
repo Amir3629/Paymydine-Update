@@ -25,7 +25,9 @@ class SuperAdminController  extends AdminController
         return view('index');
     }
 public function login(){
-
+    if (Session::has('superadmin_id')) {
+        return redirect('/superadmin/index');
+    }
     return view('login');
 }
 public function sign(Request $request)
@@ -48,14 +50,16 @@ public function sign(Request $request)
         Session::put('superadmin_id', $superAdmin->id);
         Session::put('superadmin_username', $superAdmin->username);
         Session::save(); // Force session to save!
-      
-        $fakeRequest = new Request([
-            'per_page' => 5,  // Set default pagination
-            'order' => 'DESC'  // Set default order
-        ]);
-    
-        // Manually call the showNewPage function
-        return $this->showNewPage($fakeRequest);
+
+        \Log::info('superadmin_login_success', ['superadmin_id' => $superAdmin->id]);
+
+        $intendedUrl = Session::pull('superadmin_intended_url');
+        if (!$intendedUrl || str_contains($intendedUrl, '/superadmin/new/store') || str_contains($intendedUrl, '/superadmin/sign')) {
+            $intendedUrl = '/superadmin/index';
+        }
+
+        \Log::info('superadmin_login_redirect', ['to' => $intendedUrl]);
+        return redirect($intendedUrl);
     }
     public function signOut()
     {
@@ -67,7 +71,7 @@ public function sign(Request $request)
         Session::flush();
     
         // Redirect to login page
-        return view('login')->with(['message' => 'You have been logged out.']);
+        return redirect('/superadmin/login')->with(['message' => 'You have been logged out.']);
     }
     public function showNewPage(Request $request)
     {

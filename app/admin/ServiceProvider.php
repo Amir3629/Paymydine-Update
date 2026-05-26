@@ -54,17 +54,6 @@ class ServiceProvider extends AppServiceProvider
         $this->registerActivityTypes();
         $this->registerMailTemplates();
         $this->registerSchedule();
-        Route::middleware('web')
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class])
-        ->group(function () {
-            Route::get('/superadmin/new', [SuperAdminController::class, 'showNewPage'])->name('superadmin.new');
-            Route::post('/superadmin/sign', [SuperAdminController::class, 'sign']);
-            Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut']);
-            Route::get('/superadmin/settings', [SuperAdminController::class, 'settings'])->name('superadmin.settings');
-            Route::get('/superadmin/index', [SuperAdminController::class, 'showIndex'])->name('superadmin.index');
-            Route::get('/superadmin/location-requests', [SuperAdminController::class, 'locationRequests'])->name('superadmin.location-requests');
-
-        });
         if ($this->app->runningInAdmin()) {
             $this->registerSystemSettings();
             $this->registerFiskalySettingsBridge();
@@ -1102,5 +1091,4 @@ class ServiceProvider extends AppServiceProvider
         });
     }
 }
-
 
