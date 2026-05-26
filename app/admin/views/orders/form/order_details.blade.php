@@ -54,19 +54,26 @@ if ($pmdHasSplitTables) {
     $pmdTxIds = $pmdSplitTransactions->pluck('id')->all();
 
     if (!empty($pmdTxIds) && is_string($pmdAllocationColumn) && $pmdAllocationColumn !== '') {
+        $pmdSelectColumns = [
+            'ti.transaction_id',
+            'ti.quantity_paid',
+            'ti.unit_price',
+            'ti.line_total',
+            'om.name',
+            'om.menu_id',
+            'om.order_menu_id',
+        ];
+
+        if (Schema::hasColumn('order_menus', 'option_values')) {
+            $pmdSelectColumns[] = DB::raw('om.option_values as menu_options');
+        } elseif (Schema::hasColumn('order_payment_transaction_items', 'menu_options')) {
+            $pmdSelectColumns[] = 'ti.menu_options';
+        }
+
         $pmdItemRows = DB::table('order_payment_transaction_items as ti')
             ->leftJoin('order_menus as om', $pmdJoinLeft, '=', $pmdJoinRight)
             ->whereIn('ti.transaction_id', $pmdTxIds)
-            ->get([
-                'ti.transaction_id',
-                'ti.quantity_paid',
-                'ti.unit_price',
-                'ti.line_total',
-                'om.name',
-                'om.menu_id',
-                'om.order_menu_id',
-                'ti.menu_options'
-            ]);
+            ->get($pmdSelectColumns);
 
         foreach ($pmdItemRows as $row) {
             $txId = (int)$row->transaction_id;
