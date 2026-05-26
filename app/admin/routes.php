@@ -378,15 +378,37 @@ App::before(function () {
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
 
-    Route::match(['get', 'post'], '/new/store', [SuperAdminController::class, 'store'])
-    ->name('superadmin.store')
+    Route::match(['get', 'post'], '/superadmin/new/store', [SuperAdminController::class, 'store'])
+    ->name('superadmin.store.scoped')
+    ->middleware('superadmin.auth')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
+    // Backward-compatible alias
+    Route::match(['get', 'post'], '/new/store', [SuperAdminController::class, 'store'])
+    ->name('superadmin.store')
+    ->middleware('superadmin.auth')
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    Route::match(['get', 'post'], '/superadmin/tenants/update', [SuperAdminController::class, 'update'])
+    ->name('tenants.update.scoped')
+    ->middleware('superadmin.auth')
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    // Backward-compatible alias
     Route::match(['get', 'post'], '/tenants/update', [SuperAdminController::class, 'update'])
     ->name('tenants.update')
+    ->middleware('superadmin.auth')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
     
+    Route::get('/superadmin/tenants/delete/{id}', [SuperAdminController::class, 'delete'])
+    ->name('tenants.delete.scoped')
+    ->middleware('superadmin.auth')
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    // Backward-compatible alias
     Route::get('/tenants/delete/{id}', [SuperAdminController::class, 'delete'])
+    ->name('tenants.delete')
+    ->middleware('superadmin.auth')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::get('/superadmin/login', [SuperAdminController::class, 'login'])
@@ -402,6 +424,22 @@ App::before(function () {
 
     Route::post('/superadmin/settings/update', [SuperAdminController::class, 'updateSettings'])->name('superadmin.update')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    Route::post('/superadmin/tenant/update-status', function (Request $request) {
+        $id = $request->input('id');
+        $status = $request->input('status') === 'activate' ? 'active' : 'disabled';
+    
+        $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+    
+        if ($updated) {
+            return response()->json(['success' => true]);
+        } else {
+            return response()->json(['success' => false, 'error' => 'Failed to update']);
+        }
+    })->name('tenant.update-status.scoped')
+    ->middleware('superadmin.auth')
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+
+    // Backward-compatible alias
     Route::post('/tenant/update-status', function (Request $request) {
         $id = $request->input('id');
         $status = $request->input('status') === 'activate' ? 'active' : 'disabled';
@@ -413,7 +451,9 @@ App::before(function () {
         } else {
             return response()->json(['success' => false, 'error' => 'Failed to update']);
         }
-    })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
+    })->name('tenant.update-status')
+    ->middleware('superadmin.auth')
+    ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
 
 

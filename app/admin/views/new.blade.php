@@ -473,7 +473,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
                                                                                 <li>
                                                                                     <a href="javascript:void(0);" 
                                                                                         class="delete-button"
-                                                                                        data-url="{{ url('/tenants/delete/' . $tenant->id) }}">
+                                                                                        data-url="{{ url('/superadmin/tenants/delete/' . $tenant->id) }}">
                                                                                         <em class="icon ni ni-trash"></em>
                                                                                         <span>Delete Restaurant</span>
                                                                                     </a>
@@ -773,7 +773,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
             // Set form action dynamically
             let form = document.getElementById("editTenantForm");
             let tenantId = this.getAttribute("data-id");
-            form.action = `{{ url('/tenants/update') }}`;
+            form.action = `{{ url('/superadmin/tenants/update') }}`;
             document.getElementById("edit-tenant-id").value = tenantId;
 
             // Populate fields
@@ -866,7 +866,7 @@ document.addEventListener("DOMContentLoaded", function() {
             
             console.log(`Clicked: Tenant ID = ${tenantId}, New Status = ${newStatus}`); // Debugging
 
-            fetch("{{ url('/tenant/update-status') }}", {
+            fetch("{{ url('/superadmin/tenant/update-status') }}", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -922,5 +922,4 @@ document.addEventListener("DOMContentLoaded", function() {
 </body>
 
 </html>
-
 
