@@ -576,7 +576,7 @@ TOTALS:
                         $displaySubtotal = round($__pmdDisplayedSubtotal, 2);
                         $displayTip = round((float)($tipTotal->value ?? 0), 2);
                         $displayDiscount = round((float)($couponTotal->value ?? 0), 2);
-                        $displayFinal = round($displaySubtotal + $displayTip + $displayDiscount, 2);
+                        $displayFinal = round((float)($finalTotal->value ?? ($model->order_total ?? ($displaySubtotal + $displayTip + $displayDiscount))), 2);
 
                         $displayItems = 0;
                         foreach (($model->getOrderMenusWithOptions() ?? []) as $__mi) {

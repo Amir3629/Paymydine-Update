@@ -41,7 +41,7 @@ App::before(function () {
                 $host = request()->getHost();
                 $tenantFromDb = DB::connection('mysql')->table('tenants')
                     ->where('domain', $host)
-                    ->where('status', 'active')
+                    ->where('status', 'new')
                     ->first();
                 
                 if ($tenantFromDb && !empty($tenantFromDb->domain)) {
@@ -4715,6 +4715,9 @@ return response()->json([
             $validationRules['payment_reference'] = 'nullable|string|max:255';
 
             $request->validate($validationRules);
+            $guestSessionId = trim((string)$request->input('guest_session_id', ''));
+            $existingOrderId = (int)$request->input('existing_order_id', 0);
+            $appendToOrder = filter_var($request->input('append_to_order', false), FILTER_VALIDATE_BOOLEAN);
 
             $frontendPaymentMethod = (string)($request->payment_method ?? '');
             $frontendPaymentMethodRaw = (string)($request->payment_method_raw ?? $frontendPaymentMethod);
@@ -4868,7 +4871,44 @@ return response()->json([
             if ($request->filled('special_instructions')) {
                 $comment .= "Special Instructions: " . $request->special_instructions;
             }
+            if ($guestSessionId !== '') {
+                $comment .= ($comment !== '' ? ' | ' : '') . '[guest_session:'.$guestSessionId.']';
+            }
             $comment = trim($comment, ' |');
+
+            $orderId = null;
+            $isAppendFlow = false;
+            if ($appendToOrder && $existingOrderId > 0) {
+                $candidateOrder = DB::table('orders')
+                    ->where('order_id', $existingOrderId)
+                    ->where('location_id', $request->location_id ?? 1)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($candidateOrder) {
+                    $isPaidOrSettled = !empty($candidateOrder->settled_at)
+                        || in_array(strtolower((string)($candidateOrder->settlement_status ?? '')), ['paid', 'settled'], true)
+                        || (float)($candidateOrder->settled_amount ?? 0) >= (float)($candidateOrder->order_total ?? 0);
+                    $sameTableContext = (string)($candidateOrder->order_type ?? '') === (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)));
+
+                    $storedGuestSessionId = '';
+                    if (preg_match('/\[guest_session:([^\]]+)\]/', (string)($candidateOrder->comment ?? ''), $guestMatches)) {
+                        $storedGuestSessionId = trim((string)($guestMatches[1] ?? ''));
+                    }
+
+                    if (
+                        !$isPaidOrSettled
+                        && (int)($candidateOrder->status_id ?? 0) !== 10
+                        && $sameTableContext
+                        && $guestSessionId !== ''
+                        && $storedGuestSessionId !== ''
+                        && hash_equals($storedGuestSessionId, $guestSessionId)
+                    ) {
+                        $orderId = (int)$candidateOrder->order_id;
+                        $isAppendFlow = true;
+                    }
+                }
+            }
 
             $insertData = [
                 'order_id' => $orderNumber,
@@ -4929,13 +4969,14 @@ return response()->json([
                 }
             }
 
-            $orderId = DB::table('orders')->insertGetId($insertData);
-            $order = \Admin\Models\Orders_model::find($orderId);
+            if (!$orderId) {
+                $orderId = DB::table('orders')->insertGetId($insertData);
+                $order = \Admin\Models\Orders_model::find($orderId);
 
-
-            if ($order) {
-                $order->processed = 1;
-                $order->save();
+                if ($order) {
+                    $order->processed = 1;
+                    $order->save();
+                }
             }
 
             $baseItemsSubtotal = 0.0;
@@ -5104,13 +5145,19 @@ return response()->json([
 
             $tipAmount = round((float)($request->tip_amount ?? 0), 4);
             $couponDiscount = round((float)($request->coupon_discount ?? 0), 4);
-            $orderTotal = round((float)($request->total_amount ?? 0), 4);
+            $taxEnabled = (string)setting('tax_mode', '0') === '1';
+            $taxPercent = max(0.0, round((float)setting('tax_percentage', 0), 4));
+            $taxMenuPrice = (string)setting('tax_menu_price', '1'); // 0=included, 1=add at checkout
 
-            
-            $taxAmount = round($orderTotal - $itemsSubtotal - $tipAmount + $couponDiscount, 4);
-// TAX REMOVED (replaced by snapshot)
-            if (abs($taxAmount) < 0.0001) {
-                // TAX REMOVED (replaced by snapshot)
+            $taxAmount = 0.0;
+            $orderTotal = round($itemsSubtotal + $tipAmount - $couponDiscount, 4);
+            if ($taxEnabled && $taxPercent > 0) {
+                if ($taxMenuPrice === '1') {
+                    $taxAmount = round($itemsSubtotal * ($taxPercent / 100), 4);
+                    $orderTotal = round($orderTotal + $taxAmount, 4);
+                } else {
+                    $taxAmount = round($itemsSubtotal - ($itemsSubtotal / (1 + ($taxPercent / 100))), 4);
+                }
             }
 
             DB::table('order_totals')->where('order_id', $orderId)->delete();
@@ -5172,10 +5219,7 @@ return response()->json([
 
             // === PMD_BILLING_SNAPSHOT_WRITE_START ===
             try {
-                $billingTaxMode = env('PMD_TAX_MODE', config('billing.tax_mode', 'included'));
-                if (!in_array($billingTaxMode, ['included', 'add_at_end'], true)) {
-                    $billingTaxMode = 'included';
-                }
+                $billingTaxMode = $taxMenuPrice === '1' ? 'add_at_end' : 'included';
 
                 $storeTaxPercent = (float) setting('tax_percentage', 0);
 
@@ -5280,6 +5324,11 @@ return response()->json([
             // === PMD_BILLING_SNAPSHOT_WRITE_END ===
 
 
+            $canonicalOrderTotal = round((float) DB::table('order_totals')
+                ->where('order_id', $orderId)
+                ->where('code', 'total')
+                ->value('value'), 4);
+
             $writtenTotalsCount = DB::table('order_totals')
                 ->where('order_id', $orderId)
                 ->count();
@@ -5327,10 +5376,85 @@ return response()->json([
             DB::table('orders')
                 ->where('order_id', $orderId)
                 ->update([
-                    'order_total' => $orderTotal,
+                    'order_total' => $canonicalOrderTotal > 0 ? $canonicalOrderTotal : $orderTotal,
+                    'total_items' => DB::table('order_menus')->where('order_id', $orderId)->sum('quantity'),
                     'estimated_prep_minutes' => isset($etaResult['eta_minutes']) ? (int)$etaResult['eta_minutes'] : null,
                     'updated_at' => now(),
                 ]);
+
+            if ($appendToOrder && !$isAppendFlow) {
+                $appendRejectReason = 'missing_existing_order';
+                if (!$existingOrderId) {
+                    $appendRejectReason = 'missing_existing_order';
+                } elseif ($guestSessionId === '') {
+                    $appendRejectReason = 'missing_guest_session_in_request';
+                } else {
+                    $candidateOrderForLog = DB::table('orders')
+                        ->where('order_id', $existingOrderId)
+                        ->where('location_id', $request->location_id ?? 1)
+                        ->first();
+
+                    if (!$candidateOrderForLog) {
+                        $appendRejectReason = 'missing_existing_order';
+                    } else {
+                        $paidOrSettled = !empty($candidateOrderForLog->settled_at)
+                            || in_array(strtolower((string)($candidateOrderForLog->settlement_status ?? '')), ['paid', 'settled'], true)
+                            || (float)($candidateOrderForLog->settled_amount ?? 0) >= (float)($candidateOrderForLog->order_total ?? 0)
+                            || (int)($candidateOrderForLog->status_id ?? 0) === 10;
+                        if ($paidOrSettled) {
+                            $appendRejectReason = 'paid_or_settled';
+                        } else {
+                            $expectedContext = (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)));
+                            if ((string)($candidateOrderForLog->order_type ?? '') !== $expectedContext) {
+                                $appendRejectReason = 'context_mismatch';
+                            } else {
+                                $storedGuestSessionIdForLog = '';
+                                if (preg_match('/\[guest_session:([^\]]+)\]/', (string)($candidateOrderForLog->comment ?? ''), $guestMatchesForLog)) {
+                                    $storedGuestSessionIdForLog = trim((string)($guestMatchesForLog[1] ?? ''));
+                                }
+                                if ($storedGuestSessionIdForLog === '') {
+                                    $appendRejectReason = 'missing_guest_session_on_order';
+                                } elseif (!hash_equals($storedGuestSessionIdForLog, $guestSessionId)) {
+                                    $appendRejectReason = 'guest_session_mismatch';
+                                }
+                            }
+                        }
+                    }
+                }
+                \Log::warning('PMD_APPEND_REJECTED', [
+                    'reason' => $appendRejectReason,
+                    'existing_order_id' => $existingOrderId,
+                    'new_order_id' => $orderId,
+                    'location_id' => $request->location_id ?? 1,
+                    'table_id' => $request->table_id ?? null,
+                ]);
+            }
+
+            if ($isAppendFlow) {
+                $notificationPayload = [
+                    'order_id' => (int)$orderId,
+                    'append_items_count' => count($request->items),
+                    'guest_session_id' => $guestSessionId,
+                ];
+                $existingAppendNotification = DB::table('notifications')
+                    ->where('type', 'order_append')
+                    ->where('title', 'Customer added new items to order #'.$orderId)
+                    ->where('status', 'new')
+                    ->where('created_at', '>=', now()->subSeconds(10))
+                    ->first();
+                if (!$existingAppendNotification) {
+                    DB::table('notifications')->insert([
+                        'type' => 'order_append',
+                        'title' => 'Customer added new items to order #'.$orderId,
+                        'table_id' => (int)($request->table_id ?? 0),
+                        'table_name' => (string)($request->table_name ?? ''),
+                        'payload' => json_encode($notificationPayload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                        'status' => 'new',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
 
             \Log::info('PMD_ACTIVE_ORDER_ETA_STORED', [
                 'order_id' => $orderId,
@@ -5441,10 +5565,53 @@ return response()->json([
                 'order_total' => $orderTotal,
             ]);
 
+            $combinedItems = DB::table('order_menus')
+                ->where('order_id', $orderId)
+                ->select(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal', 'comment', 'option_values'])
+                ->orderBy('order_menu_id')
+                ->get()
+                ->map(function ($row) {
+                    return [
+                        'order_menu_id' => (int)($row->order_menu_id ?? 0),
+                        'menu_id' => (int)($row->menu_id ?? 0),
+                        'name' => (string)($row->name ?? ''),
+                        'quantity' => (float)($row->quantity ?? 0),
+                        'price' => (float)($row->price ?? 0),
+                        'subtotal' => (float)($row->subtotal ?? 0),
+                        'comment' => (string)($row->comment ?? ''),
+                        'option_values' => $row->option_values,
+                    ];
+                })->values();
+
+            $combinedTotalsRows = DB::table('order_totals')
+                ->where('order_id', $orderId)
+                ->orderBy('priority')
+                ->get(['code', 'title', 'value', 'priority', 'is_summable']);
+
+            $combinedTotals = $combinedTotalsRows->mapWithKeys(function ($row) {
+                return [(string)$row->code => (float)$row->value];
+            });
+
+            $finalOrderTotal = round((float)($combinedTotals['total'] ?? $canonicalOrderTotal ?? $orderTotal), 4);
+            $settledAmount = round((float)DB::table('orders')->where('order_id', $orderId)->value('settled_amount'), 4);
+            $remainingAmount = round(max(0, $finalOrderTotal - $settledAmount), 4);
+            $settlementStatus = $remainingAmount <= 0.0001 ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid');
+
             return response()->json([
                 'success' => true,
                 'order_id' => $orderId,
                 'message' => 'Order placed successfully',
+                'order_total' => $finalOrderTotal,
+                'total' => $finalOrderTotal,
+                'total_items' => (int)DB::table('order_menus')->where('order_id', $orderId)->sum('quantity'),
+                'items' => $combinedItems,
+                'order_totals' => $combinedTotalsRows,
+                'settlement' => [
+                    'orderTotal' => $finalOrderTotal,
+                    'settledAmount' => $settledAmount,
+                    'remainingAmount' => $remainingAmount,
+                    'settlementStatus' => $settlementStatus,
+                ],
                 'eta_minutes' => $etaResult['eta_minutes'] ?? null,
                 'estimated_prep_minutes' => $etaResult['eta_minutes'] ?? null,
                 'show_customer_eta' => (bool)($etaResult['show_customer_eta'] ?? true),
@@ -7809,6 +7976,38 @@ Route::group([
                         'amount' => $paidAmount,
                         'settlement_status' => $newStatus === 'paid' ? 'paid' : $newStatus,
                         'paid_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('payment_logs')) {
+                $existingPaymentLog = \Illuminate\Support\Facades\DB::table('payment_logs')
+                    ->where('order_id', (int)$lockedOrder->order_id)
+                    ->where('payment_code', 'stripe')
+                    ->where('request', 'like', '%'.$paymentIntentId.'%')
+                    ->exists();
+
+                if (!$existingPaymentLog) {
+                    \Illuminate\Support\Facades\DB::table('payment_logs')->insert([
+                        'order_id' => (int)$lockedOrder->order_id,
+                        'payment_name' => 'Stripe Card',
+                        'message' => 'Payment received: €'.number_format((float)$paidAmount, 2, '.', ''),
+                        'request' => json_encode([
+                            'payment_intent_id' => $paymentIntentId,
+                            'provider' => strtolower((string)($payload['provider'] ?? 'stripe')),
+                            'payment_method' => strtolower((string)($payload['payment_method'] ?? 'card')),
+                        ], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                        'response' => json_encode([
+                            'amount' => (float)$paidAmount,
+                            'settled_amount' => (float)$newSettled,
+                            'settlement_status' => $newStatus,
+                            'is_paid' => $newStatus === 'paid',
+                        ], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                        'is_success' => 1,
+                        'payment_code' => 'stripe',
+                        'is_refundable' => 0,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);

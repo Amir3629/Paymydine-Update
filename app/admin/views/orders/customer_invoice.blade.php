@@ -107,28 +107,18 @@
     </style>
 </head>
 @php
-    $orderTotal = (float)($model->order_total ?? 0);
+    $orderTotals = collect($model->getOrderTotals() ?? []);
+    $orderTotal = (float)(optional($orderTotals->firstWhere('code', 'total'))->value ?? $model->order_total ?? 0);
     $statusName = strtolower((string)optional($model->status)->status_name);
     $isPaid = !empty($model->settled_at)
         || ($orderTotal > 0 && (float)($model->settled_amount ?? 0) >= $orderTotal)
         || ((bool)($model->processed ?? false) && in_array($statusName, ['paid', 'complete', 'completed'], true));
     $rows = $model->getOrderMenusWithOptions();
 
-    $taxEnabled = (string)($pmdSetting('tax_mode', '0')) === '1';
-    $taxPct = (float)($pmdSetting('tax_percentage', 0));
-    $taxMenuPrice = (string)($pmdSetting('tax_menu_price', '1')); // 0 included, 1 add on checkout
-
-    $subtotal = $orderTotal;
-    $vatAmount = null;
-    if ($taxEnabled && $taxPct > 0) {
-        if ($taxMenuPrice === '0') {
-            $vatAmount = $orderTotal * $taxPct / (100 + $taxPct);
-            $subtotal = $orderTotal - $vatAmount;
-        } else {
-            $subtotal = $orderTotal / (1 + ($taxPct / 100));
-            $vatAmount = $orderTotal - $subtotal;
-        }
-    }
+    $taxRow = $orderTotals->firstWhere('code', 'tax');
+    $subtotal = (float)(optional($orderTotals->firstWhere('code', 'subtotal'))->value ?? 0);
+    $vatAmount = (float)(optional($taxRow)->value ?? 0);
+    $taxTitle = (string)(optional($taxRow)->title ?? 'VAT');
 @endphp
 @php
 $receiptMode=(string)$pmdSetting('invoice_receipt_mode','1')==='1';
@@ -178,13 +168,9 @@ $auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
     <div class="sep"></div>
 
     <div class="small totals" style="line-height:1.5;">
-        @if($taxEnabled && $taxPct > 0 && $vatAmount !== null)
+        @if($vatAmount > 0)
             <div class="row"><span>Subtotal</span><strong>{{ number_format($subtotal, 2) }}</strong></div>
-            @if($taxMenuPrice === '0')
-                <div class="row"><span>VAT included ({{ rtrim(rtrim(number_format($taxPct,2,'.',''),'0'),'.') }}%)</span><span>{{ number_format($vatAmount,2) }}</span></div>
-            @else
-                <div class="row"><span>VAT {{ rtrim(rtrim(number_format($taxPct,2,'.',''),'0'),'.') }}%</span><span>{{ number_format($vatAmount,2) }}</span></div>
-            @endif
+            <div class="row"><span>{{ $taxTitle }}</span><span>{{ number_format($vatAmount,2) }}</span></div>
         @endif
         <div class="row total"><span>Total</span><strong>{{ number_format($orderTotal, 2) }}</strong></div>
     </div>

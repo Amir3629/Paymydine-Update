@@ -183,4 +183,5 @@
   'Admin\\Requests\\Table' => 'app/admin/requests/Table.php',
   'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
   'Admin\\Models\\Coupons_model' => 'app/admin/models/Coupons_model.php',
+  'Admin\\Controllers\\SuperAdminController' => 'app/admin/controllers/SuperAdminController.php',
 );
