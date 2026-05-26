@@ -180,4 +180,7 @@
   'Admin\\Models\\Addresses_model' => 'app/admin/models/Addresses_model.php',
   'System\\Facades\\Country' => 'app/system/facades/Country.php',
   'System\\Libraries\\Country' => 'app/system/libraries/Country.php',
+  'Admin\\Requests\\Table' => 'app/admin/requests/Table.php',
+  'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
+  'Admin\\Models\\Coupons_model' => 'app/admin/models/Coupons_model.php',
 );
