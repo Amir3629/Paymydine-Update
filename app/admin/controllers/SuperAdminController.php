@@ -95,6 +95,9 @@ public function sign(Request $request)
     // ✅ Handle form submission
     public function store(Request $request)
     {
+        $centralDatabase = Config::get('database.connections.mysql.database');
+        $databaseName = null;
+
         // Validate request
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -121,109 +124,128 @@ public function sign(Request $request)
         $country = $validated['country']; 
         $description = $validated['description'] ?? null; 
         $templateDb = 'newtenantdb'; 
-        $databaseExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", [$databaseName]);
+        \Log::info('tenant_create_start', ['tenant' => $tenantName, 'database' => $databaseName]);
 
-        if (count($databaseExists) > 0) { // ✅ Check if the array contains any results
-            return redirect(url('/superadmin/new?error=Database name already exists!'));
-        }
-        DB::connection('mysql')->table('tenants')->insert([
-            'name' => $tenantName,
-            'domain' => $domain,
-            'database' => $databaseName,
-            'email' => $email,
-            'phone' => $phone,
-            'start' => $start,
-            'end' => $end,
-            'type' => $type,
-            'country' => $country, 
-            'description' => $description, 
-            'status' =>  'active',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    
-        // ✅ Step 2: Create the new database
-        DB::statement("CREATE DATABASE `$databaseName`");
-
-        $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
-
-        foreach ($tables as $table) {
-            $tableName = array_values((array) $table)[0];
-        
-            // ✅ Get the table creation SQL
-            $createTableResult = DB::connection('mysql')->select("SHOW CREATE TABLE `$templateDb`.`$tableName`");
-            
-            if (!$createTableResult) {
-                \Log::error("Failed to get CREATE TABLE statement for: $tableName");
-                continue; // Skip this table
-            }
-        
-            $createTableQuery = $createTableResult[0]->{'Create Table'};
-        
-            // ✅ Replace source database name with new database name in query
-            $createTableQuery = str_replace("`$templateDb`.", "", $createTableQuery);
-        
-            // ✅ Execute the table creation query in the new database
-            DB::connection('mysql')->statement("USE `$databaseName`");
-            DB::connection('mysql')->statement($createTableQuery);
-        
-            // ✅ Copy data if the table has any rows
-            $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
-            if ($rowCount > 0) {
-                DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
-            }
-        }
-        // After cloning schema/data, switch to tenant DB and activate the frontend theme
         try {
-            Config::set('database.connections.mysql.database', $databaseName);
-            DB::purge('mysql');
-            DB::reconnect('mysql');
+            $databaseExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", [$databaseName]);
 
-            // Create default Cashier table for this tenant (idempotent)
-            $existingCashier = DB::table('tables')->where('table_name', 'Cashier')->first();
-            if (!$existingCashier) {
-                $cashierTableId = DB::table('tables')->insertGetId([
-                    'table_name' => 'Cashier',
-                    'min_capacity' => 1,
-                    'max_capacity' => 1,
-                    'table_status' => 1,
-                    'extra_capacity' => 0,
-                    'is_joinable' => 0,
-                    'priority' => 999, // High priority to appear at the end
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                    'qr_code' => 'cashier',
-                ]);
+            if (count($databaseExists) > 0) { // ✅ Check if the array contains any results
+                return redirect(url('/superadmin/new?error=Database name already exists!'));
+            }
+            DB::connection('mysql')->table('tenants')->insert([
+                'name' => $tenantName,
+                'domain' => $domain,
+                'database' => $databaseName,
+                'email' => $email,
+                'phone' => $phone,
+                'start' => $start,
+                'end' => $end,
+                'type' => $type,
+                'country' => $country, 
+                'description' => $description, 
+                'status' =>  'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        
+            // ✅ Step 2: Create the new database
+            DB::statement("CREATE DATABASE `$databaseName`");
 
-                // Link the cashier table to the default location (location_id = 1)
-                DB::table('locationables')->insert([
-                    'location_id' => 1,
-                    'locationable_id' => $cashierTableId,
-                    'locationable_type' => 'tables',
-                    'options' => null,
-                ]);
+            $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
+
+            foreach ($tables as $table) {
+                $tableName = array_values((array) $table)[0];
+            
+                // ✅ Get the table creation SQL
+                $createTableResult = DB::connection('mysql')->select("SHOW CREATE TABLE `$templateDb`.`$tableName`");
                 
-                \Log::info("Created Cashier table for tenant: $databaseName");
-            } else {
-                \Log::info("Cashier table already exists for tenant: $databaseName");
+                if (!$createTableResult) {
+                    \Log::error("Failed to get CREATE TABLE statement for: $tableName");
+                    continue; // Skip this table
+                }
+            
+                $createTableQuery = $createTableResult[0]->{'Create Table'};
+            
+                // ✅ Replace source database name with new database name in query
+                $createTableQuery = str_replace("`$templateDb`.", "", $createTableQuery);
+            
+                // ✅ Execute the table creation query in the new database
+                DB::connection('mysql')->statement("USE `$databaseName`");
+                DB::connection('mysql')->statement($createTableQuery);
+            
+                // ✅ Copy data if the table has any rows
+                $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
+                if ($rowCount > 0) {
+                    DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
+                }
+            }
+            // After cloning schema/data, switch to tenant DB and activate the frontend theme
+            try {
+                \Log::info('tenant_create_db_switch_to_tenant', ['database' => $databaseName]);
+                Config::set('database.connections.mysql.database', $databaseName);
+                DB::purge('mysql');
+                DB::reconnect('mysql');
+
+                // Create default Cashier table for this tenant (idempotent)
+                $existingCashier = DB::table('tables')->where('table_name', 'Cashier')->first();
+                if (!$existingCashier) {
+                    $cashierTableId = DB::table('tables')->insertGetId([
+                        'table_name' => 'Cashier',
+                        'min_capacity' => 1,
+                        'max_capacity' => 1,
+                        'table_status' => 1,
+                        'extra_capacity' => 0,
+                        'is_joinable' => 0,
+                        'priority' => 999, // High priority to appear at the end
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'qr_code' => 'cashier',
+                    ]);
+
+                    // Link the cashier table to the default location (location_id = 1)
+                    DB::table('locationables')->insert([
+                        'location_id' => 1,
+                        'locationable_id' => $cashierTableId,
+                        'locationable_type' => 'tables',
+                        'options' => null,
+                    ]);
+                    
+                    \Log::info("Created Cashier table for tenant: $databaseName");
+                } else {
+                    \Log::info("Cashier table already exists for tenant: $databaseName");
+                }
+
+                // Ensure filesystem themes are synced into tenant DB
+                Themes_model::syncAll();
+
+                // Activate our custom theme for this tenant
+                Themes_model::activateTheme('frontend-theme');
+            } catch (\Throwable $e) {
+                // Swallow to avoid breaking tenant creation; admin can fix manually if needed
+                \Log::error('Failed to activate theme for tenant '.$databaseName.': '.$e->getMessage());
+            } finally {
+                // Switch back to original central database
+                \Log::info('tenant_create_restore_central_db', ['database' => $centralDatabase]);
+                Config::set('database.connections.mysql.database', $centralDatabase);
+                DB::purge('mysql');
+                DB::reconnect('mysql');
             }
 
-            // Ensure filesystem themes are synced into tenant DB
-            Themes_model::syncAll();
-
-            // Activate our custom theme for this tenant
-            Themes_model::activateTheme('frontend-theme');
+            return redirect(url('/superadmin/new?success=Tenant created successfully!'));
         } catch (\Throwable $e) {
-            // Swallow to avoid breaking tenant creation; admin can fix manually if needed
-            \Log::error('Failed to activate theme for tenant '.$databaseName.': '.$e->getMessage());
+            \Log::error('tenant_create_failed', [
+                'tenant' => $tenantName ?? null,
+                'database' => $databaseName,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect(url('/superadmin/new?error=Unable to create tenant. Please try again.'));
         } finally {
-            // Switch back to main database
-            Config::set('database.connections.mysql.database', env('DB_DATABASE', 'paymydine'));
+            // Safety restore in all code paths before response/session handling
+            Config::set('database.connections.mysql.database', $centralDatabase);
             DB::purge('mysql');
             DB::reconnect('mysql');
         }
-
-        return redirect(url('/superadmin/new?success=Tenant created successfully!'));
 
         // ✅ Redirect back with success message
      //   return redirect(url('/superadmin/new'))->with('success', 'Tenant created successfully!');
