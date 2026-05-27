@@ -71,6 +71,7 @@
         var self = this
 
         this.fetchWidgets()
+        this.normalizePmdWidgetRoots()
 
         this.$el.on('click', '[data-control="remove-widget"]', function (event) {
             event.preventDefault()
@@ -114,6 +115,19 @@
         })
     }
 
+    DashboardContainer.prototype.normalizePmdWidgetRoots = function () {
+        if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return
+
+        var $roots = this.$el.find('#dashboardcontainer-container-list .widget-item.card.bg-light, .dashboard-widgets .widget-item.card.bg-light')
+        if (!$roots.length) return
+
+        $roots.each(function () {
+            var $root = $(this)
+            $root.removeClass('card bg-light shadow-sm p-3 no-padding')
+            $root.addClass('pmd-dashboard-widget-root')
+        })
+    }
+
     DashboardContainer.prototype.initSortable = function () {
         var self = this
 
@@ -139,6 +153,8 @@
             if (typeof Sortable !== 'undefined' && Sortable && typeof Sortable.create === 'function') {
                 self._sortableInstance = Sortable.create($sortableContainer.get(0), {
                     handle: '.handle',
+                    animation: 180,
+                    easing: 'cubic-bezier(0.2, 0, 0, 1)',
                     onSort: $.proxy(self.onSortWidgets, self)
                 })
                 return
@@ -175,15 +191,16 @@
         var self = this
         var dragSourceEl = null
         var dragArmedEl = null
+        var containerId = $sortableContainer.attr('id')
         var $sortItems = $sortableContainer.find('> .col')
-        var selector = self.options.sortableContainer + ' > .col'
+        var selector = containerId ? ('#' + containerId + ' > .col') : '.widget-list > .col'
         if (!$sortItems.length) {
             $sortItems = $sortableContainer.find('> .widget-item')
-            selector = '.widget-container > .widget-item'
+            selector = containerId ? ('#' + containerId + ' > .widget-item') : '.widget-container > .widget-item'
         }
         if (!$sortItems.length) {
             $sortItems = $sortableContainer.find('.widget-item')
-            selector = '.widget-item'
+            selector = containerId ? ('#' + containerId + ' .widget-item') : '.widget-item'
         }
         if (!$sortItems.length) return
 
@@ -193,6 +210,12 @@
             if (!$item.length) return
             dragArmedEl = $item.get(0)
             $item.attr('draggable', 'true')
+        })
+
+        // Prevent native <a> drag ghost from hijacking handle drag.
+        this.$el.on('dragstart.nativeSortable', '.widget-item-action .handle, .handle', function (event) {
+            event.preventDefault()
+            event.stopPropagation()
         })
 
         this.$el.on('mouseup.nativeSortable mouseleave.nativeSortable', selector, function () {
@@ -467,6 +490,7 @@ DashboardContainer.prototype.initDateRange = function () {
                     
                     if (htmlContent && $container.length) {
                         $container.html(htmlContent);
+                        self.normalizePmdWidgetRoots();
                         console.log('✅ DashboardContainer: HTML manually inserted', {
                             contentLength: htmlContent.length,
                             containerId: containerId
@@ -482,6 +506,7 @@ DashboardContainer.prototype.initDateRange = function () {
                 
                 // Ensure container is visible immediately
                 if ($container.length) {
+                    self.normalizePmdWidgetRoots();
                     $container.css({
                         'display': 'block',
                         'visibility': 'visible',
@@ -553,6 +578,7 @@ DashboardContainer.prototype.initDateRange = function () {
                 // Final check and visibility fix
                 var $container = $(containerSelector);
                 if ($container.length) {
+                    self.normalizePmdWidgetRoots();
                     var hasContent = $container.html().trim().length > 0;
                     var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
                     
