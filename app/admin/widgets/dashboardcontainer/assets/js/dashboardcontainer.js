@@ -71,6 +71,7 @@
         var self = this
 
         this.fetchWidgets()
+        this.normalizePmdWidgetRoots()
 
         this.$el.on('click', '[data-control="remove-widget"]', function (event) {
             event.preventDefault()
@@ -111,6 +112,19 @@
             }).always(function () {
                 $.ti.loadingIndicator.hide()
             })
+        })
+    }
+
+    DashboardContainer.prototype.normalizePmdWidgetRoots = function () {
+        if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return
+
+        var $roots = this.$el.find('#dashboardcontainer-container-list .widget-item.card.bg-light, .dashboard-widgets .widget-item.card.bg-light')
+        if (!$roots.length) return
+
+        $roots.each(function () {
+            var $root = $(this)
+            $root.removeClass('card bg-light shadow-sm p-3 no-padding')
+            $root.addClass('pmd-dashboard-widget-root')
         })
     }
 
@@ -467,6 +481,7 @@ DashboardContainer.prototype.initDateRange = function () {
                     
                     if (htmlContent && $container.length) {
                         $container.html(htmlContent);
+                        self.normalizePmdWidgetRoots();
                         console.log('✅ DashboardContainer: HTML manually inserted', {
                             contentLength: htmlContent.length,
                             containerId: containerId
@@ -482,6 +497,7 @@ DashboardContainer.prototype.initDateRange = function () {
                 
                 // Ensure container is visible immediately
                 if ($container.length) {
+                    self.normalizePmdWidgetRoots();
                     $container.css({
                         'display': 'block',
                         'visibility': 'visible',
@@ -553,6 +569,7 @@ DashboardContainer.prototype.initDateRange = function () {
                 // Final check and visibility fix
                 var $container = $(containerSelector);
                 if ($container.length) {
+                    self.normalizePmdWidgetRoots();
                     var hasContent = $container.html().trim().length > 0;
                     var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
                     

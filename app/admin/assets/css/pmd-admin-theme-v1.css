@@ -1236,7 +1236,8 @@ html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboar
 html body.page.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card.bg-light.p-3.shadow-sm,
 html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.bg-light,
 html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.shadow-sm,
-html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.p-3 {
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.p-3,
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .pmd-dashboard-widget-root {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
