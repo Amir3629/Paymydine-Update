@@ -1,0 +1,247 @@
+/* ============================================
+   PayMyDine Admin Theme v1
+   Centralized scoped admin design system layer
+   ============================================ */
+
+/* 00 tokens */
+body.pmd-admin-theme-v1 {
+  --pmd-navy-950: #0f1b2a;
+  --pmd-navy-900: #14243a;
+  --pmd-navy-800: #243a56;
+  --pmd-bg: #f8f6f1;
+  --pmd-bg-soft: #faf9f6;
+  --pmd-surface: #ffffff;
+  --pmd-surface-warm: #f3ece2;
+  --pmd-gold: #c49a5b;
+  --pmd-gold-dark: #b98a4a;
+  --pmd-text: #152033;
+  --pmd-muted: #6f7c90;
+  --pmd-blue-gray: #aeb8c8;
+  --pmd-chart-soft: #cbd3e1;
+  --pmd-border: #e8dfd2;
+  --pmd-radius-sm: 8px;
+  --pmd-radius-md: 12px;
+  --pmd-radius-lg: 16px;
+  --pmd-radius-xl: 20px;
+  --pmd-shadow-card: 0 8px 24px rgba(21, 32, 51, 0.06);
+  --pmd-shadow-button: 0 6px 16px rgba(185, 138, 74, 0.22);
+  --pmd-font-size-base: 14px;
+  --pmd-line-height: 1.5;
+}
+
+/* 01 base/background */
+body.pmd-admin-theme-v1,
+body.pmd-admin-theme-v1 .page,
+body.pmd-admin-theme-v1 .page-wrapper,
+body.pmd-admin-theme-v1 .page-content,
+body.pmd-admin-theme-v1 .content-wrapper,
+body.pmd-admin-theme-v1 .container-fluid {
+  background-color: var(--pmd-bg);
+  color: var(--pmd-text);
+}
+
+/* 02 layout/sidebar/topbar */
+body.pmd-admin-theme-v1 .navbar-top,
+body.pmd-admin-theme-v1 .page-title-section {
+  background: var(--pmd-surface);
+  border-bottom: 1px solid var(--pmd-border);
+}
+body.pmd-admin-theme-v1 #navSidebar,
+body.pmd-admin-theme-v1 .side-nav,
+body.pmd-admin-theme-v1 .sidebar,
+body.pmd-admin-theme-v1 .main-sidebar {
+  background: linear-gradient(180deg, var(--pmd-navy-950), var(--pmd-navy-900));
+  color: #e8edf6;
+}
+body.pmd-admin-theme-v1 #navSidebar a,
+body.pmd-admin-theme-v1 .side-nav a,
+body.pmd-admin-theme-v1 .sidebar a {
+  color: #e3eaf7;
+}
+body.pmd-admin-theme-v1 #navSidebar .active > a,
+body.pmd-admin-theme-v1 #navSidebar a.active,
+body.pmd-admin-theme-v1 .side-nav .active > a,
+body.pmd-admin-theme-v1 .sidebar .active > a {
+  color: #fff;
+  background: rgba(196, 154, 91, 0.18);
+  border-left: 3px solid var(--pmd-gold);
+}
+
+/* 03 typography */
+body.pmd-admin-theme-v1 {
+  font-size: var(--pmd-font-size-base);
+  line-height: var(--pmd-line-height);
+}
+body.pmd-admin-theme-v1 h1,
+body.pmd-admin-theme-v1 h2,
+body.pmd-admin-theme-v1 h3,
+body.pmd-admin-theme-v1 h4,
+body.pmd-admin-theme-v1 .page-title {
+  color: var(--pmd-text);
+  letter-spacing: 0.01em;
+}
+body.pmd-admin-theme-v1 .text-muted,
+body.pmd-admin-theme-v1 small,
+body.pmd-admin-theme-v1 .help-block {
+  color: var(--pmd-muted) !important; /* override legacy green-muted helpers */
+}
+
+/* 04 buttons */
+body.pmd-admin-theme-v1 .btn {
+  border-radius: var(--pmd-radius-md);
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border-width: 1px;
+  font-weight: 600;
+}
+body.pmd-admin-theme-v1 .btn-primary,
+body.pmd-admin-theme-v1 .btn-success,
+body.pmd-admin-theme-v1 .toolbar-action .btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--pmd-gold), var(--pmd-gold-dark));
+  border-color: var(--pmd-gold-dark);
+  box-shadow: var(--pmd-shadow-button);
+}
+body.pmd-admin-theme-v1 .btn-primary:hover,
+body.pmd-admin-theme-v1 .btn-success:hover {
+  filter: brightness(0.98);
+}
+body.pmd-admin-theme-v1 .btn-secondary,
+body.pmd-admin-theme-v1 .btn-default,
+body.pmd-admin-theme-v1 .btn-outline-secondary,
+body.pmd-admin-theme-v1 .btn-outline-default {
+  background: var(--pmd-surface);
+  border-color: var(--pmd-border);
+  color: var(--pmd-text);
+}
+body.pmd-admin-theme-v1 .btn-danger {
+  border-color: #d58f86;
+  background: #f5d9d6;
+  color: #722f2a;
+}
+body.pmd-admin-theme-v1 .btn .fa,
+body.pmd-admin-theme-v1 .btn i {
+  color: inherit;
+}
+
+/* 05 cards/widgets */
+body.pmd-admin-theme-v1 .card,
+body.pmd-admin-theme-v1 .panel,
+body.pmd-admin-theme-v1 .widget,
+body.pmd-admin-theme-v1 .list-container,
+body.pmd-admin-theme-v1 .dashboard-widget,
+body.pmd-admin-theme-v1 .modal-content {
+  background: var(--pmd-surface);
+  border: 1px solid var(--pmd-border);
+  border-radius: var(--pmd-radius-lg);
+  box-shadow: var(--pmd-shadow-card);
+}
+body.pmd-admin-theme-v1 .toolbar,
+body.pmd-admin-theme-v1 .toolbar-action,
+body.pmd-admin-theme-v1 .page-title-section {
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+}
+
+/* 06 forms */
+body.pmd-admin-theme-v1 .form-control,
+body.pmd-admin-theme-v1 .form-select,
+body.pmd-admin-theme-v1 select,
+body.pmd-admin-theme-v1 textarea,
+body.pmd-admin-theme-v1 .select2-selection {
+  border: 1px solid var(--pmd-border) !important; /* required to beat existing global input overrides */
+  border-radius: var(--pmd-radius-md) !important;
+  background-color: var(--pmd-surface) !important;
+  color: var(--pmd-text) !important;
+  min-height: 40px;
+}
+body.pmd-admin-theme-v1 .form-control:focus,
+body.pmd-admin-theme-v1 .form-select:focus,
+body.pmd-admin-theme-v1 .select2-container--focus .select2-selection {
+  border-color: var(--pmd-gold-dark) !important;
+  box-shadow: 0 0 0 0.15rem rgba(196, 154, 91, 0.18) !important;
+}
+
+/* 07 tables */
+body.pmd-admin-theme-v1 .table {
+  --bs-table-bg: transparent;
+  color: var(--pmd-text);
+}
+body.pmd-admin-theme-v1 .table thead th {
+  background: var(--pmd-bg-soft);
+  color: var(--pmd-navy-800);
+  border-bottom: 1px solid var(--pmd-border);
+}
+body.pmd-admin-theme-v1 .table td,
+body.pmd-admin-theme-v1 .table th {
+  border-color: var(--pmd-border);
+}
+
+/* 08 tabs/dropdowns */
+body.pmd-admin-theme-v1 .nav-tabs .nav-link {
+  color: var(--pmd-muted);
+  border-bottom: 2px solid transparent;
+}
+body.pmd-admin-theme-v1 .nav-tabs .nav-link.active {
+  color: var(--pmd-text);
+  border-color: var(--pmd-gold);
+}
+body.pmd-admin-theme-v1 .dropdown-menu {
+  border: 1px solid var(--pmd-border);
+  border-radius: var(--pmd-radius-md);
+  box-shadow: var(--pmd-shadow-card);
+  background: var(--pmd-surface);
+}
+body.pmd-admin-theme-v1 .dropdown-item.active,
+body.pmd-admin-theme-v1 .dropdown-item:active {
+  background-color: rgba(196, 154, 91, 0.16);
+  color: var(--pmd-text);
+}
+
+/* 09 modals/alerts */
+body.pmd-admin-theme-v1 .modal-header,
+body.pmd-admin-theme-v1 .modal-footer {
+  border-color: var(--pmd-border);
+  background: var(--pmd-bg-soft);
+}
+body.pmd-admin-theme-v1 .alert {
+  border-radius: var(--pmd-radius-md);
+  border: 1px solid var(--pmd-border);
+}
+body.pmd-admin-theme-v1 .alert-success {
+  background: #f3f8f3;
+  color: #2f5d38;
+}
+
+/* 10 dashboard/charts */
+body.pmd-admin-theme-v1 .chart,
+body.pmd-admin-theme-v1 .chart-container,
+body.pmd-admin-theme-v1 .dashboard-chart,
+body.pmd-admin-theme-v1 canvas {
+  background: transparent;
+}
+body.pmd-admin-theme-v1 .chart-legend,
+body.pmd-admin-theme-v1 .apexcharts-legend-text {
+  color: var(--pmd-blue-gray) !important;
+}
+
+/* 11 utility fixes */
+body.pmd-admin-theme-v1 .badge,
+body.pmd-admin-theme-v1 .label {
+  border-radius: 999px;
+}
+body.pmd-admin-theme-v1 .badge-primary,
+body.pmd-admin-theme-v1 .bg-primary {
+  background: var(--pmd-navy-800) !important;
+}
+body.pmd-admin-theme-v1 .pagination .page-link,
+body.pmd-admin-theme-v1 .pagination li a {
+  border-color: var(--pmd-border);
+  color: var(--pmd-navy-800);
+}
+body.pmd-admin-theme-v1 .pagination .active .page-link,
+body.pmd-admin-theme-v1 .pagination .active a {
+  background: var(--pmd-gold);
+  border-color: var(--pmd-gold-dark);
+  color: #fff;
+}
