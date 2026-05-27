@@ -1211,12 +1211,20 @@ body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action {
 
 /* Neutralize frame-on-frame wrappers (layout only wrappers stay transparent) */
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-list > .col,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item,
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card,
 body.pmd-admin-theme-v1 .dashboard-widgets .dashboard-widget,
-body.pmd-admin-theme-v1 .dashboard-widgets .control-widget {
+body.pmd-admin-theme-v1 .dashboard-widgets .control-widget,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-news,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-charts,
+body.pmd-admin-theme-v1 .dashboard-widgets .chart-container,
+body.pmd-admin-theme-v1 .dashboard-widgets .pmd-card,
+body.pmd-admin-theme-v1 .dashboard-widgets .pmd-card__body {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
+  border-radius: 0 !important;
 }
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card {
   padding: 0 !important;
@@ -1303,13 +1311,9 @@ body.pmd-admin-theme-v1 .dashboard-widgets .card-counter .stat-text {
   color: #6F7C90 !important;
 }
 
-/* Recent activity: one subtle panel + clean rows */
+/* Recent activity: open section with row-only separators */
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-news {
-  background: #FAF9F6 !important;
-  border: 1px solid #E8E1D7 !important;
-  border-radius: 16px !important;
-  box-shadow: 0 8px 30px rgba(15, 27, 42, 0.06) !important;
-  padding: 10px 12px !important;
+  padding: 0 !important;
 }
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-news .list-group-item,
 body.pmd-admin-theme-v1 .dashboard-widgets .list-group-item,
@@ -1333,14 +1337,7 @@ body.pmd-admin-theme-v1 .dashboard-widgets .list-group-item small {
   color: #7a889b !important;
 }
 
-/* Reports line-chart card + visual polish (PMD luxury) */
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-charts.pmd-card,
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-charts .chart-container.pmd-card__body {
-  background: #FAF9F6 !important;
-  border: 1px solid #E8E1D7 !important;
-  border-radius: 16px !important;
-  box-shadow: 0 8px 30px rgba(15, 27, 42, 0.06) !important;
-}
+/* Reports chart: open layout, no card/frame; visual polish stays on chart internals */
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-charts .chart-time-slider label,
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-charts .chart-time-slider .range-scale {
   color: #6F7C90 !important;
