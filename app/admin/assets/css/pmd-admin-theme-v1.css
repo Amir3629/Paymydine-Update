@@ -1112,3 +1112,72 @@ body.pmd-admin-theme-v1 #side-nav-menu {
   }
   body.pmd-admin-theme-v1.pmd-sidebar-open .pmd-sidebar-backdrop { opacity: 1; visibility: visible; }
 }
+
+
+/* 20 phase: sidebar brand visibility + desktop content gap tuning */
+body.pmd-admin-theme-v1 .pmd-sidebar-brand {
+  height: var(--pmd-header-height);
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+}
+body.pmd-admin-theme-v1 .pmd-sidebar-brand .logo,
+body.pmd-admin-theme-v1 .pmd-sidebar-brand .logo-svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 150px;
+  max-width: 100%;
+  height: 44px;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: left center !important;
+}
+
+@media (min-width: 1200px){
+  body.pmd-admin-theme-v1 .page-wrapper {
+    margin-left: var(--pmd-sidebar-width) !important;
+  }
+  body.pmd-admin-theme-v1 .page-content,
+  body.pmd-admin-theme-v1 .content-wrapper,
+  body.pmd-admin-theme-v1 .main-content {
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+    max-width: none !important;
+  }
+  body.pmd-admin-theme-v1 #edit-form,
+  body.pmd-admin-theme-v1 .form-widget,
+  body.pmd-admin-theme-v1 .toolbar-action,
+  body.pmd-admin-theme-v1 .progress-indicator-container.pmd-admin-top-actions {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 767.98px){
+  body.pmd-admin-theme-v1 .pmd-sidebar-brand {
+    display: none !important;
+  }
+  body.pmd-admin-theme-v1 .navbar-top,
+  body.pmd-admin-theme-v1 .navbar-fixed-top,
+  body.pmd-admin-theme-v1 .page-title-section {
+    background: var(--pmd-bg-soft) !important;
+    color: var(--pmd-text) !important;
+    border-bottom: 1px solid var(--pmd-border) !important;
+  }
+  body.pmd-admin-theme-v1 .navbar-top .page-title,
+  body.pmd-admin-theme-v1 .navbar-top i,
+  body.pmd-admin-theme-v1 .navbar-top .fa,
+  body.pmd-admin-theme-v1 .navbar-top .nav-link,
+  body.pmd-admin-theme-v1 .navbar-top .navbar-toggler {
+    color: var(--pmd-navy-800) !important;
+  }
+  body.pmd-admin-theme-v1 .navbar-top .logo,
+  body.pmd-admin-theme-v1 .navbar-top .logo-svg,
+  body.pmd-admin-theme-v1 .sidebar .logo,
+  body.pmd-admin-theme-v1 .sidebar .logo-svg {
+    display: none !important;
+  }
+}
