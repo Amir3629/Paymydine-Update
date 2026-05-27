@@ -1065,3 +1065,17 @@ body.pmd-admin-theme-v1 #navSidebar .sidebar-mobile-brand .logo {
   align-items: center;
   justify-content: center;
 }
+
+
+/* 18 sidebar logo visibility + remove rounded top-right corner */
+body.pmd-admin-theme-v1 .sidebar,
+body.pmd-admin-theme-v1 #navSidebar,
+body.pmd-admin-theme-v1 .nav-sidebar {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-radius: 0 !important;
+}
+body.pmd-admin-theme-v1 .sidebar .sidebar-mobile-brand,
+body.pmd-admin-theme-v1 #navSidebar .sidebar-mobile-brand {
+  display: flex !important;
+}

@@ -73,22 +73,22 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dropdown-field-same-size.css') }}?v={{ time() }}">
     {{-- Critical: prevent green flash on first paint - inline so it's in the first render --}}
     <style id="no-green-toolbar-critical">
-        .toolbar-action,
-        .progress-indicator-container {
+        body:not(.pmd-admin-theme-v1) .toolbar-action,
+        body:not(.pmd-admin-theme-v1) .progress-indicator-container {
             --bs-primary-rgb: 54, 74, 99 !important;
             --bs-btn-focus-shadow-rgb: 54, 74, 99 !important;
         }
-        .toolbar-action .btn-primary,
-        .toolbar-action .progress-indicator-container .btn-primary,
-        .progress-indicator-container .btn-primary,
-        .toolbar-action .progress-indicator-container .btn-group .btn-primary {
+        body:not(.pmd-admin-theme-v1) .toolbar-action .btn-primary,
+        body:not(.pmd-admin-theme-v1) .toolbar-action .progress-indicator-container .btn-primary,
+        body:not(.pmd-admin-theme-v1) .progress-indicator-container .btn-primary,
+        body:not(.pmd-admin-theme-v1) .toolbar-action .progress-indicator-container .btn-group .btn-primary {
             background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
             background-color: #364a63 !important;
             border-color: #364a63 !important;
             box-shadow: 0 4px 15px rgba(54, 74, 99, 0.35) !important;
         }
-        .toolbar-action .progress-indicator-container .progress-indicator,
-        .progress-indicator-container .progress-indicator {
+        body:not(.pmd-admin-theme-v1) .toolbar-action .progress-indicator-container .progress-indicator,
+        body:not(.pmd-admin-theme-v1) .progress-indicator-container .progress-indicator {
             background: transparent !important;
         }
     </style>
