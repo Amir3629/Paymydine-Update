@@ -112,6 +112,24 @@ public function sign(Request $request)
     // ✅ Handle form submission
     public function store(Request $request)
     {
+        \Log::info('tenant_create_store_first_line', [
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'has_superadmin_id' => Session::has('superadmin_id'),
+            'mysql_database' => Config::get('database.connections.mysql.database'),
+            'name' => $request->input('name'),
+            'domain' => $request->input('domain'),
+            'database' => $request->input('database'),
+        ]);
+
+        if (!Session::has('superadmin_id')) {
+            \Log::warning('tenant_create_auth_missing_in_store', [
+                'path' => $request->path(),
+                'method' => $request->method(),
+            ]);
+            return redirect('/superadmin/login');
+        }
+
         $centralDatabase = Config::get('database.connections.mysql.database');
         $databaseName = null;
 
