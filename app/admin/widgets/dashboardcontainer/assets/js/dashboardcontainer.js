@@ -189,15 +189,16 @@
         var self = this
         var dragSourceEl = null
         var dragArmedEl = null
+        var containerId = $sortableContainer.attr('id')
         var $sortItems = $sortableContainer.find('> .col')
-        var selector = self.options.sortableContainer + ' > .col'
+        var selector = containerId ? ('#' + containerId + ' > .col') : '.widget-list > .col'
         if (!$sortItems.length) {
             $sortItems = $sortableContainer.find('> .widget-item')
-            selector = '.widget-container > .widget-item'
+            selector = containerId ? ('#' + containerId + ' > .widget-item') : '.widget-container > .widget-item'
         }
         if (!$sortItems.length) {
             $sortItems = $sortableContainer.find('.widget-item')
-            selector = '.widget-item'
+            selector = containerId ? ('#' + containerId + ' .widget-item') : '.widget-item'
         }
         if (!$sortItems.length) return
 

@@ -58,7 +58,8 @@
             y: {
                 beginAtZero: true,
                 grid: {
-                    color: 'rgba(21, 32, 51, 0.08)',
+                    color: 'rgba(21, 32, 51, 0.04)',
+                    lineWidth: 1,
                     drawBorder: false,
                 },
                 ticks: {
@@ -74,6 +75,7 @@
                 type: 'category',
                 grid: {
                     display: false,
+                    color: 'rgba(21, 32, 51, 0.02)',
                     drawBorder: false,
                 },
                 ticks: {

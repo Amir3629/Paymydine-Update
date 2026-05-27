@@ -1208,6 +1208,21 @@ body.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-toolbar,
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action {
   margin-bottom: 16px !important;
 }
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split > #edit-layout-toggle {
+  margin-right: auto !important;
+}
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split > .pmd-toolbar-right-buttons {
+  margin-left: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
 
 /* Neutralize frame-on-frame wrappers (layout only wrappers stay transparent) */
 body.pmd-admin-theme-v1 .dashboard-widgets .widget-list > .col,
@@ -1246,6 +1261,11 @@ html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboar
   border-radius: 0 !important;
   padding: 0 !important;
   outline: 0 !important;
+}
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .widget-item-action,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .widget-item-action .btn,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .widget-item-action .handle {
+  pointer-events: auto !important;
 }
 
 /* Dashboard toolbar buttons: real DOM selectors */
