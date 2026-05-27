@@ -17,13 +17,16 @@ trait HasChartDatasets
         'fill' => true,
         'backgroundColor' => null,
         'borderColor' => null,
-        'tension' => 0.4, // Smooth rounded lines instead of sharp angles
-        'borderWidth' => 2, // Thicker lines for better visibility
-        'pointRadius' => 3, // Visible data points
+        'tension' => 0.42, // Smooth rounded lines for premium dashboard look
+        'borderWidth' => 2.4,
+        'pointRadius' => 2.5,
         'pointHoverRadius' => 5, // Larger on hover
         'pointBackgroundColor' => null,
         'pointBorderColor' => null,
         'pointBorderWidth' => 2,
+        'pointHoverBackgroundColor' => null,
+        'pointHoverBorderColor' => null,
+        'pointHoverBorderWidth' => 2,
     ];
 
     protected $dataDefinition;
@@ -64,10 +67,12 @@ trait HasChartDatasets
         $config['data'] = $this->getDatasets($config, $start, $end);
 
         return array_merge($this->datasetOptions, [
-            'backgroundColor' => sprintf('rgba(%s, %s, %s, 0.5)', $r, $g, $b),
+            'backgroundColor' => sprintf('rgba(%s, %s, %s, 0.10)', $r, $g, $b),
             'borderColor' => sprintf('rgb(%s, %s, %s)', $r, $g, $b),
-            'pointBackgroundColor' => sprintf('rgb(%s, %s, %s)', $lightR, $lightG, $lightB),
-            'pointBorderColor' => sprintf('rgb(%s, %s, %s)', $lightR, $lightG, $lightB),
+            'pointBackgroundColor' => sprintf('rgb(%s, %s, %s)', $r, $g, $b),
+            'pointBorderColor' => '#FAF9F6',
+            'pointHoverBackgroundColor' => sprintf('rgb(%s, %s, %s)', $r, $g, $b),
+            'pointHoverBorderColor' => '#FAF9F6',
         ], array_except($config, ['model', 'column', 'datasetFrom']));
     }
 

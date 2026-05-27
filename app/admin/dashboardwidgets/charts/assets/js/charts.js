@@ -39,13 +39,30 @@
                     boxWidth: 14,
                     boxHeight: 14,
                     padding: 16,
+                    color: '#6F7C90',
                 },
+            },
+            tooltip: {
+                backgroundColor: '#FFFFFF',
+                titleColor: '#152033',
+                bodyColor: '#152033',
+                borderColor: '#E8E1D7',
+                borderWidth: 1,
+                cornerRadius: 10,
+                padding: 10,
+                displayColors: true,
+                boxPadding: 4,
             },
         },
         scales: {
             y: {
                 beginAtZero: true,
+                grid: {
+                    color: 'rgba(21, 32, 51, 0.08)',
+                    drawBorder: false,
+                },
                 ticks: {
+                    color: '#6F7C90',
                     callback: function (value) {
                         if (value % 1 === 0) {
                             return value;
@@ -55,8 +72,12 @@
             },
             x: {
                 type: 'category',
-                gridLines: {
-                    display: false
+                grid: {
+                    display: false,
+                    drawBorder: false,
+                },
+                ticks: {
+                    color: '#6F7C90',
                 }
             }
         }
