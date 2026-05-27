@@ -1148,14 +1148,23 @@ body.pmd-admin-theme-v1 .pmd-sidebar-brand .pmd-sidebar-brand-img {
 
 @media (min-width: 1200px){
   body.pmd-admin-theme-v1 .page-wrapper {
+    left: 0 !important; /* neutralize legacy admin.css left:230px to avoid double sidebar offset */
     margin-left: var(--pmd-sidebar-width) !important;
   }
+  body.pmd-admin-theme-v1 .page-wrapper .page-content,
   body.pmd-admin-theme-v1 .page-content,
   body.pmd-admin-theme-v1 .content-wrapper,
   body.pmd-admin-theme-v1 .main-content {
+    margin-left: 0 !important; /* neutralize legacy inward-curve page-content margin-left */
     padding-left: 28px !important;
     padding-right: 28px !important;
     max-width: none !important;
+  }
+  body.pmd-admin-theme-v1 .pmd-menu-card-grid-wrap {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
   }
   body.pmd-admin-theme-v1 #edit-form,
   body.pmd-admin-theme-v1 .form-widget,
