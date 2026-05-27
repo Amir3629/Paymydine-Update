@@ -4478,7 +4478,7 @@ useEffect(() => {
 // Main component with Suspense wrapper
 export default function ExpandingBottomToolbarMenu() {
   return (
-    <div className="page--menu">
+    <div className="pmd-customer-page page--menu" data-pmd-customer-page="menu">
       <Suspense fallback={<div>Loading...</div>}>
         <MenuContent />
       </Suspense>

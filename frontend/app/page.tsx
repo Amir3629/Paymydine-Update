@@ -20,7 +20,7 @@ function HomePageContent() {
   const iconContainerStyles = "rounded-full pmd-v2-action-circle p-6 mb-6 home-action-icon-wrap"
 
   return (
-    <div className="min-h-screen bg-theme-background pmd-v2-page flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-theme-background pmd-v2-page pmd-customer-page page--home flex flex-col items-center justify-center p-4" data-pmd-customer-page="home">
       <Logo className="mb-8" />
       
       <div className="flex flex-row flex-wrap gap-6 justify-center">
@@ -62,7 +62,7 @@ function HomePageContent() {
                 }
               }}
             >
-              <Utensils className="w-10 h-10 text-paydine-elegant-gray" />
+              <Utensils className="w-10 h-10" style={{ color: "var(--theme-text-primary)" }} />
             </motion.div>
             <h2 className="text-2xl font-medium" style={{ color: "var(--theme-text-primary)" }}>
               {t("menuCard")}
@@ -108,7 +108,7 @@ function HomePageContent() {
                 }
               }}
             >
-              <Car className="w-10 h-10 text-paydine-elegant-gray" />
+              <Car className="w-10 h-10" style={{ color: "var(--theme-text-primary)" }} />
             </motion.div>
             <h2 className="text-2xl font-medium" style={{ color: "var(--theme-text-primary)" }}>
               {t("valetParking")}
@@ -129,7 +129,7 @@ export default function HomePage() {
   }, [clearTableContext])
 
   return (
-    <div className="page--home">
+    <div className="pmd-customer-page page--home" data-pmd-customer-page="home-shell">
       <Suspense fallback={
         <div className="min-h-screen bg-theme-background flex flex-col items-center justify-center p-4">
           <div className="text-center">

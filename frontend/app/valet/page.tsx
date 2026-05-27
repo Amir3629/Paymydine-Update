@@ -39,7 +39,7 @@ export default function ValetPage() {
   }
 
   return (
-    <div className="page--valet">
+    <div className="pmd-customer-page page--valet" data-pmd-customer-page="valet">
       <div className="min-h-screen bg-theme-background pmd-v2-page p-4 sm:p-6">
       <div className="max-w-md mx-auto">
         <motion.div
@@ -63,7 +63,7 @@ export default function ValetPage() {
             >
               <div className="flex items-center mb-6">
                 <span className="inline-flex items-center justify-center pmd-v2-action-circle pmd-v2-valet-car-icon-circle w-10 h-10 mr-3"><Car className="h-6 w-6" /></span>
-                <h2 className="text-xl font-semibold text-paydine-elegant-gray">{t("valetService")}</h2>
+                <h2 className="text-xl font-semibold pmd-v2-text">{t("valetService")}</h2>
               </div>
         
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -149,7 +149,7 @@ export default function ValetPage() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", duration: 0.6, delay: 0.1 }}
-                className="mx-auto w-16 h-16 rounded-full bg-paydine-champagne/10 flex items-center justify-center mb-6"
+                className="mx-auto w-16 h-16 rounded-full pmd-v2-action-circle flex items-center justify-center mb-6"
               >
                 <CheckCircle2 className="w-8 h-8" />
               </motion.div>
@@ -175,7 +175,7 @@ export default function ValetPage() {
         
         <motion.div 
           className="mt-4 text-sm pmd-v2-text-muted rounded-xl p-4 dark-surface pmd-v2-card-sub"
-          style={{ backgroundColor: '#222529' }}
+          style={{ backgroundColor: 'var(--theme-surface, var(--theme-input))', borderColor: 'var(--theme-border)' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.8 }}
