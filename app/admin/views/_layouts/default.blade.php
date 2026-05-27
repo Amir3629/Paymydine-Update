@@ -962,6 +962,7 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 
 <!-- PMD Admin Toolbar Auto Normalizer -->
 <script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-admin-responsive-shell.js') }}?v={{ time() }}"></script>
 
 <!-- Guide Tour Button Handler -->
 <script>
