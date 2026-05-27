@@ -203,4 +203,11 @@
   'Admin\\Models\\Menu_prices_model' => 'app/admin/models/Menu_prices_model.php',
   'Admin\\Models\\Menu_images_model' => 'app/admin/models/Menu_images_model.php',
   'Admin\\Models\\Menu_options_model' => 'app/admin/models/Menu_options_model.php',
+  'Admin\\Controllers\\reservations' => 'app/admin/controllers/Reservations.php',
+  'Admin\\Actions\\CalendarController' => 'app/admin/actions/CalendarController.php',
+  'Admin\\Controllers\\categories' => 'app/admin/controllers/Categories.php',
+  'Admin\\Requests\\SetupSettings' => 'app/admin/requests/SetupSettings.php',
+  'Admin\\Models\\Menu_combos_model' => 'app/admin/models/Menu_combos_model.php',
+  'Admin\\Models\\Menu_combo_items_model' => 'app/admin/models/Menu_combo_items_model.php',
+  'Admin\\Controllers\\statuses' => 'app/admin/controllers/Statuses.php',
 );
