@@ -785,3 +785,74 @@ body.pmd-admin-theme-v1 .nav-sidebar {
   min-height: 100vh;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+
+/* 14 form page normalization */
+body.pmd-admin-theme-v1 .form-widget,
+body.pmd-admin-theme-v1 .form-fields,
+body.pmd-admin-theme-v1 #form-outside-tabs,
+body.pmd-admin-theme-v1 #form-primary-tabs,
+body.pmd-admin-theme-v1 .primary-tabs,
+body.pmd-admin-theme-v1 .tab-content,
+body.pmd-admin-theme-v1 .tab-pane {
+  background: #fff !important;
+  border: 1px solid #E8DFD2 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 24px rgba(21,32,51,.06) !important;
+}
+body.pmd-admin-theme-v1 .form-widget .form-group,
+body.pmd-admin-theme-v1 .form-fields .form-group { margin-bottom: 14px; }
+body.pmd-admin-theme-v1 .form-widget label,
+body.pmd-admin-theme-v1 .form-label { color:#152033 !important; font-weight:600; }
+body.pmd-admin-theme-v1 .form-widget .form-control,
+body.pmd-admin-theme-v1 .form-widget .form-select,
+body.pmd-admin-theme-v1 .form-widget textarea,
+body.pmd-admin-theme-v1 .relation-widget,
+body.pmd-admin-theme-v1 .control-selectlist,
+body.pmd-admin-theme-v1 .ss-main {
+  min-height:42px; border-radius:12px !important; border:1px solid #E8DFD2 !important; background:#fff !important;
+}
+body.pmd-admin-theme-v1 .form-widget .form-control:focus,
+body.pmd-admin-theme-v1 .form-widget .form-select:focus,
+body.pmd-admin-theme-v1 .form-widget textarea:focus,
+body.pmd-admin-theme-v1 .ss-main:focus-within { border-color:#B98A4A !important; box-shadow:0 0 0 .15rem rgba(196,154,91,.2) !important; }
+body.pmd-admin-theme-v1 .EasyMDEContainer,
+body.pmd-admin-theme-v1 .editor-toolbar,
+body.pmd-admin-theme-v1 .CodeMirror,
+body.pmd-admin-theme-v1 .editor-statusbar {
+  background:#FAF9F6 !important; border-color:#E8DFD2 !important; color:#152033 !important;
+}
+body.pmd-admin-theme-v1 #email-variables.card,
+body.pmd-admin-theme-v1 .text-draggable {
+  background:#fff !important; border:1px solid #E8DFD2 !important; border-radius:14px !important;
+}
+body.pmd-admin-theme-v1 #email-variables .badge.border,
+body.pmd-admin-theme-v1 .text-draggable .badge.border {
+  border-radius:999px !important; border-color:#E8DFD2 !important; background:#F3ECE2 !important; color:#243A56 !important;
+}
+
+/* top-action styling strictly semantic */
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-primary-action,
+body.pmd-admin-theme-v1 .pmd-toolbar-normalized .pmd-toolbar-primary-action {
+  min-height:42px !important; border-radius:12px !important; padding:0 18px !important; font-weight:700 !important;
+  background:linear-gradient(135deg,#0F1B2A,#14243A) !important; color:#fff !important; border-color:#14243A !important;
+}
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-secondary-action,
+body.pmd-admin-theme-v1 .pmd-toolbar-normalized .pmd-toolbar-secondary-action {
+  min-height:42px !important; border-radius:12px !important; padding:0 18px !important; font-weight:600 !important;
+  background:#fff !important; color:#152033 !important; border:1px solid #E8DFD2 !important; box-shadow:none !important;
+}
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-danger-action,
+body.pmd-admin-theme-v1 .pmd-toolbar-normalized .pmd-toolbar-danger-action {
+  min-height:42px !important; border-radius:12px !important; padding:0 18px !important;
+  background:#F9EFEE !important; color:#8F3830 !important; border:1px solid #DFB3AD !important;
+}
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .btn:disabled,
+body.pmd-admin-theme-v1 .pmd-toolbar-normalized .btn:disabled { opacity:.58 !important; box-shadow:none !important; }
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .btn i,
+body.pmd-admin-theme-v1 .pmd-toolbar-normalized .btn i { color:inherit !important; margin-right:.35rem; }
+
+/* protections */
+body.pmd-admin-theme-v1 .editor-toolbar button,
+body.pmd-admin-theme-v1 .category-btn,
+body.pmd-admin-theme-v1 .menu-card .dropdown-menu .btn { min-height:auto !important; padding:0 !important; box-shadow:none !important; }
