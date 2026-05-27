@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign } from "lucide-react";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -3890,30 +3890,6 @@ function MenuContent() {
     }
   }, [existingOrderId])
 
-  useEffect(() => {
-    if (!existingOrderId) return
-    if (!items || items.length === 0) return
-
-    const timer = setTimeout(() => {
-      try {
-        const state = useCartStore.getState() as any
-        if (state?.isCartOpen === true) {
-          useCartStore.setState({ isCartOpen: false })
-        }
-      } catch (e) {
-        console.error('[PMD] close wrong cart drawer failed', e)
-      }
-
-      try {
-        setPaymentModalInitialStep('submitted')
-        setPaymentModalOpen(true)
-      } catch (e) {
-        console.error('[PMD] open real checkout bill failed', e)
-      }
-    }, 250)
-
-    return () => clearTimeout(timer)
-  }, [existingOrderId, items])
 
   const searchParams = useSearchParams()
   const MENU_CACHE_TTL_MS = 5 * 60 * 1000
@@ -4426,13 +4402,24 @@ useEffect(() => {
       <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
       {hasLocalOpenOrder && (
         <button
+          type="button"
+          aria-label={`My order ${localOpenOrder?.orderId ? `#${localOpenOrder.orderId}` : ""}`.trim()}
+          title={localOpenOrder?.orderId ? `My Order #${localOpenOrder.orderId}` : "My Order"}
           onClick={() => {
             setPaymentModalInitialStep('submitted')
             setPaymentModalOpen(true)
           }}
-          className="fixed bottom-24 right-4 z-40 w-56 rounded-2xl px-3 py-2 text-left shadow-xl border" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
+          className="fixed top-24 right-4 z-40 h-12 w-12 rounded-full shadow-xl border inline-flex items-center justify-center"
+          style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
         >
-          <div className='text-xs opacity-70'>My Order</div><div className='text-sm font-semibold'>#{localOpenOrder?.orderId || '—'} · {formatCurrency(Number(localOpenOrder?.total||0))}</div><div className='text-xs opacity-80'>{(localOpenOrder?.etaMinutes||localOpenOrder?.estimated_prep_minutes) ? `~${Number(localOpenOrder?.etaMinutes||localOpenOrder?.estimated_prep_minutes)} min` : 'Ready soon'}</div>
+          <ReceiptText className="h-5 w-5" />
+          {localOpenOrder?.orderId && (
+            <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center"
+              style={{ background: "var(--theme-secondary)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}
+            >
+              {String(localOpenOrder.orderId).slice(-2)}
+            </span>
+          )}
         </button>
       )}
       <PaymentModal
