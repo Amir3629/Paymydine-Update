@@ -550,3 +550,170 @@ body.pmd-admin-theme-v1 .pmd-toolbar-primary-action .btn.btn-primary {
   box-shadow: var(--pmd-shadow-button) !important;
   color: #fff !important;
 }
+
+
+/* 13 toolbar/action button system */
+body.pmd-admin-theme-v1 .pmd-toolbar-main,
+body.pmd-admin-theme-v1 .toolbar-action,
+body.pmd-admin-theme-v1 .progress-indicator-container,
+body.pmd-admin-theme-v1 .list-header,
+body.pmd-admin-theme-v1 .page-actions,
+body.pmd-admin-theme-v1 .form-toolbar,
+body.pmd-admin-theme-v1 .control-toolbar,
+body.pmd-admin-theme-v1 .page-title-section .pull-right,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn-group,
+body.pmd-admin-theme-v1 .toolbar-action .btn-group,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn,
+body.pmd-admin-theme-v1 .toolbar-action .btn,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn,
+body.pmd-admin-theme-v1 .list-header .btn,
+body.pmd-admin-theme-v1 .page-actions .btn,
+body.pmd-admin-theme-v1 .form-toolbar .btn,
+body.pmd-admin-theme-v1 .control-toolbar .btn,
+body.pmd-admin-theme-v1 .page-title-section .pull-right > .btn,
+body.pmd-admin-theme-v1 .page-title-section .pull-right .btn-group > .btn {
+  min-height: 42px !important;
+  padding: 0.55rem 1rem !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+}
+
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn i,
+body.pmd-admin-theme-v1 .toolbar-action .btn i,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn i,
+body.pmd-admin-theme-v1 .list-header .btn i,
+body.pmd-admin-theme-v1 .page-actions .btn i,
+body.pmd-admin-theme-v1 .form-toolbar .btn i,
+body.pmd-admin-theme-v1 .control-toolbar .btn i {
+  color: inherit !important;
+  margin-right: 0.35rem;
+}
+
+/* Primary + toolbar success -> premium navy filled */
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-primary,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-primary,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-primary,
+body.pmd-admin-theme-v1 .list-header .btn.btn-primary,
+body.pmd-admin-theme-v1 .page-actions .btn.btn-primary,
+body.pmd-admin-theme-v1 .form-toolbar .btn.btn-primary,
+body.pmd-admin-theme-v1 .control-toolbar .btn.btn-primary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-success,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-success,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-success,
+body.pmd-admin-theme-v1 .pmd-toolbar-primary-action .btn.btn-primary {
+  background: linear-gradient(135deg, #243a56, #14243a) !important;
+  color: #fff !important;
+  border-color: #14243a !important;
+  box-shadow: 0 6px 16px rgba(20, 36, 58, 0.28) !important;
+}
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-primary:hover,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-primary:hover,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-primary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-success:hover,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-success:hover,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-success:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-primary:focus,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-primary:focus,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-primary:focus,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-success:focus,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-success:focus,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-success:focus {
+  box-shadow: 0 0 0 0.15rem rgba(196, 154, 91, 0.3), 0 6px 16px rgba(20, 36, 58, 0.28) !important;
+}
+
+/* Secondary / outline */
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-primary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-secondary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-default,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-secondary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-light,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-primary,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-secondary,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-default,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-secondary,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-light,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-outline-primary,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-outline-secondary,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-default,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-secondary,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-light,
+body.pmd-admin-theme-v1 .list-header .btn.btn-outline-primary,
+body.pmd-admin-theme-v1 .list-header .btn.btn-outline-secondary {
+  background: #fff !important;
+  color: #152033 !important;
+  border-color: #e8dfd2 !important;
+  box-shadow: none !important;
+}
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-primary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-secondary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-default:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-secondary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-light:hover,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-primary:hover,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-secondary:hover {
+  background: rgba(196, 154, 91, 0.1) !important;
+  border-color: #d8c6ab !important;
+}
+
+/* Danger preserved */
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-danger,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-danger,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-danger,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-danger,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-danger,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-outline-danger {
+  background: #f9efee !important;
+  color: #8f3830 !important;
+  border-color: #dfb3ad !important;
+  box-shadow: none !important;
+}
+
+/* Disabled in toolbar contexts */
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn:disabled,
+body.pmd-admin-theme-v1 .toolbar-action .btn:disabled,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn:disabled,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.disabled,
+body.pmd-admin-theme-v1 .toolbar-action .btn.disabled,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.disabled {
+  opacity: 0.58 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: not-allowed !important;
+}
+
+/* Icon-only buttons in toolbar contexts only */
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-icon,
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-icon,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-icon,
+body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.icon-only,
+body.pmd-admin-theme-v1 .toolbar-action .btn.icon-only {
+  width: 42px !important;
+  min-width: 42px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
+}
+
+/* Side menu readability guard (keep sidebar fix stable) */
+body.pmd-admin-theme-v1 #side-nav-menu .nav-link,
+body.pmd-admin-theme-v1 #side-nav-menu .nav-link .content,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-link,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-link .content {
+  color: #e8edf7 !important;
+}
+body.pmd-admin-theme-v1 #side-nav-menu .nav-item.active > .nav-link,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-item.active > .nav-link {
+  color: #fff !important;
+}
