@@ -7621,3 +7621,20 @@ html[data-theme="minimal"] .page--valet span:has(svg.lucide-car) svg * {
   -webkit-text-fill-color: #ffffff !important;
 }
 /* PMD FINAL VALET CAR ICON CIRCLE ALL THEMES END */
+
+/* Scoped customer-page normalization across home/menu/table/valet */
+[data-pmd-customer-page] .home-action-card,
+[data-pmd-customer-page] .surface-sub,
+[data-pmd-customer-page] .pmd-v2-card,
+[data-pmd-customer-page] .pmd-v2-card-sub {
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+[data-pmd-customer-page] .pmd-v2-action-circle,
+[data-pmd-customer-page] .pmd-v2-action-button,
+[data-pmd-customer-page] .pmd-v2-badge {
+  background: var(--theme-secondary);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
