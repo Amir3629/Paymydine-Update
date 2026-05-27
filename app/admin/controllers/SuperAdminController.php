@@ -115,8 +115,17 @@ public function sign(Request $request)
         $centralDatabase = Config::get('database.connections.mysql.database');
         $databaseName = null;
 
-        // Validate request
-        $validated = $request->validate([
+        \Log::info('tenant_create_enter', [
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'has_superadmin_id' => Session::has('superadmin_id'),
+            'mysql_database' => $centralDatabase,
+            'name' => $request->input('name'),
+            'domain' => $request->input('domain'),
+            'database' => $request->input('database'),
+        ]);
+
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'domain' => 'required|string|max:255|unique:tenants,domain',
             'database' => 'required|string|max:255',
@@ -127,7 +136,21 @@ public function sign(Request $request)
             'type' => 'required|string|max:255',
             'country' => 'required|string|max:255', 
             'description' => 'nullable|string|max:1000', 
-            
+        ]);
+        if ($validator->fails()) {
+            \Log::warning('tenant_create_validation_failed', [
+                'errors' => $validator->errors()->toArray(),
+                'name' => $request->input('name'),
+                'domain' => $request->input('domain'),
+                'database' => $request->input('database'),
+            ]);
+            return redirect(url('/superadmin/new?error=Validation failed. Please check input values.'));
+        }
+        $validated = $validator->validated();
+        \Log::info('tenant_create_validated', [
+            'name' => $validated['name'] ?? null,
+            'domain' => $validated['domain'] ?? null,
+            'database' => $validated['database'] ?? null,
         ]);
 
         $tenantName = $validated['name'];
@@ -164,9 +187,11 @@ public function sign(Request $request)
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            \Log::info('tenant_create_row_inserted', ['database' => $databaseName, 'domain' => $domain]);
         
             // ✅ Step 2: Create the new database
             DB::statement("CREATE DATABASE `$databaseName`");
+            \Log::info('tenant_create_db_created', ['database' => $databaseName]);
 
             $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
 
@@ -196,6 +221,7 @@ public function sign(Request $request)
                     DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
                 }
             }
+            \Log::info('tenant_create_db_cloned', ['database' => $databaseName, 'template' => $templateDb]);
             // After cloning schema/data, switch to tenant DB and activate the frontend theme
             try {
                 \Log::info('tenant_create_db_switch_to_tenant', ['database' => $databaseName]);
@@ -248,6 +274,7 @@ public function sign(Request $request)
                 DB::reconnect('mysql');
             }
 
+            \Log::info('tenant_create_success', ['database' => $databaseName, 'domain' => $domain]);
             return redirect(url('/superadmin/new?success=Tenant created successfully!'));
         } catch (\Throwable $e) {
             \Log::error('tenant_create_failed', [
@@ -262,6 +289,7 @@ public function sign(Request $request)
             Config::set('database.connections.mysql.database', $centralDatabase);
             DB::purge('mysql');
             DB::reconnect('mysql');
+            \Log::info('tenant_create_restore_central_db', ['database' => $centralDatabase]);
         }
 
         // ✅ Redirect back with success message
