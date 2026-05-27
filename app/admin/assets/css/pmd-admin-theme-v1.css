@@ -1200,7 +1200,7 @@ body.pmd-admin-theme-v1 .pmd-sidebar-brand .pmd-sidebar-brand-img {
   }
 }
 
-/* 21 phase: dashboard premium alignment (dashboard page only) */
+/* 21 phase: dashboard cleanup + targeted luxury styling (no nested frames) */
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] {
   margin-top: 2px;
 }
@@ -1209,90 +1209,117 @@ body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action {
   margin-bottom: 16px !important;
 }
 
-/* Dashboard top action buttons (keep in PMD family) */
-body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action .btn.btn-primary,
-body.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-toolbar .btn.btn-primary {
-  background: linear-gradient(135deg, #243A56, #14243A) !important;
+/* Neutralize frame-on-frame wrappers (layout only wrappers stay transparent) */
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-list > .col,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card,
+body.pmd-admin-theme-v1 .dashboard-widgets .dashboard-widget,
+body.pmd-admin-theme-v1 .dashboard-widgets .control-widget {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card {
+  padding: 0 !important;
+}
+
+/* Dashboard toolbar buttons: real DOM selectors */
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar #edit-layout-toggle,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar > .btn.pmd-toolbar-primary-action {
+  background: linear-gradient(135deg, #0F1B2A, #14243A) !important;
   border: 1px solid #14243A !important;
   color: #fff !important;
-  border-radius: 12px !important;
   min-height: 42px !important;
+  height: 42px !important;
+  border-radius: 12px !important;
   padding: 0 18px !important;
   font-weight: 700 !important;
-  box-shadow: 0 6px 16px rgba(20, 36, 58, 0.26) !important;
+  box-shadow: 0 6px 16px rgba(20, 36, 58, 0.28) !important;
 }
-body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action .btn.btn-outline-default,
-body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action .btn.btn-ice,
-body.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-toolbar .btn.btn-outline-default {
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .pmd-toolbar-right-buttons #dashboardContainer-daterange,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .pmd-toolbar-right-buttons .edit-mode-only > .btn.btn-ice,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .pmd-toolbar-right-buttons .edit-mode-only.pmd-toolbar-secondary-action > .btn {
   background: #fff !important;
-  border: 1px solid var(--pmd-border) !important;
-  color: var(--pmd-text) !important;
-  border-radius: 12px !important;
+  border: 1px solid #E8DFD2 !important;
+  color: #152033 !important;
   min-height: 42px !important;
+  height: 42px !important;
+  border-radius: 12px !important;
   padding: 0 18px !important;
   font-weight: 600 !important;
   box-shadow: none !important;
 }
 
-/* Dashboard cards/widgets/stats/recent activity */
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-list > .col,
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item,
-body.pmd-admin-theme-v1 .dashboard-widgets .card,
-body.pmd-admin-theme-v1 .dashboard-widgets .control-widget {
+/* Cache donut specific styling and PMD palette */
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .cache-donut > span {
   background: #fff !important;
-  border: 1px solid var(--pmd-border) !important;
-  border-radius: 20px !important;
-  box-shadow: 0 10px 24px rgba(15, 27, 42, 0.08) !important;
+  border-color: #fff !important;
+  box-shadow: 0 4px 10px rgba(15, 27, 42, 0.10) !important;
 }
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item > [id^="stat_"],
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .stat,
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .stats {
-  color: var(--pmd-text) !important;
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .cache-total-text .cache-label,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .cache-donut > span,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .cache-donut > span b {
+  color: #152033 !important;
 }
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .title,
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .text-muted,
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item small {
-  color: #5f7087 !important;
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .progress-bar:nth-of-type(1) {
+  --slice-color: #CBD3E1 !important;
 }
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .fa,
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .icon {
-  color: var(--pmd-navy-800) !important;
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .progress-bar:nth-of-type(2) {
+  --slice-color: #0F1B2A !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .progress-bar:nth-of-type(3) {
+  --slice-color: #AEB8C8 !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-cache .cache-curved-label {
+  fill: #5f7087 !important;
+  stroke: rgba(255, 255, 255, 0.72) !important;
 }
 
-/* Widget action icon buttons */
-body.pmd-admin-theme-v1 .dashboard-widgets .widget-item-action .btn {
-  border: 1px solid var(--pmd-border) !important;
-  background: #fff !important;
-  color: var(--pmd-navy-800) !important;
-  border-radius: 10px !important;
+/* Stat circles: remove heavy/old rings and keep airy premium look */
+body.pmd-admin-theme-v1 .dashboard-widgets .card-counter {
+  background: transparent !important;
+  border: 0 !important;
   box-shadow: none !important;
 }
-
-/* Donut/chart widget container and palette tone */
-body.pmd-admin-theme-v1 .dashboard-widgets [data-control="chart"],
-body.pmd-admin-theme-v1 .dashboard-widgets .chart-container,
-body.pmd-admin-theme-v1 .dashboard-widgets canvas {
-  background: transparent !important;
+body.pmd-admin-theme-v1 .dashboard-widgets .card-counter .stat-icon,
+body.pmd-admin-theme-v1 .dashboard-widgets .card-counter .stat-icon.text-white {
+  background: #F3ECE2 !important;
+  box-shadow: none !important;
+  color: #243A56 !important;
 }
-body.pmd-admin-theme-v1 .dashboard-widgets .apexcharts-series path,
-body.pmd-admin-theme-v1 .dashboard-widgets .c3-chart-arc path {
-  stroke: rgba(255, 255, 255, 0.88) !important;
-  stroke-width: 2px !important;
+body.pmd-admin-theme-v1 .dashboard-widgets .card-counter .stat-icon::after {
+  background: #FAF9F6 !important;
 }
-body.pmd-admin-theme-v1 .dashboard-widgets .apexcharts-legend-text,
-body.pmd-admin-theme-v1 .dashboard-widgets .c3-legend-item text {
-  fill: #5f7087 !important;
+body.pmd-admin-theme-v1 .dashboard-widgets .card-counter .stat-number {
+  color: #152033 !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .card-counter .stat-text {
   color: #5f7087 !important;
 }
 
-/* Recent activity rows */
+/* Recent activity: one subtle panel + clean rows */
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-news {
+  background: #fff !important;
+  border: 1px solid #E8DFD2 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 20px rgba(15, 27, 42, 0.06) !important;
+  padding: 10px 12px !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-news .list-group-item,
 body.pmd-admin-theme-v1 .dashboard-widgets .list-group-item,
 body.pmd-admin-theme-v1 .dashboard-widgets .activity-item,
 body.pmd-admin-theme-v1 .dashboard-widgets .recent-activity-item {
-  border-color: #efe7db !important;
-  color: var(--pmd-text) !important;
   background: transparent !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid #F1E9DC !important;
+  color: #152033 !important;
 }
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-news .list-group-item:last-child,
+body.pmd-admin-theme-v1 .dashboard-widgets .list-group-item:last-child {
+  border-bottom: 0 !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-news .text-muted,
 body.pmd-admin-theme-v1 .dashboard-widgets .activity-item .time,
 body.pmd-admin-theme-v1 .dashboard-widgets .recent-activity-item .time,
 body.pmd-admin-theme-v1 .dashboard-widgets .list-group-item small {
