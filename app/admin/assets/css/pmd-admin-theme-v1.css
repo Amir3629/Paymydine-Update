@@ -1230,6 +1230,23 @@ body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card {
   padding: 0 !important;
 }
 
+/* Final specificity bridge: neutralize legacy/bootstrap widget root frame */
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.card.bg-light.p-3.shadow-sm,
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-list > .col > .widget-item.card.bg-light.p-3.shadow-sm,
+html body.page.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card.bg-light.p-3.shadow-sm,
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.bg-light,
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.shadow-sm,
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-widgets .widget-item.p-3 {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  outline: 0 !important;
+}
+
 /* Dashboard toolbar buttons: real DOM selectors */
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar #edit-layout-toggle,
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar > .btn.pmd-toolbar-primary-action {
