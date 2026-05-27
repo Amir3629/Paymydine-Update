@@ -960,6 +960,9 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <!-- SlimSelect: close dropdown on scroll (page-wrapper), match dropdown width -->
 <script src="{{ asset('app/admin/assets/js/dynamic-dropdown-height.js') }}?v={{ time() }}"></script>
 
+<!-- PMD Admin Toolbar Auto Normalizer -->
+<script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ time() }}"></script>
+
 <!-- Guide Tour Button Handler -->
 <script>
 (function() {
