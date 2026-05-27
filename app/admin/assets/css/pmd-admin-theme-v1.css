@@ -788,17 +788,26 @@ body.pmd-admin-theme-v1 .nav-sidebar {
 
 
 /* 14 form page normalization */
-body.pmd-admin-theme-v1 .form-widget,
-body.pmd-admin-theme-v1 .form-fields,
+body.pmd-admin-theme-v1 .form-widget {
+  background: #fff !important;
+  border: 1px solid #E8DFD2 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 24px rgba(21,32,51,.06) !important;
+}
+body.pmd-admin-theme-v1 .form-fields {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  gap: 12px;
+}
 body.pmd-admin-theme-v1 #form-outside-tabs,
 body.pmd-admin-theme-v1 #form-primary-tabs,
 body.pmd-admin-theme-v1 .primary-tabs,
 body.pmd-admin-theme-v1 .tab-content,
 body.pmd-admin-theme-v1 .tab-pane {
-  background: #fff !important;
-  border: 1px solid #E8DFD2 !important;
-  border-radius: 18px !important;
-  box-shadow: 0 8px 24px rgba(21,32,51,.06) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 body.pmd-admin-theme-v1 .form-widget .form-group,
 body.pmd-admin-theme-v1 .form-fields .form-group { margin-bottom: 14px; }

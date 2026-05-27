@@ -1,15 +1,18 @@
 (function () {
   'use strict';
 
-  var ROOT_SELECTORS = [
-    '#toolbar.toolbar.btn-toolbar > .toolbar-action > .progress-indicator-container',
-    '.toolbar.btn-toolbar > .toolbar-action > .progress-indicator-container',
-    '.toolbar-action > .progress-indicator-container',
-    '.form-toolbar .progress-indicator-container',
-    '.page-title-section > .pull-right',
-    '.page-actions',
-    '.control-toolbar',
+  var SAFE_CONTAINERS = [
     '.pmd-toolbar-main',
+    '.toolbar-action > .progress-indicator-container',
+    '.progress-indicator-container',
+    '.form-toolbar',
+    '.control-toolbar',
+    '.page-actions',
+    '.page-title-section > .pull-right',
+    '.page-title-section .toolbar-action'
+  ].join(',');
+
+  var DISCOVERY_ROOTS = [
     '.page-title-section',
     '.page-content',
     '.content-wrapper',
@@ -21,8 +24,6 @@
     '.dropdown-menu','.modal','.modal-content','.media-manager','.media-toolbar','.select2-container','#notification-panel',
     '.editor-toolbar','.EasyMDEContainer','.CodeMirror','.category-btn','.menu-card','.pmd-category-buttons','.profile-dropdown-menu'
   ].join(',');
-
-  var BOUNDARY = '.form-widget, .list-container, .fixed-table-container, .table-responsive, .dashboard-widgets, .card, .control-list, .datatable, .pmd-menu-grid';
 
   function inExcluded(n){return !!(n && (n.matches(EXCLUDED)||n.closest(EXCLUDED)));}
   function txt(n){return (n.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();}
@@ -45,53 +46,77 @@
     return true;
   }
 
-  function boundaryBefore(btn){
-    var root=btn.closest('.page-content, .content-wrapper, .main-content')||document.body;
-    var b=root.querySelector(BOUNDARY);
-    if(!b) return true;
-    return !!(b.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_PRECEDING);
+  function ensureRight(container){
+    var right=container.querySelector(':scope > .pmd-toolbar-right-buttons');
+    if(!right){
+      right=document.createElement('div');
+      right.className='right-buttons pmd-toolbar-right-buttons';
+      right.setAttribute('aria-label','Secondary toolbar actions');
+      container.appendChild(right);
+    }
+    return right;
   }
 
-  function candidates(container){
-    var out=[]; var seen=new Set();
-    container.querySelectorAll('.btn').forEach(function(btn){
-      if(!validButton(btn)) return;
-      if(!(btn.closest('.toolbar-action, .progress-indicator-container, .form-toolbar, .control-toolbar, .page-actions, .page-title-section, .page-content, .content-wrapper, .main-content'))) return;
-      if(!boundaryBefore(btn) && !isPrimary(btn) && !isDanger(btn) && !isSecondary(btn)) return;
-      if(seen.has(btn)) return; seen.add(btn); out.push(btn);
+  function getToolbarButtons(container){
+    var selectors=[':scope > .btn',':scope > .btn-group > .btn',':scope > .pmd-toolbar-right-buttons > .btn',':scope > .pmd-toolbar-right-buttons > .btn-group > .btn'];
+    var seen=new Set(), out=[];
+    selectors.forEach(function(sel){
+      container.querySelectorAll(sel).forEach(function(btn){ if(validButton(btn)&&!seen.has(btn)){seen.add(btn); out.push(btn);} });
     });
     return out;
   }
 
-  function ensureRight(c){
-    var r=c.querySelector(':scope > .pmd-toolbar-right-buttons');
-    if(!r){r=document.createElement('div');r.className='right-buttons pmd-toolbar-right-buttons';r.setAttribute('aria-label','Secondary toolbar actions');c.appendChild(r);} return r;
-  }
+  function classify(container){
+    if(!container||inExcluded(container)) return;
+    var buttons=getToolbarButtons(container); if(!buttons.length) return;
 
-  function normalizeContainer(c){
-    if(!c||inExcluded(c)) return;
-    var btns=candidates(c); if(!btns.length) return;
-    c.classList.add('pmd-toolbar-normalized','pmd-admin-top-actions');
+    container.classList.add('pmd-toolbar-normalized','pmd-admin-top-actions');
+
     var primary=null, secondary=[];
-    btns.forEach(function(b){
-      b.classList.remove('pmd-toolbar-primary-action','pmd-toolbar-secondary-action','pmd-toolbar-danger-action');
-      if(isDanger(b)){b.classList.add('pmd-toolbar-danger-action'); secondary.push(b); return;}
-      if(!primary && isPrimary(b)){primary=b; b.classList.add('pmd-toolbar-primary-action');}
-      else {b.classList.add('pmd-toolbar-secondary-action'); secondary.push(b);} 
+    buttons.forEach(function(btn){
+      btn.classList.remove('pmd-toolbar-primary-action','pmd-toolbar-secondary-action','pmd-toolbar-danger-action');
+      if(isDanger(btn)){btn.classList.add('pmd-toolbar-danger-action'); secondary.push(btn); return;}
+      if(!primary && isPrimary(btn)){primary=btn; btn.classList.add('pmd-toolbar-primary-action');}
+      else {btn.classList.add('pmd-toolbar-secondary-action'); secondary.push(btn);} 
     });
-    var existing=c.querySelector(':scope > .pmd-toolbar-right-buttons');
-    var hasRight=!!(existing && existing.querySelector('.btn'));
-    if(primary && (secondary.length>0 || hasRight)){
-      c.classList.add('pmd-toolbar-split');
-      var r=ensureRight(c);
-      secondary.forEach(function(b){if(b!==primary && b.parentElement!==r) r.appendChild(b);});
-      if(primary.parentElement!==c) c.insertBefore(primary,c.firstChild);
-    } else if(!hasRight){c.classList.remove('pmd-toolbar-split');}
+
+    var existingRight=container.querySelector(':scope > .pmd-toolbar-right-buttons');
+    var rightHasButtons=!!(existingRight && existingRight.querySelector('.btn'));
+
+    if(primary && (secondary.length>0 || rightHasButtons)){
+      container.classList.add('pmd-toolbar-split');
+      var right=ensureRight(container);
+      secondary.forEach(function(btn){ if(btn!==primary && btn.parentElement!==right) right.appendChild(btn); });
+      if(primary.parentElement!==container) container.insertBefore(primary, container.firstChild);
+    } else if(!rightHasButtons){
+      container.classList.remove('pmd-toolbar-split');
+    }
   }
 
-  function run(){ if(!document.body.classList.contains('pmd-admin-theme-v1')) return; document.querySelectorAll(ROOT_SELECTORS).forEach(normalizeContainer); }
-  var t=null; function sched(){clearTimeout(t); t=setTimeout(run,80);} 
+  function discoverAndNormalize(root){
+    if(!root||inExcluded(root)) return;
+    root.querySelectorAll('.btn').forEach(function(btn){
+      if(!validButton(btn)) return;
+      if(!(isPrimary(btn)||isDanger(btn)||isSecondary(btn)||btn.classList.contains('btn-primary')||btn.classList.contains('btn-success')||btn.classList.contains('btn-default')||btn.classList.contains('btn-secondary')||btn.className.includes('btn-outline'))) return;
+      var container=btn.closest(SAFE_CONTAINERS);
+      if(!container||inExcluded(container)) return;
+      classify(container);
+    });
+  }
+
+  function run(){
+    if(!document.body.classList.contains('pmd-admin-theme-v1')) return;
+    document.querySelectorAll(SAFE_CONTAINERS).forEach(classify);
+    document.querySelectorAll(DISCOVERY_ROOTS).forEach(discoverAndNormalize);
+  }
+
+  var timer=null;
+  function schedule(){ clearTimeout(timer); timer=setTimeout(run,80); }
+
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',run,{once:true}); else run();
-  window.addEventListener('load',run,{once:true}); setTimeout(run,300);
-  var scope=document.querySelector('.page-content')||document.body; new MutationObserver(sched).observe(scope,{childList:true,subtree:true});
+  window.addEventListener('load',run,{once:true});
+  setTimeout(run,300);
+
+  var scope=document.querySelector('.page-content')||document.body;
+  new MutationObserver(schedule).observe(scope,{childList:true,subtree:true});
 })();
