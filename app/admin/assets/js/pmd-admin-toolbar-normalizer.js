@@ -8,8 +8,7 @@
     '.form-toolbar',
     '.control-toolbar',
     '.page-actions',
-    '.page-title-section > .pull-right',
-    '.page-title-section .toolbar-action'
+    '.page-title-section > .pull-right'
   ].join(',');
 
   var DISCOVERY_ROOTS = [
@@ -46,7 +45,11 @@
     return true;
   }
 
+
+  function isSafeContainer(node){ return !!(node && node.matches(SAFE_CONTAINERS) && !node.matches('.page-content, .content-wrapper, .main-content')); }
+
   function ensureRight(container){
+    if(!isSafeContainer(container)) return null;
     var right=container.querySelector(':scope > .pmd-toolbar-right-buttons');
     if(!right){
       right=document.createElement('div');
@@ -67,7 +70,7 @@
   }
 
   function classify(container){
-    if(!container||inExcluded(container)) return;
+    if(!container||inExcluded(container)||!isSafeContainer(container)) return;
     var buttons=getToolbarButtons(container); if(!buttons.length) return;
 
     container.classList.add('pmd-toolbar-normalized','pmd-admin-top-actions');
@@ -86,6 +89,7 @@
     if(primary && (secondary.length>0 || rightHasButtons)){
       container.classList.add('pmd-toolbar-split');
       var right=ensureRight(container);
+      if(!right) return;
       secondary.forEach(function(btn){ if(btn!==primary && btn.parentElement!==right) right.appendChild(btn); });
       if(primary.parentElement!==container) container.insertBefore(primary, container.firstChild);
     } else if(!rightHasButtons){
@@ -99,7 +103,7 @@
       if(!validButton(btn)) return;
       if(!(isPrimary(btn)||isDanger(btn)||isSecondary(btn)||btn.classList.contains('btn-primary')||btn.classList.contains('btn-success')||btn.classList.contains('btn-default')||btn.classList.contains('btn-secondary')||btn.className.includes('btn-outline'))) return;
       var container=btn.closest(SAFE_CONTAINERS);
-      if(!container||inExcluded(container)) return;
+      if(!container||inExcluded(container)||!isSafeContainer(container)) return;
       classify(container);
     });
   }
