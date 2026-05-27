@@ -63,17 +63,32 @@
     return group;
   }
 
+
+  function getToolbarButtons(container) {
+    var selectors = [
+      ':scope > .btn',
+      ':scope > .btn-group > .btn',
+      ':scope > .pmd-toolbar-right-buttons > .btn',
+      ':scope > .pmd-toolbar-right-buttons > .btn-group > .btn'
+    ];
+
+    var seen = new Set();
+    var buttons = [];
+
+    selectors.forEach(function (sel) {
+      Array.prototype.forEach.call(container.querySelectorAll(sel), function (btn) {
+        if (!isToolbarButton(btn)) return;
+        if (seen.has(btn)) return;
+        seen.add(btn);
+        buttons.push(btn);
+      });
+    });
+
+    return buttons;
+  }
+
   function classifyAndGroup(container) {
-    var directButtons = Array.prototype.filter.call(container.children, function (el) {
-      return isToolbarButton(el) && el.matches('.btn');
-    });
-
-    var directButtonGroupButtons = [];
-    Array.prototype.forEach.call(container.querySelectorAll(':scope > .btn-group > .btn'), function (btn) {
-      if (isToolbarButton(btn)) directButtonGroupButtons.push(btn);
-    });
-
-    var buttons = directButtons.concat(directButtonGroupButtons);
+    var buttons = getToolbarButtons(container);
     if (!buttons.length) return;
 
     var primary = null;
@@ -97,7 +112,10 @@
       }
     });
 
-    if (primary && secondary.length > 0) {
+    var existingRight = container.querySelector(':scope > .pmd-toolbar-right-buttons');
+    var rightHasButtons = !!(existingRight && existingRight.querySelector('.btn'));
+
+    if (primary && (secondary.length > 0 || rightHasButtons)) {
       container.classList.add('pmd-toolbar-split');
       var right = ensureRightGroup(container);
       secondary.forEach(function (btn) {
@@ -106,7 +124,7 @@
       if (primary.parentElement !== container) {
         container.insertBefore(primary, container.firstChild);
       }
-    } else {
+    } else if (!rightHasButtons) {
       container.classList.remove('pmd-toolbar-split');
     }
   }
