@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Config;
 use System\Models\Themes_model;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use App\Services\TenantProvisioningService;
 class SuperAdminController  extends AdminController
 {
     public function showIndex()
@@ -22,11 +24,21 @@ class SuperAdminController  extends AdminController
  Session::put('superadmin_username', $superadmin->username);
  Session::save(); // Force session to save!
 
-        return view('index');
+        return new SymfonyResponse(
+            view('index')->render(),
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8']
+        );
     }
 public function login(){
-
-    return view('login');
+    if (Session::has('superadmin_id')) {
+        return redirect('/superadmin/index');
+    }
+    return new SymfonyResponse(
+        view('login')->render(),
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8']
+    );
 }
 public function sign(Request $request)
     {
@@ -48,14 +60,16 @@ public function sign(Request $request)
         Session::put('superadmin_id', $superAdmin->id);
         Session::put('superadmin_username', $superAdmin->username);
         Session::save(); // Force session to save!
-      
-        $fakeRequest = new Request([
-            'per_page' => 5,  // Set default pagination
-            'order' => 'DESC'  // Set default order
-        ]);
-    
-        // Manually call the showNewPage function
-        return $this->showNewPage($fakeRequest);
+
+        \Log::info('superadmin_login_success', ['superadmin_id' => $superAdmin->id]);
+
+        $intendedUrl = Session::pull('superadmin_intended_url');
+        if (!$intendedUrl || str_contains($intendedUrl, '/superadmin/new/store') || str_contains($intendedUrl, '/superadmin/sign')) {
+            $intendedUrl = '/superadmin/index';
+        }
+
+        \Log::info('superadmin_login_redirect', ['to' => $intendedUrl]);
+        return redirect($intendedUrl);
     }
     public function signOut()
     {
@@ -67,7 +81,7 @@ public function sign(Request $request)
         Session::flush();
     
         // Redirect to login page
-        return view('login')->with(['message' => 'You have been logged out.']);
+        return redirect('/superadmin/login')->with(['message' => 'You have been logged out.']);
     }
     public function showNewPage(Request $request)
     {
@@ -89,14 +103,48 @@ public function sign(Request $request)
                      ->table('tenants')
                      ->orderBy('id', $order)
                      ->paginate($perPage);
-                             return view('new', compact('tenants', 'perPage', 'order'));
+                             return new SymfonyResponse(
+                                 view('new', compact('tenants', 'perPage', 'order'))->render(),
+                                 200,
+                                 ['Content-Type' => 'text/html; charset=UTF-8']
+                             );
     }
 
     // ✅ Handle form submission
     public function store(Request $request)
     {
-        // Validate request
-        $validated = $request->validate([
+        \Log::info('tenant_create_store_first_line', [
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'has_superadmin_id' => Session::has('superadmin_id'),
+            'mysql_database' => Config::get('database.connections.mysql.database'),
+            'name' => $request->input('name'),
+            'domain' => $request->input('domain'),
+            'database' => $request->input('database'),
+        ]);
+
+        if (!Session::has('superadmin_id')) {
+            \Log::warning('tenant_create_auth_missing_in_store', [
+                'path' => $request->path(),
+                'method' => $request->method(),
+            ]);
+            return redirect('/superadmin/login');
+        }
+
+        $centralDatabase = Config::get('database.connections.mysql.database');
+        $databaseName = null;
+
+        \Log::info('tenant_create_enter', [
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'has_superadmin_id' => Session::has('superadmin_id'),
+            'mysql_database' => $centralDatabase,
+            'name' => $request->input('name'),
+            'domain' => $request->input('domain'),
+            'database' => $request->input('database'),
+        ]);
+
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'domain' => 'required|string|max:255|unique:tenants,domain',
             'database' => 'required|string|max:255',
@@ -107,7 +155,21 @@ public function sign(Request $request)
             'type' => 'required|string|max:255',
             'country' => 'required|string|max:255', 
             'description' => 'nullable|string|max:1000', 
-            
+        ]);
+        if ($validator->fails()) {
+            \Log::warning('tenant_create_validation_failed', [
+                'errors' => $validator->errors()->toArray(),
+                'name' => $request->input('name'),
+                'domain' => $request->input('domain'),
+                'database' => $request->input('database'),
+            ]);
+            return redirect(url('/superadmin/new?error=Validation failed. Please check input values.'));
+        }
+        $validated = $validator->validated();
+        \Log::info('tenant_create_validated', [
+            'name' => $validated['name'] ?? null,
+            'domain' => $validated['domain'] ?? null,
+            'database' => $validated['database'] ?? null,
         ]);
 
         $tenantName = $validated['name'];
@@ -121,109 +183,137 @@ public function sign(Request $request)
         $country = $validated['country']; 
         $description = $validated['description'] ?? null; 
         $templateDb = 'newtenantdb'; 
-        $databaseExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", [$databaseName]);
+        \Log::info('tenant_create_start', ['tenant' => $tenantName, 'database' => $databaseName]);
 
-        if (count($databaseExists) > 0) { // ✅ Check if the array contains any results
-            return redirect(url('/superadmin/new?error=Database name already exists!'));
-        }
-        DB::connection('mysql')->table('tenants')->insert([
-            'name' => $tenantName,
-            'domain' => $domain,
-            'database' => $databaseName,
-            'email' => $email,
-            'phone' => $phone,
-            'start' => $start,
-            'end' => $end,
-            'type' => $type,
-            'country' => $country, 
-            'description' => $description, 
-            'status' =>  'active',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    
-        // ✅ Step 2: Create the new database
-        DB::statement("CREATE DATABASE `$databaseName`");
-
-        $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
-
-        foreach ($tables as $table) {
-            $tableName = array_values((array) $table)[0];
-        
-            // ✅ Get the table creation SQL
-            $createTableResult = DB::connection('mysql')->select("SHOW CREATE TABLE `$templateDb`.`$tableName`");
-            
-            if (!$createTableResult) {
-                \Log::error("Failed to get CREATE TABLE statement for: $tableName");
-                continue; // Skip this table
-            }
-        
-            $createTableQuery = $createTableResult[0]->{'Create Table'};
-        
-            // ✅ Replace source database name with new database name in query
-            $createTableQuery = str_replace("`$templateDb`.", "", $createTableQuery);
-        
-            // ✅ Execute the table creation query in the new database
-            DB::connection('mysql')->statement("USE `$databaseName`");
-            DB::connection('mysql')->statement($createTableQuery);
-        
-            // ✅ Copy data if the table has any rows
-            $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
-            if ($rowCount > 0) {
-                DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
-            }
-        }
-        // After cloning schema/data, switch to tenant DB and activate the frontend theme
         try {
-            Config::set('database.connections.mysql.database', $databaseName);
-            DB::purge('mysql');
-            DB::reconnect('mysql');
+            $databaseExists = DB::select("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", [$databaseName]);
 
-            // Create default Cashier table for this tenant (idempotent)
-            $existingCashier = DB::table('tables')->where('table_name', 'Cashier')->first();
-            if (!$existingCashier) {
-                $cashierTableId = DB::table('tables')->insertGetId([
-                    'table_name' => 'Cashier',
-                    'min_capacity' => 1,
-                    'max_capacity' => 1,
-                    'table_status' => 1,
-                    'extra_capacity' => 0,
-                    'is_joinable' => 0,
-                    'priority' => 999, // High priority to appear at the end
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                    'qr_code' => 'cashier',
-                ]);
+            if (count($databaseExists) > 0) { // ✅ Check if the array contains any results
+                return redirect(url('/superadmin/new?error=Database name already exists!'));
+            }
+            DB::connection('mysql')->table('tenants')->insert([
+                'name' => $tenantName,
+                'domain' => $domain,
+                'database' => $databaseName,
+                'email' => $email,
+                'phone' => $phone,
+                'start' => $start,
+                'end' => $end,
+                'type' => $type,
+                'country' => $country, 
+                'description' => $description, 
+                'status' =>  'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            \Log::info('tenant_create_row_inserted', ['database' => $databaseName, 'domain' => $domain]);
+        
+            // ✅ Step 2: Create the new database
+            DB::statement("CREATE DATABASE `$databaseName`");
+            \Log::info('tenant_create_db_created', ['database' => $databaseName]);
 
-                // Link the cashier table to the default location (location_id = 1)
-                DB::table('locationables')->insert([
-                    'location_id' => 1,
-                    'locationable_id' => $cashierTableId,
-                    'locationable_type' => 'tables',
-                    'options' => null,
-                ]);
+            $tables = DB::connection('mysql')->select("SHOW TABLES FROM `$templateDb`");
+
+            foreach ($tables as $table) {
+                $tableName = array_values((array) $table)[0];
+            
+                // ✅ Get the table creation SQL
+                $createTableResult = DB::connection('mysql')->select("SHOW CREATE TABLE `$templateDb`.`$tableName`");
                 
-                \Log::info("Created Cashier table for tenant: $databaseName");
-            } else {
-                \Log::info("Cashier table already exists for tenant: $databaseName");
+                if (!$createTableResult) {
+                    \Log::error("Failed to get CREATE TABLE statement for: $tableName");
+                    continue; // Skip this table
+                }
+            
+                $createTableQuery = $createTableResult[0]->{'Create Table'};
+            
+                // ✅ Replace source database name with new database name in query
+                $createTableQuery = str_replace("`$templateDb`.", "", $createTableQuery);
+            
+                // ✅ Execute the table creation query in the new database
+                DB::connection('mysql')->statement("USE `$databaseName`");
+                DB::connection('mysql')->statement($createTableQuery);
+            
+                // ✅ Copy data if the table has any rows
+                $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
+                if ($rowCount > 0) {
+                    DB::connection('mysql')->statement("INSERT INTO `$databaseName`.`$tableName` SELECT * FROM `$templateDb`.`$tableName`");
+                }
+            }
+            \Log::info('tenant_create_db_cloned', ['database' => $databaseName, 'template' => $templateDb]);
+            // After cloning schema/data, switch to tenant DB and activate the frontend theme
+            try {
+                \Log::info('tenant_create_db_switch_to_tenant', ['database' => $databaseName]);
+                Config::set('database.connections.mysql.database', $databaseName);
+                DB::purge('mysql');
+                DB::reconnect('mysql');
+
+                // Create default Cashier table for this tenant (idempotent)
+                $existingCashier = DB::table('tables')->where('table_name', 'Cashier')->first();
+                if (!$existingCashier) {
+                    $cashierTableId = DB::table('tables')->insertGetId([
+                        'table_name' => 'Cashier',
+                        'min_capacity' => 1,
+                        'max_capacity' => 1,
+                        'table_status' => 1,
+                        'extra_capacity' => 0,
+                        'is_joinable' => 0,
+                        'priority' => 999, // High priority to appear at the end
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'qr_code' => 'cashier',
+                    ]);
+
+                    // Link the cashier table to the default location (location_id = 1)
+                    DB::table('locationables')->insert([
+                        'location_id' => 1,
+                        'locationable_id' => $cashierTableId,
+                        'locationable_type' => 'tables',
+                        'options' => null,
+                    ]);
+                    
+                    \Log::info("Created Cashier table for tenant: $databaseName");
+                } else {
+                    \Log::info("Cashier table already exists for tenant: $databaseName");
+                }
+
+                // Ensure filesystem themes are synced into tenant DB
+                Themes_model::syncAll();
+
+                // Activate our custom theme for this tenant
+                Themes_model::activateTheme('frontend-theme');
+            } catch (\Throwable $e) {
+                // Swallow to avoid breaking tenant creation; admin can fix manually if needed
+                \Log::error('Failed to activate theme for tenant '.$databaseName.': '.$e->getMessage());
+            } finally {
+                // Switch back to original central database
+                \Log::info('tenant_create_restore_central_db', ['database' => $centralDatabase]);
+                Config::set('database.connections.mysql.database', $centralDatabase);
+                DB::purge('mysql');
+                DB::reconnect('mysql');
             }
 
-            // Ensure filesystem themes are synced into tenant DB
-            Themes_model::syncAll();
-
-            // Activate our custom theme for this tenant
-            Themes_model::activateTheme('frontend-theme');
+            $provisioning = app(TenantProvisioningService::class)->provisionDomain($domain);
+            \Log::info('tenant_create_success', ['database' => $databaseName, 'domain' => $domain, 'provisioning_ok' => $provisioning['ok']]);
+            if ($provisioning['ok']) {
+                return redirect(url('/superadmin/new?success=Tenant created successfully!'));
+            }
+            return redirect(url('/superadmin/new?error=Tenant created, but domain provisioning failed: '.$provisioning['message']));
         } catch (\Throwable $e) {
-            // Swallow to avoid breaking tenant creation; admin can fix manually if needed
-            \Log::error('Failed to activate theme for tenant '.$databaseName.': '.$e->getMessage());
+            \Log::error('tenant_create_failed', [
+                'tenant' => $tenantName ?? null,
+                'database' => $databaseName,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect(url('/superadmin/new?error=Unable to create tenant. Please try again.'));
         } finally {
-            // Switch back to main database
-            Config::set('database.connections.mysql.database', env('DB_DATABASE', 'paymydine'));
+            // Safety restore in all code paths before response/session handling
+            Config::set('database.connections.mysql.database', $centralDatabase);
             DB::purge('mysql');
             DB::reconnect('mysql');
+            \Log::info('tenant_create_restore_central_db', ['database' => $centralDatabase]);
         }
-
-        return redirect(url('/superadmin/new?success=Tenant created successfully!'));
 
         // ✅ Redirect back with success message
      //   return redirect(url('/superadmin/new'))->with('success', 'Tenant created successfully!');
@@ -297,7 +387,11 @@ public function sign(Request $request)
  Session::put('superadmin_username', $superadmin->username);
  Session::save(); // Force session to save!
 
-return view('settings', compact('superadmin'));    }
+return new SymfonyResponse(
+    view('settings', compact('superadmin'))->render(),
+    200,
+    ['Content-Type' => 'text/html; charset=UTF-8']
+);    }
 
 public function updateSettings(Request $request)
 {
@@ -348,6 +442,10 @@ public function locationRequests(Request $request)
         );
     }
 
-    return view('location_requests', compact('locationRequests', 'perPage', 'order'));
+    return new SymfonyResponse(
+        view('location_requests', compact('locationRequests', 'perPage', 'order'))->render(),
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8']
+    );
 }
 }

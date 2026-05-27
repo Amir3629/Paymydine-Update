@@ -64,6 +64,12 @@ class ServiceProvider extends AppServiceProvider
             Route::get('/superadmin/index', [SuperAdminController::class, 'showIndex'])->name('superadmin.index');
             Route::get('/superadmin/location-requests', [SuperAdminController::class, 'locationRequests'])->name('superadmin.location-requests');
 
+            // PMD Super Admin tenant create route: keep in same working web route layer as Super Admin pages.
+            Route::post('/superadmin/new/store', [SuperAdminController::class, 'store'])->name('superadmin.store.scoped');
+            Route::get('/superadmin/new/store', function () {
+                return redirect('/superadmin/new');
+            });
+
         });
         if ($this->app->runningInAdmin()) {
             $this->registerSystemSettings();

@@ -184,4 +184,13 @@
   'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
   'Admin\\Models\\Coupons_model' => 'app/admin/models/Coupons_model.php',
   'Admin\\Controllers\\SuperAdminController' => 'app/admin/controllers/SuperAdminController.php',
+  'Admin\\Classes\\PaymentGateways' => 'app/admin/classes/PaymentGateways.php',
+  'Igniter\\PayRegister\\Payments\\ApplePay' => 'extensions/igniter/payregister/payments/ApplePay.php',
+  'Igniter\\PayRegister\\Payments\\Cod' => 'extensions/igniter/payregister/payments/Cod.php',
+  'Igniter\\PayRegister\\Payments\\AuthorizeNetAim' => 'extensions/igniter/payregister/payments/AuthorizeNetAim.php',
+  'Igniter\\PayRegister\\Payments\\Mollie' => 'extensions/igniter/payregister/payments/Mollie.php',
+  'Igniter\\PayRegister\\Payments\\Square' => 'extensions/igniter/payregister/payments/Square.php',
+  'Main\\Template\\Partial' => 'app/main/template/Partial.php',
+  'Admin\\Controllers\\tips' => 'app/admin/controllers/Tips.php',
+  'Admin\\Models\\Tips_shifts_model' => 'app/admin/models/Tips_shifts_model.php',
 );
