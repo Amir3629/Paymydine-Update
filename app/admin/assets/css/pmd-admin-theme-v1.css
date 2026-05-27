@@ -865,3 +865,66 @@ body.pmd-admin-theme-v1 .pmd-toolbar-normalized .btn i { color:inherit !importan
 body.pmd-admin-theme-v1 .editor-toolbar button,
 body.pmd-admin-theme-v1 .category-btn,
 body.pmd-admin-theme-v1 .menu-card .dropdown-menu .btn { min-height:auto !important; padding:0 !important; box-shadow:none !important; }
+
+
+/* 15 semantic top-action enforcement for normalized containers */
+body.pmd-admin-theme-v1 .pmd-admin-top-actions > .btn.pmd-toolbar-primary-action,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-admin-top-actions > .btn.pmd-toolbar-primary-action,
+body.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions > .btn.pmd-toolbar-primary-action {
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  padding: 0 18px !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #0F1B2A, #14243A) !important;
+  border: 1px solid #14243A !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(20, 36, 58, 0.28) !important;
+}
+body.pmd-admin-theme-v1 .pmd-admin-top-actions > .btn.pmd-toolbar-primary-action i,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-admin-top-actions > .btn.pmd-toolbar-primary-action i {
+  color: #fff !important;
+  margin-right: 0.35rem;
+}
+
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action {
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  padding: 0 16px !important;
+  background: #fff !important;
+  border: 1px solid #E8DFD2 !important;
+  color: #152033 !important;
+  box-shadow: none !important;
+}
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action i {
+  color: #152033 !important;
+  margin-right: 0.25rem;
+}
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action:has(i):not(:has(span)):not(:has(.content)),
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn.pmd-toolbar-secondary-action.icon-only {
+  width: 42px !important;
+  min-width: 42px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn.pmd-toolbar-danger-action,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn.pmd-toolbar-danger-action {
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  padding: 0 16px !important;
+  background: #F9EFEE !important;
+  color: #8F3830 !important;
+  border: 1px solid #DFB3AD !important;
+  box-shadow: none !important;
+}
+
+body.pmd-admin-theme-v1 .pmd-admin-top-actions > .btn:disabled,
+body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn:disabled {
+  opacity: 0.58 !important;
+  box-shadow: none !important;
+}
+
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn-group:empty {
+  display: none !important;
+}

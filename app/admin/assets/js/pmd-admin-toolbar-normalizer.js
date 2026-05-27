@@ -64,19 +64,28 @@
     var selectors=[':scope > .btn',':scope > .btn-group > .btn',':scope > .pmd-toolbar-right-buttons > .btn',':scope > .pmd-toolbar-right-buttons > .btn-group > .btn'];
     var seen=new Set(), out=[];
     selectors.forEach(function(sel){
-      container.querySelectorAll(sel).forEach(function(btn){ if(validButton(btn)&&!seen.has(btn)){seen.add(btn); out.push(btn);} });
+      container.querySelectorAll(sel).forEach(function(btn){ if(!btn.classList||!btn.classList.contains('btn')) return; if(validButton(btn)&&!seen.has(btn)){seen.add(btn); out.push(btn);} });
     });
     return out;
   }
 
+
+  function cleanupEmptyGroups(container){
+    container.querySelectorAll(':scope > .pmd-toolbar-right-buttons > .btn-group').forEach(function(group){
+      if(!group.querySelector('.btn')) group.remove();
+    });
+  }
+
   function classify(container){
     if(!container||inExcluded(container)||!isSafeContainer(container)) return;
+    cleanupEmptyGroups(container);
     var buttons=getToolbarButtons(container); if(!buttons.length) return;
 
     container.classList.add('pmd-toolbar-normalized','pmd-admin-top-actions');
 
     var primary=null, secondary=[];
     buttons.forEach(function(btn){
+      if(!btn.classList.contains('btn')) return;
       btn.classList.remove('pmd-toolbar-primary-action','pmd-toolbar-secondary-action','pmd-toolbar-danger-action');
       if(isDanger(btn)){btn.classList.add('pmd-toolbar-danger-action'); secondary.push(btn); return;}
       if(!primary && isPrimary(btn)){primary=btn; btn.classList.add('pmd-toolbar-primary-action');}
