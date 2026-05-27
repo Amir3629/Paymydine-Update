@@ -184,7 +184,6 @@ body.pmd-admin-theme-v1 .btn-outline-danger {
 }
 body.pmd-admin-theme-v1 .btn.bg-transparent,
 body.pmd-admin-theme-v1 .btn-icon,
-body.pmd-admin-theme-v1 .list-setup .btn,
 body.pmd-admin-theme-v1 [data-toggle="list-filter"] {
   border-radius: 999px !important;
 }
@@ -372,8 +371,7 @@ body.pmd-admin-theme-v1 .control-widget .title {
 }
 
 body.pmd-admin-theme-v1 .toolbar-action,
-body.pmd-admin-theme-v1 .page-title-section + .toolbar,
-body.pmd-admin-theme-v1 .list-header {
+body.pmd-admin-theme-v1 .page-title-section + .toolbar {
   margin-bottom: 12px;
 }
 
@@ -714,17 +712,52 @@ body.pmd-admin-theme-v1 .toolbar-action > .btn.icon-only {
   justify-content: center !important;
 }
 
-/* Protection: keep list/table controls out of top-toolbar sizing/styling */
-body.pmd-admin-theme-v1 table .btn,
-body.pmd-admin-theme-v1 table .btn-sm,
-body.pmd-admin-theme-v1 table .btn-edit,
-body.pmd-admin-theme-v1 table .sort-col,
+/* Protection: keep list/table controls compact and independent from top-toolbar styling */
+body.pmd-admin-theme-v1 table .sort-col {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  color: inherit !important;
+}
+
 body.pmd-admin-theme-v1 .list-setup .btn,
-body.pmd-admin-theme-v1 .bulk-actions .btn {
-  min-height: unset !important;
-  padding: unset !important;
-  border-radius: unset !important;
-  box-shadow: unset !important;
+body.pmd-admin-theme-v1 table .btn.btn-sm.border-none {
+  width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.pmd-admin-theme-v1 table .btn-edit,
+body.pmd-admin-theme-v1 table a.btn-edit {
+  width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.pmd-admin-theme-v1 .bulk-actions .btn,
+body.pmd-admin-theme-v1 table .bulk-actions .btn,
+body.pmd-admin-theme-v1 table .btn,
+body.pmd-admin-theme-v1 table .btn-sm {
+  min-height: 32px !important;
+  padding: 0.3rem 0.55rem !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
   transform: none !important;
 }
 
