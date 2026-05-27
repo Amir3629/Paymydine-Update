@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Config;
 use System\Models\Themes_model;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use App\Services\TenantProvisioningService;
 class SuperAdminController  extends AdminController
 {
     public function showIndex()
@@ -292,8 +293,12 @@ public function sign(Request $request)
                 DB::reconnect('mysql');
             }
 
-            \Log::info('tenant_create_success', ['database' => $databaseName, 'domain' => $domain]);
-            return redirect(url('/superadmin/new?success=Tenant created successfully!'));
+            $provisioning = app(TenantProvisioningService::class)->provisionDomain($domain);
+            \Log::info('tenant_create_success', ['database' => $databaseName, 'domain' => $domain, 'provisioning_ok' => $provisioning['ok']]);
+            if ($provisioning['ok']) {
+                return redirect(url('/superadmin/new?success=Tenant created successfully!'));
+            }
+            return redirect(url('/superadmin/new?error=Tenant created, but domain provisioning failed: '.$provisioning['message']));
         } catch (\Throwable $e) {
             \Log::error('tenant_create_failed', [
                 'tenant' => $tenantName ?? null,
