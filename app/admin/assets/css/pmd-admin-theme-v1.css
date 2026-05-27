@@ -1199,3 +1199,102 @@ body.pmd-admin-theme-v1 .pmd-sidebar-brand .pmd-sidebar-brand-img {
     display: none !important;
   }
 }
+
+/* 21 phase: dashboard premium alignment (dashboard page only) */
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] {
+  margin-top: 2px;
+}
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-toolbar,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action {
+  margin-bottom: 16px !important;
+}
+
+/* Dashboard top action buttons (keep in PMD family) */
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action .btn.btn-primary,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-toolbar .btn.btn-primary {
+  background: linear-gradient(135deg, #243A56, #14243A) !important;
+  border: 1px solid #14243A !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  min-height: 42px !important;
+  padding: 0 18px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 6px 16px rgba(20, 36, 58, 0.26) !important;
+}
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action .btn.btn-outline-default,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action .btn.btn-ice,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .dashboard-toolbar .btn.btn-outline-default {
+  background: #fff !important;
+  border: 1px solid var(--pmd-border) !important;
+  color: var(--pmd-text) !important;
+  border-radius: 12px !important;
+  min-height: 42px !important;
+  padding: 0 18px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+/* Dashboard cards/widgets/stats/recent activity */
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-list > .col,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item,
+body.pmd-admin-theme-v1 .dashboard-widgets .card,
+body.pmd-admin-theme-v1 .dashboard-widgets .control-widget {
+  background: #fff !important;
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 24px rgba(15, 27, 42, 0.08) !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item > [id^="stat_"],
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .stat,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .stats {
+  color: var(--pmd-text) !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .title,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .text-muted,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item small {
+  color: #5f7087 !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .fa,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item .icon {
+  color: var(--pmd-navy-800) !important;
+}
+
+/* Widget action icon buttons */
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item-action .btn {
+  border: 1px solid var(--pmd-border) !important;
+  background: #fff !important;
+  color: var(--pmd-navy-800) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+/* Donut/chart widget container and palette tone */
+body.pmd-admin-theme-v1 .dashboard-widgets [data-control="chart"],
+body.pmd-admin-theme-v1 .dashboard-widgets .chart-container,
+body.pmd-admin-theme-v1 .dashboard-widgets canvas {
+  background: transparent !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .apexcharts-series path,
+body.pmd-admin-theme-v1 .dashboard-widgets .c3-chart-arc path {
+  stroke: rgba(255, 255, 255, 0.88) !important;
+  stroke-width: 2px !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .apexcharts-legend-text,
+body.pmd-admin-theme-v1 .dashboard-widgets .c3-legend-item text {
+  fill: #5f7087 !important;
+  color: #5f7087 !important;
+}
+
+/* Recent activity rows */
+body.pmd-admin-theme-v1 .dashboard-widgets .list-group-item,
+body.pmd-admin-theme-v1 .dashboard-widgets .activity-item,
+body.pmd-admin-theme-v1 .dashboard-widgets .recent-activity-item {
+  border-color: #efe7db !important;
+  color: var(--pmd-text) !important;
+  background: transparent !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .activity-item .time,
+body.pmd-admin-theme-v1 .dashboard-widgets .recent-activity-item .time,
+body.pmd-admin-theme-v1 .dashboard-widgets .list-group-item small {
+  color: #7a889b !important;
+}
