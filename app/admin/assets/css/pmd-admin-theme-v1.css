@@ -421,3 +421,132 @@ body.pmd-admin-theme-v1 .pagination .active a {
   border-color: var(--pmd-gold-dark) !important;
   color: #fff !important;
 }
+
+
+/* 12 phase-4 targeted audit coverage */
+/* Dashboard outer card wrappers (real DOM wrappers from audit) */
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card.bg-light,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card.p-3,
+body.pmd-admin-theme-v1 #dashboardcontainer-container .widget-item.card,
+body.pmd-admin-theme-v1 #dashboardcontainer-container-list .widget-item.card {
+  background: var(--pmd-surface) !important;
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: var(--pmd-radius-xl) !important;
+  box-shadow: var(--pmd-shadow-card) !important;
+  padding: 14px 16px !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-item.card.no-padding {
+  background: var(--pmd-surface) !important;
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: var(--pmd-radius-xl) !important;
+  box-shadow: var(--pmd-shadow-card) !important;
+  padding: 0 !important; /* preserve chart/table internals that expect edge-to-edge content */
+  overflow: hidden;
+}
+
+/* Dashboard grid spacing only inside dashboard containers */
+body.pmd-admin-theme-v1 #dashboardcontainer-container,
+body.pmd-admin-theme-v1 #dashboardcontainer-container-list,
+body.pmd-admin-theme-v1 .dashboard-widgets,
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-container {
+  gap: 14px;
+}
+body.pmd-admin-theme-v1 .dashboard-widgets .widget-list {
+  gap: 14px;
+}
+
+/* Menu category buttons */
+body.pmd-admin-theme-v1 .pmd-category-buttons .category-btn,
+body.pmd-admin-theme-v1 .category-buttons .category-btn,
+body.pmd-admin-theme-v1 .category-btn {
+  background: var(--pmd-surface) !important;
+  color: var(--pmd-navy-800) !important;
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: 999px !important;
+  min-height: 36px;
+  padding: 0.4rem 0.9rem;
+  box-shadow: 0 2px 8px rgba(21, 32, 51, 0.06);
+}
+body.pmd-admin-theme-v1 .pmd-category-buttons .category-btn:hover,
+body.pmd-admin-theme-v1 .category-buttons .category-btn:hover,
+body.pmd-admin-theme-v1 .category-btn:hover {
+  background: var(--pmd-bg-soft) !important;
+  border-color: #d9ccb9 !important;
+  color: var(--pmd-text) !important;
+}
+body.pmd-admin-theme-v1 .pmd-category-buttons .category-btn.active,
+body.pmd-admin-theme-v1 .category-buttons .category-btn.active,
+body.pmd-admin-theme-v1 .category-btn.active {
+  background: linear-gradient(135deg, rgba(196, 154, 91, 0.24), rgba(185, 138, 74, 0.3)) !important;
+  border-color: var(--pmd-gold-dark) !important;
+  color: var(--pmd-text) !important;
+  box-shadow: 0 4px 12px rgba(185, 138, 74, 0.2) !important;
+}
+
+/* Profile dropdown items */
+body.pmd-admin-theme-v1 .profile-dropdown-menu.show {
+  background: var(--pmd-surface) !important;
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: var(--pmd-radius-md) !important;
+  box-shadow: var(--pmd-shadow-card) !important;
+}
+body.pmd-admin-theme-v1 .profile-dropdown-menu .dropdown-item {
+  color: var(--pmd-text) !important;
+  border-radius: var(--pmd-radius-sm);
+}
+body.pmd-admin-theme-v1 .profile-dropdown-menu .dropdown-item:hover,
+body.pmd-admin-theme-v1 .profile-dropdown-menu .dropdown-item:focus {
+  background: rgba(196, 154, 91, 0.14) !important;
+  color: var(--pmd-text) !important;
+}
+
+/* Form switches/toggles */
+body.pmd-admin-theme-v1 .form-check-input,
+body.pmd-admin-theme-v1 .custom-switch .form-check-input,
+body.pmd-admin-theme-v1 .switch input[type="checkbox"] {
+  border: 1px solid #c9d3e0 !important;
+  background-color: #eef2f8 !important;
+}
+body.pmd-admin-theme-v1 .form-check-input:focus,
+body.pmd-admin-theme-v1 .custom-switch .form-check-input:focus,
+body.pmd-admin-theme-v1 .switch input[type="checkbox"]:focus {
+  border-color: var(--pmd-gold-dark) !important;
+  box-shadow: 0 0 0 0.15rem rgba(196, 154, 91, 0.2) !important;
+}
+body.pmd-admin-theme-v1 .form-check-input:checked,
+body.pmd-admin-theme-v1 .custom-switch .form-check-input:checked,
+body.pmd-admin-theme-v1 .switch input[type="checkbox"]:checked {
+  background-color: var(--pmd-gold) !important;
+  border-color: var(--pmd-gold-dark) !important;
+}
+
+/* Notification toast close button */
+body.pmd-admin-theme-v1 .notification-toast-close {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--pmd-muted) !important;
+  border-radius: 999px !important;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+body.pmd-admin-theme-v1 .notification-toast-close:hover,
+body.pmd-admin-theme-v1 .notification-toast-close:focus {
+  background: rgba(196, 154, 91, 0.16) !important;
+  color: var(--pmd-text) !important;
+}
+
+/* Toolbar primary button enforcement (targeted only) */
+body.pmd-admin-theme-v1 .toolbar-action .btn.btn-primary,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-primary,
+body.pmd-admin-theme-v1 .pmd-toolbar-primary-action .btn.btn-primary {
+  min-height: 40px !important;
+  border-radius: var(--pmd-radius-md) !important;
+  background: linear-gradient(135deg, var(--pmd-gold), var(--pmd-gold-dark)) !important;
+  border-color: var(--pmd-gold-dark) !important;
+  box-shadow: var(--pmd-shadow-button) !important;
+  color: #fff !important;
+}
