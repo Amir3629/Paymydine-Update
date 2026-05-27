@@ -1,5 +1,5 @@
 /* ============================================
-   PayMyDine Admin Theme v1
+   PayMyDine Admin Theme v1 (Phase 2 enforcement)
    Centralized scoped admin design system layer
    ============================================ */
 
@@ -23,8 +23,8 @@ body.pmd-admin-theme-v1 {
   --pmd-radius-md: 12px;
   --pmd-radius-lg: 16px;
   --pmd-radius-xl: 20px;
-  --pmd-shadow-card: 0 8px 24px rgba(21, 32, 51, 0.06);
-  --pmd-shadow-button: 0 6px 16px rgba(185, 138, 74, 0.22);
+  --pmd-shadow-card: 0 10px 28px rgba(21, 32, 51, 0.07);
+  --pmd-shadow-button: 0 6px 16px rgba(185, 138, 74, 0.24);
   --pmd-font-size-base: 14px;
   --pmd-line-height: 1.5;
 }
@@ -35,36 +35,73 @@ body.pmd-admin-theme-v1 .page,
 body.pmd-admin-theme-v1 .page-wrapper,
 body.pmd-admin-theme-v1 .page-content,
 body.pmd-admin-theme-v1 .content-wrapper,
-body.pmd-admin-theme-v1 .container-fluid {
-  background-color: var(--pmd-bg);
+body.pmd-admin-theme-v1 .content,
+body.pmd-admin-theme-v1 .main-content,
+body.pmd-admin-theme-v1 .container-fluid,
+body.pmd-admin-theme-v1 .row-fluid {
+  background-color: var(--pmd-bg) !important; /* beat legacy page-level bg overrides */
   color: var(--pmd-text);
+}
+body.pmd-admin-theme-v1 .page-content,
+body.pmd-admin-theme-v1 .content-wrapper,
+body.pmd-admin-theme-v1 .main-content {
+  padding: 20px 22px;
 }
 
 /* 02 layout/sidebar/topbar */
 body.pmd-admin-theme-v1 .navbar-top,
+body.pmd-admin-theme-v1 .navbar-fixed-top,
 body.pmd-admin-theme-v1 .page-title-section {
-  background: var(--pmd-surface);
-  border-bottom: 1px solid var(--pmd-border);
+  background: var(--pmd-bg-soft) !important; /* counters dark/transparent header rules */
+  border-bottom: 1px solid var(--pmd-border) !important;
 }
-body.pmd-admin-theme-v1 #navSidebar,
-body.pmd-admin-theme-v1 .side-nav,
+body.pmd-admin-theme-v1 .navbar-top .page-title,
+body.pmd-admin-theme-v1 .navbar-top .page-title span,
+body.pmd-admin-theme-v1 .navbar-fixed-top .page-title,
+body.pmd-admin-theme-v1 .navbar-fixed-top .page-title span {
+  color: var(--pmd-text) !important; /* fix white/invisible title from legacy header css */
+}
+body.pmd-admin-theme-v1 .navbar-top .nav-link,
+body.pmd-admin-theme-v1 .navbar-top .navbar-toggler,
+body.pmd-admin-theme-v1 .navbar-top .fa,
+body.pmd-admin-theme-v1 .navbar-top i {
+  color: var(--pmd-navy-800) !important;
+}
+
 body.pmd-admin-theme-v1 .sidebar,
-body.pmd-admin-theme-v1 .main-sidebar {
-  background: linear-gradient(180deg, var(--pmd-navy-950), var(--pmd-navy-900));
-  color: #e8edf6;
+body.pmd-admin-theme-v1 #navSidebar,
+body.pmd-admin-theme-v1 .nav-sidebar,
+body.pmd-admin-theme-v1 .side-nav,
+body.pmd-admin-theme-v1 .mainmenu,
+body.pmd-admin-theme-v1 #side-nav-menu {
+  background: linear-gradient(180deg, var(--pmd-navy-950) 0%, var(--pmd-navy-900) 100%) !important;
+  color: #e9eef7 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
-body.pmd-admin-theme-v1 #navSidebar a,
-body.pmd-admin-theme-v1 .side-nav a,
-body.pmd-admin-theme-v1 .sidebar a {
-  color: #e3eaf7;
+body.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-link,
+body.pmd-admin-theme-v1 .sidebar .nav-link {
+  color: #e8edf7 !important;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  padding: 10px 14px;
 }
-body.pmd-admin-theme-v1 #navSidebar .active > a,
-body.pmd-admin-theme-v1 #navSidebar a.active,
-body.pmd-admin-theme-v1 .side-nav .active > a,
-body.pmd-admin-theme-v1 .sidebar .active > a {
-  color: #fff;
-  background: rgba(196, 154, 91, 0.18);
-  border-left: 3px solid var(--pmd-gold);
+body.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link .fa,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-link .fa {
+  color: #c6d1e2 !important;
+  width: 18px;
+}
+body.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link,
+body.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link.active,
+body.pmd-admin-theme-v1 .nav-sidebar .active > .nav-link,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-link.active {
+  color: #fff !important;
+  background: rgba(196, 154, 91, 0.2) !important;
+  border-left-color: var(--pmd-gold) !important;
+}
+body.pmd-admin-theme-v1 #side-nav-menu .nav .nav-link {
+  padding-left: 28px;
+  color: #d6e0ef !important;
 }
 
 /* 03 typography */
@@ -76,133 +113,195 @@ body.pmd-admin-theme-v1 h1,
 body.pmd-admin-theme-v1 h2,
 body.pmd-admin-theme-v1 h3,
 body.pmd-admin-theme-v1 h4,
-body.pmd-admin-theme-v1 .page-title {
-  color: var(--pmd-text);
+body.pmd-admin-theme-v1 h5,
+body.pmd-admin-theme-v1 .page-title,
+body.pmd-admin-theme-v1 .form-section,
+body.pmd-admin-theme-v1 label,
+body.pmd-admin-theme-v1 .control-label {
+  color: var(--pmd-text) !important;
   letter-spacing: 0.01em;
 }
 body.pmd-admin-theme-v1 .text-muted,
 body.pmd-admin-theme-v1 small,
-body.pmd-admin-theme-v1 .help-block {
-  color: var(--pmd-muted) !important; /* override legacy green-muted helpers */
+body.pmd-admin-theme-v1 .help-block,
+body.pmd-admin-theme-v1 .form-text {
+  color: var(--pmd-muted) !important;
 }
 
 /* 04 buttons */
-body.pmd-admin-theme-v1 .btn {
-  border-radius: var(--pmd-radius-md);
-  min-height: 40px;
-  padding: 0.5rem 1rem;
-  border-width: 1px;
-  font-weight: 600;
+body.pmd-admin-theme-v1 .btn,
+body.pmd-admin-theme-v1 .toolbar-action .btn,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn {
+  border-radius: var(--pmd-radius-md) !important; /* many files force other radii */
+  min-height: 40px !important;
+  padding: 0.5rem 1rem !important;
+  border-width: 1px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
 }
 body.pmd-admin-theme-v1 .btn-primary,
 body.pmd-admin-theme-v1 .btn-success,
-body.pmd-admin-theme-v1 .toolbar-action .btn-primary {
-  color: #fff;
-  background: linear-gradient(135deg, var(--pmd-gold), var(--pmd-gold-dark));
-  border-color: var(--pmd-gold-dark);
-  box-shadow: var(--pmd-shadow-button);
+body.pmd-admin-theme-v1 .toolbar-action .btn-primary,
+body.pmd-admin-theme-v1 .progress-indicator-container .btn-primary {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--pmd-gold), var(--pmd-gold-dark)) !important;
+  border-color: var(--pmd-gold-dark) !important;
+  box-shadow: var(--pmd-shadow-button) !important;
 }
 body.pmd-admin-theme-v1 .btn-primary:hover,
 body.pmd-admin-theme-v1 .btn-success:hover {
-  filter: brightness(0.98);
+  filter: brightness(0.97);
 }
-body.pmd-admin-theme-v1 .btn-secondary,
 body.pmd-admin-theme-v1 .btn-default,
+body.pmd-admin-theme-v1 .btn-secondary,
+body.pmd-admin-theme-v1 .btn-outline-default,
 body.pmd-admin-theme-v1 .btn-outline-secondary,
-body.pmd-admin-theme-v1 .btn-outline-default {
-  background: var(--pmd-surface);
-  border-color: var(--pmd-border);
-  color: var(--pmd-text);
+body.pmd-admin-theme-v1 .btn-light {
+  background: var(--pmd-surface) !important;
+  color: var(--pmd-text) !important;
+  border-color: var(--pmd-border) !important;
+  box-shadow: none !important;
 }
-body.pmd-admin-theme-v1 .btn-danger {
-  border-color: #d58f86;
-  background: #f5d9d6;
-  color: #722f2a;
+body.pmd-admin-theme-v1 .btn-danger,
+body.pmd-admin-theme-v1 .btn-outline-danger {
+  background: #f9efee !important;
+  color: #8f3830 !important;
+  border-color: #dfb3ad !important;
 }
-body.pmd-admin-theme-v1 .btn .fa,
-body.pmd-admin-theme-v1 .btn i {
-  color: inherit;
+body.pmd-admin-theme-v1 .btn.bg-transparent,
+body.pmd-admin-theme-v1 .btn-icon,
+body.pmd-admin-theme-v1 .list-setup .btn,
+body.pmd-admin-theme-v1 [data-toggle="list-filter"] {
+  border-radius: 999px !important;
 }
 
 /* 05 cards/widgets */
 body.pmd-admin-theme-v1 .card,
 body.pmd-admin-theme-v1 .panel,
 body.pmd-admin-theme-v1 .widget,
-body.pmd-admin-theme-v1 .list-container,
 body.pmd-admin-theme-v1 .dashboard-widget,
-body.pmd-admin-theme-v1 .modal-content {
-  background: var(--pmd-surface);
-  border: 1px solid var(--pmd-border);
-  border-radius: var(--pmd-radius-lg);
-  box-shadow: var(--pmd-shadow-card);
+body.pmd-admin-theme-v1 .control-widget,
+body.pmd-admin-theme-v1 .list-container,
+body.pmd-admin-theme-v1 .table-responsive,
+body.pmd-admin-theme-v1 .fixed-table-container,
+body.pmd-admin-theme-v1 .modal-content,
+body.pmd-admin-theme-v1 .form-widget,
+body.pmd-admin-theme-v1 .field-section,
+body.pmd-admin-theme-v1 .order-info-header,
+body.pmd-admin-theme-v1 .invoice,
+body.pmd-admin-theme-v1 .box {
+  background: var(--pmd-surface) !important;
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: var(--pmd-radius-lg) !important;
+  box-shadow: var(--pmd-shadow-card) !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widget,
+body.pmd-admin-theme-v1 .control-widget,
+body.pmd-admin-theme-v1 .list-container,
+body.pmd-admin-theme-v1 .form-widget {
+  padding: 14px 16px;
 }
 body.pmd-admin-theme-v1 .toolbar,
 body.pmd-admin-theme-v1 .toolbar-action,
-body.pmd-admin-theme-v1 .page-title-section {
-  padding-top: 0.8rem;
-  padding-bottom: 0.8rem;
+body.pmd-admin-theme-v1 .progress-indicator-container {
+  background: transparent !important;
 }
 
 /* 06 forms */
+body.pmd-admin-theme-v1 .form-group,
+body.pmd-admin-theme-v1 .field {
+  margin-bottom: 14px;
+}
 body.pmd-admin-theme-v1 .form-control,
 body.pmd-admin-theme-v1 .form-select,
 body.pmd-admin-theme-v1 select,
 body.pmd-admin-theme-v1 textarea,
-body.pmd-admin-theme-v1 .select2-selection {
-  border: 1px solid var(--pmd-border) !important; /* required to beat existing global input overrides */
+body.pmd-admin-theme-v1 .select2-selection,
+body.pmd-admin-theme-v1 .input-group-text,
+body.pmd-admin-theme-v1 .input-group .btn,
+body.pmd-admin-theme-v1 .field .form-control,
+body.pmd-admin-theme-v1 .field .input-group-addon {
+  border: 1px solid var(--pmd-border) !important;
   border-radius: var(--pmd-radius-md) !important;
-  background-color: var(--pmd-surface) !important;
+  background: var(--pmd-surface) !important;
   color: var(--pmd-text) !important;
   min-height: 40px;
 }
 body.pmd-admin-theme-v1 .form-control:focus,
 body.pmd-admin-theme-v1 .form-select:focus,
-body.pmd-admin-theme-v1 .select2-container--focus .select2-selection {
+body.pmd-admin-theme-v1 select:focus,
+body.pmd-admin-theme-v1 textarea:focus,
+body.pmd-admin-theme-v1 .select2-container--focus .select2-selection,
+body.pmd-admin-theme-v1 .select2-container--open .select2-selection {
   border-color: var(--pmd-gold-dark) !important;
-  box-shadow: 0 0 0 0.15rem rgba(196, 154, 91, 0.18) !important;
+  box-shadow: 0 0 0 0.15rem rgba(196, 154, 91, 0.2) !important;
 }
 
 /* 07 tables */
-body.pmd-admin-theme-v1 .table {
-  --bs-table-bg: transparent;
-  color: var(--pmd-text);
+body.pmd-admin-theme-v1 .table,
+body.pmd-admin-theme-v1 .list-table,
+body.pmd-admin-theme-v1 .table-hover {
+  color: var(--pmd-text) !important;
+  background: transparent;
 }
-body.pmd-admin-theme-v1 .table thead th {
-  background: var(--pmd-bg-soft);
-  color: var(--pmd-navy-800);
-  border-bottom: 1px solid var(--pmd-border);
+body.pmd-admin-theme-v1 .table thead th,
+body.pmd-admin-theme-v1 .list-table thead th,
+body.pmd-admin-theme-v1 .fixed-table-container thead th {
+  background: var(--pmd-surface-warm) !important;
+  color: var(--pmd-navy-800) !important;
+  border-bottom: 1px solid var(--pmd-border) !important;
 }
 body.pmd-admin-theme-v1 .table td,
-body.pmd-admin-theme-v1 .table th {
-  border-color: var(--pmd-border);
+body.pmd-admin-theme-v1 .table th,
+body.pmd-admin-theme-v1 .list-table td,
+body.pmd-admin-theme-v1 .list-table th {
+  border-color: var(--pmd-border) !important;
+}
+body.pmd-admin-theme-v1 .table-hover tbody tr:hover,
+body.pmd-admin-theme-v1 .list-table tbody tr:hover {
+  background: var(--pmd-bg-soft) !important;
 }
 
 /* 08 tabs/dropdowns */
+body.pmd-admin-theme-v1 .form-nav.nav-tabs,
+body.pmd-admin-theme-v1 .nav-tabs {
+  border-bottom: 1px solid var(--pmd-border) !important;
+}
+body.pmd-admin-theme-v1 .form-nav.nav-tabs .nav-link,
 body.pmd-admin-theme-v1 .nav-tabs .nav-link {
-  color: var(--pmd-muted);
-  border-bottom: 2px solid transparent;
+  color: var(--pmd-muted) !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
 }
+body.pmd-admin-theme-v1 .form-nav.nav-tabs .nav-link.active,
 body.pmd-admin-theme-v1 .nav-tabs .nav-link.active {
-  color: var(--pmd-text);
-  border-color: var(--pmd-gold);
+  color: var(--pmd-text) !important;
+  border-bottom-color: var(--pmd-gold) !important;
 }
-body.pmd-admin-theme-v1 .dropdown-menu {
-  border: 1px solid var(--pmd-border);
-  border-radius: var(--pmd-radius-md);
-  box-shadow: var(--pmd-shadow-card);
-  background: var(--pmd-surface);
+body.pmd-admin-theme-v1 .dropdown-menu,
+body.pmd-admin-theme-v1 .dropdown-content,
+body.pmd-admin-theme-v1 #notification-panel {
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: var(--pmd-radius-md) !important;
+  box-shadow: var(--pmd-shadow-card) !important;
+  background: var(--pmd-surface) !important;
 }
+body.pmd-admin-theme-v1 .dropdown-item:hover,
+body.pmd-admin-theme-v1 .dropdown-item:focus,
 body.pmd-admin-theme-v1 .dropdown-item.active,
 body.pmd-admin-theme-v1 .dropdown-item:active {
-  background-color: rgba(196, 154, 91, 0.16);
-  color: var(--pmd-text);
+  background-color: rgba(196, 154, 91, 0.16) !important;
+  color: var(--pmd-text) !important;
 }
 
 /* 09 modals/alerts */
 body.pmd-admin-theme-v1 .modal-header,
 body.pmd-admin-theme-v1 .modal-footer {
-  border-color: var(--pmd-border);
-  background: var(--pmd-bg-soft);
+  border-color: var(--pmd-border) !important;
+  background: var(--pmd-bg-soft) !important;
+}
+body.pmd-admin-theme-v1 .modal-title {
+  color: var(--pmd-text) !important;
 }
 body.pmd-admin-theme-v1 .alert {
   border-radius: var(--pmd-radius-md);
@@ -214,11 +313,16 @@ body.pmd-admin-theme-v1 .alert-success {
 }
 
 /* 10 dashboard/charts */
+body.pmd-admin-theme-v1 .dashboard-widget .card-body,
 body.pmd-admin-theme-v1 .chart,
 body.pmd-admin-theme-v1 .chart-container,
 body.pmd-admin-theme-v1 .dashboard-chart,
 body.pmd-admin-theme-v1 canvas {
   background: transparent;
+}
+body.pmd-admin-theme-v1 .apexcharts-gridline,
+body.pmd-admin-theme-v1 .c3-grid line {
+  stroke: var(--pmd-chart-soft) !important;
 }
 body.pmd-admin-theme-v1 .chart-legend,
 body.pmd-admin-theme-v1 .apexcharts-legend-text {
@@ -236,12 +340,13 @@ body.pmd-admin-theme-v1 .bg-primary {
 }
 body.pmd-admin-theme-v1 .pagination .page-link,
 body.pmd-admin-theme-v1 .pagination li a {
-  border-color: var(--pmd-border);
-  color: var(--pmd-navy-800);
+  border-color: var(--pmd-border) !important;
+  color: var(--pmd-navy-800) !important;
+  background: var(--pmd-surface) !important;
 }
 body.pmd-admin-theme-v1 .pagination .active .page-link,
 body.pmd-admin-theme-v1 .pagination .active a {
-  background: var(--pmd-gold);
-  border-color: var(--pmd-gold-dark);
-  color: #fff;
+  background: var(--pmd-gold) !important;
+  border-color: var(--pmd-gold-dark) !important;
+  color: #fff !important;
 }
