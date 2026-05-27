@@ -103,6 +103,20 @@ body.pmd-admin-theme-v1 #side-nav-menu .nav .nav-link {
   padding-left: 28px;
   color: #d6e0ef !important;
 }
+body.pmd-admin-theme-v1 #side-nav-menu .nav-item > .nav-link,
+body.pmd-admin-theme-v1 #side-nav-menu .nav-item > .nav-link .content,
+body.pmd-admin-theme-v1 #side-nav-menu .nav-item > .nav-link span,
+body.pmd-admin-theme-v1 #side-nav-menu .nav-item > .nav-link i,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-item > .nav-link,
+body.pmd-admin-theme-v1 .nav-sidebar .nav-item > .nav-link .content {
+  background: transparent !important; /* prevent white label boxes from generic button/input/card backgrounds */
+  box-shadow: none !important;
+}
+body.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link:hover,
+body.pmd-admin-theme-v1 .nav-sidebar > .nav-item > .nav-link:hover {
+  background: rgba(196, 154, 91, 0.12) !important;
+  color: #fff !important;
+}
 
 /* 03 typography */
 body.pmd-admin-theme-v1 {
@@ -327,6 +341,63 @@ body.pmd-admin-theme-v1 .c3-grid line {
 body.pmd-admin-theme-v1 .chart-legend,
 body.pmd-admin-theme-v1 .apexcharts-legend-text {
   color: var(--pmd-blue-gray) !important;
+}
+
+
+body.pmd-admin-theme-v1 .page-content .row-fluid,
+body.pmd-admin-theme-v1 .page-content .container-fluid,
+body.pmd-admin-theme-v1 .content-wrapper > .container-fluid {
+  gap: 14px;
+}
+
+body.pmd-admin-theme-v1 .dashboard-widget,
+body.pmd-admin-theme-v1 .dashboard-widget .panel,
+body.pmd-admin-theme-v1 .dashboard-widget .card,
+body.pmd-admin-theme-v1 .dashboard-widget > .widget,
+body.pmd-admin-theme-v1 .dashboard-widget .widget-item,
+body.pmd-admin-theme-v1 .dashboard-widget .stats,
+body.pmd-admin-theme-v1 .control-widget .card-body {
+  background: var(--pmd-surface) !important;
+  border: 1px solid var(--pmd-border) !important;
+  border-radius: var(--pmd-radius-xl) !important;
+  box-shadow: var(--pmd-shadow-card) !important;
+  padding: 16px 18px !important;
+}
+body.pmd-admin-theme-v1 .dashboard-widget h1,
+body.pmd-admin-theme-v1 .dashboard-widget h2,
+body.pmd-admin-theme-v1 .dashboard-widget h3,
+body.pmd-admin-theme-v1 .dashboard-widget .title,
+body.pmd-admin-theme-v1 .control-widget .title {
+  color: var(--pmd-text) !important;
+}
+
+body.pmd-admin-theme-v1 .toolbar-action,
+body.pmd-admin-theme-v1 .page-title-section + .toolbar,
+body.pmd-admin-theme-v1 .list-header {
+  margin-bottom: 12px;
+}
+
+body.pmd-admin-theme-v1 .list-container,
+body.pmd-admin-theme-v1 .table-responsive,
+body.pmd-admin-theme-v1 .fixed-table-container,
+body.pmd-admin-theme-v1 .datatable,
+body.pmd-admin-theme-v1 .table-wrapper {
+  overflow: hidden;
+}
+body.pmd-admin-theme-v1 .table tbody tr,
+body.pmd-admin-theme-v1 .list-table tbody tr {
+  background: #fff;
+}
+
+body.pmd-admin-theme-v1 .field .input-group,
+body.pmd-admin-theme-v1 .input-group {
+  gap: 0;
+}
+body.pmd-admin-theme-v1 .field .input-group .input-group-text,
+body.pmd-admin-theme-v1 .field .input-group .btn,
+body.pmd-admin-theme-v1 .input-group .input-group-text,
+body.pmd-admin-theme-v1 .input-group .btn {
+  border-color: var(--pmd-border) !important;
 }
 
 /* 11 utility fixes */
