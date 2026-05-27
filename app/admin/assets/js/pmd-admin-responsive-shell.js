@@ -7,6 +7,17 @@
     var sidebar=document.querySelector('.sidebar');
     if(!sidebar) return;
     var toggler=document.querySelector('.navbar-top .navbar-toggler, .navbar-toggler[data-bs-toggle="collapse"]');
+
+    var sideBrandLogo = sidebar.querySelector('.pmd-sidebar-brand .logo');
+    var topLogoImg = document.querySelector('.navbar-top .navbar-brand a.logo img, .navbar-fixed-top .navbar-brand a.logo img');
+    if (sideBrandLogo && topLogoImg && topLogoImg.getAttribute('src') && !sideBrandLogo.querySelector('img')) {
+      var brandImg = document.createElement('img');
+      brandImg.className = 'pmd-sidebar-brand-img';
+      brandImg.alt = 'Dashboard Logo';
+      brandImg.src = topLogoImg.getAttribute('src');
+      sideBrandLogo.insertBefore(brandImg, sideBrandLogo.firstChild);
+    }
+
     var backdrop=document.querySelector('.pmd-sidebar-backdrop');
     if(!backdrop){ backdrop=document.createElement('div'); backdrop.className='pmd-sidebar-backdrop'; body.appendChild(backdrop); }
     function close(){ body.classList.remove('pmd-sidebar-open'); }

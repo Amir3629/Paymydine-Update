@@ -1137,6 +1137,15 @@ body.pmd-admin-theme-v1 .pmd-sidebar-brand .logo-svg {
   background-position: left center !important;
 }
 
+body.pmd-admin-theme-v1 .pmd-sidebar-brand .pmd-sidebar-brand-img {
+  display: block !important;
+  max-width: 150px;
+  max-height: 44px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
 @media (min-width: 1200px){
   body.pmd-admin-theme-v1 .page-wrapper {
     margin-left: var(--pmd-sidebar-width) !important;
