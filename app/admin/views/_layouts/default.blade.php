@@ -71,8 +71,6 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/no-green-toolbar-buttons.css') }}?v={{ time() }}">
     <!-- Dropdown fields same size as text inputs - load after other form styles -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dropdown-field-same-size.css') }}?v={{ time() }}">
-    <!-- PayMyDine Admin Theme v1 - centralized final design layer -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
     {{-- Critical: prevent green flash on first paint - inline so it's in the first render --}}
     <style id="no-green-toolbar-critical">
         .toolbar-action,
@@ -797,6 +795,9 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 }
 /* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_END */
 </style>
+    <!-- PayMyDine Admin Theme v1 - centralized final general visual layer (intentionally last CSS include) -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
+
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
