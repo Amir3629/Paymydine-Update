@@ -22,13 +22,13 @@ class SuperAdminController  extends AdminController
  Session::put('superadmin_username', $superadmin->username);
  Session::save(); // Force session to save!
 
-        return view('index');
+        return response()->view('index');
     }
 public function login(){
     if (Session::has('superadmin_id')) {
         return redirect('/superadmin/index');
     }
-    return view('login');
+    return response()->view('login');
 }
 public function sign(Request $request)
     {
@@ -93,7 +93,7 @@ public function sign(Request $request)
                      ->table('tenants')
                      ->orderBy('id', $order)
                      ->paginate($perPage);
-                             return view('new', compact('tenants', 'perPage', 'order'));
+                             return response()->view('new', compact('tenants', 'perPage', 'order'));
     }
 
     // ✅ Handle form submission
@@ -323,7 +323,7 @@ public function sign(Request $request)
  Session::put('superadmin_username', $superadmin->username);
  Session::save(); // Force session to save!
 
-return view('settings', compact('superadmin'));    }
+return response()->view('settings', compact('superadmin'));    }
 
 public function updateSettings(Request $request)
 {
@@ -374,6 +374,6 @@ public function locationRequests(Request $request)
         );
     }
 
-    return view('location_requests', compact('locationRequests', 'perPage', 'order'));
+    return response()->view('location_requests', compact('locationRequests', 'perPage', 'order'));
 }
 }
