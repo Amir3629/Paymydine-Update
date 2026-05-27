@@ -27,6 +27,18 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 650,
+                easing: 'easeOutQuart'
+            },
+            transitions: {
+                active: {
+                    animation: {
+                        duration: 650,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            }
         }
     }
 
@@ -296,9 +308,17 @@
                 var pointDate = new Date(point.x)
                 return pointDate >= startDate && pointDate <= endDate
             })
+            var allZero = dataset.data.length > 0 && dataset.data.every(function (point) {
+                return Number(point.y || 0) === 0
+            })
+            if (allZero) {
+                dataset.pointRadius = 2.5
+                dataset.pointHoverRadius = 4
+                dataset.pointBorderWidth = 1.5
+            }
         })
 
-        this.chartJs.update('none') // Update without animation for smooth sliding
+        this.chartJs.update() // Smooth animated transition for range/date updates
     }
 
     ChartControl.prototype.unbind = function () {

@@ -153,6 +153,8 @@
             if (typeof Sortable !== 'undefined' && Sortable && typeof Sortable.create === 'function') {
                 self._sortableInstance = Sortable.create($sortableContainer.get(0), {
                     handle: '.handle',
+                    animation: 180,
+                    easing: 'cubic-bezier(0.2, 0, 0, 1)',
                     onSort: $.proxy(self.onSortWidgets, self)
                 })
                 return
@@ -208,6 +210,12 @@
             if (!$item.length) return
             dragArmedEl = $item.get(0)
             $item.attr('draggable', 'true')
+        })
+
+        // Prevent native <a> drag ghost from hijacking handle drag.
+        this.$el.on('dragstart.nativeSortable', '.widget-item-action .handle, .handle', function (event) {
+            event.preventDefault()
+            event.stopPropagation()
         })
 
         this.$el.on('mouseup.nativeSortable mouseleave.nativeSortable', selector, function () {
