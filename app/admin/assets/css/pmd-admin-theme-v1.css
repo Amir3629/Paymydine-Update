@@ -928,3 +928,56 @@ body.pmd-admin-theme-v1 .pmd-admin-top-actions .pmd-toolbar-right-buttons > .btn
 body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn-group:empty {
   display: none !important;
 }
+
+
+/* 16 phase-7.2 specificity bridge against legacy toolbar-buttons.css */
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions > button.btn.pmd-toolbar-primary-action,
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions > a.btn.pmd-toolbar-primary-action,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions > button.btn.pmd-toolbar-primary-action,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions > a.btn.pmd-toolbar-primary-action {
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  padding: 0 18px !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #0F1B2A, #14243A) !important;
+  border: 1px solid #14243A !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px rgba(20, 36, 58, 0.28) !important;
+}
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions > button.btn.pmd-toolbar-primary-action i,
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions > a.btn.pmd-toolbar-primary-action i,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions > button.btn.pmd-toolbar-primary-action i,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions > a.btn.pmd-toolbar-primary-action i {
+  color: #fff !important;
+  margin-right: 0.35rem;
+}
+
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > a.btn.pmd-toolbar-secondary-action,
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > button.btn.pmd-toolbar-secondary-action,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > a.btn.pmd-toolbar-secondary-action,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > button.btn.pmd-toolbar-secondary-action {
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  padding: 0 16px !important;
+  background: #fff !important;
+  color: #152033 !important;
+  border: 1px solid #E8DFD2 !important;
+  box-shadow: none !important;
+}
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > a.btn.pmd-toolbar-secondary-action i,
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > button.btn.pmd-toolbar-secondary-action i,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > a.btn.pmd-toolbar-secondary-action i,
+html body.page.pmd-admin-theme-v1 .toolbar-action .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > button.btn.pmd-toolbar-secondary-action i {
+  color: #152033 !important;
+}
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > a.btn.pmd-toolbar-secondary-action.icon-only,
+html body.page.pmd-admin-theme-v1 #edit-form .progress-indicator-container.pmd-admin-top-actions .pmd-toolbar-right-buttons > button.btn.pmd-toolbar-secondary-action.icon-only {
+  width: 42px !important;
+  min-width: 42px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn-group:empty {
+  display: none !important;
+}
