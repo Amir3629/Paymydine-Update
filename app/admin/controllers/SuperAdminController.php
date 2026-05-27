@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Config;
 use System\Models\Themes_model;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 class SuperAdminController  extends AdminController
 {
     public function showIndex()
@@ -22,13 +23,21 @@ class SuperAdminController  extends AdminController
  Session::put('superadmin_username', $superadmin->username);
  Session::save(); // Force session to save!
 
-        return response()->view('index');
+        return new SymfonyResponse(
+            view('index')->render(),
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8']
+        );
     }
 public function login(){
     if (Session::has('superadmin_id')) {
         return redirect('/superadmin/index');
     }
-    return response()->view('login');
+    return new SymfonyResponse(
+        view('login')->render(),
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8']
+    );
 }
 public function sign(Request $request)
     {
@@ -93,7 +102,11 @@ public function sign(Request $request)
                      ->table('tenants')
                      ->orderBy('id', $order)
                      ->paginate($perPage);
-                             return response()->view('new', compact('tenants', 'perPage', 'order'));
+                             return new SymfonyResponse(
+                                 view('new', compact('tenants', 'perPage', 'order'))->render(),
+                                 200,
+                                 ['Content-Type' => 'text/html; charset=UTF-8']
+                             );
     }
 
     // ✅ Handle form submission
@@ -323,7 +336,11 @@ public function sign(Request $request)
  Session::put('superadmin_username', $superadmin->username);
  Session::save(); // Force session to save!
 
-return response()->view('settings', compact('superadmin'));    }
+return new SymfonyResponse(
+    view('settings', compact('superadmin'))->render(),
+    200,
+    ['Content-Type' => 'text/html; charset=UTF-8']
+);    }
 
 public function updateSettings(Request $request)
 {
@@ -374,6 +391,10 @@ public function locationRequests(Request $request)
         );
     }
 
-    return response()->view('location_requests', compact('locationRequests', 'perPage', 'order'));
+    return new SymfonyResponse(
+        view('location_requests', compact('locationRequests', 'perPage', 'order'))->render(),
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8']
+    );
 }
 }

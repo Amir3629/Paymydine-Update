@@ -67,13 +67,25 @@ class ServiceProvider extends AppServiceProvider
                     return $result;
                 }
                 if ($result instanceof Responsable) {
-                    return $result->toResponse(request());
+                    $resolved = $result->toResponse(request());
+                    if ($resolved instanceof SymfonyResponse) {
+                        return $resolved;
+                    }
+
+                    return new SymfonyResponse((string)$resolved, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
                 }
                 if ($result instanceof IlluminateView) {
-                    return response($result->render());
+                    return new SymfonyResponse(
+                        $result->render(),
+                        200,
+                        ['Content-Type' => 'text/html; charset=UTF-8']
+                    );
+                }
+                if (is_string($result)) {
+                    return new SymfonyResponse($result, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
                 }
 
-                return response($result);
+                return new SymfonyResponse((string)$result, 200);
             };
 
             // Keep working Super Admin GET routes
