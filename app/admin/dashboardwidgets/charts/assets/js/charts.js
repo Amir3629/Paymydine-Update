@@ -75,7 +75,7 @@
                 type: 'category',
                 grid: {
                     display: false,
-                    color: 'rgba(21, 32, 51, 0.02)',
+                    color: 'rgba(21, 32, 51, 0.00)',
                     drawBorder: false,
                 },
                 ticks: {

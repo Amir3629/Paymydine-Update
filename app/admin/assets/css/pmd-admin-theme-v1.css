@@ -1214,14 +1214,28 @@ body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd
   justify-content: space-between !important;
   gap: 12px !important;
 }
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split,
+html body.page.pmd-admin-theme-v1 #dashboardContainer-container-toolbar .toolbar-action.pmd-toolbar.pmd-toolbar-split,
+html body.page.pmd-admin-theme-v1 [id$="container-toolbar"] .toolbar-action.pmd-toolbar.pmd-toolbar-split {
+  width: 100% !important;
+  float: none !important;
+  clear: both !important;
+}
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split > #edit-layout-toggle {
   margin-right: auto !important;
+  order: 1;
 }
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split > .pmd-toolbar-right-buttons {
   margin-left: auto !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 10px !important;
+  justify-content: flex-end !important;
+  order: 2;
+}
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split .pmd-toolbar-right-buttons #dashboardContainer-daterange,
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar.pmd-toolbar-split .pmd-toolbar-right-buttons .btn.pull-right {
+  float: none !important;
 }
 
 /* Neutralize frame-on-frame wrappers (layout only wrappers stay transparent) */

@@ -116,7 +116,6 @@ class Charts extends BaseDashboardWidget
                     [
                         'label' => 'lang:admin::lang.dashboard.charts.text_orders',
                         'color' => '#C49A5B',
-                        'borderDash' => [8, 6],
                         'model' => Orders_model::class,
                         'column' => 'order_date',
                     ],
