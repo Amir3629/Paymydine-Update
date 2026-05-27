@@ -552,33 +552,38 @@ body.pmd-admin-theme-v1 .pmd-toolbar-primary-action .btn.btn-primary {
 }
 
 
-/* 13 toolbar/action button system */
+/* 13 toolbar/action button system (safe scoped: top toolbar only) */
 body.pmd-admin-theme-v1 .pmd-toolbar-main,
-body.pmd-admin-theme-v1 .toolbar-action,
-body.pmd-admin-theme-v1 .progress-indicator-container,
-body.pmd-admin-theme-v1 .list-header,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split,
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons,
 body.pmd-admin-theme-v1 .page-actions,
 body.pmd-admin-theme-v1 .form-toolbar,
 body.pmd-admin-theme-v1 .control-toolbar,
-body.pmd-admin-theme-v1 .page-title-section .pull-right,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn-group,
-body.pmd-admin-theme-v1 .toolbar-action .btn-group,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn-group {
+body.pmd-admin-theme-v1 .page-title-section > .pull-right,
+body.pmd-admin-theme-v1 .page-title-section .toolbar-action,
+body.pmd-admin-theme-v1 .toolbar-action {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn,
-body.pmd-admin-theme-v1 .toolbar-action .btn,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn,
-body.pmd-admin-theme-v1 .list-header .btn,
-body.pmd-admin-theme-v1 .page-actions .btn,
-body.pmd-admin-theme-v1 .form-toolbar .btn,
-body.pmd-admin-theme-v1 .control-toolbar .btn,
-body.pmd-admin-theme-v1 .page-title-section .pull-right > .btn,
-body.pmd-admin-theme-v1 .page-title-section .pull-right .btn-group > .btn {
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split {
+  justify-content: space-between;
+}
+
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .pmd-toolbar-right-buttons > .btn,
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn,
+body.pmd-admin-theme-v1 .page-actions > .btn,
+body.pmd-admin-theme-v1 .form-toolbar > .btn,
+body.pmd-admin-theme-v1 .control-toolbar > .btn,
+body.pmd-admin-theme-v1 .page-title-section > .pull-right > .btn,
+body.pmd-admin-theme-v1 .page-title-section > .pull-right > .btn-group > .btn,
+body.pmd-admin-theme-v1 .toolbar-action > .btn,
+body.pmd-admin-theme-v1 .toolbar-action > .btn-group > .btn {
   min-height: 42px !important;
   padding: 0.55rem 1rem !important;
   border-radius: 12px !important;
@@ -586,124 +591,141 @@ body.pmd-admin-theme-v1 .page-title-section .pull-right .btn-group > .btn {
   line-height: 1.2 !important;
 }
 
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn i,
-body.pmd-admin-theme-v1 .toolbar-action .btn i,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn i,
-body.pmd-admin-theme-v1 .list-header .btn i,
-body.pmd-admin-theme-v1 .page-actions .btn i,
-body.pmd-admin-theme-v1 .form-toolbar .btn i,
-body.pmd-admin-theme-v1 .control-toolbar .btn i {
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn i,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn i,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn i,
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn i,
+body.pmd-admin-theme-v1 .page-actions > .btn i,
+body.pmd-admin-theme-v1 .form-toolbar > .btn i,
+body.pmd-admin-theme-v1 .control-toolbar > .btn i,
+body.pmd-admin-theme-v1 .toolbar-action > .btn i {
   color: inherit !important;
   margin-right: 0.35rem;
 }
 
-/* Primary + toolbar success -> premium navy filled */
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-primary,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-primary,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-primary,
-body.pmd-admin-theme-v1 .list-header .btn.btn-primary,
-body.pmd-admin-theme-v1 .page-actions .btn.btn-primary,
-body.pmd-admin-theme-v1 .form-toolbar .btn.btn-primary,
-body.pmd-admin-theme-v1 .control-toolbar .btn.btn-primary,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-success,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-success,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-success,
-body.pmd-admin-theme-v1 .pmd-toolbar-primary-action .btn.btn-primary {
+/* Primary + toolbar success in explicit toolbar contexts */
+body.pmd-admin-theme-v1 .pmd-toolbar-primary-action,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-primary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-primary,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.btn-primary,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-primary,
+body.pmd-admin-theme-v1 .page-actions > .btn.btn-primary,
+body.pmd-admin-theme-v1 .form-toolbar > .btn.btn-primary,
+body.pmd-admin-theme-v1 .control-toolbar > .btn.btn-primary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-success,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-success,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.btn-success,
+body.pmd-admin-theme-v1 .pmd-toolbar-primary-action.btn.btn-success {
   background: linear-gradient(135deg, #243a56, #14243a) !important;
   color: #fff !important;
   border-color: #14243a !important;
   box-shadow: 0 6px 16px rgba(20, 36, 58, 0.28) !important;
 }
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-primary:hover,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-primary:hover,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-primary:hover,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-success:hover,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-success:hover,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-success:hover {
+
+body.pmd-admin-theme-v1 .pmd-toolbar-primary-action:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-primary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-primary:hover,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.btn-primary:hover,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-primary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-success:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-success:hover,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.btn-success:hover {
   filter: brightness(1.04);
   transform: translateY(-1px);
 }
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-primary:focus,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-primary:focus,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-primary:focus,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-success:focus,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-success:focus,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-success:focus {
-  box-shadow: 0 0 0 0.15rem rgba(196, 154, 91, 0.3), 0 6px 16px rgba(20, 36, 58, 0.28) !important;
-}
 
-/* Secondary / outline */
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-primary,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-secondary,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-default,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-secondary,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-light,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-primary,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-secondary,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-default,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-secondary,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-light,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-outline-primary,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-outline-secondary,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-default,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-secondary,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-light,
-body.pmd-admin-theme-v1 .list-header .btn.btn-outline-primary,
-body.pmd-admin-theme-v1 .list-header .btn.btn-outline-secondary {
+/* Secondary / outline actions */
+body.pmd-admin-theme-v1 .pmd-toolbar-secondary-action,
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-outline-secondary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-outline-primary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-outline-secondary,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-outline-primary,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split .pmd-toolbar-right-buttons > .btn,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-outline-primary,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-outline-secondary,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-default,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-secondary,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-light {
   background: #fff !important;
   color: #152033 !important;
   border-color: #e8dfd2 !important;
   box-shadow: none !important;
 }
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-primary:hover,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-secondary:hover,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-default:hover,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-secondary:hover,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-light:hover,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-primary:hover,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-secondary:hover {
+
+body.pmd-admin-theme-v1 .pmd-toolbar-secondary-action:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-outline-secondary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-outline-primary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-outline-secondary:hover,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-outline-primary:hover,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-outline-primary:hover,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-outline-secondary:hover {
   background: rgba(196, 154, 91, 0.1) !important;
   border-color: #d8c6ab !important;
 }
 
 /* Danger preserved */
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-danger,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-outline-danger,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-danger,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-outline-danger,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-danger,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-outline-danger {
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-danger,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-danger,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-outline-danger,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-outline-danger,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.btn-danger,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.btn-outline-danger,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-danger,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-outline-danger {
   background: #f9efee !important;
   color: #8f3830 !important;
   border-color: #dfb3ad !important;
   box-shadow: none !important;
 }
 
-/* Disabled in toolbar contexts */
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn:disabled,
-body.pmd-admin-theme-v1 .toolbar-action .btn:disabled,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn:disabled,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.disabled,
-body.pmd-admin-theme-v1 .toolbar-action .btn.disabled,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.disabled {
+/* Disabled in top-toolbar contexts */
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn:disabled,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn:disabled,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn:disabled,
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn:disabled,
+body.pmd-admin-theme-v1 .toolbar-action > .btn:disabled,
+body.pmd-admin-theme-v1 .page-actions > .btn:disabled,
+body.pmd-admin-theme-v1 .form-toolbar > .btn:disabled,
+body.pmd-admin-theme-v1 .control-toolbar > .btn:disabled,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.disabled,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.disabled,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.disabled {
   opacity: 0.58 !important;
   box-shadow: none !important;
   transform: none !important;
   cursor: not-allowed !important;
 }
 
-/* Icon-only buttons in toolbar contexts only */
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.btn-icon,
-body.pmd-admin-theme-v1 .toolbar-action .btn.btn-icon,
-body.pmd-admin-theme-v1 .progress-indicator-container .btn.btn-icon,
-body.pmd-admin-theme-v1 .pmd-toolbar-main .btn.icon-only,
-body.pmd-admin-theme-v1 .toolbar-action .btn.icon-only {
+/* Icon-only buttons in top-toolbar contexts only */
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.btn-icon,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.btn-icon,
+body.pmd-admin-theme-v1 .progress-indicator-container.pmd-toolbar-split > .btn.btn-icon,
+body.pmd-admin-theme-v1 .pmd-toolbar-right-buttons > .btn.btn-icon,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.btn-icon,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > .btn.icon-only,
+body.pmd-admin-theme-v1 .pmd-toolbar-main > div > .btn.icon-only,
+body.pmd-admin-theme-v1 .toolbar-action > .btn.icon-only {
   width: 42px !important;
   min-width: 42px !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
   justify-content: center !important;
-  border-radius: 12px !important;
+}
+
+/* Protection: keep list/table controls out of top-toolbar sizing/styling */
+body.pmd-admin-theme-v1 table .btn,
+body.pmd-admin-theme-v1 table .btn-sm,
+body.pmd-admin-theme-v1 table .btn-edit,
+body.pmd-admin-theme-v1 table .sort-col,
+body.pmd-admin-theme-v1 .list-setup .btn,
+body.pmd-admin-theme-v1 .bulk-actions .btn {
+  min-height: unset !important;
+  padding: unset !important;
+  border-radius: unset !important;
+  box-shadow: unset !important;
+  transform: none !important;
 }
 
 /* Side menu readability guard (keep sidebar fix stable) */
