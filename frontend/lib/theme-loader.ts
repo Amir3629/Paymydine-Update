@@ -80,6 +80,12 @@ export function buildSafeThemeOverrides(themeId: string, data: any): Record<stri
   if (data?.accent_color) raw.accent = data.accent_color;
   if (data?.background_color) raw.background = data.background_color;
 
+  if (themeId === "gold-luxury") {
+    Object.entries(GOLD_LUXURY_LEGACY_DEFAULTS).forEach(([key, value]) => {
+      if (normHex(raw[key]) === value) delete raw[key];
+    });
+  }
+
   if (!Object.keys(raw).length) return {};
 
   const isNonClean = themeId !== "clean-light";
