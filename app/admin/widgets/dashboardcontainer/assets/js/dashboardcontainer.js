@@ -169,12 +169,9 @@
         var self = this
 
         self.ensureSortable = function () {
-            var $sortableContainer = $(self.options.sortableContainer, self.$el)
+            var $sortableContainer = $('#dashboardcontainer-container-list', self.$el)
             if (!$sortableContainer.length) {
                 $sortableContainer = $('[id*="container-list"]', self.$el).first()
-            }
-            if (!$sortableContainer.length) {
-                $sortableContainer = $('.widget-container', self.$el).first()
             }
             if (!$sortableContainer.length) return
 
@@ -182,28 +179,29 @@
 
             self.destroySortableInstances()
 
-            if (typeof Sortable !== 'undefined' && Sortable && typeof Sortable.create === 'function') {
-                self._sortableInstance = Sortable.create($sortableContainer.get(0), {
-                    draggable: '> .col',
+            if (typeof $.fn.sortable === 'function') {
+                $sortableContainer.sortable({
+                    items: '> .col',
                     handle: '.widget-item-action .handle, .handle',
-                    animation: 180,
-                    easing: 'cubic-bezier(0.2, 0, 0, 1)',
-                    ghostClass: 'pmd-dashboard-widget-ghost',
-                    chosenClass: 'pmd-dashboard-widget-chosen',
-                    dragClass: 'pmd-dashboard-widget-dragging',
-                    fallbackOnBody: true,
-                    forceFallback: true,
-                    swapThreshold: 0.65,
-                    onStart: function () { document.body.classList.add('pmd-dashboard-dragging') },
-                    onEnd: function (event) {
-                        document.body.classList.remove('pmd-dashboard-dragging')
-                        self.onSortWidgets(event)
-                    }
+                    containment: 'parent',
+                    tolerance: 'pointer',
+                    placeholder: 'pmd-dashboard-widget-placeholder',
+                    forcePlaceholderSize: true,
+                    helper: 'original',
+                    cursor: 'grabbing',
+                    distance: 3,
+                    delay: 0,
+                    start: function () { document.body.classList.add('pmd-dashboard-dragging') },
+                    stop: function () { document.body.classList.remove('pmd-dashboard-dragging') },
+                    update: function (event, ui) { self.onSortWidgets(event) }
                 })
+                self._sortableInstance = $sortableContainer
+                self._activeDragLibrary = 'jquery-ui'
                 return
             }
 
-            self.initNativeSortable($sortableContainer)
+            self.initPointerSortable($sortableContainer)
+            self._activeDragLibrary = 'pointer-fallback'
         }
 
         $(window).off('ajaxUpdateComplete.dashboardContainer').on('ajaxUpdateComplete.dashboardContainer', function () {
@@ -224,11 +222,11 @@
     }
 
     DashboardContainer.prototype.destroySortableInstances = function () {
-        if (this._sortableInstance && typeof this._sortableInstance.destroy === 'function') {
-            this._sortableInstance.destroy()
+        if (this._sortableInstance && this._sortableInstance.length && typeof this._sortableInstance.sortable === 'function') {
+            try { this._sortableInstance.sortable('destroy') } catch (e) {}
         }
         this._sortableInstance = null
-        this.destroyNativeSortable()
+        this.destroyPointerSortable()
     }
 
     DashboardContainer.prototype.schedulePostRenderRefresh = function () {
@@ -243,6 +241,12 @@
             if (self.$el.hasClass('edit-mode') || document.body.classList.contains('edit-mode-active') || self._isEditMode) {
                 self.ensureSortable()
             }
+            window.PMDDashboardDragDebug = {
+                activeLibrary: self._activeDragLibrary || 'none',
+                containerId: self.$el.find('[id*="container-list"]').first().attr('id') || null,
+                itemSelector: '> .col',
+                handleSelector: '.widget-item-action .handle, .handle'
+            }
         })
     }
 
@@ -255,104 +259,86 @@
                 $col.addClass('pmd-dashboard-widget-enter-active')
                 setTimeout(function () {
                     $col.removeClass('pmd-dashboard-widget-enter pmd-dashboard-widget-enter-active')
-                }, 200)
+                }, 380)
             })
         })
     }
 
-    DashboardContainer.prototype.initNativeSortable = function ($sortableContainer) {
+    DashboardContainer.prototype.initPointerSortable = function ($sortableContainer) {
         if (this._nativeSortableBound) return
 
         var self = this
-        var dragSourceEl = null
-        var dragArmedEl = null
-        var containerId = $sortableContainer.attr('id')
-        var $sortItems = $sortableContainer.find('> .col')
-        var selector = containerId ? ('#' + containerId + ' > .col') : '.widget-list > .col'
-        if (!$sortItems.length) {
-            $sortItems = $sortableContainer.find('> .widget-item')
-            selector = containerId ? ('#' + containerId + ' > .widget-item') : '.widget-container > .widget-item'
-        }
-        if (!$sortItems.length) {
-            $sortItems = $sortableContainer.find('.widget-item')
-            selector = containerId ? ('#' + containerId + ' .widget-item') : '.widget-item'
-        }
-        if (!$sortItems.length) return
+        var $dragCol = null
+        var $placeholder = null
+        var offsetX = 0
+        var offsetY = 0
 
-        // Arm dragging only when pressing the move handle, so normal button clicks still work.
-        this.$el.on('mousedown.nativeSortable', '.handle', function () {
-            var $item = $(this).closest(selector)
-            if (!$item.length) return
-            dragArmedEl = $item.get(0)
-            $item.attr('draggable', 'true')
-        })
+        function onMove(event) {
+            if (!$dragCol) return
+            var e = event.originalEvent && event.originalEvent.touches ? event.originalEvent.touches[0] : event
+            $dragCol.css({ left: (e.clientX - offsetX) + 'px', top: (e.clientY - offsetY) + 'px' })
 
-        this.$el.on('mouseup.nativeSortable mouseleave.nativeSortable', selector, function () {
-            if (dragArmedEl === this && dragSourceEl !== this) {
-                $(this).removeAttr('draggable')
-                dragArmedEl = null
-            }
-        })
-
-        this.$el.on('dragstart.nativeSortable', selector, function (event) {
-            var originalEvent = event.originalEvent || event
-            if (dragArmedEl !== this) {
-                originalEvent.preventDefault()
-                return
-            }
-
-            dragSourceEl = this
-            originalEvent.dataTransfer.effectAllowed = 'move'
-            originalEvent.dataTransfer.setData('text/plain', 'dashboard-widget')
-            $(this).addClass('native-dragging')
-        })
-
-        this.$el.on('dragover.nativeSortable', selector, function (event) {
-            event.preventDefault()
-            var originalEvent = event.originalEvent || event
-            originalEvent.dataTransfer.dropEffect = 'move'
-        })
-
-        this.$el.on('drop.nativeSortable', selector, function (event) {
-            event.preventDefault()
-            if (!dragSourceEl || dragSourceEl === this) return
-
-            var $container = $sortableContainer
-            var $dragSource = $(dragSourceEl)
-            var $dropTarget = $(this)
-
-            if ($dragSource.parent().get(0) !== $dropTarget.parent().get(0)) {
-                $container = $dropTarget.parent()
-            }
-
-            if ($dragSource.index() < $dropTarget.index()) {
-                $dropTarget.after($dragSource)
+            var $target = $(document.elementFromPoint(e.clientX, e.clientY)).closest('#' + $sortableContainer.attr('id') + ' > .col')
+            if (!$target.length || $target.is($dragCol) || $target.is($placeholder)) return
+            var targetRect = $target.get(0).getBoundingClientRect()
+            if (e.clientY > targetRect.top + targetRect.height / 2) {
+                $target.after($placeholder)
             } else {
-                $dropTarget.before($dragSource)
+                $target.before($placeholder)
             }
+        }
 
+        function onUp() {
+            if (!$dragCol) return
+            $dragCol.removeClass('pmd-dashboard-widget-dragging').removeAttr('style')
+            $placeholder.replaceWith($dragCol)
+            $placeholder = null
+            $dragCol = null
+            $(document).off('.pmdPointerSort')
+            document.body.classList.remove('pmd-dashboard-dragging')
             self.onSortWidgets()
+        }
+
+        this.$el.on('mousedown.nativeSortable touchstart.nativeSortable', '.widget-item-action .handle, .handle', function (event) {
+            if (!self.$el.hasClass('edit-mode') && !document.body.classList.contains('edit-mode-active') && !self._isEditMode) return
+            var e = event.originalEvent && event.originalEvent.touches ? event.originalEvent.touches[0] : event
+            var $col = $(this).closest('#' + $sortableContainer.attr('id') + ' > .col')
+            if (!$col.length) return
+
+            event.preventDefault()
+            document.body.classList.add('pmd-dashboard-dragging')
+
+            var rect = $col.get(0).getBoundingClientRect()
+            offsetX = e.clientX - rect.left
+            offsetY = e.clientY - rect.top
+
+            $placeholder = $('<div class="col pmd-dashboard-widget-placeholder"></div>').height(rect.height)
+            $col.after($placeholder)
+
+            $dragCol = $col
+            $dragCol.addClass('pmd-dashboard-widget-dragging').css({
+                position: 'fixed',
+                width: rect.width + 'px',
+                left: rect.left + 'px',
+                top: rect.top + 'px',
+                zIndex: 9999,
+                pointerEvents: 'none'
+            })
+
+            $(document)
+                .on('mousemove.pmdPointerSort touchmove.pmdPointerSort', onMove)
+                .on('mouseup.pmdPointerSort touchend.pmdPointerSort touchcancel.pmdPointerSort', onUp)
         })
 
-        this.$el.on('dragend.nativeSortable', selector, function () {
-            $(this).removeAttr('draggable')
-            $(this).removeClass('native-dragging')
-            dragSourceEl = null
-            dragArmedEl = null
-        })
-
-        $sortItems.removeAttr('draggable')
         this._nativeSortableBound = true
     }
 
-    DashboardContainer.prototype.destroyNativeSortable = function () {
+    DashboardContainer.prototype.destroyPointerSortable = function () {
         this.$el.off('.nativeSortable')
-        $(this.options.sortableContainer + ' > .col', this.$el).removeAttr('draggable')
-        $('.widget-container > .widget-item, .widget-item', this.$el).removeAttr('draggable')
+        $(document).off('.pmdPointerSort')
         this._nativeSortableBound = false
     }
 
-    
     function isMobileDashboardDateRange() {
         return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
     }
