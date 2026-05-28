@@ -51,14 +51,14 @@
                     boxWidth: 14,
                     boxHeight: 14,
                     padding: 16,
-                    color: '#6F7C90',
+                    color: '#6B7280',
                 },
             },
             tooltip: {
                 backgroundColor: '#FFFFFF',
-                titleColor: '#152033',
-                bodyColor: '#152033',
-                borderColor: '#E8E1D7',
+                titleColor: '#0D1B1E',
+                bodyColor: '#0D1B1E',
+                borderColor: '#E8E2D8',
                 borderWidth: 1,
                 cornerRadius: 10,
                 padding: 10,
@@ -70,12 +70,12 @@
             y: {
                 beginAtZero: true,
                 grid: {
-                    color: 'rgba(21, 32, 51, 0.04)',
+                    color: '#E8E2D8',
                     lineWidth: 1,
                     drawBorder: false,
                 },
                 ticks: {
-                    color: '#6F7C90',
+                    color: '#6B7280',
                     callback: function (value) {
                         if (value % 1 === 0) {
                             return value;
@@ -87,11 +87,11 @@
                 type: 'category',
                 grid: {
                     display: false,
-                    color: 'rgba(21, 32, 51, 0.00)',
+                    color: 'rgba(232, 226, 216, 0)',
                     drawBorder: false,
                 },
                 ticks: {
-                    color: '#6F7C90',
+                    color: '#6B7280',
                 }
             }
         }
@@ -145,10 +145,10 @@
         var padding = 24
 
         ctx.clearRect(0, 0, width, height)
-        ctx.fillStyle = '#ffffff'
+        ctx.fillStyle = '#FFFFFF'
         ctx.fillRect(0, 0, width, height)
 
-        ctx.strokeStyle = '#e5e7eb'
+        ctx.strokeStyle = '#E8E2D8'
         ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(padding, padding)
@@ -162,7 +162,7 @@
             })
             if (!points.length) return
 
-            var color = dataset.borderColor || dataset.backgroundColor || ['#202938', '#2f5496', '#64b5f6'][index % 3]
+            var color = dataset.borderColor || dataset.backgroundColor || ['#062F2A', '#C89B4A', '#94A3B8'][index % 3]
             ctx.strokeStyle = color
             ctx.lineWidth = 2
             ctx.beginPath()

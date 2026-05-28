@@ -18,6 +18,7 @@ import { EnvironmentConfig } from '@/lib/environment-config';
 import { buildTablePath } from '@/lib/table-url';
 import { stickySearch } from '@/lib/sticky-query';
 import { getHomeHrefFallback } from '@/lib/table-home-util';
+import { PmdPlatformLogo } from '@/components/pmd-platform-logo';
 
 type SettingsResponse = {
   success?: boolean;
@@ -68,6 +69,8 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [logoLoadedFromSettings, setLogoLoadedFromSettings] = useState<boolean>(false)
   const [apiRestaurantName, setApiRestaurantName] = useState<string>('')
+  const [platformLogoPosition, setPlatformLogoPosition] = useState<'top-left' | 'bottom-center'>('top-left')
+  const [isPlatformLogoMenuOpen, setIsPlatformLogoMenuOpen] = useState(false)
   
   // Fetch settings info on mount
   useEffect(() => {
@@ -116,6 +119,29 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
       }
     })()
   }, [])
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('pmd_platform_logo_position')
+      if (saved === 'top-left' || saved === 'bottom-center') {
+        setPlatformLogoPosition(saved)
+      }
+    } catch (e) {
+      console.warn('Logo: unable to read PMD platform logo position', e)
+    }
+  }, [])
+
+  function updatePlatformLogoPosition(position: 'top-left' | 'bottom-center') {
+    setPlatformLogoPosition(position)
+    setIsPlatformLogoMenuOpen(false)
+
+    try {
+      window.localStorage.setItem('pmd_platform_logo_position', position)
+      window.dispatchEvent(new CustomEvent('pmd-platform-logo-position-change', { detail: position }))
+    } catch (e) {
+      console.warn('Logo: unable to save PMD platform logo position', e)
+    }
+  }
   
   // Check if we're on main homepage or table home page
   const isRoot = pathname === "/"
@@ -208,34 +234,85 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
           </Link>
         )}
       </div>
+      {(isMainHomePage || isTableHomePage) && platformLogoPosition === 'top-left' && (
+        <div className="absolute left-2 top-16 z-10 flex h-16 items-center justify-center sm:left-4 sm:top-20 md:left-1/2 md:top-[2.75rem] md:-translate-x-[430px]">
+          <PmdPlatformLogo imgClassName="max-h-16 max-w-[150px] sm:max-h-24 sm:max-w-[230px] md:max-w-[260px]" />
+        </div>
+      )}
       <div
         className={cn(
-          "absolute",
+          "absolute z-20",
           (isMainHomePage || isTableHomePage)
-            ? "top-[4.35rem] md:top-[4.55rem] left-1/2 translate-x-[225px] md:translate-x-[245px]"
+            ? "right-2 top-16 flex h-16 items-center sm:right-4 sm:top-20 md:right-auto md:left-1/2 md:top-[2.75rem] md:h-auto md:translate-x-[430px]"
             : "top-4 right-2 md:right-4"
         )}
       >
         <LanguageSwitcher />
       </div>
+      {(isMainHomePage || isTableHomePage) && (
+        <div className="fixed bottom-3 right-3 z-30 sm:bottom-4 sm:right-4">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsPlatformLogoMenuOpen((value) => !value)}
+              className="rounded-full border px-3 py-1.5 text-[11px] font-semibold shadow-sm backdrop-blur"
+              style={{
+                background: 'color-mix(in srgb, var(--theme-surface) 92%, transparent)',
+                borderColor: 'var(--theme-border)',
+                color: 'var(--theme-text-primary)',
+              }}
+              aria-label="Logo placement"
+              aria-expanded={isPlatformLogoMenuOpen}
+            >
+              Logo
+            </button>
+            {isPlatformLogoMenuOpen && (
+              <div
+                className="absolute bottom-full right-0 mb-2 w-36 overflow-hidden rounded-2xl border p-1 text-xs shadow-lg"
+                style={{
+                  background: 'var(--theme-surface)',
+                  borderColor: 'var(--theme-border)',
+                  color: 'var(--theme-text-primary)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => updatePlatformLogoPosition('top-left')}
+                  className="block w-full rounded-xl px-3 py-2 text-left font-medium"
+                  style={{ background: platformLogoPosition === 'top-left' ? 'var(--theme-secondary)' : 'transparent' }}
+                >
+                  Top left
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updatePlatformLogoPosition('bottom-center')}
+                  className="block w-full rounded-xl px-3 py-2 text-left font-medium"
+                  style={{ background: platformLogoPosition === 'bottom-center' ? 'var(--theme-secondary)' : 'transparent' }}
+                >
+                  Bottom center
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="text-center">
         {(isMainHomePage || isTableHomePage) ? (
           // FIXED: Show full logo on both main homepage AND table home pages
-          <div className="flex flex-col items-center -translate-y-3">
+          <div className="flex flex-col items-center -translate-y-2 sm:-translate-y-3">
             {/* Dynamic logo from admin settings */}
             {effectiveLogoUrl ? (
               <OptimizedImage
                 src={effectiveLogoUrl}
                 alt={apiRestaurantName || 'Restaurant logo'}
-                width={220}
-                height={64}
+                width={190}
+                height={55}
                 priority
-              
-                className="-translate-y-4"/>
+                className="-translate-y-2 h-auto max-w-[190px] object-contain sm:max-w-[220px] md:max-w-[260px]"/>
             ) : (
               <div aria-hidden="true" style={{ width: 220, height: 64 }} />
             )}
-            <p className="text-base tracking-[0.18em] uppercase font-medium inline-block px-5 py-0.5 rounded-full pmd-v2-pill">
+            <p className="mt-5 sm:mt-0 text-base tracking-[0.18em] uppercase font-medium inline-block px-5 py-0.5 rounded-full pmd-v2-pill">
               {displayTableNumber}
             </p>
           </div>

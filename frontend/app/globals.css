@@ -8070,3 +8070,201 @@ html[data-theme="gold-luxury"] .page--valet svg.lucide-car * {
   -webkit-text-fill-color: #062F2A !important;
 }
 /* PMD GOLD LUXURY BRIGHT THEME HOTFIX END */
+
+
+/* PMD safe hotfix: remove old gold hover effects from homepage cards */
+[data-theme="gold-luxury"] .page--home .home-action-card::before,
+[data-theme="gold-luxury"] .page--home .home-action-card::after {
+  display: none !important;
+}
+
+[data-theme="gold-luxury"] .page--home .home-action-card,
+[data-theme="gold-luxury"] .page--home .home-action-card:hover {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-color: #E8E2D8 !important;
+}
+
+[data-theme="gold-luxury"] .page--home .home-action-card .home-action-icon-wrap,
+[data-theme="gold-luxury"] .page--home .home-action-card:hover .home-action-icon-wrap {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+}
+
+[data-theme="gold-luxury"] .page--home .home-action-card .home-action-icon-wrap svg,
+[data-theme="gold-luxury"] .page--home .home-action-card:hover .home-action-icon-wrap svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+}
+
+
+/* PMD hotfix: stronger gold frame for Valet cards */
+[data-theme="gold-luxury"] .page--valet .surface,
+[data-theme="gold-luxury"] .page--valet .surface-sub,
+[data-theme="gold-luxury"] .page--valet [class*="rounded-3xl"][class*="border"],
+[data-theme="gold-luxury"] .page--valet [class*="rounded-2xl"][class*="border"] {
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet input,
+[data-theme="gold-luxury"] .page--valet textarea,
+[data-theme="gold-luxury"] .page--valet select {
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet input:focus,
+[data-theme="gold-luxury"] .page--valet textarea:focus,
+[data-theme="gold-luxury"] .page--valet select:focus {
+  border-color: #d7a950 !important;
+  box-shadow: 0 0 0 3px rgba(215, 169, 80, 0.24) !important;
+}
+
+
+/* PMD hotfix: keep language button readable on hover/active/focus */
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="EN" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="DE" i],
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:hover,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:focus,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:active,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:hover,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:focus,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:active,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:active,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:active {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 8px 24px rgba(6, 47, 42, 0.18) !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button *,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+
+/* PMD force fix: exact Valet card/input frames + language button text */
+[data-theme="gold-luxury"] .page--valet .pmd-v2-card,
+[data-theme="gold-luxury"] .page--valet .pmd-v2-card-sub,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-card,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-card-sub {
+  border: 1.5px solid #d7a950 !important;
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet .pmd-v2-input,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-input,
+[data-theme="gold-luxury"] .page--valet input,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] input {
+  border: 1.5px solid #d7a950 !important;
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet .pmd-v2-input:focus,
+[data-theme="gold-luxury"] .page--valet .pmd-v2-input:focus-visible,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-input:focus,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-input:focus-visible,
+[data-theme="gold-luxury"] .page--valet input:focus,
+[data-theme="gold-luxury"] .page--valet input:focus-visible,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] input:focus,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] input:focus-visible {
+  border-color: #d7a950 !important;
+  box-shadow: 0 0 0 3px rgba(215, 169, 80, 0.24) !important;
+}
+
+/* PMD force fix: language button must stay white text in every click/active state */
+[data-theme="gold-luxury"] .pmd-customer-page [class*="LanguageSwitcher"],
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language-switcher"],
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[title*="language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-expanded],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-haspopup] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button *,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[title*="language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-expanded] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-haspopup] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:active,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:active {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+
+/* PMD force fix: menu plus/minus/back action circles stay white */
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:hover,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:focus,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:focus-visible,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:active,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"],
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"]:hover,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"]:focus,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"]:active,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"],
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"]:hover,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"]:focus,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"]:active {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle *,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:hover *,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:focus *,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:active *,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"] *,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+

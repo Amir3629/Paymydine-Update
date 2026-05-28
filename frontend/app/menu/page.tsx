@@ -9,6 +9,7 @@ import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
 import { Logo } from "@/components/logo";
+import { PmdPlatformLogo } from "@/components/pmd-platform-logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
 import { FoodAttributeTags } from "@/components/food-attribute-tags";
@@ -3149,6 +3150,9 @@ case "cod":
                   Continue ordering
                 </button>
               </div>}
+              <div className="flex justify-center pt-1">
+                <PmdPlatformLogo imgClassName="max-h-9 max-w-[136px] opacity-85" />
+              </div>
               {checkoutStep === "paid" && (
                 <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
               )}
@@ -4168,6 +4172,59 @@ function MenuContent() {
   useEffect(() => {
     __pmdWalletDebugInstallOnce()
     __pmdRemoteConsoleInstallOnce()
+  }, [])
+
+  // PMD visual guard: keep menu action circles/icons white in every click/active state.
+  // Some legacy theme code can apply inline black text-fill to small quantity buttons.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const applyMenuActionCircleColors = () => {
+      const nodes = document.querySelectorAll<HTMLElement>([
+        ".page--menu .pmd-v2-action-circle",
+        ".page--menu button[aria-label='Increase quantity']",
+        ".page--menu button[aria-label='Decrease quantity']",
+        ".page--menu button[aria-label*='Back' i]",
+        ".page--menu button[aria-label*='back' i]"
+      ].join(","))
+
+      nodes.forEach((node) => {
+        node.style.setProperty("color", "#FFFFFF", "important")
+        node.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+
+        node.querySelectorAll("*").forEach((child) => {
+          const el = child as HTMLElement
+          el.style.setProperty("color", "#FFFFFF", "important")
+          el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+          el.style.setProperty("stroke", "#FFFFFF", "important")
+        })
+      })
+    }
+
+    applyMenuActionCircleColors()
+
+    const events = ["pointerdown", "mousedown", "touchstart", "click", "focusin"]
+    events.forEach((eventName) => {
+      document.addEventListener(eventName, applyMenuActionCircleColors, true)
+    })
+
+    const observer = new MutationObserver(applyMenuActionCircleColors)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style", "class"]
+    })
+
+    const timer = window.setTimeout(applyMenuActionCircleColors, 0)
+
+    return () => {
+      window.clearTimeout(timer)
+      observer.disconnect()
+      events.forEach((eventName) => {
+        document.removeEventListener(eventName, applyMenuActionCircleColors, true)
+      })
+    }
   }, [])
 
   // Read raw search params (Next app router)

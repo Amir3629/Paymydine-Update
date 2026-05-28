@@ -51,18 +51,18 @@
       important(btn, 'max-height', '42px');
       important(btn, 'padding', '0');
       important(btn, 'margin', '0');
-      important(btn, 'border', '1px solid rgba(216,185,130,.48)');
+      important(btn, 'border', '1px solid #E8E2D8');
       important(btn, 'border-radius', '14px');
-      important(btn, 'background', '#FFFEFB');
-      important(btn, 'background-color', '#FFFEFB');
-      important(btn, 'color', '#0F1B2A');
+      important(btn, 'background', '#FFFFFF');
+      important(btn, 'background-color', '#FFFFFF');
+      important(btn, 'color', '#062F2A');
       important(btn, 'display', 'inline-block');
       important(btn, 'text-align', 'center');
       important(btn, 'font-size', '0');
       important(btn, 'line-height', '0');
-      important(btn, 'overflow', 'hidden');
+      important(btn, 'overflow', 'visible');
       important(btn, 'vertical-align', 'middle');
-      important(btn, 'box-shadow', '0 8px 22px rgba(15,27,42,.055)');
+      important(btn, 'box-shadow', '0 8px 24px rgba(6,47,42,.06)');
       important(btn, 'pointer-events', 'auto');
       important(btn, 'cursor', 'pointer');
     }
@@ -110,9 +110,103 @@
       });
     }
 
+    function bindPaletteHover(btn) {
+      if (!btn || btn.dataset.pmdHeaderPaletteBound === '1') return;
+
+      btn.dataset.pmdHeaderPaletteBound = '1';
+      btn.addEventListener('mouseenter', function () {
+        important(btn, 'border', '1px solid #C89B4A');
+        important(btn, 'background', '#F5E8D0');
+        important(btn, 'background-color', '#F5E8D0');
+      });
+      btn.addEventListener('mouseleave', function () {
+        important(btn, 'border', '1px solid #E8E2D8');
+        important(btn, 'background', '#FFFFFF');
+        important(btn, 'background-color', '#FFFFFF');
+      });
+    }
+
+    function cleanTooltipLabel(label) {
+      const normalized = (label || '').replace(/\s+/g, ' ').trim();
+
+      if (!normalized) return '';
+      if (/account/i.test(normalized)) return 'Account';
+      if (/notification/i.test(normalized)) return 'Notifications';
+      if (/storefront|preview/i.test(normalized)) return 'Storefront';
+      if (/settings/i.test(normalized)) return normalized.length > 24 ? 'Settings' : normalized;
+
+      return normalized;
+    }
+
+    function suppressNativeTooltip(el) {
+      if (!el) return;
+
+      [el, el.closest && el.closest('.media-toolbar-tooltip-wrap')].filter(Boolean).forEach(node => {
+        const nativeTitle = node.getAttribute('title') || node.getAttribute('data-bs-original-title') || node.getAttribute('data-original-title');
+
+        if (nativeTitle && !node.getAttribute('data-pmd-native-title')) {
+          node.setAttribute('data-pmd-native-title', nativeTitle);
+        }
+
+        node.removeAttribute('title');
+        node.removeAttribute('data-bs-original-title');
+        node.removeAttribute('data-original-title');
+        node.setAttribute('data-no-tooltip', '1');
+      });
+
+      if (window.bootstrap && window.bootstrap.Tooltip) {
+        const instance = window.bootstrap.Tooltip.getInstance(el);
+        if (instance && typeof instance.dispose === 'function') instance.dispose();
+      }
+
+      if (window.jQuery && window.jQuery.fn && window.jQuery.fn.tooltip) {
+        const $el = window.jQuery(el);
+        if ($el.data('bs.tooltip') || $el.data('tooltip')) $el.tooltip('dispose');
+      }
+    }
+
+    function ensureCustomTooltip(el, fallback) {
+      if (!el) return;
+
+      const label = cleanTooltipLabel(
+        fallback ||
+        el.getAttribute('aria-label') ||
+        el.getAttribute('data-pmd-tooltip-label') ||
+        el.getAttribute('title') ||
+        el.getAttribute('data-bs-original-title') ||
+        textOf(el)
+      );
+
+      suppressNativeTooltip(el);
+
+      if (!label) return;
+
+      el.setAttribute('aria-label', label);
+      el.setAttribute('data-pmd-tooltip-label', label);
+      el.setAttribute('data-no-tooltip', '1');
+      el.classList.add('pmd-header-tooltip-target');
+    }
+
+    function normalizeHeaderIconTooltips() {
+      [
+        ['.navbar-top #menuitem-preview > a.nav-link', 'Storefront'],
+        ['.navbar-top #notifDropdown', 'Notifications'],
+        ['.navbar-top #notif-root > span > a.nav-link', 'Notifications'],
+        ['.navbar-top #notif-root > a.nav-link', 'Notifications'],
+        ['.navbar-top .pmd-header-search', 'Search settings'],
+        ['.navbar-top .pmd-topbar-settings-item > span > a.nav-link', 'Settings'],
+        ['.navbar-top .pmd-topbar-settings-item > a.nav-link', 'Settings'],
+        ['.navbar-top .pmd-topbar-user-item > a.nav-link', 'Account']
+      ].forEach(([selector, label]) => {
+        document.querySelectorAll(selector).forEach(el => ensureCustomTooltip(el, label));
+      });
+    }
+
     function normalizeVisual(btn) {
       lockButtonBox(btn);
       lockIconCenter(btn);
+      bindPaletteHover(btn);
+      ensureCustomTooltip(btn);
     }
 
     function ensureBack() {
@@ -477,6 +571,7 @@
 
         bar.querySelectorAll('.pmd-header-action-btn').forEach(normalizeVisual);
         document.querySelectorAll('.pmd-header-title-back').forEach(normalizeVisual);
+        normalizeHeaderIconTooltips();
 
         document.body.classList.toggle('pmd-has-header-actions', originals.length > 0);
 

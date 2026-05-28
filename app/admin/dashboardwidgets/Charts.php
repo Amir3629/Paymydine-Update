@@ -109,19 +109,19 @@ class Charts extends BaseDashboardWidget
                 'sets' => [
                     [
                         'label' => 'lang:admin::lang.dashboard.charts.text_customers',
-                        'color' => '#0F1B2A',
+                        'color' => '#062F2A',
                         'model' => Customers_model::class,
                         'column' => 'created_at',
                     ],
                     [
                         'label' => 'lang:admin::lang.dashboard.charts.text_orders',
-                        'color' => '#C49A5B',
+                        'color' => '#C89B4A',
                         'model' => Orders_model::class,
                         'column' => 'order_date',
                     ],
                     [
                         'label' => 'lang:admin::lang.dashboard.charts.text_reservations',
-                        'color' => '#AEB8C8',
+                        'color' => '#94A3B8',
                         'model' => Reservations_model::class,
                         'column' => 'reserve_date',
                     ],

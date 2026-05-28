@@ -1,3 +1,13 @@
+@php
+    $pmdLoginLogoOriginalPath = base_path('assets/media/uploads/Paymydinelogo.png');
+    $pmdLoginLogoTrimmedPath = base_path('assets/media/uploads/Paymydinelogo-login.png');
+
+    $pmdLoginLogoUrl = file_exists($pmdLoginLogoTrimmedPath)
+        ? asset('assets/media/uploads/Paymydinelogo-login.png')
+        : (file_exists($pmdLoginLogoOriginalPath)
+            ? asset('assets/media/uploads/Paymydinelogo.png')
+            : asset('images/logo.png'));
+@endphp
 <!DOCTYPE html>
 <html lang="zxx" class="js">
 
@@ -16,19 +26,794 @@
      <link id="skin-default" rel="stylesheet" href="./assets/css/theme.css?ver=3.2.3">
      <meta name="csrf-token" content="{{ csrf_token() }}">
      <style>
-         /* Ensure forgot password link is dark blue, not green */
+         :root {
+             --pmd-login-bg: #FAF9F4;
+             --pmd-login-surface: #FFFFFF;
+             --pmd-login-border: #E8E2D8;
+             --pmd-login-text: #0D1B1E;
+             --pmd-login-muted: #6B7280;
+             --pmd-login-jade: #062F2A;
+             --pmd-login-jade-dark: #021F1C;
+             --pmd-login-gold: #C89B4A;
+             --pmd-login-gold-soft: #F5E8D0;
+             --pmd-login-danger: #B42318;
+             --pmd-login-shadow: 0 8px 24px rgba(6, 47, 42, 0.06);
+         }
+
+         html,
+         body.pg-auth,
+         .nk-body.pg-auth,
+         .nk-app-root,
+         .nk-main,
+         .nk-wrap,
+         .nk-content,
+         .nk-split {
+             min-height: 100%;
+             background: var(--pmd-login-bg) !important;
+             color: var(--pmd-login-text) !important;
+         }
+
+         body.pg-auth {
+             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         }
+
+         .nk-split-page {
+             min-height: 100vh;
+             align-items: center;
+             justify-content: center;
+             padding: 28px 16px;
+         }
+
+         .nk-auth-container {
+             width: min(100%, 940px) !important;
+             min-height: auto !important;
+             margin: 0 auto !important;
+             padding: 34px !important;
+             border: 1px solid var(--pmd-login-border) !important;
+             border-radius: 28px !important;
+             background: var(--pmd-login-surface) !important;
+             box-shadow: var(--pmd-login-shadow) !important;
+         }
+
+         .nk-auth-body {
+             width: 100%;
+             max-width: 100% !important;
+             margin: 0 !important;
+         }
+
+         .brand-logo {
+             width: 100%;
+             display: flex;
+             justify-content: center;
+             padding-bottom: 24px !important;
+             text-align: center;
+         }
+
+         .brand-logo .logo-link {
+             width: min(100%, 860px);
+             min-height: 0;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             padding: 0;
+             border: 0;
+             border-radius: 0;
+             background: transparent;
+             box-shadow: none;
+             overflow: visible;
+         }
+
+         .brand-logo .logo-img {
+             display: block;
+             width: min(100%, 820px) !important;
+             height: auto !important;
+             max-width: none !important;
+             max-height: 310px !important;
+             margin: 0 auto;
+             object-fit: contain;
+             transform: scale(1.18);
+             transform-origin: center center;
+         }
+
+         .brand-logo .logo-dark {
+             display: none !important;
+         }
+
+         .nk-block-title {
+             color: var(--pmd-login-text) !important;
+             font-size: 1.35rem !important;
+             font-weight: 800 !important;
+             letter-spacing: -0.02em;
+             text-align: center;
+         }
+
+         .nk-block-des p,
+         .form-label,
+         .form-label-group,
+         .nk-auth-container .text-right {
+             color: var(--pmd-login-muted) !important;
+         }
+
+         .nk-block-des p {
+             text-align: center;
+         }
+
+         .form-label {
+             font-weight: 700 !important;
+         }
+
+         .form-control,
+         .form-control-lg {
+             min-height: 48px;
+             border: 1px solid var(--pmd-login-border) !important;
+             border-radius: 14px !important;
+             background: var(--pmd-login-surface) !important;
+             color: var(--pmd-login-text) !important;
+             box-shadow: none !important;
+         }
+
+         .form-control:focus,
+         .form-control-lg:focus {
+             border-color: var(--pmd-login-gold) !important;
+             box-shadow: 0 0 0 0.18rem rgba(200, 155, 74, 0.18) !important;
+         }
+
+         .form-control::placeholder {
+             color: #9CA3AF !important;
+         }
+
+         .passcode-switch,
+         .passcode-switch em {
+             color: var(--pmd-login-muted) !important;
+         }
+
+         .btn.btn-primary,
+         .btn.btn-primary:focus {
+             min-height: 48px;
+             border: 1px solid var(--pmd-login-jade) !important;
+             border-radius: 14px !important;
+             background: var(--pmd-login-jade) !important;
+             color: #FFFFFF !important;
+             font-weight: 800 !important;
+             box-shadow: 0 8px 22px rgba(6, 47, 42, 0.16) !important;
+         }
+
+         .btn.btn-primary:hover,
+         .btn.btn-primary:active {
+             border-color: var(--pmd-login-jade-dark) !important;
+             background: var(--pmd-login-jade-dark) !important;
+             color: #FFFFFF !important;
+         }
+
          .nk-auth-container .form-group a,
          .pg-auth .form-group a,
          .nk-auth-container .text-right a,
          .pg-auth .text-right a {
-             color: #364a63 !important;
+             color: var(--pmd-login-jade) !important;
+             font-weight: 700;
          }
+
          .nk-auth-container .form-group a:hover,
          .pg-auth .form-group a:hover,
          .nk-auth-container .text-right a:hover,
          .pg-auth .text-right a:hover {
-             color: #526484 !important;
+             color: var(--pmd-login-gold) !important;
          }
+
+         .text-danger {
+             color: var(--pmd-login-danger) !important;
+         }
+
+         .bg-abstract,
+         .nk-split-stretch.bg-abstract {
+             display: none !important;
+         }
+
+         @media (max-width: 575.98px) {
+             .nk-split-page {
+                 padding: 18px 12px;
+             }
+
+             .nk-auth-container {
+                 padding: 24px 18px !important;
+                 border-radius: 22px !important;
+             }
+
+             .brand-logo .logo-link {
+                 width: min(100%, 460px);
+             }
+
+             .brand-logo .logo-img {
+                 width: min(100%, 460px) !important;
+                 max-height: 185px !important;
+                 transform: scale(1.12);
+             }
+         }
+
+
+
+         /* PMD real login logo fix: cropped asset, centered logo, normal card */
+         .nk-auth-container {
+             width: min(100%, 620px) !important;
+             max-width: 620px !important;
+             padding: 44px 42px 42px !important;
+         }
+
+         .nk-auth-body {
+             width: 100% !important;
+             display: flex !important;
+             flex-direction: column !important;
+             align-items: center !important;
+             justify-content: center !important;
+         }
+
+         .brand-logo,
+         .brand-logo.pb-5 {
+             width: 100% !important;
+             display: flex !important;
+             justify-content: center !important;
+             align-items: center !important;
+             padding: 0 !important;
+             margin: 0 auto 34px auto !important;
+             text-align: center !important;
+         }
+
+         .brand-logo .logo-link {
+             width: 100% !important;
+             max-width: 100% !important;
+             display: flex !important;
+             justify-content: center !important;
+             align-items: center !important;
+             padding: 0 !important;
+             margin: 0 auto !important;
+             border: 0 !important;
+             border-radius: 0 !important;
+             background: transparent !important;
+             box-shadow: none !important;
+             overflow: visible !important;
+             text-align: center !important;
+         }
+
+         .brand-logo .pmd-login-main-logo,
+         .brand-logo img.pmd-login-main-logo {
+             display: block !important;
+             width: auto !important;
+             height: auto !important;
+             max-width: min(92vw, 360px) !important;
+             max-height: 180px !important;
+             margin: 0 auto !important;
+             object-fit: contain !important;
+             object-position: center center !important;
+             transform: scale(1.28) !important;
+             transform-origin: center center !important;
+             position: static !important;
+         }
+
+         .brand-logo .logo-img,
+         .brand-logo .logo-light,
+         .brand-logo .logo-dark {
+             max-width: none !important;
+         }
+
+         .nk-block-head,
+         .nk-auth-body form {
+             width: min(100%, 430px) !important;
+             margin-left: auto !important;
+             margin-right: auto !important;
+         }
+
+         @media (max-width: 575.98px) {
+             .nk-auth-container {
+                 width: min(100%, 94vw) !important;
+                 padding: 34px 20px 32px !important;
+             }
+
+             .brand-logo,
+             .brand-logo.pb-5 {
+                 margin-bottom: 28px !important;
+             }
+
+             .brand-logo .pmd-login-main-logo,
+             .brand-logo img.pmd-login-main-logo {
+                 max-width: min(88vw, 310px) !important;
+                 max-height: 150px !important;
+                 transform: scale(1.18) !important;
+             }
+         }
+
+
+         /* PMD emergency final override: visually bigger centered login logo + compact card */
+         .nk-split-page {
+             padding: 18px 16px !important;
+         }
+
+         .nk-auth-container,
+         .nk-split-content.nk-auth-container {
+             width: min(100%, 540px) !important;
+             max-width: 540px !important;
+             min-height: auto !important;
+             padding: 30px 34px 34px !important;
+             border-radius: 24px !important;
+         }
+
+         .nk-auth-body {
+             width: 100% !important;
+             display: flex !important;
+             flex-direction: column !important;
+             align-items: center !important;
+         }
+
+         .brand-logo,
+         .brand-logo.pb-5 {
+             width: 100% !important;
+             height: 150px !important;
+             min-height: 150px !important;
+             max-height: 150px !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+             padding: 0 !important;
+             margin: 0 auto 6px auto !important;
+             text-align: center !important;
+         }
+
+         .brand-logo .logo-link {
+             width: 360px !important;
+             height: 150px !important;
+             max-width: 100% !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+             padding: 0 !important;
+             margin: 0 auto !important;
+             background: transparent !important;
+             border: 0 !important;
+             box-shadow: none !important;
+         }
+
+         .brand-logo .pmd-login-main-logo,
+         .brand-logo img.pmd-login-main-logo {
+             display: block !important;
+             width: 260px !important;
+             max-width: 260px !important;
+             height: auto !important;
+             max-height: 120px !important;
+             object-fit: contain !important;
+             object-position: center center !important;
+             margin: 0 auto !important;
+             position: static !important;
+             transform: scale(2.35) !important;
+             transform-origin: center center !important;
+             will-change: transform !important;
+         }
+
+         .nk-block-head {
+             width: min(100%, 430px) !important;
+             margin: 0 auto 22px auto !important;
+             padding: 0 !important;
+         }
+
+         .nk-block-title {
+             margin-top: 0 !important;
+             margin-bottom: 8px !important;
+         }
+
+         .nk-block-des {
+             margin-bottom: 0 !important;
+         }
+
+         .nk-auth-body form {
+             width: min(100%, 430px) !important;
+             margin: 0 auto !important;
+         }
+
+         @media (max-width: 575.98px) {
+             .nk-split-page {
+                 padding: 14px 10px !important;
+             }
+
+             .nk-auth-container,
+             .nk-split-content.nk-auth-container {
+                 width: min(100%, 92vw) !important;
+                 max-width: 92vw !important;
+                 padding: 24px 18px 28px !important;
+                 border-radius: 22px !important;
+             }
+
+             .brand-logo,
+             .brand-logo.pb-5 {
+                 height: 130px !important;
+                 min-height: 130px !important;
+                 max-height: 130px !important;
+                 margin-bottom: 4px !important;
+             }
+
+             .brand-logo .logo-link {
+                 width: 320px !important;
+                 height: 130px !important;
+             }
+
+             .brand-logo .pmd-login-main-logo,
+             .brand-logo img.pmd-login-main-logo {
+                 width: 220px !important;
+                 max-width: 220px !important;
+                 max-height: 100px !important;
+                 transform: scale(2.15) !important;
+             }
+         }
+
+
+         /* PMD FINAL login logo override: 50 percent bigger + centered + less empty gap */
+         body.pg-auth .nk-split-page {
+             padding: 18px 16px !important;
+         }
+
+         body.pg-auth .nk-auth-container,
+         body.pg-auth .nk-split-content.nk-auth-container {
+             width: min(100%, 500px) !important;
+             max-width: 500px !important;
+             min-height: auto !important;
+             padding: 26px 34px 32px !important;
+             border-radius: 24px !important;
+         }
+
+         body.pg-auth .nk-auth-body {
+             width: 100% !important;
+             display: flex !important;
+             flex-direction: column !important;
+             align-items: center !important;
+             justify-content: flex-start !important;
+         }
+
+         body.pg-auth .brand-logo,
+         body.pg-auth .brand-logo.pb-5 {
+             width: 100% !important;
+             height: 128px !important;
+             min-height: 128px !important;
+             max-height: 128px !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+             padding: 0 !important;
+             margin: 0 auto 2px auto !important;
+             text-align: center !important;
+         }
+
+         body.pg-auth .brand-logo .logo-link {
+             width: 360px !important;
+             height: 128px !important;
+             max-width: 100% !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+             padding: 0 !important;
+             margin: 0 auto !important;
+             background: transparent !important;
+             border: 0 !important;
+             border-radius: 0 !important;
+             box-shadow: none !important;
+             text-align: center !important;
+         }
+
+         body.pg-auth .brand-logo .pmd-login-main-logo,
+         body.pg-auth .brand-logo img.pmd-login-main-logo {
+             display: block !important;
+             width: 260px !important;
+             max-width: 260px !important;
+             height: auto !important;
+             max-height: 120px !important;
+             object-fit: contain !important;
+             object-position: center center !important;
+             margin: 0 auto !important;
+             position: static !important;
+             transform: scale(3.55) !important;
+             transform-origin: center center !important;
+             will-change: transform !important;
+         }
+
+         body.pg-auth .nk-block-head {
+             width: min(100%, 430px) !important;
+             margin: -4px auto 20px auto !important;
+             padding: 0 !important;
+         }
+
+         body.pg-auth .nk-block-title {
+             margin-top: 0 !important;
+             margin-bottom: 8px !important;
+         }
+
+         body.pg-auth .nk-block-des {
+             margin-bottom: 0 !important;
+         }
+
+         body.pg-auth .nk-auth-body form {
+             width: min(100%, 430px) !important;
+             margin: 0 auto !important;
+         }
+
+         @media (max-width: 575.98px) {
+             body.pg-auth .nk-auth-container,
+             body.pg-auth .nk-split-content.nk-auth-container {
+                 width: min(100%, 92vw) !important;
+                 max-width: 92vw !important;
+                 padding: 22px 18px 28px !important;
+             }
+
+             body.pg-auth .brand-logo,
+             body.pg-auth .brand-logo.pb-5 {
+                 height: 118px !important;
+                 min-height: 118px !important;
+                 max-height: 118px !important;
+                 margin-bottom: 0 !important;
+             }
+
+             body.pg-auth .brand-logo .logo-link {
+                 width: 320px !important;
+                 height: 118px !important;
+             }
+
+             body.pg-auth .brand-logo .pmd-login-main-logo,
+             body.pg-auth .brand-logo img.pmd-login-main-logo {
+                 width: 230px !important;
+                 max-width: 230px !important;
+                 max-height: 105px !important;
+                 transform: scale(3.15) !important;
+             }
+
+             body.pg-auth .nk-block-head {
+                 margin-top: -2px !important;
+             }
+         }
+
+
+         /* PMD REAL FINAL login logo size: centered, bigger, no overlap */
+         body.pg-auth .nk-split-page {
+             padding: 18px 16px !important;
+         }
+
+         body.pg-auth .nk-auth-container,
+         body.pg-auth .nk-split-content.nk-auth-container {
+             width: min(100%, 500px) !important;
+             max-width: 500px !important;
+             min-height: auto !important;
+             padding: 28px 34px 34px !important;
+             border-radius: 24px !important;
+         }
+
+         body.pg-auth .nk-auth-body {
+             width: 100% !important;
+             display: flex !important;
+             flex-direction: column !important;
+             align-items: center !important;
+             justify-content: flex-start !important;
+         }
+
+         body.pg-auth .brand-logo,
+         body.pg-auth .brand-logo.pb-5 {
+             width: 100% !important;
+             height: 210px !important;
+             min-height: 210px !important;
+             max-height: 210px !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+             padding: 0 !important;
+             margin: 0 auto 8px auto !important;
+             text-align: center !important;
+         }
+
+         body.pg-auth .brand-logo .logo-link {
+             width: 360px !important;
+             height: 210px !important;
+             max-width: 100% !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+             padding: 0 !important;
+             margin: 0 auto !important;
+             background: transparent !important;
+             border: 0 !important;
+             border-radius: 0 !important;
+             box-shadow: none !important;
+             text-align: center !important;
+         }
+
+         body.pg-auth .brand-logo .pmd-login-main-logo,
+         body.pg-auth .brand-logo img.pmd-login-main-logo {
+             display: block !important;
+             width: 260px !important;
+             max-width: 260px !important;
+             height: auto !important;
+             max-height: 120px !important;
+             object-fit: contain !important;
+             object-position: center center !important;
+             margin: 0 auto !important;
+             position: static !important;
+             transform: scale(2.15) !important;
+             transform-origin: center center !important;
+             will-change: transform !important;
+         }
+
+         body.pg-auth .nk-block-head {
+             width: min(100%, 430px) !important;
+             margin: 0 auto 20px auto !important;
+             padding: 0 !important;
+         }
+
+         body.pg-auth .nk-auth-body form {
+             width: min(100%, 430px) !important;
+             margin: 0 auto !important;
+         }
+
+         @media (max-width: 575.98px) {
+             body.pg-auth .nk-auth-container,
+             body.pg-auth .nk-split-content.nk-auth-container {
+                 width: min(100%, 92vw) !important;
+                 max-width: 92vw !important;
+                 padding: 24px 18px 28px !important;
+             }
+
+             body.pg-auth .brand-logo,
+             body.pg-auth .brand-logo.pb-5 {
+                 height: 175px !important;
+                 min-height: 175px !important;
+                 max-height: 175px !important;
+                 margin-bottom: 6px !important;
+             }
+
+             body.pg-auth .brand-logo .logo-link {
+                 width: 320px !important;
+                 height: 175px !important;
+             }
+
+             body.pg-auth .brand-logo .pmd-login-main-logo,
+             body.pg-auth .brand-logo img.pmd-login-main-logo {
+                 width: 230px !important;
+                 max-width: 230px !important;
+                 max-height: 105px !important;
+                 transform: scale(1.95) !important;
+             }
+         }
+
+
+         /* PMD final micro-adjust: login logo slightly smaller and higher */
+         body.pg-auth .brand-logo,
+         body.pg-auth .brand-logo.pb-5 {
+             height: 190px !important;
+             min-height: 190px !important;
+             max-height: 190px !important;
+             margin: -10px auto 4px auto !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+         }
+
+         body.pg-auth .brand-logo .logo-link {
+             height: 190px !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+         }
+
+         body.pg-auth .brand-logo .pmd-login-main-logo,
+         body.pg-auth .brand-logo img.pmd-login-main-logo {
+             transform: translateY(-14px) scale(1.88) !important;
+             transform-origin: center center !important;
+         }
+
+         body.pg-auth .nk-block-head {
+             margin-top: -4px !important;
+         }
+
+         @media (max-width: 575.98px) {
+             body.pg-auth .brand-logo,
+             body.pg-auth .brand-logo.pb-5 {
+                 height: 160px !important;
+                 min-height: 160px !important;
+                 max-height: 160px !important;
+                 margin: -8px auto 4px auto !important;
+             }
+
+             body.pg-auth .brand-logo .logo-link {
+                 height: 160px !important;
+             }
+
+             body.pg-auth .brand-logo .pmd-login-main-logo,
+             body.pg-auth .brand-logo img.pmd-login-main-logo {
+                 transform: translateY(-10px) scale(1.72) !important;
+             }
+         }
+
+
+         /* PMD final position fix: move login logo higher only */
+         body.pg-auth .brand-logo,
+         body.pg-auth .brand-logo.pb-5 {
+             margin: -34px auto -4px auto !important;
+         }
+
+         body.pg-auth .brand-logo .pmd-login-main-logo,
+         body.pg-auth .brand-logo img.pmd-login-main-logo {
+             transform: translateY(-34px) scale(1.88) !important;
+             transform-origin: center center !important;
+         }
+
+         body.pg-auth .nk-block-head {
+             margin-top: -18px !important;
+         }
+
+         @media (max-width: 575.98px) {
+             body.pg-auth .brand-logo,
+             body.pg-auth .brand-logo.pb-5 {
+                 margin: -28px auto -2px auto !important;
+             }
+
+             body.pg-auth .brand-logo .pmd-login-main-logo,
+             body.pg-auth .brand-logo img.pmd-login-main-logo {
+                 transform: translateY(-28px) scale(1.72) !important;
+             }
+
+             body.pg-auth .nk-block-head {
+                 margin-top: -14px !important;
+             }
+         }
+
+
+         /* PMD final spacing fix: move login text/form down only */
+         body.pg-auth .nk-block-head {
+             margin-top: 20px !important;
+             margin-bottom: 24px !important;
+             transform: translateY(18px) !important;
+         }
+
+         body.pg-auth .nk-auth-body form {
+             transform: translateY(18px) !important;
+         }
+
+         body.pg-auth .nk-auth-container,
+         body.pg-auth .nk-split-content.nk-auth-container {
+             padding-bottom: 52px !important;
+         }
+
+         @media (max-width: 575.98px) {
+             body.pg-auth .nk-block-head {
+                 margin-top: 16px !important;
+                 margin-bottom: 22px !important;
+                 transform: translateY(14px) !important;
+             }
+
+             body.pg-auth .nk-auth-body form {
+                 transform: translateY(14px) !important;
+             }
+
+             body.pg-auth .nk-auth-container,
+             body.pg-auth .nk-split-content.nk-auth-container {
+                 padding-bottom: 44px !important;
+             }
+         }
+
+
+         /* PMD final logo size correction: make login logo smaller only */
+         body.pg-auth .brand-logo .pmd-login-main-logo,
+         body.pg-auth .brand-logo img.pmd-login-main-logo {
+             transform: translateY(-30px) scale(1.55) !important;
+             transform-origin: center center !important;
+         }
+
+         @media (max-width: 575.98px) {
+             body.pg-auth .brand-logo .pmd-login-main-logo,
+             body.pg-auth .brand-logo img.pmd-login-main-logo {
+                 transform: translateY(-24px) scale(1.38) !important;
+             }
+         }
+
      </style>
 </head>
 
@@ -45,8 +830,7 @@
                             <div class="nk-block nk-block-middle nk-auth-body">
                                 <div class="brand-logo pb-5">
                                     <a href="{{ admin_url('dashboard') }}" class="logo-link">
-                                    <img class="logo-light logo-img" src="./images/logo.png" srcset="./images/logo.png" alt="logo">
-                                    <img class="logo-dark logo-img" src="./images/logo.png" srcset="./images/logo.png" alt="logo-dark">
+                                    <img class="pmd-login-main-logo" src="{{ $pmdLoginLogoUrl }}?v={{ file_exists($pmdLoginLogoTrimmedPath) ? filemtime($pmdLoginLogoTrimmedPath) : time() }}" alt="PayMyDine logo">
                                     </a>
                                 </div>
                                 <div class="nk-block-head">
@@ -110,7 +894,7 @@
 
                                 <div class="form-group">
                                     <p class="text-right">
-                                        <a href="{{ admin_url('login/reset') }}" style="color: #364a63 !important;">
+                                        <a href="{{ admin_url('login/reset') }}">
                                             @lang('admin::lang.login.text_forgot_password')
                                         </a>
                                     </p>

@@ -3,8 +3,8 @@
     $hasSettingsError = count(array_filter(Session::get('settings.errors', [])))
 @endphp
 <li class="nav-item dropdown pmd-topbar-settings-item">
-    <span title="Settings" class="media-toolbar-tooltip-wrap">
-    <a class="nav-link" href="" data-bs-toggle="dropdown" aria-label="Settings">
+    <span class="media-toolbar-tooltip-wrap" data-no-tooltip="1">
+    <a class="nav-link pmd-header-tooltip-target" href="" data-bs-toggle="dropdown" aria-label="Settings" data-pmd-tooltip-label="Settings" data-no-tooltip="1">
         <i class="fa fa-gear" role="button"></i>
         @if($hasSettingsError)
             <span class="badge badge-danger"><i class="fa fa-exclamation text-white"></i></span>
