@@ -3151,7 +3151,7 @@ case "cod":
                 </button>
               </div>}
               <div className="flex justify-center pt-1">
-                <PmdPlatformLogo imgClassName="max-h-7 max-w-[108px] opacity-80" />
+                <PmdPlatformLogo imgClassName="max-h-9 max-w-[136px] opacity-85" />
               </div>
               {checkoutStep === "paid" && (
                 <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>

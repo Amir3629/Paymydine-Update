@@ -61,7 +61,7 @@
          }
 
          .nk-auth-container {
-             width: min(100%, 470px) !important;
+             width: min(100%, 620px) !important;
              min-height: auto !important;
              margin: 0 auto !important;
              padding: 34px !important;
@@ -86,18 +86,19 @@
              display: inline-flex;
              align-items: center;
              justify-content: center;
-             min-height: 74px;
-             padding: 10px 18px;
-             border: 1px solid rgba(200, 155, 74, 0.28);
-             border-radius: 22px;
-             background: linear-gradient(135deg, #FFFFFF 0%, #FFF9EF 100%);
+             min-height: 0;
+             padding: 0;
+             border: 0;
+             border-radius: 0;
+             background: transparent;
+             box-shadow: none;
          }
 
          .brand-logo .logo-img {
              display: block;
              width: auto;
-             max-width: 230px;
-             max-height: 70px;
+             max-width: min(100%, 520px);
+             max-height: 160px;
              object-fit: contain;
          }
 
@@ -206,8 +207,8 @@
              }
 
              .brand-logo .logo-img {
-                 max-width: 190px;
-                 max-height: 58px;
+                 max-width: min(100%, 300px);
+                 max-height: 96px;
              }
          }
      </style>

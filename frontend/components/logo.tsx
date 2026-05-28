@@ -210,8 +210,8 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
         )}
       </div>
       {(isMainHomePage || isTableHomePage) && (
-        <div className="absolute top-[4.35rem] md:top-[4.55rem] left-1/2 -translate-x-[225px] md:-translate-x-[245px] flex h-10 items-center justify-center">
-          <PmdPlatformLogo imgClassName="max-h-7 max-w-[92px] sm:max-h-8 sm:max-w-[118px]" />
+        <div className="absolute top-[4.35rem] md:top-[4.55rem] left-1/2 -translate-x-[225px] md:-translate-x-[245px] flex h-14 items-center justify-center">
+          <PmdPlatformLogo imgClassName="max-h-14 max-w-[120px] sm:max-h-16 sm:max-w-[176px]" />
         </div>
       )}
       <div
