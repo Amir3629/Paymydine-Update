@@ -61,7 +61,7 @@
          }
 
          .nk-auth-container {
-             width: min(100%, 620px) !important;
+             width: min(100%, 860px) !important;
              min-height: auto !important;
              margin: 0 auto !important;
              padding: 34px !important;
@@ -78,7 +78,10 @@
          }
 
          .brand-logo {
-             padding-bottom: 26px !important;
+             width: 100%;
+             display: flex;
+             justify-content: center;
+             padding-bottom: 34px !important;
              text-align: center;
          }
 
@@ -97,8 +100,9 @@
          .brand-logo .logo-img {
              display: block;
              width: auto;
-             max-width: min(100%, 520px);
-             max-height: 160px;
+             max-width: min(100%, 760px);
+             max-height: 250px;
+             margin: 0 auto;
              object-fit: contain;
          }
 
@@ -207,8 +211,8 @@
              }
 
              .brand-logo .logo-img {
-                 max-width: min(100%, 300px);
-                 max-height: 96px;
+                 max-width: min(100%, 420px);
+                 max-height: 150px;
              }
          }
      </style>

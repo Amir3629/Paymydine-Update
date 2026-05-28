@@ -27,7 +27,7 @@ export function PmdPlatformLogo({
       <img
         src={src}
         alt="PayMyDine"
-        className={cn('h-auto max-h-14 w-auto max-w-[120px] object-contain sm:max-h-20 sm:max-w-[180px]', imgClassName)}
+        className={cn('h-auto max-h-16 w-auto max-w-[150px] object-contain sm:max-h-24 sm:max-w-[240px]', imgClassName)}
         loading="lazy"
         decoding="async"
         onError={() => {
