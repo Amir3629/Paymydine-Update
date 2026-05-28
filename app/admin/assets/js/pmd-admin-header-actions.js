@@ -2,187 +2,580 @@
   'use strict';
 
   function ready(fn) {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
-    else fn();
+    document.readyState === 'loading'
+      ? document.addEventListener('DOMContentLoaded', fn, { once: true })
+      : fn();
   }
 
   ready(function () {
     if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return;
 
-    var mainMenu = document.querySelector('#menu-mainmenu');
+    const mainMenu = document.querySelector('#menu-mainmenu');
     if (!mainMenu) return;
 
-    var item = document.querySelector('#pmd-header-toolbar-actions-item');
-    if (!item) {
-      item = document.createElement('li');
-      item.id = 'pmd-header-toolbar-actions-item';
-      item.className = 'nav-item pmd-header-toolbar-actions-item';
-      item.innerHTML = '<div class="pmd-header-toolbar-actions" aria-label="Page actions"></div>';
-      mainMenu.insertBefore(item, mainMenu.firstChild);
+    let isRendering = false;
+    let counter = 0;
+
+    function important(el, prop, value) {
+      if (el) el.style.setProperty(prop, value, 'important');
     }
 
-    var bar = item.querySelector('.pmd-header-toolbar-actions');
-    if (!bar) return;
-
-    var counter = 0;
-    function uid(el) {
-      if (!el.dataset.pmdHeaderActionId) {
-        counter += 1;
-        el.dataset.pmdHeaderActionId = 'pmd-action-' + Date.now() + '-' + counter;
-      }
-      return el.dataset.pmdHeaderActionId;
+    function isDashboardPage() {
+      return /\/admin\/dashboard\/?$/.test(window.location.pathname);
     }
 
     function textOf(el) {
-      return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g, ' ').trim();
+      return (
+        el.getAttribute('aria-label') ||
+        el.getAttribute('title') ||
+        el.getAttribute('data-bs-original-title') ||
+        el.textContent ||
+        el.value ||
+        ''
+      ).replace(/\s+/g, ' ').trim();
     }
 
-    function iconFor(el, label) {
-      var i = el.querySelector('i.fa, i.fas, i.far, i.fab');
-      if (i) return i.className;
+    function findTitle() {
+      return [...document.querySelectorAll('.navbar-top h1, .navbar-top h2, .navbar-top .page-title, .navbar-top .navbar-title')]
+        .find(el => textOf(el) && !el.closest('#menu-mainmenu'));
+    }
 
-      var t = (label || '').toLowerCase();
+    function lockButtonBox(btn) {
+      important(btn, 'position', 'relative');
+      important(btn, 'box-sizing', 'border-box');
+      important(btn, 'width', '42px');
+      important(btn, 'min-width', '42px');
+      important(btn, 'max-width', '42px');
+      important(btn, 'height', '42px');
+      important(btn, 'min-height', '42px');
+      important(btn, 'max-height', '42px');
+      important(btn, 'padding', '0');
+      important(btn, 'margin', '0');
+      important(btn, 'border', '1px solid rgba(216,185,130,.48)');
+      important(btn, 'border-radius', '14px');
+      important(btn, 'background', '#FFFEFB');
+      important(btn, 'background-color', '#FFFEFB');
+      important(btn, 'color', '#0F1B2A');
+      important(btn, 'display', 'inline-block');
+      important(btn, 'text-align', 'center');
+      important(btn, 'font-size', '0');
+      important(btn, 'line-height', '0');
+      important(btn, 'overflow', 'hidden');
+      important(btn, 'vertical-align', 'middle');
+      important(btn, 'box-shadow', '0 8px 22px rgba(15,27,42,.055)');
+      important(btn, 'pointer-events', 'auto');
+      important(btn, 'cursor', 'pointer');
+    }
 
-      if (t.includes('back') || t.includes('return')) return 'fa fa-arrow-left';
-      if (t.includes('new') || t.includes('add') || t.includes('create')) return 'fa fa-plus';
-      if (t.includes('save')) return 'fa fa-check';
-      if (t.includes('edit')) return 'fa fa-edit';
-      if (t.includes('delete') || t.includes('remove')) return 'fa fa-trash';
+    function lockIconCenter(btn) {
+      const holder = btn.querySelector('.pmd-header-action-icon');
+      const icon = btn.querySelector('.pmd-header-action-icon > i, i');
+
+      if (holder) {
+        important(holder, 'position', 'absolute');
+        important(holder, 'top', '0');
+        important(holder, 'left', '0');
+        important(holder, 'right', '0');
+        important(holder, 'bottom', '0');
+        important(holder, 'width', '42px');
+        important(holder, 'height', '42px');
+        important(holder, 'display', 'block');
+        important(holder, 'margin', '0');
+        important(holder, 'padding', '0');
+        important(holder, 'pointer-events', 'none');
+        important(holder, 'line-height', '0');
+      }
+
+      if (icon) {
+        important(icon, 'position', 'absolute');
+        important(icon, 'top', 'calc(50% - 1px)');
+        important(icon, 'left', '50%');
+        important(icon, 'right', 'auto');
+        important(icon, 'bottom', 'auto');
+        important(icon, 'transform', 'translate(-50%, -50%)');
+        important(icon, 'display', 'block');
+        important(icon, 'width', '18px');
+        important(icon, 'height', '18px');
+        important(icon, 'margin', '0');
+        important(icon, 'padding', '0');
+        important(icon, 'font-size', '18px');
+        important(icon, 'line-height', '18px');
+        important(icon, 'text-align', 'center');
+        important(icon, 'color', 'currentColor');
+        important(icon, 'pointer-events', 'none');
+      }
+
+      btn.querySelectorAll('.pmd-header-action-label').forEach(label => {
+        important(label, 'display', 'none');
+      });
+    }
+
+    function normalizeVisual(btn) {
+      lockButtonBox(btn);
+      lockIconCenter(btn);
+    }
+
+    function ensureBack() {
+      const existing = document.querySelector('.pmd-header-title-back');
+
+      if (isDashboardPage()) {
+        existing?.remove();
+        return;
+      }
+
+      let back = existing;
+
+      if (!back) {
+        const title = findTitle();
+        if (!title) return;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'pmd-header-title-wrap';
+
+        back = document.createElement('button');
+        back.type = 'button';
+        back.className = 'pmd-header-title-back';
+        back.setAttribute('aria-label', 'Back');
+        back.innerHTML = '<span class="pmd-header-action-icon"><i class="fa fa-arrow-left" aria-hidden="true"></i></span>';
+
+        back.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.history.length > 1 ? window.history.back() : (window.location.href = '/admin');
+        }, true);
+
+        title.parentNode.insertBefore(wrap, title);
+        wrap.appendChild(back);
+        wrap.appendChild(title);
+      }
+
+      normalizeVisual(back);
+    }
+
+    function ensureBar() {
+      let item = document.querySelector('#pmd-header-toolbar-actions-item');
+
+      if (!item) {
+        item = document.createElement('li');
+        item.id = 'pmd-header-toolbar-actions-item';
+        item.className = 'nav-item pmd-header-toolbar-actions-item';
+        item.innerHTML = '<div class="pmd-header-toolbar-actions" aria-label="Page actions"></div>';
+        mainMenu.insertBefore(item, mainMenu.firstChild);
+      }
+
+      return item.querySelector('.pmd-header-toolbar-actions');
+    }
+
+    function iconClass(el, label) {
+      const t = (label || '').toLowerCase();
+
+      if (t.includes('save')) return 'fa fa-save';
+      if (t.includes('add') || t.includes('new') || t.includes('create')) return 'fa fa-plus';
+      if (t.includes('edit') || t.includes('layout')) return 'fa fa-edit';
+      if (t.includes('delete') || t.includes('remove') || t.includes('cancel')) return 'fa fa-trash';
+      if (t.includes('calendar') || t.includes('date')) return 'fa fa-calendar';
+      if (t.includes('open')) return 'fa fa-external-link-alt';
+      if (t.includes('refresh') || t.includes('reload')) return 'fa fa-rotate-right';
+      if (t.includes('folder')) return 'fa fa-folder';
+      if (t.includes('select')) return 'fa fa-check-circle';
       if (t.includes('filter')) return 'fa fa-filter';
       if (t.includes('search')) return 'fa fa-search';
-      if (t.includes('export') || t.includes('download')) return 'fa fa-download';
-      if (t.includes('import') || t.includes('upload')) return 'fa fa-upload';
       if (t.includes('print')) return 'fa fa-print';
-      if (t.includes('refresh') || t.includes('reload')) return 'fa fa-rotate-right';
-      if (t.includes('calendar') || t.includes('date')) return 'fa fa-calendar';
 
-      return 'fa fa-circle';
+      const icon = el.querySelector('i.fa, i.fas, i.far, i.fab');
+      return icon ? icon.className : 'fa fa-circle';
     }
 
-    function isRealAction(el) {
-      if (!el || el.closest('.navbar-top, .modal, .dropdown-menu, .pmd-header-toolbar-actions')) return false;
-      if (el.disabled || el.classList.contains('disabled')) return false;
+    function isBackLike(el) {
+      const t = textOf(el).toLowerCase();
+      return !!el.querySelector('i.fa-arrow-left, i.fa-arrow-circle-left') || t.includes('back') || t.includes('return');
+    }
 
-      var label = textOf(el);
-      var icon = el.querySelector('i.fa, i.fas, i.far, i.fab');
+    function isValidOriginal(el) {
+      if (!el) return false;
+      if (el.closest('.navbar-top, .modal, .dropdown-menu, .pmd-header-toolbar-actions')) return false;
+      if (el.disabled || el.classList.contains('disabled')) return false;
+      if (isBackLike(el)) return false;
+
+      const label = textOf(el);
+      const icon = el.querySelector('i.fa, i.fas, i.far, i.fab');
 
       if (!label && !icon) return false;
-      if (label.length > 80) return false;
+      if (label.length > 90) return false;
+
+      if (el.closest('.edit-mode-only') && !document.body.classList.contains('edit-mode-active')) return false;
 
       return true;
     }
 
-    function findActions() {
-      var roots = document.querySelectorAll(
-        '.toolbar-action, .progress-indicator-container, .pmd-admin-top-actions, .form-buttons, .control-toolbar, .page-actions'
-      );
+    function findOriginalActions() {
+      const roots = document.querySelectorAll([
+        '.toolbar-action',
+        '.progress-indicator-container',
+        '.pmd-admin-top-actions',
+        '.form-buttons',
+        '.control-toolbar',
+        '.page-actions',
+        '.page-header',
+        '.content-header',
+        '.card-header',
+        '.form-actions',
+        '.btn-toolbar'
+      ].join(','));
 
-      var found = [];
+      const found = [];
 
-      roots.forEach(function (root) {
+      roots.forEach(root => {
         if (root.closest('.navbar-top, .modal, .dropdown-menu')) return;
 
-        root.querySelectorAll('a.btn, button.btn, input[type="submit"].btn, input[type="button"].btn').forEach(function (el) {
-          if (isRealAction(el)) found.push(el);
+        root.querySelectorAll('a.btn, button.btn, input[type="submit"].btn, input[type="button"].btn').forEach(btn => {
+          if (isValidOriginal(btn) && !found.includes(btn)) found.push(btn);
         });
       });
 
-      return found.slice(0, 8);
+      return found.slice(0, 10);
     }
 
-    function clickOriginal(original) {
-      if (!original) return;
+    function ensureId(el) {
+      if (!el.dataset.pmdOriginalActionId) {
+        counter += 1;
+        el.dataset.pmdOriginalActionId = 'pmd-original-' + Date.now() + '-' + counter;
+      }
+      return el.dataset.pmdOriginalActionId;
+    }
 
-      if (typeof original.click === 'function') {
-        original.click();
+    function findOriginalById(id) {
+      if (!id) return null;
+      return document.querySelector('[data-pmd-original-action-id="' + id.replace(/"/g, '\\"') + '"]');
+    }
+
+    function activateOriginal(original) {
+      if (!original) {
+        console.warn('[PMDHeaderActions] Original action not found');
         return;
       }
 
-      var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-      original.dispatchEvent(ev);
-    }
+      const tag = original.tagName.toLowerCase();
+      const href = original.getAttribute('href');
+      const target = original.getAttribute('target');
 
-    function addBackButton() {
-      var old = bar.querySelector('[data-pmd-header-back]');
-      if (old) old.remove();
+      if (window.PMDHeaderActionsDebug) {
+        console.log('[PMDHeaderActions] activating original', {
+          label: textOf(original),
+          tag,
+          href,
+          dataRequest: original.getAttribute('data-request'),
+          dataBsToggle: original.getAttribute('data-bs-toggle'),
+          onclick: !!original.getAttribute('onclick'),
+          id: original.id,
+          className: original.className
+        }, original);
+      }
 
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'pmd-header-action-btn pmd-header-back-btn';
-      btn.setAttribute('aria-label', 'Back');
-      btn.setAttribute('title', 'Back');
-      btn.setAttribute('data-pmd-header-back', '1');
-      btn.innerHTML = '<i class="fa fa-arrow-left" aria-hidden="true"></i>';
-
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (window.history.length > 1) window.history.back();
-        else window.location.href = '/admin';
-      });
-
-      bar.appendChild(btn);
-    }
-
-    function render() {
-      bar.innerHTML = '';
-      addBackButton();
-
-      var actions = findActions();
-
-      actions.forEach(function (original) {
-        var id = uid(original);
-        var label = textOf(original) || 'Action';
-
-        var proxy = document.createElement('button');
-        proxy.type = 'button';
-        proxy.className = 'pmd-header-action-btn';
-        proxy.setAttribute('aria-label', label);
-        proxy.setAttribute('title', label);
-        proxy.setAttribute('data-pmd-proxy-for', id);
-
-        if (original.classList.contains('btn-danger') || original.classList.contains('text-danger')) {
-          proxy.classList.add('is-danger');
-        }
-
+      try {
         if (
-          original.classList.contains('btn-primary') ||
-          original.classList.contains('btn-success') ||
-          original.classList.contains('pmd-toolbar-primary-action')
+          tag === 'a' &&
+          href &&
+          href !== '#' &&
+          href !== 'javascript:void(0)' &&
+          !original.hasAttribute('data-request') &&
+          !original.hasAttribute('data-bs-toggle')
         ) {
-          proxy.classList.add('is-primary');
+          if (target === '_blank') window.open(href, '_blank');
+          else window.location.href = href;
+          return;
         }
 
-        proxy.innerHTML = '<i class="' + iconFor(original, label) + '" aria-hidden="true"></i>';
+        if ((tag === 'button' || tag === 'input') && (original.type || '').toLowerCase() === 'submit') {
+          const form = original.form || original.closest('form');
+          if (form && typeof form.requestSubmit === 'function') {
+            form.requestSubmit(original);
+            return;
+          }
+        }
 
-        proxy.addEventListener('click', function (e) {
-          e.preventDefault();
-          clickOriginal(original);
+        if (typeof original.click === 'function') {
+          original.click();
+          return;
+        }
+
+        original.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+      } catch (err) {
+        console.error('[PMDHeaderActions] activation failed', err, original);
+      }
+    }
+
+    function makeProxy(original) {
+      const id = ensureId(original);
+      const label = textOf(original) || 'Action';
+      const icon = iconClass(original, label);
+
+      const proxy = document.createElement('button');
+      proxy.type = 'button';
+      proxy.className = 'pmd-header-action-btn pmd-header-action-enter';
+      proxy.dataset.pmdProxyFor = id;
+      proxy.setAttribute('aria-label', label);
+      proxy.setAttribute('data-no-tooltip', '1');
+
+      if (label.toLowerCase().includes('delete') || label.toLowerCase().includes('remove') || label.toLowerCase().includes('cancel')) {
+        proxy.classList.add('is-danger');
+        important(proxy, 'color', '#B42318');
+      }
+
+      proxy.innerHTML =
+        '<span class="pmd-header-action-icon" aria-hidden="true">' +
+          '<i class="' + icon + '"></i>' +
+        '</span>' +
+        '<span class="pmd-header-action-label">' + label + '</span>';
+
+      normalizeVisual(proxy);
+      return proxy;
+    }
+
+    function headerFlipKey(el, index) {
+      if (!el) return null;
+      if (el.dataset && el.dataset.pmdProxyFor) return 'proxy:' + el.dataset.pmdProxyFor;
+      if (el.classList && el.classList.contains('pmd-header-title-back')) return 'title-back';
+      if (el.id) return 'id:' + el.id;
+      return 'node:' + index + ':' + el.tagName + ':' + el.className;
+    }
+
+    function captureHeaderRects() {
+      const nodes = [
+        ...document.querySelectorAll('#menu-mainmenu > li'),
+        ...document.querySelectorAll('.pmd-header-action-btn, .pmd-header-title-back')
+      ];
+
+      const map = new Map();
+
+      nodes.forEach((el, index) => {
+        const key = headerFlipKey(el, index);
+        if (!key) return;
+        const r = el.getBoundingClientRect();
+        map.set(key, {
+          left: r.left,
+          top: r.top,
+          width: r.width,
+          height: r.height
         });
-
-        bar.appendChild(proxy);
       });
 
-      document.body.classList.toggle('pmd-has-header-actions', actions.length > 0);
+      return map;
     }
 
-    var scheduled = false;
-    function scheduleRender() {
-      if (scheduled) return;
+    function playHeaderFlip(beforeRects) {
+      if (!beforeRects || !beforeRects.size) return;
+
+      const nodes = [
+        ...document.querySelectorAll('#menu-mainmenu > li'),
+        ...document.querySelectorAll('.pmd-header-action-btn, .pmd-header-title-back')
+      ];
+
+      nodes.forEach((el, index) => {
+        const key = headerFlipKey(el, index);
+        const before = beforeRects.get(key);
+        if (!before) return;
+
+        const after = el.getBoundingClientRect();
+        const dx = before.left - after.left;
+        const dy = before.top - after.top;
+
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+
+        el.classList.add('pmd-header-flip-moving');
+        el.style.setProperty('transition', 'none', 'important');
+        el.style.setProperty('transform', 'translate3d(' + dx + 'px,' + dy + 'px,0)', 'important');
+
+        // force layout read
+        el.getBoundingClientRect();
+
+        requestAnimationFrame(() => {
+          el.style.setProperty(
+            'transition',
+            'transform 280ms cubic-bezier(.2,0,0,1), opacity 240ms ease, background 180ms ease, box-shadow 180ms ease',
+            'important'
+          );
+          el.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
+
+          setTimeout(() => {
+            el.classList.remove('pmd-header-flip-moving');
+            if (!el.classList.contains('pmd-header-action-pressed')) {
+              el.style.removeProperty('transition');
+              el.style.removeProperty('transform');
+            }
+          }, 310);
+        });
+      });
+    }
+
+    function renderHeaderActions(bar, originals) {
+      const desiredIds = originals.map(ensureId);
+      const desiredSet = new Set(desiredIds);
+
+      const existing = new Map();
+      bar.querySelectorAll('.pmd-header-action-btn[data-pmd-proxy-for]').forEach(proxy => {
+        existing.set(proxy.dataset.pmdProxyFor, proxy);
+      });
+
+      // Smoothly remove actions that are no longer available.
+      existing.forEach((proxy, id) => {
+        if (!desiredSet.has(id) && !proxy.classList.contains('pmd-header-action-exiting')) {
+          proxy.classList.remove('pmd-header-action-visible');
+          proxy.classList.add('pmd-header-action-exiting');
+
+          setTimeout(() => {
+            if (proxy.parentNode && proxy.classList.contains('pmd-header-action-exiting')) {
+              const beforeRemove = captureHeaderRects();
+              proxy.remove();
+              requestAnimationFrame(() => playHeaderFlip(beforeRemove));
+            }
+          }, 260);
+        }
+      });
+
+      // Add/keep actions in correct order without destroying the whole bar.
+      originals.forEach(original => {
+        const id = ensureId(original);
+        let proxy = existing.get(id);
+
+        if (!proxy || proxy.classList.contains('pmd-header-action-exiting')) {
+          proxy = makeProxy(original);
+          proxy.classList.add('pmd-header-action-enter');
+          bar.appendChild(proxy);
+
+          requestAnimationFrame(() => {
+            proxy.classList.remove('pmd-header-action-enter');
+            proxy.classList.add('pmd-header-action-visible');
+            normalizeVisual(proxy);
+          });
+        } else {
+          proxy.classList.remove('pmd-header-action-exiting', 'pmd-header-action-enter');
+          proxy.classList.add('pmd-header-action-visible');
+          bar.appendChild(proxy);
+          normalizeVisual(proxy);
+        }
+      });
+    }
+
+    function sync() {
+      if (isRendering) return;
+      isRendering = true;
+
+      try {
+        const beforeRects = captureHeaderRects();
+
+        ensureBack();
+
+        const bar = ensureBar();
+        const originals = findOriginalActions();
+
+        renderHeaderActions(bar, originals);
+
+        bar.querySelectorAll('.pmd-header-action-btn').forEach(normalizeVisual);
+        document.querySelectorAll('.pmd-header-title-back').forEach(normalizeVisual);
+
+        document.body.classList.toggle('pmd-has-header-actions', originals.length > 0);
+
+        requestAnimationFrame(() => playHeaderFlip(beforeRects));
+      } finally {
+        isRendering = false;
+      }
+    }
+
+    if (!window.__PMD_HEADER_ACTION_DELEGATE_BOUND__) {
+      window.__PMD_HEADER_ACTION_DELEGATE_BOUND__ = true;
+
+      function activateFromProxyEvent(e) {
+        const proxy = e.target && e.target.closest && e.target.closest('.pmd-header-action-btn[data-pmd-proxy-for]');
+        if (!proxy) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+
+        const now = Date.now();
+        const last = Number(proxy.dataset.pmdLastActivatedAt || 0);
+
+        // Prevent double fire from pointerdown + click, but make first press instant.
+        if (now - last < 650) return;
+        proxy.dataset.pmdLastActivatedAt = String(now);
+
+        proxy.classList.add('pmd-header-action-pressed');
+        setTimeout(function () {
+          proxy.classList.remove('pmd-header-action-pressed');
+        }, 180);
+
+        const original = findOriginalById(proxy.dataset.pmdProxyFor);
+        activateOriginal(original);
+
+        // After action changes the page state, refresh actions once.
+        setTimeout(function () {
+          if (window.PMDHeaderActions && typeof window.PMDHeaderActions.refresh === 'function') {
+            window.PMDHeaderActions.refresh();
+          }
+        }, 220);
+      }
+
+      // Main fix: run before normal click can be lost by DOM refresh.
+      document.addEventListener('pointerdown', activateFromProxyEvent, true);
+      document.addEventListener('mousedown', activateFromProxyEvent, true);
+      document.addEventListener('touchstart', activateFromProxyEvent, true);
+
+      // Keyboard accessibility.
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        activateFromProxyEvent(e);
+      }, true);
+
+      // Keep click blocked so it does not double-trigger or bubble to legacy handlers.
+      document.addEventListener('click', function (e) {
+        const proxy = e.target && e.target.closest && e.target.closest('.pmd-header-action-btn[data-pmd-proxy-for]');
+        if (!proxy) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      }, true);
+    }
+
+    sync();
+
+    let scheduled = false;
+    new MutationObserver(() => {
+      if (isRendering || scheduled) return;
+
+      // Do not rebuild the proxy bar during an active press/click window.
+      if (document.querySelector('.pmd-header-action-pressed')) return;
+
       scheduled = true;
-      requestAnimationFrame(function () {
+
+      setTimeout(() => {
         scheduled = false;
-        render();
-      });
-    }
+        if (!document.querySelector('.pmd-header-action-pressed')) sync();
+      }, 220);
+    }).observe(document.body, {
+      childList: true,
+      subtree: true
+    });
 
-    render();
-
-    var obs = new MutationObserver(scheduleRender);
-    obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'disabled'] });
+    setTimeout(sync, 250);
+    setTimeout(sync, 900);
 
     window.PMDHeaderActions = {
-      refresh: render,
-      actions: findActions
+      refresh: sync,
+      originals: findOriginalActions,
+      recenter: function () {
+        document.querySelectorAll('.pmd-header-action-btn, .pmd-header-title-back').forEach(normalizeVisual);
+      },
+      activateProxy: function (index) {
+        const proxy = document.querySelectorAll('.pmd-header-action-btn[data-pmd-proxy-for]')[index || 0];
+        if (!proxy) return false;
+        activateOriginal(findOriginalById(proxy.dataset.pmdProxyFor));
+        return true;
+      }
     };
   });
 })();

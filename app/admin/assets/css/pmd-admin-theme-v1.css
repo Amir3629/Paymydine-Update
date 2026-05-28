@@ -2063,119 +2063,213 @@ body.pmd-admin-theme-v1 .navbar-top #bell-icon {
 
 /* PMD SETTINGS INTRO + TOPBAR NOTIFICATION FIX END */
 
-/* PMD HEADER TOOLBAR ACTIONS START */
+/* PMD HEADER ACTIONS INLINE CENTER LOCK START */
 
-body.pmd-admin-theme-v1 .navbar-top #menu-mainmenu {
+html body.page.pmd-admin-theme-v1 .pmd-header-title-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top #menu-mainmenu {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
   overflow: visible !important;
 }
 
-body.pmd-admin-theme-v1 .navbar-top #menu-mainmenu > li {
-  order: 60;
-  overflow: visible !important;
-}
-
-body.pmd-admin-theme-v1 .navbar-top #pmd-header-toolbar-actions-item {
+html body.page.pmd-admin-theme-v1 .navbar-top #pmd-header-toolbar-actions-item {
   order: 70 !important;
   display: flex !important;
   align-items: center !important;
+  overflow: visible !important;
 }
 
-body.pmd-admin-theme-v1 .navbar-top #notif-root {
+html body.page.pmd-admin-theme-v1 .navbar-top #notif-root {
   order: 90 !important;
+  overflow: visible !important;
 }
 
-body.pmd-admin-theme-v1 .navbar-top #menuitem-preview {
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview {
   order: 100 !important;
+  overflow: visible !important;
 }
 
-body.pmd-admin-theme-v1 .pmd-header-toolbar-actions {
+html body.page.pmd-admin-theme-v1 .pmd-header-toolbar-actions {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
   overflow: visible !important;
 }
 
-body.pmd-admin-theme-v1 .pmd-header-action-btn {
-  width: 40px !important;
-  min-width: 40px !important;
-  height: 40px !important;
-  min-height: 40px !important;
-  padding: 0 !important;
-  border: 1px solid rgba(216, 185, 130, 0.38) !important;
-  border-radius: 14px !important;
-  background: #FFFEFB !important;
-  color: #0F1B2A !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: 0 8px 22px rgba(15, 27, 42, 0.055) !important;
-  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease !important;
-  cursor: pointer !important;
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-label {
+  display: none !important;
 }
 
-body.pmd-admin-theme-v1 .pmd-header-action-btn:hover,
-body.pmd-admin-theme-v1 .pmd-header-action-btn:focus {
-  transform: translateY(-1px) !important;
-  border-color: #D8B982 !important;
-  background: #F8F2EA !important;
-  box-shadow: 0 12px 28px rgba(15, 27, 42, 0.09) !important;
-}
-
-body.pmd-admin-theme-v1 .pmd-header-action-btn.is-primary {
-  background: #0F1B2A !important;
-  border-color: #0F1B2A !important;
-  color: #fff !important;
-}
-
-body.pmd-admin-theme-v1 .pmd-header-action-btn.is-danger {
-  color: #B42318 !important;
-  border-color: rgba(180, 35, 24, 0.22) !important;
-}
-
-body.pmd-admin-theme-v1 .pmd-header-action-btn i {
-  font-size: 14px !important;
-  line-height: 1 !important;
-}
-
-/* Hide old page toolbar visually after header proxies are available */
 body.pmd-admin-theme-v1.pmd-has-header-actions .page-wrapper .toolbar-action,
 body.pmd-admin-theme-v1.pmd-has-header-actions .page-wrapper .progress-indicator-container.pmd-admin-top-actions,
 body.pmd-admin-theme-v1.pmd-has-header-actions .page-wrapper .pmd-admin-top-actions {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
   min-height: 0 !important;
-  max-height: 1px !important;
+  height: 0 !important;
+  max-height: 0 !important;
   overflow: hidden !important;
   opacity: 0 !important;
-  pointer-events: none !important;
   margin: 0 !important;
   padding: 0 !important;
-  clip-path: inset(50%) !important;
 }
 
-/* Move page content higher now toolbar is represented in the header */
-body.pmd-admin-theme-v1.pmd-has-header-actions .page-content,
-body.pmd-admin-theme-v1.pmd-has-header-actions .content-wrapper,
-body.pmd-admin-theme-v1.pmd-has-header-actions .main-content {
-  padding-top: 18px !important;
+/* PMD HEADER ACTIONS INLINE CENTER LOCK END */
+
+/* PMD HEADER FONTAWESOME PSEUDO CENTER FIX START */
+
+/*
+  Visible FontAwesome glyph is rendered by i::before.
+  Center the actual pseudo glyph, not only the <i> box.
+*/
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-icon > i,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back .pmd-header-action-icon > i,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back > i {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  line-height: 42px !important;
+  text-align: center !important;
+  color: currentColor !important;
+  transform: none !important;
 }
 
-@media (max-width: 767.98px) {
-  body.pmd-admin-theme-v1 .pmd-header-toolbar-actions {
-    gap: 6px !important;
-  }
-
-  body.pmd-admin-theme-v1 .pmd-header-action-btn {
-    width: 36px !important;
-    min-width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    border-radius: 12px !important;
-  }
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-icon > i::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back .pmd-header-action-icon > i::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back > i::before {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  vertical-align: baseline !important;
 }
 
-/* PMD HEADER TOOLBAR ACTIONS END */
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-icon,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn .pmd-header-action-icon {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 42px !important;
+  height: 42px !important;
+  display: block !important;
+  line-height: 0 !important;
+  overflow: visible !important;
+}
+
+/* PMD HEADER FONTAWESOME PSEUDO CENTER FIX END */
+
+/* PMD HEADER ACTION CLICK DASHBOARD BACK FIX START */
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-icon > i::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back .pmd-header-action-icon > i::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back > i::before {
+  top: calc(50% - 1px) !important;
+}
+
+body.pmd-admin-theme-v1.pmd-dashboard-page .pmd-header-title-back,
+body.pmd-admin-theme-v1.dashboard .pmd-header-title-back {
+  display: none !important;
+}
+
+/* PMD HEADER ACTION CLICK DASHBOARD BACK FIX END */
+
+/* PMD HEADER ACTION SMOOTH ENTER EXIT START */
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-toolbar-actions {
+  transition: opacity .18s ease, transform .18s cubic-bezier(.2,0,0,1) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn {
+  will-change: opacity, transform !important;
+  transition:
+    opacity .24s ease,
+    transform .24s cubic-bezier(.2,0,0,1),
+    background .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-enter {
+  opacity: 0 !important;
+  transform: translateY(-6px) scale(.88) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-visible:not(.pmd-header-action-exiting) {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-exiting {
+  opacity: 0 !important;
+  transform: translateY(-6px) scale(.88) !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-pressed {
+  transform: translateY(1px) scale(.96) !important;
+}
+
+/* PMD HEADER ACTION SMOOTH ENTER EXIT END */
+
+/* PMD HEADER ACTION FLIP SMOOTH START */
+
+html body.page.pmd-admin-theme-v1 .navbar-top #menu-mainmenu > li,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back {
+  will-change: transform, opacity !important;
+  backface-visibility: hidden !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-toolbar-actions {
+  min-height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn {
+  flex: 0 0 42px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-enter {
+  opacity: 0 !important;
+  transform: translate3d(0,-6px,0) scale(.88) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-visible:not(.pmd-header-action-exiting):not(.pmd-header-flip-moving) {
+  opacity: 1 !important;
+  transform: translate3d(0,0,0) scale(1) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-exiting {
+  opacity: 0 !important;
+  transform: translate3d(0,-6px,0) scale(.88) !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-action-pressed {
+  transform: translate3d(0,1px,0) scale(.96) !important;
+}
+
+/* PMD HEADER ACTION FLIP SMOOTH END */

@@ -231,4 +231,8 @@
   'Admin\\Classes\\ScheduleItem' => 'app/admin/classes/ScheduleItem.php',
   'Admin\\Models\\Working_hours_model' => 'app/admin/models/Working_hours_model.php',
   'Admin\\Controllers\\logout' => 'app/admin/controllers/Logout.php',
+  'Admin\\Models\\Pos_configs_model' => 'app/admin/models/Pos_configs_model.php',
+  'Admin\\Models\\Pos_devices_model' => 'app/admin/models/Pos_devices_model.php',
+  'System\\Controllers\\countries' => 'app/system/controllers/Countries.php',
+  'Admin\\Controllers\\combos' => 'app/admin/controllers/Combos.php',
 );

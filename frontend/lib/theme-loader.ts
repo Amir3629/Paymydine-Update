@@ -62,6 +62,13 @@ const CLEAN_LIGHT_DEFAULTS = {
   background: "#f8e3d4",
 };
 
+const GOLD_LUXURY_LEGACY_DEFAULTS = {
+  primary: "#FFD700",
+  secondary: "#FFF8DC",
+  accent: "#FFF8DC",
+  background: "#0F0B05",
+};
+
 function normHex(v?: string | null): string {
   return String(v || "").trim().toUpperCase();
 }
@@ -73,6 +80,12 @@ export function buildSafeThemeOverrides(themeId: string, data: any): Record<stri
   if (data?.accent_color) raw.accent = data.accent_color;
   if (data?.background_color) raw.background = data.background_color;
 
+  if (themeId === "gold-luxury") {
+    Object.entries(GOLD_LUXURY_LEGACY_DEFAULTS).forEach(([key, value]) => {
+      if (normHex(raw[key]) === value) delete raw[key];
+    });
+  }
+
   if (!Object.keys(raw).length) return {};
 
   const isNonClean = themeId !== "clean-light";
@@ -83,6 +96,15 @@ export function buildSafeThemeOverrides(themeId: string, data: any): Record<stri
     normHex(raw.background) === CLEAN_LIGHT_DEFAULTS.background;
 
   if (isNonClean && looksLikeCleanDefaults) return {};
+
+  const looksLikeLegacyGoldDefaults =
+    themeId === "gold-luxury" &&
+    normHex(raw.primary) === GOLD_LUXURY_LEGACY_DEFAULTS.primary &&
+    normHex(raw.secondary) === GOLD_LUXURY_LEGACY_DEFAULTS.secondary &&
+    normHex(raw.accent) === GOLD_LUXURY_LEGACY_DEFAULTS.accent &&
+    normHex(raw.background) === GOLD_LUXURY_LEGACY_DEFAULTS.background;
+
+  if (looksLikeLegacyGoldDefaults) return {};
 
   const base = themes[themeId]?.colors;
   if (!base) return raw;

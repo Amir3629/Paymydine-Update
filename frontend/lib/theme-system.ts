@@ -139,38 +139,37 @@ export interface ThemeColors {
     'gold-luxury': {
       id: 'gold-luxury',
       name: 'Gold Luxury',
-      description: 'Opulent dark theme with rich gold and bronze accents',
+      description: 'Premium white, dark jade, and champagne gold restaurant theme',
       colors: {
-        // Luxurious gold and bronze palette
-        primary: '#FFD700',        // Pure gold
-        secondary: '#FFF8DC',      // Cornsilk
-        accent: '#FFF8DC',         // Cornsilk accent
-        background: '#0F0B05',     // Deep warm black
+        primary: '#062F2A',
+        secondary: '#062F2A',
+        accent: '#C89B4A',
+        background: '#FAF9F4',
 
-        textPrimary: '#FFF8DC',    // Warm white
-        textSecondary: '#F5DEB3',  // Wheat
-        textMuted: '#D2B48C',
+        textPrimary: '#0D1B1E',
+        textSecondary: '#6B7280',
+        textMuted: '#9CA3AF',
 
-        border: '#CD853F',         // Peru border
-        input: '#1A1612',          // Dark warm surface
-        button: '#FFD700',         // Gold button
-        buttonHover: '#FFF8DC',
+        border: '#E8E2D8',
+        input: '#FFFFFF',
+        button: '#062F2A',
+        buttonHover: '#021F1C',
 
-        menuItemBackground: '#1A1612',
-        menuItemBorder: '#CD853F',
-        categoryActive: '#FFF8DC', // Cornsilk for active category
-        categoryInactive: '#8B7355',
-        priceColor: '#FFF8DC',     // Cornsilk prices
+        menuItemBackground: '#FFFFFF',
+        menuItemBorder: '#E8E2D8',
+        categoryActive: '#C89B4A',
+        categoryInactive: '#6B7280',
+        priceColor: '#B8893F',
 
-        cartBackground: '#1A1612',
-        cartBorder: '#CD853F',
-        paymentButton: '#FFD700',
-        paymentButtonHover: '#FFF8DC',
+        cartBackground: '#FFFFFF',
+        cartBorder: '#E8E2D8',
+        paymentButton: '#062F2A',
+        paymentButtonHover: '#021F1C',
 
-        success: '#32CD32',
-        warning: '#FFD700',
-        error: '#FF6347',
-        info: '#1E90FF'
+        success: '#15803D',
+        warning: '#C89B4A',
+        error: '#B42318',
+        info: '#0E7490'
       }
     },
     
@@ -312,7 +311,7 @@ export interface ThemeColors {
       '--pmd-customer-input-text': colors.textPrimary,
       '--pmd-customer-price-text': colors.priceColor,
       '--pmd-customer-category-active-bg': colors.categoryActive,
-      '--pmd-customer-category-active-text': (theme.id === 'modern-dark' || theme.id === 'gold-luxury') ? '#111827' : colors.textPrimary,
+      '--pmd-customer-category-active-text': theme.id === 'modern-dark' ? '#111827' : colors.textPrimary,
       '--pmd-customer-badge-bg': colors.button,
       '--pmd-customer-badge-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
       '--pmd-customer-badge-border': colors.border,
@@ -338,7 +337,7 @@ export interface ThemeColors {
     });
     
     // Toggle dark class to allow global overrides for dark designs
-    const isDark = themeId === 'modern-dark' || themeId === 'gold-luxury';
+    const isDark = themeId === 'modern-dark';
     document.documentElement.classList.toggle('theme-dark', isDark);
     
     // NUCLEAR OPTION: Force background colors if overrides provided

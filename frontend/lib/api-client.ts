@@ -115,6 +115,44 @@ export interface OrderRequest {
   guest_session_id?: string;
 }
 
+
+export type TableOrderDraftItem = {
+  id?: number;
+  menu_id: number;
+  name: string;
+  quantity: number;
+  price: number;
+  subtotal?: number;
+  guest_session_id?: string | null;
+  options?: Record<string, string>;
+  order_menu_id?: number;
+  paid_quantity?: number;
+  unpaid_quantity?: number;
+};
+
+export type TableOrderDraftResponse = {
+  success: boolean;
+  status?: 'empty' | 'draft' | 'submitted_unpaid' | 'partially_paid' | 'paid';
+  draft_id?: number | null;
+  order_id?: number | null;
+  table_id?: string | null;
+  table_no?: string | null;
+  table_name?: string | null;
+  items?: TableOrderDraftItem[];
+  groups?: Array<{ guest_session_id: string | null; items: TableOrderDraftItem[]; subtotal: number }>;
+  totals?: { subtotal: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
+  settlement?: { orderTotal: number; settledAmount: number; remainingAmount: number; settlementStatus: string };
+  payment?: string | null;
+  message?: string;
+  error?: string;
+};
+
+export type TableOrderDraftContext = {
+  table_id?: string | number | null;
+  table_no?: string | number | null;
+  qr?: string | null;
+};
+
 export interface OrderResponse {
   success: boolean;
   message: string;
@@ -817,6 +855,54 @@ export class ApiClient {
       console.error('Table orders fetch failed:', error);
       return { success: false, error: 'Failed to fetch table orders' };
     }
+  }
+
+  async getTableOrderDraft(context: TableOrderDraftContext): Promise<TableOrderDraftResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (context.table_id != null && String(context.table_id).trim() !== '') params.set('table_id', String(context.table_id));
+      if (context.table_no != null && String(context.table_no).trim() !== '') params.set('table_no', String(context.table_no));
+      if (context.qr) params.set('qr', context.qr);
+      const response = await fetch(`/api/v1/table-order-draft?${params.toString()}`, { headers: { Accept: 'application/json' } });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || data?.message || 'Failed to fetch table order draft');
+      return data;
+    } catch (error) {
+      console.error('Table order draft fetch failed:', error);
+      return { success: false, status: 'empty', error: error instanceof Error ? error.message : 'Failed to fetch table order draft' };
+    }
+  }
+
+  async confirmTableDraftItems(payload: TableOrderDraftContext & {
+    guest_session_id: string;
+    items: TableOrderDraftItem[];
+  }): Promise<TableOrderDraftResponse> {
+    const response = await fetch('/api/v1/table-order-draft/confirm-items', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to confirm table items');
+    }
+    return data;
+  }
+
+  async submitTableDraft(payload: TableOrderDraftContext & {
+    draft_id?: number | null;
+    guest_session_id?: string | null;
+  }): Promise<TableOrderDraftResponse> {
+    const response = await fetch('/api/v1/table-order-draft/submit', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to submit table order');
+    }
+    return data;
   }
 
   async getPendingQrOrderByTable(tableId: string, context?: { tableNo?: string | null; qr?: string | null }): Promise<PendingQrOrderResponse> {

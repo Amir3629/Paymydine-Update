@@ -76,7 +76,33 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             path_table: pathParam,          // keep original path for navigation
           })
 
-          const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId, { tableNo: res.data?.table_no ?? pathParam, qr })
+          const api = new ApiClient()
+          const tableDraft = await api.getTableOrderDraft({ table_id: resolvedTableId, table_no: res.data?.table_no ?? pathParam, qr })
+          console.info("[PMD QR entry] table draft response", {
+            table_id: resolvedTableId,
+            status: tableDraft?.status ?? null,
+            draft_id: tableDraft?.draft_id ?? null,
+            order_id: tableDraft?.order_id ?? null,
+            success: tableDraft?.success ?? false,
+          })
+          if (!cancelled && tableDraft?.success && tableDraft?.status && tableDraft.status !== "empty" && tableDraft.status !== "paid") {
+            console.info("[PMD QR entry] branch chosen: table-draft-or-order->menu", {
+              table_id: resolvedTableId,
+              draft_id: tableDraft.draft_id ?? null,
+              order_id: tableDraft.order_id ?? null,
+              status: tableDraft.status,
+            })
+            const menuUrl = new URL('/menu', window.location.origin)
+            menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
+            menuUrl.searchParams.set('table_id', resolvedTableId)
+            menuUrl.searchParams.set('table', String(res.data.table_no || pathParam))
+            if (qr) menuUrl.searchParams.set('qr', qr)
+            if (tableDraft.order_id) menuUrl.searchParams.set('pending_order_id', String(tableDraft.order_id))
+            router.replace(`${menuUrl.pathname}${menuUrl.search}`)
+            return
+          }
+
+          const pending = await api.getPendingQrOrderByTable(resolvedTableId, { tableNo: res.data?.table_no ?? pathParam, qr })
           console.info("[PMD QR entry] pending-qr response", {
             table_id: resolvedTableId,
             has_pending_order: !!pending?.data?.order_id,

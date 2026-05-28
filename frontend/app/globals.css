@@ -7638,3 +7638,435 @@ html[data-theme="minimal"] .page--valet span:has(svg.lucide-car) svg * {
   border-color: var(--theme-border);
   color: var(--theme-text-primary);
 }
+
+/* PMD GOLD LUXURY WHITE JADE THEME OVERRIDE START
+   Scoped to customer theme only; keeps ordering/payment logic untouched. */
+html[data-theme="gold-luxury"],
+html[data-theme="gold-luxury"] body,
+html[data-theme="gold-luxury"] main,
+html[data-theme="gold-luxury"] .pmd-v2-page,
+html[data-theme="gold-luxury"] .page--home,
+html[data-theme="gold-luxury"] .page--menu,
+html[data-theme="gold-luxury"] .page--valet {
+  --pmd-v2-page-bg: #FAF9F4;
+  --theme-background: #FAF9F4;
+  --theme-surface: #FFFFFF;
+  background: #FAF9F4 !important;
+  background-color: #FAF9F4 !important;
+  background-image: none !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .home-action-card,
+html[data-theme="gold-luxury"] .page--menu .surface,
+html[data-theme="gold-luxury"] .page--menu .surface-sub,
+html[data-theme="gold-luxury"] .page--valet .surface,
+html[data-theme="gold-luxury"] .page--valet .surface-sub,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] [role="dialog"] .surface,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface-sub {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E8E2D8 !important;
+  outline-color: #E8E2D8 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  box-shadow: 0 8px 24px rgba(6, 47, 42, 0.06) !important;
+}
+
+html[data-theme="gold-luxury"] .home-action-card:hover,
+html[data-theme="gold-luxury"] .pmd-v2-card:hover {
+  background: #FFF9EF !important;
+  background-color: #FFF9EF !important;
+  border-color: #C89B4A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-text,
+html[data-theme="gold-luxury"] .page--home h1,
+html[data-theme="gold-luxury"] .page--home h2,
+html[data-theme="gold-luxury"] .page--menu h1,
+html[data-theme="gold-luxury"] .page--menu h2,
+html[data-theme="gold-luxury"] .page--menu h3,
+html[data-theme="gold-luxury"] .page--valet h1,
+html[data-theme="gold-luxury"] .page--valet h2,
+html[data-theme="gold-luxury"] .page--valet h3,
+html[data-theme="gold-luxury"] [role="dialog"] h2,
+html[data-theme="gold-luxury"] [role="dialog"] h3,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub * {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-text-muted,
+html[data-theme="gold-luxury"] .muted,
+html[data-theme="gold-luxury"] .page--menu .text-gray-500,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-text-muted {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+
+html[data-theme="gold-luxury"] .menu-item-price,
+html[data-theme="gold-luxury"] .pmd-v2-price,
+html[data-theme="gold-luxury"] .pmd-customer-price,
+html[data-theme="gold-luxury"] .page--menu [class*="price"],
+html[data-theme="gold-luxury"] .page--menu [class*="Price"] {
+  color: #B8893F !important;
+  -webkit-text-fill-color: #B8893F !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .category-tab {
+  background: transparent !important;
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .category-tab.is-active,
+html[data-theme="gold-luxury"] .page--menu .category-tab:hover {
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .category-tab [style*="--theme-category-active"],
+html[data-theme="gold-luxury"] .page--menu .category-tab .absolute.bottom-0 {
+  background-color: #C89B4A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn),
+html[data-theme="gold-luxury"] .quantity-btn,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-valet-car-icon-circle,
+html[data-theme="gold-luxury"] .page--valet span:has(svg.lucide-car) {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  border-color: #C89B4A !important;
+  outline-color: #C89B4A !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.06) !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle svg,
+html[data-theme="gold-luxury"] .pmd-v2-action-circle svg *,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn) svg,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn) svg *,
+html[data-theme="gold-luxury"] .quantity-btn svg,
+html[data-theme="gold-luxury"] .quantity-btn svg * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle:hover,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn):hover,
+html[data-theme="gold-luxury"] .quantity-btn:hover {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle:hover svg,
+html[data-theme="gold-luxury"] .pmd-v2-action-circle:hover svg *,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn):hover svg,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn):hover svg *,
+html[data-theme="gold-luxury"] .quantity-btn:hover svg,
+html[data-theme="gold-luxury"] .quantity-btn:hover svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-button,
+html[data-theme="gold-luxury"] button.pmd-v2-action-button,
+html[data-theme="gold-luxury"] .valet-request-btn,
+html[data-theme="gold-luxury"] .page--valet button.valet-request-btn {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-button:hover,
+html[data-theme="gold-luxury"] button.pmd-v2-action-button:hover,
+html[data-theme="gold-luxury"] .valet-request-btn:hover,
+html[data-theme="gold-luxury"] .page--valet button.valet-request-btn:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-button *,
+html[data-theme="gold-luxury"] .valet-request-btn *,
+html[data-theme="gold-luxury"] .page--valet button.valet-request-btn * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-badge,
+html[data-theme="gold-luxury"] .cart-badge {
+  background: #C89B4A !important;
+  background-color: #C89B4A !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  border-color: #C89B4A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-pill,
+html[data-theme="gold-luxury"] p.pmd-v2-pill {
+  background: #F5E8D0 !important;
+  background-color: #F5E8D0 !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  border-color: #E8E2D8 !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-input,
+html[data-theme="gold-luxury"] input,
+html[data-theme="gold-luxury"] textarea,
+html[data-theme="gold-luxury"] select {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  border-color: #E8E2D8 !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-input:focus,
+html[data-theme="gold-luxury"] input:focus,
+html[data-theme="gold-luxury"] textarea:focus,
+html[data-theme="gold-luxury"] select:focus {
+  border-color: #C89B4A !important;
+  outline-color: #C89B4A !important;
+  box-shadow: 0 0 0 3px rgba(200, 155, 74, 0.18) !important;
+}
+
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50.flex.items-center.justify-center.bg-black\/30 {
+  background: rgba(2, 31, 28, 0.65) !important;
+  background-color: rgba(2, 31, 28, 0.65) !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card,
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .surface.pmd-v2-card,
+html[data-theme="gold-luxury"] .pmd-v2-card:has(.overflow-y-auto.overscroll-contain),
+html[data-theme="gold-luxury"] .surface.pmd-v2-card:has(.overflow-y-auto.overscroll-contain) {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-color: #E8E2D8 !important;
+  box-shadow: 0 24px 60px rgba(6, 47, 42, 0.14) !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card *,
+html[data-theme="gold-luxury"] .pmd-v2-card:has(.overflow-y-auto.overscroll-contain) * {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .pmd-v2-action-circle *,
+html[data-theme="gold-luxury"] .pmd-v2-card:has(.overflow-y-auto.overscroll-contain) .pmd-v2-action-circle * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+/* PMD GOLD LUXURY WHITE JADE THEME OVERRIDE END */
+
+/* PMD GOLD LUXURY BRIGHT THEME HOTFIX START
+   Final scoped overrides for legacy dark Gold Luxury rules declared earlier in this file. */
+html[data-theme="gold-luxury"],
+html[data-theme="gold-luxury"] body,
+body[data-theme="gold-luxury"],
+html[data-theme="gold-luxury"] body > div,
+html[data-theme="gold-luxury"] body > div > div,
+html[data-theme="gold-luxury"] #__next,
+html[data-theme="gold-luxury"] main,
+html[data-theme="gold-luxury"] .min-h-screen,
+html[data-theme="gold-luxury"] .bg-theme-background,
+html[data-theme="gold-luxury"] .pmd-customer-page,
+html[data-theme="gold-luxury"] [data-pmd-customer-page],
+html[data-theme="gold-luxury"] .pmd-v2-page,
+html[data-theme="gold-luxury"] .page--home,
+html[data-theme="gold-luxury"] .page--home .min-h-screen,
+html[data-theme="gold-luxury"] .page--menu,
+html[data-theme="gold-luxury"] .page--menu .min-h-screen,
+html[data-theme="gold-luxury"] .page--table,
+html[data-theme="gold-luxury"] .page--table .min-h-screen,
+html[data-theme="gold-luxury"] .page--valet,
+html[data-theme="gold-luxury"] .page--valet .min-h-screen {
+  --theme-background: #FAF9F4 !important;
+  --theme-surface: #FFFFFF !important;
+  --pmd-v2-page-bg: #FAF9F4 !important;
+  background: #FAF9F4 !important;
+  background-color: #FAF9F4 !important;
+  background-image: none !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .home-action-card,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .dark-surface,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .surface,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .surface-sub,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] .page--home .surface-sub,
+html[data-theme="gold-luxury"] .page--home .surface-sub.border,
+html[data-theme="gold-luxury"] .page--menu .surface,
+html[data-theme="gold-luxury"] .page--menu .surface-sub,
+html[data-theme="gold-luxury"] .page--valet .dark-surface,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] .page--valet form,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 > .surface,
+html[data-theme="gold-luxury"] [role="dialog"],
+html[data-theme="gold-luxury"] [role="dialog"] .surface,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub,
+html[data-theme="gold-luxury"] [data-radix-dialog-content],
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface-sub {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E8E2D8 !important;
+  outline-color: #E8E2D8 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  box-shadow: 0 8px 24px rgba(6, 47, 42, 0.06) !important;
+}
+
+html[data-theme="gold-luxury"] .page--valet form,
+html[data-theme="gold-luxury"] .page--valet form > div,
+html[data-theme="gold-luxury"] .page--valet .space-y-6,
+html[data-theme="gold-luxury"] .page--valet .space-y-6 > div {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h1,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h2,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h3,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h4,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] label,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-text,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-paydine-elegant-gray,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-white,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-primary-foreground,
+html[data-theme="gold-luxury"] .page--home .surface-sub h2,
+html[data-theme="gold-luxury"] .page--home .surface-sub h3,
+html[data-theme="gold-luxury"] .page--home .surface-sub span,
+html[data-theme="gold-luxury"] .page--menu .surface-sub *,
+html[data-theme="gold-luxury"] [role="dialog"] h2,
+html[data-theme="gold-luxury"] [role="dialog"] h3,
+html[data-theme="gold-luxury"] [role="dialog"] label,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub *,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface-sub * {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  text-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .muted,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-text-muted,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-gray-500,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-gray-400,
+html[data-theme="gold-luxury"] [role="dialog"] .muted,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .muted {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50.flex.items-center.justify-center.bg-black\/30,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50.bg-black\/30,
+html[data-theme="gold-luxury"] [data-radix-dialog-overlay] {
+  background: rgba(2, 31, 28, 0.58) !important;
+  background-color: rgba(2, 31, 28, 0.58) !important;
+}
+
+html[data-theme="gold-luxury"] [role="dialog"] button,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 button {
+  text-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] [role="dialog"] button[style*="--theme-secondary"],
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button[style*="--theme-secondary"],
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 button[style*="--theme-secondary"],
+html[data-theme="gold-luxury"] [data-pmd-review-submit="true"],
+html[data-theme="gold-luxury"] .pmd-v2-action-button,
+html[data-theme="gold-luxury"] .valet-request-btn {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] [role="dialog"] button[style*="--theme-secondary"] *,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button[style*="--theme-secondary"] *,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 button[style*="--theme-secondary"] *,
+html[data-theme="gold-luxury"] [data-pmd-review-submit="true"] *,
+html[data-theme="gold-luxury"] .pmd-v2-action-button *,
+html[data-theme="gold-luxury"] .valet-request-btn * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-review-continue="true"],
+html[data-theme="gold-luxury"] [role="dialog"] button:not([style*="--theme-secondary"]):not(.pmd-v2-action-button),
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button:not([style*="--theme-secondary"]):not(.pmd-v2-action-button) {
+  border-color: #E8E2D8 !important;
+}
+
+html[data-theme="gold-luxury"] input,
+html[data-theme="gold-luxury"] textarea,
+html[data-theme="gold-luxury"] select,
+html[data-theme="gold-luxury"] .pmd-v2-input {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E8E2D8 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] input:focus,
+html[data-theme="gold-luxury"] textarea:focus,
+html[data-theme="gold-luxury"] select:focus,
+html[data-theme="gold-luxury"] .pmd-v2-input:focus {
+  border-color: #C89B4A !important;
+  outline-color: #C89B4A !important;
+  box-shadow: 0 0 0 3px rgba(200, 155, 74, 0.18) !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .menu-item-price,
+html[data-theme="gold-luxury"] .page--menu .pmd-customer-price,
+html[data-theme="gold-luxury"] .page--menu .pmd-v2-price,
+html[data-theme="gold-luxury"] .page--menu [class*="price"],
+html[data-theme="gold-luxury"] .page--menu [class*="Price"] {
+  color: #B8893F !important;
+  -webkit-text-fill-color: #B8893F !important;
+}
+
+html[data-theme="gold-luxury"] .page--home .surface-sub svg,
+html[data-theme="gold-luxury"] .page--home .surface-sub svg *,
+html[data-theme="gold-luxury"] .page--valet svg.lucide-car,
+html[data-theme="gold-luxury"] .page--valet svg.lucide-car * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+/* PMD GOLD LUXURY BRIGHT THEME HOTFIX END */
