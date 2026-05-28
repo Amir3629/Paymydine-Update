@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText } from "lucide-react";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -517,6 +517,8 @@ interface ExpandingBottomToolbarProps {
   onCartClick: () => void;
   onWaiterClick?: () => void;
   onNoteClick?: () => void;
+  onOrderClick?: () => void;
+  orderCount?: number;
   waiterDisabled?: boolean;
   noteDisabled?: boolean;
   totalItems: number;
@@ -2626,6 +2628,10 @@ case "cod":
     }
   }
 
+  const tableDisplayName = tableDraft?.table_name || tableInfo?.table_name || (tableDraft?.table_no || tableInfo?.table_no ? `Table ${tableDraft?.table_no || tableInfo?.table_no}` : "Delivery")
+  const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
+  const hasPersonalItems = allItems.length > 0
+
   const renderPaymentButton = () => {
     if (!selectedMethod) return null
 
@@ -2946,24 +2952,25 @@ case "cod":
           </div>}
 
 
-          {tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && (
-            <div className="surface-sub rounded-2xl p-3 space-y-3" style={{ color: "var(--theme-text-primary)" }}>
+          <AnimatePresence mode="wait" initial={false}>
+          {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && (
+            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ color: "var(--theme-text-primary)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-semibold">{tableDraft.status === "draft" ? "Table Order Summary" : "Submitted Table Order"}</h3>
-                  <p className="text-xs muted">{tableDraft.table_name || tableInfo?.table_name || (tableDraft.table_no || tableInfo?.table_no ? `Table ${tableDraft.table_no || tableInfo?.table_no}` : "Table")}</p>
+                  <h3 className="text-lg font-semibold">Table Order</h3>
+                  <p className="text-xs muted">Review the items confirmed for this table.</p>
                 </div>
-                <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
-                  {tableDraft.status === "draft" ? "Draft / Not sent to kitchen" : tableDraft.status === "paid" ? "Paid" : tableDraft.status === "partially_paid" ? "Partially paid" : "Submitted / Sent to kitchen"}
-                </span>
+                <span className="text-xs font-semibold muted">{tableDisplayName}</span>
               </div>
               <div className="space-y-3 max-h-56 overflow-y-auto">
                 {(tableDraft.groups && tableDraft.groups.length > 0 ? tableDraft.groups : [{ guest_session_id: null, items: tableDraft.items || [], subtotal: tableDraft.totals?.subtotal || 0 }]).map((group: any, groupIndex: number) => (
                   <div key={`${group.guest_session_id || 'table'}-${groupIndex}`} className="rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)" }}>
+                    {(tableDraft.groups || []).length > 1 && (
                     <div className="mb-2 flex items-center justify-between text-xs font-semibold">
                       <span>{group.guest_session_id ? `Guest ${groupIndex + 1}` : "Table"}</span>
                       <span>{formatCurrency(Number(group.subtotal || 0))}</span>
                     </div>
+                    )}
                     <div className="space-y-1">
                       {(group.items || []).map((item: any, idx: number) => (
                         <div key={`${item.id || item.order_menu_id || item.menu_id}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
@@ -2980,21 +2987,26 @@ case "cod":
                 <span className="text-base font-bold">{formatCurrency(Number(tableDraft.totals?.total || 0))}</span>
               </div>
               {tableDraft.status === "draft" ? (
-                <button type="button" disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0} onClick={handleSubmitTableDraft} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>
-                  {submitDraftLoading ? "Submitting..." : "Submit Table Order"}
-                </button>
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold muted">Ready to send?</p>
+                  <motion.button type="button" disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0} onClick={handleSubmitTableDraft} whileHover={{ x: submitDraftLoading ? 0 : 2 }} whileTap={{ scale: submitDraftLoading ? 1 : 0.985 }} className="group flex min-h-14 w-full items-center justify-between rounded-full px-3 py-2 text-sm font-bold shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70" style={modalPrimaryBtnStyle}>
+                    <span className="ml-3">{submitDraftLoading ? "Sending..." : "Send order to kitchen"}</span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:translate-x-1" style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)" }}><ArrowRight className="h-5 w-5" /></span>
+                  </motion.button>
+                  <button type="button" onClick={onClose} className={modalSecondaryBtn}>Continue ordering</button>
+                </div>
               ) : tableDraft.order_id ? (
                 <button type="button" onClick={() => { setCheckoutStep("payment"); setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }) }} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>
                   Pay
                 </button>
               ) : null}
-            </div>
+            </motion.div>
           )}
 
-{checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Personal Cart</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>}
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
-          {checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-1">
+          {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span>{vatLabels.subtotal}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
@@ -3023,19 +3035,19 @@ case "cod":
             </div>
           </div>}
 
-          {checkoutStep === "review" && (
+          {checkoutStep === "review" && hasPersonalItems && (
             <div className="mt-3 space-y-3">
-              <p className="text-xs muted">{tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : 'Delivery')}</p>
+              <p className="text-xs muted">{isTableContext ? tableDisplayName : "Delivery"}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   data-pmd-review-submit="true"
-                  aria-label="Confirm my items"
+                  aria-label="Confirm items"
                   disabled={isLoading || allItems.length === 0}
                   onClick={handleConfirmMyItems}
                   className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
                 >
-                  {isLoading ? "Confirming..." : "Confirm My Items"}
+                  {isLoading ? "Confirming..." : "Confirm"}
                 </button>
 
                 <button
@@ -3044,13 +3056,15 @@ case "cod":
                   onClick={onClose}
                   className={modalSecondaryBtn}
                 >
-                  Continue menu
+                  Continue ordering
                 </button>
               </div>
             </div>
           )}
+          </motion.div>)}
+          </AnimatePresence>
 
-          {(checkoutStep === "submitted" || checkoutStep === "payment" || checkoutStep === "paid") && submittedSnapshot && (
+          {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div layout className="mt-2 p-1 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
@@ -3121,7 +3135,7 @@ case "cod":
                   onClick={() => setCheckoutStep('payment')}
                   className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
                 >
-                  Pay now
+                  Pay
                 </button>
                 )}
                 <button
@@ -3143,6 +3157,19 @@ case "cod":
 
           {checkoutStep === "payment" && (
             <>
+              <motion.div key="payment-card-header" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Button variant="ghost" size="sm" onClick={() => setCheckoutStep("submitted")} className={iconBackBtn}><ArrowLeft className="h-4 w-4" /></Button>
+                  <div>
+                    <h3 className="text-base font-semibold">Payment</h3>
+                    <p className="text-xs muted">Choose how you would like to pay for this order.</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-3 surface rounded-2xl">
+                  <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs font-semibold">Split Bill</span></div>
+                  <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
+                </div>
+              </motion.div>
               {pendingSummary && (
                 <div className="surface-sub rounded-2xl p-3 text-xs">
                   <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
@@ -3237,10 +3264,6 @@ case "cod":
               </motion.div>
             ) : null}
           </AnimatePresence>
-              <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
-                <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs muted">{t("splitBill")}</span></div>
-                <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
-              </div>
             </>
           )}
 </div>
@@ -3367,7 +3390,6 @@ style={{
   padding: 0,
   boxShadow: "none"
 }}
-                  style={{ color: 'var(--pmd-customer-action-text)' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAdd(e);
@@ -3394,6 +3416,8 @@ function ExpandingBottomToolbar({
   onCartClick,
   onWaiterClick,
   onNoteClick,
+  onOrderClick,
+  orderCount = 0,
   waiterDisabled = false,
   noteDisabled = false,
   totalItems,
@@ -3413,6 +3437,14 @@ function ExpandingBottomToolbar({
   const previewHeight = 180
   const expandedHeight = 420
   const hasToolbarContent = items.length > 0
+  const showOrderAction = typeof onOrderClick === "function"
+  const toolbarIconBtnStyle: React.CSSProperties = {
+    background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+    border: "1px solid var(--theme-border)",
+    color: "var(--theme-text-primary)",
+    boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+    borderRadius: "9999px",
+  }
   const effectiveToolbarState = hasToolbarContent ? toolbarState : "collapsed"
 
   let height = collapsedHeight
@@ -3630,7 +3662,7 @@ function ExpandingBottomToolbar({
 
         {/* Toolbar buttons (always visible at the bottom) */}
         <div
-          className="flex items-center justify-between gap-8 px-8 py-4"
+          className="flex items-center justify-between gap-5 px-6 py-4"
           style={{
             minHeight: 76,
             borderBottomLeftRadius: "2.5rem",
@@ -3677,6 +3709,32 @@ function ExpandingBottomToolbar({
             <NotebookPen className="h-7 w-7" style={{ color: noteDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
           </motion.button>
           </ActionTooltip>
+
+          <AnimatePresence initial={false}>
+          {showOrderAction && (
+          <ActionTooltip label="Table order">
+          <motion.button
+            key="table-order-action"
+            initial={{ opacity: 0, scale: 0.8, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 8 }}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.12 }}
+            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
+            style={toolbarIconBtnStyle}
+            onClick={onOrderClick}
+            aria-label="Table order"
+          >
+            <ReceiptText className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
+            {orderCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "var(--theme-secondary)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
+                {orderCount > 9 ? "9+" : orderCount}
+              </span>
+            )}
+          </motion.button>
+          </ActionTooltip>
+          )}
+          </AnimatePresence>
           
           <ActionTooltip label="Checkout">
           <motion.button
@@ -4604,33 +4662,16 @@ useEffect(() => {
         noteDisabled={false}
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
+        onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
+          setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : 'submitted')
+          setPaymentModalOpen(true)
+        } : undefined}
+        orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
       />
       {!shouldHideCartSheet && (
       <CartSheet />
       )}
       <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
-      {(hasLocalOpenOrder || (sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty")) && (
-        <button
-          type="button"
-          aria-label={sharedTableOrder?.status === "draft" ? "Table draft order" : `My order ${localOpenOrder?.orderId ? `#${localOpenOrder.orderId}` : ""}`.trim()}
-          title={sharedTableOrder?.status === "draft" ? "Table Order Summary" : (localOpenOrder?.orderId ? `My Order #${localOpenOrder.orderId}` : "My Order")}
-          onClick={() => {
-            setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : 'submitted')
-            setPaymentModalOpen(true)
-          }}
-          className="fixed top-24 right-4 z-40 h-12 w-12 rounded-full shadow-xl border inline-flex items-center justify-center"
-          style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", borderColor: "var(--theme-border)" }}
-        >
-          <ReceiptText className="h-5 w-5" />
-          {localOpenOrder?.orderId && (
-            <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center"
-              style={{ background: "var(--theme-secondary)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}
-            >
-              {String(localOpenOrder.orderId).slice(-2)}
-            </span>
-          )}
-        </button>
-      )}
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
