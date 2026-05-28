@@ -1319,5 +1319,6 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 })();
 </script>
 
+<script src="/app/admin/assets/js/pmd-admin-header-actions.js"></script>
 </body>
 </html>

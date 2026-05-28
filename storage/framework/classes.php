@@ -228,4 +228,7 @@
   'Admin\\Models\\Kds_stations_model' => 'app/admin/models/Kds_stations_model.php',
   'System\\Controllers\\currencies' => 'app/system/controllers/Currencies.php',
   'Admin\\Requests\\Reservation' => 'app/admin/requests/Reservation.php',
+  'Admin\\Classes\\ScheduleItem' => 'app/admin/classes/ScheduleItem.php',
+  'Admin\\Models\\Working_hours_model' => 'app/admin/models/Working_hours_model.php',
+  'Admin\\Controllers\\logout' => 'app/admin/controllers/Logout.php',
 );

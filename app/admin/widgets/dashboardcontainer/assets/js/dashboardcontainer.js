@@ -20,6 +20,10 @@
         this.$requestTarget = this.$form.length ? this.$form : this.$el
         this.$toolbar = $('[data-container-toolbar]')
         this.$dateRangeEl = $(options.dateRangeSelector, this.$toolbar)
+        this._sortableInstance = null
+        this._nativeSortableBound = false
+        this._initScheduled = false
+        this._isEditMode = false
 
         this.init();
         this.initSortable()
@@ -72,28 +76,36 @@
 
         this.fetchWidgets()
         this.normalizePmdWidgetRoots()
+        this.bindHandleSafety()
 
-        this.$el.on('click', '[data-control="remove-widget"]', function (event) {
+        this.$el.off('click.dashboardRemoveWidget').on('click.dashboardRemoveWidget', '[data-control="remove-widget"]', function (event) {
             event.preventDefault()
             event.stopPropagation()
             var $btn = $(this)
             if (!confirm('Are you sure you want to do this?'))
                 return false;
 
-            $.ti.loadingIndicator.show()
-            self.$requestTarget.request(self.options.alias + '::onRemoveWidget', {
-                data: {
-                    'alias': $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
-                }
-            }).done(function () {
-                $btn.closest('div.col').remove()
-            }).always(function () {
-                $.ti.loadingIndicator.hide()
-            })
+            var alias = $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
+            var $col = $btn.closest('div.col')
+            $col.addClass('pmd-dashboard-widget-removing')
+
+            setTimeout(function () {
+                $.ti.loadingIndicator.show()
+                self.$requestTarget.request(self.options.alias + '::onRemoveWidget', {
+                    data: {
+                        'alias': alias
+                    }
+                }).done(function () {
+                    $col.remove()
+                    self.schedulePostRenderRefresh()
+                }).always(function () {
+                    $.ti.loadingIndicator.hide()
+                })
+            }, 190)
         })
         
         // Duplicate widget handler
-        this.$el.on('click', '[data-control="duplicate-widget"]', function (event) {
+        this.$el.off('click.dashboardDuplicateWidget').on('click.dashboardDuplicateWidget', '[data-control="duplicate-widget"]', function (event) {
             event.preventDefault()
             event.stopPropagation()
             var $btn = $(this)
@@ -109,9 +121,34 @@
                 data: {
                     'alias': alias
                 }
+            }).done(function () {
+                self.schedulePostRenderRefresh()
             }).always(function () {
                 $.ti.loadingIndicator.hide()
             })
+        })
+    }
+
+
+    DashboardContainer.prototype.bindHandleSafety = function () {
+        this.$el.off('click.dashboardHandle').on('click.dashboardHandle', '.widget-item-action .handle', function (event) {
+            event.preventDefault()
+        })
+        this.$el.off('dragstart.dashboardHandle').on('dragstart.dashboardHandle', '.widget-item-action .handle, .widget-item-action .handle *', function (event) {
+            event.preventDefault()
+            event.stopPropagation()
+        })
+    }
+
+    DashboardContainer.prototype.normalizeHandleElements = function () {
+        var $handles = this.$el.find('#dashboardcontainer-container-list .widget-item-action .handle, .dashboard-widgets .widget-item-action .handle')
+        $handles.attr('draggable', 'false')
+        $handles.find('*').attr('draggable', 'false')
+        $handles.each(function () {
+            var $handle = $(this)
+            if (!$handle.attr('href') || $handle.attr('href') === '#') {
+                $handle.attr('href', 'javascript:void(0)')
+            }
         })
     }
 
@@ -131,159 +168,347 @@
     DashboardContainer.prototype.initSortable = function () {
         var self = this
 
-        // Destroy existing Sortable instance before creating a new one (avoids duplicate handlers)
-        self._sortableInstance = null
-        self._nativeSortableBound = false
-
         self.ensureSortable = function () {
-            var $sortableContainer = $(self.options.sortableContainer, self.$el)
+            var $sortableContainer = $('#dashboardcontainer-container-list', self.$el)
             if (!$sortableContainer.length) {
                 $sortableContainer = $('[id*="container-list"]', self.$el).first()
             }
-            if (!$sortableContainer.length) {
-                $sortableContainer = $('.widget-container', self.$el).first()
-            }
             if (!$sortableContainer.length) return
-            // Only enable when in edit mode (widget action handles visible)
-            if (!self.$el.hasClass('edit-mode') && !document.body.classList.contains('edit-mode-active')) return
-            if (self._sortableInstance) {
-                self._sortableInstance.destroy()
-                self._sortableInstance = null
-            }
-            if (typeof Sortable !== 'undefined' && Sortable && typeof Sortable.create === 'function') {
-                self._sortableInstance = Sortable.create($sortableContainer.get(0), {
-                    handle: '.handle',
-                    animation: 180,
-                    easing: 'cubic-bezier(0.2, 0, 0, 1)',
-                    onSort: $.proxy(self.onSortWidgets, self)
+
+            if (!self.$el.hasClass('edit-mode') && !document.body.classList.contains('edit-mode-active') && !self._isEditMode) return
+
+            self.destroySortableInstances()
+
+            if (typeof $.fn.sortable === 'function') {
+                $sortableContainer.sortable({
+                    items: '> .col',
+                    handle: '.widget-item-action .handle, .handle',
+                    containment: 'parent',
+                    tolerance: 'pointer',
+                    placeholder: 'pmd-dashboard-widget-placeholder',
+                    forcePlaceholderSize: true,
+                    helper: 'original',
+                    cursor: 'grabbing',
+                    distance: 3,
+                    delay: 0,
+                    start: function () { document.body.classList.add('pmd-dashboard-dragging') },
+                    stop: function () { document.body.classList.remove('pmd-dashboard-dragging') },
+                    update: function (event, ui) { self.onSortWidgets(event) }
                 })
+                self._sortableInstance = $sortableContainer
+                self._activeDragLibrary = 'jquery-ui'
                 return
             }
 
-            self.initNativeSortable($sortableContainer)
+            self.initPointerSortable($sortableContainer)
+            self._activeDragLibrary = 'pointer-fallback'
         }
 
-        $(window).on('ajaxUpdateComplete', function () {
+        $(window).off('ajaxUpdateComplete.dashboardContainer').on('ajaxUpdateComplete.dashboardContainer', function () {
+            self.schedulePostRenderRefresh()
+        })
+
+        self.$el.off('dashboard-edit-mode-entered.dashboardContainer').on('dashboard-edit-mode-entered.dashboardContainer', function () {
+            self._isEditMode = true
             self.ensureSortable()
         })
 
-        // Create sortable as soon as user enters edit mode (fixes "move button works only after clicking something else")
-        self.$el.on('dashboard-edit-mode-entered', function () {
-            setTimeout(function () { self.ensureSortable() }, 0)
+        self.$el.off('dashboard-edit-mode-exited.dashboardContainer').on('dashboard-edit-mode-exited.dashboardContainer', function () {
+            self._isEditMode = false
+            self.destroySortableInstances()
         })
 
-        // Destroy sortable when leaving edit mode
-        self.$el.on('dashboard-edit-mode-exited', function () {
-            if (self._sortableInstance) {
-                self._sortableInstance.destroy()
-                self._sortableInstance = null
-            }
-            self.destroyNativeSortable()
-        })
-
-        // Also try once after widgets load (in case ajaxUpdateComplete didn't fire)
-        setTimeout(function () { self.ensureSortable() }, 150)
+        self.schedulePostRenderRefresh()
     }
 
-    DashboardContainer.prototype.initNativeSortable = function ($sortableContainer) {
+    DashboardContainer.prototype.destroySortableInstances = function () {
+        if (this._sortableInstance && this._sortableInstance.length && typeof this._sortableInstance.sortable === 'function') {
+            try { this._sortableInstance.sortable('destroy') } catch (e) {}
+        }
+        this._sortableInstance = null
+        this.destroyPointerSortable()
+    }
+
+    DashboardContainer.prototype.schedulePostRenderRefresh = function () {
+        var self = this
+        if (self._isPointerDragging) return
+        if (self._initScheduled) return
+        self._initScheduled = true
+        requestAnimationFrame(function () {
+            self._initScheduled = false
+            self.normalizePmdWidgetRoots()
+            self.normalizeHandleElements()
+            self.applyWidgetEnterAnimations()
+            if (self.$el.hasClass('edit-mode') || document.body.classList.contains('edit-mode-active') || self._isEditMode) {
+                self.ensureSortable()
+            }
+            window.PMDDashboardDragDebug = {
+                activeLibrary: self._activeDragLibrary || 'none',
+                containerId: self.$el.find('[id*="container-list"]').first().attr('id') || null,
+                itemSelector: '> .col',
+                handleSelector: '.widget-item-action .handle, .handle'
+            }
+        })
+    }
+
+    DashboardContainer.prototype.applyWidgetEnterAnimations = function () {
+        this.$el.find('#dashboardcontainer-container-list > .col').each(function () {
+            var $col = $(this)
+            if ($col.data('pmdEnterAnimated')) return
+            $col.data('pmdEnterAnimated', true).addClass('pmd-dashboard-widget-enter')
+            requestAnimationFrame(function () {
+                $col.addClass('pmd-dashboard-widget-enter-active')
+                setTimeout(function () {
+                    $col.removeClass('pmd-dashboard-widget-enter pmd-dashboard-widget-enter-active')
+                }, 500)
+            })
+        })
+    }
+
+    DashboardContainer.prototype.initPointerSortable = function ($sortableContainer) {
         if (this._nativeSortableBound) return
 
         var self = this
-        var dragSourceEl = null
-        var dragArmedEl = null
-        var containerId = $sortableContainer.attr('id')
-        var $sortItems = $sortableContainer.find('> .col')
-        var selector = containerId ? ('#' + containerId + ' > .col') : '.widget-list > .col'
-        if (!$sortItems.length) {
-            $sortItems = $sortableContainer.find('> .widget-item')
-            selector = containerId ? ('#' + containerId + ' > .widget-item') : '.widget-container > .widget-item'
+        var $dragCol = null
+        var $placeholder = null
+        var grabOffsetX = 0
+        var grabOffsetY = 0
+        var pointerDown = null
+        var dragStartThreshold = 5
+        var dragActivated = false
+        var pendingCol = null
+        var pendingRect = null
+        var originalWidth = 0
+        var originalHeight = 0
+        var $dragPreview = null
+        var previewBaseLeft = 0
+        var previewBaseTop = 0
+        var latestPointer = null
+        var previewRafId = null
+
+        function debugLog(payload) {
+            if (!window.PMDDashboardDragDebug || !window.PMDDashboardDragDebug.enabled) return
+            console.info('[PMD DASH DRAG]', payload)
         }
-        if (!$sortItems.length) {
-            $sortItems = $sortableContainer.find('.widget-item')
-            selector = containerId ? ('#' + containerId + ' .widget-item') : '.widget-item'
+
+        function captureRects() {
+            var rects = new Map()
+            $sortableContainer.children('.col').each(function () {
+                rects.set(this, this.getBoundingClientRect())
+            })
+            return rects
         }
-        if (!$sortItems.length) return
 
-        // Arm dragging only when pressing the move handle, so normal button clicks still work.
-        this.$el.on('mousedown.nativeSortable', '.handle', function () {
-            var $item = $(this).closest(selector)
-            if (!$item.length) return
-            dragArmedEl = $item.get(0)
-            $item.attr('draggable', 'true')
-        })
+        function animateReorderFlip(beforeRects, options) {
+            options = options || {}
+            var duration = 260
+            var easing = 'cubic-bezier(0.2, 0, 0, 1)'
+            $sortableContainer.children('.col').each(function () {
+                if (!beforeRects.has(this)) return
+                if (!options.includeDragged && $dragCol && this === $dragCol.get(0)) return
+                if (!options.includePlaceholder && $placeholder && this === $placeholder.get(0)) return
+                var before = beforeRects.get(this)
+                var after = this.getBoundingClientRect()
+                var dx = before.left - after.left
+                var dy = before.top - after.top
+                if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return
+                this.style.transition = 'none'
+                this.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0)'
+                this.classList.add('pmd-dashboard-reorder-animating')
+                requestAnimationFrame(function () {
+                    this.style.transition = 'transform ' + duration + 'ms ' + easing
+                    this.style.transform = 'translate3d(0,0,0)'
+                }.bind(this))
+                var el = this
+                setTimeout(function () {
+                    el.style.transition = ''
+                    el.style.transform = ''
+                    el.classList.remove('pmd-dashboard-reorder-animating')
+                }, duration + 30)
+            })
+        }
 
-        // Prevent native <a> drag ghost from hijacking handle drag.
-        this.$el.on('dragstart.nativeSortable', '.widget-item-action .handle, .handle', function (event) {
-            event.preventDefault()
-            event.stopPropagation()
-        })
+        function buildPlaceholder($sourceCol) {
+            var behaviorClasses = [
+                'pmd-dashboard-widget-source-hidden',
+                'pmd-dashboard-drag-preview',
+                'pmd-dashboard-widget-preview',
+                'pmd-dashboard-widget-dragging',
+                'pmd-dashboard-reorder-animating',
+                'pmd-dashboard-widget-enter',
+                'pmd-dashboard-widget-enter-active',
+                'pmd-dashboard-widget-removing'
+            ]
+            var placeholder = document.createElement('div')
+            placeholder.className = $sourceCol.get(0).className
+            behaviorClasses.forEach(function (className) {
+                placeholder.classList.remove(className)
+            })
+            placeholder.classList.add('pmd-dashboard-widget-placeholder')
+            placeholder.style.height = originalHeight + 'px'
+            placeholder.style.minHeight = originalHeight + 'px'
+            placeholder.style.width = originalWidth + 'px'
+            placeholder.style.maxWidth = originalWidth + 'px'
+            placeholder.style.flex = '0 0 ' + originalWidth + 'px'
+            placeholder.style.boxSizing = 'border-box'
+            return $(placeholder)
+        }
 
-        this.$el.on('mouseup.nativeSortable mouseleave.nativeSortable', selector, function () {
-            if (dragArmedEl === this && dragSourceEl !== this) {
-                $(this).removeAttr('draggable')
-                dragArmedEl = null
+        function schedulePreviewFrame() {
+            if (previewRafId || !latestPointer || !$dragPreview || !dragActivated) return
+            previewRafId = requestAnimationFrame(function () {
+                previewRafId = null
+                if (!$dragPreview || !latestPointer) return
+                var nextLeft = latestPointer.clientX - grabOffsetX
+                var nextTop = latestPointer.clientY - grabOffsetY
+                var tx = nextLeft - previewBaseLeft
+                var ty = nextTop - previewBaseTop
+                $dragPreview.css({ transform: 'translate3d(' + tx + 'px,' + ty + 'px,0)' })
+                debugLog({ phase: 'move', left: nextLeft, top: nextTop })
+            })
+        }
+
+        function onMove(event) {
+            var e = event.originalEvent && event.originalEvent.touches ? event.originalEvent.touches[0] : event
+            if (!dragActivated && pointerDown && pendingCol && pendingRect) {
+                var dx = e.clientX - pointerDown.x
+                var dy = e.clientY - pointerDown.y
+                if (Math.sqrt((dx * dx) + (dy * dy)) < dragStartThreshold) {
+                    return
+                }
+
+                dragActivated = true
+                document.body.classList.add('pmd-dashboard-dragging')
+                $placeholder = buildPlaceholder(pendingCol)
+                pendingCol.after($placeholder)
+                $dragCol = pendingCol
+                self._isPointerDragging = true
+
+                $dragPreview = $($dragCol.get(0).cloneNode(true))
+                $dragPreview.addClass('pmd-dashboard-drag-preview pmd-dashboard-widget-preview')
+                $dragPreview.find('.widget-item').removeClass('card bg-light shadow-sm p-3 no-padding').addClass('pmd-dashboard-widget-root')
+                $dragPreview.removeClass('card bg-light shadow-sm p-3 no-padding')
+                $dragPreview.find('.card, .bg-light, .shadow-sm, .p-3, .no-padding').removeClass('card bg-light shadow-sm p-3 no-padding')
+                $dragPreview.addClass('pmd-dashboard-widget-dragging').css({
+                    position: 'fixed',
+                    width: originalWidth + 'px',
+                    minHeight: originalHeight + 'px',
+                    left: pendingRect.left + 'px',
+                    top: pendingRect.top + 'px',
+                    zIndex: 9999,
+                    margin: 0,
+                    boxSizing: 'border-box',
+                    transform: 'none',
+                    transition: 'none',
+                    pointerEvents: 'none',
+                    opacity: 0.96
+                })
+                $('body').append($dragPreview)
+                $dragCol.addClass('pmd-dashboard-widget-source-hidden')
+                $dragCol.detach()
+                previewBaseLeft = pendingRect.left
+                previewBaseTop = pendingRect.top
+                debugLog({
+                    phase: 'activate',
+                    rectLeft: pendingRect.left,
+                    rectTop: pendingRect.top,
+                    grabOffsetX: grabOffsetX,
+                    grabOffsetY: grabOffsetY,
+                    firstLeft: (e.clientX - grabOffsetX),
+                    firstTop: (e.clientY - grabOffsetY),
+                    originalDraggedClassName: $dragCol.get(0).className,
+                    placeholderClassName: $placeholder.get(0).className,
+                    placeholderRect: $placeholder.get(0).getBoundingClientRect()
+                })
             }
-        })
+            if (!$dragCol || !$dragPreview || !dragActivated) return
+            latestPointer = { clientX: e.clientX, clientY: e.clientY }
+            schedulePreviewFrame()
 
-        this.$el.on('dragstart.nativeSortable', selector, function (event) {
-            var originalEvent = event.originalEvent || event
-            if (dragArmedEl !== this) {
-                originalEvent.preventDefault()
-                return
-            }
-
-            dragSourceEl = this
-            originalEvent.dataTransfer.effectAllowed = 'move'
-            originalEvent.dataTransfer.setData('text/plain', 'dashboard-widget')
-            $(this).addClass('native-dragging')
-        })
-
-        this.$el.on('dragover.nativeSortable', selector, function (event) {
-            event.preventDefault()
-            var originalEvent = event.originalEvent || event
-            originalEvent.dataTransfer.dropEffect = 'move'
-        })
-
-        this.$el.on('drop.nativeSortable', selector, function (event) {
-            event.preventDefault()
-            if (!dragSourceEl || dragSourceEl === this) return
-
-            var $container = $sortableContainer
-            var $dragSource = $(dragSourceEl)
-            var $dropTarget = $(this)
-
-            if ($dragSource.parent().get(0) !== $dropTarget.parent().get(0)) {
-                $container = $dropTarget.parent()
-            }
-
-            if ($dragSource.index() < $dropTarget.index()) {
-                $dropTarget.after($dragSource)
+            var $target = $(document.elementFromPoint(e.clientX, e.clientY)).closest('#' + $sortableContainer.attr('id') + ' > .col')
+            if (!$target.length || $target.is($dragCol) || $target.is($placeholder)) return
+            var beforeRects = captureRects()
+            var targetRect = $target.get(0).getBoundingClientRect()
+            if (e.clientY > targetRect.top + targetRect.height / 2) {
+                $target.after($placeholder)
             } else {
-                $dropTarget.before($dragSource)
+                $target.before($placeholder)
             }
+            animateReorderFlip(beforeRects)
+            debugLog({ phase: 'placeholder', index: $placeholder.index() })
+        }
 
-            self.onSortWidgets()
+        function onUp() {
+            if (dragActivated && $dragCol && $placeholder) {
+                var beforeRects = captureRects()
+                if ($dragPreview && $dragPreview.length) {
+                    beforeRects.set($dragCol.get(0), $dragPreview.get(0).getBoundingClientRect())
+                }
+                $dragCol.removeClass('pmd-dashboard-widget-source-hidden')
+                $placeholder.replaceWith($dragCol)
+                animateReorderFlip(beforeRects, { includeDragged: true })
+                requestAnimationFrame(function () {
+                    self.onSortWidgets()
+                })
+            }
+            self._isPointerDragging = false
+            if (previewRafId) cancelAnimationFrame(previewRafId)
+            previewRafId = null
+            latestPointer = null
+            if ($dragPreview) $dragPreview.remove()
+            if ($placeholder) $placeholder.remove()
+            $placeholder = null
+            $dragPreview = null
+            $dragCol = null
+            pendingCol = null
+            pendingRect = null
+            pointerDown = null
+            dragActivated = false
+            $(document).off('.pmdPointerSort')
+            document.body.classList.remove('pmd-dashboard-dragging')
+        }
+
+        this.$el.on('mousedown.nativeSortable touchstart.nativeSortable', '.widget-item-action .handle, .handle', function (event) {
+            if (!self.$el.hasClass('edit-mode') && !document.body.classList.contains('edit-mode-active') && !self._isEditMode) return
+            var e = event.originalEvent && event.originalEvent.touches ? event.originalEvent.touches[0] : event
+            var $col = $(this).closest('#' + $sortableContainer.attr('id') + ' > .col')
+            if (!$col.length) return
+
+            event.preventDefault()
+            var rect = $col.get(0).getBoundingClientRect()
+            grabOffsetX = e.clientX - rect.left
+            grabOffsetY = e.clientY - rect.top
+            pointerDown = { x: e.clientX, y: e.clientY }
+            pendingCol = $col
+            pendingRect = rect
+            originalWidth = rect.width
+            originalHeight = rect.height
+            dragActivated = false
+            debugLog({
+                phase: 'pointerdown',
+                rectLeft: rect.left,
+                rectTop: rect.top,
+                grabOffsetX: grabOffsetX,
+                grabOffsetY: grabOffsetY
+            })
+
+            $(document)
+                .on('mousemove.pmdPointerSort touchmove.pmdPointerSort', onMove)
+                .on('mouseup.pmdPointerSort touchend.pmdPointerSort touchcancel.pmdPointerSort', onUp)
+                .on('keydown.pmdPointerSort', function (keyEvent) {
+                    if (keyEvent.key === 'Escape') onUp()
+                })
         })
 
-        this.$el.on('dragend.nativeSortable', selector, function () {
-            $(this).removeAttr('draggable')
-            $(this).removeClass('native-dragging')
-            dragSourceEl = null
-            dragArmedEl = null
-        })
-
-        $sortItems.removeAttr('draggable')
         this._nativeSortableBound = true
     }
 
-    DashboardContainer.prototype.destroyNativeSortable = function () {
+    DashboardContainer.prototype.destroyPointerSortable = function () {
         this.$el.off('.nativeSortable')
-        $(this.options.sortableContainer + ' > .col', this.$el).removeAttr('draggable')
-        $('.widget-container > .widget-item, .widget-item', this.$el).removeAttr('draggable')
+        $(document).off('.pmdPointerSort')
         this._nativeSortableBound = false
     }
 
-    
     function isMobileDashboardDateRange() {
         return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
     }
@@ -490,7 +715,7 @@ DashboardContainer.prototype.initDateRange = function () {
                     
                     if (htmlContent && $container.length) {
                         $container.html(htmlContent);
-                        self.normalizePmdWidgetRoots();
+                        self.schedulePostRenderRefresh();
                         console.log('✅ DashboardContainer: HTML manually inserted', {
                             contentLength: htmlContent.length,
                             containerId: containerId
@@ -506,7 +731,7 @@ DashboardContainer.prototype.initDateRange = function () {
                 
                 // Ensure container is visible immediately
                 if ($container.length) {
-                    self.normalizePmdWidgetRoots();
+                    self.schedulePostRenderRefresh();
                     $container.css({
                         'display': 'block',
                         'visibility': 'visible',
@@ -578,7 +803,7 @@ DashboardContainer.prototype.initDateRange = function () {
                 // Final check and visibility fix
                 var $container = $(containerSelector);
                 if ($container.length) {
-                    self.normalizePmdWidgetRoots();
+                    self.schedulePostRenderRefresh();
                     var hasContent = $container.html().trim().length > 0;
                     var widgetCount = $container.find('.widget-item, .col[class*="col-sm"]').length;
                     
@@ -638,32 +863,20 @@ DashboardContainer.prototype.initDateRange = function () {
     // DASHBOARDCONTAINER DATA-API
     // ===============
 
-    // Initialize on document ready - immediately
-    $(document).ready(function() {
-        console.log('🚀 DashboardContainer: Document ready, initializing...');
-        $('[data-control="dashboard-container"]').dashboardContainer();
-    });
-    
-    // Also initialize on render event (for AJAX updates)
-    $(document).render(function () {
-        console.log('🚀 DashboardContainer: Render event triggered, initializing...');
-        $('[data-control="dashboard-container"]').each(function() {
-            // Only initialize if not already initialized
-            if (!$(this).data('ti.dashboardContainer')) {
-                $(this).dashboardContainer();
+    function initDashboardContainers() {
+        $('[data-control="dashboard-container"]').each(function () {
+            var $el = $(this)
+            var instance = $el.data('ti.dashboardContainer')
+            if (!instance) {
+                $el.dashboardContainer()
+                instance = $el.data('ti.dashboardContainer')
             }
-        });
-    });
-    
-    // Fallback: Initialize immediately if DOM is already ready
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        setTimeout(function() {
-            $('[data-control="dashboard-container"]').each(function() {
-                if (!$(this).data('ti.dashboardContainer')) {
-                    console.log('🚀 DashboardContainer: Fallback initialization...');
-                    $(this).dashboardContainer();
-                }
-            });
-        }, 50); // Minimal delay
+            if (instance && typeof instance.schedulePostRenderRefresh === 'function') {
+                instance.schedulePostRenderRefresh()
+            }
+        })
     }
+
+    $(document).ready(initDashboardContainers)
+    $(document).render(initDashboardContainers)
 }(window.jQuery);

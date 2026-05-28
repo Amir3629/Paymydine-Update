@@ -12,6 +12,26 @@
                 'class' => 'nav',
             ],
         ]) !!}
+        @php
+            $pmdUserPanel = \Admin\Classes\UserPanel::forUser();
+            $pmdFaviconPath = setting('favicon_logo');
+            $pmdDefaultAvatar = $pmdUserPanel->getAvatarUrl().'&s=64';
+            $pmdProfileImage = $pmdFaviconPath
+                ? asset('assets/media/uploads/'.ltrim($pmdFaviconPath, '/'))
+                : $pmdDefaultAvatar;
+        @endphp
+        <div class="pmd-sidebar-profile-card" aria-label="Admin profile" style="display:none;">
+            <a class="pmd-sidebar-profile-card__identity" href="{{ admin_url('staffs/account') }}">
+                <img src="{{ $pmdProfileImage }}" alt="{{ $pmdUserPanel->getUserName() }}">
+                <span>
+                    <strong>{{ $pmdUserPanel->getUserName() }}</strong>
+                    <small>{{ $pmdUserPanel->getRoleName() ?: 'Administrator' }}</small>
+                </span>
+            </a>
+            <a class="pmd-sidebar-profile-card__logout" href="{{ admin_url('logout') }}" aria-label="Logout" title="Logout">
+                <i class="fa fa-power-off" aria-hidden="true"></i>
+            </a>
+        </div>
     <!-- HEADER_RUNTIME_HOTFIX_V4_START -->
 <script>
 (function () {
