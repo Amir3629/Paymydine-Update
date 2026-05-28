@@ -84,7 +84,7 @@ body.pmd-admin-theme-v1 .nav-sidebar,
 body.pmd-admin-theme-v1 .side-nav,
 body.pmd-admin-theme-v1 .mainmenu,
 body.pmd-admin-theme-v1 #side-nav-menu {
-  background: linear-gradient(180deg, var(--pmd-navy-950) 0%, var(--pmd-navy-900) 100%) !important;
+  background: linear-gradient(180deg, #011714 0%, #021A17 28%, #021F1C 58%, #062F2A 100%) !important;
   color: var(--pmd-sidebar-text) !important;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }

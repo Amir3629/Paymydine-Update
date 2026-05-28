@@ -234,22 +234,22 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
         )}
       </div>
       {(isMainHomePage || isTableHomePage) && platformLogoPosition === 'top-left' && (
-        <div className="absolute left-3 top-3 z-10 flex h-16 items-center justify-center sm:left-5 md:left-1/2 md:top-[3.2rem] md:-translate-x-[390px]">
-          <PmdPlatformLogo imgClassName="max-h-16 max-w-[150px] sm:max-h-20 sm:max-w-[210px] md:max-w-[240px]" />
+        <div className="absolute left-2 top-2 z-10 flex h-16 items-center justify-center sm:left-4 md:left-1/2 md:top-[2.75rem] md:-translate-x-[430px]">
+          <PmdPlatformLogo imgClassName="max-h-16 max-w-[150px] sm:max-h-24 sm:max-w-[230px] md:max-w-[260px]" />
         </div>
       )}
       <div
         className={cn(
           "absolute z-20",
           (isMainHomePage || isTableHomePage)
-            ? "right-3 top-3 sm:right-5 md:right-auto md:left-1/2 md:top-[3.2rem] md:translate-x-[390px]"
+            ? "right-2 top-2 sm:right-4 md:right-auto md:left-1/2 md:top-[2.75rem] md:translate-x-[430px]"
             : "top-4 right-2 md:right-4"
         )}
       >
         <LanguageSwitcher />
       </div>
       {(isMainHomePage || isTableHomePage) && (
-        <div className="absolute bottom-3 right-3 z-30 sm:bottom-4 sm:right-4">
+        <div className="fixed bottom-3 right-3 z-30 sm:bottom-4 sm:right-4">
           <div className="relative">
             <button
               type="button"
@@ -296,8 +296,8 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
         </div>
       )}
       {(isMainHomePage || isTableHomePage) && platformLogoPosition === 'bottom-center' && (
-        <div className="pointer-events-none absolute bottom-8 left-1/2 z-10 -translate-x-1/2 sm:bottom-10">
-          <PmdPlatformLogo imgClassName="max-h-16 max-w-[150px] sm:max-h-20 sm:max-w-[220px]" />
+        <div className="pointer-events-none fixed bottom-[18px] left-1/2 z-20 -translate-x-1/2 sm:bottom-7">
+          <PmdPlatformLogo imgClassName="max-h-16 max-w-[170px] sm:max-h-24 sm:max-w-[260px]" />
         </div>
       )}
       <div className="text-center">
