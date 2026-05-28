@@ -70,9 +70,9 @@ trait HasChartDatasets
             'backgroundColor' => sprintf('rgba(%s, %s, %s, 0.10)', $r, $g, $b),
             'borderColor' => sprintf('rgb(%s, %s, %s)', $r, $g, $b),
             'pointBackgroundColor' => sprintf('rgb(%s, %s, %s)', $r, $g, $b),
-            'pointBorderColor' => '#FAF9F6',
+            'pointBorderColor' => '#FFFFFF',
             'pointHoverBackgroundColor' => sprintf('rgb(%s, %s, %s)', $r, $g, $b),
-            'pointHoverBorderColor' => '#FAF9F6',
+            'pointHoverBorderColor' => '#FFFFFF',
         ], array_except($config, ['model', 'column', 'datasetFrom']));
     }
 
