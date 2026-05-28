@@ -280,10 +280,64 @@
         var originalWidth = 0
         var originalHeight = 0
         var $dragPreview = null
+        var previewBaseLeft = 0
+        var previewBaseTop = 0
+        var latestPointer = null
+        var previewRafId = null
 
         function debugLog(payload) {
             if (!window.PMDDashboardDragDebug || !window.PMDDashboardDragDebug.enabled) return
             console.info('[PMD DASH DRAG]', payload)
+        }
+
+        function captureRects() {
+            var rects = new Map()
+            $sortableContainer.children('.col').each(function () {
+                rects.set(this, this.getBoundingClientRect())
+            })
+            return rects
+        }
+
+        function animateReorderFlip(beforeRects) {
+            var duration = 260
+            var easing = 'cubic-bezier(0.2, 0, 0, 1)'
+            $sortableContainer.children('.col').each(function () {
+                if (!beforeRects.has(this)) return
+                if ($dragCol && this === $dragCol.get(0)) return
+                if ($placeholder && this === $placeholder.get(0)) return
+                var before = beforeRects.get(this)
+                var after = this.getBoundingClientRect()
+                var dx = before.left - after.left
+                var dy = before.top - after.top
+                if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return
+                this.style.transition = 'none'
+                this.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0)'
+                this.classList.add('pmd-dashboard-reorder-animating')
+                requestAnimationFrame(function () {
+                    this.style.transition = 'transform ' + duration + 'ms ' + easing
+                    this.style.transform = 'translate3d(0,0,0)'
+                }.bind(this))
+                var el = this
+                setTimeout(function () {
+                    el.style.transition = ''
+                    el.style.transform = ''
+                    el.classList.remove('pmd-dashboard-reorder-animating')
+                }, duration + 30)
+            })
+        }
+
+        function schedulePreviewFrame() {
+            if (previewRafId || !latestPointer || !$dragPreview || !dragActivated) return
+            previewRafId = requestAnimationFrame(function () {
+                previewRafId = null
+                if (!$dragPreview || !latestPointer) return
+                var nextLeft = latestPointer.clientX - grabOffsetX
+                var nextTop = latestPointer.clientY - grabOffsetY
+                var tx = nextLeft - previewBaseLeft
+                var ty = nextTop - previewBaseTop
+                $dragPreview.css({ transform: 'translate3d(' + tx + 'px,' + ty + 'px,0)' })
+                debugLog({ phase: 'move', left: nextLeft, top: nextTop })
+            })
         }
 
         function onMove(event) {
@@ -322,7 +376,9 @@
                     opacity: 0.96
                 })
                 $('body').append($dragPreview)
-                $dragCol.css('visibility', 'hidden')
+                $dragCol.addClass('pmd-dashboard-widget-source-hidden')
+                previewBaseLeft = pendingRect.left
+                previewBaseTop = pendingRect.top
                 debugLog({
                     phase: 'activate',
                     rectLeft: pendingRect.left,
@@ -334,28 +390,31 @@
                 })
             }
             if (!$dragCol || !$dragPreview || !dragActivated) return
-            var nextLeft = e.clientX - grabOffsetX
-            var nextTop = e.clientY - grabOffsetY
-            $dragPreview.css({ left: nextLeft + 'px', top: nextTop + 'px' })
-            debugLog({ phase: 'move', left: nextLeft, top: nextTop })
+            latestPointer = { clientX: e.clientX, clientY: e.clientY }
+            schedulePreviewFrame()
 
             var $target = $(document.elementFromPoint(e.clientX, e.clientY)).closest('#' + $sortableContainer.attr('id') + ' > .col')
             if (!$target.length || $target.is($dragCol) || $target.is($placeholder)) return
+            var beforeRects = captureRects()
             var targetRect = $target.get(0).getBoundingClientRect()
             if (e.clientY > targetRect.top + targetRect.height / 2) {
                 $target.after($placeholder)
             } else {
                 $target.before($placeholder)
             }
+            animateReorderFlip(beforeRects)
             debugLog({ phase: 'placeholder', index: $placeholder.index() })
         }
 
         function onUp() {
             if (dragActivated && $dragCol && $placeholder) {
-                $dragCol.css('visibility', '')
+                $dragCol.removeClass('pmd-dashboard-widget-source-hidden')
                 $placeholder.replaceWith($dragCol)
                 self.onSortWidgets()
             }
+            if (previewRafId) cancelAnimationFrame(previewRafId)
+            previewRafId = null
+            latestPointer = null
             if ($dragPreview) $dragPreview.remove()
             if ($placeholder) $placeholder.remove()
             $placeholder = null

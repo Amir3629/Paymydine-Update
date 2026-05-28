@@ -1336,9 +1336,18 @@ body.pmd-admin-theme-v1 [data-control="dashboard-container"] #dashboardcontainer
 }
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] #dashboardcontainer-container-list > .col.pmd-dashboard-widget-placeholder {
   min-height: 140px;
-  border: 1px dashed rgba(216, 185, 130, 0.78);
+  border: 1px dashed rgba(216, 185, 130, 0.55);
   border-radius: 14px;
-  background: rgba(248, 242, 234, 0.22);
+  background: rgba(248, 242, 234, 0.14);
+  box-shadow: none !important;
+}
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] #dashboardcontainer-container-list > .col.pmd-dashboard-widget-source-hidden {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] #dashboardcontainer-container-list > .col.pmd-dashboard-reorder-animating {
+  will-change: transform;
 }
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview,
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-item,
@@ -1359,6 +1368,7 @@ body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .card-counter {
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview {
   pointer-events: none !important;
   z-index: 9999 !important;
+  will-change: transform !important;
 }
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .stat-icon,
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .stat-icon.text-white {
