@@ -1290,6 +1290,11 @@ body.pmd-admin-theme-v1 [data-control="dashboard-container"] .widget-item-action
   z-index: 3;
   position: relative;
 }
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .widget-item-action .handle,
+body.pmd-admin-theme-v1 [data-control="dashboard-container"] .widget-item-action .handle * {
+  -webkit-user-drag: none;
+  user-select: none;
+}
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] .widget-item-action .handle:active {
   cursor: grabbing !important;
 }

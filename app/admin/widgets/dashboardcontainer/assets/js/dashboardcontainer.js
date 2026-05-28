@@ -85,21 +85,23 @@
             if (!confirm('Are you sure you want to do this?'))
                 return false;
 
-            $.ti.loadingIndicator.show()
-            self.$requestTarget.request(self.options.alias + '::onRemoveWidget', {
-                data: {
-                    'alias': $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
-                }
-            }).done(function () {
-                var $col = $btn.closest('div.col')
-                $col.addClass('pmd-dashboard-widget-removing')
-                setTimeout(function () {
+            var alias = $('[data-widget-alias]', $btn.closest('div.widget-item')).val()
+            var $col = $btn.closest('div.col')
+            $col.addClass('pmd-dashboard-widget-removing')
+
+            setTimeout(function () {
+                $.ti.loadingIndicator.show()
+                self.$requestTarget.request(self.options.alias + '::onRemoveWidget', {
+                    data: {
+                        'alias': alias
+                    }
+                }).done(function () {
                     $col.remove()
                     self.schedulePostRenderRefresh()
-                }, 180)
-            }).always(function () {
-                $.ti.loadingIndicator.hide()
-            })
+                }).always(function () {
+                    $.ti.loadingIndicator.hide()
+                })
+            }, 190)
         })
         
         // Duplicate widget handler
@@ -131,6 +133,22 @@
     DashboardContainer.prototype.bindHandleSafety = function () {
         this.$el.off('click.dashboardHandle').on('click.dashboardHandle', '.widget-item-action .handle', function (event) {
             event.preventDefault()
+        })
+        this.$el.off('dragstart.dashboardHandle').on('dragstart.dashboardHandle', '.widget-item-action .handle, .widget-item-action .handle *', function (event) {
+            event.preventDefault()
+            event.stopPropagation()
+        })
+    }
+
+    DashboardContainer.prototype.normalizeHandleElements = function () {
+        var $handles = this.$el.find('#dashboardcontainer-container-list .widget-item-action .handle, .dashboard-widgets .widget-item-action .handle')
+        $handles.attr('draggable', 'false')
+        $handles.find('*').attr('draggable', 'false')
+        $handles.each(function () {
+            var $handle = $(this)
+            if (!$handle.attr('href') || $handle.attr('href') === '#') {
+                $handle.attr('href', 'javascript:void(0)')
+            }
         })
     }
 
@@ -174,6 +192,7 @@
                     chosenClass: 'pmd-dashboard-widget-chosen',
                     dragClass: 'pmd-dashboard-widget-dragging',
                     fallbackOnBody: true,
+                    forceFallback: true,
                     swapThreshold: 0.65,
                     onStart: function () { document.body.classList.add('pmd-dashboard-dragging') },
                     onEnd: function (event) {
@@ -219,6 +238,7 @@
         requestAnimationFrame(function () {
             self._initScheduled = false
             self.normalizePmdWidgetRoots()
+            self.normalizeHandleElements()
             self.applyWidgetEnterAnimations()
             if (self.$el.hasClass('edit-mode') || document.body.classList.contains('edit-mode-active') || self._isEditMode) {
                 self.ensureSortable()
