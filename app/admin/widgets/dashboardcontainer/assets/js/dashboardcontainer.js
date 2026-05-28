@@ -231,6 +231,7 @@
 
     DashboardContainer.prototype.schedulePostRenderRefresh = function () {
         var self = this
+        if (self._isPointerDragging) return
         if (self._initScheduled) return
         self._initScheduled = true
         requestAnimationFrame(function () {
@@ -298,13 +299,14 @@
             return rects
         }
 
-        function animateReorderFlip(beforeRects) {
+        function animateReorderFlip(beforeRects, options) {
+            options = options || {}
             var duration = 260
             var easing = 'cubic-bezier(0.2, 0, 0, 1)'
             $sortableContainer.children('.col').each(function () {
                 if (!beforeRects.has(this)) return
-                if ($dragCol && this === $dragCol.get(0)) return
-                if ($placeholder && this === $placeholder.get(0)) return
+                if (!options.includeDragged && $dragCol && this === $dragCol.get(0)) return
+                if (!options.includePlaceholder && $placeholder && this === $placeholder.get(0)) return
                 var before = beforeRects.get(this)
                 var after = this.getBoundingClientRect()
                 var dx = before.left - after.left
@@ -324,6 +326,32 @@
                     el.classList.remove('pmd-dashboard-reorder-animating')
                 }, duration + 30)
             })
+        }
+
+        function buildPlaceholder($sourceCol) {
+            var behaviorClasses = [
+                'pmd-dashboard-widget-source-hidden',
+                'pmd-dashboard-drag-preview',
+                'pmd-dashboard-widget-preview',
+                'pmd-dashboard-widget-dragging',
+                'pmd-dashboard-reorder-animating',
+                'pmd-dashboard-widget-enter',
+                'pmd-dashboard-widget-enter-active',
+                'pmd-dashboard-widget-removing'
+            ]
+            var placeholder = document.createElement('div')
+            placeholder.className = $sourceCol.get(0).className
+            behaviorClasses.forEach(function (className) {
+                placeholder.classList.remove(className)
+            })
+            placeholder.classList.add('pmd-dashboard-widget-placeholder')
+            placeholder.style.height = originalHeight + 'px'
+            placeholder.style.minHeight = originalHeight + 'px'
+            placeholder.style.width = originalWidth + 'px'
+            placeholder.style.maxWidth = originalWidth + 'px'
+            placeholder.style.flex = '0 0 ' + originalWidth + 'px'
+            placeholder.style.boxSizing = 'border-box'
+            return $(placeholder)
         }
 
         function schedulePreviewFrame() {
@@ -351,10 +379,10 @@
 
                 dragActivated = true
                 document.body.classList.add('pmd-dashboard-dragging')
-                $placeholder = $('<div class="col pmd-dashboard-widget-placeholder"></div>')
-                    .css({ width: originalWidth + 'px', height: originalHeight + 'px' })
+                $placeholder = buildPlaceholder(pendingCol)
                 pendingCol.after($placeholder)
                 $dragCol = pendingCol
+                self._isPointerDragging = true
 
                 $dragPreview = $($dragCol.get(0).cloneNode(true))
                 $dragPreview.addClass('pmd-dashboard-drag-preview pmd-dashboard-widget-preview')
@@ -377,6 +405,7 @@
                 })
                 $('body').append($dragPreview)
                 $dragCol.addClass('pmd-dashboard-widget-source-hidden')
+                $dragCol.detach()
                 previewBaseLeft = pendingRect.left
                 previewBaseTop = pendingRect.top
                 debugLog({
@@ -386,7 +415,10 @@
                     grabOffsetX: grabOffsetX,
                     grabOffsetY: grabOffsetY,
                     firstLeft: (e.clientX - grabOffsetX),
-                    firstTop: (e.clientY - grabOffsetY)
+                    firstTop: (e.clientY - grabOffsetY),
+                    originalDraggedClassName: $dragCol.get(0).className,
+                    placeholderClassName: $placeholder.get(0).className,
+                    placeholderRect: $placeholder.get(0).getBoundingClientRect()
                 })
             }
             if (!$dragCol || !$dragPreview || !dragActivated) return
@@ -408,10 +440,18 @@
 
         function onUp() {
             if (dragActivated && $dragCol && $placeholder) {
+                var beforeRects = captureRects()
+                if ($dragPreview && $dragPreview.length) {
+                    beforeRects.set($dragCol.get(0), $dragPreview.get(0).getBoundingClientRect())
+                }
                 $dragCol.removeClass('pmd-dashboard-widget-source-hidden')
                 $placeholder.replaceWith($dragCol)
-                self.onSortWidgets()
+                animateReorderFlip(beforeRects, { includeDragged: true })
+                requestAnimationFrame(function () {
+                    self.onSortWidgets()
+                })
             }
+            self._isPointerDragging = false
             if (previewRafId) cancelAnimationFrame(previewRafId)
             previewRafId = null
             latestPointer = null
