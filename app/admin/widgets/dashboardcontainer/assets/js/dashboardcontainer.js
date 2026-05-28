@@ -259,7 +259,7 @@
                 $col.addClass('pmd-dashboard-widget-enter-active')
                 setTimeout(function () {
                     $col.removeClass('pmd-dashboard-widget-enter pmd-dashboard-widget-enter-active')
-                }, 380)
+                }, 500)
             })
         })
     }
@@ -270,13 +270,40 @@
         var self = this
         var $dragCol = null
         var $placeholder = null
-        var offsetX = 0
-        var offsetY = 0
+        var grabOffsetX = 0
+        var grabOffsetY = 0
+        var pointerDown = null
+        var dragStartThreshold = 5
+        var dragActivated = false
+        var pendingCol = null
+        var pendingRect = null
 
         function onMove(event) {
-            if (!$dragCol) return
             var e = event.originalEvent && event.originalEvent.touches ? event.originalEvent.touches[0] : event
-            $dragCol.css({ left: (e.clientX - offsetX) + 'px', top: (e.clientY - offsetY) + 'px' })
+            if (!dragActivated && pointerDown && pendingCol && pendingRect) {
+                var dx = e.clientX - pointerDown.x
+                var dy = e.clientY - pointerDown.y
+                if (Math.sqrt((dx * dx) + (dy * dy)) < dragStartThreshold) {
+                    return
+                }
+
+                dragActivated = true
+                document.body.classList.add('pmd-dashboard-dragging')
+                $placeholder = $('<div class="col pmd-dashboard-widget-placeholder"></div>')
+                    .css({ width: pendingRect.width + 'px', height: pendingRect.height + 'px' })
+                pendingCol.after($placeholder)
+                $dragCol = pendingCol
+                $dragCol.addClass('pmd-dashboard-widget-dragging').css({
+                    position: 'fixed',
+                    width: pendingRect.width + 'px',
+                    left: pendingRect.left + 'px',
+                    top: pendingRect.top + 'px',
+                    zIndex: 9999,
+                    pointerEvents: 'none'
+                })
+            }
+            if (!$dragCol || !dragActivated) return
+            $dragCol.css({ left: (e.clientX - grabOffsetX) + 'px', top: (e.clientY - grabOffsetY) + 'px' })
 
             var $target = $(document.elementFromPoint(e.clientX, e.clientY)).closest('#' + $sortableContainer.attr('id') + ' > .col')
             if (!$target.length || $target.is($dragCol) || $target.is($placeholder)) return
@@ -289,14 +316,20 @@
         }
 
         function onUp() {
-            if (!$dragCol) return
-            $dragCol.removeClass('pmd-dashboard-widget-dragging').removeAttr('style')
-            $placeholder.replaceWith($dragCol)
+            if (dragActivated && $dragCol && $placeholder) {
+                $dragCol.removeClass('pmd-dashboard-widget-dragging').removeAttr('style')
+                $placeholder.replaceWith($dragCol)
+                self.onSortWidgets()
+            }
+            if ($placeholder) $placeholder.remove()
             $placeholder = null
             $dragCol = null
+            pendingCol = null
+            pendingRect = null
+            pointerDown = null
+            dragActivated = false
             $(document).off('.pmdPointerSort')
             document.body.classList.remove('pmd-dashboard-dragging')
-            self.onSortWidgets()
         }
 
         this.$el.on('mousedown.nativeSortable touchstart.nativeSortable', '.widget-item-action .handle, .handle', function (event) {
@@ -306,24 +339,13 @@
             if (!$col.length) return
 
             event.preventDefault()
-            document.body.classList.add('pmd-dashboard-dragging')
-
             var rect = $col.get(0).getBoundingClientRect()
-            offsetX = e.clientX - rect.left
-            offsetY = e.clientY - rect.top
-
-            $placeholder = $('<div class="col pmd-dashboard-widget-placeholder"></div>').height(rect.height)
-            $col.after($placeholder)
-
-            $dragCol = $col
-            $dragCol.addClass('pmd-dashboard-widget-dragging').css({
-                position: 'fixed',
-                width: rect.width + 'px',
-                left: rect.left + 'px',
-                top: rect.top + 'px',
-                zIndex: 9999,
-                pointerEvents: 'none'
-            })
+            grabOffsetX = e.clientX - rect.left
+            grabOffsetY = e.clientY - rect.top
+            pointerDown = { x: e.clientX, y: e.clientY }
+            pendingCol = $col
+            pendingRect = rect
+            dragActivated = false
 
             $(document)
                 .on('mousemove.pmdPointerSort touchmove.pmdPointerSort', onMove)
