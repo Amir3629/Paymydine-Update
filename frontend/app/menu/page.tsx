@@ -9,6 +9,7 @@ import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
 import { Logo } from "@/components/logo";
+import { PmdPlatformLogo } from "@/components/pmd-platform-logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
 import { FoodAttributeTags } from "@/components/food-attribute-tags";
@@ -3149,6 +3150,9 @@ case "cod":
                   Continue ordering
                 </button>
               </div>}
+              <div className="flex justify-center pt-1">
+                <PmdPlatformLogo imgClassName="max-h-7 max-w-[108px] opacity-80" />
+              </div>
               {checkoutStep === "paid" && (
                 <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
               )}

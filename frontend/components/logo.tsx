@@ -18,6 +18,7 @@ import { EnvironmentConfig } from '@/lib/environment-config';
 import { buildTablePath } from '@/lib/table-url';
 import { stickySearch } from '@/lib/sticky-query';
 import { getHomeHrefFallback } from '@/lib/table-home-util';
+import { PmdPlatformLogo } from '@/components/pmd-platform-logo';
 
 type SettingsResponse = {
   success?: boolean;
@@ -208,6 +209,11 @@ function LogoContent({ className, tableNumber }: { className?: string, tableNumb
           </Link>
         )}
       </div>
+      {(isMainHomePage || isTableHomePage) && (
+        <div className="absolute top-[4.35rem] md:top-[4.55rem] left-1/2 -translate-x-[225px] md:-translate-x-[245px] flex h-10 items-center justify-center">
+          <PmdPlatformLogo imgClassName="max-h-7 max-w-[92px] sm:max-h-8 sm:max-w-[118px]" />
+        </div>
+      )}
       <div
         className={cn(
           "absolute",
