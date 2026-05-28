@@ -279,6 +279,7 @@
         var pendingRect = null
         var originalWidth = 0
         var originalHeight = 0
+        var $dragPreview = null
 
         function debugLog(payload) {
             if (!window.PMDDashboardDragDebug || !window.PMDDashboardDragDebug.enabled) return
@@ -300,7 +301,9 @@
                     .css({ width: originalWidth + 'px', height: originalHeight + 'px' })
                 pendingCol.after($placeholder)
                 $dragCol = pendingCol
-                $dragCol.addClass('pmd-dashboard-widget-dragging').css({
+
+                $dragPreview = $($dragCol.get(0).cloneNode(true))
+                $dragPreview.addClass('pmd-dashboard-widget-dragging').css({
                     position: 'fixed',
                     width: originalWidth + 'px',
                     minHeight: originalHeight + 'px',
@@ -311,8 +314,11 @@
                     boxSizing: 'border-box',
                     transform: 'none',
                     transition: 'none',
-                    pointerEvents: 'none'
+                    pointerEvents: 'none',
+                    opacity: 0.96
                 })
+                $('body').append($dragPreview)
+                $dragCol.css('visibility', 'hidden')
                 debugLog({
                     phase: 'activate',
                     rectLeft: pendingRect.left,
@@ -323,10 +329,10 @@
                     firstTop: (e.clientY - grabOffsetY)
                 })
             }
-            if (!$dragCol || !dragActivated) return
+            if (!$dragCol || !$dragPreview || !dragActivated) return
             var nextLeft = e.clientX - grabOffsetX
             var nextTop = e.clientY - grabOffsetY
-            $dragCol.css({ left: nextLeft + 'px', top: nextTop + 'px' })
+            $dragPreview.css({ left: nextLeft + 'px', top: nextTop + 'px' })
             debugLog({ phase: 'move', left: nextLeft, top: nextTop })
 
             var $target = $(document.elementFromPoint(e.clientX, e.clientY)).closest('#' + $sortableContainer.attr('id') + ' > .col')
@@ -337,16 +343,19 @@
             } else {
                 $target.before($placeholder)
             }
+            debugLog({ phase: 'placeholder', index: $placeholder.index() })
         }
 
         function onUp() {
             if (dragActivated && $dragCol && $placeholder) {
-                $dragCol.removeClass('pmd-dashboard-widget-dragging').removeAttr('style')
+                $dragCol.css('visibility', '')
                 $placeholder.replaceWith($dragCol)
                 self.onSortWidgets()
             }
+            if ($dragPreview) $dragPreview.remove()
             if ($placeholder) $placeholder.remove()
             $placeholder = null
+            $dragPreview = null
             $dragCol = null
             pendingCol = null
             pendingRect = null
@@ -383,6 +392,9 @@
             $(document)
                 .on('mousemove.pmdPointerSort touchmove.pmdPointerSort', onMove)
                 .on('mouseup.pmdPointerSort touchend.pmdPointerSort touchcancel.pmdPointerSort', onUp)
+                .on('keydown.pmdPointerSort', function (keyEvent) {
+                    if (keyEvent.key === 'Escape') onUp()
+                })
         })
 
         this._nativeSortableBound = true
