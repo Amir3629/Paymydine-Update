@@ -1,6 +1,6 @@
 <div class="sidebar" role="navigation">
     <div id="navSidebar" class="nav-sidebar">
-        <div class="sidebar-mobile-brand d-md-none">
+        <div class="pmd-sidebar-brand sidebar-mobile-brand">
             <a class="logo" href="{{ admin_url('dashboard') }}" aria-label="Dashboard">
                 <i class="logo-svg"></i>
             </a>
@@ -15,6 +15,7 @@
     <!-- HEADER_RUNTIME_HOTFIX_V4_START -->
 <script>
 (function () {
+  if (document.body && document.body.classList.contains('pmd-admin-theme-v1')) return;
   function setImp(el, prop, value) {
     if (!el) return;
     el.style.setProperty(prop, value, 'important');

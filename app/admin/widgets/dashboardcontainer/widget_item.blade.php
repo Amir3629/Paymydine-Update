@@ -1,7 +1,12 @@
 <div
     class="col col-sm-{{ $widget->getWidth() }} my-3"
 >
-    <div class="widget-item card {{ $widget->getCssClass() }} @if(strpos($widgetAlias, 'stat_') === 0 || strpos($widgetAlias, 'chart_') === 0) no-padding @else p-3 @endif shadow-sm">
+    @php
+        $rootCss = trim((string) $widget->getCssClass());
+        $rootCss = preg_replace('/\b(card|bg-light|shadow-sm|p-3|no-padding)\b/', '', $rootCss);
+        $rootCss = preg_replace('/\s+/', ' ', trim((string) $rootCss));
+    @endphp
+    <div class="widget-item pmd-dashboard-widget-root {{ $rootCss }}">
         <div class="widget-item-action">
             <a class="btn handle pull-left"><i class="fa fa-arrows-alt"></i></a>
             @if ($this->canManage)
