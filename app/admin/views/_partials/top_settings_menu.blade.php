@@ -2,7 +2,7 @@
     $updatesCount = $item->unreadCount();
     $hasSettingsError = count(array_filter(Session::get('settings.errors', [])))
 @endphp
-<li class="nav-item dropdown">
+<li class="nav-item dropdown pmd-topbar-settings-item">
     <span title="Settings" class="media-toolbar-tooltip-wrap">
     <a class="nav-link" href="" data-bs-toggle="dropdown" aria-label="Settings">
         <i class="fa fa-gear" role="button"></i>

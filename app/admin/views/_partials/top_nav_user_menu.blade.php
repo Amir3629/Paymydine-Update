@@ -7,7 +7,7 @@
         ? asset('assets/media/uploads/'.ltrim($faviconPath, '/'))
         : $defaultAvatar;
 @endphp
-<li class="nav-item dropdown">
+<li class="nav-item dropdown pmd-topbar-user-item">
     <a href="#" class="nav-link" data-bs-toggle="dropdown" title="{{ $userPanel->getUserName() }} - Account" aria-label="{{ $userPanel->getUserName() }} - Account">
         <img
             class="rounded-circle navbar-profile-avatar"

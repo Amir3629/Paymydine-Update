@@ -1,6 +1,6 @@
 <div class="sidebar" role="navigation">
     <div id="navSidebar" class="nav-sidebar">
-        <div class="sidebar-mobile-brand d-md-none">
+        <div class="pmd-sidebar-brand sidebar-mobile-brand">
             <a class="logo" href="{{ admin_url('dashboard') }}" aria-label="Dashboard">
                 <i class="logo-svg"></i>
             </a>
@@ -12,9 +12,30 @@
                 'class' => 'nav',
             ],
         ]) !!}
+        @php
+            $pmdUserPanel = \Admin\Classes\UserPanel::forUser();
+            $pmdFaviconPath = setting('favicon_logo');
+            $pmdDefaultAvatar = $pmdUserPanel->getAvatarUrl().'&s=64';
+            $pmdProfileImage = $pmdFaviconPath
+                ? asset('assets/media/uploads/'.ltrim($pmdFaviconPath, '/'))
+                : $pmdDefaultAvatar;
+        @endphp
+        <div class="pmd-sidebar-profile-card" aria-label="Admin profile" style="display:none;">
+            <a class="pmd-sidebar-profile-card__identity" href="{{ admin_url('staffs/account') }}">
+                <img src="{{ $pmdProfileImage }}" alt="{{ $pmdUserPanel->getUserName() }}">
+                <span>
+                    <strong>{{ $pmdUserPanel->getUserName() }}</strong>
+                    <small>{{ $pmdUserPanel->getRoleName() ?: 'Administrator' }}</small>
+                </span>
+            </a>
+            <a class="pmd-sidebar-profile-card__logout" href="{{ admin_url('logout') }}" aria-label="Logout" title="Logout">
+                <i class="fa fa-power-off" aria-hidden="true"></i>
+            </a>
+        </div>
     <!-- HEADER_RUNTIME_HOTFIX_V4_START -->
 <script>
 (function () {
+  if (document.body && document.body.classList.contains('pmd-admin-theme-v1')) return;
   function setImp(el, prop, value) {
     if (!el) return;
     el.style.setProperty(prop, value, 'important');

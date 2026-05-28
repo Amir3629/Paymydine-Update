@@ -27,6 +27,18 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 650,
+                easing: 'easeOutQuart'
+            },
+            transitions: {
+                active: {
+                    animation: {
+                        duration: 650,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            }
         }
     }
 
@@ -39,13 +51,31 @@
                     boxWidth: 14,
                     boxHeight: 14,
                     padding: 16,
+                    color: '#6F7C90',
                 },
+            },
+            tooltip: {
+                backgroundColor: '#FFFFFF',
+                titleColor: '#152033',
+                bodyColor: '#152033',
+                borderColor: '#E8E1D7',
+                borderWidth: 1,
+                cornerRadius: 10,
+                padding: 10,
+                displayColors: true,
+                boxPadding: 4,
             },
         },
         scales: {
             y: {
                 beginAtZero: true,
+                grid: {
+                    color: 'rgba(21, 32, 51, 0.04)',
+                    lineWidth: 1,
+                    drawBorder: false,
+                },
                 ticks: {
+                    color: '#6F7C90',
                     callback: function (value) {
                         if (value % 1 === 0) {
                             return value;
@@ -55,8 +85,13 @@
             },
             x: {
                 type: 'category',
-                gridLines: {
-                    display: false
+                grid: {
+                    display: false,
+                    color: 'rgba(21, 32, 51, 0.00)',
+                    drawBorder: false,
+                },
+                ticks: {
+                    color: '#6F7C90',
                 }
             }
         }
@@ -273,9 +308,17 @@
                 var pointDate = new Date(point.x)
                 return pointDate >= startDate && pointDate <= endDate
             })
+            var allZero = dataset.data.length > 0 && dataset.data.every(function (point) {
+                return Number(point.y || 0) === 0
+            })
+            if (allZero) {
+                dataset.pointRadius = 2.5
+                dataset.pointHoverRadius = 4
+                dataset.pointBorderWidth = 1.5
+            }
         })
 
-        this.chartJs.update('none') // Update without animation for smooth sliding
+        this.chartJs.update() // Smooth animated transition for range/date updates
     }
 
     ChartControl.prototype.unbind = function () {

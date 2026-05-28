@@ -238,6 +238,13 @@ try {
                     <span class="fa fa-bars"></span>
                 </button>
 
+                @if(request()->is('admin/settings*'))
+                    <label class="pmd-header-search" for="pmd-header-settings-search" aria-label="Search settings">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                        <input id="pmd-header-settings-search" type="search" placeholder="Search settings..." autocomplete="off" data-pmd-header-settings-search>
+                    </label>
+                @endif
+
                 @if(isset($this->widgets['mainmenu']))
                     {!! $this->widgets['mainmenu']->render() !!}
                 @endif
