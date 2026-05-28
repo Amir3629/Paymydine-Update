@@ -1340,6 +1340,34 @@ body.pmd-admin-theme-v1 [data-control="dashboard-container"] #dashboardcontainer
   border-radius: 14px;
   background: rgba(248, 242, 234, 0.22);
 }
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-item,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .pmd-dashboard-widget-root,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .dashboard-widget,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .control-widget,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-cache,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-charts,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-news {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview {
+  pointer-events: none !important;
+  z-index: 9999 !important;
+}
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .card-counter {
+  background: #FAF9F6 !important;
+  border: 1px solid #E8E1D7 !important;
+  border-radius: 16px !important;
+}
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .stat-icon,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .stat-icon.text-white {
+  background: #F8F2EA !important;
+  border: 1px solid #D8B982 !important;
+  color: #0F1B2A !important;
+}
 
 /* Dashboard toolbar buttons: real DOM selectors */
 body.pmd-admin-theme-v1 [data-control="dashboard-container"] .toolbar-action.pmd-toolbar #edit-layout-toggle,

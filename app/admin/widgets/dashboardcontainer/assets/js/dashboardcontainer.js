@@ -303,6 +303,9 @@
                 $dragCol = pendingCol
 
                 $dragPreview = $($dragCol.get(0).cloneNode(true))
+                $dragPreview.addClass('pmd-dashboard-drag-preview pmd-dashboard-widget-preview')
+                $dragPreview.find('.widget-item').removeClass('card bg-light shadow-sm p-3 no-padding').addClass('pmd-dashboard-widget-root')
+                $dragPreview.removeClass('card bg-light shadow-sm p-3 no-padding')
                 $dragPreview.addClass('pmd-dashboard-widget-dragging').css({
                     position: 'fixed',
                     width: originalWidth + 'px',
