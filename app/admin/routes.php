@@ -7157,6 +7157,301 @@ Route::group([
     'prefix' => 'api/v1',
     'middleware' => ['web', \App\Http\Middleware\DetectTenant::class, \App\Http\Middleware\TenantDatabaseMiddleware::class],
 ], function () {
+    $ensureTableOrderDraftTable = function () {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_table_order_drafts')) {
+            \Illuminate\Support\Facades\Schema::create('pmd_table_order_drafts', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->increments('id');
+                $table->string('table_id', 64)->nullable()->index();
+                $table->string('table_no', 64)->nullable()->index();
+                $table->string('table_name', 191)->nullable();
+                $table->string('qr', 191)->nullable()->index();
+                $table->string('status', 32)->default('draft')->index();
+                $table->unsignedInteger('order_id')->nullable()->index();
+                $table->longText('payload')->nullable();
+                $table->timestamps();
+            });
+        }
+    };
+
+    $resolveTableDraftContext = function (\Illuminate\Http\Request $request) {
+        $tableId = trim((string)$request->input('table_id', $request->query('table_id', '')));
+        $tableNo = trim((string)$request->input('table_no', $request->query('table_no', '')));
+        $qr = trim((string)$request->input('qr', $request->query('qr', '')));
+        $table = null;
+        foreach (array_values(array_unique(array_filter([$tableId, $tableNo], fn($v) => $v !== ''))) as $candidate) {
+            $table = \Illuminate\Support\Facades\DB::table('tables')
+                ->where('table_id', $candidate)
+                ->orWhere('table_no', $candidate)
+                ->first();
+            if ($table) break;
+        }
+        if (!$table && $qr !== '') {
+            $table = \Illuminate\Support\Facades\DB::table('tables')->where('qr_code', $qr)->first();
+        }
+        if ($table) {
+            $tableId = (string)($table->table_id ?? $tableId);
+            $tableNo = (string)($table->table_no ?? $tableNo);
+            if ($qr === '' && !empty($table->qr_code)) $qr = (string)$table->qr_code;
+        }
+        return [
+            'table' => $table,
+            'table_id' => $tableId,
+            'table_no' => $tableNo,
+            'table_name' => $table ? (string)($table->table_name ?? '') : '',
+            'qr' => $qr,
+            'candidates' => array_values(array_unique(array_filter([
+                $table ? (string)$table->table_id : null,
+                $table ? (string)$table->table_no : null,
+                $tableId,
+                $tableNo,
+            ], fn($v) => $v !== null && $v !== ''))),
+        ];
+    };
+
+    $normalizeDraftItems = function (array $items): array {
+        $normalized = [];
+        foreach ($items as $index => $item) {
+            $menuId = (int)($item['menu_id'] ?? $item['id'] ?? 0);
+            $qty = max(1, (int)($item['quantity'] ?? 1));
+            $price = max(0, (float)($item['price'] ?? 0));
+            if ($menuId <= 0) continue;
+            $menu = \Illuminate\Support\Facades\DB::table('menus')->where('menu_id', $menuId)->where('menu_status', 1)->first();
+            if (!$menu) continue;
+            $name = trim((string)($item['name'] ?? '')) ?: (string)($menu->menu_name ?? ('Item '.($index + 1)));
+            $normalized[] = [
+                'id' => (int)round(microtime(true) * 1000) + $index,
+                'menu_id' => $menuId,
+                'name' => $name,
+                'quantity' => $qty,
+                'price' => $price > 0 ? $price : (float)($menu->menu_price ?? 0),
+                'subtotal' => round(($price > 0 ? $price : (float)($menu->menu_price ?? 0)) * $qty, 4),
+                'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
+                'guest_session_id' => trim((string)($item['guest_session_id'] ?? '')),
+            ];
+        }
+        return $normalized;
+    };
+
+    $formatDraftResponse = function ($draft = null, ?object $order = null, array $context = []) {
+        $items = [];
+        $status = 'empty';
+        $orderId = null;
+        $payment = null;
+        $settledAmount = 0.0;
+        $total = 0.0;
+        if ($draft) {
+            $payload = json_decode((string)($draft->payload ?? '[]'), true);
+            $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+            $status = (string)($draft->status ?? 'draft');
+            $orderId = $draft->order_id ? (int)$draft->order_id : null;
+        }
+        if ($order) {
+            $status = ((float)($order->settled_amount ?? 0) > 0) ? 'partially_paid' : 'submitted_unpaid';
+            $orderId = (int)$order->order_id;
+            $payment = (string)($order->payment ?? '');
+            $settledAmount = (float)($order->settled_amount ?? 0);
+            $total = (float)($order->order_total ?? 0);
+            $items = \Illuminate\Support\Facades\DB::table('order_menus')
+                ->where('order_id', $orderId)
+                ->orderBy('order_menu_id')
+                ->get(['order_menu_id','menu_id','name','quantity','price','subtotal'])
+                ->map(fn($row) => [
+                    'order_menu_id' => (int)($row->order_menu_id ?? 0),
+                    'menu_id' => (int)($row->menu_id ?? 0),
+                    'name' => (string)($row->name ?? ''),
+                    'quantity' => (float)($row->quantity ?? 0),
+                    'price' => (float)($row->price ?? 0),
+                    'subtotal' => (float)($row->subtotal ?? 0),
+                    'paid_quantity' => 0,
+                    'unpaid_quantity' => (float)($row->quantity ?? 0),
+                ])->values()->all();
+            if ($total <= 0) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? 0), $items));
+            if ($total > 0 && $settledAmount >= $total - 0.0001) $status = 'paid';
+        }
+        if (!$order) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+        $groups = [];
+        foreach ($items as $item) {
+            $guest = (string)($item['guest_session_id'] ?? 'table');
+            if (!isset($groups[$guest])) $groups[$guest] = ['guest_session_id' => $guest === 'table' ? null : $guest, 'items' => [], 'subtotal' => 0.0];
+            $groups[$guest]['items'][] = $item;
+            $groups[$guest]['subtotal'] += (float)($item['subtotal'] ?? 0);
+        }
+        $remaining = max(0, $total - $settledAmount);
+        return response()->json([
+            'success' => true,
+            'status' => $status,
+            'draft_id' => $draft ? (int)$draft->id : null,
+            'order_id' => $orderId,
+            'table_id' => $context['table_id'] ?? ($draft->table_id ?? null),
+            'table_no' => $context['table_no'] ?? ($draft->table_no ?? null),
+            'table_name' => $context['table_name'] ?? ($draft->table_name ?? null),
+            'items' => array_values($items),
+            'groups' => array_values($groups),
+            'totals' => ['subtotal' => round($total, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
+            'settlement' => ['orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4), 'settlementStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid')],
+            'payment' => $payment,
+        ]);
+    };
+
+    $findActiveSubmittedTableOrder = function (array $context) {
+        $candidates = $context['candidates'] ?? [];
+        if (empty($candidates)) return null;
+        $query = \Illuminate\Support\Facades\DB::table('orders')
+            ->where('payment', 'qr_pay_later')
+            ->whereIn('order_type', $candidates)
+            ->orderByDesc('order_id');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) {
+            $query->where(function ($q) {
+                $q->whereNull('settlement_status')->orWhereNotIn('settlement_status', ['paid','cancelled','failed']);
+            });
+        }
+        return $query->first();
+    };
+
+    Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatDraftResponse, $findActiveSubmittedTableOrder) {
+        $ensureTableOrderDraftTable();
+        $context = $resolveTableDraftContext($request);
+        if (($context['table_id'] ?? '') === '' && ($context['table_no'] ?? '') === '' && ($context['qr'] ?? '') === '') {
+            return response()->json(['success' => false, 'error' => 'table_id, table_no, or qr is required'], 422);
+        }
+        $draft = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')
+            ->where('status', 'draft')
+            ->where(function ($q) use ($context) {
+                if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
+                if (($context['table_no'] ?? '') !== '') $q->orWhere('table_no', $context['table_no']);
+                if (($context['qr'] ?? '') !== '') $q->orWhere('qr', $context['qr']);
+            })
+            ->orderByDesc('id')
+            ->first();
+        if ($draft) {
+            \Log::info('PMD_TABLE_DRAFT_LOADED', ['draft_id' => (int)$draft->id, 'table_id' => $context['table_id'] ?? null]);
+            return $formatDraftResponse($draft, null, $context);
+        }
+        $order = $findActiveSubmittedTableOrder($context);
+        return $formatDraftResponse(null, $order, $context);
+    });
+
+    Route::post('/table-order-draft/confirm-items', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $normalizeDraftItems, $formatDraftResponse) {
+        $ensureTableOrderDraftTable();
+        $request->validate(['guest_session_id' => 'required|string|max:191', 'items' => 'required|array|min:1']);
+        $context = $resolveTableDraftContext($request);
+        $items = $normalizeDraftItems((array)$request->input('items', []));
+        if (empty($items)) return response()->json(['success' => false, 'error' => 'No valid items to confirm'], 422);
+        $guest = trim((string)$request->input('guest_session_id'));
+        foreach ($items as &$item) $item['guest_session_id'] = $guest;
+        unset($item);
+        $draft = null;
+        \Illuminate\Support\Facades\DB::transaction(function () use (&$draft, $context, $items) {
+            $draft = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')
+                ->where('status', 'draft')
+                ->where(function ($q) use ($context) {
+                    if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
+                    if (($context['table_no'] ?? '') !== '') $q->orWhere('table_no', $context['table_no']);
+                    if (($context['qr'] ?? '') !== '') $q->orWhere('qr', $context['qr']);
+                })
+                ->lockForUpdate()
+                ->orderByDesc('id')
+                ->first();
+            $payload = $draft ? (json_decode((string)$draft->payload, true) ?: []) : [];
+            $existing = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+            $payload['items'] = array_values(array_merge($existing, $items));
+            if ($draft) {
+                \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update(['payload' => json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), 'updated_at' => now()]);
+            } else {
+                $id = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->insertGetId([
+                    'table_id' => $context['table_id'] ?: null,
+                    'table_no' => $context['table_no'] ?: null,
+                    'table_name' => $context['table_name'] ?: null,
+                    'qr' => $context['qr'] ?: null,
+                    'status' => 'draft',
+                    'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $draft = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $id)->first();
+            }
+        });
+        $draft = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $draft->id)->first();
+        \Log::info('PMD_TABLE_DRAFT_CONFIRMED_ITEMS', ['draft_id' => (int)$draft->id, 'count' => count($items)]);
+        return $formatDraftResponse($draft, null, $context);
+    });
+
+    Route::post('/table-order-draft/submit', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatDraftResponse, $findActiveSubmittedTableOrder) {
+        $ensureTableOrderDraftTable();
+        $context = $resolveTableDraftContext($request);
+        $draftId = (int)$request->input('draft_id', 0);
+        $orderId = null;
+        $draft = null;
+        \Illuminate\Support\Facades\DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request) {
+            $query = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('status', 'draft');
+            if ($draftId > 0) $query->where('id', $draftId); else $query->where(function ($q) use ($context) {
+                if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
+                if (($context['table_no'] ?? '') !== '') $q->orWhere('table_no', $context['table_no']);
+                if (($context['qr'] ?? '') !== '') $q->orWhere('qr', $context['qr']);
+            });
+            $draft = $query->lockForUpdate()->orderByDesc('id')->first();
+            if (!$draft) return;
+            $payload = json_decode((string)$draft->payload, true) ?: [];
+            $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+            if (empty($items)) return;
+            $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+            $orderNumber = (int)\Illuminate\Support\Facades\DB::table('orders')->max('order_id') + 1;
+            $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
+            $insert = [
+                'order_id' => $orderNumber,
+                'first_name' => 'Table',
+                'last_name' => 'Customer',
+                'email' => '',
+                'telephone' => '',
+                'location_id' => (int)(($context['table']->location_id ?? null) ?: $request->input('location_id', 1)),
+                'order_type' => (string)(($context['table_id'] ?? '') ?: ($context['table_no'] ?? 'table')),
+                'order_total' => round($total, 4),
+                'order_date' => now()->format('Y-m-d'),
+                'order_time' => now()->format('H:i:s'),
+                'status_id' => 1,
+                'comment' => $comment,
+                'processed' => 1,
+                'payment' => 'qr_pay_later',
+                'total_items' => array_sum(array_map(fn($i) => (int)($i['quantity'] ?? 1), $items)),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent() ?? 'API Client',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) $insert['settlement_status'] = 'unpaid';
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settled_amount')) $insert['settled_amount'] = 0;
+            $orderId = \Illuminate\Support\Facades\DB::table('orders')->insertGetId($insert);
+            foreach ($items as $item) {
+                \Illuminate\Support\Facades\DB::table('order_menus')->insert([
+                    'order_id' => $orderId,
+                    'menu_id' => (int)($item['menu_id'] ?? 0),
+                    'name' => (string)($item['name'] ?? 'Item'),
+                    'quantity' => max(1, (int)($item['quantity'] ?? 1)),
+                    'price' => (float)($item['price'] ?? 0),
+                    'subtotal' => (float)($item['subtotal'] ?? 0),
+                    'comment' => '[guest_session:'.(string)($item['guest_session_id'] ?? '').']',
+                    'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
+                ]);
+            }
+            \Illuminate\Support\Facades\DB::table('order_totals')->insert([
+                ['order_id' => $orderId, 'code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($total, 4), 'priority' => 1, 'is_summable' => 1],
+                ['order_id' => $orderId, 'code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0],
+            ]);
+            \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update(['status' => 'submitted', 'order_id' => $orderId, 'updated_at' => now()]);
+            try {
+                \Illuminate\Support\Facades\DB::table('notifications')->insert(['type' => 'order', 'title' => 'New table order #'.$orderId, 'table_id' => (int)($context['table_id'] ?: 0), 'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')), 'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id]), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
+            } catch (\Throwable $ignored) {}
+        });
+        if (!$orderId) {
+            $existing = $findActiveSubmittedTableOrder($context);
+            if ($existing) return $formatDraftResponse(null, $existing, $context);
+            return response()->json(['success' => false, 'error' => 'No draft items to submit'], 422);
+        }
+        $order = \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->first();
+        \Log::info('PMD_TABLE_DRAFT_SUBMITTED', ['draft_id' => $draft ? (int)$draft->id : null, 'order_id' => $orderId]);
+        return $formatDraftResponse(null, $order, $context);
+    });
+
     Route::get('/orders/pending-qr', function (\Illuminate\Http\Request $request) {
         $tableId   = trim((string)$request->get('table_id', ''));
         $tableNo   = trim((string)$request->get('table_no', ''));

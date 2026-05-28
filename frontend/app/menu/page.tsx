@@ -28,7 +28,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { cn, truncateText } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiClient, type PaymentMethod } from "@/lib/api-client";
+import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
 import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
@@ -773,6 +773,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
   )
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
+  const [draftLoading, setDraftLoading] = useState(false)
+  const [submitDraftLoading, setSubmitDraftLoading] = useState(false)
 
   const [stripeConfig, setStripeConfig] = useState<{
     publishableKey: string
@@ -1049,6 +1052,123 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
   }
+  const getDraftContext = () => ({
+    table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+    table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+    qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("qr") : null),
+  })
+
+  const refreshTableDraft = async () => {
+    const context = getDraftContext()
+    if (!context.table_id && !context.table_no && !context.qr) return null
+    setDraftLoading(true)
+    try {
+      const latest = await apiClient.getTableOrderDraft(context)
+      if (latest?.success) {
+        setTableDraft(latest)
+        console.info("PMD_TABLE_DRAFT_LOADED", { status: latest.status, draft_id: latest.draft_id ?? null, order_id: latest.order_id ?? null })
+        if (latest.order_id && latest.status && latest.status !== "draft" && latest.status !== "empty") {
+          setSubmittedSnapshot((prev: any) => prev || {
+            orderId: latest.order_id,
+            status: latest.status,
+            paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
+            tableNumber: latest.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+            total: latest.totals?.total || 0,
+            orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
+            settledAmount: latest.totals?.settledAmount || 0,
+            remainingAmount: latest.totals?.remainingAmount || latest.totals?.total || 0,
+            settlementStatus: latest.settlement?.settlementStatus || "unpaid",
+            submittedItems: latest.items || [],
+            payment: latest.payment || "qr_pay_later",
+          })
+          console.info("PMD_TABLE_ORDER_PAYMENT_READY", { order_id: latest.order_id, status: latest.status })
+        }
+      }
+      return latest
+    } finally {
+      setDraftLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    void refreshTableDraft()
+    const timer = window.setInterval(() => { void refreshTableDraft() }, 12000)
+    const onFocus = () => { void refreshTableDraft() }
+    window.addEventListener("focus", onFocus)
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", onFocus) }
+  }, [isOpen, tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code])
+
+  const buildPersonalDraftItems = () => allItems.map((cartItem) => ({
+    menu_id: Number((cartItem.item as any)?.id || (cartItem.item as any)?.menu_id || 0),
+    name: String((cartItem.item as any)?.name || (cartItem.item as any)?.title || "Item"),
+    quantity: Number(cartItem.quantity || 1),
+    price: Number(adjustPriceForVAT(cartItem.item.price || 0)),
+    subtotal: Number(adjustPriceForVAT(cartItem.item.price || 0)) * Number(cartItem.quantity || 1),
+    options: Object.fromEntries(
+      Object.entries(selectedOptions[(cartItem.item as any)?.id] || {})
+        .map(([key, value]) => [String(key), String(value ?? "")])
+        .filter(([, value]) => value !== "")
+    ),
+  })).filter((item) => item.menu_id > 0 && item.quantity > 0)
+
+  const handleConfirmMyItems = async () => {
+    const draftItems = buildPersonalDraftItems()
+    if (draftItems.length === 0) {
+      toast({ title: "No items selected", description: "Add items to your personal cart before confirming.", variant: "destructive" })
+      return
+    }
+    setIsLoading(true)
+    try {
+      const result = await apiClient.confirmTableDraftItems({
+        ...getDraftContext(),
+        guest_session_id: ensureGuestSession(),
+        items: draftItems,
+      })
+      setTableDraft(result)
+      clearCart()
+      console.info("PMD_TABLE_DRAFT_CONFIRMED_ITEMS", { draft_id: result.draft_id ?? null, count: draftItems.length })
+      toast({ title: "Items confirmed", description: "Your items were added to the table order. Submit the table order when everyone is ready." })
+      await refreshTableDraft()
+      onOpenOrderUpdate?.(result)
+    } catch (error) {
+      toast({ title: "Could not confirm items", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSubmitTableDraft = async () => {
+    if (!tableDraft?.draft_id && tableDraft?.status !== "draft") return
+    setSubmitDraftLoading(true)
+    try {
+      const result = await apiClient.submitTableDraft({ ...getDraftContext(), draft_id: tableDraft?.draft_id ?? null, guest_session_id: ensureGuestSession() })
+      setTableDraft(result)
+      setSubmittedSnapshot({
+        orderId: result.order_id,
+        status: result.status || "submitted_unpaid",
+        paymentStatus: result.status === "paid" ? "paid" : "unpaid",
+        tableNumber: result.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+        total: result.totals?.total || 0,
+        orderTotal: result.totals?.orderTotal || result.totals?.total || 0,
+        settledAmount: result.totals?.settledAmount || 0,
+        remainingAmount: result.totals?.remainingAmount || result.totals?.total || 0,
+        settlementStatus: result.settlement?.settlementStatus || "unpaid",
+        submittedItems: result.items || [],
+        payment: result.payment || "qr_pay_later",
+      })
+      setCheckoutStep("submitted")
+      console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
+      toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
+      onOpenOrderUpdate?.({ orderId: result.order_id, total: result.totals?.total || 0, submittedItems: result.items || [] })
+    } catch (error) {
+      await refreshTableDraft()
+      toast({ title: "Could not submit table order", description: error instanceof Error ? error.message : "Please refresh and try again.", variant: "destructive" })
+    } finally {
+      setSubmitDraftLoading(false)
+    }
+  }
+
   const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
     try {
       const sessionKey = buildOpenOrderStorageKeys().sessionKey
@@ -1193,7 +1313,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         })
         return
       }
-      const shouldUsePayExisting = !!(checkoutStep === "payment" && pendingSummary && existingOrderId && paymentOrderIdCandidate && Number(existingOrderId) === Number(paymentOrderIdCandidate))
+      const isQrPayLaterSubmittedOrder = String(tableDraft?.payment || submittedSnapshot?.payment || "").toLowerCase() === "qr_pay_later"
+      const shouldUsePayExisting = !!(checkoutStep === "payment" && paymentOrderIdCandidate && (pendingSummary || isQrPayLaterSubmittedOrder) && (!existingOrderId || Number(existingOrderId) === Number(paymentOrderIdCandidate)))
       if (checkoutStep === "payment" && paymentOrderIdCandidate && !shouldUsePayExisting) {
         try {
           const started = await apiClient.startExistingOrderPayment({
@@ -2824,8 +2945,53 @@ case "cod":
             )}
           </div>}
 
-          
-{checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Selected items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>}
+
+          {tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && (
+            <div className="surface-sub rounded-2xl p-3 space-y-3" style={{ color: "var(--theme-text-primary)" }}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold">{tableDraft.status === "draft" ? "Table Order Summary" : "Submitted Table Order"}</h3>
+                  <p className="text-xs muted">{tableDraft.table_name || tableInfo?.table_name || (tableDraft.table_no || tableInfo?.table_no ? `Table ${tableDraft.table_no || tableInfo?.table_no}` : "Table")}</p>
+                </div>
+                <span className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                  {tableDraft.status === "draft" ? "Draft / Not sent to kitchen" : tableDraft.status === "paid" ? "Paid" : tableDraft.status === "partially_paid" ? "Partially paid" : "Submitted / Sent to kitchen"}
+                </span>
+              </div>
+              <div className="space-y-3 max-h-56 overflow-y-auto">
+                {(tableDraft.groups && tableDraft.groups.length > 0 ? tableDraft.groups : [{ guest_session_id: null, items: tableDraft.items || [], subtotal: tableDraft.totals?.subtotal || 0 }]).map((group: any, groupIndex: number) => (
+                  <div key={`${group.guest_session_id || 'table'}-${groupIndex}`} className="rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)" }}>
+                    <div className="mb-2 flex items-center justify-between text-xs font-semibold">
+                      <span>{group.guest_session_id ? `Guest ${groupIndex + 1}` : "Table"}</span>
+                      <span>{formatCurrency(Number(group.subtotal || 0))}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {(group.items || []).map((item: any, idx: number) => (
+                        <div key={`${item.id || item.order_menu_id || item.menu_id}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                          <span className="truncate font-medium">{Number(item.quantity || 1)}x {String(item.name || `Item ${idx + 1}`)}</span>
+                          <span className="font-semibold">{formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
+                <span className="font-semibold">Order Total</span>
+                <span className="text-base font-bold">{formatCurrency(Number(tableDraft.totals?.total || 0))}</span>
+              </div>
+              {tableDraft.status === "draft" ? (
+                <button type="button" disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0} onClick={handleSubmitTableDraft} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>
+                  {submitDraftLoading ? "Submitting..." : "Submit Table Order"}
+                </button>
+              ) : tableDraft.order_id ? (
+                <button type="button" onClick={() => { setCheckoutStep("payment"); setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }) }} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>
+                  Pay
+                </button>
+              ) : null}
+            </div>
+          )}
+
+{checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Personal Cart</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>}
 
           {/* Totals */}
           {checkoutStep === "review" && <div className="surface-sub rounded-2xl p-3 space-y-1">
@@ -2864,12 +3030,12 @@ case "cod":
                 <button
                   type="button"
                   data-pmd-review-submit="true"
-                  aria-label="Submit order"
-                  disabled={isLoading}
-                  onClick={() => handlePayment(undefined, { method_code: "cod", provider_code: null })}
+                  aria-label="Confirm my items"
+                  disabled={isLoading || allItems.length === 0}
+                  onClick={handleConfirmMyItems}
                   className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
                 >
-                  {isLoading ? "Submitting..." : (submittedSnapshot ? "Add to order" : "Submit order")}
+                  {isLoading ? "Confirming..." : "Confirm My Items"}
                 </button>
 
                 <button
@@ -3848,6 +4014,7 @@ const EnhancedNoteDialog = ({
 
 // Create a component that uses useSearchParams
 function MenuContent() {
+  const searchParams = useSearchParams()
   const [isClient, setIsClient] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string>("All") // Initialize with "All"
@@ -3874,8 +4041,51 @@ function MenuContent() {
   const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
   const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
   const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
+  const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const shouldHideCartSheet = !!existingOrderId
+
+  useEffect(() => {
+    if (!tableInfo?.table_id && !tableInfo?.table_no) return
+    let cancelled = false
+    const loadSharedTableOrder = async () => {
+      const latest = await apiClient.getTableOrderDraft({
+        table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+        table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+        qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (searchParams?.get("qr") || null),
+      })
+      if (cancelled) return
+      if (latest?.success && latest.status && latest.status !== "empty") {
+        setSharedTableOrder(latest)
+        if (latest.order_id) {
+          setExistingOrderId(Number(latest.order_id))
+          setPendingSettlementSummary({
+            orderTotal: Number(latest.totals?.orderTotal || latest.totals?.total || 0),
+            settledAmount: Number(latest.totals?.settledAmount || 0),
+            remainingAmount: Number(latest.totals?.remainingAmount || latest.totals?.total || 0),
+          })
+          setLocalOpenOrder((prev: any) => prev || {
+            orderId: latest.order_id,
+            status: latest.status,
+            paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
+            tableNumber: latest.table_no || tableInfo?.table_no || null,
+            total: latest.totals?.total || 0,
+            orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
+            remainingAmount: latest.totals?.remainingAmount || 0,
+            settledAmount: latest.totals?.settledAmount || 0,
+            submittedItems: latest.items || [],
+            payment: latest.payment || "qr_pay_later",
+          })
+          setHasLocalOpenOrder(true)
+        }
+      } else {
+        setSharedTableOrder(null)
+      }
+    }
+    void loadSharedTableOrder()
+    const timer = window.setInterval(loadSharedTableOrder, 12000)
+    return () => { cancelled = true; window.clearInterval(timer) }
+  }, [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, searchParams])
 
   // close side cart for pending QR
   useEffect(() => {
@@ -3891,7 +4101,6 @@ function MenuContent() {
   }, [existingOrderId])
 
 
-  const searchParams = useSearchParams()
   const MENU_CACHE_TTL_MS = 5 * 60 * 1000
   const getMenuCacheKey = () => {
     if (typeof window === "undefined") return ""
@@ -4400,13 +4609,13 @@ useEffect(() => {
       <CartSheet />
       )}
       <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
-      {hasLocalOpenOrder && (
+      {(hasLocalOpenOrder || (sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty")) && (
         <button
           type="button"
-          aria-label={`My order ${localOpenOrder?.orderId ? `#${localOpenOrder.orderId}` : ""}`.trim()}
-          title={localOpenOrder?.orderId ? `My Order #${localOpenOrder.orderId}` : "My Order"}
+          aria-label={sharedTableOrder?.status === "draft" ? "Table draft order" : `My order ${localOpenOrder?.orderId ? `#${localOpenOrder.orderId}` : ""}`.trim()}
+          title={sharedTableOrder?.status === "draft" ? "Table Order Summary" : (localOpenOrder?.orderId ? `My Order #${localOpenOrder.orderId}` : "My Order")}
           onClick={() => {
-            setPaymentModalInitialStep('submitted')
+            setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : 'submitted')
             setPaymentModalOpen(true)
           }}
           className="fixed top-24 right-4 z-40 h-12 w-12 rounded-full shadow-xl border inline-flex items-center justify-center"
@@ -4432,14 +4641,21 @@ useEffect(() => {
         initialSubmittedOrder={localOpenOrder}
         initialCheckoutStep={paymentModalInitialStep}
         onOpenOrderUpdate={(snapshot) => {
+          if (snapshot?.status === "draft" || snapshot?.draft_id) {
+            setSharedTableOrder(snapshot)
+            return
+          }
           if (snapshot?.paymentStatus === "paid") {
             setHasLocalOpenOrder(false)
             setLocalOpenOrder(null)
+            setSharedTableOrder(null)
             return
           }
-          if (snapshot?.orderId) {
-            setLocalOpenOrder(snapshot)
+          if (snapshot?.orderId || snapshot?.order_id) {
+            const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+            setLocalOpenOrder(normalized)
             setHasLocalOpenOrder(true)
+            setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
           }
         }}
       />
