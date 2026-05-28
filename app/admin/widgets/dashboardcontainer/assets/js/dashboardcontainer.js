@@ -306,6 +306,7 @@
                 $dragPreview.addClass('pmd-dashboard-drag-preview pmd-dashboard-widget-preview')
                 $dragPreview.find('.widget-item').removeClass('card bg-light shadow-sm p-3 no-padding').addClass('pmd-dashboard-widget-root')
                 $dragPreview.removeClass('card bg-light shadow-sm p-3 no-padding')
+                $dragPreview.find('.card, .bg-light, .shadow-sm, .p-3, .no-padding').removeClass('card bg-light shadow-sm p-3 no-padding')
                 $dragPreview.addClass('pmd-dashboard-widget-dragging').css({
                     position: 'fixed',
                     width: originalWidth + 'px',

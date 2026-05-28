@@ -1347,20 +1347,18 @@ body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .dashboard-widget,
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .control-widget,
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-cache,
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-charts,
-body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-news {
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .widget-news,
+body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .card-counter {
   background: transparent !important;
   background-color: transparent !important;
+  background-image: none !important;
   border: 0 !important;
   box-shadow: none !important;
+  outline: 0 !important;
 }
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview {
   pointer-events: none !important;
   z-index: 9999 !important;
-}
-body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .card-counter {
-  background: #FAF9F6 !important;
-  border: 1px solid #E8E1D7 !important;
-  border-radius: 16px !important;
 }
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .stat-icon,
 body.pmd-admin-theme-v1 .pmd-dashboard-drag-preview .stat-icon.text-white {
