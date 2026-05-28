@@ -742,7 +742,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   useEffect(() => {
     const detectDarkTheme = () => {
       const themeName = document.documentElement.getAttribute('data-theme') || 'clean-light'
-      setIsDarkTheme(themeName === 'modern-dark' || themeName === 'gold-luxury')
+      setIsDarkTheme(themeName === 'modern-dark')
     }
 
     detectDarkTheme()
@@ -3462,7 +3462,7 @@ function ExpandingBottomToolbar({
         const themeColors = {
           'clean-light': 'rgba(250, 250, 250, 0.95)',
           'modern-dark': 'rgba(10, 14, 18, 0.95)',
-          'gold-luxury': 'rgba(15, 11, 5, 0.95)',
+          'gold-luxury': 'rgba(250, 249, 244, 0.96)',
           'vibrant-colors': 'rgba(226, 206, 177, 0.95)',
           'minimal': 'rgba(207, 235, 247, 0.95)'
         }
