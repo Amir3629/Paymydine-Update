@@ -277,6 +277,13 @@
         var dragActivated = false
         var pendingCol = null
         var pendingRect = null
+        var originalWidth = 0
+        var originalHeight = 0
+
+        function debugLog(payload) {
+            if (!window.PMDDashboardDragDebug || !window.PMDDashboardDragDebug.enabled) return
+            console.info('[PMD DASH DRAG]', payload)
+        }
 
         function onMove(event) {
             var e = event.originalEvent && event.originalEvent.touches ? event.originalEvent.touches[0] : event
@@ -290,20 +297,37 @@
                 dragActivated = true
                 document.body.classList.add('pmd-dashboard-dragging')
                 $placeholder = $('<div class="col pmd-dashboard-widget-placeholder"></div>')
-                    .css({ width: pendingRect.width + 'px', height: pendingRect.height + 'px' })
+                    .css({ width: originalWidth + 'px', height: originalHeight + 'px' })
                 pendingCol.after($placeholder)
                 $dragCol = pendingCol
                 $dragCol.addClass('pmd-dashboard-widget-dragging').css({
                     position: 'fixed',
-                    width: pendingRect.width + 'px',
+                    width: originalWidth + 'px',
+                    minHeight: originalHeight + 'px',
                     left: pendingRect.left + 'px',
                     top: pendingRect.top + 'px',
                     zIndex: 9999,
+                    margin: 0,
+                    boxSizing: 'border-box',
+                    transform: 'none',
+                    transition: 'none',
                     pointerEvents: 'none'
+                })
+                debugLog({
+                    phase: 'activate',
+                    rectLeft: pendingRect.left,
+                    rectTop: pendingRect.top,
+                    grabOffsetX: grabOffsetX,
+                    grabOffsetY: grabOffsetY,
+                    firstLeft: (e.clientX - grabOffsetX),
+                    firstTop: (e.clientY - grabOffsetY)
                 })
             }
             if (!$dragCol || !dragActivated) return
-            $dragCol.css({ left: (e.clientX - grabOffsetX) + 'px', top: (e.clientY - grabOffsetY) + 'px' })
+            var nextLeft = e.clientX - grabOffsetX
+            var nextTop = e.clientY - grabOffsetY
+            $dragCol.css({ left: nextLeft + 'px', top: nextTop + 'px' })
+            debugLog({ phase: 'move', left: nextLeft, top: nextTop })
 
             var $target = $(document.elementFromPoint(e.clientX, e.clientY)).closest('#' + $sortableContainer.attr('id') + ' > .col')
             if (!$target.length || $target.is($dragCol) || $target.is($placeholder)) return
@@ -345,7 +369,16 @@
             pointerDown = { x: e.clientX, y: e.clientY }
             pendingCol = $col
             pendingRect = rect
+            originalWidth = rect.width
+            originalHeight = rect.height
             dragActivated = false
+            debugLog({
+                phase: 'pointerdown',
+                rectLeft: rect.left,
+                rectTop: rect.top,
+                grabOffsetX: grabOffsetX,
+                grabOffsetY: grabOffsetY
+            })
 
             $(document)
                 .on('mousemove.pmdPointerSort touchmove.pmdPointerSort', onMove)
