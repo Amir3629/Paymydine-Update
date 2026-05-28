@@ -2162,6 +2162,126 @@ body.pmd-admin-theme-v1.pmd-has-header-actions .page-wrapper .pmd-admin-top-acti
   padding: 0 !important;
 }
 
+
+/* PMD HEADER CUSTOM TOOLTIPS START */
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-tooltip-target,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn[data-pmd-tooltip-label],
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back[data-pmd-tooltip-label],
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview > a.nav-link[data-pmd-tooltip-label],
+html body.page.pmd-admin-theme-v1 .navbar-top #notifDropdown[data-pmd-tooltip-label],
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-search[data-pmd-tooltip-label],
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-settings-item > span > a.nav-link[data-pmd-tooltip-label],
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-user-item > a.nav-link[data-pmd-tooltip-label] {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-tooltip-target[data-pmd-tooltip-label]::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn[data-pmd-tooltip-label]::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back[data-pmd-tooltip-label]::after,
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview > a.nav-link[data-pmd-tooltip-label]::after,
+html body.page.pmd-admin-theme-v1 .navbar-top #notifDropdown[data-pmd-tooltip-label]::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-search[data-pmd-tooltip-label]::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-settings-item > span > a.nav-link[data-pmd-tooltip-label]::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-user-item > a.nav-link[data-pmd-tooltip-label]::after {
+  content: attr(data-pmd-tooltip-label);
+  position: absolute !important;
+  top: calc(100% + 9px) !important;
+  left: 50% !important;
+  width: max-content !important;
+  max-width: 220px !important;
+  min-height: 28px !important;
+  padding: 7px 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(200, 155, 74, 0.35) !important;
+  border-radius: 999px !important;
+  background: var(--pmd-jade-dark, #021F1C) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 10px 24px rgba(2, 31, 28, 0.18) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateX(-50%) translateY(-4px) !important;
+  transition: opacity 160ms ease, transform 180ms cubic-bezier(.2,0,0,1), visibility 160ms ease !important;
+  pointer-events: none !important;
+  z-index: 9999 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-tooltip-target[data-pmd-tooltip-label]::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn[data-pmd-tooltip-label]::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back[data-pmd-tooltip-label]::before,
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview > a.nav-link[data-pmd-tooltip-label]::before,
+html body.page.pmd-admin-theme-v1 .navbar-top #notifDropdown[data-pmd-tooltip-label]::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-search[data-pmd-tooltip-label]::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-settings-item > span > a.nav-link[data-pmd-tooltip-label]::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-user-item > a.nav-link[data-pmd-tooltip-label]::before {
+  content: '';
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  left: 50% !important;
+  width: 8px !important;
+  height: 8px !important;
+  display: block !important;
+  border-radius: 2px !important;
+  background: var(--pmd-gold, #C89B4A) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateX(-50%) translateY(-4px) rotate(45deg) !important;
+  transition: opacity 160ms ease, transform 180ms cubic-bezier(.2,0,0,1), visibility 160ms ease !important;
+  pointer-events: none !important;
+  z-index: 9998 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-tooltip-target[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-tooltip-target[data-pmd-tooltip-label]:focus-visible::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn[data-pmd-tooltip-label]:focus-visible::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back[data-pmd-tooltip-label]:focus-visible::after,
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview > a.nav-link[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview > a.nav-link[data-pmd-tooltip-label]:focus-visible::after,
+html body.page.pmd-admin-theme-v1 .navbar-top #notifDropdown[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top #notifDropdown[data-pmd-tooltip-label]:focus-visible::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-search[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-search[data-pmd-tooltip-label]:focus-within::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-settings-item > span > a.nav-link[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-settings-item > span > a.nav-link[data-pmd-tooltip-label]:focus-visible::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-user-item > a.nav-link[data-pmd-tooltip-label]:hover::after,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-user-item > a.nav-link[data-pmd-tooltip-label]:focus-visible::after {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-tooltip-target[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-tooltip-target[data-pmd-tooltip-label]:focus-visible::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn[data-pmd-tooltip-label]:focus-visible::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-title-back[data-pmd-tooltip-label]:focus-visible::before,
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview > a.nav-link[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top #menuitem-preview > a.nav-link[data-pmd-tooltip-label]:focus-visible::before,
+html body.page.pmd-admin-theme-v1 .navbar-top #notifDropdown[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top #notifDropdown[data-pmd-tooltip-label]:focus-visible::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-search[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-search[data-pmd-tooltip-label]:focus-within::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-settings-item > span > a.nav-link[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-settings-item > span > a.nav-link[data-pmd-tooltip-label]:focus-visible::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-user-item > a.nav-link[data-pmd-tooltip-label]:hover::before,
+html body.page.pmd-admin-theme-v1 .navbar-top .pmd-topbar-user-item > a.nav-link[data-pmd-tooltip-label]:focus-visible::before {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(0) rotate(45deg) !important;
+}
+/* PMD HEADER CUSTOM TOOLTIPS END */
+
 /* PMD HEADER ACTIONS INLINE CENTER LOCK END */
 
 /* PMD HEADER FONTAWESOME PSEUDO CENTER FIX START */
