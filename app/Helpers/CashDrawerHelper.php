@@ -72,6 +72,14 @@ class CashDrawerHelper
                 return false;
             }
 
+            if (!class_exists(\Admin\Services\CashDrawerService\CashDrawerService::class)) {
+                Log::warning('Cash Drawer: service class not available, skipping open', [
+                    'order_id' => $orderId,
+                    'location_id' => $locationId,
+                ]);
+                return false;
+            }
+
             // Open drawer
             $result = CashDrawerService::openDrawer($drawer, [
                 'order_id' => $orderId,

@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import { applyTheme } from "@/lib/theme-system";
+import { themes } from "@/lib/theme-system";
 
 /**
  * Get tenant ID from hostname for localStorage scoping
@@ -28,12 +29,7 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
     const data = res?.data || {};
     const themeId: string = data.theme_id || res?.frontend_theme || "clean-light";
 
-    // Extract color overrides from admin
-    const overrides: Record<string, string> = {};
-    if (data.primary_color) overrides.primary = data.primary_color;
-    if (data.secondary_color) overrides.secondary = data.secondary_color;
-    if (data.accent_color) overrides.accent = data.accent_color;
-    if (data.background_color) overrides.background = data.background_color;
+    const overrides = buildSafeThemeOverrides(themeId, data);
 
     console.log(`✅ ThemeLoader: Applying admin theme "${themeId}"`, overrides);
     applyTheme(themeId, overrides);
@@ -59,3 +55,69 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
   }
 }
 
+const CLEAN_LIGHT_DEFAULTS = {
+  primary: "#E7CBA9",
+  secondary: "#EFC7B1",
+  accent: "#3B3B3B",
+  background: "#f8e3d4",
+};
+
+const GOLD_LUXURY_LEGACY_DEFAULTS = {
+  primary: "#FFD700",
+  secondary: "#FFF8DC",
+  accent: "#FFF8DC",
+  background: "#0F0B05",
+};
+
+function normHex(v?: string | null): string {
+  return String(v || "").trim().toUpperCase();
+}
+
+export function buildSafeThemeOverrides(themeId: string, data: any): Record<string, string> {
+  const raw: Record<string, string> = {};
+  if (data?.primary_color) raw.primary = data.primary_color;
+  if (data?.secondary_color) raw.secondary = data.secondary_color;
+  if (data?.accent_color) raw.accent = data.accent_color;
+  if (data?.background_color) raw.background = data.background_color;
+
+  if (themeId === "gold-luxury") {
+    Object.entries(GOLD_LUXURY_LEGACY_DEFAULTS).forEach(([key, value]) => {
+      if (normHex(raw[key]) === value) delete raw[key];
+    });
+  }
+
+  if (!Object.keys(raw).length) return {};
+
+  const isNonClean = themeId !== "clean-light";
+  const looksLikeCleanDefaults =
+    normHex(raw.primary) === CLEAN_LIGHT_DEFAULTS.primary &&
+    normHex(raw.secondary) === CLEAN_LIGHT_DEFAULTS.secondary &&
+    normHex(raw.accent) === CLEAN_LIGHT_DEFAULTS.accent &&
+    normHex(raw.background) === CLEAN_LIGHT_DEFAULTS.background;
+
+  if (isNonClean && looksLikeCleanDefaults) return {};
+
+  const looksLikeLegacyGoldDefaults =
+    themeId === "gold-luxury" &&
+    normHex(raw.primary) === GOLD_LUXURY_LEGACY_DEFAULTS.primary &&
+    normHex(raw.secondary) === GOLD_LUXURY_LEGACY_DEFAULTS.secondary &&
+    normHex(raw.accent) === GOLD_LUXURY_LEGACY_DEFAULTS.accent &&
+    normHex(raw.background) === GOLD_LUXURY_LEGACY_DEFAULTS.background;
+
+  if (looksLikeLegacyGoldDefaults) return {};
+
+  const base = themes[themeId]?.colors;
+  if (!base) return raw;
+
+  const safe: Record<string, string> = {};
+  if (raw.primary && normHex(raw.primary) !== normHex(base.primary)) safe.primary = raw.primary;
+  if (raw.secondary && normHex(raw.secondary) !== normHex(base.secondary)) safe.secondary = raw.secondary;
+  if (raw.accent && normHex(raw.accent) !== normHex(base.accent)) safe.accent = raw.accent;
+  if (raw.background && normHex(raw.background) !== normHex(base.background)) safe.background = raw.background;
+  // PMD_CLEAN_LIGHT_FAFAFA_GUARD
+  if (themeId === "clean-light" && safe.background && String(safe.background).toUpperCase() === "#FAFAFA") {
+    safe.background = "#f8e3d4"
+  }
+
+  return safe;
+}

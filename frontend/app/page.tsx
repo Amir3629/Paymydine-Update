@@ -7,7 +7,6 @@ import { Logo } from "@/components/logo"
 import { Car, Utensils } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { applyTheme } from "@/lib/theme-system"
 import { useCartStore } from "@/store/cart-store"
 
 const MotionLink = motion.create(Link)
@@ -17,11 +16,11 @@ function HomePageContent() {
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
 
-  const cardStyles = "relative flex flex-col items-center rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border w-72 h-56 justify-center surface-sub"
-  const iconContainerStyles = "rounded-full p-6 mb-6"
+  const cardStyles = "relative flex flex-col items-center pmd-v2-card backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 w-72 h-56 justify-center home-action-card"
+  const iconContainerStyles = "rounded-full pmd-v2-action-circle p-6 mb-6 home-action-icon-wrap"
 
   return (
-        <div className="min-h-screen bg-theme-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-theme-background pmd-v2-page pmd-customer-page page--home flex flex-col items-center justify-center p-4" data-pmd-customer-page="home">
       <Logo className="mb-8" />
       
       <div className="flex flex-row flex-wrap gap-6 justify-center">
@@ -51,21 +50,21 @@ function HomePageContent() {
           >
             <motion.div
               className={iconContainerStyles}
-              style={{ backgroundColor: 'var(--theme-cart-bg, var(--theme-input))' }}
+              style={{ backgroundColor: "var(--theme-secondary)" }}
               variants={{
                 hover: { 
                   scale: 1.1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 },
                 initial: { 
                   scale: 1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 }
               }}
             >
-              <Utensils className="w-10 h-10" style={{ color: 'var(--theme-secondary)' }} />
+              <Utensils className="w-10 h-10" style={{ color: "var(--theme-text-primary)" }} />
             </motion.div>
-            <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-primary)' }}>
+            <h2 className="text-2xl font-medium" style={{ color: "var(--theme-text-primary)" }}>
               {t("menuCard")}
             </h2>
           </motion.div>
@@ -97,21 +96,21 @@ function HomePageContent() {
           >
             <motion.div
               className={iconContainerStyles}
-              style={{ backgroundColor: 'var(--theme-cart-bg, var(--theme-input))' }}
+              style={{ backgroundColor: "var(--theme-secondary)" }}
               variants={{
                 hover: { 
                   scale: 1.1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 },
                 initial: { 
                   scale: 1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 }
               }}
             >
-              <Car className="w-10 h-10" style={{ color: 'var(--theme-secondary)' }} />
+              <Car className="w-10 h-10" style={{ color: "var(--theme-text-primary)" }} />
             </motion.div>
-            <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-primary)' }}>
+            <h2 className="text-2xl font-medium" style={{ color: "var(--theme-text-primary)" }}>
               {t("valetParking")}
             </h2>
           </motion.div>
@@ -129,48 +128,12 @@ export default function HomePage() {
     clearTableContext()
   }, [clearTableContext])
 
-  // Safety net: Force theme application on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentTheme = localStorage.getItem('paymydine-theme') || 'clean-light';
-      applyTheme(currentTheme);
-      
-      // NUCLEAR OPTION: Directly set background colors
-      const themeColors = {
-        'clean-light': '#FAFAFA',
-        'modern-dark': '#0A0E12',
-        'gold-luxury': '#0F0B05',
-        'vibrant-colors': '#e2ceb1',
-        'minimal': '#CFEBF7'
-      };
-      
-      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#FAFAFA';
-      
-      // Force background on body and html
-      document.body.style.background = bgColor;
-      document.documentElement.style.background = bgColor;
-      
-      // Force background on page elements
-      const pageElement = document.querySelector('.page--home .min-h-screen');
-      if (pageElement) {
-        (pageElement as HTMLElement).style.background = bgColor;
-      }
-      
-      // Debug logging for verification
-      console.info("HOMEPAGE THEME SAFETY NET APPLIED");
-      console.log("Applied theme:", currentTheme);
-      console.log("Forced background color:", bgColor);
-      console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
-      console.log("body background:", getComputedStyle(document.body).background);
-    }
-  }, []);
-
   return (
-    <div className="page--home">
+    <div className="pmd-customer-page page--home" data-pmd-customer-page="home-shell">
       <Suspense fallback={
         <div className="min-h-screen bg-theme-background flex flex-col items-center justify-center p-4">
           <div className="text-center">
-            <div className="text-lg" style={{ color: 'var(--theme-primary)' }}>Loading...</div>
+            <div className="text-lg" style={{ color: "var(--theme-text-primary)" }}>Loading...</div>
           </div>
         </div>
       }>

@@ -131,6 +131,33 @@ class Orders extends \Admin\Classes\AdminController
         $this->vars['taxSettings'] = $taxSettings;
         $this->vars['existingOrder'] = $existingOrder;
         $this->vars['existingOrderItems'] = $existingOrderItems;
+        $user = $this->getUser();
+        $this->vars['canManageTableLayout'] = $user ? $user->hasPermission('Admin.ManageTables') : false;
+        $this->vars['canMergeTables'] = $this->vars['canManageTableLayout'];
+        // PMD_TABLE_MAP_BACKGROUND_SETTING_FALLBACK_START
+        $tableMapBackgroundImage = setting('table_map_background_image');
+
+        if (empty($tableMapBackgroundImage)) {
+            try {
+                // Use the current tenant DB connection directly as fallback.
+                // DB::table('settings') respects the configured table prefix (ti_).
+                $tableMapBackgroundImage = \DB::table('settings')
+                    ->where('item', 'table_map_background_image')
+                    ->value('value');
+            } catch (\Throwable $e) {
+                try {
+                    // Extra fallback for environments where prefix is not applied.
+                    $tableMapBackgroundImage = \DB::table('ti_settings')
+                        ->where('item', 'table_map_background_image')
+                        ->value('value');
+                } catch (\Throwable $ignored) {
+                    $tableMapBackgroundImage = null;
+                }
+            }
+        }
+
+        $this->vars['tableMapBackgroundImage'] = $tableMapBackgroundImage;
+        // PMD_TABLE_MAP_BACKGROUND_SETTING_FALLBACK_END
         
         return $this->asExtension('FormController')->create();
     }
@@ -296,6 +323,84 @@ class Orders extends \Admin\Classes\AdminController
         }
     }
 
+    public function create_onGetTableGroups()
+    {
+        $locationId = (int)post('location_id');
+        $groups = DB::table('table_groups as tg')
+            ->join('table_group_tables as tgt', 'tgt.table_group_id', '=', 'tg.table_group_id')
+            ->join('tables as t', 't.table_id', '=', 'tgt.table_id')
+            ->where('tg.location_id', $locationId)
+            ->whereNull('tg.deleted_at')
+            ->select('tg.table_group_id', 'tg.name', 't.table_id')
+            ->get()
+            ->groupBy('table_group_id')
+            ->map(function ($rows) {
+                return [
+                    'table_group_id' => (int)$rows->first()->table_group_id,
+                    'name' => $rows->first()->name,
+                    'table_ids' => $rows->pluck('table_id')->map(fn($v) => (int)$v)->values()->all(),
+                ];
+            })->values()->all();
+
+        return ['success' => true, 'groups' => $groups];
+    }
+
+    public function create_onMergeTables()
+    {
+        if (!$this->getUser() || !$this->getUser()->hasPermission('Admin.ManageTables'))
+            throw new ApplicationException(lang('admin::lang.alert_user_restricted'));
+
+        $tableIds = array_values(array_unique(array_map('intval', (array)post('table_ids', []))));
+        $locationId = (int)post('location_id');
+        $name = trim((string)post('name'));
+        if (count($tableIds) < 2) throw new ApplicationException('Select 2 or more tables to merge.');
+
+        return DB::transaction(function () use ($tableIds, $locationId, $name) {
+            $tables = DB::table('tables as t')
+                ->join('locationables as l', function ($join) {
+                    $join->on('l.locationable_id', '=', 't.table_id')->where('l.locationable_type', '=', 'tables');
+                })
+                ->whereIn('t.table_id', $tableIds)
+                ->where('l.location_id', $locationId)
+                ->select('t.table_id', 't.table_name')
+                ->get();
+            if ($tables->count() !== count($tableIds)) throw new ApplicationException('Invalid table selection for this location.');
+
+            $already = DB::table('table_group_tables')->whereIn('table_id', $tableIds)->exists();
+            if ($already) throw new ApplicationException('One or more tables are already merged. Unmerge first.');
+
+            $groupId = DB::table('table_groups')->insertGetId([
+                'location_id' => $locationId,
+                'name' => $name !== '' ? $name : 'Merged: '.$tables->pluck('table_name')->implode(' + '),
+                'status' => 'active',
+                'created_by' => $this->getUser()->staff_id ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            foreach ($tableIds as $tableId) {
+                DB::table('table_group_tables')->insert(['table_group_id' => $groupId, 'table_id' => $tableId, 'created_at' => now(), 'updated_at' => now()]);
+            }
+
+            return ['success' => true, 'message' => 'Tables merged successfully.', 'table_group_id' => (int)$groupId];
+        });
+    }
+
+    public function create_onUnmergeTableGroup()
+    {
+        if (!$this->getUser() || !$this->getUser()->hasPermission('Admin.ManageTables'))
+            throw new ApplicationException(lang('admin::lang.alert_user_restricted'));
+
+        $groupId = (int)post('table_group_id');
+        if ($groupId <= 0) throw new ApplicationException('Invalid group.');
+
+        DB::transaction(function () use ($groupId) {
+            DB::table('table_group_tables')->where('table_group_id', $groupId)->delete();
+            DB::table('table_groups')->where('table_group_id', $groupId)->delete();
+        });
+
+        return ['success' => true, 'message' => 'Table group unmerged successfully.'];
+    }
+
     public function index_onUpdateStatus()
     {
         $model = Orders_model::find((int)post('recordId'));
@@ -349,6 +454,29 @@ class Orders extends \Admin\Classes\AdminController
     }
 
 
+
+
+    protected function isOrderPaid(\Admin\Models\Orders_model $order): bool
+    {
+        $orderTotal = (float)($order->order_total ?? 0);
+        $settledAmount = (float)($order->settled_amount ?? 0);
+        $statusName = strtolower((string)optional($order->status)->status_name);
+
+        if (!empty($order->settled_at)) return true;
+        if ($orderTotal > 0 && $settledAmount >= $orderTotal) return true;
+        if ((bool)($order->processed ?? false) && in_array($statusName, ['paid', 'complete', 'completed'], true)) return true;
+        return false;
+    }
+
+    protected function canGenerateFiscalInvoice(\Admin\Models\Orders_model $order): bool
+    {
+        return $this->isOrderPaid($order);
+    }
+
+    protected function canGenerateCustomerInvoice(\Admin\Models\Orders_model $order): bool
+    {
+        return !empty($order->order_id);
+    }
 
     public function invoice($context, $recordId = null)
     {
@@ -410,6 +538,11 @@ class Orders extends \Admin\Classes\AdminController
             );
         }
 
+        if (!$this->canGenerateFiscalInvoice($model)) {
+            flash()->error('Fiscal invoice can only be generated after payment is confirmed.')->now();
+            return $this->redirectBack();
+        }
+
         try {
             $needsFinalize = !in_array((string)($model->fiskaly_status ?? ''), ['finished', 'skipped'], true);
 
@@ -468,6 +601,27 @@ class Orders extends \Admin\Classes\AdminController
 
 
 
+
+    public function customerInvoice($context, $recordId = null)
+    {
+        $recordId = (int)$recordId;
+        $model = \Admin\Models\Orders_model::query()->where('order_id', $recordId)->first();
+
+        if (!$model) {
+            flash()->error('Order not found.')->now();
+            return $this->redirectBack();
+        }
+        if (!$this->canGenerateCustomerInvoice($model)) {
+            flash()->error('Customer invoice is not available for this order.')->now();
+            return $this->redirectBack();
+        }
+
+        $this->vars['model'] = $model;
+        $this->vars['isFiscalInvoice'] = false;
+        $this->suppressLayout = true;
+        return $this->makeView('customer_invoice');
+    }
+
     public function edit_onSendInvoiceEmail($context, $recordId = null)
     {
         $recordId = (int)$recordId;
@@ -499,6 +653,10 @@ class Orders extends \Admin\Classes\AdminController
 
         if (!$model) {
             flash()->error('Order not found.')->now();
+            return $this->redirectBack();
+        }
+        if (!$this->canGenerateFiscalInvoice($model)) {
+            flash()->error('Fiscal invoice can only be generated after payment is confirmed.')->now();
             return $this->redirectBack();
         }
 

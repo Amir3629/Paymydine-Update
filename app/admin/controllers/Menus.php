@@ -4,11 +4,14 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminAuth;
 use Admin\Models\Menu_options_model;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Admin\Models\Menus_model;
+use Admin\Models\Categories_model;
 use Admin\Classes\FoodNameSuggestions;
 
 class Menus extends AdminController
@@ -140,6 +143,7 @@ class Menus extends AdminController
             'language' => $lang,
             'supported_languages' => ['English','German','Persian','Arabic','Turkish'],
             'requirements' => [
+                'Also return prep_time_minutes as integer 1..240.',
                 'Provide draft suggestions only.',
                 'Nutrition values are estimates.',
                 'Return JSON object only with keys: description, ingredients(array), calories, protein, carbs, fat, sugar, serving_size.',
@@ -234,6 +238,7 @@ class Menus extends AdminController
                     'fat' => $num($suggestions['fat'] ?? null, 0, 1000),
                     'sugar' => $num($suggestions['sugar'] ?? null, 0, 1000),
                     'serving_size' => isset($suggestions['serving_size']) ? mb_substr((string)$suggestions['serving_size'], 0, 120) : ($payload['serving_size'] ?? null),
+                    'prep_time_minutes' => $num($suggestions['prep_time_minutes'] ?? null, 1, 240) ?: (int)(\Illuminate\Support\Facades\DB::table('settings')->where('item','eta_default_prep_minutes')->orderByDesc('setting_id')->value('value') ?: 15),
                 ],
                 'disclaimer' => 'AI nutrition values are estimates and should be reviewed before publishing.',
             ]);
@@ -245,7 +250,6 @@ class Menus extends AdminController
             ]);
         }
     }
-
     public function onSuggestFoodNames(): JsonResponse
     {
         $query = (string)request()->input('query', '');
@@ -281,6 +285,11 @@ class Menus extends AdminController
         $rows = [];
         foreach ($tenantExisting as $name) $rows[] = ['name' => $name, 'source' => 'tenant_existing', 'cuisine' => $cuisine];
         foreach ($templatePool as $name) $rows[] = ['name' => $name, 'source' => 'template', 'cuisine' => $cuisine];
+        $aiEnabled = false;
+        foreach ($this->fetchGeminiFoodNameSuggestions($query, $cuisine, $tenantExisting) as $name) {
+            $rows[] = ['name' => $name, 'source' => 'ai_gemini', 'cuisine' => $cuisine];
+            $aiEnabled = true;
+        }
 
         $seen = [];
         $matches = [];
@@ -290,7 +299,12 @@ class Menus extends AdminController
             $pos = mb_strpos($nameNorm, $queryNorm, 0, 'UTF-8');
             if ($pos === false) continue;
             $starts = $pos === 0;
-            $score = ($starts ? 200 : 120) + ($row['source'] === 'tenant_existing' ? 50 : 0);
+            $sourceBoost = match ($row['source']) {
+                'tenant_existing' => 45,
+                'ai_gemini' => 30,
+                default => 10,
+            };
+            $score = ($starts ? 220 : 110) + $sourceBoost + ($row['cuisine'] === $cuisine ? 20 : 0);
             $matches[] = [
                 'name' => $row['name'],
                 'language' => $this->guessLanguage($row['name']),
@@ -306,7 +320,78 @@ class Menus extends AdminController
         $matches = array_slice($matches, 0, 8);
         foreach ($matches as &$match) unset($match['_score']);
 
-        return response()->json(['success' => true, 'suggestions' => $matches]);
+        return response()->json(['success' => true, 'ai_enabled' => $aiEnabled, 'suggestions' => $matches]);
+    }
+
+    protected function fetchGeminiFoodNameSuggestions(string $query, string $cuisine, array $tenantExisting): array
+    {
+        $enabled = filter_var(env('PMD_AI_NUTRITION_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
+        $provider = strtolower((string)env('PMD_AI_NUTRITION_PROVIDER', 'openai'));
+        $geminiKey = (string)env('GEMINI_API_KEY', '');
+        if (!$enabled || $provider !== 'gemini' || $geminiKey === '') {
+            return [];
+        }
+
+        $cacheKey = 'pmd_food_suggest:'.md5(implode('|', [
+            (string)setting('site_name', ''),
+            $cuisine,
+            FoodNameSuggestions::normalize($query),
+        ]));
+
+        return Cache::remember($cacheKey, now()->addMinutes(20), function () use ($query, $cuisine, $tenantExisting) {
+            $model = (string)env('PMD_AI_NUTRITION_MODEL', 'gpt-4.1-mini');
+            $endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+            $payload = [
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You generate short restaurant menu item names only. Return compact JSON only.'],
+                    ['role' => 'user', 'content' => json_encode([
+                        'task' => 'suggest_food_names',
+                        'query' => $query,
+                        'cuisine' => $cuisine,
+                        'restaurant_name' => (string)setting('site_name', ''),
+                        'existing_examples' => array_slice($tenantExisting, 0, 12),
+                        'languages' => ['fa', 'ar', 'tr', 'de', 'en'],
+                        'rules' => [
+                            'Return JSON: {"suggestions":["..."]}',
+                            'Max 8 suggestions',
+                            'Each suggestion should be a short food name only',
+                        ],
+                    ], JSON_UNESCAPED_UNICODE)],
+                ],
+                'temperature' => 0.3,
+                'response_format' => ['type' => 'json_object'],
+            ];
+
+            try {
+                $ch = curl_init($endpoint);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_HTTPHEADER => [
+                        'Authorization: Bearer '.(string)env('GEMINI_API_KEY', ''),
+                        'Content-Type: application/json',
+                    ],
+                    CURLOPT_POSTFIELDS => json_encode($payload),
+                    CURLOPT_TIMEOUT => 8,
+                ]);
+                $raw = curl_exec($ch);
+                $err = curl_error($ch);
+                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if ($raw === false || $err || $code >= 400) return [];
+                $json = json_decode((string)$raw, true);
+                $content = $json['choices'][0]['message']['content'] ?? '{}';
+                $parsed = json_decode((string)$content, true);
+                $list = $parsed['suggestions'] ?? [];
+                if (!is_array($list)) return [];
+                return array_values(array_filter(array_map(function ($item) {
+                    return mb_substr(trim((string)$item), 0, 80);
+                }, $list)));
+            } catch (\Throwable $e) {
+                return [];
+            }
+        });
     }
 
     protected function detectCuisine(array $tenantExisting): string
@@ -346,26 +431,112 @@ class Menus extends AdminController
     }
 
 
+
+
+    public function onToggleMenuStatus(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Menus')) abort(403);
+
+        $menuId = (int)post('menu_id');
+        $menu = Menus_model::query()->find($menuId);
+        if (!$menu) return response()->json(['ok' => false, 'message' => 'Menu not found'], 404);
+
+        $menu->menu_status = $menu->menu_status ? 0 : 1;
+        $menu->save();
+
+        return response()->json(['ok' => true, 'menu_status' => (int)$menu->menu_status]);
+    }
+
+    public function onToggleMenuStock(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Menus')) abort(403);
+
+        $menuId = (int)post('menu_id');
+        $menu = Menus_model::query()->find($menuId);
+        if (!$menu) return response()->json(['ok' => false, 'message' => 'Menu not found'], 404);
+
+        $menu->is_stock_out = $menu->is_stock_out ? 0 : 1;
+        $menu->save();
+
+        return response()->json(['ok' => true, 'is_stock_out' => (int)$menu->is_stock_out]);
+    }
+
+    public function onSaveCategoryOrder(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Categories')) {
+            abort(403);
+        }
+
+        $ordered = (array)post('ordered_category_ids', []);
+        $ordered = array_values(array_unique(array_filter(array_map('intval', $ordered))));
+        if (!count($ordered)) {
+            return response()->json(['ok' => false, 'message' => 'No categories provided'], 422);
+        }
+
+        $validIds = Categories_model::query()->whereIn('category_id', $ordered)->pluck('category_id')->map(function ($id) {
+            return (int)$id;
+        })->all();
+        $validSet = array_flip($validIds);
+
+        $sequence = [];
+        foreach ($ordered as $categoryId) {
+            if (isset($validSet[$categoryId])) {
+                $sequence[] = $categoryId;
+            }
+        }
+
+        if (!count($sequence)) {
+            return response()->json(['ok' => false, 'message' => 'No valid categories provided'], 422);
+        }
+
+        DB::transaction(function () use ($sequence) {
+            foreach ($sequence as $index => $categoryId) {
+                Categories_model::query()->where('category_id', $categoryId)->update(['priority' => $index + 1]);
+            }
+        });
+
+        return response()->json(['ok' => true, 'updated' => count($sequence)]);
+    }
+
     public function onSaveCardOrder(): JsonResponse
     {
-        $user = admin_auth()->user();
+        $user = \Admin\Facades\AdminAuth::getUser();
         if (!$user || !$user->hasPermission('Admin.Menus')) {
             abort(403);
         }
 
         $ordered = (array)post('ordered_ids', []);
-        $ordered = array_values(array_filter(array_map('intval', $ordered)));
+        $ordered = array_values(array_unique(array_filter(array_map('intval', $ordered))));
         if (!count($ordered)) {
             return response()->json(['ok' => false, 'message' => 'No items provided'], 422);
         }
 
-        DB::transaction(function () use ($ordered) {
-            foreach ($ordered as $i => $menuId) {
-                Menus_model::query()->where('menu_id', $menuId)->update(['menu_priority' => $i + 1]);
+        $validIds = Menus_model::query()->whereIn('menu_id', $ordered)->pluck('menu_id')->map(function ($id) {
+            return (int)$id;
+        })->all();
+        $validSet = array_flip($validIds);
+
+        $sequence = [];
+        foreach ($ordered as $menuId) {
+            if (isset($validSet[$menuId])) {
+                $sequence[] = $menuId;
+            }
+        }
+
+        if (!count($sequence)) {
+            return response()->json(['ok' => false, 'message' => 'No valid items provided'], 422);
+        }
+
+        DB::transaction(function () use ($sequence) {
+            foreach ($sequence as $index => $menuId) {
+                Menus_model::query()->where('menu_id', $menuId)->update(['menu_priority' => $index + 1]);
             }
         });
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'updated' => count($sequence)]);
     }
 
 }

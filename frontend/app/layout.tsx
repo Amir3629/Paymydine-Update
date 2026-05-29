@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 import ClientLayout from "./clientLayout"
 import { ThemeProvider } from "@/components/theme-provider"
 import { FaviconSetter } from "@/components/favicon-setter"
+import CleanLightCustomerGuard from "@/components/clean-light-customer-guard"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
@@ -327,6 +328,7 @@ export default function RootLayout({
         }} />
       </head>
       <body className={inter.className + ' text-theme'}>
+        <CleanLightCustomerGuard />
         <FaviconSetter />
         <ThemeProvider>
           <ClientLayout className={cn("min-h-screen font-sans antialiased", inter.variable)}>

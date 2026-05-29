@@ -41,6 +41,7 @@ class Menus_model extends Model
         'order_restriction' => 'array',
         'menu_status' => 'boolean',
         'menu_priority' => 'integer',
+        'prep_time_minutes' => 'integer',
         'is_stock_out' => 'boolean',
         'is_halal' => 'boolean',
         'is_vegetarian' => 'boolean',
@@ -56,6 +57,7 @@ class Menus_model extends Model
         'hasMany' => [
             'menu_options' => ['Admin\Models\Menu_item_options_model', 'delete' => true],
             'prices' => ['Admin\Models\Menu_prices_model', 'delete' => true],
+            'menu_images' => ['Admin\Models\Menu_images_model', 'delete' => true],
         ],
         'hasOne' => [
             'special' => ['Admin\Models\Menus_specials_model', 'delete' => true],
@@ -70,7 +72,13 @@ class Menus_model extends Model
         ],
     ];
 
-    protected $purgeable = ['menu_options', 'special', 'prices'];
+    protected $purgeable = [
+        'menu_options',
+        'special',
+        'prices',
+        'menu_images_inline',
+        'menu_images_inline_json',
+    ];
 
     public $mediable = ['thumb'];
 
@@ -242,7 +250,171 @@ class Menus_model extends Model
 
         if (array_key_exists('prices', $this->attributes))
             $this->addMenuPrices((array)$this->attributes['prices']);
+
+        // PMD: sync compact inline additional menu images after normal menu save.
+        $this->syncMenuImagesInline();
     }
+
+    /**
+     * PMD: Sync compact inline menu gallery rows after the menu has an ID.
+     * Reads direct request payload because the custom partial is not a normal DB column.
+     */
+    protected function syncMenuImagesInline(): void
+    {
+        try {
+            $request = request();
+
+            $hasGalleryPayload = $request->has('menu_images_inline')
+                || $request->has('menu_images_inline_json')
+                || $request->has('Menu.menu_images_inline')
+                || $request->has('Menu.menu_images_inline_json')
+                || $request->has('menus.menu_images_inline')
+                || $request->has('menus.menu_images_inline_json')
+                || $request->has('Menus.menu_images_inline')
+                || $request->has('Menus.menu_images_inline_json')
+                || array_key_exists('menu_images_inline', $this->attributes)
+                || array_key_exists('menu_images_inline_json', $this->attributes);
+
+            if (!$hasGalleryPayload) {
+                return;
+            }
+
+            $payload = null;
+
+            $jsonCandidates = [
+                $request->input('menu_images_inline_json'),
+                $request->input('Menu.menu_images_inline_json'),
+                $request->input('menus.menu_images_inline_json'),
+                $request->input('Menus.menu_images_inline_json'),
+                $this->attributes['menu_images_inline_json'] ?? null,
+            ];
+
+            foreach ($jsonCandidates as $candidate) {
+                if (is_string($candidate) && trim($candidate) !== '') {
+                    $decoded = json_decode($candidate, true);
+                    if (is_array($decoded)) {
+                        $payload = $decoded;
+                        break;
+                    }
+                }
+            }
+
+            if ($payload === null) {
+                $payloadCandidates = [
+                    $request->input('menu_images_inline'),
+                    $request->input('Menu.menu_images_inline'),
+                    $request->input('menus.menu_images_inline'),
+                    $request->input('Menus.menu_images_inline'),
+                    $this->attributes['menu_images_inline'] ?? null,
+                ];
+
+                foreach ($payloadCandidates as $candidate) {
+                    if (is_string($candidate) && trim($candidate) !== '') {
+                        $decoded = json_decode($candidate, true);
+                        if (is_array($decoded)) {
+                            $payload = $decoded;
+                            break;
+                        }
+                    }
+
+                    if (is_array($candidate)) {
+                        $payload = $candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (!is_array($payload)) {
+                $payload = [];
+            }
+
+            $rows = [];
+            $position = 1;
+
+            foreach ($payload as $key => $row) {
+                if (is_string($row)) {
+                    $imagePath = $row;
+                    $sortOrder = is_numeric($key) ? ((int)$key + 1) : $position;
+                } elseif (is_array($row)) {
+                    $imagePath = $row['image_path']
+                        ?? $row['path']
+                        ?? $row['value']
+                        ?? $row['url']
+                        ?? '';
+
+                    if (is_array($imagePath)) {
+                        $imagePath = $imagePath['path']
+                            ?? $imagePath['value']
+                            ?? $imagePath['url']
+                            ?? reset($imagePath)
+                            ?? '';
+                    }
+
+                    $sortOrder = (int)($row['sort_order'] ?? $row['order'] ?? (is_numeric($key) ? ((int)$key + 1) : $position));
+                } else {
+                    continue;
+                }
+
+                $imagePath = trim((string)$imagePath);
+
+                if ($imagePath === '') {
+                    continue;
+                }
+
+                $imagePath = preg_replace('#^https?://[^/]+#i', '', $imagePath);
+                $imagePath = preg_replace('#^/assets/media/uploads/#i', '', $imagePath);
+                $imagePath = preg_replace('#^/assets/media/#i', '', $imagePath);
+                $imagePath = preg_replace('#^/api/media/#i', '', $imagePath);
+                $imagePath = ltrim($imagePath, '/');
+
+                if ($imagePath === '') {
+                    continue;
+                }
+
+                $rows[] = [
+                    'image_path' => $imagePath,
+                    'sort_order' => $sortOrder > 0 ? $sortOrder : $position,
+                ];
+
+                $position++;
+            }
+
+            usort($rows, function ($a, $b) {
+                return ((int)$a['sort_order']) <=> ((int)$b['sort_order']);
+            });
+
+            $menuId = $this->getKey();
+
+            if (!$menuId) {
+                return;
+            }
+
+            $this->menu_images()->delete();
+
+            foreach (array_values($rows) as $idx => $row) {
+                $this->menu_images()->create([
+                    'menu_id' => $menuId,
+                    'image_path' => $row['image_path'],
+                    'sort_order' => (int)($row['sort_order'] ?: ($idx + 1)),
+                ]);
+            }
+
+            \Log::info('PMD menu_images_inline synced', [
+                'menu_id' => $menuId,
+                'count' => count($rows),
+                'rows' => $rows,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('PMD menu_images_inline sync failed', [
+                'menu_id' => method_exists($this, 'getKey') ? $this->getKey() : null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+
+
+
 
     protected function beforeDelete()
     {
@@ -448,4 +620,6 @@ class Menus_model extends Model
 
         return $isAvailable;
     }
+
+
 }

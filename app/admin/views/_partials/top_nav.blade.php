@@ -221,7 +221,7 @@ try {
 <div class="navbar-brand" style="height:88px;">
                 <a class="logo" href="{{ admin_url('dashboard') }}" style="margin-left: 44px; margin-top: 4px;">
                     @if(!empty($imgSrcDashboard))
-                        <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" class="pmd-dashboard-logo-img" style="max-height: 76px; max-width: 340px; width: auto; height: auto; object-fit: contain;">
+                        <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" class="pmd-dashboard-logo-img" style="max-height: 48px; max-width: 190px; width: auto; height: auto; object-fit: contain;">
                     @endif
                     <i class="logo-svg"></i>
                 </a>
@@ -237,6 +237,13 @@ try {
                     aria-controls="navSidebar" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="fa fa-bars"></span>
                 </button>
+
+                @if(request()->is('admin/settings*'))
+                    <label class="pmd-header-search" for="pmd-header-settings-search" aria-label="Search settings">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                        <input id="pmd-header-settings-search" type="search" placeholder="Search settings..." autocomplete="off" data-pmd-header-settings-search>
+                    </label>
+                @endif
 
                 @if(isset($this->widgets['mainmenu']))
                     {!! $this->widgets['mainmenu']->render() !!}

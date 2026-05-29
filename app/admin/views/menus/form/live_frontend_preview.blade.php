@@ -1,6 +1,16 @@
 @php
     $fallbackImage = url('/app/admin/assets/images/default-image.png');
-    $initialImage = $formModel->getThumb() ?: $fallbackImage;
+    $initialImage = $fallbackImage;
+    try {
+        if (isset($formModel) && $formModel && method_exists($formModel, 'getThumb')) {
+            $resolvedThumb = $formModel->getThumb();
+            if (is_string($resolvedThumb) && trim($resolvedThumb) !== '') {
+                $initialImage = $resolvedThumb;
+            }
+        }
+    } catch (\Throwable $e) {
+        $initialImage = $fallbackImage;
+    }
 @endphp
 
 <div class="pmd-menu-edit-preview-panel" id="pmd-live-preview-panel">

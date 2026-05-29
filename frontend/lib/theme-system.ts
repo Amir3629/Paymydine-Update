@@ -1,3 +1,4 @@
+import { normalizeThemeForCustomerPages, enforceCustomerPageTheme, PMD_CLEAN_LIGHT_PAGE_BG } from "@/lib/theme-normalizer"
  // Theme System for PayMyDine
 
 // Helper function to convert hex to RGB
@@ -63,7 +64,7 @@ export interface ThemeColors {
         primary: '#E7CBA9',        // paydine-champagne
         secondary: '#EFC7B1',      // paydine-rose-beige
         accent: '#3B3B3B',         // paydine-elegant-gray
-        background: '#FAFAFA',     // paydine-soft-white
+        background: PMD_CLEAN_LIGHT_PAGE_BG,     // paydine-soft-white
         
         textPrimary: '#3B3B3B',    // paydine-elegant-gray
         textSecondary: '#7E7E7E',  // paydine-muted-gray
@@ -80,7 +81,7 @@ export interface ThemeColors {
         categoryInactive: '#9CA3AF',
         priceColor: '#EFC7B1',     // paydine-rose-beige
         
-        cartBackground: '#FAFAFA', // paydine-soft-white
+        cartBackground: '#ffeee2', // paydine-soft-white
         cartBorder: '#EDEDED',     // paydine-border
         paymentButton: '#E7CBA9',  // paydine-champagne
         paymentButtonHover: '#D4B89A',
@@ -138,38 +139,37 @@ export interface ThemeColors {
     'gold-luxury': {
       id: 'gold-luxury',
       name: 'Gold Luxury',
-      description: 'Opulent dark theme with rich gold and bronze accents',
+      description: 'Premium white, dark jade, and champagne gold restaurant theme',
       colors: {
-        // Luxurious gold and bronze palette
-        primary: '#FFD700',        // Pure gold
-        secondary: '#FFF8DC',      // Cornsilk
-        accent: '#FFF8DC',         // Cornsilk accent
-        background: '#0F0B05',     // Deep warm black
+        primary: '#062F2A',
+        secondary: '#062F2A',
+        accent: '#C89B4A',
+        background: '#FAF9F4',
 
-        textPrimary: '#FFF8DC',    // Warm white
-        textSecondary: '#F5DEB3',  // Wheat
-        textMuted: '#D2B48C',
+        textPrimary: '#0D1B1E',
+        textSecondary: '#6B7280',
+        textMuted: '#9CA3AF',
 
-        border: '#CD853F',         // Peru border
-        input: '#1A1612',          // Dark warm surface
-        button: '#FFD700',         // Gold button
-        buttonHover: '#FFF8DC',
+        border: '#E8E2D8',
+        input: '#FFFFFF',
+        button: '#062F2A',
+        buttonHover: '#021F1C',
 
-        menuItemBackground: '#1A1612',
-        menuItemBorder: '#CD853F',
-        categoryActive: '#FFF8DC', // Cornsilk for active category
-        categoryInactive: '#8B7355',
-        priceColor: '#FFF8DC',     // Cornsilk prices
+        menuItemBackground: '#FFFFFF',
+        menuItemBorder: '#E8E2D8',
+        categoryActive: '#C89B4A',
+        categoryInactive: '#6B7280',
+        priceColor: '#B8893F',
 
-        cartBackground: '#1A1612',
-        cartBorder: '#CD853F',
-        paymentButton: '#FFD700',
-        paymentButtonHover: '#FFF8DC',
+        cartBackground: '#FFFFFF',
+        cartBorder: '#E8E2D8',
+        paymentButton: '#062F2A',
+        paymentButtonHover: '#021F1C',
 
-        success: '#32CD32',
-        warning: '#FFD700',
-        error: '#FF6347',
-        info: '#1E90FF'
+        success: '#15803D',
+        warning: '#C89B4A',
+        error: '#B42318',
+        info: '#0E7490'
       }
     },
     
@@ -179,8 +179,8 @@ export interface ThemeColors {
       description: 'Energetic theme with electric coral and ocean turquoise',
       colors: {
         // Vibrant coral and turquoise palette
-        primary: '#FF6B6B',        // Electric coral
-        secondary: '#FF6B6B',      // Electric coral (matching primary)
+        primary: '#efc6b1',        // Electric coral
+        secondary: '#efc6b1',      // Electric coral (matching primary)
         accent: '#45B7D1',         // Sky blue accent
         background: '#e2ceb1',     // Cooler, darker warm beige with subtle gray undertones
 
@@ -190,24 +190,24 @@ export interface ThemeColors {
 
         border: '#E2E8F0',         // Light slate border
         input: '#FFFFFF',
-        button: '#FF6B6B',         // Electric coral
+        button: '#efc6b1',         // BUTTON/ICONS1 source color
         buttonHover: '#FF5252',
 
         menuItemBackground: '#FAF7F2',
         menuItemBorder: '#E8E0D5',
-        categoryActive: '#FF6B6B', // Electric coral for active category
+        categoryActive: '#efc6b1', // Electric coral for active category
         categoryInactive: '#94A3B8',
-        priceColor: '#FF6B6B',     // Electric coral
+        priceColor: '#efc6b1',     // Electric coral
 
         cartBackground: '#FAF7F2',
         cartBorder: '#E8E0D5',
-        paymentButton: '#FF6B6B',
+        paymentButton: '#efc6b1',
         paymentButtonHover: '#FF5252',
 
         success: '#FF9F43',
         warning: '#F59E0B',
         error: '#EF4444',
-        info: '#FF6B6B'
+        info: '#efc6b1'
       }
     },
     
@@ -294,6 +294,27 @@ export interface ThemeColors {
       '--theme-warning': colors.warning,
       '--theme-error': colors.error,
       '--theme-info': colors.info,
+      '--pmd-customer-page-bg': colors.background,
+      '--pmd-customer-surface': colors.cartBackground,
+      '--pmd-customer-surface-sub': colors.menuItemBackground,
+      '--pmd-customer-text': colors.textPrimary,
+      '--pmd-customer-text-muted': colors.textSecondary,
+      '--pmd-customer-action-bg': colors.button,
+      '--pmd-customer-button-icons1-bg': colors.button,
+      '--pmd-customer-action-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
+      '--pmd-customer-button-icons1-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
+      '--pmd-customer-action-border': colors.border,
+      '--pmd-customer-button-icons1-border': colors.border,
+      '--pmd-customer-frame-border': colors.border,
+      '--pmd-customer-border': colors.border,
+      '--pmd-customer-input-bg': colors.input,
+      '--pmd-customer-input-text': colors.textPrimary,
+      '--pmd-customer-price-text': colors.priceColor,
+      '--pmd-customer-category-active-bg': colors.categoryActive,
+      '--pmd-customer-category-active-text': theme.id === 'modern-dark' ? '#111827' : colors.textPrimary,
+      '--pmd-customer-badge-bg': colors.button,
+      '--pmd-customer-badge-text': (theme.id === 'clean-light' || theme.id === 'vibrant-colors' || theme.id === 'minimal') ? '#111827' : '#F8FAFC',
+      '--pmd-customer-badge-border': colors.border,
     };
   }
   
@@ -316,7 +337,7 @@ export interface ThemeColors {
     });
     
     // Toggle dark class to allow global overrides for dark designs
-    const isDark = themeId === 'modern-dark' || themeId === 'gold-luxury';
+    const isDark = themeId === 'modern-dark';
     document.documentElement.classList.toggle('theme-dark', isDark);
     
     // NUCLEAR OPTION: Force background colors if overrides provided

@@ -1,3 +1,10 @@
+@php
+$__s=function($k,$d=null){try{return \Illuminate\Support\Facades\DB::table('settings')->where('item',$k)->orderByDesc('setting_id')->value('value')??$d;}catch(\Throwable $e){return setting($k,$d);} };
+$__showQr=(string)$__s('invoice_show_qr','1')==='1';
+$__showFiskalyCfg=(string)$__s('invoice_show_fiskaly','1')==='1';
+$__showLogo=(string)$__s('invoice_show_logo','1')==='1';
+$__autoPrint=(string)$__s('invoice_auto_print_dialog','0')==='1';
+@endphp
 
 @php
     $__pmdOrderCommentRaw = (string) ($model->comment ?? '');
@@ -42,7 +49,7 @@
     $__fSigCounter = $__fSigCounter ?? ($__orderRow->fiskaly_signature_counter ?? ($model->fiskaly_signature_counter ?? null));
     $__fSerial = $__fSerial ?? ($__orderRow->fiskaly_serial_number ?? ($model->fiskaly_serial_number ?? null));
 
-    $__pmdTaxLabelFromTotals = (string)($__taxTotal->title ?? 'Tax');
+    $__pmdTaxLabelFromTotals = (string)($__taxTotal->title ?? 'VAT');
     $__pmdTaxIncluded = stripos($__pmdTaxLabelFromTotals, 'included') !== false;
 
     $__pmdNetSubtotal = 0.0;
@@ -379,7 +386,7 @@ TOTALS:
 
     <div class="row">
         <div class="col-12 text-center" style="margin-bottom: 8px;">
-            @if(setting('invoice_logo') || setting('site_logo'))
+            @if($__showLogo && (setting('invoice_logo') || setting('site_logo')))
                 <img class="img-responsive" src="{{ uploads_url(setting('invoice_logo') ?: setting('site_logo')) }}" alt="" style="max-height:50px; margin-bottom:5px;" />
                 <br>
             @endif
@@ -461,7 +468,7 @@ TOTALS:
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $__pmdTaxLabel ?? 'Tax');
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $__pmdTaxLabel ?? 'VAT');
     $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
 
     $displayTotalItems = 0;
@@ -569,7 +576,7 @@ TOTALS:
                         $displaySubtotal = round($__pmdDisplayedSubtotal, 2);
                         $displayTip = round((float)($tipTotal->value ?? 0), 2);
                         $displayDiscount = round((float)($couponTotal->value ?? 0), 2);
-                        $displayFinal = round($displaySubtotal + $displayTip + $displayDiscount, 2);
+                        $displayFinal = round((float)($finalTotal->value ?? ($model->order_total ?? ($displaySubtotal + $displayTip + $displayDiscount))), 2);
 
                         $displayItems = 0;
                         foreach (($model->getOrderMenusWithOptions() ?? []) as $__mi) {
@@ -652,13 +659,13 @@ TOTALS:
         </div>
     </div>
 
-    @if($__showFiskaly)
+    @if($__showFiskaly && $__showFiskalyCfg)
         <div class="pmd-fiskaly-box">
             <div class="pmd-fiskaly-title">TSE / Fiskaly Signaturdaten</div>
             <div class="pmd-fiskaly-intro">TSE/Fiskaly data loaded directly from order/transaction data.</div>
 
             <div class="pmd-fiskaly-grid">
-                @if(!empty($__fQr))
+                @if($__showQr && !empty($__fQr))
                     <div class="pmd-fiskaly-qr">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ urlencode($__fQr) }}" alt="Fiskaly QR Code">
                     </div>
@@ -719,5 +726,6 @@ TOTALS:
     <p class="thanks">Thank you for your Visit</p>
 </div>
 
+@if($__autoPrint)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
 </body>
 </html>

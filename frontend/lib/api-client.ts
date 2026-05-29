@@ -14,6 +14,9 @@ export interface MenuItem {
   descriptionKey?: string;
   price: number;
   image: string;
+  images?: string[];
+  gallery?: string[];
+  media?: Array<{ url?: string; image?: string; src?: string }>;
   category_id?: number;
   category_name?: string;
   calories?: number | null;
@@ -70,6 +73,13 @@ export interface MenuResponse {
   data: {
     items?: MenuItem[];
     categories?: Category[];
+    is_frontend_configured?: boolean;
+    setup_status?: {
+      has_categories: boolean;
+      has_menu_items: boolean;
+      has_logo: boolean;
+      has_custom_settings: boolean;
+    };
   };
 }
 
@@ -85,6 +95,7 @@ export interface OrderRequest {
     price: number;
     special_instructions?: string;
     options?: Record<string, string>;
+  prep_time_minutes?: number;
   }[];
   customer_name: string;
   customer_email: string;
@@ -99,7 +110,48 @@ export interface OrderRequest {
   tip_amount?: number;
   special_instructions?: string;
   stripe_payment_intent_id?: string;
+  existing_order_id?: number;
+  append_to_order?: boolean;
+  guest_session_id?: string;
 }
+
+
+export type TableOrderDraftItem = {
+  id?: number;
+  menu_id: number;
+  name: string;
+  quantity: number;
+  price: number;
+  subtotal?: number;
+  guest_session_id?: string | null;
+  options?: Record<string, string>;
+  order_menu_id?: number;
+  paid_quantity?: number;
+  unpaid_quantity?: number;
+};
+
+export type TableOrderDraftResponse = {
+  success: boolean;
+  status?: 'empty' | 'draft' | 'submitted_unpaid' | 'partially_paid' | 'paid';
+  draft_id?: number | null;
+  order_id?: number | null;
+  table_id?: string | null;
+  table_no?: string | null;
+  table_name?: string | null;
+  items?: TableOrderDraftItem[];
+  groups?: Array<{ guest_session_id: string | null; items: TableOrderDraftItem[]; subtotal: number }>;
+  totals?: { subtotal: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
+  settlement?: { orderTotal: number; settledAmount: number; remainingAmount: number; settlementStatus: string };
+  payment?: string | null;
+  message?: string;
+  error?: string;
+};
+
+export type TableOrderDraftContext = {
+  table_id?: string | number | null;
+  table_no?: string | number | null;
+  qr?: string | null;
+};
 
 export interface OrderResponse {
   success: boolean;
@@ -406,10 +458,19 @@ export class ApiClient {
           parsedBody = null;
         }
 
-        console.error('[PMD submitOrder non-200]', {
-          status: response.status,
-          body: parsedBody ?? responseText,
-        });
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[PMD submitOrder non-200]', {
+            status: response.status,
+            message: parsedBody?.message || parsedBody?.error || null,
+            details: parsedBody?.details || null,
+            body: parsedBody ?? responseText,
+          });
+        } else {
+          console.error('[PMD submitOrder non-200]', {
+            status: response.status,
+            message: parsedBody?.message || parsedBody?.error || 'Request failed',
+          });
+        }
 
         const apiMessage = parsedBody?.message || parsedBody?.error || `HTTP error! status: ${response.status}`;
         const error = new Error(apiMessage) as Error & { status?: number; details?: Record<string, string[]> };
@@ -615,7 +676,7 @@ export class ApiClient {
     try {
       // Try /vat-settings endpoint first (like /simple-theme).
       const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
-      const res = await fetch(`${base}/vat-settings`, { headers: { Accept: 'application/json' } });
+      const res = await fetch(this.envConfig.getApiEndpoint('/vat-settings'), { headers: { Accept: 'application/json' } });
       if (res.ok) {
         const json = await res.json();
         return json;
@@ -796,6 +857,54 @@ export class ApiClient {
     }
   }
 
+  async getTableOrderDraft(context: TableOrderDraftContext): Promise<TableOrderDraftResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (context.table_id != null && String(context.table_id).trim() !== '') params.set('table_id', String(context.table_id));
+      if (context.table_no != null && String(context.table_no).trim() !== '') params.set('table_no', String(context.table_no));
+      if (context.qr) params.set('qr', context.qr);
+      const response = await fetch(`/api/v1/table-order-draft?${params.toString()}`, { headers: { Accept: 'application/json' } });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || data?.message || 'Failed to fetch table order draft');
+      return data;
+    } catch (error) {
+      console.error('Table order draft fetch failed:', error);
+      return { success: false, status: 'empty', error: error instanceof Error ? error.message : 'Failed to fetch table order draft' };
+    }
+  }
+
+  async confirmTableDraftItems(payload: TableOrderDraftContext & {
+    guest_session_id: string;
+    items: TableOrderDraftItem[];
+  }): Promise<TableOrderDraftResponse> {
+    const response = await fetch('/api/v1/table-order-draft/confirm-items', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to confirm table items');
+    }
+    return data;
+  }
+
+  async submitTableDraft(payload: TableOrderDraftContext & {
+    draft_id?: number | null;
+    guest_session_id?: string | null;
+  }): Promise<TableOrderDraftResponse> {
+    const response = await fetch('/api/v1/table-order-draft/submit', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to submit table order');
+    }
+    return data;
+  }
+
   async getPendingQrOrderByTable(tableId: string, context?: { tableNo?: string | null; qr?: string | null }): Promise<PendingQrOrderResponse> {
     try {
       const params = new URLSearchParams();
@@ -851,6 +960,48 @@ export class ApiClient {
     return data;
   }
 
+  async startExistingOrderPayment(payload: {
+    order_id: number;
+    payment_method: string;
+    provider?: string | null;
+    guest_session_id?: string | null;
+    table_id?: string | number | null;
+    table_no?: string | number | null;
+    source?: string | null;
+    payment_reference?: string | null;
+  }) {
+    const response = await fetch('/api/v1/orders/start-payment', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to start existing order payment');
+    }
+    return data;
+  }
+
+
+
+  async finalizeExistingOrderPayment(payload: {
+    order_id: number;
+    payment_intent_id: string;
+    payment_method?: string | null;
+    provider?: string | null;
+  }) {
+    const response = await fetch('/api/v1/orders/finalize-payment', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to finalize existing order payment');
+    }
+    return data;
+  }
+
   async getThemeSettings(): Promise<{ success: boolean; data: any }> {
     try {
       // Always hit same-origin to avoid port mismatch (proxy keeps URL on 8000)
@@ -869,7 +1020,7 @@ export class ApiClient {
           primary_color: '#E7CBA9',
           secondary_color: '#EFC7B1',
           accent_color: '#3B3B3B',
-          background_color: '#FAFAFA'
+          background_color: '#fdf7f4'
         }
       };
     }
@@ -1000,25 +1151,63 @@ export const apiClient = new ApiClient();
 // This helper returns a usable image URL (or empty string if missing).
 export function getMenuImageUrl(image: string | null | undefined): string {
   if (!image) return ""
-  const s = String(image).trim()
-  if (!s) return ""
 
-  // If already absolute URL, return as-is
-  if (/^https?:\/\//i.test(s)) return s
+  const raw = String(image).trim()
+  if (!raw) return ""
 
-  // Normalize slashes
-  const clean = s.replace(/^\/+/, "")
-
-  // If it already looks like a known public path, keep it
-  if (
-    clean.startsWith("storage/") ||
-    clean.startsWith("uploads/") ||
-    clean.startsWith("images/") ||
-    clean.startsWith("media/")
-  ) {
-    return "/" + clean
+  // PMD_FORCE_GET_MENU_IMAGE_URL_FIX_START
+  // Backend gallery images now arrive as /assets/media/uploads/...
+  // Keep those paths EXACTLY as media URLs. Never prefix them with /storage.
+  if (/^https?:\/\//i.test(raw)) {
+    return raw
   }
 
-  // Default: many setups expose uploaded images under /storage/...
-  return "/storage/" + clean
+  if (raw.startsWith("/assets/media/")) {
+    return raw
+  }
+
+  if (raw.startsWith("assets/media/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/api/media/")) {
+    return raw
+  }
+
+  if (raw.startsWith("api/media/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/storage/")) {
+    // Keep existing true storage URLs, but do not create /storage/assets...
+    return raw
+  }
+
+  if (raw.startsWith("storage/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/attachments/public/")) {
+    return `/assets/media${raw}`
+  }
+
+  if (raw.startsWith("attachments/public/")) {
+    return `/assets/media/${raw}`
+  }
+
+  if (raw.startsWith("/uploads/")) {
+    return `/assets/media${raw}`
+  }
+
+  if (raw.startsWith("uploads/")) {
+    return `/assets/media/${raw}`
+  }
+
+  // Plain filenames from ti_menu_images, e.g. ata.webp
+  if (/\.(png|jpe?g|webp|gif|svg)(\?|#)?$/i.test(raw)) {
+    return `/assets/media/uploads/${raw}`
+  }
+
+  return raw
+  // PMD_FORCE_GET_MENU_IMAGE_URL_FIX_END
 }

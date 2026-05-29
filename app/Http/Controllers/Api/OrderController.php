@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Helpers\NotificationHelper;
+use App\Services\OrderEtaService;
 
 class OrderController extends Controller
 {
@@ -41,6 +42,9 @@ class OrderController extends Controller
             'coupon_discount' => 'nullable|numeric|min:0',
             'payment_method' => 'required|string|in:cash,cod,card,paypal',
             'special_instructions' => 'nullable|string|max:500'
+            ,'existing_order_id' => 'nullable|integer'
+            ,'append_to_order' => 'nullable|boolean'
+            ,'guest_session_id' => 'nullable|string|max:100'
         ]);
 
         if ($validator->fails()) {
@@ -60,6 +64,7 @@ class OrderController extends Controller
 
             $orderNumber = $this->generateOrderNumber();
             $tableId = $request->table_id;
+            $guestSessionId = trim((string)($request->guest_session_id ?? ''));
 
             if (!$tableId) {
                 $orderType = 'delivery';
@@ -72,25 +77,54 @@ class OrderController extends Controller
             $expectedTotal  = round((float) $request->total_amount, 2);
             $tipAmount      = round((float) ($request->tip_amount ?? 0), 2);
             $couponDiscount = round((float) ($request->coupon_discount ?? 0), 2);
+            $etaItems = [];
 
-            $orderId = DB::table('orders')->insertGetId([
-                'order_id' => $orderNumber,
-                'customer_name' => $request->customer_name,
-                'email' => $request->customer_email,
-                'telephone' => $request->customer_phone,
-                'location_id' => $request->location_id ?? 1,
-                'table_id' => $tableId,
-                'order_type' => $orderType,
-                'order_total' => $expectedTotal,
-                'order_date' => now(),
-                'order_time' => now()->format('H:i:s'),
-                'status_id' => 1,
-                'assignee_id' => null,
-                'comment' => $request->special_instructions,
-                'processed' => 1,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+
+            $orderId = null;
+            $isAppend = (bool)$request->boolean('append_to_order') && !empty($request->existing_order_id);
+            if ($isAppend) {
+                $existing = DB::table('orders')
+                    ->where('order_id', (int)$request->existing_order_id)
+                    ->where('location_id', $request->location_id ?? 1)
+                    ->where('table_id', $tableId)
+                    ->where('status_id', 1)
+                    ->where(function ($q) {
+                        $q->whereNull('payment')->orWhere('payment', 'cash')->orWhere('payment', 'cod');
+                    })
+                    ->first();
+
+                if ($existing) {
+                    $existingComment = (string)($existing->comment ?? '');
+                    if ($guestSessionId !== '' && preg_match('/\[guest_session:([^\]]+)\]/', $existingComment, $m)) {
+                        $orderGuestSession = trim((string)($m[1] ?? ''));
+                        if ($orderGuestSession !== '' && hash_equals($orderGuestSession, $guestSessionId) === false) {
+                            throw new \Exception('This open order belongs to another device session.');
+                        }
+                    }
+                    $orderId = (int)$existing->order_id;
+                }
+            }
+
+            if (!$orderId) {
+                $orderId = DB::table('orders')->insertGetId([
+                    'order_id' => $orderNumber,
+                    'customer_name' => $request->customer_name,
+                    'email' => $request->customer_email,
+                    'telephone' => $request->customer_phone,
+                    'location_id' => $request->location_id ?? 1,
+                    'table_id' => $tableId,
+                    'order_type' => $orderType,
+                    'order_total' => $expectedTotal,
+                    'order_date' => now(),
+                    'order_time' => now()->format('H:i:s'),
+                    'status_id' => 1,
+                    'assignee_id' => null,
+                    'comment' => trim((string)$request->special_instructions).(($guestSessionId !== '') ? ' [guest_session:'.$guestSessionId.']' : ''),
+                    'processed' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
 
             \Log::info('PMD_API_ORDER_STORE_ORDER_CREATED', [
                 'order_id' => $orderId,
@@ -114,6 +148,7 @@ class OrderController extends Controller
                 }
 
                 $baseSubtotal = round($basePrice * $qty, 2);
+                $etaItems[] = ['quantity'=>$qty,'prep_time_minutes'=>(int)($menuItem->prep_time_minutes ?? 15)];
 
                 $orderMenuId = DB::table('order_menus')->insertGetId([
                     'order_id' => $orderId,
@@ -318,12 +353,15 @@ class OrderController extends Controller
                 'updated_at' => now(),
             ];
 
+            DB::table('order_totals')->where('order_id', $orderId)->delete();
             DB::table('order_totals')->insert($orderTotals);
 
+            $eta = OrderEtaService::calculate($etaItems, (int)($request->location_id ?? 1));
             DB::table('orders')
                 ->where('order_id', $orderId)
                 ->update([
                     'order_total' => $expectedTotal,
+                    'estimated_prep_minutes' => $eta['eta_minutes'],
                     'updated_at' => now()
                 ]);
 
@@ -366,7 +404,10 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'order_id' => $orderId,
-                'message' => 'Order placed successfully'
+                'message' => 'Order placed successfully',
+                'eta_minutes' => $eta['eta_minutes'] ?? null,
+                'estimated_prep_minutes' => $eta['eta_minutes'] ?? null,
+                'show_customer_eta' => (bool)($eta['show_customer_eta'] ?? true)
             ]);
 
         } catch (\Exception $e) {
@@ -439,6 +480,7 @@ class OrderController extends Controller
                 'table_name' => $order->table_name,
                 'order_type' => $order->order_type,
                 'total_amount' => (float)$order->order_total,
+                'estimated_prep_minutes' => isset($order->estimated_prep_minutes) ? (int)$order->estimated_prep_minutes : null,
                 'status' => [
                     'id' => $order->status_id,
                     'name' => $order->status_name,

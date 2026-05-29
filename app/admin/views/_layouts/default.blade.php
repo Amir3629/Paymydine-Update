@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+@php
+    $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+@endphp
+
 
 
 
@@ -32,9 +36,6 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-modals-unified.css') }}?v={{ time() }}">
     <!-- Rounded corners for notification panel, settings menu, profile dropdown, toast -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-cards-rounded.css') }}?v={{ time() }}">
-    <!-- Admin Tour Enhanced Styles -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/introjs.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-tour-enhanced.css') }}">
     <!-- Blue Buttons Override - Replace all green buttons with login button style -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
@@ -59,7 +60,9 @@
     <!-- Fix Green Buttons and Text - Change btn-default, btn-outline-default, and text-muted from green to dark blue/gray -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
     <!-- Modern Media Finder - Elegant image uploader redesign -->
+    @unless($pmdIsNativeMediaContext)
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ time() }}">
+    @endunless
     <!-- Media Finder Widget CSS - Required for image uploader fields -->
     <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ time() }}">
     <!-- Date range picker: load last so overrides (bigger card, buttons, ranges) win over .btn-sm etc -->
@@ -70,22 +73,22 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dropdown-field-same-size.css') }}?v={{ time() }}">
     {{-- Critical: prevent green flash on first paint - inline so it's in the first render --}}
     <style id="no-green-toolbar-critical">
-        .toolbar-action,
-        .progress-indicator-container {
+        body:not(.pmd-admin-theme-v1) .toolbar-action,
+        body:not(.pmd-admin-theme-v1) .progress-indicator-container {
             --bs-primary-rgb: 54, 74, 99 !important;
             --bs-btn-focus-shadow-rgb: 54, 74, 99 !important;
         }
-        .toolbar-action .btn-primary,
-        .toolbar-action .progress-indicator-container .btn-primary,
-        .progress-indicator-container .btn-primary,
-        .toolbar-action .progress-indicator-container .btn-group .btn-primary {
+        body:not(.pmd-admin-theme-v1) .toolbar-action .btn-primary,
+        body:not(.pmd-admin-theme-v1) .toolbar-action .progress-indicator-container .btn-primary,
+        body:not(.pmd-admin-theme-v1) .progress-indicator-container .btn-primary,
+        body:not(.pmd-admin-theme-v1) .toolbar-action .progress-indicator-container .btn-group .btn-primary {
             background: linear-gradient(135deg, #1f2b3a 0%, #364a63 100%) !important;
             background-color: #364a63 !important;
             border-color: #364a63 !important;
             box-shadow: 0 4px 15px rgba(54, 74, 99, 0.35) !important;
         }
-        .toolbar-action .progress-indicator-container .progress-indicator,
-        .progress-indicator-container .progress-indicator {
+        body:not(.pmd-admin-theme-v1) .toolbar-action .progress-indicator-container .progress-indicator,
+        body:not(.pmd-admin-theme-v1) .progress-indicator-container .progress-indicator {
             background: transparent !important;
         }
     </style>
@@ -366,7 +369,7 @@
     flex: 0 0 52px !important;
     width: 52px !important;
     min-width: 52px !important;
-    max-width: 52px !important;
+    max-width: 190px !important;
     height: 44px !important;
     min-height: 44px !important;
     margin: 0 !important;
@@ -601,9 +604,200 @@
  /* ===== END MOBILE HEADER HIDE UNTIL STABLE ===== */
 </script>
 
+    @unless($pmdIsNativeMediaContext)
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ time() }}">
+    @endunless
     {{-- Final admin toolbar button override: keep after legacy/admin/page CSS because older files override toolbar button sizing and colors. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ time() }}">
+
+<!-- PMD_DASHBOARD_LOGO_SIZE_FIX_START -->
+<style id="pmd-dashboard-logo-size-fix">
+    /* Keep admin/dashboard logos inside the header frame */
+    .navbar-top,
+    .navbar-fixed-top {
+        overflow: visible !important;
+    }
+
+    .navbar-top .navbar-brand,
+    .navbar-fixed-top .navbar-brand,
+    .navbar-top .navbar-brand a,
+    .navbar-fixed-top .navbar-brand a {
+        display: flex !important;
+        align-items: center !important;
+        min-height: 56px !important;
+        max-height: 48px !important;
+        overflow: hidden !important;
+    }
+
+    .navbar-top .navbar-brand img,
+    .navbar-fixed-top .navbar-brand img,
+    .navbar-top img.dashboard-logo,
+    .navbar-fixed-top img.dashboard-logo,
+    .navbar-top .dashboard-logo img,
+    .navbar-fixed-top .dashboard-logo img,
+    .navbar-top img[src*="/assets/media/"]:not(.navbar-profile-avatar):not(.rounded-circle),
+    .navbar-fixed-top img[src*="/assets/media/"]:not(.navbar-profile-avatar):not(.rounded-circle) {
+        max-height: 48px !important;
+        max-width: 190px !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        object-position: center center !important;
+        display: block !important;
+    }
+
+    /* Settings page media previews should never explode layout */
+    body[class*="settings"] img[src*="/assets/media/"],
+    .page-content img[src*="/assets/media/uploads/"],
+    .form-widget img[src*="/assets/media/uploads/"],
+    .field-mediafinder img,
+    [data-control="mediafinder"] img {
+        max-width: 190px !important;
+        max-height: 48px !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    /* But do not shrink table-map background because it is CSS background, not img */
+</style>
+<!-- PMD_DASHBOARD_LOGO_SIZE_FIX_END -->
+
+
+
+
+<style id="pmd-force-dashboard-logo-right-style">
+
+/* PMD_FORCE_DASHBOARD_LOGO_RIGHT_START */
+.navbar-top .navbar-brand a.logo,
+.navbar-fixed-top .navbar-brand a.logo {
+    margin-left: 44px !important;
+    transform: translateX(0) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.navbar-top .navbar-brand a.logo img.pmd-dashboard-logo-img,
+.navbar-fixed-top .navbar-brand a.logo img.pmd-dashboard-logo-img {
+    max-height: 48px !important;
+    max-width: 190px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+/* PMD_FORCE_DASHBOARD_LOGO_RIGHT_END */
+
+</style>
+<style id="pmd-media-manager-preview-toolbar-fix">
+/* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_START */
+/* Fix broken large square action buttons in Media Manager right preview sidebar.
+   Scoped only to native media manager preview toolbar. */
+body .media-manager .media-sidebar .sidebar-preview-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 0 10px 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar .btn-group,
+body .media-manager .media-sidebar .sidebar-preview-toolbar .btn-group-sm {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar .media-toolbar-tooltip-wrap {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 34px !important;
+
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    max-width: 190px !important;
+    max-height: 48px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 9px !important;
+
+    line-height: 1 !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+    transform: none !important;
+    position: relative !important;
+    inset: auto !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+    line-height: 1 !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-default {
+    background: #fff !important;
+    border: 1px solid #dbe3f0 !important;
+    color: #334155 !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-default:hover {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #1e293b !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-danger {
+    background: #fff !important;
+    border: 1px solid #dc3545 !important;
+    color: #dc3545 !important;
+}
+
+body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-danger:hover {
+    background: #fff5f6 !important;
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+}
+/* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_END */
+</style>
+    <!-- PayMyDine Admin Theme v1 - centralized final general visual layer (intentionally last CSS include) -->
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
+
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -653,7 +847,7 @@
         }
     });
             </script>
-<body class="page {{ $this->bodyClass }}">
+<body class="page pmd-admin-theme-v1 {{ $this->bodyClass }}">
 @if(AdminAuth::isLogged())
     {!! $this->makePartial('top_nav') !!}
     {!! AdminMenu::render('side_nav') !!}
@@ -674,6 +868,10 @@
 {!! $this->makePartial('confirm_modal') !!}
 {!! Assets::getJsVars() !!}
 {{-- Use asset combiner to ensure all widget JS files are included --}}
+@php
+    $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+@endphp
+
 
 
 
@@ -695,7 +893,9 @@
 <script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ time() }}"></script>
 
 <!-- Modal Performance Fix - MUST LOAD FIRST to prevent freeze -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ time() }}"></script>
+@endunless
 
 <!-- Fix Bootstrap Dropdown _menu null (Folders/Filter/Sort dropdowns on Media Manager) -->
 <script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ time() }}"></script>
@@ -710,7 +910,9 @@
 <script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ time() }}"></script>
 
 <!-- Fix Media Finder Inline Styles -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ time() }}"></script>
+@endunless
 <!-- Fix History Button Text Centering - Removes inline styles that prevent flexbox centering -->
 <script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ time() }}"></script>
 <!-- Fix Notification Buttons Bottom Border - Ensures bottom border is visible -->
@@ -734,17 +936,17 @@
 <script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
 
 <!-- Media Manager Search Icon Fix -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
+@endunless
 
 <!-- Image Preview Persistence Fix -->
+@unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ time() }}"></script>
+@endunless
 
 <!-- Debug Redirects (Remove this in production) -->
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
-
-<!-- Admin Tour Enhanced System -->
-<script src="{{ asset('app/admin/assets/js/introjs.min.js') }}"></script>
-<script src="{{ asset('app/admin/assets/js/admin-tour-enhanced.js') }}?v={{ time() }}"></script>
 
 <!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
 <!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->
@@ -757,6 +959,10 @@
 
 <!-- SlimSelect: close dropdown on scroll (page-wrapper), match dropdown width -->
 <script src="{{ asset('app/admin/assets/js/dynamic-dropdown-height.js') }}?v={{ time() }}"></script>
+
+<!-- PMD Admin Toolbar Auto Normalizer -->
+<script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-admin-responsive-shell.js') }}?v={{ time() }}"></script>
 
 <!-- Guide Tour Button Handler -->
 <script>
@@ -949,6 +1155,169 @@
 })();
 </script>
 
-    <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+    @unless($pmdIsNativeMediaContext)
+<script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+@endunless
+
+
+
+
+
+
+
+<!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_START -->
+<script id="pmd-dashboard-logo-invoice-sync-prompt-v1">
+(function () {
+    if (!/\/admin\/settings\/edit\/general(?:$|[?#\/])/.test(window.location.pathname)) {
+        return;
+    }
+
+    var initialDashboardLogo = null;
+    var alreadyAskedForThisSave = false;
+
+    function normalizeLogoValue(value) {
+        value = String(value || '').trim();
+        if (!value) return '';
+
+        try {
+            var url = new URL(value, window.location.origin);
+            value = url.pathname || value;
+        } catch (e) {}
+
+        value = value.split('?')[0];
+
+        var match = value.match(/\/assets\/media\/uploads\/([^\/]+)$/);
+        if (match) return '/' + match[1];
+
+        return value;
+    }
+
+    function basename(value) {
+        value = normalizeLogoValue(value);
+        return value.split('/').pop().toLowerCase();
+    }
+
+    function isBrokenPlaceholder(value) {
+        var b = basename(value);
+        return !b || [
+            'images.png',
+            'images.jpeg',
+            'image.png',
+            'image.jpeg',
+            'placeholder.svg',
+            'no-image.png'
+        ].indexOf(b) !== -1;
+    }
+
+    function getFieldValue(key) {
+        var selectors = [
+            'input[name="setting[' + key + ']"]',
+            'input[name="' + key + '"]',
+            'input[data-field-name="' + key + '"]'
+        ];
+
+        for (var i = 0; i < selectors.length; i++) {
+            var el = document.querySelector(selectors[i]);
+            if (el && el.value) {
+                return normalizeLogoValue(el.value);
+            }
+        }
+
+        return '';
+    }
+
+    function setHiddenSetting(form, key, value) {
+        var name = 'setting[' + key + ']';
+        var input = form.querySelector('input[name="' + name + '"]');
+
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.setAttribute('data-pmd-injected', '1');
+            form.appendChild(input);
+        }
+
+        input.value = normalizeLogoValue(value);
+    }
+
+    function findMainSettingsForm(el) {
+        var form = el && el.closest ? el.closest('form') : null;
+        if (form) return form;
+
+        return document.querySelector('form') || document.body;
+    }
+
+    function maybePromptAndInject(form) {
+        var current = normalizeLogoValue(getFieldValue('dashboard_logo'));
+
+        if (!current || isBrokenPlaceholder(current)) return;
+        if (initialDashboardLogo === null) initialDashboardLogo = current;
+        if (current === initialDashboardLogo) return;
+        if (alreadyAskedForThisSave) return;
+
+        alreadyAskedForThisSave = true;
+
+        var useForInvoice = window.confirm(
+            'Do you also want to use this Dashboard Logo for the Invoice logo?'
+        );
+
+        if (useForInvoice) {
+            setHiddenSetting(form, 'invoice_logo', current);
+            setHiddenSetting(form, 'pmd_sync_dashboard_logo_to_invoice', '1');
+        }
+    }
+
+    function captureInitialLogo() {
+        initialDashboardLogo = normalizeLogoValue(getFieldValue('dashboard_logo'));
+    }
+
+    window.addEventListener('load', function () {
+        setTimeout(captureInitialLogo, 600);
+        setTimeout(captureInitialLogo, 1600);
+    });
+
+    document.addEventListener('submit', function (event) {
+        maybePromptAndInject(event.target);
+    }, true);
+
+    document.addEventListener('click', function (event) {
+        var target = event.target && event.target.closest
+            ? event.target.closest('button, a, input[type="submit"]')
+            : null;
+
+        if (!target) return;
+
+        var text = String(target.textContent || target.value || '').toLowerCase();
+        var looksLikeSave =
+            text.indexOf('save') !== -1 ||
+            target.matches('[data-request*="onSave"], [data-request*="save"], .btn-primary, button[type="submit"], input[type="submit"]');
+
+        if (!looksLikeSave) return;
+
+        maybePromptAndInject(findMainSettingsForm(target));
+    }, true);
+})();
+</script>
+<!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_END -->
+
+
+<script>
+(function(){
+ if(!/admin\/settings\/edit\/setup/.test(window.location.pathname)) return;
+ function v(n){var e=document.querySelector('[name="setting['+n+']"]'); return e?e.value:'';}
+ function on(){
+  var p=document.getElementById('pmd-invoice-preview'); if(!p) return;
+  var preset=document.querySelector('[name="setting[invoice_prefix_preset]"]'); var prefix=document.querySelector('[name="setting[invoice_prefix]"]');
+  if(preset && prefix){ if(preset.value && preset.value!=='custom'){ prefix.value=preset.value; } }
+  var showLogo=(v('invoice_show_logo')==='1'||v('invoice_show_logo')==='true'||v('invoice_show_logo')==='on');
+  var logo=v('invoice_logo'); var l=document.getElementById('pmd-prev-logo'); if(l){ l.textContent=(showLogo && !logo)?'LOGO':''; if(showLogo&&logo){l.innerHTML='<small>Logo selected</small>';} }
+  var no=document.getElementById('pmd-prev-no'); if(no){ no.textContent='#'+(v('invoice_prefix')||'')+'2026-001180'; }
+  var f=document.getElementById('pmd-prev-footer'); if(f) f.textContent=v('invoice_customer_footer_text')||'';
+ }
+ document.addEventListener('change',on,true); document.addEventListener('input',on,true); setTimeout(on,300);
+})();
+</script>
+
 </body>
 </html>

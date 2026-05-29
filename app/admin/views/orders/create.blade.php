@@ -30,6 +30,8 @@
   if (!$cashierUrl) {
     $cashierUrl = '#';
   }
+  $canManageTableLayout = $canManageTableLayout ?? false;
+  $tableMapBackgroundImage = $tableMapBackgroundImage ?? null;
 @endphp
 
 <style>
@@ -474,6 +476,15 @@
   #table-grid,
   .table-grid-container,
   .table-grid,
+
+
+.table-grid-container.has-custom-bg {
+    background-image: var(--tablemap-bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 12px;
+}
   .working-area-indicator,
   .grid-overlay,
   .table-item,
@@ -667,6 +678,7 @@
         </div>
         <div class="page-header-actions">
             <div class="header-controls" style="display: none;" id="header-controls">
+                @if($canManageTableLayout)
                 <div class="zoom-controls">
                     <div class="zoom-level-indicator" id="zoom-level">100%</div>
                     <button type="button" class="zoom-btn" id="zoom-in" style="opacity: 1 !important; cursor: pointer; pointer-events: auto !important; display: inline-block !important; visibility: visible !important; position: relative !important; z-index: 99999 !important;" aria-label="Zoom In (Ctrl + Scroll Up)" data-bs-original-title="Zoom In (Ctrl + Scroll Up)">
@@ -682,6 +694,12 @@
                 <button type="button" id="edit-layout-btn" class="btn btn-outline-secondary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-edit"></i> Edit Layout
                 </button>
+                @if(($canMergeTables ?? false))
+                <button type="button" id="merge-tables-btn" class="btn btn-outline-warning btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
+                    <i class="fa fa-object-group"></i> Drag to Merge
+                </button>
+                @endif
+                @endif
                 <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-exchange-alt"></i> Move Table
                 </button>
@@ -1129,7 +1147,7 @@ foreach ($menu_ids as $key => $menu_id) {
             $orderTotals[] = [
                 'order_id' => $last_order_id,
                 'code' => 'tax',
-                'title' => 'Tax',
+                'title' => 'VAT',
                 'priority' => 2,
                 'value' => $tax_amount,
                 'is_summable' => 1,
@@ -1608,7 +1626,7 @@ $unavailableTables = DB::table('orders')
                             <span id="summary-subtotal">$0.00</span>
                         </div>
                         <div class="summary-row" id="tax-row" style="display: none;">
-                            <span>Tax:</span>
+                            <span>VAT:</span>
                             <span id="summary-tax">$0.00</span>
                         </div>
                         <div class="summary-row" id="tip-row" style="display: none;">
@@ -4106,9 +4124,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Also initialize when the menu is shown (for the new table-to-menu flow)
             window.initializeCategoryFiltering = initializeCategoryFiltering;
 
-            // ========== PAYMENT, TAX, COUPON, TIP FUNCTIONALITY ==========
+            // ========== PAYMENT, VAT, COUPON, TIP FUNCTIONALITY ==========
             
-            // Tax settings from backend
+            // VAT settings from backend
             const taxSettings = {
                 enabled: {{ isset($taxSettings['enabled']) && $taxSettings['enabled'] ? 'true' : 'false' }},
                 percentage: {{ $taxSettings['percentage'] ?? 0 }},
@@ -5080,9 +5098,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const tableGridContainer = document.getElementById("table-grid");
     const gridOverlay = document.getElementById("grid-overlay");
     const zoomInBtn = document.getElementById("zoom-in");
+    const canManageTableLayout = @json($canManageTableLayout);
     const zoomOutBtn = document.getElementById("zoom-out");
     const resetZoomBtn = document.getElementById("reset-zoom");
     const zoomLevelIndicator = document.getElementById("zoom-level");
+    const tableMapBackgroundImage = @json($tableMapBackgroundImage ? uploads_url($tableMapBackgroundImage) : null);
+    if (tableMapBackgroundImage) {
+        const gridContainer = document.querySelector(".table-grid-container");
+        if (gridContainer) {
+            gridContainer.classList.add("has-custom-bg");
+            gridContainer.style.setProperty("--tablemap-bg-image", `url(${tableMapBackgroundImage})`);
+        }
+    }
     
     let isEditMode = false;
     let isDragging = false;
@@ -5191,6 +5218,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    if (!canManageTableLayout) {
+        return;
+    }
+
     // Edit layout toggle
     editLayoutBtn.addEventListener("click", function () {
         isEditMode = !isEditMode;
@@ -5235,7 +5266,51 @@ document.addEventListener("DOMContentLoaded", function () {
     let isMoveMode = false;
     let moveSourceTable = null;
     const moveTableBtn = document.getElementById('move-table-btn');
+    const mergeTablesBtn = document.getElementById('merge-tables-btn');
     let moveInstructionElement = null;
+
+    let isMergeMode = false;
+    let selectedMergeTableIds = new Set();
+    function getLocationId(){ return parseInt(document.querySelector('input[name=\"location_id\"]')?.value || '0', 10) || 0; }
+    function paintMergedTables(groups){
+        document.querySelectorAll('.table-item').forEach(el=>{ el.classList.remove('table-merged'); el.removeAttribute('data-table-group-id'); });
+        (groups||[]).forEach(g => (g.table_ids||[]).forEach(id => { const el = document.querySelector('.table-item[data-id=\"'+id+'\"]'); if(el){ el.classList.add('table-merged'); el.setAttribute('data-table-group-id', g.table_group_id); el.setAttribute('title', g.name); } }));
+    }
+    async function loadGroups(){
+        const fd = new FormData(); fd.append('_handler','onGetTableGroups'); fd.append('location_id', String(getLocationId()));
+        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
+        const json = await res.json(); if (json && json.groups) paintMergedTables(json.groups);
+    }
+    if (mergeTablesBtn) mergeTablesBtn.addEventListener('click', async function () {
+        isMergeMode = !isMergeMode; selectedMergeTableIds.clear();
+        this.classList.toggle('active', isMergeMode);
+        this.innerHTML = isMergeMode ? '<i class=\"fa fa-save\"></i> Confirm Merge' : '<i class=\"fa fa-object-group\"></i> Drag to Merge';
+        if (!isMergeMode) return;
+        alert('Select 2 or more tables to merge, then click Drag to Merge again to confirm.');
+    });
+    tableItems.forEach(item => item.addEventListener("click", async function(event){
+        if (!isMergeMode) return;
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+        const tid = parseInt(this.dataset.id || '0', 10); if (!tid) return;
+        if (selectedMergeTableIds.has(tid)) { selectedMergeTableIds.delete(tid); this.classList.remove('merge-selected'); } else { selectedMergeTableIds.add(tid); this.classList.add('merge-selected'); }
+        if (selectedMergeTableIds.size >= 2 && mergeTablesBtn.innerHTML.indexOf('Confirm Merge') !== -1) {
+            const name = prompt('Optional group name', '') || '';
+            const fd = new FormData(); fd.append('_handler','onMergeTables'); fd.append('location_id', String(getLocationId())); fd.append('name', name); selectedMergeTableIds.forEach(id=>fd.append('table_ids[]', String(id)));
+            const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
+            const json = await res.json();
+            if (json.success) { isMergeMode = false; mergeTablesBtn.classList.remove('active'); mergeTablesBtn.innerHTML = '<i class=\"fa fa-object-group\"></i> Drag to Merge'; document.querySelectorAll('.table-item.merge-selected').forEach(el=>el.classList.remove('merge-selected')); await loadGroups(); }
+            else alert(json.message || 'Merge failed');
+        }
+    }, true));
+    document.addEventListener('dblclick', async function(e){
+        const el = e.target.closest('.table-item.table-merged'); if (!el || !mergeTablesBtn) return;
+        const gid = el.getAttribute('data-table-group-id'); if (!gid) return;
+        if (!confirm('Unmerge this table group?')) return;
+        const fd = new FormData(); fd.append('_handler','onUnmergeTableGroup'); fd.append('table_group_id', gid);
+        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
+        const json = await res.json(); if (json.success) await loadGroups(); else alert(json.message || 'Unmerge failed');
+    });
+    setTimeout(loadGroups, 400);
 
     // Function to show move instruction as flash message
     function showMoveInstruction(message) {
@@ -6104,3 +6179,108 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+{{-- PMD_TABLE_MAP_BACKGROUND_RUNTIME_FIX_START --}}
+@php
+    $pmdTableMapBackgroundRaw = $tableMapBackgroundImage ?? null;
+
+    if (empty($pmdTableMapBackgroundRaw) && function_exists('setting')) {
+        $pmdTableMapBackgroundRaw = setting('table_map_background_image');
+    }
+
+    $pmdTableMapBackgroundUrl = null;
+    $pmdTableMapBackgroundRaw = is_string($pmdTableMapBackgroundRaw) ? trim($pmdTableMapBackgroundRaw) : '';
+
+    if ($pmdTableMapBackgroundRaw !== '') {
+        if (preg_match('#^https?://#i', $pmdTableMapBackgroundRaw)) {
+            $pmdTableMapBackgroundUrl = $pmdTableMapBackgroundRaw;
+        }
+        elseif (preg_match('#^/assets/media/#', $pmdTableMapBackgroundRaw)) {
+            $pmdTableMapBackgroundUrl = $pmdTableMapBackgroundRaw;
+        }
+        elseif (preg_match('#^assets/media/#', $pmdTableMapBackgroundRaw)) {
+            $pmdTableMapBackgroundUrl = '/'.$pmdTableMapBackgroundRaw;
+        }
+        elseif (function_exists('uploads_url')) {
+            $pmdTableMapBackgroundUrl = uploads_url(ltrim($pmdTableMapBackgroundRaw, '/'));
+        }
+        else {
+            $pmdTableMapBackgroundUrl = '/assets/media/uploads/'.ltrim($pmdTableMapBackgroundRaw, '/');
+        }
+    }
+@endphp
+
+<style id="pmd-table-map-background-runtime-style">
+    .table-item.table-merged .table-circle{box-shadow:0 0 0 3px #f59e0b inset!important;}
+    .table-item.merge-selected .table-circle{box-shadow:0 0 0 3px #2563eb inset!important;}
+
+    .pmd-table-map-has-bg {
+        background-repeat: no-repeat !important;
+        background-position: center center !important;
+        background-size: 100% 100% !important;
+        background-color: #f8fafc !important;
+    }
+</style>
+
+<script id="pmd-table-map-background-runtime-script">
+(function () {
+    var bgUrl = @json($pmdTableMapBackgroundUrl);
+
+
+    function findTableMapSurface() {
+        var container = document.getElementById('table-grid');
+        var innerGrid = container ? container.querySelector('.table-grid') : null;
+
+        return innerGrid
+            || container
+            || document.querySelector('.table-grid')
+            || document.querySelector('.table-map')
+            || document.querySelector('.table-map-container')
+            || document.querySelector('.tables-layout')
+            || document.querySelector('.restaurant-layout')
+            || document.querySelector('[data-control="table-map"]');
+    }
+
+    function applyBackground() {
+        if (!bgUrl) {
+            return false;
+        }
+
+        var el = findTableMapSurface();
+
+        if (!el) {
+            return false;
+        }
+
+        el.classList.add('pmd-table-map-has-bg');
+        el.style.setProperty('background-image', 'linear-gradient(rgba(255,255,255,0.15), rgba(255,255,255,0.15)), url("' + bgUrl + '")', 'important');
+        el.style.setProperty('background-repeat', 'no-repeat', 'important');
+        el.style.setProperty('background-position', 'center center', 'important');
+        el.style.setProperty('background-size', '100% 100%', 'important');
+        el.style.setProperty('background-color', '#f8fafc', 'important');
+        el.style.setProperty('background-attachment', 'local', 'important');
+
+        if (window.console) {
+            console.log('[PMD TableMap] background applied:', bgUrl, el);
+        }
+
+        return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var tries = 0;
+        var timer = setInterval(function () {
+            tries += 1;
+            applyBackground();
+
+            if (tries >= 20) {
+                clearInterval(timer);
+            }
+        }, 300);
+    });
+
+    window.PMDApplyTableMapBackground = applyBackground;
+})();
+</script>
+{{-- PMD_TABLE_MAP_BACKGROUND_RUNTIME_FIX_END --}}

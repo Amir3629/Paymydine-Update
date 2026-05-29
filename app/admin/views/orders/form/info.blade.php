@@ -90,11 +90,11 @@
 }
 
 .order-info-item.status {
-    min-width: 170px;
+    min-width: 90px;
 }
 
 .order-info-item.assignee {
-    min-width: 120px;
+    min-width: 90px;
     flex-grow: 0;
     flex-shrink: 0;
 }
@@ -549,15 +549,19 @@ a.note-icon-btn i[style*="margin-top"],
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 6px 4px;
+    gap: 0;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
     background: #f1f4fb !important;
     background-color: #f1f4fb !important;
     border-radius: 10px !important;
     border: 1px solid #c9d2e3 !important;
     border-bottom: 1px solid #c9d2e3 !important;
     color: #364a63 !important;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -576,17 +580,20 @@ a.note-icon-btn i[style*="margin-top"],
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 6px 14px;
+    gap: 0;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
     background: #f1f4fb !important;
     background-color: #f1f4fb !important;
     border-radius: 10px !important;
     border: 1px solid #c9d2e3 !important;
     color: #364a63 !important;
-    font-style: italic;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 16px;
+    font-size: 15px;
     text-align: center;
     margin: 0 auto;
 }
@@ -641,7 +648,11 @@ a.order-info-value.status-value.header-status-clickable:hover,
 a.order-info-value.status-value.header-status-clickable,
 .order-info-header a.order-info-value.status-value,
 .order-info-header a.status-value {
-    padding: 6px 4px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
 }
 
 .order-info-header .order-info-value.assignee-value,
@@ -655,7 +666,11 @@ a.order-info-value.assignee-value.header-assignee-clickable,
     border: 1px solid #c9d2e3 !important;
     border-radius: 10px !important;
     color: #364a63 !important;
-    padding: 6px 14px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
     border-bottom: 1px solid #c9d2e3 !important;
     border-bottom-style: solid !important;
 }
@@ -1089,13 +1104,14 @@ div.toolbar-action a.btn-send-invoice {
             role="button"
             data-editor-control="load-status"
             data-status-color="{{ $formModel->status && $formModel->status->status_color ? $formModel->status->status_color : '#364a63' }}"
-            style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 4px; background: #f1f4fb; border-radius: 10px; border: 1px solid #c9d2e3; color: #364a63; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;"
+            title="Status: {{ $formModel->status ? $formModel->status->status_name : '--' }}"
+            aria-label="Status: {{ $formModel->status ? $formModel->status->status_name : '--' }}"
+            style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
         >
             @if($formModel->status)
-                <i class="fa fa-circle status-dot-icon" style="font-size: 8px; color: {{ $formModel->status->status_color ?? '#364a63' }} !important;"></i>
-                {{ $formModel->status->status_name }}
+                <i class="fa fa-circle status-dot-icon" style="font-size: 11px; color: {{ $formModel->status->status_color ?? '#364a63' }} !important;"></i>
             @else
-                <span style="color: #8094ae;">--</span>
+                <i class="fa fa-circle-o" style="font-size: 12px; color: #8094ae;"></i>
             @endif
         </a>
     </div>
@@ -1109,62 +1125,24 @@ div.toolbar-action a.btn-send-invoice {
             class="order-info-value assignee-value header-assignee-clickable"
             role="button"
             data-editor-control="load-assignee"
-            style="text-decoration: none; color: #526484; font-style: italic; cursor: pointer; transition: all 0.2s ease; border-bottom: 2px dashed transparent; padding: 4px 0; display: block;"
+            title="Assignee: {{ $formModel->assignee ? $formModel->assignee->staff_name : '--' }}"
+            aria-label="Assignee: {{ $formModel->assignee ? $formModel->assignee->staff_name : '--' }}"
+            style="text-decoration: none; color: #526484; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items:center; justify-content:center;"
         >
             @if($formModel->assignee)
-                {{ $formModel->assignee->staff_name }}
+                <i class="fa fa-user" aria-hidden="true"></i>
             @else
-                <span style="color: #8094ae;">--</span>
+                <i class="fa fa-user-plus" style="color: #8094ae;" aria-hidden="true"></i>
             @endif
         </a>
     </div>
     
-    @if($formModel->hasInvoice())
-        <div class="order-info-separator"></div>
-        
-        <!-- Invoice - Combined card with both buttons -->
-        <div class="order-info-item invoice-combined">
-            <label class="order-info-label">Invoice</label>
-            <div class="invoice-buttons-container">
-            <a
-                class="invoice-icon-btn"
-                href="{{ (((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
-? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
-: admin_url('orders/invoice/'.$formModel->order_id) }}"
-                target="_blank"
-                title="View Invoice"
-            >
-                <i class="fa fa-file-text"></i>
-            </a>
-            @if(
-                (int)($formModel->is_imported_ready2order ?? 0) === 1 ||
-                stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false ||
-                stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false
-            )
-            <a
-                class="invoice-icon-btn"
-                href="{{ preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdBon) ? admin_url('orders/pos-bon/'.$formModel->order_id).'?invoice_id='.($__pmdBon[1] ?? '') : admin_url('orders/pos-invoice/'.$formModel->order_id) }}"
-                target="_blank"
-                aria-label="View Bon 80mm"
-                title="View Bon 80mm"
-            >
-                <i class="fa fa-receipt"></i>
-            </a>
-            @endif
-            <a
-                class="send-invoice-icon-btn"
-                role="button"
-                data-request="onSendInvoiceEmail"
-                data-request-confirm="Send invoice to customer email?"
-                data-progress-indicator="Sending invoice..."
-                title="Send Invoice via Email"
-            >
-                <i class="fa fa-envelope"></i>
-            </a>
-            </div>
-        </div>
-    @endif
-    
+    @php
+        $__statusName = strtolower((string)optional($formModel->status)->status_name);
+        $__isPaidOrder = !empty($formModel->settled_at)
+            || ((float)($formModel->order_total ?? 0) > 0 && (float)($formModel->settled_amount ?? 0) >= (float)($formModel->order_total ?? 0))
+            || ((bool)($formModel->processed ?? false) && in_array($__statusName, ['paid', 'complete', 'completed'], true));
+    @endphp
     <div class="order-info-separator"></div>
     
     <!-- Note - Add staff note button -->
@@ -1184,6 +1162,48 @@ div.toolbar-action a.btn-send-invoice {
             </a>
         </div>
     </div>
+    
+    @if($formModel->order_id)
+        <div class="order-info-separator"></div>
+        
+        <!-- Invoice - Combined card with both buttons -->
+        <div class="order-info-item invoice-combined">
+            <label class="order-info-label">Invoice</label>
+            <div class="invoice-buttons-container">
+            <a
+                class="invoice-icon-btn"
+                href="{{ admin_url('orders/customerInvoice/'.$formModel->order_id) }}"
+                target="_blank"
+                title="Customer Invoice"
+            >
+                <i class="fa fa-file-text"></i>
+            </a>
+            @if($__isPaidOrder)
+                <a
+                class="invoice-icon-btn"
+                href="{{ (((int)($formModel->is_imported_ready2order ?? 0) === 1) || stripos((string)($formModel->comment ?? ''), 'Imported from ready2order invoice') !== false || stripos((string)($formModel->comment ?? ''), 'source_key=r2o-invoice') !== false)
+? (preg_match('/invoice_id=([0-9]+)/', (string)($formModel->comment ?? ''), $__pmdInv) ? admin_url('orders/pos-invoice/'.$formModel->order_id).'?invoice_id='.($__pmdInv[1] ?? '') : admin_url('orders/invoice/'.$formModel->order_id))
+: admin_url('orders/invoice/'.$formModel->order_id) }}"
+                target="_blank"
+                aria-label="View Fiscal / Business Invoice"
+                title="View Fiscal / Business Invoice"
+            >
+                <i class="fa fa-file-invoice"></i>
+                </a>
+                <a
+                    class="send-invoice-icon-btn"
+                    role="button"
+                    data-request="onSendInvoiceEmail"
+                    data-request-confirm="Send fiscal invoice to customer email?"
+                    data-progress-indicator="Sending invoice..."
+                    title="Send Fiscal Invoice via Email"
+                >
+                    <i class="fa fa-envelope"></i>
+                </a>
+            @endif
+            </div>
+        </div>
+    @endif
 </div>
 
 <script>

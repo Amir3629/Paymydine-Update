@@ -92,11 +92,11 @@ export function StripeCardForm({
       }
     } catch {
       return {
-        text: "#111827",
+        text: "var(--pmd-customer-control-text, #111827)",
         muted: "#6B7280",
         border: "rgba(17,24,39,0.12)",
         bg: "rgba(255,255,255,0.96)",
-        label: "#111827",
+        label: "var(--pmd-customer-control-text, #111827)",
       }
     }
   }, [])

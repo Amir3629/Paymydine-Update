@@ -52,6 +52,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 	'detect.tenant' => \App\Http\Middleware\DetectTenant::class,
 	'tenant.database' => \App\Http\Middleware\TenantDatabaseMiddleware::class,
+        'superadmin.auth' => \App\Http\Middleware\SuperAdminAuth::class,
         'cors' => \App\Http\Middleware\CorsMiddleware::class,
     ];
 } 

@@ -24,6 +24,7 @@ class MenuController extends Controller
                     m.menu_name as name,
                     m.menu_description as description,
                     CAST(m.menu_price AS DECIMAL(10,2)) as price,
+                    COALESCE(m.prep_time_minutes, 15) as prep_time_minutes,
                     COALESCE(c.name, 'Main') as category_name,
                     ma.name as image,
                     COALESCE(m.is_stock_out, 0) as is_stock_out,
@@ -55,6 +56,7 @@ class MenuController extends Controller
             ";
             
             $items = DB::select($query);
+            $menuImagesByMenuId = $this->getOrderedMenuImagesByMenuIds(array_map(fn($menu) => (int)$menu->id, $items));
             
             // Convert prices to float, fix image paths, and add options
             foreach ($items as &$item) {
@@ -75,6 +77,7 @@ class MenuController extends Controller
                 // Mark as regular menu item (not a combo)
                 $item->isCombo = false;
                 $item->comboId = null;
+                $item->images = $menuImagesByMenuId[(int)$item->id] ?? [];
                 
                 // Fetch menu options for this item
                 $item->options = $this->getMenuItemOptions($item->id);
@@ -182,6 +185,51 @@ class MenuController extends Controller
         }
     }
 
+    private function getOrderedMenuImagesByMenuIds(array $menuIds): array
+    {
+        if (empty($menuIds) || !Schema::hasTable('menu_images')) {
+            return [];
+        }
+
+        $rows = DB::table('menu_images')
+            ->whereIn('menu_id', $menuIds)
+            ->orderBy('menu_id')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['menu_id', 'image_path']);
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $url = trim((string)$row->image_path);
+            if ($url === '') {
+                continue;
+            }
+            // PMD_GALLERY_IMAGE_URL_FIX_START
+            // Additional menu images are stored as upload filenames/paths, not thumb attachment hashes.
+            // Upload files are publicly served from /assets/media/uploads or /assets/media.
+            if (preg_match('#^https?://#i', $url)) {
+                // keep full URL
+            } else {
+                $url = ltrim($url, '/');
+
+                if (str_starts_with($url, 'api/media/')) {
+                    $url = '/'.$url;
+                } elseif (str_starts_with($url, 'assets/media/')) {
+                    $url = '/'.$url;
+                } elseif (str_starts_with($url, 'attachments/public/')) {
+                    $url = '/assets/media/'.$url;
+                } elseif (str_starts_with($url, 'uploads/')) {
+                    $url = '/assets/media/'.$url;
+                } else {
+                    $url = '/assets/media/uploads/'.$url;
+                }
+            }
+            // PMD_GALLERY_IMAGE_URL_FIX_END
+            $grouped[(int)$row->menu_id][] = $url;
+        }
+        return $grouped;
+    }
+
     /**
      * Get all menu items (flat list)
      */
@@ -197,6 +245,7 @@ class MenuController extends Controller
                     'menus.menu_name as name',
                     'menus.menu_description as description',
                     'menus.menu_price as price',
+                    DB::raw('COALESCE(menus.prep_time_minutes, 15) as prep_time_minutes'),
                     'menus.menu_photo as image',
                     'menus.stock_qty',
                     'menus.minimum_qty',
@@ -209,6 +258,7 @@ class MenuController extends Controller
                     DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('color', 'menus')),
                     'categories.category_id',
                     'categories.name as category_name'
                 ]);
@@ -253,6 +303,7 @@ class MenuController extends Controller
                     'fat' => $item->fat,
                     'sugar' => $item->sugar,
                     'serving_size' => $item->serving_size,
+                    'color' => $item->color,
                     'nutrition' => $item->nutrition
                 ];
             });
@@ -299,6 +350,7 @@ class MenuController extends Controller
                     'menus.menu_name as name',
                     'menus.menu_description as description',
                     'menus.menu_price as price',
+                    DB::raw('COALESCE(menus.prep_time_minutes, 15) as prep_time_minutes'),
                     'menus.menu_photo as image',
                     'menus.stock_qty',
                     'menus.minimum_qty',

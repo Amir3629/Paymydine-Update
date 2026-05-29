@@ -22,7 +22,7 @@ import { formatCurrency } from "@/lib/currency"
 
 // Hook to get current theme background color
 function useThemeBackgroundColor() {
-  const [color, setColor] = useState('#FAFAFA');
+  const [color, setColor] = useState('#fdf7f4');
   const [themeId, setThemeId] = useState('clean-light');
   
   useEffect(() => {
@@ -39,7 +39,7 @@ function useThemeBackgroundColor() {
       } else if (currentTheme === 'minimal') {
         setColor('#CFEBF7'); // Light Blue
       } else {
-        setColor(themeBg || '#FAFAFA');
+        setColor(themeBg || '#fdf7f4');
       }
       setThemeId(currentTheme);
     };
@@ -127,7 +127,7 @@ const EnhancedWaiterDialog = ({
             }}
             className="rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
             style={{ 
-              backgroundColor: 'var(--page-bg, #FAFAFA)',
+              backgroundColor: 'var(--page-bg, #fdf7f4)',
               opacity: 0.95,
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,0.2)',
@@ -304,7 +304,7 @@ const EnhancedNoteDialog = ({
             }}
             className="backdrop-blur-lg rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
             style={{ 
-              backgroundColor: 'var(--page-bg, #FAFAFA)', 
+              backgroundColor: 'var(--page-bg, #fdf7f4)', 
               opacity: 0.95,
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,0.2)',
@@ -527,7 +527,7 @@ export function BottomActions() {
           style={{ 
             minHeight: 76, 
             height: "100%",
-            backgroundColor: "var(--theme-background, #FAFAFA)",
+            backgroundColor: "var(--theme-background, #fdf7f4)",
             opacity: 0.7
           }}
         >

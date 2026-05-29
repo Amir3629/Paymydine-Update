@@ -12,7 +12,6 @@ import { useSearchParams, useParams, useRouter } from "next/navigation"
 import { EnvironmentConfig } from "@/lib/environment-config"
 import { setSavedHome } from "@/lib/table-home"
 import { stickySearch } from "@/lib/sticky-query"
-import { applyTheme } from "@/lib/theme-system"
 import { ApiClient } from "@/lib/api-client"
 
 const MotionLink = motion.create(Link)
@@ -35,42 +34,6 @@ export default function TableHomePage({ params }: { params: { table_id: string }
   const qr = searchParams.get("qr")
   const [table, setTable] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-
-  // Theme safety net: Force theme application on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentTheme = localStorage.getItem('paymydine-theme') || 'clean-light';
-      applyTheme(currentTheme);
-      
-      // NUCLEAR OPTION: Directly set background colors
-      const themeColors = {
-        'clean-light': '#FAFAFA',
-        'modern-dark': '#0A0E12',
-        'gold-luxury': '#0F0B05',
-        'vibrant-colors': '#e2ceb1',
-        'minimal': '#CFEBF7'
-      };
-      
-      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#FAFAFA';
-      
-      // Force background on body and html
-      document.body.style.background = bgColor;
-      document.documentElement.style.background = bgColor;
-      
-      // Force background on page elements
-      const pageElement = document.querySelector('.min-h-screen');
-      if (pageElement) {
-        (pageElement as HTMLElement).style.background = bgColor;
-      }
-      
-      // Debug logging for verification
-      console.info("TABLE PAGE THEME SAFETY NET APPLIED");
-      console.log("Applied theme:", currentTheme);
-      console.log("Forced background color:", bgColor);
-      console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
-      console.log("body background:", getComputedStyle(document.body).background);
-    }
-  }, []);
 
   // Save the home URL to sessionStorage on first landing
   useEffect(() => {
@@ -113,7 +76,33 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             path_table: pathParam,          // keep original path for navigation
           })
 
-          const pending = await new ApiClient().getPendingQrOrderByTable(resolvedTableId, { tableNo: res.data?.table_no ?? pathParam, qr })
+          const api = new ApiClient()
+          const tableDraft = await api.getTableOrderDraft({ table_id: resolvedTableId, table_no: res.data?.table_no ?? pathParam, qr })
+          console.info("[PMD QR entry] table draft response", {
+            table_id: resolvedTableId,
+            status: tableDraft?.status ?? null,
+            draft_id: tableDraft?.draft_id ?? null,
+            order_id: tableDraft?.order_id ?? null,
+            success: tableDraft?.success ?? false,
+          })
+          if (!cancelled && tableDraft?.success && tableDraft?.status && tableDraft.status !== "empty" && tableDraft.status !== "paid") {
+            console.info("[PMD QR entry] branch chosen: table-draft-or-order->menu", {
+              table_id: resolvedTableId,
+              draft_id: tableDraft.draft_id ?? null,
+              order_id: tableDraft.order_id ?? null,
+              status: tableDraft.status,
+            })
+            const menuUrl = new URL('/menu', window.location.origin)
+            menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
+            menuUrl.searchParams.set('table_id', resolvedTableId)
+            menuUrl.searchParams.set('table', String(res.data.table_no || pathParam))
+            if (qr) menuUrl.searchParams.set('qr', qr)
+            if (tableDraft.order_id) menuUrl.searchParams.set('pending_order_id', String(tableDraft.order_id))
+            router.replace(`${menuUrl.pathname}${menuUrl.search}`)
+            return
+          }
+
+          const pending = await api.getPendingQrOrderByTable(resolvedTableId, { tableNo: res.data?.table_no ?? pathParam, qr })
           console.info("[PMD QR entry] pending-qr response", {
             table_id: resolvedTableId,
             has_pending_order: !!pending?.data?.order_id,
@@ -164,8 +153,8 @@ export default function TableHomePage({ params }: { params: { table_id: string }
     // ✅ Fix dependency to use pathParam instead of undefined table_id
   }, [pathParam, qr, router, setTableInfo])
 
-  const cardStyles = "relative flex flex-col items-center backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 border w-72 h-56 justify-center surface-sub"
-  const iconContainerStyles = "rounded-full p-6 mb-6"
+  const cardStyles = "relative flex flex-col items-center pmd-v2-card backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 w-72 h-56 justify-center home-action-card"
+  const iconContainerStyles = "rounded-full pmd-v2-action-circle p-6 mb-6 home-action-icon-wrap"
 
   if (loading) {
     return (
@@ -176,7 +165,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
   }
 
   return (
-    <div className="min-h-screen bg-theme-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-theme-background pmd-v2-page pmd-customer-page page--table flex flex-col items-center justify-center p-4" data-pmd-customer-page="table">
       {/* FIXED: Use Logo without tableNumber prop - it will get it from cart store */}
       <Logo className="mb-8" />
       
@@ -207,25 +196,22 @@ export default function TableHomePage({ params }: { params: { table_id: string }
           >
             <motion.div
               className={iconContainerStyles}
-              style={{ backgroundColor: 'var(--theme-cart-bg, var(--theme-input))' }}
+              style={{ backgroundColor: 'var(--theme-secondary)' }}
               variants={{
                 hover: { 
                   scale: 1.1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 },
                 initial: { 
                   scale: 1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 }
               }}
             >
-              <Utensils className="w-10 h-10" style={{ color: 'var(--theme-secondary)' }} />
+              <Utensils className="w-10 h-10" style={{ color: 'var(--theme-text-primary)' }} />
             </motion.div>
-            <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-primary)' }}>
+            <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-text-primary)' }}>
               {t("menuCard")}
-              <span className="block text-sm font-normal mt-1" style={{ color: 'var(--theme-accent)' }}>
-                {t("menuCardDescription") || "Browse our menu"}
-              </span>
             </h2>
           </motion.div>
         </MotionLink>
@@ -256,25 +242,22 @@ export default function TableHomePage({ params }: { params: { table_id: string }
           >
             <motion.div
               className={iconContainerStyles}
-              style={{ backgroundColor: 'var(--theme-cart-bg, var(--theme-input))' }}
+              style={{ backgroundColor: 'var(--theme-secondary)' }}
               variants={{
                 hover: { 
                   scale: 1.1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 },
                 initial: { 
                   scale: 1,
-                  backgroundColor: "var(--theme-cart-bg, var(--theme-input))",
+                  backgroundColor: "var(--theme-secondary)",
                 }
               }}
             >
-              <Car className="w-10 h-10" style={{ color: 'var(--theme-secondary)' }} />
+              <Car className="w-10 h-10" style={{ color: 'var(--theme-text-primary)' }} />
             </motion.div>
-            <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-primary)' }}>
+            <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-text-primary)' }}>
               {t("valetParking")}
-              <span className="block text-sm font-normal mt-1" style={{ color: 'var(--theme-accent)' }}>
-                {t("valetParkingDescription") || "Valet service"}
-              </span>
             </h2>
           </motion.div>
         </MotionLink>

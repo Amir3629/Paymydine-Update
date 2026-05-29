@@ -27,6 +27,18 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 650,
+                easing: 'easeOutQuart'
+            },
+            transitions: {
+                active: {
+                    animation: {
+                        duration: 650,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            }
         }
     }
 
@@ -39,13 +51,31 @@
                     boxWidth: 14,
                     boxHeight: 14,
                     padding: 16,
+                    color: '#6B7280',
                 },
+            },
+            tooltip: {
+                backgroundColor: '#FFFFFF',
+                titleColor: '#0D1B1E',
+                bodyColor: '#0D1B1E',
+                borderColor: '#E8E2D8',
+                borderWidth: 1,
+                cornerRadius: 10,
+                padding: 10,
+                displayColors: true,
+                boxPadding: 4,
             },
         },
         scales: {
             y: {
                 beginAtZero: true,
+                grid: {
+                    color: '#E8E2D8',
+                    lineWidth: 1,
+                    drawBorder: false,
+                },
                 ticks: {
+                    color: '#6B7280',
                     callback: function (value) {
                         if (value % 1 === 0) {
                             return value;
@@ -55,8 +85,13 @@
             },
             x: {
                 type: 'category',
-                gridLines: {
-                    display: false
+                grid: {
+                    display: false,
+                    color: 'rgba(232, 226, 216, 0)',
+                    drawBorder: false,
+                },
+                ticks: {
+                    color: '#6B7280',
                 }
             }
         }
@@ -110,10 +145,10 @@
         var padding = 24
 
         ctx.clearRect(0, 0, width, height)
-        ctx.fillStyle = '#ffffff'
+        ctx.fillStyle = '#FFFFFF'
         ctx.fillRect(0, 0, width, height)
 
-        ctx.strokeStyle = '#e5e7eb'
+        ctx.strokeStyle = '#E8E2D8'
         ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(padding, padding)
@@ -127,7 +162,7 @@
             })
             if (!points.length) return
 
-            var color = dataset.borderColor || dataset.backgroundColor || ['#202938', '#2f5496', '#64b5f6'][index % 3]
+            var color = dataset.borderColor || dataset.backgroundColor || ['#062F2A', '#C89B4A', '#94A3B8'][index % 3]
             ctx.strokeStyle = color
             ctx.lineWidth = 2
             ctx.beginPath()
@@ -273,9 +308,17 @@
                 var pointDate = new Date(point.x)
                 return pointDate >= startDate && pointDate <= endDate
             })
+            var allZero = dataset.data.length > 0 && dataset.data.every(function (point) {
+                return Number(point.y || 0) === 0
+            })
+            if (allZero) {
+                dataset.pointRadius = 2.5
+                dataset.pointHoverRadius = 4
+                dataset.pointBorderWidth = 1.5
+            }
         })
 
-        this.chartJs.update('none') // Update without animation for smooth sliding
+        this.chartJs.update() // Smooth animated transition for range/date updates
     }
 
     ChartControl.prototype.unbind = function () {

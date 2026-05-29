@@ -16,14 +16,35 @@ $pmdSplitTransactions = collect();
 $pmdSplitItemsByTx = [];
 
 if ($pmdHasSplitTables) {
-    $pmdAllocationColumn = function_exists('pmdResolveSplitAllocationColumn')
+    $pmdResolverValue = function_exists('pmdResolveSplitAllocationColumn')
         ? pmdResolveSplitAllocationColumn()
-        : (Schema::hasColumn('order_payment_transaction_items', 'order_item_id')
-            ? 'order_item_id'
-            : (Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
-                ? 'order_menu_id' : 'menu_id'));
+        : null;
+    if (is_array($pmdResolverValue)) {
+        $pmdResolverValue = reset($pmdResolverValue);
+    }
+    $pmdResolverValue = is_string($pmdResolverValue) ? trim($pmdResolverValue) : '';
+
+    $pmdCandidateColumns = array_values(array_unique(array_filter([
+        $pmdResolverValue,
+        'order_menu_id',
+        'order_item_id',
+        'menu_id',
+    ], static function ($column) {
+        return is_string($column) && $column !== '';
+    })));
+
+    $pmdAllocationColumn = null;
+    foreach ($pmdCandidateColumns as $pmdCandidateColumn) {
+        if (in_array($pmdCandidateColumn, ['order_menu_id', 'order_item_id', 'menu_id'], true)
+            && Schema::hasColumn('order_payment_transaction_items', $pmdCandidateColumn)
+        ) {
+            $pmdAllocationColumn = $pmdCandidateColumn;
+            break;
+        }
+    }
 
     $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
+    $pmdJoinRight = $pmdAllocationColumn === 'menu_id' ? 'ti.menu_id' : 'ti.order_menu_id';
 
     $pmdSplitTransactions = DB::table('order_payment_transactions')
         ->where('order_id', (int)$formModel->order_id)
@@ -32,20 +53,27 @@ if ($pmdHasSplitTables) {
 
     $pmdTxIds = $pmdSplitTransactions->pluck('id')->all();
 
-    if (!empty($pmdTxIds)) {
+    if (!empty($pmdTxIds) && is_string($pmdAllocationColumn) && $pmdAllocationColumn !== '') {
+        $pmdSelectColumns = [
+            'ti.transaction_id',
+            'ti.quantity_paid',
+            'ti.unit_price',
+            'ti.line_total',
+            'om.name',
+            'om.menu_id',
+            'om.order_menu_id',
+        ];
+
+        if (Schema::hasColumn('order_menus', 'option_values')) {
+            $pmdSelectColumns[] = 'om.option_values as menu_options';
+        } elseif (Schema::hasColumn('order_payment_transaction_items', 'menu_options')) {
+            $pmdSelectColumns[] = 'ti.menu_options';
+        }
+
         $pmdItemRows = DB::table('order_payment_transaction_items as ti')
-            ->leftJoin('order_menus as om', $pmdJoinLeft, '=', 'ti.' . $pmdAllocationColumn)
+            ->leftJoin('order_menus as om', $pmdJoinLeft, '=', $pmdJoinRight)
             ->whereIn('ti.transaction_id', $pmdTxIds)
-            ->get([
-                'ti.transaction_id',
-                'ti.quantity_paid',
-                'ti.unit_price',
-                'ti.line_total',
-                'om.name',
-                'om.menu_id',
-                'om.order_menu_id',
-                'ti.menu_options'
-            ]);
+            ->get($pmdSelectColumns);
 
         foreach ($pmdItemRows as $row) {
             $txId = (int)$row->transaction_id;
@@ -64,10 +92,16 @@ if ($pmdHasSplitTables) {
     }
 }
 
-// گرفتن مالیات و جمع کل
-$taxAmount = floatval($formModel->tax_amount ?? 0);
-$subtotal = floatval($formModel->subtotal ?? 0);
-$finalTotal = floatval($formModel->total ?? ($subtotal + $taxAmount));
+// Canonical totals from persisted order_totals/order_total
+$totals = collect($formModel->getOrderTotals() ?? []);
+$subtotal = (float) optional($totals->firstWhere('code', 'subtotal'))->value;
+$taxRow = $totals->firstWhere('code', 'tax');
+$taxAmount = (float) optional($taxRow)->value;
+$taxTitle = (string) (optional($taxRow)->title ?? 'VAT');
+$finalTotal = (float) optional($totals->firstWhere('code', 'total'))->value;
+if ($finalTotal <= 0) {
+    $finalTotal = (float) ($formModel->order_total ?? ($subtotal + $taxAmount));
+}
 @endphp
 
 {{-- نمایش سفارشات تقسیم‌شده --}}
@@ -116,10 +150,12 @@ $finalTotal = floatval($formModel->total ?? ($subtotal + $taxAmount));
 <td>Subtotal</td>
 <td>{{ currency_format($subtotal) }}</td>
 </tr>
+@if ($taxAmount > 0)
 <tr>
-<td>VAT included</td>
+<td>{{ $taxTitle }}</td>
 <td>{{ currency_format($taxAmount) }}</td>
 </tr>
+@endif
 <tr>
 <td>Total</td>
 <td>{{ currency_format($finalTotal) }}</td>

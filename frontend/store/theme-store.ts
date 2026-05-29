@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { apiClient } from '@/lib/api-client'
 import { themes, applyTheme, getCurrentTheme, type Theme } from '@/lib/theme-system'
+import { buildSafeThemeOverrides } from '@/lib/theme-loader'
 
 export interface ThemeSettings {
   theme_id: string
@@ -31,7 +32,7 @@ const defaultSettings: ThemeSettings = {
   primary_color: '#E7CBA9',
   secondary_color: '#EFC7B1',
   accent_color: '#3B3B3B',
-  background_color: '#FAFAFA'
+  background_color: '#fdf7f4'
 }
 
 export const useThemeStore = create<ThemeStore>()(
@@ -67,12 +68,7 @@ export const useThemeStore = create<ThemeStore>()(
           if (response.success && response.data) {
             const adminThemeId = response.data.theme_id || response.frontend_theme || 'clean-light'
             
-            // Extract color overrides from admin
-            const overrides: any = {}
-            if (response.data.primary_color) overrides.primary = response.data.primary_color
-            if (response.data.secondary_color) overrides.secondary = response.data.secondary_color
-            if (response.data.accent_color) overrides.accent = response.data.accent_color
-            if (response.data.background_color) overrides.background = response.data.background_color
+            const overrides = buildSafeThemeOverrides(adminThemeId, response.data)
 
             // Update store with admin theme (always use admin selection)
             set({ 

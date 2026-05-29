@@ -32,6 +32,7 @@ class Menu extends FormRequest
             'sugar' => 'Sugar',
             'serving_size' => 'Serving / portion size',
             'color' => 'Color',
+            'prep_time_minutes' => 'Prep time',
         ];
     }
 
@@ -61,6 +62,7 @@ class Menu extends FormRequest
             'sugar' => ['nullable', 'numeric', 'min:0'],
             'serving_size' => ['nullable', 'string', 'max:64'],
             'color' => ['nullable', 'regex:/^#(?:[0-9a-fA-F]{3}){1,2}$/'],
+            'prep_time_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
         ];
     }
 }

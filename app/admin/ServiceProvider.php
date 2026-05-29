@@ -20,6 +20,11 @@ use System\Classes\MailManager;
 use System\Libraries\Assets;
 use System\Models\Settings_model;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Illuminate\Contracts\Support\Responsable;
+use Illuminate\View\View as IlluminateView;
 use Admin\Controllers\SuperAdminController;
 use App\Helpers\TenantContextHelper;
 
@@ -57,14 +62,80 @@ class ServiceProvider extends AppServiceProvider
         Route::middleware('web')
         ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class])
         ->group(function () {
-            Route::get('/superadmin/new', [SuperAdminController::class, 'showNewPage'])->name('superadmin.new');
-            Route::post('/superadmin/sign', [SuperAdminController::class, 'sign']);
-            Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut']);
-            Route::get('/superadmin/settings', [SuperAdminController::class, 'settings'])->name('superadmin.settings');
-            Route::get('/superadmin/index', [SuperAdminController::class, 'showIndex'])->name('superadmin.index');
-            Route::get('/superadmin/location-requests', [SuperAdminController::class, 'locationRequests'])->name('superadmin.location-requests');
+            $normalize = function ($result) {
+                if ($result instanceof SymfonyResponse) {
+                    return $result;
+                }
+                if ($result instanceof Responsable) {
+                    $resolved = $result->toResponse(request());
+                    if ($resolved instanceof SymfonyResponse) {
+                        return $resolved;
+                    }
 
+                    return new SymfonyResponse((string)$resolved, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+                }
+                if ($result instanceof IlluminateView) {
+                    return new SymfonyResponse(
+                        $result->render(),
+                        200,
+                        ['Content-Type' => 'text/html; charset=UTF-8']
+                    );
+                }
+                if (is_string($result)) {
+                    return new SymfonyResponse($result, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+                }
+
+                return new SymfonyResponse((string)$result, 200);
+            };
+
+            // Keep working Super Admin GET routes
+            Route::get('/superadmin/new', function (Request $request) use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->showNewPage($request));
+            })->name('superadmin.new')->middleware('superadmin.auth');
+            Route::get('/superadmin/index', function () use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->showIndex());
+            })->name('superadmin.index')->middleware('superadmin.auth');
+            Route::get('/superadmin/settings', function () use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->settings());
+            })->name('superadmin.settings')->middleware('superadmin.auth');
+            Route::get('/superadmin/location-requests', function (Request $request) use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->locationRequests($request));
+            })->name('superadmin.location-requests')->middleware('superadmin.auth');
+
+            // Super Admin auth endpoints remain unprotected
+            Route::get('/superadmin/login', function () use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->login());
+            })->name('login.new');
+            Route::post('/superadmin/sign', function (Request $request) use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->sign($request));
+            });
+            Route::get('/superadmin/signout', function () use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->signOut());
+            });
+
+            // Ensure scoped tenant management routes are in same web/session layer
+            Route::post('/superadmin/new/store', function (Request $request) use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->store($request));
+            })->name('superadmin.store.scoped')->middleware('superadmin.auth');
+            Route::get('/superadmin/new/store', function () {
+                return redirect('/superadmin/new');
+            })->middleware('superadmin.auth');
+
+            Route::post('/superadmin/tenants/update', function (Request $request) use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->update($request));
+            })->name('tenants.update.scoped')->middleware('superadmin.auth');
+            Route::get('/superadmin/tenants/delete/{id}', function ($id) use ($normalize) {
+                return $normalize(app(SuperAdminController::class)->delete($id));
+            })->name('tenants.delete.scoped')->middleware('superadmin.auth');
+
+            Route::post('/superadmin/tenant/update-status', function (Request $request) {
+                $id = $request->input('id');
+                $status = $request->input('status') === 'activate' ? 'active' : 'disabled';
+                $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
+                return response()->json($updated ? ['success' => true] : ['success' => false, 'error' => 'Failed to update']);
+            })->name('tenant.update-status.scoped')->middleware('superadmin.auth');
         });
+
         if ($this->app->runningInAdmin()) {
             $this->registerSystemSettings();
             $this->registerFiskalySettingsBridge();
@@ -1102,5 +1173,3 @@ class ServiceProvider extends AppServiceProvider
         });
     }
 }
-
-

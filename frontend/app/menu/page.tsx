@@ -8,8 +8,8 @@ import { type TranslationKey } from "@/lib/translations";
 import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
-import { applyTheme } from "@/lib/theme-system";
 import { Logo } from "@/components/logo";
+import { PmdPlatformLogo } from "@/components/pmd-platform-logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
 import { FoodAttributeTags } from "@/components/food-attribute-tags";
@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign } from "lucide-react";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,7 +29,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { cn, truncateText } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiClient, type PaymentMethod } from "@/lib/api-client";
+import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
 import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
@@ -175,7 +175,7 @@ function __pmdRemoteConsoleInstallOnce() {
 }
 
 function useThemeBackgroundColor() {
-  const [color, setColor] = useState('#FAFAFA');
+  const [color, setColor] = useState('#fdf7f4');
   const [themeId, setThemeId] = useState('clean-light');
 
   // __PMD_CALL_LMS__
@@ -213,7 +213,7 @@ function useThemeBackgroundColor() {
       } else if (currentTheme === 'minimal') {
         setColor('#CFEBF7'); // Light Blue
       } else {
-        setColor(themeBg || '#FAFAFA');
+        setColor(themeBg || '#fdf7f4');
       }
       setThemeId(currentTheme);
     };
@@ -232,6 +232,9 @@ function useThemeBackgroundColor() {
 import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
 import { wsClient } from '@/lib/websocket-client'
+import { ActionTooltip } from "@/components/action-tooltip"
+import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
+import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 
 /* WALLET_STRIPE_PAY_COMPONENT */
 function WalletStripePay(props: {
@@ -500,6 +503,9 @@ interface PaymentModalProps {
     settledAmount: number;
     remainingAmount: number;
   } | null;
+  initialSubmittedOrder?: any | null;
+  initialCheckoutStep?: 'review' | 'submitted' | 'payment' | 'paid';
+  onOpenOrderUpdate?: (snapshot: any | null) => void;
 }
 
 interface ExpandingBottomToolbarProps {
@@ -512,6 +518,8 @@ interface ExpandingBottomToolbarProps {
   onCartClick: () => void;
   onWaiterClick?: () => void;
   onNoteClick?: () => void;
+  onOrderClick?: () => void;
+  orderCount?: number;
   waiterDisabled?: boolean;
   noteDisabled?: boolean;
   totalItems: number;
@@ -600,7 +608,7 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, -1);
             }}
-            className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
             <Minus className="w-3 h-3" />
           </button>
@@ -612,7 +620,7 @@ function OrderItemWithOptions({
               e.stopPropagation();
               addToCart(cartItem.item, 1);
             }}
-            className="quantity-btn w-5 h-5 flex items-center justify-center transition-colors"
+            className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
             <Plus className="w-3 h-3" strokeWidth={3.5} />
           </button>
@@ -665,7 +673,7 @@ function OrderItemWithOptions({
                                 handleOptionChange(option.name, currentValue === value.id.toString() ? '' : value.id.toString())
                               }
                             }}
-                            className="w-3 h-3 text-paydine-champagne"
+                            className="w-3 h-3 pmd-customer-price"
                           />
                           <span className="text-paydine-elegant-gray">{value.value}</span>
                           {value.price > 0 && (() => {
@@ -677,7 +685,7 @@ function OrderItemWithOptions({
                               return price
                             }
                             return (
-                              <span className="text-paydine-champagne font-medium">
+                              <span className="pmd-customer-price font-medium">
                                 +{formatCurrency(adjustPrice(value.price))}
                               </span>
                             )
@@ -696,7 +704,7 @@ function OrderItemWithOptions({
   )
 }
 
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, onOpenOrderUpdate }: PaymentModalProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
@@ -720,6 +728,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const [cashCollectionConfirmed, setCashCollectionConfirmed] = useState(false)
   const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [isDarkTheme, setIsDarkTheme] = useState(false)
@@ -732,23 +741,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [merchantSettings])
 
   useEffect(() => {
-    try {
-      ;(window as any).__PMD_PAYMENT_METHODS__ = paymentMethods
-      console.log('[PMD] paymentMethods =>', paymentMethods)
-    } catch (e) {}
-  }, [paymentMethods])
-
-  useEffect(() => {
-    try {
-      console.log('[PMD] paymentMethods', paymentMethods)
-      console.log('[PMD] selectedPaymentMethod', selectedPaymentMethod)
-    } catch (e) {}
-  }, [paymentMethods, selectedPaymentMethod])
-
-  useEffect(() => {
     const detectDarkTheme = () => {
       const themeName = document.documentElement.getAttribute('data-theme') || 'clean-light'
-      setIsDarkTheme(themeName === 'modern-dark' || themeName === 'gold-luxury')
+      setIsDarkTheme(themeName === 'modern-dark')
     }
 
     detectDarkTheme()
@@ -777,6 +772,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
+  const [checkoutStep, setCheckoutStep] = useState<'review'|'submitted'|'payment'|'paid'>(
+    initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
+  )
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
+  const [draftLoading, setDraftLoading] = useState(false)
+  const [submitDraftLoading, setSubmitDraftLoading] = useState(false)
 
   const [stripeConfig, setStripeConfig] = useState<{
     publishableKey: string
@@ -790,6 +792,48 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
   } | null>(null)
   const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
+
+
+  useEffect(() => {
+    if (!isOpen) return
+    setCheckoutStep(initialCheckoutStep || (existingOrderId ? 'submitted' : 'review'))
+  }, [isOpen, existingOrderId, initialCheckoutStep])
+
+  useEffect(() => {
+    if (!initialSubmittedOrder) return
+    setSubmittedSnapshot(initialSubmittedOrder)
+  }, [initialSubmittedOrder])
+
+  const getTenantKey = () => {
+    if (typeof window === 'undefined') return 'tenant'
+    return window.location.host
+  }
+  const getTableKey = () => {
+    const p = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    const qTable = p?.get('table') || p?.get('table_id') || p?.get('table_no')
+    const routeTable = typeof window !== 'undefined' ? (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? null) : null
+    return String(tableInfo?.table_id || tableInfo?.table_no || qTable || routeTable || 'delivery')
+  }
+  const ensureGuestSession = () => {
+    if (typeof window === 'undefined') return ''
+    const key = 'pmd_guest_session_id'
+    let v = localStorage.getItem(key)
+    if (!v) { v = `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`; localStorage.setItem(key, v) }
+    return v
+  }
+
+  const buildOpenOrderStorageKeys = () => {
+    const tenant = getTenantKey()
+    const tableKey = getTableKey()
+    const guestSessionId = ensureGuestSession()
+    return {
+      sessionKey: `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`,
+      legacyKey: `pmd_open_order:${tenant}:${tableKey}`,
+      guestSessionId,
+      tenant,
+      tableKey,
+    }
+  }
 
   const effectivePayPalClientId =
     paypalPublicConfig?.enabled && paypalPublicConfig?.clientId
@@ -948,6 +992,200 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [appliedCoupon, subtotal])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
+  const toPositiveAmount = (value: unknown): number | null => {
+    const amount = Number(value)
+    return Number.isFinite(amount) && amount > 0 ? amount : null
+  }
+  const payableTotal = useMemo(() => {
+    const remainingAmount = toPositiveAmount(pendingSummary?.remainingAmount)
+    const submittedRemaining = toPositiveAmount(submittedSnapshot?.remainingAmount)
+    const submittedTotal = toPositiveAmount(submittedSnapshot?.total ?? submittedSnapshot?.orderTotal)
+    const reviewTotal = toPositiveAmount(finalTotal)
+    if (checkoutStep === "payment") return remainingAmount ?? submittedRemaining ?? submittedTotal ?? 0
+    return reviewTotal ?? submittedTotal ?? remainingAmount ?? 0
+  }, [checkoutStep, submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
+  const estimatePrepMinutes = (items: Array<any>) => {
+    const normalized = (items || []).map((item) => ({
+      quantity: Math.max(1, Number(item?.quantity || 1)),
+      prep: Math.max(0, Number(item?.prep_time_minutes ?? item?.item?.prep_time_minutes ?? 15) || 15),
+    }))
+    const quantity = normalized.reduce((acc, item) => acc + item.quantity, 0)
+    const base = normalized.reduce((acc, item) => Math.max(acc, item.prep), 15)
+    const buffer = Math.min(15, Math.max(0, (quantity - 1) * 2))
+    return Math.max(10, Math.min(90, Math.round(base + buffer)))
+  }
+  const estimatedMinutes = useMemo(() => {
+    const backendEta = Number(submittedSnapshot?.etaMinutes || submittedSnapshot?.estimated_prep_minutes || 0)
+    if (backendEta > 0) return backendEta
+    return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
+  }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
+  // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
+  const vatLabels = useMemo(() => {
+    if (!taxSettings.enabled || taxSettings.percentage <= 0) {
+      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
+    }
+
+    if (taxSettings.menuPrice === 0) {
+      const vatPct = Number.isInteger(taxSettings.percentage)
+        ? String(taxSettings.percentage)
+        : String(Number(taxSettings.percentage.toFixed(2)))
+
+      return {
+        summary: "Order Summary",
+        subtotal: `Subtotal (incl. ${vatPct}% VAT)`,
+        total: "Total",
+        includedNote: `prices incl. ${vatPct}% VAT`,
+      }
+    }
+
+    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
+  }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+  const modalPrimaryBtnStyle: React.CSSProperties = {
+    background: "var(--theme-secondary)",
+    color: "var(--theme-text-primary)", textShadow: "none",
+    border: "1px solid rgba(255,255,255,0.12)",
+  }
+  const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
+  const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
+  const toolbarIconBtnStyle: React.CSSProperties = {
+    background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+    border: "1px solid var(--theme-border)",
+    color: "var(--theme-text-primary)",
+    boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+  }
+  const getDraftContext = () => ({
+    table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+    table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+    qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("qr") : null),
+  })
+
+  const refreshTableDraft = async () => {
+    const context = getDraftContext()
+    if (!context.table_id && !context.table_no && !context.qr) return null
+    setDraftLoading(true)
+    try {
+      const latest = await apiClient.getTableOrderDraft(context)
+      if (latest?.success) {
+        setTableDraft(latest)
+        console.info("PMD_TABLE_DRAFT_LOADED", { status: latest.status, draft_id: latest.draft_id ?? null, order_id: latest.order_id ?? null })
+        if (latest.order_id && latest.status && latest.status !== "draft" && latest.status !== "empty") {
+          setSubmittedSnapshot((prev: any) => prev || {
+            orderId: latest.order_id,
+            status: latest.status,
+            paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
+            tableNumber: latest.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+            total: latest.totals?.total || 0,
+            orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
+            settledAmount: latest.totals?.settledAmount || 0,
+            remainingAmount: latest.totals?.remainingAmount || latest.totals?.total || 0,
+            settlementStatus: latest.settlement?.settlementStatus || "unpaid",
+            submittedItems: latest.items || [],
+            payment: latest.payment || "qr_pay_later",
+          })
+          console.info("PMD_TABLE_ORDER_PAYMENT_READY", { order_id: latest.order_id, status: latest.status })
+        }
+      }
+      return latest
+    } finally {
+      setDraftLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    void refreshTableDraft()
+    const timer = window.setInterval(() => { void refreshTableDraft() }, 12000)
+    const onFocus = () => { void refreshTableDraft() }
+    window.addEventListener("focus", onFocus)
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", onFocus) }
+  }, [isOpen, tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code])
+
+  const buildPersonalDraftItems = () => allItems.map((cartItem) => ({
+    menu_id: Number((cartItem.item as any)?.id || (cartItem.item as any)?.menu_id || 0),
+    name: String((cartItem.item as any)?.name || (cartItem.item as any)?.title || "Item"),
+    quantity: Number(cartItem.quantity || 1),
+    price: Number(adjustPriceForVAT(cartItem.item.price || 0)),
+    subtotal: Number(adjustPriceForVAT(cartItem.item.price || 0)) * Number(cartItem.quantity || 1),
+    options: Object.fromEntries(
+      Object.entries(selectedOptions[(cartItem.item as any)?.id] || {})
+        .map(([key, value]) => [String(key), String(value ?? "")])
+        .filter(([, value]) => value !== "")
+    ),
+  })).filter((item) => item.menu_id > 0 && item.quantity > 0)
+
+  const handleConfirmMyItems = async () => {
+    const draftItems = buildPersonalDraftItems()
+    if (draftItems.length === 0) {
+      toast({ title: "No items selected", description: "Add items to your personal cart before confirming.", variant: "destructive" })
+      return
+    }
+    setIsLoading(true)
+    try {
+      const result = await apiClient.confirmTableDraftItems({
+        ...getDraftContext(),
+        guest_session_id: ensureGuestSession(),
+        items: draftItems,
+      })
+      setTableDraft(result)
+      clearCart()
+      console.info("PMD_TABLE_DRAFT_CONFIRMED_ITEMS", { draft_id: result.draft_id ?? null, count: draftItems.length })
+      toast({ title: "Items confirmed", description: "Your items were added to the table order. Submit the table order when everyone is ready." })
+      await refreshTableDraft()
+      onOpenOrderUpdate?.(result)
+    } catch (error) {
+      toast({ title: "Could not confirm items", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSubmitTableDraft = async () => {
+    if (!tableDraft?.draft_id && tableDraft?.status !== "draft") return
+    setSubmitDraftLoading(true)
+    try {
+      const result = await apiClient.submitTableDraft({ ...getDraftContext(), draft_id: tableDraft?.draft_id ?? null, guest_session_id: ensureGuestSession() })
+      setTableDraft(result)
+      setSubmittedSnapshot({
+        orderId: result.order_id,
+        status: result.status || "submitted_unpaid",
+        paymentStatus: result.status === "paid" ? "paid" : "unpaid",
+        tableNumber: result.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+        total: result.totals?.total || 0,
+        orderTotal: result.totals?.orderTotal || result.totals?.total || 0,
+        settledAmount: result.totals?.settledAmount || 0,
+        remainingAmount: result.totals?.remainingAmount || result.totals?.total || 0,
+        settlementStatus: result.settlement?.settlementStatus || "unpaid",
+        submittedItems: result.items || [],
+        payment: result.payment || "qr_pay_later",
+      })
+      setCheckoutStep("submitted")
+      console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
+      toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
+      onOpenOrderUpdate?.({ orderId: result.order_id, total: result.totals?.total || 0, submittedItems: result.items || [] })
+    } catch (error) {
+      await refreshTableDraft()
+      toast({ title: "Could not submit table order", description: error instanceof Error ? error.message : "Please refresh and try again.", variant: "destructive" })
+    } finally {
+      setSubmitDraftLoading(false)
+    }
+  }
+
+  const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
+    try {
+      const sessionKey = buildOpenOrderStorageKeys().sessionKey
+      const raw = localStorage.getItem(sessionKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (orderIdLike && parsed?.orderId && String(parsed.orderId) !== String(orderIdLike)) return
+      parsed.paymentStatus = "paid"
+      parsed.status = "paid"
+      localStorage.setItem(sessionKey, JSON.stringify(parsed))
+      onOpenOrderUpdate?.(null)
+    } catch {}
+  }
+
 
   const handlePayment = async (
     stripePaymentIntentId?: string,
@@ -955,7 +1193,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   ) => {
     const effectiveMethodCode = forcedPaymentContext?.method_code || selectedPaymentMethod
     const selectedMethodForSubmit = visiblePaymentMethods.find(method => method.code === effectiveMethodCode)
-    const selectedProviderCodeForSubmit = forcedPaymentContext?.provider_code || (selectedMethodForSubmit as any)?.provider_code || null
+    const selectedProviderCodeForSubmit =
+      effectiveMethodCode === "cod"
+        ? null
+        : (forcedPaymentContext?.provider_code || (selectedMethodForSubmit as any)?.provider_code || null)
     const isStripeMethodForSubmit =
       selectedProviderCodeForSubmit === "stripe" &&
       (effectiveMethodCode === "card" || effectiveMethodCode === "apple_pay" || effectiveMethodCode === "google_pay" || effectiveMethodCode === "wero")
@@ -1056,23 +1297,73 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         tip_amount: Number(tipAmount || 0),
         coupon_code: appliedCoupon?.code ? String(appliedCoupon.code) : null,
         coupon_discount: Number(couponDiscount || 0),
+        guest_session_id: ensureGuestSession(),
         special_instructions: "",
       }
 
-      console.log("[PMD submitOrder payload]", {
-        table_id: orderData.table_id,
-        table_name: orderData.table_name,
-        location_id: orderData.location_id,
-        payment_method: orderData.payment_method,
-        payment_method_raw: orderData.payment_method_raw,
-        payment_provider: orderData.payment_provider,
-        has_stripe_payment_intent_id: !!orderData.stripe_payment_intent_id,
-        total_amount: orderData.total_amount,
-        customer_name: orderData.customer_name,
-        items_count: orderData.items.length,
-        first_item: orderData.items[0] || null,
-      })
-      if (existingOrderId) {
+      const existingLocalOrder = initialSubmittedOrder?.paymentStatus !== "paid" ? initialSubmittedOrder : null
+      if (existingLocalOrder?.orderId) {
+        ;(orderData as any).existing_order_id = Number(existingLocalOrder.orderId)
+        ;(orderData as any).append_to_order = true
+      }
+      const paymentOrderIdCandidate = existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null
+      if (checkoutStep === "payment" && !paymentOrderIdCandidate) {
+        setIsLoading(false)
+        toast({
+          title: "Order not found",
+          description: "Order not found. Please reopen your order.",
+          variant: "destructive",
+        })
+        return
+      }
+      const isQrPayLaterSubmittedOrder = String(tableDraft?.payment || submittedSnapshot?.payment || "").toLowerCase() === "qr_pay_later"
+      const shouldUsePayExisting = !!(checkoutStep === "payment" && paymentOrderIdCandidate && (pendingSummary || isQrPayLaterSubmittedOrder) && (!existingOrderId || Number(existingOrderId) === Number(paymentOrderIdCandidate)))
+      if (checkoutStep === "payment" && paymentOrderIdCandidate && !shouldUsePayExisting) {
+        try {
+          const started = await apiClient.startExistingOrderPayment({
+            order_id: Number(paymentOrderIdCandidate),
+            payment_method: String(effectiveMethodCode || "card"),
+            provider: selectedProviderCodeForSubmit || undefined,
+            guest_session_id: ensureGuestSession(),
+            table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+            table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+            source: "menu_existing_submitted",
+          })
+          if (String(effectiveMethodCode || "") === "cod") {
+            setIsLoading(false)
+            toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
+            return
+          }
+          if (isStripeMethodForSubmit) {
+            if (!stripePaymentIntentId) {
+              throw new Error("Stripe payment confirmation is missing")
+            }
+            await apiClient.finalizeExistingOrderPayment({
+              order_id: Number(paymentOrderIdCandidate),
+              payment_intent_id: String(stripePaymentIntentId),
+              payment_method: String(effectiveMethodCode || "card"),
+              provider: selectedProviderCodeForSubmit || "stripe",
+            })
+          }
+          markOpenOrderAsPaid(paymentOrderIdCandidate)
+          setCheckoutStep("paid")
+          setIsLoading(false)
+          toast({
+            title: t("paymentSuccessful"),
+            description: `Order #${paymentOrderIdCandidate} paid successfully!`,
+          })
+          return
+        } catch (e) {
+          setIsLoading(false)
+          toast({
+            title: "Payment unavailable",
+            description: "Payment could not be started. Please ask staff or try again.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+      if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = isSplitting
           ? Object.values(selectedItems).reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, instance) => {
@@ -1090,9 +1381,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
         const existingOrderAmount = isSplitting
           ? null
-          : Number(pendingSummary?.remainingAmount ?? finalTotal ?? 0)
+          : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)
 
-        const paidResponse = await apiClient.payExistingQrOrder(existingOrderId, {
+        const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
           amount: existingOrderAmount,
@@ -1106,10 +1397,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           setIsLoading(false)
           toast({
             title: t("paymentSuccessful"),
-            description: `Order #${existingOrderId} paid successfully!`
+            description: `Order #${paymentOrderIdCandidate} paid successfully!`
           })
 
-          const orderId = String(existingOrderId)
+          const orderId = String(paymentOrderIdCandidate)
           localStorage.setItem("lastOrderId", orderId)
 
           const returnUrl =
@@ -1121,9 +1412,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           params.set("order_id", orderId)
           params.set("return_url", returnUrl)
 
-          clearCart()
-          onClose()
-          router.push(`/order-placed?${params.toString()}`)
+          markOpenOrderAsPaid(paymentOrderIdCandidate)
+          setCheckoutStep("paid")
           return
         }
       }
@@ -1153,9 +1443,61 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         if (orderId) params.set("order_id", orderId)
         params.set("return_url", returnUrl)
 
+        try {
+          const guestSessionId = ensureGuestSession()
+          const tenant = getTenantKey()
+          const tableKey = getTableKey()
+          const sessionKey = buildOpenOrderStorageKeys().sessionKey
+          const orderIdVal = response.order_id ? String(response.order_id) : ''
+          const responseTotals = Array.isArray((response as any)?.order_totals) ? (response as any).order_totals : []
+          const getTotalByCode = (code: string) => {
+            const found = responseTotals.find((row: any) => String(row?.code || '') === code)
+            const amount = Number(found?.value ?? 0)
+            return Number.isFinite(amount) ? amount : 0
+          }
+          const responseItems = Array.isArray((response as any)?.items) ? (response as any).items : []
+          const combinedSubmittedItems = responseItems.length > 0
+            ? responseItems.map((item: any) => ({
+                id: Number(item?.menu_id || item?.id || 0),
+                name: String(item?.name || 'Item'),
+                quantity: Number(item?.quantity || 0),
+                price: Number(item?.price || 0),
+                subtotal: Number(item?.subtotal || (Number(item?.quantity || 0) * Number(item?.price || 0))),
+              }))
+            : normalizedItemsForOrder
+          const settlement = (response as any)?.settlement || {}
+          const serverOrderTotal = Number((response as any)?.order_total ?? (response as any)?.total ?? 0)
+          const snapshot = {
+            guestSessionId, tenant, tableKey,
+            tableNumber: tableInfo?.table_no || tableInfo?.table_id || null,
+            orderId: orderIdVal || null,
+            status: 'submitted',
+            paymentStatus: 'unpaid',
+            subtotal: Number(getTotalByCode('subtotal') || subtotal || 0),
+            vatAmount: Number(getTotalByCode('tax') || taxAmount || 0),
+            vatPercentage: Number(taxSettings?.percentage || 0),
+            total: Number(serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0)),
+            orderTotal: Number(serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0)),
+            settledAmount: Number(settlement?.settledAmount || 0),
+            remainingAmount: Number(settlement?.remainingAmount ?? (serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0))),
+            settlementStatus: String(settlement?.settlementStatus || 'unpaid'),
+            etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes),
+            showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true),
+            currency: String(merchantSettings?.currency || 'EUR'),
+            submittedItems: combinedSubmittedItems,
+            createdAt: Date.now()
+          }
+          localStorage.setItem(sessionKey, JSON.stringify(snapshot))
+          setSubmittedSnapshot(snapshot)
+          onOpenOrderUpdate?.(snapshot)
+        } catch {}
         clearCart()
-        onClose()
-        router.push(`/order-placed?${params.toString()}`)
+        if (checkoutStep === "payment") {
+          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null)
+          setCheckoutStep("paid")
+        } else {
+          setCheckoutStep('submitted')
+        }
         return
       } else {
         throw new Error('Order submission failed')
@@ -1163,13 +1505,17 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     } catch (error) {
     setIsLoading(false)
       console.error('Order submission error:', error)
+      const normalizedMessage =
+        error instanceof Error && /given data was invalid|unprocessable|amount|selected items amount mismatch/i.test(error.message)
+          ? "Payment could not be started. Please ask staff or try again."
+          : null
       const validationDetails = (error as any)?.details as Record<string, string[]> | undefined
       const firstValidationMessage = validationDetails
         ? Object.values(validationDetails).flat().find(Boolean)
         : null
       toast({ 
         title: "Order Failed", 
-        description: firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
+        description: normalizedMessage || firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
         variant: "destructive"
       })
     }
@@ -1203,6 +1549,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const handleBackToMethods = () => {
     setProviderInlineError(null)
     setSelectedPaymentMethod(null)
+    setCashCollectionConfirmed(false)
   }
 
   const handleFormChange = (field: keyof PaymentFormData, value: string) => {
@@ -1326,7 +1673,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const selectedProviderCode = (selectedMethod as any)?.provider_code || null
 
   const stripePaymentData = {
-    amount: finalTotal,
+    amount: payableTotal,
     currency: (stripeConfig?.currency || merchantSettings?.currency || "EUR"),
     items: itemsToPay.map((item: any) => ({
       id: String(item.item.id),
@@ -1346,10 +1693,35 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
   const startHostedRedirectCheckout = async () => {
     if (!selectedMethod || !["card", "wero", "paypal", "apple_pay", "google_pay"].includes(selectedMethod.code)) return
+    if (!(payableTotal > 0)) {
+      setProviderInlineError("Order total is still updating. Please reopen My Order.")
+      toast({
+        title: "Order total unavailable",
+        description: "Order total is still updating. Please reopen My Order.",
+        variant: "destructive",
+      })
+      return
+    }
     setProviderInlineError(null)
     setIsLoading(true)
     let shouldFallbackFromWero = false
     try {
+      let existingOrderStart: any = null
+      const existingSubmittedOrderId =
+        checkoutStep === "payment" && !pendingSummary
+          ? (existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null)
+          : null
+      if (existingSubmittedOrderId) {
+        existingOrderStart = await apiClient.startExistingOrderPayment({
+          order_id: Number(existingSubmittedOrderId),
+          payment_method: String(selectedMethod.code),
+          provider: String((selectedMethod as any)?.provider_code || ""),
+          guest_session_id: ensureGuestSession(),
+          table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+          table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+          source: "menu_existing_submitted",
+        })
+      }
       const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
       const providerCode = selectedMethod.code === "wero"
         ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
@@ -1389,12 +1761,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: finalTotal,
-          currency: (merchantSettings?.currency || "EUR"),
+          amount: Number(existingOrderStart?.amount || payableTotal),
+          currency: String(existingOrderStart?.currency || merchantSettings?.currency || "EUR"),
           return_url: returnUrl,
           cancel_url: cancelUrl,
           customer_email: paymentFormData.email || "",
           merchant_reference: merchantReference,
+          order_id: existingSubmittedOrderId ? Number(existingSubmittedOrderId) : undefined,
           items: itemsToPay.map((item: any) => ({
             id: String(item.item.id),
             name: item.item.name,
@@ -1448,7 +1821,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                amount: finalTotal,
+                amount: payableTotal,
                 currency: (merchantSettings?.currency || "EUR"),
                 return_url: fallbackReturnUrl,
                 cancel_url: cancelUrl,
@@ -1727,7 +2100,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               className="space-y-3 overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9">
+                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9 pmd-v2-action-circle">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex items-center gap-2">
@@ -1757,7 +2130,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   <PayPalForm
                     paypalFundingSource="card"
                     paymentData={{
-                      amount: finalTotal,
+                      amount: payableTotal,
                       payment_method: "card",
                       currency: effectivePayPalCurrency.toLowerCase(),
                       items: itemsToPay.map((item: any) => ({
@@ -1808,7 +2181,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 </div>
                 <WorldlineInlineCardForm
                   paymentData={{
-                    amount: finalTotal,
+                    amount: payableTotal,
                     payment_method: "card",
                     currency: (merchantSettings?.currency || "EUR"),
                     items: itemsToPay.map((item: any) => ({
@@ -1857,7 +2230,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 className="space-y-3 overflow-hidden"
               >
                 <SumUpHostedCheckout
-                  amount={finalTotal}
+                  amount={payableTotal}
                   currency={merchantSettings?.currency || "EUR"}
                   description="PayMyDine SumUp checkout"
                   successUrl={sumupReturnUrl}
@@ -1945,21 +2318,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                       variant: "destructive",
                     })
                   }}
-                  footerSlot={
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleBackToMethods}
-                        className="p-2 h-9 w-9"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-paydine-elegant-gray" />
-                      </div>
-                    </>
-                  }
                 />
               </Elements>
             )}
@@ -1989,8 +2347,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <img
                   src={iconForPayment(selectedPaymentMethod || "card")}
                   alt={selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}
-                  width={method.code === "wero" ? 56 : 42}
-                  height={method.code === "wero" ? 32 : 24}
+                  width={selectedMethod?.code === "wero" ? 56 : 42}
+                  height={selectedMethod?.code === "wero" ? 32 : 24}
                   className="object-contain scale-125"
                 />
                 <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
@@ -2037,7 +2395,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   <PayPalForm
                     paypalFundingSource="paypal"
                     paymentData={{
-                      amount: finalTotal,
+                      amount: payableTotal,
                       payment_method: "paypal",
                       currency: effectivePayPalCurrency.toLowerCase(),
                     items: itemsToPay.map((item: any) => ({
@@ -2128,7 +2486,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 <Elements stripe={stripePromise}>
                   <WalletStripePay
                     method={selectedPaymentMethod as "apple_pay" | "google_pay"}
-                    amount={finalTotal}
+                    amount={payableTotal}
                     currency={(stripeConfig?.currency || merchantSettings?.currency || "EUR")}
                     countryCode={(stripeConfig?.countryCode || "DE")}
                     restaurantId={stripeResolvedRestaurantId || "1"}
@@ -2233,21 +2591,35 @@ case "cod":
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <Wallet className="h-6 w-6 text-paydine-champagne" />
+                <Wallet className="h-6 w-6 pmd-customer-price" />
                 <span className="font-semibold text-paydine-elegant-gray">Cash Payment</span>
               </div>
             </div>
 
-            <div className="text-center space-y-4">
-              <div className="bg-gray-50 rounded-xl p-6">
-                <Wallet className="h-12 w-12 text-paydine-champagne mx-auto mb-3" />
-                <p className="text-sm text-gray-600 mb-4">
-                  Please have the exact amount ready when the waiter comes to collect payment.
-                </p>
+            <div className="space-y-3">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="text-sm font-medium text-paydine-elegant-gray mb-2">Total due</div>
                 <div className="text-lg font-bold text-paydine-elegant-gray">
-        Total: {formatCurrency(finalTotal)}
+                  {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
                 </div>
               </div>
+              <Button
+                type="button"
+                disabled={isLoading}
+                onClick={async () => {
+                  setCashCollectionConfirmed(true)
+                  await handlePayment(undefined, { method_code: "cod", provider_code: null })
+                }}
+                className="w-full"
+                style={modalPrimaryBtnStyle}
+              >
+                {isLoading ? "Submitting..." : "Confirm cash payment"}
+              </Button>
+              {cashCollectionConfirmed && (
+                <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}>
+                  Please have the exact amount ready when the waiter comes to collect payment.
+                </div>
+              )}
             </div>
           </motion.div>
         )
@@ -2256,6 +2628,10 @@ case "cod":
         return null
     }
   }
+
+  const tableDisplayName = tableDraft?.table_name || tableInfo?.table_name || (tableDraft?.table_no || tableInfo?.table_no ? `Table ${tableDraft?.table_no || tableInfo?.table_no}` : "Delivery")
+  const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
+  const hasPersonalItems = allItems.length > 0
 
   const renderPaymentButton = () => {
     if (!selectedMethod) return null
@@ -2288,7 +2664,7 @@ case "cod":
     const getButtonText = () => {
       switch (selectedMethod.code) {
         case "card":
-  return `Pay ${formatCurrency(finalTotal)}`
+  return `Pay ${formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}`
         case "paypal":
           return "Pay with PayPal"
         case "apple_pay":
@@ -2338,23 +2714,26 @@ case "cod":
         className="w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header with close button */}
-        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-full">
+        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl">
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClose}
-            className="text-gray-500 -ml-2"
+            onClick={() => {
+              if (checkoutStep === "payment") setCheckoutStep("submitted")
+              else onClose()
+            }}
+            className={iconBackBtn}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg">{t("yourOrder")}</h2>
+          <h2 className="text-lg">{checkoutStep === "review" ? "Review order" : "My Order"}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          {pendingSummary && (
-            <div className="surface-sub rounded-2xl p-3 text-xs rounded-full">
+          {false && checkoutStep === "payment" && pendingSummary && (
+            <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
                 <span className="muted">Total</span>
                 <span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span>
@@ -2370,7 +2749,7 @@ case "cod":
             </div>
           )}
           {/* Split Bill Toggle */}
-          <div className="flex items-center justify-between p-3 surface-sub rounded-xl rounded-full">
+          {false && checkoutStep === "payment" && <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} />
               <span className="text-xs muted">{t("splitBill")}</span>
@@ -2388,11 +2767,11 @@ case "cod":
             >
               {isSplitting ? "ON" : "OFF"}
             </Button>
-          </div>
+          </div>}
 
           {/* Items List */}
-          {isSplitting ? (
-            <div className="surface-sub rounded-2xl p-3 overflow-hidden rounded-full">
+          {false && (checkoutStep === "review" || checkoutStep === "payment") && (isSplitting && checkoutStep === "payment" ? (
+            <div className="surface-sub rounded-2xl p-3 overflow-hidden">
               <h3 className="mb-2 text-xs">{t("selectItemsToPay")}</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {allItemInstances.map((instance) => (
@@ -2422,8 +2801,8 @@ case "cod":
               </div>
             </div>
           ) : (
-            <div className="surface-sub rounded-2xl p-3 rounded-full">
-              <h3 className="mb-2 text-xs">{t("orderSummary")}</h3>
+            <div className="surface-sub rounded-2xl p-3">
+              <div className="mb-2"><h3 className="text-xs font-semibold">{vatLabels.summary}</h3>{vatLabels.includedNote && <p className="mt-0.5 text-[11px] font-medium opacity-70">{vatLabels.includedNote}</p>}</div>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {allItems.map((cartItem) => (
                   <OrderItemWithOptions 
@@ -2436,11 +2815,11 @@ case "cod":
                 ))}
               </div>
             </div>
-          )}
+          ))}
 
           {/* Tip Section */}
-          {tipSettings.enabled && (
-            <div className="surface-sub rounded-2xl p-3 rounded-full">
+          {false && checkoutStep === "payment" && tipSettings.enabled && (
+            <div className="surface-sub rounded-2xl p-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative h-4 w-4 flex items-center justify-center">
                   <svg 
@@ -2498,7 +2877,7 @@ case "cod":
           )}
 
           {/* Coupon Code Input */}
-          <div className="surface-sub rounded-2xl p-3 space-y-2 rounded-full">
+          {false && checkoutStep === "payment" && <div className="surface-sub rounded-2xl p-3 space-y-2">
             {!appliedCoupon ? (
               <div className="flex gap-2">
                 <input
@@ -2571,13 +2950,66 @@ case "cod":
             {couponError && (
               <p className="text-xs text-red-600 dark:text-red-400">{couponError}</p>
             )}
-          </div>
+          </div>}
 
-          
-{/* Totals */}
-          <div className="surface-sub rounded-2xl p-3 space-y-1 rounded-full">
+
+          <AnimatePresence mode="wait" initial={false}>
+          {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && (
+            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ color: "var(--theme-text-primary)" }}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold">Table Order</h3>
+                  <p className="text-xs muted">Review the items confirmed for this table.</p>
+                </div>
+                <span className="text-xs font-semibold muted">{tableDisplayName}</span>
+              </div>
+              <div className="space-y-3 max-h-56 overflow-y-auto">
+                {(tableDraft.groups && tableDraft.groups.length > 0 ? tableDraft.groups : [{ guest_session_id: null, items: tableDraft.items || [], subtotal: tableDraft.totals?.subtotal || 0 }]).map((group: any, groupIndex: number) => (
+                  <div key={`${group.guest_session_id || 'table'}-${groupIndex}`} className="rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)" }}>
+                    {(tableDraft.groups || []).length > 1 && (
+                    <div className="mb-2 flex items-center justify-between text-xs font-semibold">
+                      <span>{group.guest_session_id ? `Guest ${groupIndex + 1}` : "Table"}</span>
+                      <span>{formatCurrency(Number(group.subtotal || 0))}</span>
+                    </div>
+                    )}
+                    <div className="space-y-1">
+                      {(group.items || []).map((item: any, idx: number) => (
+                        <div key={`${item.id || item.order_menu_id || item.menu_id}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                          <span className="truncate font-medium">{Number(item.quantity || 1)}x {String(item.name || `Item ${idx + 1}`)}</span>
+                          <span className="font-semibold">{formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
+                <span className="font-semibold">Order Total</span>
+                <span className="text-base font-bold">{formatCurrency(Number(tableDraft.totals?.total || 0))}</span>
+              </div>
+              {tableDraft.status === "draft" ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold muted">Ready to send?</p>
+                  <motion.button type="button" disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0} onClick={handleSubmitTableDraft} whileHover={{ x: submitDraftLoading ? 0 : 2 }} whileTap={{ scale: submitDraftLoading ? 1 : 0.985 }} className="group flex min-h-14 w-full items-center justify-between rounded-full px-3 py-2 text-sm font-bold shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70" style={modalPrimaryBtnStyle}>
+                    <span className="ml-3">{submitDraftLoading ? "Sending..." : "Send order to kitchen"}</span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:translate-x-1" style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)" }}><ArrowRight className="h-5 w-5" /></span>
+                  </motion.button>
+                  <button type="button" onClick={onClose} className={modalSecondaryBtn}>Continue ordering</button>
+                </div>
+              ) : tableDraft.order_id ? (
+                <button type="button" onClick={() => { setCheckoutStep("payment"); setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }) }} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>
+                  Pay
+                </button>
+              ) : null}
+            </motion.div>
+          )}
+
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+
+          {/* Totals */}
+          {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
-              <span>{t("subtotal")}</span>
+              <span>{vatLabels.subtotal}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
             </div>
             {taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1 && (
@@ -2599,20 +3031,159 @@ case "cod":
               </div>
             )}
             <div className="flex justify-between items-center divider pt-2 mt-2">
-              <span className="text-base">{t("total")}</span>
-          <span className="text-base font-bold">{formatCurrency(finalTotal)}</span>
+              <span className="text-base">{vatLabels.total}</span>
+          <span className="text-base font-bold">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
             </div>
-          </div>
+          </div>}
 
-          {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
-            <div className="pt-3">
-              {renderPaymentForm()}
+          {checkoutStep === "review" && hasPersonalItems && (
+            <div className="mt-3 space-y-3">
+              <p className="text-xs muted">{isTableContext ? tableDisplayName : "Delivery"}</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  data-pmd-review-submit="true"
+                  aria-label="Confirm items"
+                  disabled={isLoading || allItems.length === 0}
+                  onClick={handleConfirmMyItems}
+                  className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
+                >
+                  {isLoading ? "Confirming..." : "Confirm"}
+                </button>
+
+                <button
+                  type="button"
+                  data-pmd-review-continue="true"
+                  onClick={onClose}
+                  className={modalSecondaryBtn}
+                >
+                  Continue ordering
+                </button>
+              </div>
             </div>
           )}
+          </motion.div>)}
+          </AnimatePresence>
 
+          {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
+            <motion.div layout className="mt-2 p-1 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
+                  <CheckCircle className="h-5 w-5" style={{ color: "var(--theme-text-primary)" }} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
+                    {(submittedSnapshot?.showCustomerEta ?? true) && <div aria-label={`Estimated time ${estimatedMinutes} minutes`} className="shrink-0 rounded-xl border px-2 py-1 text-center" style={{ background: "color-mix(in srgb, var(--theme-secondary) 18%, var(--theme-surface) 82%)", borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }}><div className="text-xs font-semibold leading-none">Est. {estimatedMinutes} min</div></div>}
+                  </div>
+                  <p className="text-xs muted">{checkoutStep === "paid" ? "Your order is confirmed and being prepared." : "You can pay now or continue ordering."}</p>
+                </div>
+              </div>
+
+              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ color: "var(--theme-text-primary)" }}>
+                {submittedSnapshot?.orderId && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted font-medium">Order Number:</span>
+                    <span className="font-semibold text-[15px]">{submittedSnapshot.orderId}</span>
+                  </div>
+                )}
+                {taxSettings.enabled && taxSettings.menuPrice === 1 && Number(submittedSnapshot?.vatAmount ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="muted font-medium">Subtotal:</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.subtotal ?? 0))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="muted font-medium">VAT {Number(submittedSnapshot?.vatPercentage ?? taxSettings?.percentage ?? 0)}%:</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.vatAmount ?? 0))}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="muted font-medium">Order Total:</span>
+                  <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="muted font-medium">Table:</span>
+                  <span className="font-semibold text-[15px]">
+                    {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
+                  </span>
+                </div>
+                {vatLabels.includedNote && (
+                  <div className="flex items-center justify-between pt-1 text-xs opacity-75">
+                    <span className="muted font-medium">VAT:</span>
+                    <span className="font-medium">{vatLabels.includedNote}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="surface-sub rounded-2xl p-3">
+                <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
+                <div className="space-y-2 max-h-44 overflow-y-auto">
+                  {(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
+                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {checkoutStep !== "paid" && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {checkoutStep === "submitted" && (
+                <button
+                  type="button"
+                  onClick={() => setCheckoutStep('payment')}
+                  className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
+                >
+                  Pay
+                </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenOrderUpdate?.(submittedSnapshot || initialSubmittedOrder || null)
+                    onClose()
+                  }}
+                  className={checkoutStep === "payment" ? "sm:col-span-2 " + modalSecondaryBtn : modalSecondaryBtn}
+                >
+                  Continue ordering
+                </button>
+              </div>}
+              <div className="flex justify-center pt-1">
+                <PmdPlatformLogo imgClassName="max-h-9 max-w-[136px] opacity-85" />
+              </div>
+              {checkoutStep === "paid" && (
+                <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+              )}
+            </motion.div>
+          )}
+
+          {checkoutStep === "payment" && (
+            <>
+              <motion.div key="payment-card-header" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Button variant="ghost" size="sm" onClick={() => setCheckoutStep("submitted")} className={iconBackBtn}><ArrowLeft className="h-4 w-4" /></Button>
+                  <div>
+                    <h3 className="text-base font-semibold">Payment</h3>
+                    <p className="text-xs muted">Choose how you would like to pay for this order.</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-3 surface rounded-2xl">
+                  <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs font-semibold">Split Bill</span></div>
+                  <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
+                </div>
+              </motion.div>
+              {pendingSummary && (
+                <div className="surface-sub rounded-2xl p-3 text-xs">
+                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
+                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
+                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
+                </div>
+              )}
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
-            {!selectedPaymentMethod ? (
+            {checkoutStep === "payment" ? (
               <motion.div
                 key="payment-methods"
                 initial={{ opacity: 0, height: 0 }}
@@ -2689,16 +3260,23 @@ case "cod":
                     ))
                   )}
                 </div>
+                {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
+                  <div className="pt-2">
+                    {renderPaymentForm()}
+                  </div>
+                )}
               </motion.div>
             ) : null}
           </AnimatePresence>
+            </>
+          )}
 </div>
       </motion.div>
     </div>
   )
 }
 
-function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: MenuItem; onSelect: (item: MenuItem) => void; onFirstAdd: () => void }) {
+function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeImage = false }: { item: MenuItem; onSelect: (item: MenuItem) => void; onFirstAdd: () => void; prioritizeImage?: boolean }) {
   const addToCart = useCartStore((state) => state.addToCart)
   const { items } = useCartStore()
   const { t } = useLanguageStore()
@@ -2748,14 +3326,15 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
     >
       <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
         <OptimizedImage
-          src={item.image || "/placeholder.svg"}
+          src={item.image || (Array.isArray((item as any).images) ? (item as any).images[0] : "") || "/placeholder.svg"}
           alt={itemName}
           fill
+          priority={prioritizeImage}
           className="object-contain transition-transform duration-700 ease-in-out group-hover:scale-110"
         />
       </div>
       <div className="flex-grow">
-        <h3 className="text-lg font-bold text-paydine-elegant-gray">{itemName}</h3>
+        <h3 dir={getTextDirection(itemName)} className={`text-lg font-bold text-paydine-elegant-gray ${getTextAlignClass(itemName)}`}>{itemName}</h3>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <FoodAttributeTags
             halal={item.halal}
@@ -2776,12 +3355,12 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
             compact
           />
         </div>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{truncatedDescription}</p>
+        <p dir={getTextDirection(truncatedDescription)} className={`text-sm text-gray-500 mt-1 line-clamp-2 ${getTextAlignClass(truncatedDescription)}`}>{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
           <div className="relative">
             <button
-              className="quantity-btn w-12 h-12 font-bold text-lg"
+              className="quantity-btn pmd-v2-action-circle w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
             >
               {quantity > 0 ? (
@@ -2792,9 +3371,29 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd }: { item: Me
               <span className="sr-only">Add to cart</span>
             </button>
             {quantity > 0 && (
-              <button
-                className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10"
-                style={{ color: 'var(--theme-secondary)' }}
+                <button
+                  className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10 pmd-v2-action-circle"
+style={{
+  top: "-0.72rem",
+  right: "-0.72rem",
+  width: "1.55rem",
+  height: "1.55rem",
+  minWidth: "1.55rem",
+  minHeight: "1.55rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "9999px",
+  border: "1px solid var(--pmd-v2-action-border)",
+  background: "var(--pmd-v2-action-bg)",
+  color: "var(--pmd-v2-action-text)",
+  WebkitTextFillColor: "var(--pmd-v2-action-text)",
+  lineHeight: "1",
+  fontWeight: 800,
+  fontSize: "0.9rem",
+  padding: 0,
+  boxShadow: "none"
+}}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAdd(e);
@@ -2821,6 +3420,8 @@ function ExpandingBottomToolbar({
   onCartClick,
   onWaiterClick,
   onNoteClick,
+  onOrderClick,
+  orderCount = 0,
   waiterDisabled = false,
   noteDisabled = false,
   totalItems,
@@ -2839,10 +3440,20 @@ function ExpandingBottomToolbar({
   const collapsedHeight = 76
   const previewHeight = 180
   const expandedHeight = 420
+  const hasToolbarContent = items.length > 0
+  const showOrderAction = typeof onOrderClick === "function"
+  const toolbarIconBtnStyle: React.CSSProperties = {
+    background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+    border: "1px solid var(--theme-border)",
+    color: "var(--theme-text-primary)",
+    boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+    borderRadius: "9999px",
+  }
+  const effectiveToolbarState = hasToolbarContent ? toolbarState : "collapsed"
 
   let height = collapsedHeight
-  if (toolbarState === "preview") height = previewHeight
-  if (toolbarState === "expanded") height = expandedHeight
+  if (effectiveToolbarState === "preview") height = previewHeight
+  if (effectiveToolbarState === "expanded") height = expandedHeight
 
   // Safety net: Ensure toolbar background is applied correctly
   useEffect(() => {
@@ -2855,7 +3466,7 @@ function ExpandingBottomToolbar({
         const themeColors = {
           'clean-light': 'rgba(250, 250, 250, 0.95)',
           'modern-dark': 'rgba(10, 14, 18, 0.95)',
-          'gold-luxury': 'rgba(15, 11, 5, 0.95)',
+          'gold-luxury': 'rgba(250, 249, 244, 0.96)',
           'vibrant-colors': 'rgba(226, 206, 177, 0.95)',
           'minimal': 'rgba(207, 235, 247, 0.95)'
         }
@@ -2941,7 +3552,7 @@ function ExpandingBottomToolbar({
 
         {/* Bill preview/expanded */}
         <AnimatePresence mode="popLayout">
-          {(toolbarState === "preview" || toolbarState === "expanded") && (
+          {hasToolbarContent && (effectiveToolbarState === "preview" || effectiveToolbarState === "expanded") && (
             <motion.div
               key="bill"
               initial={{ opacity: 0, y: 20 }}
@@ -2950,9 +3561,9 @@ function ExpandingBottomToolbar({
               transition={{ duration: 0.3 }}
               className="w-full px-6 pt-8 pb-2 scrollbar-hide"
               style={{
-                maxHeight: toolbarState === "expanded" ? 320 : 90,
-                overflowY: toolbarState === "expanded" ? "auto" : "visible",
-                height: toolbarState === "expanded" ? "auto" : undefined,
+                maxHeight: effectiveToolbarState === "expanded" ? 320 : 90,
+                overflowY: effectiveToolbarState === "expanded" ? "auto" : "visible",
+                height: effectiveToolbarState === "expanded" ? "auto" : undefined,
                 msOverflowStyle: "none",
                 scrollbarWidth: "none",
               }}
@@ -2960,7 +3571,7 @@ function ExpandingBottomToolbar({
               <div className="flex flex-col">
                 <div className="space-y-2">
                   <AnimatePresence mode="popLayout">
-                    {items.slice(toolbarState === "preview" ? -1 : 0).map((item: CartItem) => (
+                    {items.slice(effectiveToolbarState === "preview" ? -1 : 0).map((item: CartItem) => (
                       <motion.div
                         key={item.item.id}
                         layout
@@ -3011,7 +3622,7 @@ function ExpandingBottomToolbar({
                           </div>
                         </div>
                         <motion.div
-                          className="font-semibold menu-item-price text-lg"
+                          className="font-semibold menu-item-price pmd-customer-price text-lg"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
@@ -3023,7 +3634,7 @@ function ExpandingBottomToolbar({
                   </AnimatePresence>
                 </div>
                 {/* Show total only in expanded */}
-                {toolbarState === "expanded" && (
+                {effectiveToolbarState === "expanded" && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -3039,7 +3650,7 @@ function ExpandingBottomToolbar({
                         Total
                       </motion.span>
                       <motion.span
-                        className="font-bold text-2xl text-paydine-champagne"
+                        className="font-bold text-2xl pmd-customer-price"
                         initial={{ x: 10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                       >
@@ -3055,7 +3666,7 @@ function ExpandingBottomToolbar({
 
         {/* Toolbar buttons (always visible at the bottom) */}
         <div
-          className="flex items-center justify-between gap-8 px-8 py-4"
+          className="flex items-center justify-between gap-5 px-6 py-4"
           style={{
             minHeight: 76,
             borderBottomLeftRadius: "2.5rem",
@@ -3064,45 +3675,106 @@ function ExpandingBottomToolbar({
             marginTop: "auto",
           }}
         >
+          <ActionTooltip label="Call waiter">
           <motion.button
             whileTap={{ scale: waiterDisabled ? 1 : 0.92 }}
             whileHover={{ scale: waiterDisabled ? 1 : 1.12 }}
-            className={`flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{
+              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+              border: "1px solid var(--theme-border)",
+              color: "var(--theme-text-primary)",
+              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+            }}
             onClick={waiterDisabled ? undefined : onWaiterClick}
             disabled={waiterDisabled}
             aria-label={t("callWaiter")}
           >
-            <HandPlatter className={`h-8 w-8 ${waiterDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
+            <HandPlatter className="h-7 w-7" style={{ color: waiterDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
           </motion.button>
+          </ActionTooltip>
+          <ActionTooltip label="Add note">
           <motion.button
             whileTap={{ scale: noteDisabled ? 1 : 0.92 }}
             whileHover={{ scale: noteDisabled ? 1 : 1.12 }}
-            className={`flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{
+              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+              border: "1px solid var(--theme-border)",
+              color: "var(--theme-text-primary)",
+              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+            }}
             onClick={noteDisabled ? undefined : onNoteClick}
             disabled={noteDisabled}
             aria-label={t("leaveNote")}
           >
-            <NotebookPen className={`h-8 w-8 ${noteDisabled ? 'text-gray-400' : 'text-paydine-elegant-gray'}`} />
+            <NotebookPen className="h-7 w-7" style={{ color: noteDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
           </motion.button>
+          </ActionTooltip>
+
+          <AnimatePresence initial={false}>
+          {showOrderAction && (
+          <ActionTooltip label="Table order">
+          <motion.button
+            key="table-order-action"
+            initial={{ opacity: 0, scale: 0.8, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 8 }}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.12 }}
+            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
+            style={toolbarIconBtnStyle}
+            onClick={onOrderClick}
+            aria-label="Table order"
+          >
+            <ReceiptText className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
+            {orderCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "var(--theme-secondary)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
+                {orderCount > 9 ? "9+" : orderCount}
+              </span>
+            )}
+          </motion.button>
+          </ActionTooltip>
+          )}
+          </AnimatePresence>
+          
+          <ActionTooltip label="Checkout">
           <motion.button
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.12 }}
-            className="flex items-center justify-center relative focus:outline-none transition-all"
-            style={{ background: "none", border: "none", padding: 0, margin: 0 }}
+            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
+              border: "1px solid var(--theme-border)",
+              color: "var(--theme-text-primary)",
+              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              borderRadius: "9999px",
+            }}
             onClick={onCartClick}
             aria-label={t("viewCart")}
           >
-            <ShoppingCart className="h-8 w-8 text-paydine-elegant-gray" />
+            <ShoppingCart className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
             {totalItems > 0 && (
               <span 
-                className="cart-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
-                style={{ fontSize: '12px' }}>
+                className="cart-badge pmd-v2-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
+                style={{
+                  background: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
+                  backgroundColor: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
+                  backgroundImage: "none",
+                  color: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
+                  WebkitTextFillColor: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
+                  border: "1px solid var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  borderColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  outlineColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  zIndex: 9999999,
+                }}>
                 {totalItems}
               </span>
             )}
           </motion.button>
+          </ActionTooltip>
         </div>
       </div>
     </motion.div>
@@ -3135,16 +3807,15 @@ const EnhancedWaiterDialog = ({
   const [showSuccess, setShowSuccess] = useState(false)
 
   const handleConfirm = async () => {
-    if (!tableId) {
-      toast({ title: 'Error', description: 'Missing table_id', variant: 'destructive' });
-      return;
-    }
     // Backend needs a non-empty string; use "." when user leaves it blank
     const msg = '.';
-    console.debug('[waiter-call] payload', { tableId: tableId, msg });
+    const resolvedTableId = tableId || "delivery";
+    if (process.env.NODE_ENV !== "production") {
+      console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? "table" : "delivery_menu" });
+    }
     try {
-      await apiClient.callWaiter(String(tableId), msg);
-      toast({ title: 'Waiter Called', description: 'We are on the way!' });
+      await apiClient.callWaiter(String(resolvedTableId), msg);
+      toast({ title: 'Waiter Called', description: tableId ? 'We are on the way!' : 'We received your assistance request.' });
     } catch (e: any) {
       toast({ title: 'Error', description: (e?.message || 'Failed to call waiter'), variant: 'destructive' });
       throw e;
@@ -3405,6 +4076,7 @@ const EnhancedNoteDialog = ({
 
 // Create a component that uses useSearchParams
 function MenuContent() {
+  const searchParams = useSearchParams()
   const [isClient, setIsClient] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string>("All") // Initialize with "All"
@@ -3412,18 +4084,13 @@ function MenuContent() {
   const [toolbarState, setToolbarState] = useState<ToolbarState>("collapsed")
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<'review' | 'submitted' | 'payment'>('review')
   const [isLoading, setIsLoading] = useState(true)
+  const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
   const { menuItems, taxSettings, loadVATSettings } = useCmsStore()
 
-  // Debug logging for theme consistency
-  if (typeof window !== 'undefined') {
-    console.info("MENU PAGE ACTIVE FILE ✅");
-    console.log("data-theme:", document.documentElement.getAttribute('data-theme'));
-    console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
-    console.log("body bg:", getComputedStyle(document.body).background);
-  }
   const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
   const themeBackgroundColor = useThemeBackgroundColor()
   const { t } = useLanguageStore()
@@ -3434,8 +4101,53 @@ function MenuContent() {
   const [tableInfo, setTableInfoState] = useState<any>(null)
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
   const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
+  const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
+  const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
+  const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const shouldHideCartSheet = !!existingOrderId
+
+  useEffect(() => {
+    if (!tableInfo?.table_id && !tableInfo?.table_no) return
+    let cancelled = false
+    const loadSharedTableOrder = async () => {
+      const latest = await apiClient.getTableOrderDraft({
+        table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
+        table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
+        qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (searchParams?.get("qr") || null),
+      })
+      if (cancelled) return
+      if (latest?.success && latest.status && latest.status !== "empty") {
+        setSharedTableOrder(latest)
+        if (latest.order_id) {
+          setExistingOrderId(Number(latest.order_id))
+          setPendingSettlementSummary({
+            orderTotal: Number(latest.totals?.orderTotal || latest.totals?.total || 0),
+            settledAmount: Number(latest.totals?.settledAmount || 0),
+            remainingAmount: Number(latest.totals?.remainingAmount || latest.totals?.total || 0),
+          })
+          setLocalOpenOrder((prev: any) => prev || {
+            orderId: latest.order_id,
+            status: latest.status,
+            paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
+            tableNumber: latest.table_no || tableInfo?.table_no || null,
+            total: latest.totals?.total || 0,
+            orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
+            remainingAmount: latest.totals?.remainingAmount || 0,
+            settledAmount: latest.totals?.settledAmount || 0,
+            submittedItems: latest.items || [],
+            payment: latest.payment || "qr_pay_later",
+          })
+          setHasLocalOpenOrder(true)
+        }
+      } else {
+        setSharedTableOrder(null)
+      }
+    }
+    void loadSharedTableOrder()
+    const timer = window.setInterval(loadSharedTableOrder, 12000)
+    return () => { cancelled = true; window.clearInterval(timer) }
+  }, [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, searchParams])
 
   // close side cart for pending QR
   useEffect(() => {
@@ -3450,31 +4162,12 @@ function MenuContent() {
     }
   }, [existingOrderId])
 
-  useEffect(() => {
-    if (!existingOrderId) return
-    if (!items || items.length === 0) return
 
-    const timer = setTimeout(() => {
-      try {
-        const state = useCartStore.getState() as any
-        if (state?.isCartOpen === true) {
-          useCartStore.setState({ isCartOpen: false })
-        }
-      } catch (e) {
-        console.error('[PMD] close wrong cart drawer failed', e)
-      }
-
-      try {
-        setPaymentModalOpen(true)
-      } catch (e) {
-        console.error('[PMD] open real checkout bill failed', e)
-      }
-    }, 250)
-
-    return () => clearTimeout(timer)
-  }, [existingOrderId, items])
-
-  const searchParams = useSearchParams()
+  const MENU_CACHE_TTL_MS = 5 * 60 * 1000
+  const getMenuCacheKey = () => {
+    if (typeof window === "undefined") return ""
+    return `pmd-menu-cache:${window.location.host}:${window.location.pathname}?${window.location.search}`
+  }
 
   useEffect(() => {
     __pmdWalletDebugInstallOnce()
@@ -3535,6 +4228,27 @@ useEffect(() => {
       try {
         setIsLoading(true)
         console.log('Loading menu data...')
+        const cacheKey = getMenuCacheKey()
+        if (cacheKey) {
+          try {
+            const rawCache = localStorage.getItem(cacheKey)
+            if (rawCache) {
+              const parsed = JSON.parse(rawCache)
+              const isFresh = parsed?.timestamp && (Date.now() - Number(parsed.timestamp) < MENU_CACHE_TTL_MS)
+              if (isFresh) {
+                setApiMenuItems(Array.isArray(parsed.items) ? parsed.items : [])
+                setDynamicCategories(Array.isArray(parsed.categories) ? parsed.categories : [])
+                console.info("PMD_MENU_CACHE_HIT")
+              } else {
+                console.info("PMD_MENU_CACHE_MISS")
+              }
+            } else {
+              console.info("PMD_MENU_CACHE_MISS")
+            }
+          } catch {
+            console.info("PMD_MENU_CACHE_MISS")
+          }
+        }
         
         // Check if we have table parameters - prefer table_no
         const table_id = searchParams.get("table_id")
@@ -3646,6 +4360,15 @@ useEffect(() => {
         
         setApiMenuItems(menuResult.menuItems)
         setDynamicCategories(menuResult.categoryNames)
+        setIsFrontendConfigured(menuResult.isFrontendConfigured ?? true)
+        if (cacheKey) {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            categories: menuResult.categoryNames,
+            items: menuResult.menuItems,
+            timestamp: Date.now(),
+          }))
+          console.info("PMD_MENU_CACHE_REFRESHED")
+        }
         
       } catch (error) {
         console.error('Failed to load menu data:', error)
@@ -3662,7 +4385,7 @@ useEffect(() => {
 
   // Add "All" to categories - FIXED VERSION
   const allCategories = useMemo(() => {
-    const categoryList = dynamicCategories.length > 0 ? dynamicCategories : ['Appetizer', 'Mains', 'Desserts', 'Drinks'];
+    const categoryList = dynamicCategories;
     return ["All", ...categoryList];
   }, [dynamicCategories]);
 
@@ -3755,15 +4478,11 @@ useEffect(() => {
   const handleNoteClick = () => setNoteModalOpen(true)
   const handleCartClick = () => {
     if (items.length > 0) {
+      setPaymentModalInitialStep('review')
       setPaymentModalOpen(true)
     }
   }
   const handleSendNote = async () => {
-    if (!tableIdString) { 
-      toast({ title: 'Error', description: 'Missing table_id', variant: 'destructive' }); 
-      return; 
-    }
-
     const trimmedNote = (note ?? '').trim();
     if (!trimmedNote) {
       toast({ 
@@ -3784,9 +4503,12 @@ useEffect(() => {
       return;
     }
 
-    console.debug('[table-note] payload', { tableId: tableIdString, note: trimmedNote });
+    const resolvedTableId = tableIdString || "delivery"
+    if (process.env.NODE_ENV !== "production") {
+      console.debug('[table-note] payload', { tableId: resolvedTableId, note: trimmedNote, source: tableIdString ? "table" : "delivery_menu" });
+    }
     try {
-      await apiClient.callTableNote(String(tableIdString), trimmedNote, new Date().toISOString());
+      await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString());
       setNote("")
       setNoteModalOpen(false)
       toast({
@@ -3806,6 +4528,67 @@ useEffect(() => {
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const tenant = window.location.host
+    const tableKey = String(tableInfo?.table_id || tableInfo?.table_no || searchParams?.get("table") || searchParams?.get("table_id") || searchParams?.get("table_no") || (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? "delivery"))
+    const guestSessionId = localStorage.getItem('pmd_guest_session_id') || `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`
+    localStorage.setItem('pmd_guest_session_id', guestSessionId)
+    const key = `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`
+    const legacyKey = `pmd_open_order:${tenant}:${tableKey}`
+    try {
+      let raw = localStorage.getItem(key)
+      let restoredFromLegacy = false
+      if (!raw) {
+        const legacyRaw = localStorage.getItem(legacyKey)
+        if (legacyRaw) {
+          try {
+            const legacy = JSON.parse(legacyRaw)
+            const hasValidCore = Number(legacy?.orderId || 0) > 0 && Number(legacy?.total || 0) > 0
+            const isPaid = legacy?.paymentStatus === "paid" || legacy?.status === "paid"
+            const tenantConflict = legacy?.tenant != null && String(legacy.tenant) !== tenant
+            const tableConflict = legacy?.tableKey != null && String(legacy.tableKey) !== tableKey
+            if (!hasValidCore || isPaid || tenantConflict || tableConflict) {
+              localStorage.removeItem(legacyKey)
+            } else {
+              const migrated = { ...legacy, guestSessionId, tenant, tableKey }
+              localStorage.setItem(key, JSON.stringify(migrated))
+              localStorage.removeItem(legacyKey)
+              raw = JSON.stringify(migrated)
+              restoredFromLegacy = true
+            }
+          } catch {}
+        }
+      }
+      if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
+      const parsed = JSON.parse(raw)
+      const hasValidCore =
+        parsed &&
+        typeof parsed === "object" &&
+        Number(parsed?.total || 0) > 0 &&
+        Number(parsed?.orderId || 0) > 0
+      const matchesContext =
+        String(parsed?.guestSessionId || "") === guestSessionId &&
+        String(parsed?.tenant || "") === tenant &&
+        String(parsed?.tableKey || "") === tableKey
+      if (!hasValidCore || (!restoredFromLegacy && !matchesContext)) {
+        localStorage.removeItem(key)
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        return
+      }
+      if (parsed?.paymentStatus === "paid" || parsed?.status === "paid") {
+        localStorage.removeItem(key)
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        return
+      }
+      setHasLocalOpenOrder(!!parsed?.orderId)
+      setLocalOpenOrder(parsed)
+      if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
+    } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
+  }, [tableInfo, searchParams, existingOrderId])
 
   if (!isClient) {
     return <LoadingSpinner />
@@ -3832,16 +4615,21 @@ useEffect(() => {
             }}
           />
           <section className="w-full mb-12">
+            {!isFrontendConfigured && filteredItems.length === 0 ? (
+              <TenantSetupSplash />
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4">
-              {filteredItems.map((item: MenuItem) => (
+              {filteredItems.map((item: MenuItem, index: number) => (
                 <ExpandingToolbarMenuItemCard
                   key={item.id}
                   item={item}
                   onSelect={handleItemSelect}
                   onFirstAdd={() => handleFirstAdd(item)}
+                  prioritizeImage={index < 4}
                 />
               ))}
             </div>
+            )}
           </section>
         </main>
       </Suspense>
@@ -3874,10 +4662,15 @@ useEffect(() => {
         onCartClick={handleCartClick}
         onWaiterClick={tableIdString ? handleWaiterClick : undefined}
         onNoteClick={tableIdString ? handleNoteClick : undefined}
-        waiterDisabled={!tableIdString}
-        noteDisabled={!tableIdString}
+        waiterDisabled={false}
+        noteDisabled={false}
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
+        onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
+          setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : 'submitted')
+          setPaymentModalOpen(true)
+        } : undefined}
+        orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
       />
       {!shouldHideCartSheet && (
       <CartSheet />
@@ -3890,6 +4683,26 @@ useEffect(() => {
         tableInfo={tableInfo}
         existingOrderId={existingOrderId}
         pendingSummary={pendingSettlementSummary}
+        initialSubmittedOrder={localOpenOrder}
+        initialCheckoutStep={paymentModalInitialStep}
+        onOpenOrderUpdate={(snapshot) => {
+          if (snapshot?.status === "draft" || snapshot?.draft_id) {
+            setSharedTableOrder(snapshot)
+            return
+          }
+          if (snapshot?.paymentStatus === "paid") {
+            setHasLocalOpenOrder(false)
+            setLocalOpenOrder(null)
+            setSharedTableOrder(null)
+            return
+          }
+          if (snapshot?.orderId || snapshot?.order_id) {
+            const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+            setLocalOpenOrder(normalized)
+            setHasLocalOpenOrder(true)
+            setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
+          }
+        }}
       />
       <EnhancedWaiterDialog
         isOpen={isWaiterConfirmOpen}
@@ -3912,44 +4725,8 @@ useEffect(() => {
 
 // Main component with Suspense wrapper
 export default function ExpandingBottomToolbarMenu() {
-  // Safety net: Force theme application on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentTheme = localStorage.getItem('paymydine-theme') || 'clean-light';
-      applyTheme(currentTheme);
-      
-      // NUCLEAR OPTION: Directly set background colors
-      const themeColors = {
-        'clean-light': '#FAFAFA',
-        'modern-dark': '#0A0E12',
-        'gold-luxury': '#0F0B05',
-        'vibrant-colors': '#e2ceb1',
-        'minimal': '#CFEBF7'
-      };
-      
-      const bgColor = themeColors[currentTheme as keyof typeof themeColors] || '#FAFAFA';
-      
-      // Force background on body and html
-      document.body.style.background = bgColor;
-      document.documentElement.style.background = bgColor;
-      
-      // Force background on page elements
-      const pageElement = document.querySelector('.page--menu .min-h-screen');
-      if (pageElement) {
-        (pageElement as HTMLElement).style.background = bgColor;
-      }
-      
-      // Debug logging for verification
-      console.info("MENU PAGE THEME SAFETY NET APPLIED");
-      console.log("Applied theme:", currentTheme);
-      console.log("Forced background color:", bgColor);
-      console.log("--theme-background:", getComputedStyle(document.documentElement).getPropertyValue('--theme-background'));
-      console.log("body background:", getComputedStyle(document.body).background);
-    }
-  }, []);
-
   return (
-    <div className="page--menu">
+    <div className="pmd-customer-page page--menu" data-pmd-customer-page="menu">
       <Suspense fallback={<div>Loading...</div>}>
         <MenuContent />
       </Suspense>

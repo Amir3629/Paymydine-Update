@@ -3,6 +3,9 @@ import { EnvironmentConfig } from './environment-config'
 
 // FIXED: Use dynamic category type instead of hardcoded union
 export type MenuItem = {
+  images?: string[]
+  gallery?: string[]
+  media?: any[]
   id: number
   name: string
   nameKey?: string
@@ -38,6 +41,7 @@ export type MenuItem = {
   minimum_qty?: number
   available?: boolean
   options?: MenuItemOption[]
+  prep_time_minutes?: number
 }
 
 export interface MenuItemOption {
@@ -67,6 +71,54 @@ const toNumberOrNull = (value: unknown): number | null => {
 }
 
 // FIXED: Convert API MenuItem to frontend MenuItem
+
+// PMD_PRESERVE_GALLERY_IMAGES_START
+const normalizeApiMenuImagePath = (value: unknown): string => {
+  if (!value) return ""
+
+  const raw = String(value).trim()
+  if (!raw) return ""
+
+  if (/^https?:\/\//i.test(raw)) return raw
+
+  if (raw.startsWith("/")) return raw
+
+  if (raw.startsWith("assets/media/")) return `/${raw}`
+
+  if (raw.startsWith("attachments/public/")) return `/assets/media/${raw}`
+
+  if (raw.startsWith("uploads/")) return `/assets/media/${raw}`
+
+  // Plain upload filenames from ti_menu_images.
+  if (/\.(png|jpe?g|webp|gif|svg)(\?|#)?$/i.test(raw)) {
+    return `/assets/media/uploads/${raw}`
+  }
+
+  return raw
+}
+
+const normalizeApiMenuImageList = (value: unknown): string[] => {
+  const arr = Array.isArray(value) ? value : []
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  arr.forEach((entry: any) => {
+    const candidate =
+      typeof entry === "string"
+        ? entry
+        : entry?.url || entry?.image || entry?.src || entry?.image_path || entry?.path || ""
+
+    const normalized = normalizeApiMenuImagePath(candidate)
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized)
+      result.push(normalized)
+    }
+  })
+
+  return result
+}
+// PMD_PRESERVE_GALLERY_IMAGES_END
+
 const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuItem => {
   // Convert relative image path to full URL (same as logo system)
   let imageUrl = apiItem.image || '/placeholder.svg?width=200&height=200';
@@ -91,6 +143,9 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     descriptionKey: undefined,
     price: apiItem.price,
     image: imageUrl,  // Now uses full URL for /api/media/ paths!
+    images: normalizeApiMenuImageList((apiItem as any).images),
+    gallery: normalizeApiMenuImageList((apiItem as any).gallery),
+    media: Array.isArray((apiItem as any).media) ? (apiItem as any).media : [],
     // FIXED: Use API category name directly, no mapping at all
     category: categoryName || apiItem.category_name || 'Main Course',
     category_id: apiItem.category_id,
@@ -111,12 +166,13 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     stock_qty: apiItem.stock_qty,
     minimum_qty: apiItem.minimum_qty || 1,
     available: apiItem.available !== false && (apiItem.stock_qty === null || (apiItem.stock_qty ?? 0) > 0),
-    options: apiItem.options || []
+    options: apiItem.options || [],
+    prep_time_minutes: Number((apiItem as any).prep_time_minutes || 15)
   }
 }
 
 // FIXED: Update getMenuData to return categoryNames from API
-export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[] }> {
+export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[], isFrontendConfigured: boolean }> {
   try {
     const menuResponse = await apiClient.getMenu()
     
@@ -143,10 +199,10 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
     
     const categories = Object.values(categoryGroups)
     
-    return { categories, menuItems, categoryNames }
+    return { categories, menuItems, categoryNames, isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false }
   } catch (error) {
     console.error('Failed to fetch menu data from API:', error)
-    return { categories: [], menuItems: [], categoryNames: [] }
+    return { categories: [], menuItems: [], categoryNames: [], isFrontendConfigured: true }
   }
 }
 
