@@ -189,12 +189,29 @@ const handleModalClose = (event?: any) => {
  >
  {/* Close button */}
  <Button
- variant="ghost"
- size="icon"
- onClick={handleModalClose}
-	 className="inline-flex items-center justify-center absolute top-4 left-4 z-10 h-10 w-10 pmd-v2-action-circle shadow-lg hover:opacity-90"
->
- <ArrowLeft className="h-5 w-5" />
+   variant="ghost"
+   size="sm"
+   onClick={handleModalClose}
+   className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 pmd-v2-action-circle hover:opacity-90 absolute top-4 left-4 z-10"
+   style={{
+     background: "#062F2A",
+     backgroundColor: "#062F2A",
+     color: "#FFFFFF",
+     WebkitTextFillColor: "#FFFFFF",
+     borderColor: "#062F2A",
+     outlineColor: "#062F2A",
+     textDecoration: "none",
+   }}
+ >
+   <ArrowLeft
+     className="h-4 w-4 mr-1"
+     style={{
+       color: "#FFFFFF",
+       stroke: "#FFFFFF",
+       WebkitTextFillColor: "#FFFFFF",
+     }}
+   />
+   Back
  </Button>
 
  <div className="p-6 overflow-y-auto overscroll-contain max-h-[90dvh]">

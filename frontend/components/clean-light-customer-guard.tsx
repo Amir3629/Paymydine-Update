@@ -230,12 +230,7 @@ function applySharedControlStyles(pathname: string | null) {
       setSvgImportant(el, "filter", "none")
     })
   })
-
-  document.querySelectorAll<HTMLElement>(".cart-badge, .cart-badge *").forEach((el) => {
-    setImportant(el, "color", BLACK)
-    setImportant(el, "-webkit-text-fill-color", BLACK)
-  })
-
+  // PMD: cart badge text is single-owner now; do not mutate it here.
   document.querySelectorAll<HTMLElement>(
     "#toolbar-inner-fixed .menu-item-price, #toolbar-inner-fixed .text-paydine-champagne"
   ).forEach((el) => {

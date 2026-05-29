@@ -602,9 +602,9 @@ return [
         'label_password' => 'Password',
         'label_password_confirm' => 'Confirm Password',
 
-        'alert_username_not_found' => 'Login failed, please try again or contact the system administrator!',
+        'alert_username_not_found' => 'We could not sign you in. Please check your username and password. If you are not sure about the username, ask your manager. If you forgot the password, use the reset link below.',
         'alert_success_reset' => 'You\'ve successfully changed your password.',
-        'alert_failed_reset' => 'The reset code is either invalid or expired.',
+        'alert_failed_reset' => 'This reset link is invalid or expired. Please request a new password reset link.',
         'alert_success_logout' => 'You are now logged out.',
         'alert_email_sent' => 'We\'ve sent a password reset link to your email.',
         'alert_email_not_sent' => 'The e-mail could not be sent. Possible reason: your host may have disabled the mail() function.',

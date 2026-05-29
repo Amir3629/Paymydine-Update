@@ -796,7 +796,131 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 /* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_END */
 </style>
     <!-- PayMyDine Admin Theme v1 - centralized final general visual layer (intentionally last CSS include) -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
+
+    {{-- PMD all-pages toolbar guard: hide only legacy buttons, never the header/proxy containers --}}
+    <script>
+        (function () {
+            document.documentElement.classList.add('pmd-admin-toolbar-preboot');
+            window.setTimeout(function () {
+                document.documentElement.classList.remove('pmd-admin-toolbar-preboot');
+                document.documentElement.classList.add('pmd-admin-toolbar-ready');
+            }, 1200);
+        })();
+    </script>
+    <style id="pmd-toolbar-all-pages-no-flash-guard">
+        /*
+          Important:
+          Do NOT hide the whole toolbar container.
+          Hide only old direct buttons/groups, so PMD proxy/header buttons can appear instantly.
+        */
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1
+        :is(.toolbar-action, .progress-indicator-container, .form-toolbar, .control-toolbar, .page-actions, .page-title-section .pull-right, .list-toolbar, .toolbar.btn-toolbar, .btn-toolbar)
+        > :is(.btn, a.btn, button.btn, .btn-group):not(.pmd-header-action-btn),
+
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1
+        :is(.toolbar-action, .progress-indicator-container, .form-toolbar, .control-toolbar, .page-actions, .page-title-section .pull-right, .list-toolbar, .toolbar.btn-toolbar, .btn-toolbar)
+        > .pmd-toolbar-right-buttons > :is(.btn, a.btn, button.btn, .btn-group):not(.pmd-header-action-btn),
+
+        body.pmd-admin-theme-v1 [data-pmd-legacy-toolbar-source="1"],
+        body.pmd-admin-theme-v1 .pmd-legacy-toolbar-source > :is(.btn, a.btn, button.btn, .btn-group):not(.pmd-header-action-btn),
+        body.pmd-admin-theme-v1 .pmd-legacy-toolbar-source > .pmd-toolbar-right-buttons > :is(.btn, a.btn, button.btn, .btn-group):not(.pmd-header-action-btn) {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        body.pmd-admin-theme-v1 .pmd-header-action-btn,
+        body.pmd-admin-theme-v1 .pmd-header-action-enter,
+        body.pmd-admin-theme-v1 .pmd-header-action-visible,
+        body.pmd-admin-theme-v1 .pmd-header-title-back,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .pmd-header-action-btn,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .pmd-header-title-back {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            transform: none !important;
+            transition-property: background-color, border-color, color, box-shadow !important;
+        }
+
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .navbar-top,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .navbar-top .navbar-nav,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .navbar-top .nav-item,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .navbar-top .nav-link,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .pmd-topbar-settings-item,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .pmd-topbar-user-item,
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 .pmd-header-tooltip-target {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+    </style>
+
+
+    {{-- PMD header actions: load early with defer to reduce proxy delay --}}
+    <script defer src="{{ asset('app/admin/assets/js/pmd-admin-header-actions.js') }}?v={{ time() }}"></script>
+
+    <style id="pmd-toolbar-collapse-legacy-actions">
+        /*
+          PMD final no-jump rule:
+          The old toolbar is only a hidden source for proxy clicks.
+          It must not occupy layout space, otherwise page content jumps.
+          Header/proxy buttons are not inside these old page toolbar containers.
+        */
+
+        html.pmd-admin-toolbar-preboot body.pmd-admin-theme-v1 :is(
+            .toolbar-action,
+            .progress-indicator-container,
+            .form-toolbar,
+            .control-toolbar,
+            .page-actions,
+            .page-title-section .pull-right,
+            .list-toolbar,
+            .toolbar.btn-toolbar,
+            .btn-toolbar
+        ) {
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+        }
+
+        body.pmd-admin-theme-v1 .pmd-legacy-toolbar-source {
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+        }
+
+        body.pmd-admin-theme-v1 .pmd-legacy-toolbar-source * {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        body.pmd-admin-theme-v1 .pmd-header-action-btn,
+        body.pmd-admin-theme-v1 .pmd-header-title-back,
+        body.pmd-admin-theme-v1 .pmd-header-tooltip-target,
+        body.pmd-admin-theme-v1 .navbar-top,
+        body.pmd-admin-theme-v1 .navbar-top .nav-link,
+        body.pmd-admin-theme-v1 .navbar-top .nav-item {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+    </style>
 
 </head>
 <script>
@@ -1318,7 +1442,5 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
  document.addEventListener('change',on,true); document.addEventListener('input',on,true); setTimeout(on,300);
 })();
 </script>
-
-<script src="/app/admin/assets/js/pmd-admin-header-actions.js?v=pmd-header-actions-flip-smooth-20260528"></script>
 </body>
 </html>

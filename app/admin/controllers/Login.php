@@ -22,7 +22,12 @@ class Login extends \Admin\Classes\AdminController
     {
         parent::__construct();
 
-        $this->middleware('throttle:'.config('system.authRateLimiter', '6,1'));
+        // PMD auth safety: limit login/reset attempts without blocking normal page refreshes.
+        $this->middleware('throttle:'.config('system.authRateLimiter', '8,15'))->only([
+            'onLogin',
+            'onRequestResetPassword',
+            'onResetPassword',
+        ]);
     }
 
     public function index()
@@ -48,7 +53,7 @@ class Login extends \Admin\Classes\AdminController
         if (strlen($code) && !Users_model::whereResetCode(input('code'))->first()) {
             flash()->error(lang('admin::lang.login.alert_failed_reset'));
 
-            return $this->redirect('login');
+            return $this->redirect('login/reset?failed=1');
         }
 
         Template::setTitle(lang('admin::lang.login.text_password_reset_title'));
@@ -111,7 +116,7 @@ class Login extends \Admin\Classes\AdminController
 
         flash()->success(lang('admin::lang.login.alert_email_sent'));
 
-        return $this->redirect('login');
+        return $this->redirect('login/reset?sent=1');
     }
 
     public function onResetPassword()
@@ -144,6 +149,6 @@ class Login extends \Admin\Classes\AdminController
 
         flash()->success(lang('admin::lang.login.alert_success_reset'));
 
-        return $this->redirect('login');
+        return $this->redirect('login?reset=success');
     }
 }

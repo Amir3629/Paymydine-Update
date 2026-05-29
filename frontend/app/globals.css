@@ -8268,3 +8268,461 @@ html[data-theme="gold-luxury"] .page--valet svg.lucide-car * {
   stroke: #FFFFFF !important;
 }
 
+/* PMD CUSTOMER ACTION CIRCLE MOTHER CSS FINAL */
+/*
+  One source of truth for frontend action-circle buttons.
+  This kills legacy/theme/tailwind first-paint conflicts on Back, plus, language,
+  modal controls, valet/menu icon buttons, and all pmd-v2-action-circle controls.
+*/
+html body .pmd-customer-page .pmd-v2-action-circle,
+html body [data-pmd-customer-page] .pmd-v2-action-circle,
+html body .page--home .pmd-v2-action-circle,
+html body .page--menu .pmd-v2-action-circle,
+html body .page--valet .pmd-v2-action-circle,
+html body button.pmd-v2-action-circle,
+html body a.pmd-v2-action-circle {
+  opacity: 1 !important;
+  visibility: visible !important;
+  animation: none !important;
+
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+
+  border-color: #062F2A !important;
+  outline-color: #062F2A !important;
+
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  isolation: isolate !important;
+  -webkit-tap-highlight-color: transparent !important;
+
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease !important;
+}
+
+html body .pmd-customer-page .pmd-v2-action-circle:hover,
+html body [data-pmd-customer-page] .pmd-v2-action-circle:hover,
+html body .page--home .pmd-v2-action-circle:hover,
+html body .page--menu .pmd-v2-action-circle:hover,
+html body .page--valet .pmd-v2-action-circle:hover,
+html body button.pmd-v2-action-circle:hover,
+html body a.pmd-v2-action-circle:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  background-image: none !important;
+  border-color: #021F1C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Force every icon/line/path inside action buttons to be visible from first paint */
+html body .pmd-v2-action-circle svg,
+html body .pmd-v2-action-circle svg.lucide,
+html body .pmd-v2-action-circle svg *,
+html body .pmd-v2-action-circle path,
+html body .pmd-v2-action-circle circle,
+html body .pmd-v2-action-circle line,
+html body .pmd-v2-action-circle polyline,
+html body .pmd-v2-action-circle polygon,
+html body .pmd-v2-action-circle rect {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+  animation: none !important;
+}
+
+/* Keep lucide icons stable and not affected by old theme icon sizing */
+html body .pmd-v2-action-circle svg,
+html body .pmd-v2-action-circle svg.lucide {
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  flex-shrink: 0 !important;
+  transform: none !important;
+}
+
+/* Text inside action buttons must never flash black */
+html body .pmd-v2-action-circle span,
+html body .pmd-v2-action-circle strong,
+html body .pmd-v2-action-circle small,
+html body .pmd-v2-action-circle .lucide,
+html body .pmd-v2-action-circle [class*="lucide"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Prevent pseudo legacy effects */
+html body .pmd-v2-action-circle::before,
+html body .pmd-v2-action-circle::after {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+/* PMD CUSTOMER ACTION CIRCLE MOTHER CSS FINAL END */
+
+/* PMD MENU CART BADGE SINGLE OWNER START */
+/*
+  Single owner for the cart count badge on menu page.
+  Exact requested style:
+  - badge fill: #b88940
+  - number: white
+*/
+[data-pmd-menu-cart-badge="1"] {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #b88940 !important;
+  border-color: #b88940 !important;
+  outline-color: #b88940 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  border-radius: 9999px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+[data-pmd-menu-cart-badge="1"],
+[data-pmd-menu-cart-badge="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+/* PMD MENU CART BADGE SINGLE OWNER END */
+
+/* PMD BOTTOM TOOLBAR BACKGROUND MATCH START */
+/*
+  Bottom menu/payment toolbar should blend with the page background.
+  Narrow selector: only the fixed bottom toolbar frame.
+*/
+html body #toolbar-inner-fixed {
+  background: var(--theme-background, #FAF9F4) !important;
+  background-color: var(--theme-background, #FAF9F4) !important;
+  background-image: none !important;
+  border-color: var(--theme-border, rgba(184, 137, 64, 0.22)) !important;
+  opacity: 1 !important;
+}
+
+html body #toolbar-inner-fixed > div,
+html body #toolbar-inner-fixed .bottom-toolbar-item-border {
+  background-color: transparent !important;
+}
+
+html body #toolbar-inner-fixed button[aria-label="Show bill"] {
+  background: var(--theme-background, #FAF9F4) !important;
+  background-color: var(--theme-background, #FAF9F4) !important;
+  border-color: var(--theme-border, rgba(184, 137, 64, 0.25)) !important;
+}
+/* PMD BOTTOM TOOLBAR BACKGROUND MATCH END */
+
+/* PMD BOTTOM TOOLBAR NO BLUR GRAY START */
+/*
+  Bottom toolbar should not be glass/gray.
+  It should use the same page background, with no blur overlay.
+*/
+html body #toolbar-inner-fixed,
+html body .toolbar-inner-fixed {
+  background: var(--pmd-v2-page-bg, var(--theme-background, #FAF9F4)) !important;
+  background-color: var(--pmd-v2-page-bg, var(--theme-background, #FAF9F4)) !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.08) !important;
+}
+
+html body #toolbar-inner-fixed::before,
+html body #toolbar-inner-fixed::after,
+html body .toolbar-inner-fixed::before,
+html body .toolbar-inner-fixed::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html body #toolbar-inner-fixed > div,
+html body .toolbar-inner-fixed > div {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* PMD BOTTOM TOOLBAR NO BLUR GRAY END */
+
+/* PMD SHOW BILL TOGGLE BUTTON START */
+/*
+  Small top toggle button on bottom toolbar.
+  Same dark green as other action buttons.
+*/
+html body button[aria-label="Show bill"],
+html body .pmd-show-bill-toggle-button {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #062F2A !important;
+  border-color: #062F2A !important;
+  outline-color: #062F2A !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
+  opacity: 1 !important;
+}
+
+html body button[aria-label="Show bill"] svg,
+html body button[aria-label="Show bill"] svg *,
+html body .pmd-show-bill-toggle-button svg,
+html body .pmd-show-bill-toggle-button svg * {
+  width: 16px !important;
+  height: 16px !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html body button[aria-label="Show bill"]:hover,
+html body .pmd-show-bill-toggle-button:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+}
+/* PMD SHOW BILL TOGGLE BUTTON END */
+
+/* PMD SHOW BILL TOGGLE SINGLE OWNER START */
+/*
+  Single owner for the top floating Show/Hide bill button.
+  Do not rely only on aria-label because it changes between Show bill and Hide bill.
+*/
+html body [data-pmd-show-bill-toggle="1"],
+html body button.pmd-show-bill-toggle-button,
+html body button[aria-label="Show bill"].pmd-show-bill-toggle-button,
+html body button[aria-label="Hide bill"].pmd-show-bill-toggle-button,
+html body #toolbar-inner-fixed button.pmd-show-bill-toggle-button {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #062F2A !important;
+  border-color: #062F2A !important;
+  outline-color: #062F2A !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+html body [data-pmd-show-bill-toggle="1"] svg,
+html body [data-pmd-show-bill-toggle="1"] svg *,
+html body button.pmd-show-bill-toggle-button svg,
+html body button.pmd-show-bill-toggle-button svg * {
+  width: 16px !important;
+  height: 16px !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+}
+
+html body [data-pmd-show-bill-toggle="1"]:hover,
+html body button.pmd-show-bill-toggle-button:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+}
+/* PMD SHOW BILL TOGGLE SINGLE OWNER END */
+
+/* PMD ORDER RECEIVED + TABLE ORDER ICON FIX START */
+/*
+  Fix 1: order confirmation status icon should use PayMyDine green, not pink.
+  Fix 2: Table order active toolbar icon must stay visible white on green.
+  Narrow selectors only.
+*/
+
+/* Order received status icon */
+html body [data-pmd-order-received-icon="1"],
+html body .pmd-order-received-icon {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+  outline-color: #062F2A !important;
+}
+
+html body [data-pmd-order-received-icon="1"] svg,
+html body [data-pmd-order-received-icon="1"] svg *,
+html body .pmd-order-received-icon svg,
+html body .pmd-order-received-icon svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+}
+
+/* Table order toolbar action */
+html body [data-pmd-table-order-action="1"],
+html body .pmd-table-order-action-button {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html body [data-pmd-table-order-action="1"] svg,
+html body [data-pmd-table-order-action="1"] svg *,
+html body .pmd-table-order-action-button svg,
+html body .pmd-table-order-action-button svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+}
+
+/* If Table order has a number badge, make it match checkout badge style */
+html body [data-pmd-table-order-action="1"] .cart-badge,
+html body [data-pmd-table-order-action="1"] .pmd-v2-badge,
+html body [data-pmd-table-order-action="1"] [data-pmd-table-order-badge="1"] {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #b88940 !important;
+  border-color: #b88940 !important;
+  outline-color: #b88940 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+html body [data-pmd-table-order-action="1"] .cart-badge *,
+html body [data-pmd-table-order-action="1"] .pmd-v2-badge * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+/* PMD ORDER RECEIVED + TABLE ORDER ICON FIX END */
+
+/* PMD REAL TABLE ORDER CSS ONLY START */
+/*
+  Real bottom toolbar Table order button.
+  We target aria-label directly because the JSX source is wrapped/animated
+  and previous data-attribute patch hit the wrong button.
+*/
+html body button[aria-label="Table order"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  border-color: #062F2A !important;
+  outline-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+html body button[aria-label="Table order"] svg,
+html body button[aria-label="Table order"] svg *,
+html body button[aria-label="Table order"] path {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+}
+
+/* Number bubble on Table order: same visual family as checkout badge */
+html body button[aria-label="Table order"] > span,
+html body button[aria-label="Table order"] span.absolute {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #b88940 !important;
+  border-color: #b88940 !important;
+  outline-color: #b88940 !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  z-index: 30 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html body button[aria-label="Table order"] > span *,
+html body button[aria-label="Table order"] span.absolute * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+/* PMD REAL TABLE ORDER CSS ONLY END */

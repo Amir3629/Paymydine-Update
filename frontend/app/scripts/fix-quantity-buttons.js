@@ -6,16 +6,19 @@
     
     function fixQuantityButtons() {
         // Find all quantity selector buttons
-        const buttons = document.querySelectorAll('button[class*="rounded-full"], .quantity-btn, button[class*="w-12"][class*="h-12"]');
+        const buttons = document.querySelectorAll('.quantity-btn, button[aria-label="Increase quantity"], button[aria-label="Decrease quantity"], button[aria-label="Add item"], button[aria-label="Add to cart"]');
         
         console.log('Found buttons:', buttons.length);
         
         buttons.forEach((button, index) => {
             // Check if this looks like a quantity selector button
-            const isQuantityButton = button.classList.contains('quantity-btn') || 
-                                   (button.className.includes('rounded-full') && 
-                                    button.className.includes('w-12') && 
-                                    button.className.includes('h-12'));
+            const aria = (button.getAttribute('aria-label') || '').toLowerCase();
+            const isQuantityButton =
+                button.classList.contains('quantity-btn') ||
+                aria === 'increase quantity' ||
+                aria === 'decrease quantity' ||
+                aria === 'add item' ||
+                aria === 'add to cart';
             
             if (isQuantityButton) {
                 console.log(`Fixing button ${index}:`, button);
@@ -52,18 +55,7 @@
                 });
             }
         });
-        
-        // Also fix cart badges
-        const badges = document.querySelectorAll('[class*="cart-badge"], .absolute.-top-2.-right-2');
-        badges.forEach(badge => {
-            if (badge.textContent && !isNaN(badge.textContent.trim())) {
-                console.log('Fixing cart badge:', badge);
-                badge.style.backgroundColor = 'var(--theme-secondary)';
-                badge.style.color = 'var(--theme-background)';
-                badge.style.borderRadius = '50%';
-            }
-        });
-        
+        // PMD: cart badge is intentionally not touched here. Single owner is menu/page.tsx.
         console.log('✅ Quantity buttons fix applied!');
     }
     

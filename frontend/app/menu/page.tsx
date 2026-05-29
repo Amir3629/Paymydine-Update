@@ -630,9 +630,9 @@ function OrderItemWithOptions({
       {/* Expandable options section - only show if there are options */}
       {itemOptions.length > 0 && (
         <div className="border-t border-paydine-champagne/10">
-          <button
+          <button data-pmd-table-order-action="1"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between p-2 text-xs text-paydine-elegant-gray hover:bg-paydine-champagne/5 transition-colors"
+            className="w-full flex items-center justify-between p-2 text-xs text-paydine-elegant-gray hover:bg-paydine-champagne/5 transition-colors pmd-table-order-action-button"
           >
             <span>Customize Options</span>
             <ChevronDown 
@@ -2955,7 +2955,7 @@ case "cod":
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && (
-            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ color: "var(--theme-text-primary)" }}>
+            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">Table Order</h3>
@@ -3068,8 +3068,17 @@ case "cod":
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div layout className="mt-2 p-1 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
-                  <CheckCircle className="h-5 w-5" style={{ color: "var(--theme-text-primary)" }} />
+                <div
+                data-pmd-order-received-icon="1"
+                className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center pmd-order-received-icon"
+                style={{
+                  background: "#062F2A",
+                  backgroundColor: "#062F2A",
+                  color: "#FFFFFF",
+                  WebkitTextFillColor: "#FFFFFF",
+                }}
+              >
+                  <CheckCircle className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
@@ -3080,7 +3089,7 @@ case "cod":
                 </div>
               </div>
 
-              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ color: "var(--theme-text-primary)" }}>
+              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }}>
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Order Number:</span>
@@ -3459,16 +3468,16 @@ function ExpandingBottomToolbar({
   useEffect(() => {
     const applyToolbarBackground = () => {
       const toolbarElement = document.querySelector('.toolbar-inner-fixed') || 
-                            document.querySelector('div[class*="backdrop-blur-lg"][class*="rounded-[2.5rem]"]')
+                            document.querySelector('div[class*=""][class*="rounded-[2.5rem]"]')
       
       if (toolbarElement) {
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'clean-light'
         const themeColors = {
-          'clean-light': 'rgba(250, 250, 250, 0.95)',
-          'modern-dark': 'rgba(10, 14, 18, 0.95)',
-          'gold-luxury': 'rgba(250, 249, 244, 0.96)',
-          'vibrant-colors': 'rgba(226, 206, 177, 0.95)',
-          'minimal': 'rgba(207, 235, 247, 0.95)'
+          'clean-light': 'var(--theme-background, #FAFAFA)',
+          'modern-dark': 'var(--theme-background, #0A0E12)',
+          'gold-luxury': 'var(--theme-background, #FAF9F4)',
+          'vibrant-colors': 'var(--theme-background, #E2CEB1)',
+          'minimal': 'var(--theme-background, #CFEBF7)'
         }
         
         const bgColor = themeColors[currentTheme as keyof typeof themeColors] || themeColors['clean-light']
@@ -3477,7 +3486,7 @@ function ExpandingBottomToolbar({
         const htmlElement = toolbarElement as HTMLElement
         htmlElement.style.background = bgColor
         htmlElement.style.backgroundColor = bgColor
-        htmlElement.style.opacity = '0.95'
+        htmlElement.style.opacity = '1'
         
         // Add ID for future targeting
         toolbarElement.id = 'toolbar-inner-fixed'
@@ -3521,31 +3530,89 @@ function ExpandingBottomToolbar({
       <div
         className="
           relative flex flex-col w-full h-full
-          backdrop-blur-lg
+          
           rounded-[2.5rem] shadow-2xl border border-white/30 ring-1 ring-paydine-champagne/10
         "
         style={{ 
           minHeight: 76, 
           height: "100%",
-          background: "var(--theme-background)",
-          backgroundColor: "var(--theme-background)",
-          opacity: 0.95
+          background: "var(--pmd-v2-page-bg, var(--theme-background))",
+          backgroundColor: "var(--pmd-v2-page-bg, var(--theme-background))",
+          opacity: 1
         }}
       >
         {/* Arrow for expanding/collapsing bill */}
         {showBillArrow && (
           <button
-            className="absolute left-1/2 -top-4 z-10 flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow border border-paydine-champagne/30 transition-all"
-            style={{ transform: "translateX(-50%)" }}
-            onClick={() =>
-              setToolbarState(toolbarState === "expanded" ? "preview" : "expanded")
-            }
+            type="button"
+            data-pmd-show-bill-toggle="1"
+            ref={(el) => {
+              if (!el) return
+
+              const applyPmdShowBillToggle = () => {
+                el.style.setProperty("width", "36px", "important")
+                el.style.setProperty("height", "36px", "important")
+                el.style.setProperty("min-width", "36px", "important")
+                el.style.setProperty("min-height", "36px", "important")
+                el.style.setProperty("background", "#062F2A", "important")
+                el.style.setProperty("background-color", "#062F2A", "important")
+                el.style.setProperty("background-image", "none", "important")
+                el.style.setProperty("color", "#FFFFFF", "important")
+                el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+                el.style.setProperty("border", "1px solid #062F2A", "important")
+                el.style.setProperty("border-color", "#062F2A", "important")
+                el.style.setProperty("outline-color", "#062F2A", "important")
+                el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.22)", "important")
+                el.style.setProperty("opacity", "1", "important")
+                el.style.setProperty("filter", "none", "important")
+                el.style.setProperty("transform", "translateX(-50%)", "important")
+
+                el.querySelectorAll("svg, svg *").forEach((node) => {
+                  const svgEl = node as HTMLElement
+                  svgEl.style.setProperty("width", "16px", "important")
+                  svgEl.style.setProperty("height", "16px", "important")
+                  svgEl.style.setProperty("color", "#FFFFFF", "important")
+                  svgEl.style.setProperty("stroke", "#FFFFFF", "important")
+                  svgEl.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+                  svgEl.style.setProperty("fill", "none", "important")
+                })
+              }
+
+              applyPmdShowBillToggle()
+
+              if (el.dataset.pmdShowBillToggleLock !== "1") {
+                el.dataset.pmdShowBillToggleLock = "1"
+
+                let busy = false
+                const observer = new MutationObserver(() => {
+                  if (busy) return
+                  busy = true
+                  requestAnimationFrame(() => {
+                    applyPmdShowBillToggle()
+                    busy = false
+                  })
+                })
+
+                observer.observe(el, {
+                  attributes: true,
+                  childList: true,
+                  subtree: true,
+                  attributeFilter: ["style", "class", "aria-label"],
+                })
+
+                ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
+                  window.setTimeout(applyPmdShowBillToggle, delay)
+                })
+              }
+            }}
+            onClick={() => setToolbarState(toolbarState === "expanded" ? "preview" : "expanded")}
+            className="absolute left-1/2 -top-4 z-10 flex items-center justify-center rounded-full shadow border transition-all pmd-show-bill-toggle-button"
             aria-label={toolbarState === "expanded" ? "Hide bill" : "Show bill"}
           >
             {toolbarState === "expanded" ? (
-              <ChevronDown className="w-5 h-5 text-paydine-champagne" />
+              <ChevronDown className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
             ) : (
-              <ChevronUp className="w-5 h-5 text-paydine-champagne" />
+              <ChevronUp className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
             )}
           </button>
         )}
@@ -3729,7 +3796,7 @@ function ExpandingBottomToolbar({
             onClick={onOrderClick}
             aria-label="Table order"
           >
-            <ReceiptText className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
+            <ReceiptText className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
             {orderCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "var(--theme-secondary)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
                 {orderCount > 9 ? "9+" : orderCount}
@@ -3755,19 +3822,62 @@ function ExpandingBottomToolbar({
             onClick={onCartClick}
             aria-label={t("viewCart")}
           >
-            <ShoppingCart className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
+            <ShoppingCart className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
             {totalItems > 0 && (
               <span 
+                data-pmd-menu-cart-badge="1"
+                ref={(el) => {
+                  if (!el) return
+
+                  const applyPmdBadgeColor = () => {
+                    el.style.setProperty("background", "#b88940", "important")
+                    el.style.setProperty("background-color", "#b88940", "important")
+                    el.style.setProperty("background-image", "none", "important")
+                    el.style.setProperty("color", "#FFFFFF", "important")
+                    el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+                    el.style.setProperty("border", "1px solid #b88940", "important")
+                    el.style.setProperty("border-color", "#b88940", "important")
+                    el.style.setProperty("outline-color", "#b88940", "important")
+                    el.style.setProperty("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.15)", "important")
+                    el.style.setProperty("filter", "none", "important")
+                    el.style.setProperty("text-shadow", "none", "important")
+                  }
+
+                  applyPmdBadgeColor()
+
+                  if (el.dataset.pmdBadgeColorLock !== "1") {
+                    el.dataset.pmdBadgeColorLock = "1"
+
+                    let busy = false
+                    const observer = new MutationObserver(() => {
+                      if (busy) return
+                      busy = true
+                      requestAnimationFrame(() => {
+                        applyPmdBadgeColor()
+                        busy = false
+                      })
+                    })
+
+                    observer.observe(el, {
+                      attributes: true,
+                      attributeFilter: ["style", "class"],
+                    })
+
+                    ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
+                      window.setTimeout(applyPmdBadgeColor, delay)
+                    })
+                  }
+                }}
                 className="cart-badge pmd-v2-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
                 style={{
-                  background: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
-                  backgroundColor: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
+                  background: "#b88940",
+                  backgroundColor: "#b88940",
                   backgroundImage: "none",
-                  color: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
-                  WebkitTextFillColor: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
-                  border: "1px solid var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
-                  borderColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
-                  outlineColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  color: "#FFFFFF",
+                  WebkitTextFillColor: "#FFFFFF",
+                  border: "1px solid #b88940",
+                  borderColor: "#b88940",
+                  outlineColor: "#b88940",
                   zIndex: 9999999,
                 }}>
                 {totalItems}

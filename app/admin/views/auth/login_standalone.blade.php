@@ -814,6 +814,321 @@
              }
          }
 
+
+         /* PMD final style: dark jade login page + smaller premium card */
+         html,
+         body.pg-auth,
+         .nk-body.pg-auth,
+         .nk-app-root,
+         .nk-main,
+         .nk-wrap,
+         .nk-content,
+         .nk-split {
+             background:
+                 radial-gradient(circle at 50% 12%, rgba(200, 155, 74, 0.16), transparent 30%),
+                 linear-gradient(180deg, #011714 0%, #021A17 38%, #021F1C 68%, #062F2A 100%) !important;
+             color: #0D1B1E !important;
+         }
+
+         body.pg-auth .nk-split-page {
+             min-height: 100vh !important;
+             padding: 20px 16px !important;
+         }
+
+         body.pg-auth .nk-auth-container,
+         body.pg-auth .nk-split-content.nk-auth-container {
+             width: min(100%, 460px) !important;
+             max-width: 460px !important;
+             min-height: auto !important;
+             padding: 24px 30px 34px !important;
+             border: 1px solid rgba(200, 155, 74, 0.36) !important;
+             border-radius: 24px !important;
+             background: rgba(255, 255, 255, 0.97) !important;
+             box-shadow: 0 24px 70px rgba(1, 23, 20, 0.36), 0 0 0 1px rgba(255, 255, 255, 0.16) inset !important;
+             backdrop-filter: blur(10px) !important;
+         }
+
+         body.pg-auth .nk-auth-body {
+             width: 100% !important;
+             display: flex !important;
+             flex-direction: column !important;
+             align-items: center !important;
+         }
+
+         body.pg-auth .brand-logo,
+         body.pg-auth .brand-logo.pb-5 {
+             height: 176px !important;
+             min-height: 176px !important;
+             max-height: 176px !important;
+             margin: -26px auto -2px auto !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+         }
+
+         body.pg-auth .brand-logo .logo-link {
+             height: 176px !important;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: center !important;
+             overflow: visible !important;
+         }
+
+         body.pg-auth .brand-logo .pmd-login-main-logo,
+         body.pg-auth .brand-logo img.pmd-login-main-logo {
+             transform: translateY(-28px) scale(1.52) !important;
+             transform-origin: center center !important;
+         }
+
+         body.pg-auth .nk-block-head {
+             width: min(100%, 390px) !important;
+             margin: 12px auto 24px auto !important;
+             transform: translateY(14px) !important;
+         }
+
+         body.pg-auth .nk-block-title {
+             color: #0D1B1E !important;
+             font-size: 1.28rem !important;
+             font-weight: 800 !important;
+         }
+
+         body.pg-auth .nk-block-des p {
+             color: #6B7280 !important;
+         }
+
+         body.pg-auth .nk-auth-body form {
+             width: min(100%, 390px) !important;
+             margin: 0 auto !important;
+             transform: translateY(14px) !important;
+         }
+
+         body.pg-auth .form-label,
+         body.pg-auth .form-label-group {
+             color: #0D1B1E !important;
+             font-weight: 750 !important;
+         }
+
+         body.pg-auth .form-control,
+         body.pg-auth .form-control-lg {
+             min-height: 46px !important;
+             border: 1px solid #E8E2D8 !important;
+             border-radius: 14px !important;
+             background: #FFFFFF !important;
+             color: #0D1B1E !important;
+             box-shadow: 0 8px 20px rgba(6, 47, 42, 0.06) !important;
+         }
+
+         body.pg-auth .form-control:focus,
+         body.pg-auth .form-control-lg:focus {
+             border-color: #C89B4A !important;
+             box-shadow: 0 0 0 0.18rem rgba(200, 155, 74, 0.18), 0 8px 20px rgba(6, 47, 42, 0.08) !important;
+         }
+
+         body.pg-auth .btn.btn-primary,
+         body.pg-auth .btn.btn-primary:focus {
+             min-height: 48px !important;
+             border-radius: 14px !important;
+             border: 1px solid #062F2A !important;
+             background: #062F2A !important;
+             color: #FFFFFF !important;
+             box-shadow: 0 12px 28px rgba(6, 47, 42, 0.22) !important;
+         }
+
+         body.pg-auth .btn.btn-primary:hover,
+         body.pg-auth .btn.btn-primary:active {
+             background: #021F1C !important;
+             border-color: #C89B4A !important;
+             color: #FFFFFF !important;
+         }
+
+         body.pg-auth .nk-auth-container .form-group a,
+         body.pg-auth .pg-auth .form-group a,
+         body.pg-auth .nk-auth-container .text-right a {
+             color: #062F2A !important;
+             font-weight: 800 !important;
+         }
+
+         body.pg-auth .nk-auth-container .form-group a:hover,
+         body.pg-auth .nk-auth-container .text-right a:hover {
+             color: #C89B4A !important;
+         }
+
+         @media (max-width: 575.98px) {
+             body.pg-auth .nk-auth-container,
+             body.pg-auth .nk-split-content.nk-auth-container {
+                 width: min(100%, 92vw) !important;
+                 max-width: 92vw !important;
+                 padding: 22px 18px 30px !important;
+                 border-radius: 22px !important;
+             }
+
+             body.pg-auth .brand-logo,
+             body.pg-auth .brand-logo.pb-5 {
+                 height: 154px !important;
+                 min-height: 154px !important;
+                 max-height: 154px !important;
+                 margin: -22px auto -2px auto !important;
+             }
+
+             body.pg-auth .brand-logo .logo-link {
+                 height: 154px !important;
+             }
+
+             body.pg-auth .brand-logo .pmd-login-main-logo,
+             body.pg-auth .brand-logo img.pmd-login-main-logo {
+                 transform: translateY(-22px) scale(1.34) !important;
+             }
+
+             body.pg-auth .nk-block-head,
+             body.pg-auth .nk-auth-body form {
+                 width: min(100%, 100%) !important;
+             }
+         }
+
+
+         /* PMD final login fix: remove inner white label/text gaps */
+         body.pg-auth .nk-auth-container,
+         body.pg-auth .nk-split-content.nk-auth-container {
+             background: rgba(255, 255, 255, 0.97) !important;
+         }
+
+         body.pg-auth .nk-auth-body,
+         body.pg-auth .nk-block,
+         body.pg-auth .nk-block-middle,
+         body.pg-auth .nk-block-head,
+         body.pg-auth .nk-block-head-content,
+         body.pg-auth .nk-block-des,
+         body.pg-auth .nk-auth-body form,
+         body.pg-auth .form-group,
+         body.pg-auth .form-label-group,
+         body.pg-auth .form-control-wrap,
+         body.pg-auth .text-right,
+         body.pg-auth .form-label,
+         body.pg-auth label,
+         body.pg-auth p {
+             background: transparent !important;
+             background-color: transparent !important;
+             box-shadow: none !important;
+         }
+
+         body.pg-auth .form-label-group {
+             display: block !important;
+             margin-bottom: 8px !important;
+             padding: 0 !important;
+         }
+
+         body.pg-auth .form-group {
+             margin-bottom: 18px !important;
+         }
+
+         body.pg-auth .nk-auth-container .text-right,
+         body.pg-auth .pg-auth .text-right {
+             margin-top: 4px !important;
+             padding: 0 !important;
+         }
+
+         body.pg-auth .nk-auth-container .text-right a,
+         body.pg-auth .pg-auth .text-right a {
+             display: inline-block !important;
+             background: transparent !important;
+             background-color: transparent !important;
+         }
+
+         body.pg-auth .form-control,
+         body.pg-auth .form-control-lg {
+             background: #FFFFFF !important;
+             background-color: #FFFFFF !important;
+         }
+
+
+         /* PMD auth messages */
+         body.pg-auth .pmd-login-feedback,
+         body.pg-auth .pmd-login-help {
+             width: 100%;
+             max-width: 332px;
+             border-radius: 16px;
+             padding: 11px 13px;
+             font-size: 0.84rem;
+             line-height: 1.42;
+             font-weight: 650;
+             text-align: left;
+             background: transparent;
+         }
+
+         body.pg-auth .pmd-login-feedback {
+             margin: 0 auto 14px;
+         }
+
+         body.pg-auth .pmd-login-feedback-success {
+             border: 1px solid rgba(21, 128, 61, 0.22);
+             background: rgba(21, 128, 61, 0.08);
+             color: #15803D;
+         }
+
+         body.pg-auth .pmd-login-help {
+             margin: 0 auto 18px;
+             border: 1px solid rgba(215, 169, 80, 0.30);
+             background: rgba(245, 232, 208, 0.46) !important;
+             color: #062F2A !important;
+         }
+
+     
+         /* PMD auth final cleanup: hide old login helper copy */
+         body.pg-auth .nk-block-des,
+         body.pg-auth .nk-block-des p,
+         body.pg-auth .pmd-auth-login-help,
+         body.pg-auth [class*="pmd-auth-login-help"] {
+             display: none !important;
+             visibility: hidden !important;
+             height: 0 !important;
+             min-height: 0 !important;
+             max-height: 0 !important;
+             margin: 0 !important;
+             padding: 0 !important;
+             overflow: hidden !important;
+         }
+
+         body.pg-auth .nk-block-head {
+             margin-bottom: 22px !important;
+         }
+
+
+         /* PMD final login notice */
+         body.pg-auth .pmd-login-notice {
+             width: 100% !important;
+             margin: 0 0 18px 0 !important;
+             padding: 14px 16px !important;
+             border: 1px solid rgba(180, 35, 24, 0.22) !important;
+             border-left: 4px solid #B42318 !important;
+             border-radius: 16px !important;
+             background: rgba(254, 242, 242, 0.96) !important;
+             color: #7A271A !important;
+             box-shadow: 0 12px 28px rgba(180, 35, 24, 0.10) !important;
+             font-size: 0.88rem !important;
+             line-height: 1.45 !important;
+             opacity: 0 !important;
+             transform: translateY(-6px) !important;
+             transition: opacity 180ms ease, transform 180ms ease !important;
+         }
+
+         body.pg-auth .pmd-login-notice.is-visible {
+             opacity: 1 !important;
+             transform: translateY(0) !important;
+         }
+
+         body.pg-auth .pmd-login-notice strong {
+             display: block !important;
+             margin-bottom: 4px !important;
+             color: #B42318 !important;
+             font-weight: 850 !important;
+         }
+
+         body.pg-auth .pmd-login-notice span {
+             display: block !important;
+             color: #7A271A !important;
+         }
+
      </style>
 </head>
 
@@ -837,11 +1152,23 @@
                                     <div class="nk-block-head-content">
                                         <h5 class="nk-block-title">@lang('admin::lang.login.text_title')</h5>
                                         <div class="nk-block-des">
-                                            <p>Access using your username and password.</p>
+                                            <p></p>
                                         </div>
                                     </div>
                                 </div><!-- .nk-block-head -->
                                 
+
+                                @if (input('reset') === 'success')
+                                    <div class="pmd-login-feedback pmd-login-feedback-success">
+                                        Your password has been updated. You can now sign in.
+                                    </div>
+                                @endif
+
+                                <div id="pmd-login-notice" class="pmd-login-notice" role="alert" aria-live="polite" hidden>
+                                    <strong>Login failed</strong>
+                                    <span>Check your username and password. If you forgot your password, use the reset link below.</span>
+                                </div>
+
                                 {!! form_open([
                                     'id' => 'edit-form',
                                     'role' => 'form',
@@ -928,6 +1255,68 @@
             }
         });
     </script>
+
+    <script>
+        (function ($) {
+            if (!$) return;
+
+            function showPmdLoginNotice(message) {
+                var notice = document.getElementById('pmd-login-notice');
+                if (!notice) return;
+
+                var text = message || 'Check your username and password. If you forgot your password, use the reset link below.';
+                var span = notice.querySelector('span');
+
+                if (span) span.textContent = text;
+
+                notice.hidden = false;
+                requestAnimationFrame(function () {
+                    notice.classList.add('is-visible');
+                });
+            }
+
+            function isLoginRequest(settings) {
+                var data = settings && settings.data ? String(settings.data) : '';
+                var url = settings && settings.url ? String(settings.url) : '';
+                return data.indexOf('onLogin') !== -1 || url.indexOf('/admin/login') !== -1;
+            }
+
+            $('#edit-form').on('submit', function () {
+                window.__pmdLastLoginSubmitAt = Date.now();
+            });
+
+            $('#edit-form').on('ajaxFail ajaxError ajaxInvalidField', function () {
+                showPmdLoginNotice();
+            });
+
+            $(document).on('ajaxErrorMessage', function (event, message) {
+                var recentlySubmitted = window.__pmdLastLoginSubmitAt && (Date.now() - window.__pmdLastLoginSubmitAt < 12000);
+                if (!recentlySubmitted) return;
+
+                if (event && typeof event.preventDefault === 'function') {
+                    event.preventDefault();
+                }
+
+                showPmdLoginNotice(message);
+            });
+
+            $(document).ajaxError(function (_event, jqXHR, settings) {
+                var recentlySubmitted = window.__pmdLastLoginSubmitAt && (Date.now() - window.__pmdLastLoginSubmitAt < 12000);
+                if (!recentlySubmitted && !isLoginRequest(settings)) return;
+
+                var msg = null;
+
+                try {
+                    if (jqXHR && jqXHR.responseJSON) {
+                        msg = jqXHR.responseJSON.message || jqXHR.responseJSON.error || null;
+                    }
+                } catch (e) {}
+
+                showPmdLoginNotice(msg);
+            });
+        })(window.jQuery);
+    </script>
+
 </body>
 </html>
 
