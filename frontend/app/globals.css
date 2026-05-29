@@ -64,6 +64,8 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    --font-inter: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-playfair-display: Georgia, "Times New Roman", serif;
   }
  
   .dark {
@@ -8726,3 +8728,9 @@ html body button[aria-label="Table order"] span.absolute * {
   -webkit-text-fill-color: #FFFFFF !important;
 }
 /* PMD REAL TABLE ORDER CSS ONLY END */
+
+/* Build-safe local font fallbacks replacing next/font Google network fetches. */
+.pmd-font-fallbacks {
+  --font-inter: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-playfair-display: Georgia, "Times New Roman", serif;
+}
