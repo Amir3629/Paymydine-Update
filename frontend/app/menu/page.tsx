@@ -9,7 +9,6 @@ import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
 import { Logo } from "@/components/logo";
-import { PmdPlatformLogo } from "@/components/pmd-platform-logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
 import { FoodAttributeTags } from "@/components/food-attribute-tags";
@@ -20,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight } from "lucide-react";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -504,7 +503,7 @@ interface PaymentModalProps {
     remainingAmount: number;
   } | null;
   initialSubmittedOrder?: any | null;
-  initialCheckoutStep?: 'review' | 'submitted' | 'payment' | 'paid';
+  initialCheckoutStep?: CheckoutStep;
   onOpenOrderUpdate?: (snapshot: any | null) => void;
 }
 
@@ -529,6 +528,30 @@ interface ExpandingBottomToolbarProps {
 interface MenuItemModalProps {
   item: MenuItem | null;
   onClose: () => void;
+}
+
+type CheckoutStep = 'review' | 'submitted' | 'split' | 'split-items' | 'split-shares' | 'split-review' | 'payment' | 'paid'
+
+type SplitMethod = 'equal' | 'items' | 'shares'
+
+type SplitSourceItem = {
+  key: string;
+  name: string;
+  amount: number;
+  orderMenuId?: number;
+}
+
+type SplitPerson = {
+  id: string;
+  name: string;
+  subtotal: number;
+  tax: number;
+  tip: number;
+  discount: number;
+  total: number;
+  items: Array<{ name: string; amount: number; quantity?: number }>;
+  status: 'Ready to pay' | 'Pending' | 'Paid';
+  percent?: number;
 }
 
 type SplitBillItem = {
@@ -724,6 +747,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SplitBillItem>>({})
+  const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal")
+  const [splitGuestCount, setSplitGuestCount] = useState(2)
+  const [itemAssignments, setItemAssignments] = useState<Record<string, number | null>>({})
+  const [sharePercents, setSharePercents] = useState<number[]>([50, 50])
+  const [selectedSplitPersonId, setSelectedSplitPersonId] = useState<string | null>(null)
+  const [paidSplitPeople, setPaidSplitPeople] = useState<Record<string, boolean>>({})
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState("")
   const [selectedOptions, setSelectedOptions] = useState<Record<number, Record<string, string>>>({})
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
@@ -772,7 +803,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
-  const [checkoutStep, setCheckoutStep] = useState<'review'|'submitted'|'payment'|'paid'>(
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
     initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
   )
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
@@ -992,6 +1023,129 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [appliedCoupon, subtotal])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
+
+  const splitGuestNames = useMemo(() => ["Alex", "Bea", "Carlos", "Dana", "Eli", "Fran", "Gio", "Hana", "Iris", "Jules"].slice(0, splitGuestCount), [splitGuestCount])
+
+  useEffect(() => {
+    setSharePercents((prev) => {
+      const next = Array.from({ length: splitGuestCount }, (_, idx) => prev[idx] ?? 0)
+      if (next.every((value) => value === 0)) {
+        const base = Math.floor(100 / splitGuestCount)
+        const remainder = 100 - base * splitGuestCount
+        return next.map((_, idx) => base + (idx === 0 ? remainder : 0))
+      }
+      return next
+    })
+  }, [splitGuestCount])
+
+  const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
+    const submittedItems = Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : []
+    if (submittedItems.length > 0) {
+      return submittedItems.flatMap((item: any, itemIndex: number) => {
+        const quantity = Math.max(1, Number(item?.quantity || 1))
+        const unitAmount = Number(item?.price ?? (Number(item?.subtotal || 0) / quantity) ?? 0)
+        return Array.from({ length: quantity }, (_, unitIndex) => ({
+          key: `submitted-${item?.order_menu_id || item?.menu_id || item?.id || itemIndex}-${unitIndex}`,
+          name: String(item?.name || `Item ${itemIndex + 1}`),
+          amount: Number.isFinite(unitAmount) ? unitAmount : 0,
+          orderMenuId: Number(item?.order_menu_id || item?.id || 0) || undefined,
+        }))
+      })
+    }
+
+    return allItemInstances.map((instance, index) => ({
+      key: instance.key,
+      name: instance.item.nameKey ? t(instance.item.nameKey as TranslationKey) : (instance.item.name || `Item ${index + 1}`),
+      amount: Number(adjustPriceForVAT(instance.price || 0)),
+      orderMenuId: instance.orderMenuId,
+    }))
+  }, [submittedSnapshot?.submittedItems, allItemInstances, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+
+  const splitSubtotal = useMemo(() => splitSourceItems.reduce((sum: number, item: SplitSourceItem) => sum + Number(item.amount || 0), 0), [splitSourceItems])
+  const splitGrandTotal = useMemo(() => {
+    const submittedTotal = Number(submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0)
+    return submittedTotal > 0 ? submittedTotal : finalTotal
+  }, [submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
+  const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
+
+  const buildSplitPerson = (idx: number, personSubtotal: number, items: SplitPerson["items"], percent?: number): SplitPerson => {
+    const ratio = splitSubtotal > 0 ? personSubtotal / splitSubtotal : (splitGuestCount > 0 ? 1 / splitGuestCount : 0)
+    const extra = splitExtraAmount * ratio
+    const discountShare = couponDiscount > 0 ? couponDiscount * ratio : 0
+    const total = Math.max(0, personSubtotal + extra - discountShare)
+    const id = `guest-${idx}`
+    return {
+      id,
+      name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+      subtotal: personSubtotal,
+      tax: extra,
+      tip: 0,
+      discount: discountShare,
+      total,
+      items,
+      status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
+      percent,
+    }
+  }
+
+  const equalSplitPeople = useMemo(() => {
+    const totalCents = Math.round(splitGrandTotal * 100)
+    const baseCents = Math.floor(totalCents / splitGuestCount)
+    const remainder = totalCents - baseCents * splitGuestCount
+    return Array.from({ length: splitGuestCount }, (_, idx) => {
+      const cents = baseCents + (idx === 0 ? remainder : 0)
+      const total = cents / 100
+      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 1 / splitGuestCount
+      const id = `guest-${idx}`
+      return {
+        id,
+        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+        subtotal: splitSubtotal * ratio,
+        tax: splitExtraAmount * ratio,
+        tip: 0,
+        discount: 0,
+        total,
+        items: [{ name: "Equal share", amount: total }],
+        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
+      } as SplitPerson
+    })
+  }, [splitGrandTotal, splitGuestCount, splitGuestNames, splitSubtotal, splitExtraAmount, paidSplitPeople, selectedSplitPersonId])
+
+  const itemSplitPeople = useMemo(() => {
+    return Array.from({ length: splitGuestCount }, (_, idx) => {
+      const personItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === idx).map((item: SplitSourceItem) => ({ name: item.name, amount: item.amount, quantity: 1 }))
+      const personSubtotal = personItems.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0)
+      return buildSplitPerson(idx, personSubtotal, personItems)
+    })
+  }, [splitGuestCount, splitSourceItems, itemAssignments, splitSubtotal, splitExtraAmount, couponDiscount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
+
+  const shareSplitPeople = useMemo(() => {
+    return Array.from({ length: splitGuestCount }, (_, idx) => {
+      const percent = Number(sharePercents[idx] || 0)
+      const total = splitGrandTotal * (percent / 100)
+      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 0
+      const id = `guest-${idx}`
+      return {
+        id,
+        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+        subtotal: splitSubtotal * ratio,
+        tax: splitExtraAmount * ratio,
+        tip: 0,
+        discount: 0,
+        total,
+        items: [{ name: `${percent}% share`, amount: total }],
+        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
+        percent,
+      } as SplitPerson
+    })
+  }, [splitGuestCount, sharePercents, splitGrandTotal, splitSubtotal, splitExtraAmount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
+
+  const activeSplitPeople = splitMethod === "items" ? itemSplitPeople : splitMethod === "shares" ? shareSplitPeople : equalSplitPeople
+  const selectedSplitPerson = selectedSplitPersonId ? activeSplitPeople.find((person) => person.id === selectedSplitPersonId) || null : null
+  const unassignedSplitItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === undefined || itemAssignments[item.key] === null).length
+  const sharePercentTotal = sharePercents.slice(0, splitGuestCount).reduce((sum: number, value: number) => sum + Number(value || 0), 0)
+  const canConfirmSplitMethod = splitMethod === "items" ? unassignedSplitItems === 0 : splitMethod === "shares" ? sharePercentTotal === 100 : true
+
   const toPositiveAmount = (value: unknown): number | null => {
     const amount = Number(value)
     return Number.isFinite(amount) && amount > 0 ? amount : null
@@ -1001,9 +1155,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     const submittedRemaining = toPositiveAmount(submittedSnapshot?.remainingAmount)
     const submittedTotal = toPositiveAmount(submittedSnapshot?.total ?? submittedSnapshot?.orderTotal)
     const reviewTotal = toPositiveAmount(finalTotal)
-    if (checkoutStep === "payment") return remainingAmount ?? submittedRemaining ?? submittedTotal ?? 0
+    const selectedShareTotal = selectedSplitPerson?.total && selectedSplitPerson.total > 0 ? selectedSplitPerson.total : null
+    if (checkoutStep === "payment") return selectedShareTotal ?? remainingAmount ?? submittedRemaining ?? submittedTotal ?? 0
     return reviewTotal ?? submittedTotal ?? remainingAmount ?? 0
-  }, [checkoutStep, submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
+  }, [checkoutStep, selectedSplitPerson?.total, submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -1345,7 +1500,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               provider: selectedProviderCodeForSubmit || "stripe",
             })
           }
-          markOpenOrderAsPaid(paymentOrderIdCandidate)
+          if (selectedSplitPersonId) {
+            setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
+          } else {
+            markOpenOrderAsPaid(paymentOrderIdCandidate)
+          }
           setCheckoutStep("paid")
           setIsLoading(false)
           toast({
@@ -1379,9 +1538,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             }, [])
           : undefined
 
-        const existingOrderAmount = isSplitting
-          ? null
-          : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)
+        const existingOrderAmount = selectedSplitPerson?.total
+          ? Number(selectedSplitPerson.total.toFixed(2))
+          : (isSplitting
+            ? null
+            : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null))
 
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
@@ -1412,7 +1573,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           params.set("order_id", orderId)
           params.set("return_url", returnUrl)
 
-          markOpenOrderAsPaid(paymentOrderIdCandidate)
+          if (selectedSplitPersonId) {
+            setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
+          } else {
+            markOpenOrderAsPaid(paymentOrderIdCandidate)
+          }
           setCheckoutStep("paid")
           return
         }
@@ -2633,6 +2798,40 @@ case "cod":
   const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
   const hasPersonalItems = allItems.length > 0
 
+
+  const checkoutTitle: Record<CheckoutStep, string> = {
+    review: "My Order",
+    submitted: "My Order",
+    split: "Split bill",
+    "split-items": "Assign items",
+    "split-shares": "Set shares",
+    "split-review": "Review split",
+    payment: "Payment",
+    paid: "Order complete",
+  }
+
+  const startSplitFlow = (method: SplitMethod = splitMethod) => {
+    setIsSplitting(true)
+    setSplitMethod(method)
+    setSelectedPaymentMethod(null)
+    setSelectedSplitPersonId(null)
+    if (method === "items") setCheckoutStep("split-items")
+    else if (method === "shares") setCheckoutStep("split-shares")
+    else setCheckoutStep("split")
+  }
+
+  const chooseSplitMethod = (method: SplitMethod) => {
+    setSplitMethod(method)
+    startSplitFlow(method)
+  }
+
+  const goToSplitReview = () => {
+    if (!canConfirmSplitMethod) return
+    setIsSplitting(true)
+    setSelectedSplitPersonId((current) => current || activeSplitPeople[0]?.id || null)
+    setCheckoutStep("split-review")
+  }
+
   const renderPaymentButton = () => {
     if (!selectedMethod) return null
 
@@ -2719,14 +2918,15 @@ case "cod":
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (checkoutStep === "payment") setCheckoutStep("submitted")
+              if (checkoutStep === "payment") setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")
+              else if (checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") setCheckoutStep("submitted")
               else onClose()
             }}
             className={iconBackBtn}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg">{checkoutStep === "review" ? "Review order" : "My Order"}</h2>
+          <h2 className="text-lg">{checkoutTitle[checkoutStep]}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
@@ -3065,6 +3265,128 @@ case "cod":
           </motion.div>)}
           </AnimatePresence>
 
+          {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
+            <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-4">
+              <div className="surface-sub rounded-2xl p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-base font-semibold">Split bill</h3>
+                    <p className="text-xs muted">Choose how the table should share {formatCurrency(splitGrandTotal)}.</p>
+                  </div>
+                  <button type="button" onClick={() => setCheckoutStep("submitted")} className={modalSecondaryBtn}>Back</button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    ["equal", "Split equally"],
+                    ["items", "By order items"],
+                    ["shares", "By shares"],
+                  ] as Array<[SplitMethod, string]>).map(([method, label]) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => chooseSplitMethod(method)}
+                      className={cn("rounded-2xl border px-2 py-2 text-xs font-semibold transition", splitMethod === method ? "text-white" : "")}
+                      style={splitMethod === method ? { background: "#062F2A", borderColor: "#062F2A" } : { borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {checkoutStep !== "split-review" && (
+                <div className="surface-sub rounded-2xl p-3 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Guests</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" aria-label="Remove guest" onClick={() => setSplitGuestCount((value) => Math.max(2, value - 1))} className="h-8 w-8 rounded-full border font-bold" style={{ borderColor: "var(--theme-border)" }}><Minus className="mx-auto h-4 w-4" /></button>
+                      <span className="min-w-8 text-center font-semibold">{splitGuestCount}</span>
+                      <button type="button" aria-label="Add guest" onClick={() => setSplitGuestCount((value) => Math.min(10, value + 1))} className="h-8 w-8 rounded-full text-white" style={{ background: "#062F2A" }}><Plus className="mx-auto h-4 w-4" /></button>
+                    </div>
+                  </div>
+
+                  {splitMethod === "equal" && (
+                    <div className="space-y-2">
+                      {equalSplitPeople.map((person, idx) => (
+                        <div key={person.id} className="flex items-center justify-between rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                          <span className="text-sm font-medium">{person.name}{idx === 0 ? " (rounding holder)" : ""}</span>
+                          <span className="font-semibold">{formatCurrency(person.total)}</span>
+                        </div>
+                      ))}
+                      <p className="rounded-xl border px-3 py-2 text-[11px] muted" style={{ borderColor: "#b88940", background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)" }}>Odd cents are handled by rounding the first payer up by the remainder, so the split always reconciles exactly.</p>
+                    </div>
+                  )}
+
+                  {splitMethod === "items" && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="muted">Tap each item to cycle {splitGuestNames.join(" → ")} → Unassigned.</span>
+                        <span className={cn("rounded-full px-2 py-1 font-semibold", unassignedSplitItems > 0 ? "text-red-700" : "") } style={{ background: unassignedSplitItems > 0 ? "#FEE2E2" : "color-mix(in srgb, #062F2A 12%, var(--theme-surface) 88%)" }}>{unassignedSplitItems} unassigned</span>
+                      </div>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {splitSourceItems.map((item: SplitSourceItem) => {
+                          const assignedIndex = itemAssignments[item.key]
+                          const nextLabel = assignedIndex === undefined || assignedIndex === null ? "Unassigned" : splitGuestNames[assignedIndex]
+                          return (
+                            <button key={item.key} type="button" className="flex w-full items-center justify-between gap-3 rounded-2xl border p-3 text-left" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }} onClick={() => setItemAssignments((prev) => ({ ...prev, [item.key]: assignedIndex === undefined || assignedIndex === null ? 0 : assignedIndex >= splitGuestCount - 1 ? null : assignedIndex + 1 }))}>
+                              <span className="truncate text-sm font-medium">{item.name}</span>
+                              <span className="shrink-0 text-right text-xs"><span className="font-semibold">{formatCurrency(item.amount)}</span><br /><span className={assignedIndex === undefined || assignedIndex === null ? "text-red-700" : "muted"}>{nextLabel}</span></span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {splitMethod === "shares" && (
+                    <div className="space-y-3">
+                      {sharePercents.slice(0, splitGuestCount).map((percent, idx) => (
+                        <div key={idx} className="rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                          <div className="mb-2 flex items-center justify-between text-sm"><span className="font-medium">{splitGuestNames[idx]}</span><span className="font-semibold">{percent}% · {formatCurrency(splitGrandTotal * (percent / 100))}</span></div>
+                          <input type="range" min="0" max="100" step="1" value={percent} onChange={(event) => setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? Number(event.target.value) : value))} className="w-full accent-[#b88940]" />
+                        </div>
+                      ))}
+                      <div className={cn("rounded-2xl border p-3 text-sm font-semibold", sharePercentTotal === 100 ? "" : "text-red-700")} style={{ borderColor: sharePercentTotal === 100 ? "var(--theme-border)" : "#FCA5A5", background: sharePercentTotal === 100 ? "var(--theme-surface)" : "#FEF2F2" }}>
+                        Total {sharePercentTotal}% · {sharePercentTotal === 100 ? "Ready" : sharePercentTotal < 100 ? `${100 - sharePercentTotal}% remaining` : `Over by ${sharePercentTotal - 100}%`}
+                      </div>
+                    </div>
+                  )}
+
+                  <button type="button" disabled={!canConfirmSplitMethod} onClick={goToSplitReview} className={modalPrimaryBtn} style={canConfirmSplitMethod ? modalPrimaryBtnStyle : { opacity: 0.5 }}>
+                    Review split
+                  </button>
+                </div>
+              )}
+
+              {checkoutStep === "split-review" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-2xl border p-3 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                    <span className="muted">Need to adjust? Switch split method without restarting.</span>
+                    <button type="button" onClick={() => startSplitFlow(splitMethod)} className="font-semibold" style={{ color: "#062F2A" }}>Change</button>
+                  </div>
+                  {activeSplitPeople.map((person) => (
+                    <div key={person.id} className="rounded-2xl border p-3 space-y-2" style={{ borderColor: selectedSplitPersonId === person.id ? "#b88940" : "var(--theme-border)", background: "var(--theme-surface)" }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-semibold">{person.name}</h4>
+                        <span className="rounded-full px-2 py-1 text-[11px] font-semibold" style={{ background: person.status === "Paid" ? "#DCFCE7" : "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: person.status === "Paid" ? "#166534" : "#5A3512" }}>{person.status}</span>
+                      </div>
+                      <div className="space-y-1 text-xs muted">
+                        {person.items.map((item, idx) => <div key={`${person.id}-${idx}`} className="flex justify-between gap-2"><span className="truncate">{item.name}</span><span>{formatCurrency(item.amount)}</span></div>)}
+                        {person.tax > 0 && <div className="flex justify-between"><span>Proportional service/tax</span><span>{formatCurrency(person.tax)}</span></div>}
+                      </div>
+                      <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--theme-border)" }}><span className="font-semibold">Total</span><span className="font-bold">{formatCurrency(person.total)}</span></div>
+                      <button type="button" onClick={() => { setSelectedSplitPersonId(person.id); setCheckoutStep("payment") }} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Pay my share</button>
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button type="button" onClick={() => toast({ title: "Payment links ready", description: "Share links can be generated by the payment API when multi-device checkout is enabled." })} className={modalSecondaryBtn}><Link2 className="h-4 w-4" /> Send payment link to others</button>
+                    <button type="button" onClick={() => toast({ title: "QR share", description: "Ask guests to scan the table QR to pay their own share." })} className={modalSecondaryBtn}><QrCode className="h-4 w-4" /> Show QR/share link</button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div layout className="mt-2 p-1 space-y-4">
               <div className="flex items-center gap-3">
@@ -3138,15 +3460,24 @@ case "cod":
                 </div>
               </div>
 
-              {checkoutStep !== "paid" && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {checkoutStep !== "paid" && <div className="space-y-3">
                 {checkoutStep === "submitted" && (
-                <button
-                  type="button"
-                  onClick={() => setCheckoutStep('payment')}
-                  className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
-                >
-                  Pay
-                </button>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
+                      className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
+                    >
+                      Pay in full
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startSplitFlow("equal")}
+                      className={modalSecondaryBtn}
+                    >
+                      <Users className="h-4 w-4" /> Split bill
+                    </button>
+                  </div>
                 )}
                 <button
                   type="button"
@@ -3154,16 +3485,31 @@ case "cod":
                     onOpenOrderUpdate?.(submittedSnapshot || initialSubmittedOrder || null)
                     onClose()
                   }}
-                  className={checkoutStep === "payment" ? "sm:col-span-2 " + modalSecondaryBtn : modalSecondaryBtn}
+                  className={modalSecondaryBtn}
                 >
                   Continue ordering
                 </button>
               </div>}
-              <div className="flex justify-center pt-1">
-                <PmdPlatformLogo imgClassName="max-h-9 max-w-[136px] opacity-85" />
-              </div>
               {checkoutStep === "paid" && (
-                <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+                <div className="space-y-3">
+                  <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" style={{ color: "#b88940" }} />
+                      <h3 className="text-sm font-semibold">How was your restaurant experience?</h3>
+                    </div>
+                    <p className="text-xs muted">Thank you for dining with us. Your feedback helps the restaurant keep improving.</p>
+                    <div className="flex gap-1" aria-label="Restaurant rating">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button key={star} type="button" aria-label={`${star} star${star > 1 ? "s" : ""}`} onClick={() => setReviewRating(star)} className="rounded-full p-1">
+                          <Star className="h-6 w-6" style={{ color: "#b88940", fill: reviewRating >= star ? "#b88940" : "transparent" }} />
+                        </button>
+                      ))}
+                    </div>
+                    <Textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Optional comment for the restaurant" className="min-h-[78px] rounded-2xl" />
+                    <button type="button" onClick={() => toast({ title: "Thank you", description: "Your restaurant feedback has been noted on this device." })} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Submit review</button>
+                  </div>
+                  <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+                </div>
               )}
             </motion.div>
           )}
@@ -3172,16 +3518,18 @@ case "cod":
             <>
               <motion.div key="payment-card-header" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="sm" onClick={() => setCheckoutStep("submitted")} className={iconBackBtn}><ArrowLeft className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")} className={iconBackBtn}><ArrowLeft className="h-4 w-4" /></Button>
                   <div>
                     <h3 className="text-base font-semibold">Payment</h3>
                     <p className="text-xs muted">Choose how you would like to pay for this order.</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 surface rounded-2xl">
-                  <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs font-semibold">Split Bill</span></div>
-                  <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
-                </div>
+                {selectedSplitPerson && (
+                  <div className="flex items-center justify-between p-3 surface rounded-2xl">
+                    <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: '#b88940' }} /><span className="text-xs font-semibold">{selectedSplitPerson.name}'s share</span></div>
+                    <span className="text-sm font-bold">{formatCurrency(selectedSplitPerson.total)}</span>
+                  </div>
+                )}
               </motion.div>
               {pendingSummary && (
                 <div className="surface-sub rounded-2xl p-3 text-xs">
