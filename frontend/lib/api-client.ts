@@ -143,6 +143,11 @@ export type TableOrderDraftResponse = {
   totals?: { subtotal: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
   settlement?: { orderTotal: number; settledAmount: number; remainingAmount: number; settlementStatus: string };
   payment?: string | null;
+  status_name?: string | null;
+  paymentStatus?: 'paid' | 'partial' | 'unpaid' | string;
+  hasActiveTableOrder?: boolean;
+  canShowToNewDevice?: boolean;
+  updatedAt?: string | null;
   message?: string;
   error?: string;
 };

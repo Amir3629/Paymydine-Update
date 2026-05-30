@@ -3193,7 +3193,7 @@ case "cod":
                   <p className="text-xs font-semibold muted">Ready to send?</p>
                   <motion.button type="button" disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0} onClick={handleSubmitTableDraft} whileHover={{ x: submitDraftLoading ? 0 : 2 }} whileTap={{ scale: submitDraftLoading ? 1 : 0.985 }} className="group flex min-h-14 w-full items-center justify-between rounded-full px-3 py-2 text-sm font-bold shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70" style={modalPrimaryBtnStyle}>
                     <span className="ml-3">{submitDraftLoading ? "Sending..." : "Send order to kitchen"}</span>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:translate-x-1" style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)" }}><ArrowRight className="h-5 w-5" /></span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:translate-x-1" style={{ background: "#021F1C", border: "1px solid rgba(255,255,255,0.18)", color: "#FFFFFF" }}><ArrowRight className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} /></span>
                   </motion.button>
                   <button type="button" onClick={onClose} className={modalSecondaryBtn}>Continue ordering</button>
                 </div>
@@ -3466,21 +3466,26 @@ case "cod":
 
               {checkoutStep !== "paid" && <div className="space-y-3">
                 {checkoutStep === "submitted" && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <button
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <motion.button
                       type="button"
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.985 }}
                       onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
-                      className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
+                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition" style={modalPrimaryBtnStyle}
                     >
-                      Pay in full
-                    </button>
-                    <button
+                      Pay in full <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
+                    </motion.button>
+                    <motion.button
                       type="button"
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.985 }}
                       onClick={() => startSplitFlow("equal")}
-                      className={modalSecondaryBtn}
+                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                      style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}
                     >
-                      <Users className="h-4 w-4" /> Split bill
-                    </button>
+                      <Users className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
+                    </motion.button>
                   </div>
                 )}
                 <button
@@ -4058,7 +4063,8 @@ function ExpandingBottomToolbar({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="mt-4 pt-4 border-t border-paydine-champagne/30 bg-paydine-rose-beige/10 rounded-xl p-4"
+                    className="mt-4 rounded-2xl p-4"
+                    style={{ background: "color-mix(in srgb, var(--theme-surface) 88%, #fffaf0 12%)", border: "1px solid color-mix(in srgb, #b88940 22%, var(--theme-border) 78%)", boxShadow: "0 8px 18px rgba(6, 47, 42, 0.06)" }}
                   >
                     <div className="flex justify-between items-center">
                       <motion.span
@@ -4221,7 +4227,7 @@ function ExpandingBottomToolbar({
             exit={{ opacity: 0, scale: 0.8, y: 8 }}
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.12 }}
-            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
+            className="h-12 w-12 rounded-full flex flex-col items-center justify-center gap-0.5 relative focus:outline-none transition-all"
             style={{
               background: "transparent",
               border: "1px solid transparent",
@@ -4232,7 +4238,8 @@ function ExpandingBottomToolbar({
             onClick={onOrderClick}
             aria-label="Table order"
           >
-            <ReceiptText className="h-7 w-7" style={{ color: "#062F2A", stroke: "#062F2A", WebkitTextFillColor: "#062F2A" }} />
+            <ReceiptText className="h-6 w-6" style={{ color: "#062F2A", stroke: "#062F2A", WebkitTextFillColor: "#062F2A" }} />
+            <span className="text-[9px] font-semibold leading-none" style={{ color: "#062F2A", WebkitTextFillColor: "#062F2A" }}>Table</span>
             {orderCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "#b88940", color: "#FFFFFF", border: "1px solid #b88940" }}>
                 {orderCount > 9 ? "9+" : orderCount}
@@ -4552,7 +4559,7 @@ function MenuContent() {
   const [toolbarState, setToolbarState] = useState<ToolbarState>("collapsed")
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
-  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<'review' | 'submitted' | 'payment'>('review')
+  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<CheckoutStep>('review')
   const [isLoading, setIsLoading] = useState(true)
   const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
@@ -5188,7 +5195,7 @@ useEffect(() => {
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
         onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
-          setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : 'submitted')
+          setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
           setPaymentModalOpen(true)
         } : undefined}
         orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
