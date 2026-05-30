@@ -822,6 +822,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   )
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
   const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
+  const hasPersonalItems = allItems.length > 0
   const [draftLoading, setDraftLoading] = useState(false)
   const [submitDraftLoading, setSubmitDraftLoading] = useState(false)
 
@@ -2888,7 +2889,6 @@ case "cod":
 
   const tableDisplayName = tableDraft?.table_name || tableInfo?.table_name || (tableDraft?.table_no || tableInfo?.table_no ? `Table ${tableDraft?.table_no || tableInfo?.table_no}` : "Delivery")
   const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
-  const hasPersonalItems = allItems.length > 0
 
 
   const checkoutTitle: Record<CheckoutStep, string> = {
