@@ -732,14 +732,14 @@ export class ApiClient {
 
   async validateCoupon(code: string, subtotal: number): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
-      const res = await fetch(`${base}/validate-coupon`, {
+      const endpoint = this.envConfig.getApiEndpoint('/validate-coupon');
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: safeJsonStringify({ code, subtotal }),
+        body: safeJsonStringify({ code, subtotal, amount: subtotal }),
       });
       
       if (!res.ok) {

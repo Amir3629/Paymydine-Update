@@ -1460,11 +1460,12 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
         Route::post('/validate-coupon', function (\Illuminate\Http\Request $request) {
             try {
                 $code = strtoupper(trim($request->input('code', '')));
-                $subtotal = floatval($request->input('subtotal', 0));
+                $subtotal = floatval($request->input('subtotal', $request->input('amount', 0)));
                 
                 if (empty($code)) {
                     return response()->json([
                         'success' => false,
+                        'valid' => false,
                         'message' => 'Coupon code is required'
                     ]);
                 }
@@ -1479,6 +1480,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 if (!$coupon) {
                     return response()->json([
                         'success' => false,
+                        'valid' => false,
                         'message' => 'Invalid coupon code'
                     ]);
                 }
@@ -1487,6 +1489,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 if ($coupon->min_total && $subtotal < $coupon->min_total) {
                     return response()->json([
                         'success' => false,
+                        'valid' => false,
                         'message' => 'Minimum order total of $' . number_format($coupon->min_total, 2) . ' required'
                     ]);
                 }
@@ -1503,12 +1506,19 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 
                 return response()->json([
                     'success' => true,
+                    'valid' => true,
+                    'message' => 'Coupon applied',
+                    'code' => $coupon->code,
+                    'discountAmount' => $coupon->type === 'F' ? floatval($coupon->discount) : null,
+                    'discountPercent' => $coupon->type === 'P' ? floatval($coupon->discount) : null,
+                    'discountType' => $coupon->type,
+                    'finalDiscountAmount' => round($discount, 2),
                     'data' => [
                         'coupon_id' => $coupon->coupon_id,
                         'code' => $coupon->code,
                         'name' => $coupon->name,
                         'type' => $coupon->type,
-                        'discount' => $discount,
+                        'discount' => round($discount, 2),
                         'discount_value' => floatval($coupon->discount),
                         'min_total' => floatval($coupon->min_total ?? 0),
                     ]
@@ -1523,6 +1533,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 ]);
                 return response()->json([
                     'success' => false,
+                    'valid' => false,
                     'message' => 'Failed to validate coupon: ' . $e->getMessage()
                 ]);
             }

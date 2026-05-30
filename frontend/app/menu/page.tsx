@@ -1046,7 +1046,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [appliedCoupon, couponBaseAmount])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
-  const orderStatusTotal = Math.max(0, (submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount) + tipAmount - couponDiscount)
+  const orderStatusTotal = Math.max(0, submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount)
 
   const splitGuestProfiles = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => SPLIT_GUEST_PROFILES[idx] || { name: `Guest ${idx + 1}`, avatar: String(idx + 1) }), [splitGuestCount])
   const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
@@ -3633,53 +3633,6 @@ case "cod":
               {checkoutStep !== "paid" && <div className="space-y-3">
                 {checkoutStep === "submitted" && (
                   <div className="space-y-3">
-                    {tipSettings.enabled && (
-                      <div className="rounded-2xl border p-3 space-y-2" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold">Add tip</span>
-                          {tipAmount > 0 && <span className="text-xs font-semibold" style={{ color: "#b88940" }}>{formatCurrency(tipAmount)}</span>}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {(tipSettings.percentages || []).map((p) => (
-                            <button key={p} type="button" onClick={() => { setTipPercentage(p); setCustomTip("") }} className="rounded-full border px-3 py-1.5 text-xs font-semibold transition" style={tipPercentage === p && !customTip ? { background: "#062F2A", borderColor: "#062F2A", color: "#FFFFFF" } : { borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>{p}%</button>
-                          ))}
-                          <div className="relative min-w-[96px] flex-1">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs muted">€</span>
-                            <input type="number" min="0" value={customTip} onChange={(event) => { setCustomTip(event.target.value); setTipPercentage(0) }} placeholder="Custom" className="h-9 w-full rounded-full border bg-transparent pl-7 pr-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="rounded-2xl border p-3 space-y-2" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
-                      {!appliedCoupon ? (
-                        <div className="flex gap-2">
-                          <input type="text" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponError(null) }} placeholder="Coupon code" className="h-9 min-w-0 flex-1 rounded-full border bg-transparent px-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} disabled={couponLoading} />
-                          <button type="button" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
-                            if (!couponCode.trim()) return
-                            setCouponLoading(true)
-                            setCouponError(null)
-                            try {
-                              const result = await validateCoupon(couponCode.trim(), couponBaseAmount)
-                              if (!result.success) setCouponError(result.message || "Coupon will be checked at payment.")
-                              else {
-                                setCouponCode("")
-                                toast({ title: "Coupon applied", description: "Your coupon was added to this order." })
-                              }
-                            } catch {
-                              setCouponError("Coupon validation coming soon.")
-                            } finally {
-                              setCouponLoading(false)
-                            }
-                          }} className="h-9 rounded-full border px-4 text-xs font-semibold transition disabled:opacity-50" style={{ borderColor: "color-mix(in srgb, #b88940 45%, var(--theme-border) 55%)", color: "#062F2A", background: "transparent" }}>{couponLoading ? "Checking..." : "Apply"}</button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
-                          <span className="font-semibold">{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
-                          <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
-                        </div>
-                      )}
-                      {couponError && <p className="text-xs text-red-700">{couponError}</p>}
-                    </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <motion.button
                       type="button"
@@ -3749,11 +3702,8 @@ case "cod":
             <>
               <motion.div key="payment-card-header" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="sm" onClick={() => setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")} className={iconBackBtn}><ArrowLeft className="h-4 w-4" /></Button>
-                  <div>
-                    <h3 className="text-base font-semibold">Payment</h3>
-                    <p className="text-xs muted">Choose how you would like to pay for this order.</p>
-                  </div>
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: "#062F2A", color: "#FFFFFF" }}><CreditCard className="h-4 w-4" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} /></span>
+                  <p className="text-xs muted">Choose how you would like to pay for this order.</p>
                 </div>
                 {selectedSplitPerson && (
                   <div className="flex items-center justify-between p-3 surface rounded-2xl">
