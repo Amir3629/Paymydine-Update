@@ -1303,7 +1303,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     try {
       const result = await apiClient.submitTableDraft({ ...getDraftContext(), draft_id: tableDraft?.draft_id ?? null, guest_session_id: ensureGuestSession() })
       setTableDraft(result)
-      setSubmittedSnapshot({
+      clearCart()
+      const submittedTableSnapshot = {
         orderId: result.order_id,
         status: result.status || "submitted_unpaid",
         paymentStatus: result.status === "paid" ? "paid" : "unpaid",
@@ -1315,11 +1316,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         settlementStatus: result.settlement?.settlementStatus || "unpaid",
         submittedItems: result.items || [],
         payment: result.payment || "qr_pay_later",
-      })
+      }
+      setSubmittedSnapshot(submittedTableSnapshot)
       setCheckoutStep("submitted")
       console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
       toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
-      onOpenOrderUpdate?.({ orderId: result.order_id, total: result.totals?.total || 0, submittedItems: result.items || [] })
+      onOpenOrderUpdate?.(submittedTableSnapshot)
     } catch (error) {
       await refreshTableDraft()
       toast({ title: "Could not submit table order", description: error instanceof Error ? error.message : "Please refresh and try again.", variant: "destructive" })
@@ -1337,8 +1339,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (orderIdLike && parsed?.orderId && String(parsed.orderId) !== String(orderIdLike)) return
       parsed.paymentStatus = "paid"
       parsed.status = "paid"
+      parsed.paidAt = Date.now()
       localStorage.setItem(sessionKey, JSON.stringify(parsed))
-      onOpenOrderUpdate?.(null)
+      onOpenOrderUpdate?.(parsed)
     } catch {}
   }
 
@@ -3156,11 +3159,11 @@ case "cod":
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && (
-            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }}>
+            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">Table Order</h3>
-                  <p className="text-xs muted">Review the items confirmed for this table.</p>
+                  <p className="text-xs muted">Review the items sent for this table.</p>
                 </div>
                 <span className="text-xs font-semibold muted">{tableDisplayName}</span>
               </div>
@@ -3415,7 +3418,7 @@ case "cod":
                 </div>
               </div>
 
-              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }}>
+              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Order Number:</span>
@@ -3516,6 +3519,13 @@ case "cod":
                     </div>
                     <Textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Optional comment for the restaurant" className="min-h-[78px] rounded-2xl" />
                     <button type="button" onClick={() => toast({ title: "Thank you", description: "Your restaurant feedback has been noted on this device." })} className={modalPrimaryBtn} style={{ ...modalPrimaryBtnStyle, background: "#062F2A", color: "#FFFFFF" }}>Submit review</button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button type="button" disabled className="min-h-10 rounded-full border px-4 py-2 text-xs font-semibold opacity-60" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-muted)", background: "transparent" }}>Download business invoice</button>
+                    <button type="button" onClick={() => { if (typeof window !== "undefined") window.print() }} className="min-h-10 rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}>Download receipt</button>
+                  </div>
+                  <div className="flex justify-center pt-1">
+                    <img src="/assets/media/uploads/Paymydinelogo.png" alt="PayMyDine" className="max-h-7 max-w-[120px] opacity-70" />
                   </div>
                   <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
                 </div>
@@ -4580,7 +4590,11 @@ function MenuContent() {
   const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
   const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
   const hydratedPendingOrderRef = useRef<number | null>(null)
-  const shouldHideCartSheet = !!existingOrderId
+  const isRecentPaidTableOrder = localOpenOrder?.paymentStatus === "paid" || localOpenOrder?.status === "paid"
+  const activeExistingOrderId = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : existingOrderId
+  const activePendingSummary = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : pendingSettlementSummary
+  const activeSubmittedOrder = isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder
+  const shouldHideCartSheet = !!activeExistingOrderId
 
   useEffect(() => {
     if (!tableInfo?.table_id && !tableInfo?.table_no) return
@@ -4601,17 +4615,20 @@ function MenuContent() {
             settledAmount: Number(latest.totals?.settledAmount || 0),
             remainingAmount: Number(latest.totals?.remainingAmount || latest.totals?.total || 0),
           })
-          setLocalOpenOrder((prev: any) => prev || {
-            orderId: latest.order_id,
-            status: latest.status,
-            paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
-            tableNumber: latest.table_no || tableInfo?.table_no || null,
-            total: latest.totals?.total || 0,
-            orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
-            remainingAmount: latest.totals?.remainingAmount || 0,
-            settledAmount: latest.totals?.settledAmount || 0,
-            submittedItems: latest.items || [],
-            payment: latest.payment || "qr_pay_later",
+          setLocalOpenOrder((prev: any) => {
+            const latestSnapshot = {
+              orderId: latest.order_id,
+              status: latest.status,
+              paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
+              tableNumber: latest.table_no || tableInfo?.table_no || null,
+              total: latest.totals?.total || 0,
+              orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
+              remainingAmount: latest.totals?.remainingAmount || 0,
+              settledAmount: latest.totals?.settledAmount || 0,
+              submittedItems: latest.items || [],
+              payment: latest.payment || "qr_pay_later",
+            }
+            return !prev || String(prev?.orderId || "") !== String(latest.order_id || "") ? latestSnapshot : { ...prev, ...latestSnapshot }
           })
           setHasLocalOpenOrder(true)
         }
@@ -4811,40 +4828,27 @@ useEffect(() => {
                   settledAmount: Number((pendingQr.data as any).settled_amount || 0),
                   remainingAmount: Number((pendingQr.data as any).remaining_amount || 0),
                 })
+                setLocalOpenOrder({
+                  orderId: pendingId,
+                  status: "submitted_unpaid",
+                  paymentStatus: "unpaid",
+                  tableNumber: tableResult.data?.table_no ?? table_no ?? null,
+                  total: Number((pendingQr.data as any).order_total || 0),
+                  orderTotal: Number((pendingQr.data as any).order_total || 0),
+                  settledAmount: Number((pendingQr.data as any).settled_amount || 0),
+                  remainingAmount: Number((pendingQr.data as any).remaining_amount || 0),
+                  submittedItems: pendingQr.data.items || [],
+                  payment: "qr_pay_later",
+                })
+                setHasLocalOpenOrder(true)
 
                 if (hydratedPendingOrderRef.current !== pendingId) {
-                  clearCart()
-                  pendingQr.data.items.forEach((orderItem) => {
-                    const menuItem = {
-                      id: Number((orderItem as any).order_menu_id || orderItem.menu_id),
-                      name: String(orderItem.name),
-                      description: "",
-                      price: Number(orderItem.price),
-                      image: "",
-                      category: "Main",
-                      __order_menu_id: Number((orderItem as any).order_menu_id || 0),
-                      __menu_id: Number(orderItem.menu_id),
-                    }
-                    addToCart(menuItem as any, Number(orderItem.quantity || 1))
-                  })
                   hydratedPendingOrderRef.current = pendingId
-
                   try {
                     const state = useCartStore.getState() as any
-                    if (state?.isCartOpen === true) {
-                      useCartStore.setState({ isCartOpen: false })
-                    }
+                    if (state?.isCartOpen === true) useCartStore.setState({ isCartOpen: false })
                   } catch (e) {
-                    console.error('[PMD] close drawer after hydrate failed', e)
-                  }
-
-                  try {
-                    const state = useCartStore.getState() as any
-                    if (state?.isCartOpen !== true) {
-                      useCartStore.setState({ isCartOpen: true })
-                    }
-                  } catch (e) {
-                    console.error('[PMD] open bill after hydrate failed', e)
+                    console.error('[PMD] close drawer after table order sync failed', e)
                   }
                 }
               } else {
@@ -5106,12 +5110,6 @@ useEffect(() => {
         setLocalOpenOrder(null)
         return
       }
-      if (parsed?.paymentStatus === "paid" || parsed?.status === "paid") {
-        localStorage.removeItem(key)
-        setHasLocalOpenOrder(false)
-        setLocalOpenOrder(null)
-        return
-      }
       setHasLocalOpenOrder(!!parsed?.orderId)
       setLocalOpenOrder(parsed)
       if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
@@ -5209,19 +5207,20 @@ useEffect(() => {
         onClose={() => setPaymentModalOpen(false)}
         items={items}
         tableInfo={tableInfo}
-        existingOrderId={existingOrderId}
-        pendingSummary={pendingSettlementSummary}
-        initialSubmittedOrder={localOpenOrder}
+        existingOrderId={activeExistingOrderId}
+        pendingSummary={activePendingSummary}
+        initialSubmittedOrder={activeSubmittedOrder}
         initialCheckoutStep={paymentModalInitialStep}
         onOpenOrderUpdate={(snapshot) => {
           if (snapshot?.status === "draft" || snapshot?.draft_id) {
             setSharedTableOrder(snapshot)
             return
           }
-          if (snapshot?.paymentStatus === "paid") {
-            setHasLocalOpenOrder(false)
-            setLocalOpenOrder(null)
-            setSharedTableOrder(null)
+          if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+            const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+            setLocalOpenOrder(normalizedPaid)
+            setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+            setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
             return
           }
           if (snapshot?.orderId || snapshot?.order_id) {
