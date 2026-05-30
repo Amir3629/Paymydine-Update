@@ -544,6 +544,7 @@ type SplitSourceItem = {
 type SplitPerson = {
   id: string;
   name: string;
+  avatar: string;
   subtotal: number;
   tax: number;
   tip: number;
@@ -553,6 +554,19 @@ type SplitPerson = {
   status: 'Ready to pay' | 'Pending' | 'Paid';
   percent?: number;
 }
+
+const SPLIT_GUEST_PROFILES = [
+  { name: "Luna", avatar: "L" },
+  { name: "Milo", avatar: "M" },
+  { name: "Zara", avatar: "Z" },
+  { name: "Leo", avatar: "L" },
+  { name: "Nova", avatar: "N" },
+  { name: "Coco", avatar: "C" },
+  { name: "Rio", avatar: "R" },
+  { name: "Nala", avatar: "N" },
+  { name: "Oscar", avatar: "O" },
+  { name: "Bella", avatar: "B" },
+]
 
 type SplitBillItem = {
   cartIndex: number;
@@ -1024,7 +1038,23 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
-  const splitGuestNames = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => `Guest ${idx + 1}`), [splitGuestCount])
+  const splitGuestProfiles = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => SPLIT_GUEST_PROFILES[idx] || { name: `Guest ${idx + 1}`, avatar: String(idx + 1) }), [splitGuestCount])
+  const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
+  const getSplitGuestAvatar = (idx: number) => splitGuestProfiles[idx]?.avatar || String(idx + 1)
+
+  const suggestedSplitGuestCount = useMemo(() => {
+    const groupCount = Array.isArray(tableDraft?.groups)
+      ? tableDraft.groups.filter((group: any) => Array.isArray(group?.items) && group.items.length > 0).length
+      : 0
+    const contributorIds = new Set<string>()
+    const submittedItems = Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : []
+    submittedItems.forEach((item: any) => {
+      const contributor = String(item?.guest_session_id || item?.guestSessionId || item?.submitted_by || "").trim()
+      if (contributor) contributorIds.add(contributor)
+    })
+    const itemContributorCount = contributorIds.size
+    return Math.max(2, Math.min(10, groupCount || itemContributorCount || 2))
+  }, [tableDraft?.groups, submittedSnapshot?.submittedItems])
 
   const buildEvenSharePercents = (count: number) => {
     const safeCount = Math.max(2, Math.min(10, count))
@@ -1093,6 +1123,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return {
       id,
       name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+      avatar: getSplitGuestAvatar(idx),
       subtotal: personSubtotal,
       tax: extra,
       tip: 0,
@@ -1116,6 +1147,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       return {
         id,
         name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+        avatar: getSplitGuestAvatar(idx),
         subtotal: splitSubtotal * ratio,
         tax: splitExtraAmount * ratio,
         tip: 0,
@@ -1144,6 +1176,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       return {
         id,
         name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+        avatar: getSplitGuestAvatar(idx),
         subtotal: splitSubtotal * ratio,
         tax: splitExtraAmount * ratio,
         tip: 0,
@@ -2834,6 +2867,11 @@ case "cod":
     : checkoutTitle[checkoutStep]
 
   const startSplitFlow = (method: SplitMethod = splitMethod) => {
+    const isStartingSplit = !isSplitting && !selectedSplitPersonId
+    if (isStartingSplit) {
+      setSplitGuestCount(suggestedSplitGuestCount)
+      setSharePercents(buildEvenSharePercents(suggestedSplitGuestCount))
+    }
     setIsSplitting(true)
     setSplitMethod(method)
     setSelectedPaymentMethod(null)
@@ -3319,7 +3357,7 @@ case "cod":
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <span className="text-sm font-semibold">People</span>
-                      <p className="text-[11px] muted">Split across {splitGuestCount} guests.</p>
+                      <p className="text-[11px] muted">Split across {splitGuestCount} guests{suggestedSplitGuestCount > 2 ? ` · ${suggestedSplitGuestCount} detected` : ""}.</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button type="button" aria-label="Remove guest" disabled={splitGuestCount <= 2} onClick={removeSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full border px-2 text-xs font-semibold disabled:opacity-45" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}><Minus className="h-3.5 w-3.5" /> Remove</button>
@@ -3327,13 +3365,24 @@ case "cod":
                       <button type="button" aria-label="Add guest" disabled={splitGuestCount >= 10} onClick={addSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold text-white disabled:opacity-55" style={{ background: "#062F2A", color: "#FFFFFF" }}><Plus className="h-3.5 w-3.5" /> Add guest</button>
                     </div>
                   </div>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    {splitGuestProfiles.map((guest, idx) => (
+                      <span key={`${guest.name}-${idx}`} className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: "color-mix(in srgb, #b88940 32%, var(--theme-border) 68%)", background: "color-mix(in srgb, #b88940 9%, var(--theme-surface) 91%)", color: "#062F2A" }}>
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "color-mix(in srgb, #b88940 24%, var(--theme-surface) 76%)" }}>{guest.avatar}</span>
+                        {guest.name}
+                      </span>
+                    ))}
+                  </div>
 
                   {splitMethod === "equal" && (
                     <div className="space-y-2">
                       {equalSplitPeople.map((person, idx) => (
                         <div key={person.id} className="flex items-center justify-between rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
-                          <span className="text-sm font-medium">{person.name}{idx === 0 ? " (rounding holder)" : ""}</span>
-                          <span className="font-semibold">{formatCurrency(person.total)}</span>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{person.avatar}</span>
+                            <span className="truncate text-sm font-medium">{person.name}{idx === 0 ? " (rounding)" : ""}</span>
+                          </div>
+                          <span className="shrink-0 font-semibold">{formatCurrency(person.total)}</span>
                         </div>
                       ))}
                       <p className="rounded-full px-3 py-2 text-[11px] muted" style={{ background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)" }}>Odd cents go to the first payer so totals match exactly.</p>
@@ -3365,7 +3414,10 @@ case "cod":
                     <div className="space-y-3">
                       {sharePercents.slice(0, splitGuestCount).map((percent, idx) => (
                         <div key={idx} className="rounded-2xl p-3 shadow-sm" style={{ border: "1px solid color-mix(in srgb, var(--theme-border) 70%, transparent)", background: "var(--theme-surface)" }}>
-                          <div className="mb-2 flex items-center justify-between text-sm"><span className="font-medium">{splitGuestNames[idx]}</span><span className="font-semibold">{percent}% · {formatCurrency(splitGrandTotal * (percent / 100))}</span></div>
+                          <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+                            <span className="flex min-w-0 items-center gap-2 font-medium"><span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{getSplitGuestAvatar(idx)}</span><span className="truncate">{splitGuestNames[idx]}</span></span>
+                            <span className="shrink-0 font-semibold">{percent}% · {formatCurrency(splitGrandTotal * (percent / 100))}</span>
+                          </div>
                           <input type="range" min="0" max="100" step="1" value={percent} onChange={(event) => setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? Number(event.target.value) : value))} className="pmd-split-slider w-full" />
                         </div>
                       ))}
@@ -3392,8 +3444,11 @@ case "cod":
                   {activeSplitPeople.map((person) => (
                     <div key={person.id} className="rounded-3xl p-3 space-y-2 shadow-sm" style={{ border: `1px solid ${selectedSplitPersonId === person.id ? "#b88940" : "color-mix(in srgb, var(--theme-border) 70%, transparent)"}`, background: "var(--theme-surface)" }}>
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-semibold">{person.name}</h4>
-                        <span className="rounded-full px-2 py-1 text-[11px] font-semibold" style={{ background: person.status === "Paid" ? "#DCFCE7" : "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: person.status === "Paid" ? "#166534" : "#5A3512" }}>{person.status}</span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{person.avatar}</span>
+                          <h4 className="truncate font-semibold">{person.name}</h4>
+                        </div>
+                        <span className="shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold" style={{ background: person.status === "Paid" ? "#DCFCE7" : "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: person.status === "Paid" ? "#166534" : "#5A3512" }}>{person.status}</span>
                       </div>
                       <div className="space-y-1 text-xs muted">
                         {person.items.map((item, idx) => <div key={`${person.id}-${idx}`} className="flex justify-between gap-2"><span className="truncate">{item.name}</span><span>{formatCurrency(item.amount)}</span></div>)}
@@ -3567,7 +3622,7 @@ case "cod":
                 </div>
                 {selectedSplitPerson && (
                   <div className="flex items-center justify-between p-3 surface rounded-2xl">
-                    <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: '#b88940' }} /><span className="text-xs font-semibold">{selectedSplitPerson.name}'s share</span></div>
+                    <div className="flex items-center space-x-2"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{selectedSplitPerson.avatar}</span><span className="text-xs font-semibold">{selectedSplitPerson.name}'s share</span></div>
                     <span className="text-sm font-bold">{formatCurrency(selectedSplitPerson.total)}</span>
                   </div>
                 )}
