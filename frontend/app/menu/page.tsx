@@ -772,6 +772,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [selectedOptions, setSelectedOptions] = useState<Record<number, Record<string, string>>>({})
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
+  const [splitPaymentTips, setSplitPaymentTips] = useState<Record<string, { percentage: number; custom: string }>>({})
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [cashCollectionConfirmed, setCashCollectionConfirmed] = useState(false)
   const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
@@ -1241,13 +1242,40 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     const amount = Number(value)
     return Number.isFinite(amount) && amount > 0 ? amount : null
   }
+  const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
+  const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
+  const paymentCustomTip = selectedSplitPerson ? splitPaymentTip.custom : customTip
+  const paymentBaseAmount = selectedSplitPerson?.total && selectedSplitPerson.total > 0
+    ? selectedSplitPerson.total
+    : (submittedBaseTotal > 0 ? submittedBaseTotal : finalTotal)
+  const paymentTipAmount = paymentCustomTip ? Number.parseFloat(paymentCustomTip) || 0 : paymentBaseAmount * (paymentTipPercentage / 100)
+  const paymentCouponDiscount = selectedSplitPerson ? 0 : couponDiscount
+  const paymentPayableTotal = Math.max(0, paymentBaseAmount + paymentTipAmount - paymentCouponDiscount)
+
+  const updatePaymentTipPercentage = (percentage: number) => {
+    if (selectedSplitPersonId) {
+      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage, custom: "" } }))
+      return
+    }
+    setTipPercentage(percentage)
+    setCustomTip("")
+  }
+
+  const updatePaymentCustomTip = (value: string) => {
+    if (selectedSplitPersonId) {
+      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage: 0, custom: value } }))
+      return
+    }
+    setCustomTip(value)
+    setTipPercentage(0)
+  }
+
   const payableTotal = useMemo(() => {
     const reviewTotal = toPositiveAmount(finalTotal)
     const orderTotal = toPositiveAmount(orderStatusTotal)
-    const selectedShareTotal = selectedSplitPerson?.total && selectedSplitPerson.total > 0 ? selectedSplitPerson.total : null
-    if (checkoutStep === "payment") return selectedShareTotal ?? orderTotal ?? 0
+    if (checkoutStep === "payment") return paymentPayableTotal
     return orderTotal ?? reviewTotal ?? 0
-  }, [checkoutStep, selectedSplitPerson?.total, orderStatusTotal, finalTotal])
+  }, [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -1541,10 +1569,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         payment_provider: selectedProviderCodeForSubmit || undefined,
         payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
         stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
-        total_amount: Number(finalTotal || 0),
-        tip_amount: Number(tipAmount || 0),
-        coupon_code: appliedCoupon?.code ? String(appliedCoupon.code) : null,
-        coupon_discount: Number(couponDiscount || 0),
+        total_amount: Number(checkoutStep === "payment" ? payableTotal : finalTotal),
+        tip_amount: Number(checkoutStep === "payment" ? paymentTipAmount : tipAmount),
+        coupon_code: (checkoutStep === "payment" && selectedSplitPersonId) ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null),
+        coupon_discount: Number(checkoutStep === "payment" ? paymentCouponDiscount : couponDiscount),
         guest_session_id: ensureGuestSession(),
         special_instructions: "",
       }
@@ -1631,11 +1659,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             }, [])
           : undefined
 
-        const existingOrderAmount = selectedSplitPerson?.total
-          ? Number(selectedSplitPerson.total.toFixed(2))
-          : (isSplitting
-            ? null
-            : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null))
+        const existingOrderAmount = checkoutStep === "payment"
+          ? Number(payableTotal.toFixed(2))
+          : (selectedSplitPerson?.total
+            ? Number(selectedSplitPerson.total.toFixed(2))
+            : (isSplitting
+              ? null
+              : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)))
 
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
@@ -3739,6 +3769,81 @@ case "cod":
                   <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
                 </div>
               )}
+              <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="muted">{selectedSplitPerson ? "Share amount" : "Base amount"}</span>
+                    <span className="font-semibold">{formatCurrency(paymentBaseAmount)}</span>
+                  </div>
+                  {paymentTipAmount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="muted">Tip</span>
+                      <span className="font-semibold">{formatCurrency(paymentTipAmount)}</span>
+                    </div>
+                  )}
+                  {paymentCouponDiscount > 0 && appliedCoupon && (
+                    <div className="flex items-center justify-between">
+                      <span className="muted">Coupon {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
+                      <span className="font-semibold" style={{ color: "#166534" }}>-{formatCurrency(paymentCouponDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--theme-border)" }}>
+                    <span className="font-semibold">Payable total</span>
+                    <span className="text-base font-bold" style={{ color: "#b88940" }}>{formatCurrency(paymentPayableTotal)}</span>
+                  </div>
+                </div>
+                {tipSettings.enabled && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">{selectedSplitPerson ? `${selectedSplitPerson.name}'s tip` : "Add tip"}</span>
+                      {paymentTipAmount > 0 && <span className="text-xs font-semibold" style={{ color: "#b88940" }}>{formatCurrency(paymentTipAmount)}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(tipSettings.percentages || []).map((p) => (
+                        <button key={p} type="button" onClick={() => updatePaymentTipPercentage(p)} className="rounded-full border px-3 py-1.5 text-xs font-semibold transition" style={paymentTipPercentage === p && !paymentCustomTip ? { background: "#062F2A", borderColor: "#062F2A", color: "#FFFFFF" } : { borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>{p}%</button>
+                      ))}
+                      <div className="relative min-w-[96px] flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs muted">€</span>
+                        <input type="number" min="0" value={paymentCustomTip} onChange={(event) => updatePaymentCustomTip(event.target.value)} placeholder="Custom" className="h-9 w-full rounded-full border bg-transparent pl-7 pr-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {!appliedCoupon || selectedSplitPerson ? (
+                    <div className="flex gap-2">
+                      <input type="text" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponError(null) }} placeholder="Coupon code" className="h-9 min-w-0 flex-1 rounded-full border bg-transparent px-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} disabled={couponLoading} />
+                      <button type="button" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
+                        if (!couponCode.trim()) return
+                        if (selectedSplitPerson) {
+                          setCouponError("Coupon validation for split payments is coming soon.")
+                          return
+                        }
+                        setCouponLoading(true)
+                        setCouponError(null)
+                        try {
+                          const result = await validateCoupon(couponCode.trim(), paymentBaseAmount)
+                          if (!result.success) setCouponError(result.message || "Coupon will be checked at payment.")
+                          else {
+                            setCouponCode("")
+                            toast({ title: "Coupon applied", description: "Your coupon was added to this payment." })
+                          }
+                        } catch {
+                          setCouponError("Coupon validation coming soon.")
+                        } finally {
+                          setCouponLoading(false)
+                        }
+                      }} className="h-9 rounded-full border px-4 text-xs font-semibold transition disabled:opacity-50" style={{ borderColor: "color-mix(in srgb, #b88940 45%, var(--theme-border) 55%)", color: "#062F2A", background: "transparent" }}>{couponLoading ? "Checking..." : "Apply"}</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
+                      <span className="font-semibold">{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
+                      <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
+                    </div>
+                  )}
+                  {couponError && <p className="text-xs text-red-700">{couponError}</p>}
+                </div>
+              </div>
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
             {checkoutStep === "payment" ? (
