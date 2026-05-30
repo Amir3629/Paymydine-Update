@@ -841,8 +841,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
   useEffect(() => {
     if (!isOpen) return
-    setCheckoutStep(initialCheckoutStep || (existingOrderId ? 'submitted' : 'review'))
-  }, [isOpen, existingOrderId, initialCheckoutStep])
+    const nextStep = initialCheckoutStep && !(existingOrderId && initialCheckoutStep === 'review')
+      ? initialCheckoutStep
+      : existingOrderId
+        ? 'submitted'
+        : 'review'
+    setCheckoutStep((current) => {
+      if (!hasPersonalItems && (current === 'submitted' || current === 'payment' || current === 'paid' || current === 'split' || current === 'split-items' || current === 'split-shares' || current === 'split-review') && nextStep === 'review') return current
+      return nextStep
+    })
+  }, [isOpen, existingOrderId, initialCheckoutStep, hasPersonalItems])
 
   useEffect(() => {
     if (!initialSubmittedOrder) return
@@ -1020,23 +1028,23 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
     return subtotal * (taxSettings.percentage / 100)
   }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-  const tipAmount = customTip ? Number.parseFloat(customTip) || 0 : subtotal * (tipPercentage / 100)
+  const submittedBaseTotal = useMemo(() => Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
+  const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
+  const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
+  const tipAmount = customTip ? Number.parseFloat(customTip) || 0 : tipBaseAmount * (tipPercentage / 100)
+  const couponBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
   
   // Calculate coupon discount
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0
-    // Recalculate discount based on current subtotal (in case items changed)
-    const subtotalForCoupon = subtotal
     if (appliedCoupon.type === 'F') {
-      // Fixed amount - don't exceed subtotal
-      return Math.min(appliedCoupon.discount, subtotalForCoupon)
-    } else {
-      // Percentage
-      return subtotalForCoupon * (appliedCoupon.discount_value / 100)
+      return Math.min(appliedCoupon.discount, couponBaseAmount)
     }
-  }, [appliedCoupon, subtotal])
+    return couponBaseAmount * (appliedCoupon.discount_value / 100)
+  }, [appliedCoupon, couponBaseAmount])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
+  const orderStatusTotal = Math.max(0, (submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount) + tipAmount - couponDiscount)
 
   const splitGuestProfiles = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => SPLIT_GUEST_PROFILES[idx] || { name: `Guest ${idx + 1}`, avatar: String(idx + 1) }), [splitGuestCount])
   const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
@@ -1084,12 +1092,48 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     setItemAssignments((prev) => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, typeof value === "number" && value >= splitGuestCount ? null : value])))
   }, [splitGuestCount])
 
+  const getOrderItemOptionsKey = (item: any) => {
+    const rawOptions = item?.options ?? item?.modifiers ?? item?.selected_options ?? null
+    if (!rawOptions) return ""
+    if (typeof rawOptions === "string") return rawOptions
+    if (Array.isArray(rawOptions)) return JSON.stringify(rawOptions.map((option) => typeof option === "object" ? Object.keys(option).sort().reduce((acc: any, key) => ({ ...acc, [key]: option[key] }), {}) : option))
+    if (typeof rawOptions === "object") return JSON.stringify(Object.keys(rawOptions).sort().reduce((acc: any, key) => ({ ...acc, [key]: rawOptions[key] }), {}))
+    return String(rawOptions)
+  }
+
+  const getOrderItemUnitAmount = (item: any) => {
+    const quantity = Math.max(1, Number(item?.quantity || 1))
+    const explicitPrice = Number(item?.price ?? item?.unit_price ?? 0)
+    if (Number.isFinite(explicitPrice) && explicitPrice > 0) return explicitPrice
+    const subtotalAmount = Number(item?.subtotal ?? item?.total ?? 0)
+    return Number.isFinite(subtotalAmount) && subtotalAmount > 0 ? subtotalAmount / quantity : 0
+  }
+
+  const groupOrderDisplayItems = (items: any[] = []) => {
+    const grouped = new Map<string, any>()
+    items.forEach((item, index) => {
+      const quantity = Math.max(1, Number(item?.quantity || 1))
+      const unitAmount = getOrderItemUnitAmount(item)
+      const name = String(item?.name || `Item ${index + 1}`)
+      const optionsKey = getOrderItemOptionsKey(item)
+      const key = `${item?.menu_id || item?.order_menu_id || item?.id || name}|${name}|${optionsKey}`
+      const existing = grouped.get(key)
+      if (existing) {
+        existing.quantity += quantity
+        existing.subtotal += unitAmount * quantity
+      } else {
+        grouped.set(key, { ...item, name, quantity, price: unitAmount, subtotal: unitAmount * quantity, optionsKey })
+      }
+    })
+    return Array.from(grouped.values())
+  }
+
   const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
-    const submittedItems = Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : []
+    const submittedItems = groupOrderDisplayItems(Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : [])
     if (submittedItems.length > 0) {
       return submittedItems.flatMap((item: any, itemIndex: number) => {
         const quantity = Math.max(1, Number(item?.quantity || 1))
-        const unitAmount = Number(item?.price ?? (Number(item?.subtotal || 0) / quantity) ?? 0)
+        const unitAmount = getOrderItemUnitAmount(item)
         return Array.from({ length: quantity }, (_, unitIndex) => ({
           key: `submitted-${item?.order_menu_id || item?.menu_id || item?.id || itemIndex}-${unitIndex}`,
           name: String(item?.name || `Item ${itemIndex + 1}`),
@@ -1108,10 +1152,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [submittedSnapshot?.submittedItems, allItemInstances, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
   const splitSubtotal = useMemo(() => splitSourceItems.reduce((sum: number, item: SplitSourceItem) => sum + Number(item.amount || 0), 0), [splitSourceItems])
-  const splitGrandTotal = useMemo(() => {
-    const submittedTotal = Number(submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0)
-    return submittedTotal > 0 ? submittedTotal : finalTotal
-  }, [submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
+  const splitGrandTotal = useMemo(() => submittedBaseTotal > 0 ? orderStatusTotal : finalTotal, [submittedBaseTotal, orderStatusTotal, finalTotal])
   const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
 
   const buildSplitPerson = (idx: number, personSubtotal: number, items: SplitPerson["items"], percent?: number): SplitPerson => {
@@ -1200,14 +1241,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return Number.isFinite(amount) && amount > 0 ? amount : null
   }
   const payableTotal = useMemo(() => {
-    const remainingAmount = toPositiveAmount(pendingSummary?.remainingAmount)
-    const submittedRemaining = toPositiveAmount(submittedSnapshot?.remainingAmount)
-    const submittedTotal = toPositiveAmount(submittedSnapshot?.total ?? submittedSnapshot?.orderTotal)
     const reviewTotal = toPositiveAmount(finalTotal)
+    const orderTotal = toPositiveAmount(orderStatusTotal)
     const selectedShareTotal = selectedSplitPerson?.total && selectedSplitPerson.total > 0 ? selectedSplitPerson.total : null
-    if (checkoutStep === "payment") return selectedShareTotal ?? remainingAmount ?? submittedRemaining ?? submittedTotal ?? 0
-    return reviewTotal ?? submittedTotal ?? remainingAmount ?? 0
-  }, [checkoutStep, selectedSplitPerson?.total, submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
+    if (checkoutStep === "payment") return selectedShareTotal ?? orderTotal ?? 0
+    return orderTotal ?? reviewTotal ?? 0
+  }, [checkoutStep, selectedSplitPerson?.total, orderStatusTotal, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -3219,7 +3258,6 @@ case "cod":
             <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold">Table Order</h3>
                   <p className="text-xs muted">Review the items sent for this table.</p>
                 </div>
                 <span className="text-xs font-semibold muted">{tableDisplayName}</span>
@@ -3234,8 +3272,8 @@ case "cod":
                     </div>
                     )}
                     <div className="space-y-1">
-                      {(group.items || []).map((item: any, idx: number) => (
-                        <div key={`${item.id || item.order_menu_id || item.menu_id}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                      {groupOrderDisplayItems(group.items || []).map((item: any, idx: number) => (
+                        <div key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
                           <span className="truncate font-medium">{Number(item.quantity || 1)}x {String(item.name || `Item ${idx + 1}`)}</span>
                           <span className="font-semibold">{formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}</span>
                         </div>
@@ -3258,8 +3296,8 @@ case "cod":
                   <button type="button" onClick={onClose} className={modalSecondaryBtn}>Continue ordering</button>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setCheckoutStep("payment"); setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }) }} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>
-                  Pay
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                  View order status
                 </button>
               ) : null}
             </motion.div>
@@ -3514,9 +3552,27 @@ case "cod":
                     </div>
                   </>
                 )}
+                {(tipAmount > 0 || couponDiscount > 0) && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted font-medium">Items:</span>
+                    <span className="font-semibold text-[15px]">{formatCurrency(submittedBaseTotal || Number(submittedSnapshot?.total ?? 0))}</span>
+                  </div>
+                )}
+                {tipAmount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted font-medium">Tip:</span>
+                    <span className="font-semibold text-[15px]">{formatCurrency(tipAmount)}</span>
+                  </div>
+                )}
+                {couponDiscount > 0 && appliedCoupon && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted font-medium">Coupon {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}:</span>
+                    <span className="font-semibold text-[15px]" style={{ color: "#166534" }}>-{formatCurrency(couponDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="muted font-medium">Order Total:</span>
-                  <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
+                  <span className="font-semibold text-[15px]">{formatCurrency(orderStatusTotal)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="muted font-medium">Table:</span>
@@ -3535,10 +3591,10 @@ case "cod":
               <div className="surface-sub rounded-2xl p-3">
                 <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
                 <div className="space-y-2 max-h-44 overflow-y-auto">
-                  {(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
-                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                  {groupOrderDisplayItems(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
+                    <div key={`${item?.menu_id || item?.order_menu_id || item?.name || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
-                      <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.subtotal ?? (Number(item?.price || 0) * Number(item?.quantity || 1))))}</span>
                     </div>
                   ))}
                 </div>
@@ -3546,7 +3602,55 @@ case "cod":
 
               {checkoutStep !== "paid" && <div className="space-y-3">
                 {checkoutStep === "submitted" && (
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="space-y-3">
+                    {tipSettings.enabled && (
+                      <div className="rounded-2xl border p-3 space-y-2" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold">Add tip</span>
+                          {tipAmount > 0 && <span className="text-xs font-semibold" style={{ color: "#b88940" }}>{formatCurrency(tipAmount)}</span>}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {(tipSettings.percentages || []).map((p) => (
+                            <button key={p} type="button" onClick={() => { setTipPercentage(p); setCustomTip("") }} className="rounded-full border px-3 py-1.5 text-xs font-semibold transition" style={tipPercentage === p && !customTip ? { background: "#062F2A", borderColor: "#062F2A", color: "#FFFFFF" } : { borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>{p}%</button>
+                          ))}
+                          <div className="relative min-w-[96px] flex-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs muted">€</span>
+                            <input type="number" min="0" value={customTip} onChange={(event) => { setCustomTip(event.target.value); setTipPercentage(0) }} placeholder="Custom" className="h-9 w-full rounded-full border bg-transparent pl-7 pr-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="rounded-2xl border p-3 space-y-2" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                      {!appliedCoupon ? (
+                        <div className="flex gap-2">
+                          <input type="text" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponError(null) }} placeholder="Coupon code" className="h-9 min-w-0 flex-1 rounded-full border bg-transparent px-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} disabled={couponLoading} />
+                          <button type="button" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
+                            if (!couponCode.trim()) return
+                            setCouponLoading(true)
+                            setCouponError(null)
+                            try {
+                              const result = await validateCoupon(couponCode.trim(), couponBaseAmount)
+                              if (!result.success) setCouponError(result.message || "Coupon will be checked at payment.")
+                              else {
+                                setCouponCode("")
+                                toast({ title: "Coupon applied", description: "Your coupon was added to this order." })
+                              }
+                            } catch {
+                              setCouponError("Coupon validation coming soon.")
+                            } finally {
+                              setCouponLoading(false)
+                            }
+                          }} className="h-9 rounded-full border px-4 text-xs font-semibold transition disabled:opacity-50" style={{ borderColor: "color-mix(in srgb, #b88940 45%, var(--theme-border) 55%)", color: "#062F2A", background: "transparent" }}>{couponLoading ? "Checking..." : "Apply"}</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
+                          <span className="font-semibold">{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
+                          <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
+                        </div>
+                      )}
+                      {couponError && <p className="text-xs text-red-700">{couponError}</p>}
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <motion.button
                       type="button"
                       whileHover={{ x: 2 }}
@@ -3566,6 +3670,7 @@ case "cod":
                     >
                       <Users className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
                     </motion.button>
+                    </div>
                   </div>
                 )}
                 <button
