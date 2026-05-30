@@ -8734,3 +8734,61 @@ html body button[aria-label="Table order"] span.absolute * {
   --font-inter: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-playfair-display: Georgia, "Times New Roman", serif;
 }
+
+/* PMD split-bill polish: gold-luxury range controls and table-order toolbar refinement. */
+html body .pmd-split-slider {
+  height: 18px;
+  cursor: pointer;
+  accent-color: #b88940;
+  background: transparent;
+}
+
+html body .pmd-split-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #b88940, color-mix(in srgb, #b88940 36%, var(--theme-border) 64%));
+}
+
+html body .pmd-split-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 9999px;
+  background: #062F2A;
+  border: 3px solid #fffaf0;
+  box-shadow: 0 2px 8px rgba(6, 47, 42, 0.22);
+}
+
+html body .pmd-split-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #b88940, color-mix(in srgb, #b88940 36%, var(--theme-border) 64%));
+}
+
+html body .pmd-split-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #062F2A;
+  border: 3px solid #fffaf0;
+  box-shadow: 0 2px 8px rgba(6, 47, 42, 0.22);
+}
+
+html body button[aria-label="Table order"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+html body button[aria-label="Table order"] svg,
+html body button[aria-label="Table order"] svg *,
+html body button[aria-label="Table order"] path {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  fill: none !important;
+}

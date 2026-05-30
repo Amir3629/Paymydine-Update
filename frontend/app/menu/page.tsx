@@ -1197,12 +1197,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
-    background: "var(--theme-secondary)",
-    color: "var(--theme-text-primary)", textShadow: "none",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background: "#062F2A",
+    color: "#FFFFFF",
+    textShadow: "none",
+    border: "1px solid #062F2A",
   }
-  const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
-  const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
+  const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
+  const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white"
   const toolbarIconBtnStyle: React.CSSProperties = {
     background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
     border: "1px solid var(--theme-border)",
@@ -3267,15 +3268,12 @@ case "cod":
 
           {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
             <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-4">
-              <div className="surface-sub rounded-2xl p-3 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-base font-semibold">Split bill</h3>
-                    <p className="text-xs muted">Choose how the table should share {formatCurrency(splitGrandTotal)}.</p>
-                  </div>
-                  <button type="button" onClick={() => setCheckoutStep("submitted")} className={modalSecondaryBtn}>Back</button>
+              <div className="surface-sub rounded-3xl p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs muted">Share {formatCurrency(splitGrandTotal)} your way.</p>
+                  <button type="button" onClick={() => setCheckoutStep("submitted")} className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>Back</button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   {([
                     ["equal", "Split equally"],
                     ["items", "By order items"],
@@ -3285,7 +3283,7 @@ case "cod":
                       key={method}
                       type="button"
                       onClick={() => chooseSplitMethod(method)}
-                      className={cn("rounded-2xl border px-2 py-2 text-xs font-semibold transition", splitMethod === method ? "text-white" : "")}
+                      className={cn("rounded-full border px-2 py-1.5 text-[11px] font-semibold transition", splitMethod === method ? "text-white shadow-sm" : "")}
                       style={splitMethod === method ? { background: "#062F2A", borderColor: "#062F2A" } : { borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}
                     >
                       {label}
@@ -3295,7 +3293,7 @@ case "cod":
               </div>
 
               {checkoutStep !== "split-review" && (
-                <div className="surface-sub rounded-2xl p-3 space-y-4">
+                <div className="surface-sub rounded-3xl p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold">Guests</span>
                     <div className="flex items-center gap-2">
@@ -3313,14 +3311,14 @@ case "cod":
                           <span className="font-semibold">{formatCurrency(person.total)}</span>
                         </div>
                       ))}
-                      <p className="rounded-xl border px-3 py-2 text-[11px] muted" style={{ borderColor: "#b88940", background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)" }}>Odd cents are handled by rounding the first payer up by the remainder, so the split always reconciles exactly.</p>
+                      <p className="rounded-full px-3 py-2 text-[11px] muted" style={{ background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)" }}>Odd cents go to the first payer so totals match exactly.</p>
                     </div>
                   )}
 
                   {splitMethod === "items" && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="muted">Tap each item to cycle {splitGuestNames.join(" → ")} → Unassigned.</span>
+                        <span className="muted">Tap items to assign guests.</span>
                         <span className={cn("rounded-full px-2 py-1 font-semibold", unassignedSplitItems > 0 ? "text-red-700" : "") } style={{ background: unassignedSplitItems > 0 ? "#FEE2E2" : "color-mix(in srgb, #062F2A 12%, var(--theme-surface) 88%)" }}>{unassignedSplitItems} unassigned</span>
                       </div>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -3328,7 +3326,7 @@ case "cod":
                           const assignedIndex = itemAssignments[item.key]
                           const nextLabel = assignedIndex === undefined || assignedIndex === null ? "Unassigned" : splitGuestNames[assignedIndex]
                           return (
-                            <button key={item.key} type="button" className="flex w-full items-center justify-between gap-3 rounded-2xl border p-3 text-left" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }} onClick={() => setItemAssignments((prev) => ({ ...prev, [item.key]: assignedIndex === undefined || assignedIndex === null ? 0 : assignedIndex >= splitGuestCount - 1 ? null : assignedIndex + 1 }))}>
+                            <button key={item.key} type="button" className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left shadow-sm" style={{ border: "1px solid color-mix(in srgb, var(--theme-border) 70%, transparent)", background: "var(--theme-surface)" }} onClick={() => setItemAssignments((prev) => ({ ...prev, [item.key]: assignedIndex === undefined || assignedIndex === null ? 0 : assignedIndex >= splitGuestCount - 1 ? null : assignedIndex + 1 }))}>
                               <span className="truncate text-sm font-medium">{item.name}</span>
                               <span className="shrink-0 text-right text-xs"><span className="font-semibold">{formatCurrency(item.amount)}</span><br /><span className={assignedIndex === undefined || assignedIndex === null ? "text-red-700" : "muted"}>{nextLabel}</span></span>
                             </button>
@@ -3341,18 +3339,20 @@ case "cod":
                   {splitMethod === "shares" && (
                     <div className="space-y-3">
                       {sharePercents.slice(0, splitGuestCount).map((percent, idx) => (
-                        <div key={idx} className="rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                        <div key={idx} className="rounded-2xl p-3 shadow-sm" style={{ border: "1px solid color-mix(in srgb, var(--theme-border) 70%, transparent)", background: "var(--theme-surface)" }}>
                           <div className="mb-2 flex items-center justify-between text-sm"><span className="font-medium">{splitGuestNames[idx]}</span><span className="font-semibold">{percent}% · {formatCurrency(splitGrandTotal * (percent / 100))}</span></div>
-                          <input type="range" min="0" max="100" step="1" value={percent} onChange={(event) => setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? Number(event.target.value) : value))} className="w-full accent-[#b88940]" />
+                          <input type="range" min="0" max="100" step="1" value={percent} onChange={(event) => setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? Number(event.target.value) : value))} className="pmd-split-slider w-full" />
                         </div>
                       ))}
-                      <div className={cn("rounded-2xl border p-3 text-sm font-semibold", sharePercentTotal === 100 ? "" : "text-red-700")} style={{ borderColor: sharePercentTotal === 100 ? "var(--theme-border)" : "#FCA5A5", background: sharePercentTotal === 100 ? "var(--theme-surface)" : "#FEF2F2" }}>
-                        Total {sharePercentTotal}% · {sharePercentTotal === 100 ? "Ready" : sharePercentTotal < 100 ? `${100 - sharePercentTotal}% remaining` : `Over by ${sharePercentTotal - 100}%`}
+                      <div className="flex justify-center">
+                        <span className={cn("rounded-full px-3 py-1.5 text-xs font-semibold", sharePercentTotal === 100 ? "" : "text-red-700")} style={{ background: sharePercentTotal === 100 ? "color-mix(in srgb, #062F2A 12%, var(--theme-surface) 88%)" : "#FEF2F2", border: `1px solid ${sharePercentTotal === 100 ? "color-mix(in srgb, #062F2A 18%, var(--theme-border) 82%)" : "#FCA5A5"}` }}>
+                          {sharePercentTotal === 100 ? "100% ready" : sharePercentTotal < 100 ? `${100 - sharePercentTotal}% remaining` : `Over by ${sharePercentTotal - 100}%`}
+                        </span>
                       </div>
                     </div>
                   )}
 
-                  <button type="button" disabled={!canConfirmSplitMethod} onClick={goToSplitReview} className={modalPrimaryBtn} style={canConfirmSplitMethod ? modalPrimaryBtnStyle : { opacity: 0.5 }}>
+                  <button type="button" disabled={!canConfirmSplitMethod} onClick={goToSplitReview} className={cn(modalPrimaryBtn, !canConfirmSplitMethod && "cursor-not-allowed")} style={canConfirmSplitMethod ? modalPrimaryBtnStyle : { background: "color-mix(in srgb, var(--theme-border) 50%, var(--theme-surface) 50%)", color: "var(--theme-text-muted)", border: "1px solid var(--theme-border)" }}>
                     Review split
                   </button>
                 </div>
@@ -3360,12 +3360,12 @@ case "cod":
 
               {checkoutStep === "split-review" && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-2xl border p-3 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
-                    <span className="muted">Need to adjust? Switch split method without restarting.</span>
-                    <button type="button" onClick={() => startSplitFlow(splitMethod)} className="font-semibold" style={{ color: "#062F2A" }}>Change</button>
+                  <div className="flex items-center justify-between rounded-2xl px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #b88940 10%, var(--theme-surface) 90%)" }}>
+                    <span className="muted">Adjust before paying.</span>
+                    <button type="button" onClick={() => startSplitFlow(splitMethod)} className="rounded-full px-3 py-1 font-semibold" style={{ background: "#062F2A", color: "#FFFFFF" }}>Change</button>
                   </div>
                   {activeSplitPeople.map((person) => (
-                    <div key={person.id} className="rounded-2xl border p-3 space-y-2" style={{ borderColor: selectedSplitPersonId === person.id ? "#b88940" : "var(--theme-border)", background: "var(--theme-surface)" }}>
+                    <div key={person.id} className="rounded-3xl p-3 space-y-2 shadow-sm" style={{ border: `1px solid ${selectedSplitPersonId === person.id ? "#b88940" : "color-mix(in srgb, var(--theme-border) 70%, transparent)"}`, background: "var(--theme-surface)" }}>
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="font-semibold">{person.name}</h4>
                         <span className="rounded-full px-2 py-1 text-[11px] font-semibold" style={{ background: person.status === "Paid" ? "#DCFCE7" : "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: person.status === "Paid" ? "#166534" : "#5A3512" }}>{person.status}</span>
@@ -3375,7 +3375,11 @@ case "cod":
                         {person.tax > 0 && <div className="flex justify-between"><span>Proportional service/tax</span><span>{formatCurrency(person.tax)}</span></div>}
                       </div>
                       <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--theme-border)" }}><span className="font-semibold">Total</span><span className="font-bold">{formatCurrency(person.total)}</span></div>
-                      <button type="button" onClick={() => { setSelectedSplitPersonId(person.id); setCheckoutStep("payment") }} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Pay my share</button>
+                      {selectedSplitPersonId === person.id ? (
+                        <button type="button" onClick={() => setCheckoutStep("payment")} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Pay my share</button>
+                      ) : (
+                        <button type="button" onClick={() => setSelectedSplitPersonId(person.id)} className="w-full rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>Select payer</button>
+                      )}
                     </div>
                   ))}
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -3495,9 +3499,9 @@ case "cod":
                   <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
                     <div className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4" style={{ color: "#b88940" }} />
-                      <h3 className="text-sm font-semibold">How was your restaurant experience?</h3>
+                      <h3 className="text-sm font-semibold">Rate your visit</h3>
                     </div>
-                    <p className="text-xs muted">Thank you for dining with us. Your feedback helps the restaurant keep improving.</p>
+                    <p className="text-xs muted">Thank you — a quick note for the restaurant.</p>
                     <div className="flex gap-1" aria-label="Restaurant rating">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button key={star} type="button" aria-label={`${star} star${star > 1 ? "s" : ""}`} onClick={() => setReviewRating(star)} className="rounded-full p-1">
@@ -3506,7 +3510,7 @@ case "cod":
                       ))}
                     </div>
                     <Textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Optional comment for the restaurant" className="min-h-[78px] rounded-2xl" />
-                    <button type="button" onClick={() => toast({ title: "Thank you", description: "Your restaurant feedback has been noted on this device." })} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Submit review</button>
+                    <button type="button" onClick={() => toast({ title: "Thank you", description: "Your restaurant feedback has been noted on this device." })} className={modalPrimaryBtn} style={{ ...modalPrimaryBtnStyle, background: "#062F2A", color: "#FFFFFF" }}>Submit review</button>
                   </div>
                   <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
                 </div>
@@ -4129,32 +4133,6 @@ function ExpandingBottomToolbar({
           </motion.button>
           </ActionTooltip>
 
-          <AnimatePresence initial={false}>
-          {showOrderAction && (
-          <ActionTooltip label="Table order">
-          <motion.button
-            key="table-order-action"
-            initial={{ opacity: 0, scale: 0.8, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 8 }}
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.12 }}
-            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
-            style={toolbarIconBtnStyle}
-            onClick={onOrderClick}
-            aria-label="Table order"
-          >
-            <ReceiptText className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
-            {orderCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "var(--theme-secondary)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
-                {orderCount > 9 ? "9+" : orderCount}
-              </span>
-            )}
-          </motion.button>
-          </ActionTooltip>
-          )}
-          </AnimatePresence>
-          
           <ActionTooltip label="Checkout">
           <motion.button
             whileTap={{ scale: 0.92 }}
@@ -4233,6 +4211,38 @@ function ExpandingBottomToolbar({
             )}
           </motion.button>
           </ActionTooltip>
+          <AnimatePresence initial={false}>
+          {showOrderAction && (
+          <ActionTooltip label="Table order">
+          <motion.button
+            key="table-order-action"
+            initial={{ opacity: 0, scale: 0.8, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 8 }}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.12 }}
+            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
+            style={{
+              background: "transparent",
+              border: "1px solid transparent",
+              color: "#062F2A",
+              boxShadow: "none",
+              borderRadius: "9999px",
+            }}
+            onClick={onOrderClick}
+            aria-label="Table order"
+          >
+            <ReceiptText className="h-7 w-7" style={{ color: "#062F2A", stroke: "#062F2A", WebkitTextFillColor: "#062F2A" }} />
+            {orderCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "#b88940", color: "#FFFFFF", border: "1px solid #b88940" }}>
+                {orderCount > 9 ? "9+" : orderCount}
+              </span>
+            )}
+          </motion.button>
+          </ActionTooltip>
+          )}
+          </AnimatePresence>
+          
         </div>
       </div>
     </motion.div>
