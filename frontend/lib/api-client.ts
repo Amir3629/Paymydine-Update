@@ -135,6 +135,8 @@ export type TableOrderDraftResponse = {
   status?: 'empty' | 'draft' | 'submitted_unpaid' | 'partially_paid' | 'paid';
   draft_id?: number | null;
   order_id?: number | null;
+  orderId?: number | null;
+  orderNumber?: number | string | null;
   table_id?: string | null;
   table_no?: string | null;
   table_name?: string | null;
@@ -145,9 +147,11 @@ export type TableOrderDraftResponse = {
   payment?: string | null;
   status_name?: string | null;
   paymentStatus?: 'paid' | 'partial' | 'unpaid' | string;
+  deliveryStatus?: string | null;
   hasActiveTableOrder?: boolean;
   canShowToNewDevice?: boolean;
   updatedAt?: string | null;
+  total?: number;
   message?: string;
   error?: string;
 };
@@ -866,7 +870,10 @@ export class ApiClient {
     try {
       const params = new URLSearchParams();
       if (context.table_id != null && String(context.table_id).trim() !== '') params.set('table_id', String(context.table_id));
-      if (context.table_no != null && String(context.table_no).trim() !== '') params.set('table_no', String(context.table_no));
+      if (context.table_no != null && String(context.table_no).trim() !== '') {
+        params.set('table_no', String(context.table_no));
+        params.set('table', String(context.table_no));
+      }
       if (context.qr) params.set('qr', context.qr);
       const response = await fetch(`/api/v1/table-order-draft?${params.toString()}`, { headers: { Accept: 'application/json' } });
       const data = await response.json().catch(() => ({}));
