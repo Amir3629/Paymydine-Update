@@ -1024,18 +1024,34 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
 
-  const splitGuestNames = useMemo(() => ["Alex", "Bea", "Carlos", "Dana", "Eli", "Fran", "Gio", "Hana", "Iris", "Jules"].slice(0, splitGuestCount), [splitGuestCount])
+  const splitGuestNames = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => `Guest ${idx + 1}`), [splitGuestCount])
+
+  const buildEvenSharePercents = (count: number) => {
+    const safeCount = Math.max(2, Math.min(10, count))
+    const base = Math.floor(100 / safeCount)
+    const remainder = 100 - base * safeCount
+    return Array.from({ length: safeCount }, (_, idx) => base + (idx === 0 ? remainder : 0))
+  }
+
+  const addSplitGuest = () => {
+    const nextCount = Math.min(10, splitGuestCount + 1)
+    setSplitGuestCount(nextCount)
+    setSharePercents(buildEvenSharePercents(nextCount))
+  }
+
+  const removeSplitGuest = () => {
+    const nextCount = Math.max(2, splitGuestCount - 1)
+    setSplitGuestCount(nextCount)
+    setSharePercents(buildEvenSharePercents(nextCount))
+  }
 
   useEffect(() => {
     setSharePercents((prev) => {
       const next = Array.from({ length: splitGuestCount }, (_, idx) => prev[idx] ?? 0)
-      if (next.every((value) => value === 0)) {
-        const base = Math.floor(100 / splitGuestCount)
-        const remainder = 100 - base * splitGuestCount
-        return next.map((_, idx) => base + (idx === 0 ? remainder : 0))
-      }
+      if (next.every((value) => value === 0)) return buildEvenSharePercents(splitGuestCount)
       return next
     })
+    setItemAssignments((prev) => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, typeof value === "number" && value >= splitGuestCount ? null : value])))
   }, [splitGuestCount])
 
   const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
@@ -2805,7 +2821,7 @@ case "cod":
 
   const checkoutTitle: Record<CheckoutStep, string> = {
     review: "My Order",
-    submitted: "My Order",
+    submitted: "Order Status",
     split: "Split bill",
     "split-items": "Assign items",
     "split-shares": "Set shares",
@@ -2813,6 +2829,9 @@ case "cod":
     payment: "Payment",
     paid: "Order complete",
   }
+  const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems
+    ? "Table Order"
+    : checkoutTitle[checkoutStep]
 
   const startSplitFlow = (method: SplitMethod = splitMethod) => {
     setIsSplitting(true)
@@ -2930,7 +2949,7 @@ case "cod":
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg">{checkoutTitle[checkoutStep]}</h2>
+          <h2 className="text-lg">{modalTitle}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
@@ -3297,12 +3316,15 @@ case "cod":
 
               {checkoutStep !== "split-review" && (
                 <div className="surface-sub rounded-3xl p-3 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">Guests</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-sm font-semibold">People</span>
+                      <p className="text-[11px] muted">Split across {splitGuestCount} guests.</p>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" aria-label="Remove guest" onClick={() => setSplitGuestCount((value) => Math.max(2, value - 1))} className="h-8 w-8 rounded-full border font-bold" style={{ borderColor: "var(--theme-border)" }}><Minus className="mx-auto h-4 w-4" /></button>
-                      <span className="min-w-8 text-center font-semibold">{splitGuestCount}</span>
-                      <button type="button" aria-label="Add guest" onClick={() => setSplitGuestCount((value) => Math.min(10, value + 1))} className="h-8 w-8 rounded-full text-white" style={{ background: "#062F2A" }}><Plus className="mx-auto h-4 w-4" /></button>
+                      <button type="button" aria-label="Remove guest" disabled={splitGuestCount <= 2} onClick={removeSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full border px-2 text-xs font-semibold disabled:opacity-45" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}><Minus className="h-3.5 w-3.5" /> Remove</button>
+                      <span className="min-w-8 rounded-full px-2 py-1 text-center text-sm font-semibold" style={{ background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)", color: "var(--theme-text-primary)" }}>{splitGuestCount}</span>
+                      <button type="button" aria-label="Add guest" disabled={splitGuestCount >= 10} onClick={addSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold text-white disabled:opacity-55" style={{ background: "#062F2A", color: "#FFFFFF" }}><Plus className="h-3.5 w-3.5" /> Add guest</button>
                     </div>
                   </div>
 
