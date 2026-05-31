@@ -2400,14 +2400,15 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 disabled:opacity-70 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "#062F2A",
     color: "#FFFFFF",
+    WebkitTextFillColor: "#FFFFFF",
     textShadow: "none",
     border: "1px solid #062F2A",
   }
-  const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
+  const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
   const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white pmd-v2-action-circle hover:opacity-90"
   const toolbarIconBtnStyle: React.CSSProperties = {
     background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -4814,22 +4815,18 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <motion.button
                       type="button"
-                      whileHover={{ x: 2 }}
-                      whileTap={{ scale: 0.985 }}
                       onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
-                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition" style={modalPrimaryBtnStyle}
+                      className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition" style={modalPrimaryBtnStyle}
                     >
-                      Pay in full <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
+                      Pay in full <ArrowRight className="h-4 w-4" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
                     </motion.button>
                     <motion.button
                       type="button"
-                      whileHover={{ x: 2 }}
-                      whileTap={{ scale: 0.985 }}
                       onClick={() => startSplitFlow("equal")}
-                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                      className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
                       style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}
                     >
-                      <Users className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
+                      <Users className="h-4 w-4" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
                     </motion.button>
                     </div>
                   </div>
@@ -5070,7 +5067,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="text-sm muted">No payment methods available</div>
                   ) : (
                     visiblePaymentMethods.map((method) => (
-                      <motion.div key={method.code} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <div key={method.code}>
                         <Button
                           variant="outline"
                           className="h-14 w-20 surface-sub hover:opacity-90 rounded-2xl shadow-sm flex items-center justify-center rounded-full"
@@ -5127,7 +5124,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                             />
                           )}
                         </Button>
-                      </motion.div>
+                      </div>
                     ))
                   )}
                 </div>

@@ -11855,29 +11855,34 @@ html body [data-pmd-checkout-scroll="1"] [class*="text-white"]:not(button):not(b
 
 /* =========================================================
    PMD_GOLD_CHECKOUT_STABLE_FIRST_PAINT
-   Narrow gold-luxury checkout/table-order stabilization.
+   Narrow gold-luxury checkout/modal stabilization.
    ========================================================= */
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] {
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] .surface-sub,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] .surface-sub *,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] [data-pmd-gold-checkout-card],
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] [data-pmd-gold-checkout-card] * {
   color: #10201D !important;
   -webkit-text-fill-color: #10201D !important;
   transition: opacity 120ms ease !important;
 }
 
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] p,
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] span,
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] h3,
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] h4 {
-  color: #10201D !important;
-  -webkit-text-fill-color: #10201D !important;
-  transition: opacity 120ms ease !important;
-}
-
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] .muted {
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] .muted,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] .surface-sub .muted,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] [data-pmd-gold-checkout-card] .muted {
   color: #6B7280 !important;
   -webkit-text-fill-color: #6B7280 !important;
 }
 
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-action="primary"] {
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button:hover,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button:active,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button:focus-visible {
+  transform: none !important;
+}
+
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] [data-pmd-gold-checkout-action="primary"],
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button[style*="#062F2A"],
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"] {
   background: #062F2A !important;
   background-color: #062F2A !important;
   border-color: #062F2A !important;
@@ -11886,12 +11891,15 @@ html body [data-pmd-checkout-scroll="1"] [class*="text-white"]:not(button):not(b
   transition: opacity 120ms ease, background-color 120ms ease, border-color 120ms ease !important;
 }
 
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-action="primary"] span {
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] [data-pmd-gold-checkout-action="primary"] *,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button[style*="#062F2A"] *,
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"] * {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
 }
 
-[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-action="secondary"] {
+html[data-theme="gold-luxury"] body [data-pmd-checkout-scroll="1"] [data-pmd-gold-checkout-action="secondary"] {
   background: transparent !important;
   color: #10201D !important;
   -webkit-text-fill-color: #10201D !important;
