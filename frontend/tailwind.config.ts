@@ -93,8 +93,8 @@ const config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
-        serif: ["var(--font-playfair-display)", "Georgia", "Times New Roman", "serif"],
+        sans: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Inter", "Arial", "sans-serif"],
+        serif: ["Georgia", "Times New Roman", "Playfair Display", "serif"],
       },
       keyframes: {
         "accordion-down": {
