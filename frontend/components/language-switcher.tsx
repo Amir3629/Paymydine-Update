@@ -9,8 +9,16 @@ function readCssVar(style: CSSStyleDeclaration, name: string, fallback = "") {
   return style.getPropertyValue(name).trim() || fallback
 }
 
+function isGoldCustomerNode(el: Element | null | undefined) {
+  return !!el?.closest?.('[data-pmd-customer-app="gold-v1"]')
+}
+
+function isGoldCustomerDocument() {
+  return typeof document !== "undefined" && !!document.querySelector('[data-pmd-customer-app="gold-v1"], [data-pmd-customer-root="gold-v1"]')
+}
+
 function isCheckoutLockdownNode(el: Element | null | undefined) {
-  return !!el?.closest?.('[data-pmd-checkout-lockdown="1"], [data-pmd-checkout-v3="1"]')
+  return !!el?.closest?.('[data-pmd-checkout-lockdown="1"], [data-pmd-checkout-v3="1"], [data-pmd-customer-app="gold-v1"]')
 }
 
 function setImportant(el: HTMLElement, prop: string, value: string) {
@@ -51,6 +59,7 @@ export function LanguageSwitcher() {
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return
+    if (isGoldCustomerDocument()) return
 
     let frame = 0
     let timerOne = 0

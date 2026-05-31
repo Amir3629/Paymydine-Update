@@ -295,3 +295,22 @@ Expected: build passes.
 ## Current recommendation
 
 Do not continue from the current V3-wrapper approach as the final solution. It still wraps legacy checkout children and therefore cannot fully satisfy the architecture requirements. The next implementation step should be Stage 1 + Stage 2 in a new commit, then Stage 3 in a separate commit, each with build verification.
+
+## Phase 2A implementation notes
+
+Phase 2A created the Gold-only customer foundation without attempting to finish every customer page rebuild in one commit.
+
+Implemented changes:
+
+- Preserved the previous `frontend/app/globals.css` as `frontend/app/globals.legacy.css` and replaced active `globals.css` with a small Tailwind/reset file that imports the scoped Gold customer stylesheet.
+- Added the clean customer foundation under `frontend/customer/` with Gold tokens, scoped CSS, primitive customer components, and real checkout state components.
+- Routed the menu checkout modal through `CheckoutFlowGold` and child components instead of `CheckoutModalV3`, so checkout states are rendered by Gold components rather than passed as legacy JSX children.
+- Removed the legacy checkout DOM style-patch effect block from `frontend/app/menu/page.tsx`; payment/order/split business logic remains in the existing controller for this phase.
+- Simplified `frontend/app/layout.tsx` by removing active modal-card style mutation scripts and no longer mounting `CleanLightCustomerGuard` globally.
+- Guarded `LanguageSwitcher` and `CleanLightCustomerGuard` so their inline style mutation paths skip `[data-pmd-customer-app="gold-v1"]` / `[data-pmd-customer-root="gold-v1"]`.
+
+Remaining work for later phases:
+
+- `frontend/app/menu/page.tsx` still contains non-checkout customer UI and some provider/menu helper code that should move into `frontend/customer/menu/` components in the next phase.
+- Old backup CSS and legacy customer theme files still exist for safety but are not the new active customer design system.
+- `CheckoutModalV3` files remain in the tree temporarily but are no longer imported by the active menu checkout path.
