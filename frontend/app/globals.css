@@ -11852,3 +11852,48 @@ html body [data-pmd-checkout-scroll="1"] [class*="text-white"]:not(button):not(b
 }
 
 /* ========================================================= */
+
+/* =========================================================
+   PMD_GOLD_CHECKOUT_STABLE_FIRST_PAINT
+   Narrow gold-luxury checkout/table-order stabilization.
+   ========================================================= */
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  transition: opacity 120ms ease !important;
+}
+
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] p,
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] span,
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] h3,
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] h4 {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  transition: opacity 120ms ease !important;
+}
+
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-card] .muted {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-action="primary"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transition: opacity 120ms ease, background-color 120ms ease, border-color 120ms ease !important;
+}
+
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-action="primary"] span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] [data-pmd-gold-checkout-modal="1"] [data-pmd-gold-checkout-action="secondary"] {
+  background: transparent !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  transition: opacity 120ms ease, background-color 120ms ease, border-color 120ms ease !important;
+}

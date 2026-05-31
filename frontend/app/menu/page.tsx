@@ -1,6 +1,6 @@
 "use client"
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { formatCurrency } from "@/lib/currency";
 import { categories, menuData, type MenuItem, getMenuData, getCategories } from "@/lib/data";
 import { useLanguageStore } from "@/store/language-store";
@@ -3969,36 +3969,6 @@ case "cod":
     }
   }, [isOpen, hasPersonalItems, initialCheckoutStep, checkoutStep])
 
-// PMD_FREEZE_MODAL_TEXT_BUTTONS_FIRST_PAINT
-useLayoutEffect(() => {
-  if (!isOpen || typeof document === "undefined") return
-
-  let cleanupTimer: number | undefined
-  let retryTimer: number | undefined
-
-  const applyFreeze = () => {
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
-    if (!root) return false
-
-    root.setAttribute("data-pmd-step-freeze", "1")
-
-    cleanupTimer = window.setTimeout(() => {
-      root.setAttribute("data-pmd-step-freeze", "0")
-      root.removeAttribute("data-pmd-step-freeze")
-    }, 850)
-
-    return true
-  }
-
-  if (!applyFreeze()) {
-    retryTimer = window.setTimeout(applyFreeze, 16)
-  }
-
-  return () => {
-    if (cleanupTimer) window.clearTimeout(cleanupTimer)
-    if (retryTimer) window.clearTimeout(retryTimer)
-  }
-}, [isOpen, checkoutStep])
 
 const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview
     ? "Table Order"
@@ -4141,7 +4111,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div data-pmd-checkout-scroll="1" data-pmd-gold-checkout-modal="1" className="p-4 space-y-4 overflow-y-auto flex-1">
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -4365,7 +4335,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview && (
-            <motion.div key="table-order-draft" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+            <motion.div key="table-order-draft" data-pmd-gold-checkout-card="table-order" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs muted">Review the items sent for this table.</p>
@@ -4405,11 +4375,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       type="button"
                       disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0}
                       onClick={handleSubmitTableDraft}
-                      whileHover={{ y: submitDraftLoading ? 0 : -1 }}
-                      whileTap={{ scale: submitDraftLoading ? 1 : 0.985 }}
                       aria-label="Send order to kitchen"
                       data-pmd-clean-send-kitchen="1"
-                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                      data-pmd-gold-checkout-action="primary"
+                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                       style={{
                         background: "#062F2A",
                         backgroundColor: "#062F2A",
@@ -4436,10 +4405,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <motion.button
                       type="button"
                       onClick={onClose}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.985 }}
                       data-pmd-clean-continue-ordering="1"
-                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent"
+                      data-pmd-gold-checkout-action="secondary"
+                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent"
                     >
                       Continue ordering
                     </motion.button>
@@ -4453,7 +4421,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             </motion.div>
           )}
 
-{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" data-pmd-gold-checkout-card="personal-review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12, ease: "easeOut" }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
           {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
@@ -5089,9 +5057,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             {checkoutStep === "payment" ? (
               <motion.div
                 key="payment-methods"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="space-y-3 pt-2"
               >
                 <h3 className="text-center text-sm">{t("paymentMethods")}</h3>
