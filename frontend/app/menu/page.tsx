@@ -36,6 +36,7 @@ import { MenuCategoryNavGold } from "@/customer/menu/MenuCategoryNavGold";
 import { MenuItemCardGold } from "@/customer/menu/MenuItemCardGold";
 import { MenuBottomBarGold } from "@/customer/menu/MenuBottomBarGold";
 import { MenuPageView } from "@/customer/menu/MenuPageView";
+import { CustomerLoadingState } from "@/customer/components/CustomerLoadingState";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
 import {
@@ -3726,13 +3727,13 @@ useEffect(() => {
   }, [tableInfo, searchParams, existingOrderId])
 
   if (!isClient) {
-    return <LoadingSpinner />
+    return <CustomerLoadingState page="menu" label="Loading menu..." />
   }
 
   return (
         <MenuPageView title={displayTableNumber ? `Table ${displayTableNumber}` : "Menu"} subtitle="Explore the menu and add your favourites.">
       <div className="pmd-customer-logo-area__mark"><Logo tableNumber={displayTableNumber} /></div>
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<CustomerLoadingState page="menu" label="Loading menu..." compact />}>
           <MenuCategoryNavGold
             categories={allCategories}
             selectedCategory={selectedCategory || "All"}

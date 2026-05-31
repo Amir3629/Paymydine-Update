@@ -23,22 +23,22 @@ export function ValetView({ logo, isSuccess, isSubmitting, formData, labels, onI
       <main className="pmd-customer-shell__inner pmd-customer-valet">
         <div className="pmd-customer-logo-area__mark">{logo}</div>
         {!isSuccess ? (
-          <CustomerCard className="p-5 sm:p-6">
+          <CustomerCard className="pmd-customer-valet-card">
             <CustomerHeader eyebrow="Valet" title={labels.valetService} subtitle={labels.valetAvailability} action={<span className="pmd-customer-badge"><Car aria-hidden="true" /> Service</span>} />
-            <form onSubmit={onSubmit} className="pmd-checkout-gold__stack">
-              <label className="pmd-checkout-gold__stack">
+            <form onSubmit={onSubmit} className="pmd-customer-valet-form">
+              <label className="pmd-customer-valet-field">
                 <span>{labels.enterName} *</span>
                 <CustomerInput id="name" value={formData.name} onChange={onInputChange} placeholder={labels.enterName} required />
               </label>
-              <label className="pmd-checkout-gold__stack">
+              <label className="pmd-customer-valet-field">
                 <span>{labels.licensePlate} *</span>
                 <CustomerInput id="plate" value={formData.plate} onChange={onInputChange} placeholder={labels.enterLicensePlate} required />
               </label>
-              <label className="pmd-checkout-gold__stack">
+              <label className="pmd-customer-valet-field">
                 <span>{labels.carDetails} <small className="pmd-customer-muted">{labels.optional}</small></span>
                 <CustomerInput id="car" value={formData.car} onChange={onInputChange} placeholder={labels.enterCarDetails} />
               </label>
-              <CustomerButton type="submit" variant="primary" disabled={isSubmitting}>{isSubmitting ? labels.submitting : labels.requestValet}</CustomerButton>
+              <CustomerButton className="pmd-customer-valet-submit" type="submit" variant="primary" disabled={isSubmitting}>{isSubmitting ? labels.submitting : labels.requestValet}</CustomerButton>
             </form>
           </CustomerCard>
         ) : (

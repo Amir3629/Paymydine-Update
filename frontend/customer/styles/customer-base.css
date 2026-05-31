@@ -581,3 +581,87 @@
 .pmd-customer-card .pmd-customer-header__subtitle { color: var(--pmd-customer-muted); }
 .pmd-customer-valet { max-width: 42rem; padding-top: clamp(1rem, 5vh, 3rem); }
 .pmd-customer-valet .pmd-customer-logo-area__mark { margin-bottom: 1.25rem; }
+
+[data-pmd-customer-app] .pmd-customer-loading-state {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding-block: clamp(2rem, 8vh, 5rem);
+}
+
+[data-pmd-customer-app] .pmd-customer-loading-card {
+  width: min(100%, 22rem);
+  border: 1px solid var(--pmd-customer-border);
+  border-radius: 1.5rem;
+  background: var(--pmd-customer-surface);
+  color: var(--pmd-customer-text);
+  box-shadow: var(--pmd-customer-shadow-card);
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+[data-pmd-customer-app] .pmd-customer-loading-card--compact {
+  min-height: 10rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-loading-spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 3px solid color-mix(in srgb, var(--pmd-customer-border) 72%, transparent);
+  border-top-color: var(--pmd-customer-primary);
+}
+
+[data-pmd-customer-app] .pmd-customer-valet {
+  width: min(100%, 44rem);
+  padding-top: clamp(2.25rem, 7vh, 4.5rem);
+  padding-bottom: clamp(2rem, 8vh, 5rem);
+}
+
+[data-pmd-customer-app] .pmd-customer-valet .pmd-customer-logo-area__mark {
+  margin-bottom: clamp(1.25rem, 4vw, 2rem);
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-card {
+  padding: clamp(1.5rem, 4vw, 2.35rem);
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-card .pmd-customer-header {
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-card .pmd-customer-header__action {
+  padding-top: 0.2rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-form {
+  display: grid;
+  gap: 1rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-field {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--pmd-customer-text);
+  font-weight: 700;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-submit {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  [data-pmd-customer-app] .pmd-customer-valet {
+    padding-top: 1.5rem;
+  }
+
+  [data-pmd-customer-app] .pmd-customer-valet-card .pmd-customer-header__action {
+    justify-self: start;
+  }
+}

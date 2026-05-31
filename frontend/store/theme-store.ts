@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { apiClient } from '@/lib/api-client'
 import { themes, applyTheme, getCurrentTheme, type Theme } from '@/lib/theme-system'
 import { buildSafeThemeOverrides } from '@/lib/theme-loader'
+import { shouldSkipLegacyThemeForGoldCustomer } from '@/lib/customer-route-guard'
 
 export interface ThemeSettings {
   theme_id: string
@@ -45,25 +46,24 @@ export const useThemeStore = create<ThemeStore>()(
       lastFetched: 0,
 
       setTheme: (themeId: string) => {
-        console.log('🎨 ThemeStore: Setting theme to:', themeId)
         set({ currentTheme: themeId })
         
-        // Apply theme – let CSS variables handle backgrounds
-        applyTheme(themeId)
+        if (!shouldSkipLegacyThemeForGoldCustomer()) {
+          // Apply theme – let CSS variables handle backgrounds
+          applyTheme(themeId)
+        }
         
         // Do NOT set any "forced" override flags; admin is the source of truth
       },
 
       loadSettings: async () => {
-        console.log('🔄 ThemeStore: Loading settings from admin...')
+        if (shouldSkipLegacyThemeForGoldCustomer()) return
         const now = Date.now()
 
         set({ isLoading: true })
         
         try {
-          console.log('🌐 ThemeStore: Calling API...')
           const response = await apiClient.getThemeSettings()
-          console.log('📡 ThemeStore: API response:', response)
           
           if (response.success && response.data) {
             const adminThemeId = response.data.theme_id || response.frontend_theme || 'clean-light'
@@ -78,8 +78,9 @@ export const useThemeStore = create<ThemeStore>()(
               isLoading: false 
             })
             
-            console.log('✅ ThemeStore: Applying admin theme:', adminThemeId, overrides)
-            applyTheme(adminThemeId, overrides)
+            if (!shouldSkipLegacyThemeForGoldCustomer()) {
+              applyTheme(adminThemeId, overrides)
+            }
           } else {
             console.log('⚠️ ThemeStore: No data in response')
             set({ isLoading: false })
