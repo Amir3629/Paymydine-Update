@@ -9,8 +9,12 @@ function readCssVar(style: CSSStyleDeclaration, name: string, fallback = "") {
   return style.getPropertyValue(name).trim() || fallback
 }
 
+function isCheckoutLockdownNode(el: Element | null | undefined) {
+  return !!el?.closest?.('[data-pmd-checkout-lockdown="1"]')
+}
+
 function setImportant(el: HTMLElement, prop: string, value: string) {
-  if (!value) return
+  if (!value || isCheckoutLockdownNode(el)) return
 
   const currentValue = el.style.getPropertyValue(prop).trim()
   const currentPriority = el.style.getPropertyPriority(prop)
@@ -195,7 +199,10 @@ export function LanguageSwitcher() {
 
       const applyToSelector = (selector: string, cb: (el: HTMLElement) => void) => {
         try {
-          document.querySelectorAll<HTMLElement>(selector).forEach(cb)
+          document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
+            if (isCheckoutLockdownNode(el)) return
+            cb(el)
+          })
         } catch {
           // Ignore selectors unsupported by the browser, such as :has in older engines.
         }

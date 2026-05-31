@@ -75,6 +75,7 @@ export default function RootLayout({
                 modalCardSelectors.forEach(selector => {
                   const elements = document.querySelectorAll(selector);
                   elements.forEach(element => {
+                    if (element.closest && element.closest('[data-pmd-checkout-lockdown="1"]')) return;
                     const rect = element.getBoundingClientRect();
                     // Make sure it's actually a modal card (not too small, not too big)
                     if (rect.width > 200 && rect.width < 600 && rect.height > 100 && rect.height < 500) {
@@ -85,6 +86,7 @@ export default function RootLayout({
                       
                       // Also fix text color for child elements
                       element.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div').forEach(child => {
+                        if (child.closest && child.closest('[data-pmd-checkout-lockdown="1"]')) return;
                         child.style.setProperty('color', colors.text, 'important');
                       });
                     }
@@ -100,6 +102,7 @@ export default function RootLayout({
                 backdropSelectors.forEach(selector => {
                   const elements = document.querySelectorAll(selector);
                   elements.forEach(element => {
+                    if (element.closest && element.closest('[data-pmd-checkout-lockdown="1"]')) return;
                     const rect = element.getBoundingClientRect();
                     // Make sure it's the backdrop (full screen size)
                     if (rect.width > window.innerWidth * 0.9 && rect.height > window.innerHeight * 0.9) {
@@ -159,6 +162,7 @@ export default function RootLayout({
                 infoCardSelectors.forEach(selector => {
                   const elements = document.querySelectorAll(selector);
                   elements.forEach(element => {
+                    if (element.closest && element.closest('[data-pmd-checkout-lockdown="1"]')) return;
                     const rect = element.getBoundingClientRect();
                     // Make sure it's an info card (reasonable size for kcal/allergen cards)
                     if (rect.width > 80 && rect.width < 250 && rect.height > 60 && rect.height < 120) {
@@ -172,6 +176,7 @@ export default function RootLayout({
                       
                       // Also fix text color for ALL child elements
                       element.querySelectorAll('*').forEach(child => {
+                        if (child.closest && child.closest('[data-pmd-checkout-lockdown="1"]')) return;
                         child.style.setProperty('color', colors.text, 'important');
                       });
                     }
@@ -215,6 +220,7 @@ export default function RootLayout({
                 modalSelectors.forEach(selector => {
                   const modals = document.querySelectorAll(selector);
                   modals.forEach(modal => {
+                    if (modal.closest && modal.closest('[data-pmd-checkout-lockdown="1"]')) return;
                     const rect = modal.getBoundingClientRect();
                     // Check if it's a waiter/note modal (reasonable size)
                     if (rect.width > 300 && rect.width < 600 && rect.height > 200 && rect.height < 500) {

@@ -4117,9 +4117,11 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.12 }}
+        data-pmd-checkout-lockdown="1"
         data-pmd-gold-checkout-modal="1"
         className="w-full max-w-md rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
         style={{ background: "var(--theme-background)", color: "#10201D", WebkitTextFillColor: "#10201D", border: "1px solid var(--theme-border)" }}
@@ -4128,6 +4130,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         <div className="p-4 pb-2 flex justify-between items-center rounded-2xl" data-pmd-gold-checkout-card="header">
           <Button
               data-pmd-order-status-back="1"
+              data-pmd-checkout-action="primary"
             variant="ghost"
             size="sm"
             onClick={() => {
@@ -4378,7 +4381,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview && (
-            <motion.div key="table-order-draft" data-pmd-gold-checkout-card="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "#10201D", WebkitTextFillColor: "#10201D" }}>
+            <motion.div key="table-order-draft" data-pmd-checkout-card="1" data-pmd-gold-checkout-card="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "#10201D", WebkitTextFillColor: "#10201D" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs muted">Review the items sent for this table.</p>
@@ -4420,7 +4423,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       onClick={handleSubmitTableDraft}
                       aria-label="Send order to kitchen"
                       data-pmd-clean-send-kitchen="1"
-                      data-pmd-gold-checkout-action="primary"
+                      data-pmd-checkout-action="primary" data-pmd-gold-checkout-action="primary"
                       className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                       style={{
                         background: "#062F2A",
@@ -4449,7 +4452,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       type="button"
                       onClick={onClose}
                       data-pmd-clean-continue-ordering="1"
-                      data-pmd-gold-checkout-action="secondary"
+                      data-pmd-checkout-action="secondary" data-pmd-gold-checkout-action="secondary"
                       className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-95 border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent"
                     >
                       Continue ordering
@@ -4457,14 +4460,14 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} data-pmd-checkout-action="secondary" className={modalSecondaryBtn}>
                   View order status
                 </button>
               ) : null}
             </motion.div>
           )}
 
-{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" data-pmd-gold-checkout-card="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" data-pmd-checkout-card="1" data-pmd-gold-checkout-card="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
           {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
@@ -4506,7 +4509,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   aria-label="Confirm items"
                   disabled={isLoading || allItems.length === 0}
                   onClick={handleConfirmMyItems}
-                  className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
+                  data-pmd-checkout-action="primary" className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
                 >
                   {isLoading ? "Confirming..." : "Confirm"}
                 </button>
@@ -4515,7 +4518,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   type="button"
                   data-pmd-review-continue="true"
                   onClick={onClose}
-                  className={modalSecondaryBtn}
+                  data-pmd-checkout-action="secondary" className={modalSecondaryBtn}
                 >
                   Continue ordering
                 </button>
@@ -4526,7 +4529,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           </AnimatePresence>
 
           {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
-            <motion.div data-pmd-gold-checkout-card="split" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="space-y-4">
+            <motion.div data-pmd-checkout-card="1" data-pmd-gold-checkout-card="split" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="space-y-4">
               <div className="rounded-3xl p-3 space-y-3" data-pmd-gold-checkout-card="split-panel" style={{ background: "var(--theme-surface)", color: "#10201D", WebkitTextFillColor: "#10201D" }}>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs muted">Share {formatCurrency(splitGrandTotal)} your way.</p>
@@ -4651,15 +4654,15 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       </div>
                       <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--theme-border)" }}><span className="font-semibold">Total</span><span className="font-bold">{formatCurrency(person.total)}</span></div>
                       {selectedSplitPersonId === person.id ? (
-                        <button type="button" onClick={() => setCheckoutStep("payment")} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Pay my share</button>
+                        <button type="button" onClick={() => setCheckoutStep("payment")} data-pmd-checkout-action="primary" className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Pay my share</button>
                       ) : (
                         <button type="button" onClick={() => setSelectedSplitPersonId(person.id)} className="w-full rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>Select payer</button>
                       )}
                     </div>
                   ))}
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => toast({ title: "Payment links ready", description: "Share links can be generated by the payment API when multi-device checkout is enabled." })} className={modalSecondaryBtn}><Link2 className="h-4 w-4" /> Send payment link to others</button>
-                    <button type="button" onClick={() => toast({ title: "QR share", description: "Ask guests to scan the table QR to pay their own share." })} className={modalSecondaryBtn}><QrCode className="h-4 w-4" /> Show QR/share link</button>
+                    <button type="button" onClick={() => toast({ title: "Payment links ready", description: "Share links can be generated by the payment API when multi-device checkout is enabled." })} data-pmd-checkout-action="secondary" className={modalSecondaryBtn}><Link2 className="h-4 w-4" /> Send payment link to others</button>
+                    <button type="button" onClick={() => toast({ title: "QR share", description: "Ask guests to scan the table QR to pay their own share." })} data-pmd-checkout-action="secondary" className={modalSecondaryBtn}><QrCode className="h-4 w-4" /> Show QR/share link</button>
                   </div>
                 </div>
               )}
@@ -4669,7 +4672,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div
               data-pmd-order-status-card="1"
-              data-pmd-gold-checkout-card="status"
+              data-pmd-checkout-card="1" data-pmd-gold-checkout-card="status"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -4863,7 +4866,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <motion.button
                       type="button"
                       onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
-                      data-pmd-gold-checkout-action="primary"
+                      data-pmd-checkout-action="primary" data-pmd-gold-checkout-action="primary"
                       className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition-opacity" style={modalPrimaryBtnStyle}
                     >
                       Pay in full <ArrowRight className="h-4 w-4" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
@@ -4871,7 +4874,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <motion.button
                       type="button"
                       onClick={() => startSplitFlow("equal")}
-                      data-pmd-gold-checkout-action="secondary"
+                      data-pmd-checkout-action="secondary" data-pmd-gold-checkout-action="secondary"
                       className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-opacity"
                       style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#10201D", WebkitTextFillColor: "#10201D", background: "transparent" }}
                     >
@@ -4886,7 +4889,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     onOpenOrderUpdate?.(submittedSnapshot || initialSubmittedOrder || null)
                     onClose()
                   }}
-                  className={modalSecondaryBtn}
+                  data-pmd-checkout-action="secondary" className={modalSecondaryBtn}
                 >
                   Continue ordering
                 </button>
@@ -4916,7 +4919,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   <div className="flex justify-center pt-1">
                     <img src="/assets/media/uploads/Paymydinelogo.png" alt="PayMyDine" className="max-h-7 max-w-[120px] opacity-70" />
                   </div>
-                  <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+                  <button type="button" onClick={onClose} data-pmd-checkout-action="secondary" className={modalSecondaryBtn}>Back to menu</button>
                 </div>
               )}
             </motion.div>
@@ -4924,7 +4927,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {checkoutStep === "payment" && (
             <>
-              <motion.div key="payment-card-header" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
+              <motion.div key="payment-card-header" data-pmd-checkout-card="1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="surface-sub rounded-2xl p-3 space-y-3">
                 <div
                   data-pmd-payment-header-copy-row="1"
                   className="flex items-center gap-3 rounded-2xl p-4"
@@ -5051,7 +5054,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {(tipSettings.percentages || []).map((p) => (
-                        <button key={p} type="button" onClick={() => updatePaymentTipPercentage(p)} className="rounded-full border px-3 py-1.5 text-xs font-semibold transition" style={paymentTipPercentage === p && !paymentCustomTip ? { background: "#062F2A", borderColor: "#062F2A", color: "#FFFFFF" } : { borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>{p}%</button>
+                        <button key={p} type="button" data-pmd-checkout-action={paymentTipPercentage === p && !paymentCustomTip ? "primary" : "secondary"} onClick={() => updatePaymentTipPercentage(p)} className="rounded-full border px-3 py-1.5 text-xs font-semibold transition" style={paymentTipPercentage === p && !paymentCustomTip ? { background: "#062F2A", borderColor: "#062F2A", color: "#FFFFFF" } : { borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>{p}%</button>
                       ))}
                       <div className="relative min-w-[96px] flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs muted">€</span>
@@ -5067,7 +5070,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   {!appliedCoupon || selectedSplitPerson ? (
                     <div className="flex gap-2">
                       <input type="text" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponError(null) }} placeholder="Coupon code" className="h-9 min-w-0 flex-1 rounded-full border bg-transparent px-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} disabled={couponLoading} />
-                      <button type="button" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
+                      <button type="button" data-pmd-checkout-action="secondary" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
                         if (!couponCode.trim()) return
                         if (selectedSplitPerson) {
                           setCouponError("Coupon validation for split payments is coming soon.")
@@ -5092,7 +5095,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   ) : (
                     <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
                       <span className="font-semibold">{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
-                      <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
+                      <button type="button" data-pmd-checkout-action="secondary" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
                     </div>
                   )}
                   {couponError && <p className="text-xs text-red-700">{couponError}</p>}
@@ -5103,7 +5106,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             {checkoutStep === "payment" ? (
               <motion.div
                 key="payment-methods"
-                data-pmd-gold-checkout-card="payment-methods"
+                data-pmd-checkout-card="1" data-pmd-gold-checkout-card="payment-methods"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -5118,7 +5121,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="text-sm muted">No payment methods available</div>
                   ) : (
                     visiblePaymentMethods.map((method) => (
-                      <div key={method.code} data-pmd-gold-checkout-action="secondary">
+                      <div key={method.code} data-pmd-checkout-action="secondary" data-pmd-gold-checkout-action="secondary">
                         <Button
                           variant="outline"
                           className="h-14 w-20 surface-sub hover:opacity-90 rounded-2xl shadow-sm flex items-center justify-center rounded-full"

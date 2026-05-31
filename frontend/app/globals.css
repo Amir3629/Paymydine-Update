@@ -11853,42 +11853,92 @@ html body [data-pmd-checkout-scroll="1"] [class*="text-white"]:not(button):not(b
 
 /* ========================================================= */
 
-/* =========================================================
-   PMD_CHECKOUT_SMOOTH_CARDS_SCOPED_FINAL
-   Checkout modal only: align color and -webkit-text-fill-color
-   before gold-luxury/runtime modal helpers can create a white flash.
-   ========================================================= */
-html body [data-pmd-gold-checkout-modal="1"],
-html body [data-pmd-gold-checkout-scroll="1"],
-html body [data-pmd-gold-checkout-card] {
+/* PMD_CHECKOUT_LOCKDOWN_V2 */
+[data-pmd-checkout-lockdown="1"] {
+  min-height: min(720px, 88vh) !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  animation: none !important;
+  transform: none !important;
+  transition-property: opacity, background-color, border-color, box-shadow !important;
+  transition-duration: 120ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-scroll="1"] {
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  animation: none !important;
+  transform: none !important;
+  transition-property: opacity, background-color, border-color, box-shadow !important;
+  transition-duration: 120ms !important;
+}
+
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-card="1"] {
+  min-height: 420px !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  animation: none !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  transition-property: opacity !important;
+  transition-duration: 120ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-card="1"] :is(h1, h2, h3, h4, p, span, strong, label, small, div),
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-scroll="1"] :is(h1, h2, h3, h4, p, span, strong, label, small, div) {
   color: #10201D !important;
   -webkit-text-fill-color: #10201D !important;
   text-shadow: none !important;
+  animation: none !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  transition-property: opacity !important;
+  transition-duration: 120ms !important;
 }
 
-html body [data-pmd-gold-checkout-scroll="1"] :is(h1, h2, h3, h4, p, span, strong, label, small, div),
-html body [data-pmd-gold-checkout-card] :is(h1, h2, h3, h4, p, span, strong, label, small, div) {
-  color: #10201D !important;
-  -webkit-text-fill-color: #10201D !important;
-  text-shadow: none !important;
-  transition: none !important;
-}
-
-html body [data-pmd-gold-checkout-scroll="1"] :is(.muted, .text-gray-500, .text-gray-600, [class*="text-gray"], [style*="theme-text-muted"]),
-html body [data-pmd-gold-checkout-card] :is(.muted, .text-gray-500, .text-gray-600, [class*="text-gray"], [style*="theme-text-muted"]) {
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-card="1"] :is(.muted, .hint, .text-gray-500, .text-gray-600, [class*="text-gray"], [style*="theme-text-muted"]),
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-scroll="1"] :is(.muted, .hint, .text-gray-500, .text-gray-600, [class*="text-gray"], [style*="theme-text-muted"]) {
   color: #6B7280 !important;
   -webkit-text-fill-color: #6B7280 !important;
 }
 
-html body [data-pmd-gold-checkout-scroll="1"] input,
-html body [data-pmd-gold-checkout-scroll="1"] textarea,
-html body [data-pmd-gold-checkout-scroll="1"] select {
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-scroll="1"] :is(input, textarea, select) {
+  background-color: #FFFFFF !important;
   color: #10201D !important;
   -webkit-text-fill-color: #10201D !important;
+  animation: none !important;
+  transform: none !important;
+  transition-property: opacity, background-color, border-color, box-shadow !important;
+  transition-duration: 120ms !important;
 }
 
-html body [data-pmd-gold-checkout-action="primary"],
-html body [data-pmd-gold-checkout-scroll="1"] button[data-pmd-gold-checkout-action="primary"] {
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-action] {
+  animation: none !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  text-shadow: none !important;
+  transition-property: background-color, border-color, opacity, box-shadow !important;
+  transition-duration: 120ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-action] :is(span, div, svg, path, rect, line, polyline, circle) {
+  animation: none !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  transition-property: opacity !important;
+  transition-duration: 120ms !important;
+}
+
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-action="primary"] {
   background: #062F2A !important;
   background-color: #062F2A !important;
   background-image: none !important;
@@ -11897,48 +11947,34 @@ html body [data-pmd-gold-checkout-scroll="1"] button[data-pmd-gold-checkout-acti
   -webkit-text-fill-color: #FFFFFF !important;
 }
 
-html body [data-pmd-gold-checkout-action="primary"] :is(span, svg, path),
-html body [data-pmd-gold-checkout-scroll="1"] button[data-pmd-gold-checkout-action="primary"] :is(span, svg, path) {
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-action="primary"] :is(span, div, svg, path, rect, line, polyline, circle) {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
   stroke: #FFFFFF !important;
 }
 
-html body [data-pmd-gold-checkout-action="secondary"],
-html body [data-pmd-gold-checkout-scroll="1"] button[data-pmd-gold-checkout-action="secondary"] {
-  background: transparent !important;
-  background-color: transparent !important;
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-action="secondary"] {
+  background: rgba(255,255,255,0.72) !important;
+  background-color: rgba(255,255,255,0.72) !important;
+  background-image: none !important;
+  border-color: rgba(16,32,29,0.18) !important;
   color: #10201D !important;
   -webkit-text-fill-color: #10201D !important;
 }
 
-html body [data-pmd-gold-checkout-action="secondary"] :is(span, svg, path),
-html body [data-pmd-gold-checkout-scroll="1"] button[data-pmd-gold-checkout-action="secondary"] :is(span, svg, path) {
+[data-pmd-checkout-lockdown="1"] [data-pmd-checkout-action="secondary"] :is(span, div, svg, path, rect, line, polyline, circle) {
   color: #10201D !important;
   -webkit-text-fill-color: #10201D !important;
   stroke: #10201D !important;
 }
 
-html body [data-pmd-gold-checkout-scroll="1"] [data-pmd-gold-checkout-card] {
-  min-height: clamp(14rem, 42vh, 24rem);
-}
-
-html body [data-pmd-gold-checkout-scroll="1"] [data-pmd-gold-checkout-card="header"],
-html body [data-pmd-gold-checkout-scroll="1"] [data-pmd-gold-checkout-card="split-panel"],
-html body [data-pmd-gold-checkout-scroll="1"] [data-pmd-gold-checkout-card="payment-methods"] {
-  min-height: 0;
-}
-
-html body [data-pmd-gold-checkout-scroll="1"] [data-pmd-gold-checkout-card],
-html body [data-pmd-gold-checkout-scroll="1"] [data-pmd-gold-checkout-action],
-html body [data-pmd-gold-checkout-scroll="1"] button {
-  transform: none !important;
-  animation: none !important;
-  transition-property: opacity, background-color, border-color, box-shadow !important;
-}
-
 @media (max-width: 640px) {
-  html body [data-pmd-gold-checkout-scroll="1"] [data-pmd-gold-checkout-card] {
-    min-height: clamp(11rem, 34vh, 18rem);
+  [data-pmd-checkout-lockdown="1"] {
+    min-height: 82vh !important;
+    max-height: 92vh !important;
+  }
+
+  [data-pmd-checkout-lockdown="1"] [data-pmd-checkout-card="1"] {
+    min-height: 360px !important;
   }
 }

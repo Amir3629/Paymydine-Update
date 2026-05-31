@@ -61,8 +61,12 @@ function isCleanLightTheme() {
   return values.includes("clean-light")
 }
 
+function isCheckoutLockdownNode(el: Element | null | undefined) {
+  return !!el?.closest?.('[data-pmd-checkout-lockdown="1"]')
+}
+
 function markGuarded(el: Element | null | undefined) {
-  if (!el) return
+  if (!el || isCheckoutLockdownNode(el)) return
   if (
     (el as HTMLElement).closest?.(
       ".pmd-v2-page, .pmd-v2-card, .pmd-v2-card-sub, .pmd-v2-action-circle, .pmd-v2-action-button"
@@ -72,13 +76,13 @@ function markGuarded(el: Element | null | undefined) {
 }
 
 function setImportant(el: HTMLElement | null | undefined, prop: string, value: string) {
-  if (!el) return
+  if (!el || isCheckoutLockdownNode(el)) return
   markGuarded(el)
   el.style.setProperty(prop, value, "important")
 }
 
 function setSvgImportant(el: SVGElement | null | undefined, prop: string, value: string) {
-  if (!el) return
+  if (!el || isCheckoutLockdownNode(el)) return
   markGuarded(el)
   el.style.setProperty(prop, value, "important")
 }
