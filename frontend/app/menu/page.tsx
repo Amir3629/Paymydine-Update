@@ -2400,14 +2400,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition-opacity hover:opacity-95 disabled:opacity-70 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "#062F2A",
+    backgroundColor: "#062F2A",
     color: "#FFFFFF",
+    WebkitTextFillColor: "#FFFFFF",
     textShadow: "none",
     border: "1px solid #062F2A",
   }
-  const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
+  const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:bg-[color:var(--theme-surface)] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
   const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white pmd-v2-action-circle hover:opacity-90"
   const toolbarIconBtnStyle: React.CSSProperties = {
     background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -3473,9 +3475,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         if (selectedProviderCode === "paypal") {
           return (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
               className="space-y-3 overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-4">
@@ -3550,9 +3553,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           if (selectedProviderCode === "worldline") {
             return (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
                 className="space-y-3 overflow-hidden"
               >
                 <div className="mb-2">
@@ -3603,9 +3607,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             const sumupCancelUrl = typeof window !== "undefined" ? window.location.href : "/menu"
             return (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
                 className="space-y-3 overflow-hidden"
               >
                 <SumUpHostedCheckout
@@ -3626,9 +3631,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           }
           return (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
               className="space-y-3 overflow-hidden"
             >
               <div className="mb-2">
@@ -3658,9 +3664,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
             className="space-y-3 overflow-hidden"
           >
             
@@ -3713,9 +3720,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       case "paypal":
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
             className="space-y-3 overflow-hidden"
           >
             
@@ -3801,9 +3809,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         if (!selectedPaymentMethod) return null
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
             className="space-y-3 overflow-hidden"
           >
             
@@ -3871,9 +3880,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       case "wero":
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
             className="space-y-3 overflow-hidden"
           >
             
@@ -3903,9 +3913,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 case "cod":
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
             className="space-y-3 overflow-hidden"
           >
             
@@ -4109,10 +4120,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+        data-pmd-gold-checkout-modal="1"
+        className="w-full max-w-md rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+        style={{ background: "var(--theme-background)", color: "#10201D", WebkitTextFillColor: "#10201D", border: "1px solid var(--theme-border)" }}
       >
         {/* Header with close button */}
-        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl">
+        <div className="p-4 pb-2 flex justify-between items-center rounded-2xl" data-pmd-gold-checkout-card="header">
           <Button
               data-pmd-order-status-back="1"
             variant="ghost"
@@ -4141,7 +4154,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div data-pmd-checkout-scroll="1" data-pmd-gold-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1">
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -4365,7 +4378,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview && (
-            <motion.div key="table-order-draft" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+            <motion.div key="table-order-draft" data-pmd-gold-checkout-card="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "#10201D", WebkitTextFillColor: "#10201D" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs muted">Review the items sent for this table.</p>
@@ -4405,11 +4418,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       type="button"
                       disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0}
                       onClick={handleSubmitTableDraft}
-                      whileHover={{ y: submitDraftLoading ? 0 : -1 }}
-                      whileTap={{ scale: submitDraftLoading ? 1 : 0.985 }}
                       aria-label="Send order to kitchen"
                       data-pmd-clean-send-kitchen="1"
-                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                      data-pmd-gold-checkout-action="primary"
+                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                       style={{
                         background: "#062F2A",
                         backgroundColor: "#062F2A",
@@ -4436,10 +4448,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <motion.button
                       type="button"
                       onClick={onClose}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.985 }}
                       data-pmd-clean-continue-ordering="1"
-                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent"
+                      data-pmd-gold-checkout-action="secondary"
+                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-95 border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent"
                     >
                       Continue ordering
                     </motion.button>
@@ -4453,7 +4464,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             </motion.div>
           )}
 
-{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" data-pmd-gold-checkout-card="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
           {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
@@ -4515,8 +4526,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           </AnimatePresence>
 
           {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-              <div className="surface-sub rounded-3xl p-3 space-y-3">
+            <motion.div data-pmd-gold-checkout-card="split" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="space-y-4">
+              <div className="rounded-3xl p-3 space-y-3" data-pmd-gold-checkout-card="split-panel" style={{ background: "var(--theme-surface)", color: "#10201D", WebkitTextFillColor: "#10201D" }}>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs muted">Share {formatCurrency(splitGrandTotal)} your way.</p>
                 </div>
@@ -4541,7 +4552,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </div>
 
               {checkoutStep !== "split-review" && (
-                <div className="surface-sub rounded-3xl p-3 space-y-3">
+                <div className="rounded-3xl p-3 space-y-3" data-pmd-gold-checkout-card="split-panel" style={{ background: "var(--theme-surface)", color: "#10201D", WebkitTextFillColor: "#10201D" }}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <span className="text-sm font-semibold">People</span>
@@ -4658,6 +4669,11 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div
               data-pmd-order-status-card="1"
+              data-pmd-gold-checkout-card="status"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
               className="relative mt-10 p-1 pt-10 space-y-4"
             >
               {(submittedSnapshot?.showCustomerEta ?? true) && (
@@ -4846,22 +4862,20 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <motion.button
                       type="button"
-                      whileHover={{ x: 2 }}
-                      whileTap={{ scale: 0.985 }}
                       onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
-                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition" style={modalPrimaryBtnStyle}
+                      data-pmd-gold-checkout-action="primary"
+                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition-opacity" style={modalPrimaryBtnStyle}
                     >
-                      Pay in full <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
+                      Pay in full <ArrowRight className="h-4 w-4" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
                     </motion.button>
                     <motion.button
                       type="button"
-                      whileHover={{ x: 2 }}
-                      whileTap={{ scale: 0.985 }}
                       onClick={() => startSplitFlow("equal")}
-                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
-                      style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}
+                      data-pmd-gold-checkout-action="secondary"
+                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-opacity"
+                      style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#10201D", WebkitTextFillColor: "#10201D", background: "transparent" }}
                     >
-                      <Users className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
+                      <Users className="h-4 w-4" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
                     </motion.button>
                     </div>
                   </div>
@@ -5089,9 +5103,11 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             {checkoutStep === "payment" ? (
               <motion.div
                 key="payment-methods"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                data-pmd-gold-checkout-card="payment-methods"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
                 className="space-y-3 pt-2"
               >
                 <h3 className="text-center text-sm">{t("paymentMethods")}</h3>
@@ -5102,7 +5118,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="text-sm muted">No payment methods available</div>
                   ) : (
                     visiblePaymentMethods.map((method) => (
-                      <motion.div key={method.code} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <div key={method.code} data-pmd-gold-checkout-action="secondary">
                         <Button
                           variant="outline"
                           className="h-14 w-20 surface-sub hover:opacity-90 rounded-2xl shadow-sm flex items-center justify-center rounded-full"
@@ -5159,7 +5175,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                             />
                           )}
                         </Button>
-                      </motion.div>
+                      </div>
                     ))
                   )}
                 </div>
