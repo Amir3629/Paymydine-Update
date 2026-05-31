@@ -573,3 +573,11 @@
 .pmd-customer-menu-card__desc { margin: 0; color: var(--pmd-customer-muted); }
 .pmd-customer-menu-card__footer, .pmd-customer-menu-bottom { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .pmd-customer-menu-detail__media { overflow: hidden; border-radius: 1rem; background: var(--pmd-customer-soft); }
+.pmd-customer-menu-bottom > div:first-child { display: grid; gap: 0.15rem; }
+.pmd-customer-menu-bottom__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+.pmd-customer-menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding-bottom: 7rem; }
+@media (max-width: 760px) { .pmd-customer-menu-grid { grid-template-columns: 1fr; } .pmd-customer-menu-bottom { align-items: stretch; flex-direction: column; } .pmd-customer-menu-bottom__actions { justify-content: stretch; } .pmd-customer-menu-bottom__actions .pmd-customer-button { flex: 1 1 auto; } }
+.pmd-customer-card .pmd-customer-header__title { color: var(--pmd-customer-text); font-size: clamp(1.65rem, 5vw, 2.55rem); line-height: 1.05; }
+.pmd-customer-card .pmd-customer-header__subtitle { color: var(--pmd-customer-muted); }
+.pmd-customer-valet { max-width: 42rem; padding-top: clamp(1rem, 5vh, 3rem); }
+.pmd-customer-valet .pmd-customer-logo-area__mark { margin-bottom: 1.25rem; }

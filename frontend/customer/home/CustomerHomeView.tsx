@@ -4,12 +4,12 @@ import { CustomerShell } from "../components/CustomerShell"
 import { CustomerLogoArea } from "../components/CustomerLogoArea"
 import { CustomerActionTile } from "./CustomerActionTile"
 
-export function CustomerHomeView({ logo, menuLabel, valetLabel }: { logo?: ReactNode; menuLabel: string; valetLabel: string }) {
+export function CustomerHomeView({ logo, restaurantName = "Welcome", poweredBy = "Powered by PayMyDine", menuLabel, valetLabel }: { logo?: ReactNode; restaurantName?: string; poweredBy?: string; menuLabel: string; valetLabel: string }) {
   return (
     <CustomerShell page="home">
       <main className="pmd-customer-home">
         <section className="pmd-customer-home__content">
-          <CustomerLogoArea name="PayMyDine" tagline="A warm, refined dining experience">
+          <CustomerLogoArea name={restaurantName} tagline={poweredBy}>
             {logo}
           </CustomerLogoArea>
           <div className="pmd-customer-action-grid">

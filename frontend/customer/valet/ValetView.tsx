@@ -20,7 +20,7 @@ export function ValetView({ logo, isSuccess, isSubmitting, formData, labels, onI
 }) {
   return (
     <CustomerShell page="valet">
-      <main className="pmd-customer-shell__inner" style={{ maxWidth: "34rem" }}>
+      <main className="pmd-customer-shell__inner pmd-customer-valet">
         <div className="pmd-customer-logo-area__mark">{logo}</div>
         {!isSuccess ? (
           <CustomerCard className="p-5 sm:p-6">

@@ -22,7 +22,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { Elements, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 import { loadStripe } from "@stripe/stripe-js";
 import { cn, truncateText } from "@/lib/utils";
@@ -33,6 +32,10 @@ import { iconForPayment } from "@/lib/payment-icons";
 import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import CheckoutFlowGold from "@/customer/checkout/CheckoutFlowGold";
+import { MenuCategoryNavGold } from "@/customer/menu/MenuCategoryNavGold";
+import { MenuItemCardGold } from "@/customer/menu/MenuItemCardGold";
+import { MenuBottomBarGold } from "@/customer/menu/MenuBottomBarGold";
+import { MenuPageView } from "@/customer/menu/MenuPageView";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
 import {
@@ -638,11 +641,7 @@ function OrderItemWithOptions({
           </button>
           
           {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.28 }}
+            <div
               className="overflow-hidden"
             >
               <div className="p-2 space-y-3 bg-paydine-rose-beige/5">
@@ -691,7 +690,7 @@ function OrderItemWithOptions({
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
         </div>
       )}
@@ -2325,11 +2324,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       case "card":
         if (selectedProviderCode === "paypal") {
           return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
+            <div
               className="space-y-3 overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-4">
@@ -2396,18 +2391,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   />
                 </PayPalScriptProvider>
               )}
-            </motion.div>
+            </div>
           )
         }
 
         if (selectedProviderCode && selectedProviderCode !== "stripe") {
           if (selectedProviderCode === "worldline") {
             return (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
+              <div
                 className="space-y-3 overflow-hidden"
               >
                 <div className="mb-2">
@@ -2448,7 +2439,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                     })
                   }}
                 />
-              </motion.div>
+              </div>
             )
           }
           if (selectedProviderCode === "sumup") {
@@ -2457,11 +2448,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               : "/payment/sumup/complete"
             const sumupCancelUrl = typeof window !== "undefined" ? window.location.href : "/menu"
             return (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
+              <div
                 className="space-y-3 overflow-hidden"
               >
                 <SumUpHostedCheckout
@@ -2477,15 +2464,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                     {providerInlineError}
                   </div>
                 )}
-              </motion.div>
+              </div>
             )
           }
           return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
+            <div
               className="space-y-3 overflow-hidden"
             >
               <div className="mb-2">
@@ -2509,16 +2492,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   {providerInlineError}
                 </div>
               )}
-            </motion.div>
+            </div>
           )
         }
 
         return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+          <div
             className="space-y-3 overflow-hidden"
           >
             
@@ -2565,16 +2544,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               </div>
             )}
 
-          </motion.div>
+          </div>
         )
 
       case "paypal":
         return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+          <div
             className="space-y-3 overflow-hidden"
           >
             
@@ -2652,18 +2627,14 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 />
               </PayPalScriptProvider>
             )}
-          </motion.div>
+          </div>
         )
 
       case "apple_pay":
       case "google_pay":
         if (!selectedPaymentMethod) return null
         return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+          <div
             className="space-y-3 overflow-hidden"
           >
             
@@ -2725,16 +2696,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                   : "Google Pay is not enabled for this restaurant."}
               </div>
             )}
-          </motion.div>
+          </div>
         )
 
       case "wero":
         return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+          <div
             className="space-y-3 overflow-hidden"
           >
             
@@ -2758,16 +2725,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
                 {providerInlineError}
               </div>
             )}
-          </motion.div>
+          </div>
         )
 
 case "cod":
         return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+          <div
             className="space-y-3 overflow-hidden"
           >
             
@@ -2797,7 +2760,7 @@ case "cod":
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )
 
       default:
@@ -3168,941 +3131,51 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
   const addToCart = useCartStore((state) => state.addToCart)
   const { items } = useCartStore()
   const { t } = useLanguageStore()
-  
-  // NOTE: item.price from filteredItems is already adjusted, so we don't adjust again
-
-  // Get current quantity for this item
   const currentItem = items.find(cartItem => cartItem.item.id === item.id)
   const quantity = currentItem?.quantity || 0
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    // IMPORTANT: item from filteredItems has adjusted price, but cart needs ORIGINAL price
-    // So we need to revert the price adjustment before adding to cart
+  const handleAdd = () => {
     const { taxSettings } = useCmsStore.getState()
-    let itemToAdd = { ...item }
-    
+    const itemToAdd = { ...item }
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // Revert the adjustment: divide by (1 + VAT%)
       itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
-      // Also revert option prices
       if (itemToAdd.options) {
         itemToAdd.options = itemToAdd.options.map(option => ({
           ...option,
-          values: option.values.map(value => ({
-            ...value,
-            price: value.price / (1 + taxSettings.percentage / 100)
-          }))
+          values: option.values.map(value => ({ ...value, price: value.price / (1 + taxSettings.percentage / 100) }))
         }))
       }
     }
-    
     addToCart(itemToAdd)
-    if (quantity === 0) {
-      onFirstAdd()
-    }
+    if (quantity === 0) onFirstAdd()
   }
 
   const itemName = item.nameKey && t(item.nameKey as TranslationKey) ? t(item.nameKey as TranslationKey) : item.name
   const itemDescription = item.descriptionKey && t(item.descriptionKey as TranslationKey) ? t(item.descriptionKey as TranslationKey) : item.description
-  const truncatedDescription = truncateText(itemDescription || '', 66)
+  const image = (
+    <OptimizedImage
+      src={item.image || (Array.isArray((item as any).images) ? (item as any).images[0] : "") || "/placeholder.svg"}
+      alt={itemName}
+      fill
+      priority={prioritizeImage}
+      className="object-contain"
+    />
+  )
 
   return (
-    <div
-      className="flex items-center space-x-4 group cursor-pointer"
-      onClick={() => onSelect(item)}
-    >
-      <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
-        <OptimizedImage
-          src={item.image || (Array.isArray((item as any).images) ? (item as any).images[0] : "") || "/placeholder.svg"}
-          alt={itemName}
-          fill
-          priority={prioritizeImage}
-          className="object-contain transition-transform duration-700 ease-in-out group-hover:scale-110"
-        />
-      </div>
-      <div className="flex-grow">
-        <h3 dir={getTextDirection(itemName)} className={`text-lg font-bold text-paydine-elegant-gray ${getTextAlignClass(itemName)}`}>{itemName}</h3>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <FoodAttributeTags
-            halal={item.halal}
-            vegetarian={item.vegetarian}
-            vegan={item.vegan}
-            allergens={item.allergens}
-            allergyTags={item.allergy_tags}
-            compact
-          />
-          <FoodItemColorDot color={item.color} label={`${itemName} color`} />
-          <FoodNutritionSummary
-            calories={item.calories}
-            protein={item.protein}
-            carbs={item.carbs}
-            fat={item.fat}
-            sugar={item.sugar}
-            servingSize={item.serving_size}
-            compact
-          />
-        </div>
-        <p dir={getTextDirection(truncatedDescription)} className={`text-sm text-gray-500 mt-1 line-clamp-2 ${getTextAlignClass(truncatedDescription)}`}>{truncatedDescription}</p>
-        <div className="flex justify-between items-center mt-2">
-        <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
-          <div className="relative">
-            <button
-              className="quantity-btn pmd-v2-action-circle w-12 h-12 font-bold text-lg"
-              onClick={handleAdd}
-            >
-              {quantity > 0 ? (
-                <span className="text-lg font-bold">{quantity}</span>
-              ) : (
-                <Plus className="h-5 w-5" strokeWidth={3.5} />
-              )}
-              <span className="sr-only">Add to cart</span>
-            </button>
-            {quantity > 0 && (
-                <button
-                  className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10 pmd-v2-action-circle"
-style={{
-  top: "-0.72rem",
-  right: "-0.72rem",
-  width: "1.55rem",
-  height: "1.55rem",
-  minWidth: "1.55rem",
-  minHeight: "1.55rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "9999px",
-  border: "1px solid var(--pmd-v2-action-border)",
-  background: "var(--pmd-v2-action-bg)",
-  color: "var(--pmd-v2-action-text)",
-  WebkitTextFillColor: "var(--pmd-v2-action-text)",
-  lineHeight: "1",
-  fontWeight: 800,
-  fontSize: "0.9rem",
-  padding: 0,
-  boxShadow: "none"
-}}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAdd(e);
-                }}
-                aria-label="Increase quantity"
-              data-pmd-item-card-plus="1"
-              >
-                +
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <MenuItemCardGold
+      name={itemName}
+      description={truncateText(itemDescription || "", 96)}
+      price={formatCurrency(item.price || 0)}
+      image={image}
+      quantity={quantity}
+      onSelect={() => onSelect(item)}
+      onAdd={handleAdd}
+    />
   )
 }
 
-function ExpandingBottomToolbar({
-  toolbarState,
-  setToolbarState,
-  showBillArrow,
-  items,
-  totalPrice,
-  t,
-  onCartClick,
-  onWaiterClick,
-  onNoteClick,
-  onOrderClick,
-  orderCount = 0,
-  waiterDisabled = false,
-  noteDisabled = false,
-  totalItems,
-  themeBackgroundColor,
-}: ExpandingBottomToolbarProps) {
-  const { taxSettings } = useCmsStore()
-  
-  // Helper to adjust price if VAT is included
-  const adjustPrice = (price: number): number => {
-    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      return price * (1 + taxSettings.percentage / 100)
-    }
-    return price
-  }
-  // Heights for each state
-  const collapsedHeight = 76
-  const previewHeight = 180
-  const expandedHeight = 420
-  const hasToolbarContent = items.length > 0
-  const showOrderAction = typeof onOrderClick === "function"
-  const toolbarIconBtnStyle: React.CSSProperties = {
-    background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
-    border: "1px solid var(--theme-border)",
-    color: "var(--theme-text-primary)",
-    boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-    borderRadius: "9999px",
-  }
-  const effectiveToolbarState = hasToolbarContent ? toolbarState : "collapsed"
-
-  let height = collapsedHeight
-  if (effectiveToolbarState === "preview") height = previewHeight
-  if (effectiveToolbarState === "expanded") height = expandedHeight
-
-  // Phase 2B: customer toolbar styling is handled by scoped Gold CSS, not runtime theme mutation.
-
-  return (
-    <motion.div
-      className="fixed bottom-[1.35rem] left-1/2 -translate-x-1/2 w-full max-w-[23.04rem] z-40 px-2"
-      animate={
-        toolbarState === "expanded"
-          ? { height: "auto" }
-          : { height }
-      }
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      style={{ pointerEvents: "auto" }}
-    >
-      <div
-        className="
-          relative flex flex-col w-full h-full
-          
-          rounded-[2.5rem] shadow-2xl border border-white/30 ring-1 ring-paydine-champagne/10
-        "
-        style={{ 
-          minHeight: 76, 
-          height: "100%",
-          background: "var(--pmd-v2-page-bg, var(--theme-background))",
-          backgroundColor: "var(--pmd-v2-page-bg, var(--theme-background))",
-          opacity: 1
-        }}
-      >
-        {/* Arrow for expanding/collapsing bill */}
-        {showBillArrow && (
-          <button
-            type="button"
-            data-pmd-show-bill-toggle="1"
-            ref={(el) => {
-              if (!el) return
-
-              const applyPmdShowBillToggle = () => {
-                el.style.setProperty("width", "36px", "important")
-                el.style.setProperty("height", "36px", "important")
-                el.style.setProperty("min-width", "36px", "important")
-                el.style.setProperty("min-height", "36px", "important")
-                el.style.setProperty("background", "#062F2A", "important")
-                el.style.setProperty("background-color", "#062F2A", "important")
-                el.style.setProperty("background-image", "none", "important")
-                el.style.setProperty("color", "#FFFFFF", "important")
-                el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                el.style.setProperty("border", "1px solid #062F2A", "important")
-                el.style.setProperty("border-color", "#062F2A", "important")
-                el.style.setProperty("outline-color", "#062F2A", "important")
-                el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.22)", "important")
-                el.style.setProperty("opacity", "1", "important")
-                el.style.setProperty("filter", "none", "important")
-                el.style.setProperty("transform", "translateX(-50%)", "important")
-
-                el.querySelectorAll("svg, svg *").forEach((node) => {
-                  const svgEl = node as HTMLElement
-                  svgEl.style.setProperty("width", "16px", "important")
-                  svgEl.style.setProperty("height", "16px", "important")
-                  svgEl.style.setProperty("color", "#FFFFFF", "important")
-                  svgEl.style.setProperty("stroke", "#FFFFFF", "important")
-                  svgEl.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                  svgEl.style.setProperty("fill", "none", "important")
-                })
-              }
-
-              applyPmdShowBillToggle()
-
-              if (el.dataset.pmdShowBillToggleLock !== "1") {
-                el.dataset.pmdShowBillToggleLock = "1"
-
-                let busy = false
-                const observer = new MutationObserver(() => {
-                  if (busy) return
-                  busy = true
-                  requestAnimationFrame(() => {
-                    applyPmdShowBillToggle()
-                    busy = false
-                  })
-                })
-
-                observer.observe(el, {
-                  attributes: true,
-                  childList: true,
-                  subtree: true,
-                  attributeFilter: ["style", "class", "aria-label"],
-                })
-
-                ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                  window.setTimeout(applyPmdShowBillToggle, delay)
-                })
-              }
-            }}
-            onClick={() => setToolbarState(toolbarState === "expanded" ? "preview" : "expanded")}
-            className="absolute left-1/2 -top-4 z-10 flex items-center justify-center rounded-full shadow border transition-all pmd-show-bill-toggle-button"
-            aria-label={toolbarState === "expanded" ? "Hide bill" : "Show bill"}
-          >
-            {toolbarState === "expanded" ? (
-              <ChevronDown className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
-            ) : (
-              <ChevronUp className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
-            )}
-          </button>
-        )}
-
-        {/* Bill preview/expanded */}
-        <AnimatePresence initial={false} mode="popLayout">
-          {hasToolbarContent && (effectiveToolbarState === "preview" || effectiveToolbarState === "expanded") && (
-            <motion.div
-              key="bill"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full px-6 pt-8 pb-2 scrollbar-hide"
-              style={{
-                maxHeight: effectiveToolbarState === "expanded" ? 320 : 90,
-                overflowY: effectiveToolbarState === "expanded" ? "auto" : "visible",
-                height: effectiveToolbarState === "expanded" ? "auto" : undefined,
-                msOverflowStyle: "none",
-                scrollbarWidth: "none",
-              }}
-            >
-              <div className="flex flex-col">
-                <div className="space-y-2">
-                  <AnimatePresence initial={false} mode="popLayout">
-                    {items.slice(effectiveToolbarState === "preview" ? -1 : 0).map((item: CartItem) => (
-                      <motion.div
-                        key={item.item.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{
-                          opacity: 1,
-                          scale: 1,
-                          transition: { duration: 0.25 }
-                        }}
-                        exit={{
-                          opacity: 0,
-                          scale: 0.95,
-                          transition: { duration: 0.18 }
-                        }}
-                        className="flex items-center justify-between py-2 bottom-toolbar-item-border"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <motion.div
-                            className="relative w-12 h-12"
-                            initial={{ scale: 0.8 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0.8 }}
-                          >
-                <OptimizedImage
-                              src={item.item.image || "/placeholder.svg"}
-                              alt={item.item.name}
-                              fill
-                              className="rounded-xl object-cover"
-                            />
-                          </motion.div>
-                          <div>
-                            <motion.div
-                              className="font-medium text-paydine-elegant-gray text-base"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                            >
-                              {item.item.name}
-                            </motion.div>
-                            <motion.div
-                              className="text-sm text-gray-500"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                            >
-          {formatCurrency(adjustPrice(item.item.price || 0))} × {item.quantity}
-                            </motion.div>
-                          </div>
-                        </div>
-                        <motion.div
-                          className="font-semibold menu-item-price pmd-customer-price text-lg"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                        >
-          {formatCurrency(adjustPrice(item.item.price || 0) * item.quantity)}
-                        </motion.div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-                {/* Show total only in expanded */}
-                {effectiveToolbarState === "expanded" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="mt-4 rounded-2xl p-4"
-                    style={{ background: "color-mix(in srgb, var(--theme-surface) 88%, #fffaf0 12%)", border: "1px solid color-mix(in srgb, #b88940 22%, var(--theme-border) 78%)", boxShadow: "0 8px 18px rgba(6, 47, 42, 0.06)" }}
-                  >
-                    <div className="flex justify-between items-center">
-                      <motion.span
-                        className="font-bold text-paydine-elegant-gray text-lg"
-                        initial={{ x: -10, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                      >
-                        Total
-                      </motion.span>
-                      <motion.span
-                        className="font-bold text-2xl pmd-customer-price"
-                        initial={{ x: 10, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                      >
-        {formatCurrency(totalPrice)}
-                      </motion.span>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Toolbar buttons (always visible at the bottom) */}
-        <div
-          className="flex items-center justify-between gap-5 px-6 py-4"
-          style={{
-            minHeight: 76,
-            borderBottomLeftRadius: "2.5rem",
-            borderBottomRightRadius: "2.5rem",
-            background: "transparent",
-            marginTop: "auto",
-          }}
-        >
-          <ActionTooltip label="Call waiter">
-          <motion.button
-            whileTap={{ scale: waiterDisabled ? 1 : 0.92 }}
-            whileHover={{ scale: waiterDisabled ? 1 : 1.12 }}
-            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{
-              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
-              border: "1px solid var(--theme-border)",
-              color: "var(--theme-text-primary)",
-              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-              borderRadius: "9999px",
-            }}
-            onClick={waiterDisabled ? undefined : onWaiterClick}
-            disabled={waiterDisabled}
-            aria-label={t("callWaiter")}
-          >
-            <HandPlatter className="h-7 w-7" style={{ color: waiterDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </motion.button>
-          </ActionTooltip>
-          <ActionTooltip label="Add note">
-          <motion.button
-            whileTap={{ scale: noteDisabled ? 1 : 0.92 }}
-            whileHover={{ scale: noteDisabled ? 1 : 1.12 }}
-            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{
-              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
-              border: "1px solid var(--theme-border)",
-              color: "var(--theme-text-primary)",
-              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-              borderRadius: "9999px",
-            }}
-            onClick={noteDisabled ? undefined : onNoteClick}
-            disabled={noteDisabled}
-            aria-label={t("leaveNote")}
-          >
-            <NotebookPen className="h-7 w-7" style={{ color: noteDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </motion.button>
-          </ActionTooltip>
-
-          <ActionTooltip label="Checkout">
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.12 }}
-            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
-            style={{
-              background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
-              border: "1px solid var(--theme-border)",
-              color: "var(--theme-text-primary)",
-              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-              borderRadius: "9999px",
-            }}
-            onClick={onCartClick}
-            aria-label={t("viewCart")}
-          >
-            <ShoppingCart className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
-            {totalItems > 0 && (
-              <span 
-                data-pmd-menu-cart-badge="1"
-                ref={(el) => {
-                  if (!el) return
-
-                  const applyPmdBadgeColor = () => {
-                    el.style.setProperty("background", "#b88940", "important")
-                    el.style.setProperty("background-color", "#b88940", "important")
-                    el.style.setProperty("background-image", "none", "important")
-                    el.style.setProperty("color", "#FFFFFF", "important")
-                    el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                    el.style.setProperty("border", "1px solid #b88940", "important")
-                    el.style.setProperty("border-color", "#b88940", "important")
-                    el.style.setProperty("outline-color", "#b88940", "important")
-                    el.style.setProperty("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.15)", "important")
-                    el.style.setProperty("filter", "none", "important")
-                    el.style.setProperty("text-shadow", "none", "important")
-                  }
-
-                  applyPmdBadgeColor()
-
-                  if (el.dataset.pmdBadgeColorLock !== "1") {
-                    el.dataset.pmdBadgeColorLock = "1"
-
-                    let busy = false
-                    const observer = new MutationObserver(() => {
-                      if (busy) return
-                      busy = true
-                      requestAnimationFrame(() => {
-                        applyPmdBadgeColor()
-                        busy = false
-                      })
-                    })
-
-                    observer.observe(el, {
-                      attributes: true,
-                      attributeFilter: ["style", "class"],
-                    })
-
-                    ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                      window.setTimeout(applyPmdBadgeColor, delay)
-                    })
-                  }
-                }}
-                className="cart-badge pmd-v2-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
-                style={{
-                  background: "#b88940",
-                  backgroundColor: "#b88940",
-                  backgroundImage: "none",
-                  color: "#FFFFFF",
-                  WebkitTextFillColor: "#FFFFFF",
-                  border: "1px solid #b88940",
-                  borderColor: "#b88940",
-                  outlineColor: "#b88940",
-                  zIndex: 9999999,
-                }}>
-                {totalItems}
-              </span>
-            )}
-          </motion.button>
-          </ActionTooltip>
-          <AnimatePresence initial={false}>
-          {showOrderAction && (
-          <ActionTooltip label="Table order">
-          <motion.button
-            key="table-order-action"
-            initial={{ opacity: 0, scale: 0.8, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 8 }}
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.12 }}
-            className="h-12 w-12 flex items-center justify-center relative focus:outline-none transition-all"
-            data-pmd-bottom-table-order="1"
-            ref={(el) => {
-              if (!el) return
-
-              const cleanTableOrderButton = () => {
-                /*
-                 * Keep this button visually like the other bottom actions:
-                 * - no green active circle
-                 * - no inner text
-                 * - dark icon
-                 * - gold badge
-                 * IMPORTANT: do NOT touch transform, so Framer hover still works.
-                 */
-                el.style.setProperty("background", "transparent", "important")
-                el.style.setProperty("background-color", "transparent", "important")
-                el.style.setProperty("background-image", "none", "important")
-                el.style.setProperty("border", "1px solid transparent", "important")
-                el.style.setProperty("border-color", "transparent", "important")
-                el.style.setProperty("box-shadow", "none", "important")
-                el.style.setProperty("outline", "0", "important")
-                el.style.setProperty("color", "#0D1B1E", "important")
-                el.style.setProperty("-webkit-text-fill-color", "#0D1B1E", "important")
-
-                el.querySelectorAll("svg, svg *, path").forEach((node) => {
-                  const svgNode = node as HTMLElement
-                  svgNode.style.setProperty("color", "#0D1B1E", "important")
-                  svgNode.style.setProperty("stroke", "#0D1B1E", "important")
-                  svgNode.style.setProperty("-webkit-text-fill-color", "#0D1B1E", "important")
-                  svgNode.style.setProperty("background", "transparent", "important")
-                  svgNode.style.setProperty("background-color", "transparent", "important")
-                  svgNode.style.setProperty("box-shadow", "none", "important")
-                })
-
-                const badge = el.querySelector("span.absolute") as HTMLElement | null
-                if (badge) {
-                  badge.style.setProperty("background", "#b88940", "important")
-                  badge.style.setProperty("background-color", "#b88940", "important")
-                  badge.style.setProperty("color", "#FFFFFF", "important")
-                  badge.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                  badge.style.setProperty("border", "1px solid #b88940", "important")
-                  badge.style.setProperty("border-radius", "9999px", "important")
-                }
-              }
-
-              cleanTableOrderButton()
-
-              if (el.dataset.pmdTableOrderCleanLock !== "1") {
-                el.dataset.pmdTableOrderCleanLock = "1"
-
-                const observer = new MutationObserver(() => {
-                  requestAnimationFrame(cleanTableOrderButton)
-                })
-
-                observer.observe(el, {
-                  attributes: true,
-                  attributeFilter: ["style", "class"],
-                  subtree: true,
-                })
-
-                ;[0, 16, 80, 180, 400, 900, 1600].forEach((delay) => {
-                  window.setTimeout(cleanTableOrderButton, delay)
-                })
-              }
-            }}
-            style={{
-              background: "transparent",
-              backgroundColor: "transparent",
-              backgroundImage: "none",
-              border: "1px solid transparent",
-              color: "#FFFFFF",
-              WebkitTextFillColor: "#FFFFFF",
-              boxShadow: "none",
-            }}
-            onClick={onOrderClick}
-            aria-label="Table order"
-          >
-            <ReceiptText
-              className="h-7 w-7"
-              style={{
-                color: "#FFFFFF",
-                stroke: "#0D1B1E",
-                WebkitTextFillColor: "#FFFFFF",
-              }}
-            />
-            {orderCount > 0 && (
-              <span
-                className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md"
-                style={{
-                  background: "#b88940",
-                  backgroundColor: "#b88940",
-                  color: "#FFFFFF",
-                  WebkitTextFillColor: "#FFFFFF",
-                  border: "1px solid #b88940",
-                  borderRadius: "9999px",
-                }}
-              >
-                {orderCount > 9 ? "9+" : orderCount}
-              </span>
-            )}
-          </motion.button>
-          </ActionTooltip>
-          )}
-          </AnimatePresence>
-          
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-function LoadingSpinner() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="w-8 h-8 border-4 border-paydine-champagne border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  )
-}
-
-// Enhanced Waiter Dialog Component
-const EnhancedWaiterDialog = ({
-  isOpen,
-  onOpenChange,
-  tableId,
-  tableName,
-}: {
-  isOpen: boolean
-  onOpenChange: (isOpen: boolean) => void
-  tableId: string
-  tableName?: string
-}) => {
-  const { t } = useLanguageStore()
-  const { toast } = useToast()
-  const [dialogState, setDialogState] = useState<"confirming" | "confirmed" | "closing">("confirming")
-  const [showSuccess, setShowSuccess] = useState(false)
-
-  const handleConfirm = async () => {
-    // Backend needs a non-empty string; use "." when user leaves it blank
-    const msg = '.';
-    const resolvedTableId = tableId || "delivery";
-    if (process.env.NODE_ENV !== "production") {
-      console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? "table" : "delivery_menu" });
-    }
-    try {
-      await apiClient.callWaiter(String(resolvedTableId), msg);
-      toast({ title: 'Waiter Called', description: tableId ? 'We are on the way!' : 'We received your assistance request.' });
-    } catch (e: any) {
-      toast({ title: 'Error', description: (e?.message || 'Failed to call waiter'), variant: 'destructive' });
-      throw e;
-    }
-    
-    setDialogState("confirmed")
-    setShowSuccess(true)
-    
-    await new Promise(resolve => setTimeout(resolve, 800))
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setShowSuccess(false)
-    await new Promise(resolve => setTimeout(resolve, 300))
-    onOpenChange(false)
-    setDialogState("confirming")
-  }
-
-  const handleClose = async () => {
-    setDialogState("closing")
-    await new Promise(resolve => setTimeout(resolve, 300))
-    onOpenChange(false)
-    setDialogState("confirming")
-  }
-
-  return (
-    <AnimatePresence initial={false}>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ 
-              scale: dialogState === "closing" ? 0.95 : 1,
-              opacity: dialogState === "closing" ? 0 : 1,
-              y: dialogState === "closing" ? 20 : 0
-            }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 300,
-              damping: 25
-            }}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
-          >
-            {/* Success State */}
-            <AnimatePresence initial={false} mode="wait">
-              {showSuccess ? (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
-                  className="p-8 text-center"
-                >
-                  <div className="mx-auto w-16 h-16 bg-paydine-rose-beige/50 rounded-full flex items-center justify-center mb-4">
-                    <CheckCircle className="w-8 h-8 text-paydine-elegant-gray" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-paydine-elegant-gray mb-2">
-                    {t("waiterComing")}
-                  </h3>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="confirm"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="p-8"
-                >
-                  <div className="text-center mb-6">
-                    <div className="mx-auto w-16 h-16 bg-paydine-rose-beige/50 hover:bg-paydine-champagne rounded-full flex items-center justify-center mb-4 transition-all duration-300">
-                      <HandPlatter className="w-8 h-8 text-paydine-elegant-gray" />
-                    </div>
-                    <h3 className="text-2xl font-semibold text-paydine-elegant-gray mb-2">
-                      {t("callWaiter")}
-                    </h3>
-                    <p className="text-paydine-elegant-gray/80">
-                      {t("callWaiterConfirm")}
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3 justify-center">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleClose}
-                      className="flex-1 py-3 px-6 rounded-xl bg-gray-100 text-paydine-elegant-gray font-medium hover:bg-gray-200 transition-colors"
-                    >
-                      {t("no")}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleConfirm}
-                      className="flex-1 py-3 px-6 rounded-xl bg-paydine-rose-beige/50 hover:bg-paydine-champagne text-paydine-elegant-gray font-medium transition-all duration-300"
-                    >
-                      {t("yes")}
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// Enhanced Note Dialog Component
-const EnhancedNoteDialog = ({
-  isOpen,
-  onOpenChange,
-  note,
-  setNote,
-  onSend,
-  tableId,
-  tableName,
-}: {
-  isOpen: boolean
-  onOpenChange: (isOpen: boolean) => void
-  note: string
-  setNote: (note: string) => void
-  onSend: () => void
-  tableId: string
-  tableName?: string
-}) => {
-  const { t } = useLanguageStore()
-  const [dialogState, setDialogState] = useState<"editing" | "confirmed" | "closing">("editing")
-  const [showSuccess, setShowSuccess] = useState(false)
-
-  const handleSend = async () => {
-    if (!note.trim()) return
-    
-    setDialogState("confirmed")
-    setShowSuccess(true)
-    
-    // Show success state
-    await new Promise(resolve => setTimeout(resolve, 800))
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    setShowSuccess(false)
-    await new Promise(resolve => setTimeout(resolve, 300))
-    
-    onSend()
-    onOpenChange(false)
-    setDialogState("editing")
-  }
-
-  const handleClose = async () => {
-    setDialogState("closing")
-    await new Promise(resolve => setTimeout(resolve, 300))
-    onOpenChange(false)
-    setDialogState("editing")
-  }
-
-  return (
-    <AnimatePresence initial={false}>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ 
-              scale: dialogState === "closing" ? 0.95 : 1,
-              opacity: dialogState === "closing" ? 0 : 1,
-              y: dialogState === "closing" ? 20 : 0
-            }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 300,
-              damping: 25
-            }}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
-          >
-            <AnimatePresence initial={false} mode="wait">
-              {showSuccess ? (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
-                  className="p-8 text-center"
-                >
-                  <div className="mx-auto w-16 h-16 bg-paydine-rose-beige/50 rounded-full flex items-center justify-center mb-4">
-                    <CheckCircle className="w-8 h-8 text-paydine-elegant-gray" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-paydine-elegant-gray mb-2">
-                    {t("messageReceived")}
-                  </h3>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="edit"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="p-8"
-                >
-                  <div className="text-center mb-6">
-                    <div className="mx-auto w-16 h-16 bg-paydine-rose-beige/50 hover:bg-paydine-champagne rounded-full flex items-center justify-center mb-4 transition-all duration-300">
-                      <NotebookPen className="w-8 h-8 text-paydine-elegant-gray" />
-                    </div>
-                    <h3 className="text-2xl font-semibold text-paydine-elegant-gray mb-2">
-                      {t("leaveNoteTitle")}
-                    </h3>
-                    <p className="text-paydine-elegant-gray/80">
-                      {t("leaveNoteDesc")}
-                    </p>
-                  </div>
-
-                  <Textarea
-                    placeholder={t("notePlaceholder")}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    className="bg-white border-paydine-champagne/30 rounded-xl min-h-[100px] w-full mb-4"
-                  />
-
-                  <div className="flex gap-3 justify-center">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleClose}
-                      className="flex-1 py-3 px-6 rounded-xl bg-gray-100 text-paydine-elegant-gray font-medium hover:bg-gray-200 transition-colors"
-                    >
-                      {t("cancel")}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleSend}
-                      className="flex-1 py-3 px-6 rounded-xl bg-paydine-rose-beige/50 hover:bg-paydine-champagne text-paydine-elegant-gray font-medium transition-all duration-300"
-                    >
-                      {t("sendNote")}
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
+// Phase 2C: legacy animated bottom toolbar removed; MenuBottomBarGold is the active customer bottom bar.
 
 // Create a component that uses useSearchParams
 function MenuContent() {
@@ -4253,53 +3326,7 @@ function MenuContent() {
     __pmdRemoteConsoleInstallOnce()
   }, [])
 
-  // PMD visual guard: keep menu action circles/icons white in every click/active state.
-  // Some legacy theme code can apply inline black text-fill to small quantity buttons.
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const applyMenuActionCircleColors = () => {
-      const nodes = document.querySelectorAll<HTMLElement>([
-        ".page--menu .pmd-v2-action-circle",
-        ".page--menu button[aria-label='Increase quantity']",
-        ".page--menu button[aria-label='Decrease quantity']",
-        ".page--menu button[aria-label*='Back' i]",
-        ".page--menu button[aria-label*='back' i]"
-      ].join(","))
-
-      nodes.forEach((node) => {
-        node.style.setProperty("color", "#FFFFFF", "important")
-        node.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-
-        node.querySelectorAll("*").forEach((child) => {
-          const el = child as HTMLElement
-          el.style.setProperty("color", "#FFFFFF", "important")
-          el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-          el.style.setProperty("stroke", "#FFFFFF", "important")
-        })
-      })
-    }
-
-    applyMenuActionCircleColors()
-
-    const events = ["pointerdown", "mousedown", "touchstart", "click", "focusin"]
-    events.forEach((eventName) => {
-      document.addEventListener(eventName, applyMenuActionCircleColors, true)
-    })
-
-    const observer = new MutationObserver(applyMenuActionCircleColors)
-    // PMD_PERF_FIX: body MutationObserver disabled to prevent Payment/Order modal freeze.
-
-    const timer = window.setTimeout(applyMenuActionCircleColors, 0)
-
-    return () => {
-      window.clearTimeout(timer)
-      observer.disconnect()
-      events.forEach((eventName) => {
-        document.removeEventListener(eventName, applyMenuActionCircleColors, true)
-      })
-    }
-  }, [])
+  // Phase 2C: menu action colors are source CSS in customer menu components.
 
   // Read raw search params (Next app router)
   const spTableNo = searchParams?.get('table_no') ?? null;
@@ -4703,30 +3730,19 @@ useEffect(() => {
   }
 
   return (
-        <div data-pmd-customer-app="gold-v1" className="relative min-h-screen w-full pb-32">
-      <header className="py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <Logo tableNumber={displayTableNumber} />
-        </div>
-      </header>
+        <MenuPageView title={displayTableNumber ? `Table ${displayTableNumber}` : "Menu"} subtitle="Explore the menu and add your favourites.">
+      <div className="pmd-customer-logo-area__mark"><Logo tableNumber={displayTableNumber} /></div>
       <Suspense fallback={<LoadingSpinner />}>
-        <main className="max-w-4xl mx-auto">
-          <CategoryNav
+          <MenuCategoryNavGold
             categories={allCategories}
-            selectedCategory={selectedCategory || "All"} // Force "All" if no selection
-            onSelectCategory={(category) => {
-              setSelectedCategory(category);
-              // Auto-select "All" if no category is passed
-              if (!category) {
-                setSelectedCategory("All");
-              }
-            }}
+            selectedCategory={selectedCategory || "All"}
+            onSelectCategory={(category) => setSelectedCategory(category || "All")}
           />
           <section className="w-full mb-12">
             {!isFrontendConfigured && filteredItems.length === 0 ? (
               <TenantSetupSplash />
             ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4">
+            <div className="pmd-customer-menu-grid">
               {filteredItems.map((item: MenuItem, index: number) => (
                 <ExpandingToolbarMenuItemCard
                   key={item.id}
@@ -4739,42 +3755,15 @@ useEffect(() => {
             </div>
             )}
           </section>
-        </main>
       </Suspense>
 
-      {/* Button Animation Styles */}
-      <style jsx global>{`
-        @keyframes btn-bounce {
-          0% { transform: scale(1); }
-          40% { transform: scale(1.2); }
-          100% { transform: scale(1); }
-        }
-        
-        .btn-animate {
-          animation: btn-bounce 0.7s cubic-bezier(0.4, 2, 0.6, 1);
-        }
-        
-        .btn-glow {
-          box-shadow: 0 0 0 8px rgba(255, 228, 181, 0.5), 0 0 16px 4px rgba(200, 155, 108, 0.3);
-        }
-      `}</style>
-
-      {/* Rest of the components */}
-      <ExpandingBottomToolbar
-        toolbarState={toolbarState}
-        setToolbarState={setToolbarState}
-        showBillArrow={showBillArrow}
-        items={getDisplayItems()}
-        totalPrice={totalPrice}
-        t={t}
-        onCartClick={handleCartClick}
-        onWaiterClick={tableIdString ? handleWaiterClick : undefined}
-        onNoteClick={tableIdString ? handleNoteClick : undefined}
-        waiterDisabled={false}
-        noteDisabled={false}
-        totalItems={totalItems}
-        themeBackgroundColor={themeBackgroundColor}
-        onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
+      <MenuBottomBarGold
+        total={formatCurrency(totalPrice)}
+        count={totalItems}
+        onCheckout={() => { setPaymentModalInitialStep('review'); setPaymentModalOpen(true) }}
+        onWaiter={tableIdString ? handleWaiterClick : undefined}
+        onNote={tableIdString ? handleNoteClick : undefined}
+        onOrder={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
           setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
           setPaymentModalOpen(true)
         } : undefined}
@@ -4829,17 +3818,15 @@ useEffect(() => {
         tableId={tableIdString}
         tableName={tableName}
       />
-    </div>
+    </MenuPageView>
   )
 }
 
 // Main component with Suspense wrapper
 export default function ExpandingBottomToolbarMenu() {
   return (
-    <div className="pmd-customer-page page--menu" data-pmd-customer-page="menu">
-      <Suspense fallback={<div>Loading...</div>}>
-        <MenuContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div data-pmd-customer-app="gold-v1" data-pmd-customer-page="menu">Loading...</div>}>
+      <MenuContent />
+    </Suspense>
   )
 } 
