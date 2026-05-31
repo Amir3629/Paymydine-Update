@@ -1,3 +1,4 @@
+@import "../customer/styles/customer-base.css";
 @import "../customer/styles/customer-gold.css";
 @tailwind base;
 @tailwind components;

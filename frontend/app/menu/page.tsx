@@ -175,58 +175,7 @@ function __pmdRemoteConsoleInstallOnce() {
 }
 
 function useThemeBackgroundColor() {
-  const [color, setColor] = useState('#fdf7f4');
-  const [themeId, setThemeId] = useState('clean-light');
-
-  // __PMD_CALL_LMS__
-  const callLoadMerchantSettings = () => {
-    try {
-      // Prefer destructured function (reactive)
-      // Fallback: zustand getState (should always exist client-side)
-      const st: any = (useCmsStore as any)?.getState?.()
-      if (typeof st?.loadMerchantSettings === "function") return st.loadMerchantSettings()
-      console.warn("[PMD] loadMerchantSettings is missing from store")
-    } catch (e) {
-      console.error("[PMD] callLoadMerchantSettings failed:", e)
-    }
-  }
-
-  
-
-  useEffect(() => {
-    // Load merchant settings (includes PayPal Client ID) from backend
-    callLoadMerchantSettings()
-  }, [])
-
-  useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined') return;
-    
-    const updateColor = () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme') || 'clean-light';
-      const themeBg = getComputedStyle(document.documentElement).getPropertyValue('--theme-background').trim();
-      
-      // Special case: Clean Light theme uses black text
-      if (currentTheme === 'clean-light') {
-        setColor('#000000');
-      } else if (currentTheme === 'minimal') {
-        setColor('#CFEBF7'); // Light Blue
-      } else {
-        setColor(themeBg || '#fdf7f4');
-      }
-      setThemeId(currentTheme);
-    };
-    
-    updateColor();
-    
-    // Watch for theme changes
-    const observer = new MutationObserver(updateColor);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    
-    return () => observer.disconnect();
-  }, []);
-  
-  return color;
+  return "#0F0B05"
 }
 import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
@@ -796,27 +745,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [merchantSettings])
 
   useEffect(() => {
-    const detectDarkTheme = () => {
-      const themeName = document.documentElement.getAttribute('data-theme') || 'clean-light'
-      setIsDarkTheme(themeName === 'modern-dark')
-    }
-
-    detectDarkTheme()
-
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-          detectDarkTheme()
-        }
-      })
-    })
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
-
-    return () => observer.disconnect()
+    setIsDarkTheme(false)
   }, [])
 
   const [loadingPayments, setLoadingPayments] = useState(true)
@@ -3415,57 +3344,7 @@ function ExpandingBottomToolbar({
   if (effectiveToolbarState === "preview") height = previewHeight
   if (effectiveToolbarState === "expanded") height = expandedHeight
 
-  // Safety net: Ensure toolbar background is applied correctly
-  useEffect(() => {
-    const applyToolbarBackground = () => {
-      const toolbarElement = document.querySelector('.toolbar-inner-fixed') || 
-                            document.querySelector('div[class*=""][class*="rounded-[2.5rem]"]')
-      
-      if (toolbarElement) {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'clean-light'
-        const themeColors = {
-          'clean-light': 'var(--theme-background, #FAFAFA)',
-          'modern-dark': 'var(--theme-background, #0A0E12)',
-          'gold-luxury': 'var(--theme-background, #FAF9F4)',
-          'vibrant-colors': 'var(--theme-background, #E2CEB1)',
-          'minimal': 'var(--theme-background, #CFEBF7)'
-        }
-        
-        const bgColor = themeColors[currentTheme as keyof typeof themeColors] || themeColors['clean-light']
-        
-        // Apply theme-aware background
-        const htmlElement = toolbarElement as HTMLElement
-        htmlElement.style.background = bgColor
-        htmlElement.style.backgroundColor = bgColor
-        htmlElement.style.opacity = '1'
-        
-        // Add ID for future targeting
-        toolbarElement.id = 'toolbar-inner-fixed'
-      }
-    }
-
-    // Apply immediately
-    applyToolbarBackground()
-
-    // Watch for theme changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-          setTimeout(applyToolbarBackground, 100)
-        }
-      })
-    })
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme']
-    })
-
-    // Cleanup
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
+  // Phase 2B: customer toolbar styling is handled by scoped Gold CSS, not runtime theme mutation.
 
   return (
     <motion.div

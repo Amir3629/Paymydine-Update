@@ -314,3 +314,22 @@ Remaining work for later phases:
 - `frontend/app/menu/page.tsx` still contains non-checkout customer UI and some provider/menu helper code that should move into `frontend/customer/menu/` components in the next phase.
 - Old backup CSS and legacy customer theme files still exist for safety but are not the new active customer design system.
 - `CheckoutModalV3` files remain in the tree temporarily but are no longer imported by the active menu checkout path.
+
+## Phase 2B implementation notes
+
+Phase 2B extends the Gold customer foundation into an extensible theme structure and migrates the visible home, table entry, valet, food modal, and checkout paths further away from the legacy theme system.
+
+Implemented changes:
+
+- Added a typed customer theme model: `themeTypes.ts`, `goldTheme.ts`, `themeRegistry.ts`, and `CustomerThemeProvider.tsx`.
+- Split customer CSS into `customer-base.css` for shared component structure and `customer-gold.css` for Gold token values under `[data-pmd-customer-app="gold-v1"]`.
+- Rebuilt the home page through `CustomerHomeView` and `CustomerActionTile` so `/` is Gold, not white legacy UI.
+- Rebuilt `/valet` through `ValetView` and table entry/redirect loading states through customer shell components.
+- Replaced the menu item modal with a Gold-scoped, non-Framer `CustomerModal` implementation.
+- Added menu component building blocks (`MenuPageView`, `MenuCategoryNavGold`, `MenuItemCardGold`, `MenuItemDetailsModalGold`, `MenuBottomBarGold`) for the next controller/view split.
+- Kept checkout on `CheckoutFlowGold` and preserved existing payment/order/split callbacks from the menu controller.
+
+Remaining work for later phases:
+
+- The main `/menu` controller is still large and should be split further so active list/card/bottom-bar rendering uses the new `frontend/customer/menu/*` components end-to-end.
+- Provider-specific payment form internals still contain provider DOM normalization; this should remain contained to payment provider wrappers and not become customer theme logic.
