@@ -665,3 +665,85 @@
     justify-self: start;
   }
 }
+
+[data-pmd-customer-app] .pmd-customer-service-dialog {
+  display: grid;
+  gap: 1rem;
+  color: var(--pmd-customer-text);
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__icon {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--pmd-customer-primary);
+  color: var(--pmd-customer-primary-text);
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__icon svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__copy {
+  display: grid;
+  gap: 0.4rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__copy h3 {
+  margin: 0;
+  font-family: var(--pmd-customer-font-serif);
+  font-size: clamp(1.45rem, 5vw, 2rem);
+  color: var(--pmd-customer-text);
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__copy p {
+  margin: 0;
+  color: var(--pmd-customer-muted);
+  line-height: 1.6;
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__field {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--pmd-customer-text);
+  font-weight: 700;
+}
+
+[data-pmd-customer-app] .pmd-customer-textarea {
+  width: 100%;
+  min-height: 8rem;
+  resize: vertical;
+  border: 1px solid var(--pmd-customer-border);
+  border-radius: 1rem;
+  background: var(--pmd-customer-surface);
+  color: var(--pmd-customer-text);
+  padding: 0.9rem 1rem;
+  font: inherit;
+  outline: none;
+  transition-property: border-color, box-shadow, background-color;
+  transition-duration: 120ms;
+}
+
+[data-pmd-customer-app] .pmd-customer-textarea:focus {
+  border-color: var(--pmd-customer-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pmd-customer-primary) 16%, transparent);
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-service-dialog__actions > .pmd-customer-button:only-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 520px) {
+  [data-pmd-customer-app] .pmd-customer-service-dialog__actions {
+    grid-template-columns: 1fr;
+  }
+}

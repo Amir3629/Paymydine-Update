@@ -36,6 +36,8 @@ import { MenuCategoryNavGold } from "@/customer/menu/MenuCategoryNavGold";
 import { MenuItemCardGold } from "@/customer/menu/MenuItemCardGold";
 import { MenuBottomBarGold } from "@/customer/menu/MenuBottomBarGold";
 import { MenuPageView } from "@/customer/menu/MenuPageView";
+import { CustomerWaiterDialogGold } from "@/customer/menu/CustomerWaiterDialogGold";
+import { CustomerNoteDialogGold } from "@/customer/menu/CustomerNoteDialogGold";
 import { CustomerLoadingState } from "@/customer/components/CustomerLoadingState";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
@@ -3804,13 +3806,13 @@ useEffect(() => {
           }
         }}
       />
-      <EnhancedWaiterDialog
+      <CustomerWaiterDialogGold
         isOpen={isWaiterConfirmOpen}
         onOpenChange={setWaiterConfirmOpen}
         tableId={tableIdString}
         tableName={tableName}
       />
-      <EnhancedNoteDialog
+      <CustomerNoteDialogGold
         isOpen={isNoteModalOpen}
         onOpenChange={setNoteModalOpen}
         note={note}
