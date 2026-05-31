@@ -32,6 +32,7 @@ import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/l
 import { iconForPayment } from "@/lib/payment-icons";
 import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
+import CheckoutModalV3 from "@/components/customer-checkout/CheckoutModalV3";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
 import {
@@ -1435,7 +1436,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   // PMD_SEND_KITCHEN_BUTTON_MARKER_EFFECT
   useEffect(() => {
     const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll('button')) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -1459,7 +1461,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     const t2 = window.setTimeout(apply, 180)
     const t3 = window.setTimeout(apply, 700)
 
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document.body
+    const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+    if (!root) return
     const observer = new MutationObserver(() => {
       window.requestAnimationFrame(apply)
     })
@@ -1555,7 +1558,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
 
     const markTableOrderActions = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -1679,7 +1683,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     const t3 = window.setTimeout(applyAll, 520)
     const t4 = window.setTimeout(applyAll, 1100)
 
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document.body
+    const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+    if (!root) return
     const observer = new MutationObserver(() => {
       window.requestAnimationFrame(applyAll)
     })
@@ -1701,7 +1706,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       String(value || "").replace(/\s+/g, " ").trim()
 
     const applyTableOrderButtonLayout = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -1759,7 +1765,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     const t2 = window.setTimeout(applyTableOrderButtonLayout, 180)
     const t3 = window.setTimeout(applyTableOrderButtonLayout, 650)
 
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document.body
+    const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+    if (!root) return
     const observer = new MutationObserver(() => {
       window.requestAnimationFrame(applyTableOrderButtonLayout)
     })
@@ -1841,7 +1848,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
 
     const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -1944,7 +1952,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
 
     const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -2046,7 +2055,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
 
     const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -2166,7 +2176,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
 
     const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -2293,7 +2304,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
 
     const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -2331,7 +2343,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 // PMD_SELECT_PAYER_BUTTON_FRAME_FIX
   useEffect(() => {
     const applySelectPayerStyle = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
+      if (!root) return
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
@@ -4114,50 +4127,16 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.12 }}
-        data-pmd-checkout-lockdown="1"
-        data-pmd-gold-checkout-modal="1"
-        className="w-full max-w-md rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
-        style={{ background: "var(--theme-background)", color: "#10201D", WebkitTextFillColor: "#10201D", border: "1px solid var(--theme-border)" }}
-      >
-        {/* Header with close button */}
-        <div className="p-4 pb-2 flex justify-between items-center rounded-2xl" data-pmd-gold-checkout-card="header">
-          <Button
-              data-pmd-order-status-back="1"
-              data-pmd-checkout-action="primary"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (checkoutStep === "payment") setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")
-              else if (checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") setCheckoutStep("submitted")
-              else onClose()
-            }}
-          
-              className={iconBackBtn}
-              style={{
-                background: "#062F2A",
-                backgroundColor: "#062F2A",
-                color: "#FFFFFF",
-                WebkitTextFillColor: "#FFFFFF",
-                borderColor: "#062F2A",
-                outlineColor: "#062F2A",
-                textDecoration: "none",
-              }}
-            >
-            <ArrowLeft className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
-          </Button>
-          <h2 className="text-lg">{modalTitle}</h2>
-          <div className="w-8" /> {/* Spacer for centering */}
-        </div>
+  const handleCheckoutBack = () => {
+    if (checkoutStep === "payment") setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")
+    else if (checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") setCheckoutStep("submitted")
+    else onClose()
+  }
 
-        {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" data-pmd-gold-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1">
+  return (
+    <CheckoutModalV3 title={modalTitle} onBack={handleCheckoutBack}>
+          {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
+          <div className="pmd-checkout-v3-stack">
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -5193,8 +5172,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             </>
           )}
 </div>
-      </motion.div>
-    </div>
+    </CheckoutModalV3>
   )
 }
 

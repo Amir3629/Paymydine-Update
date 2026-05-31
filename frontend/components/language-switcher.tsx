@@ -10,7 +10,7 @@ function readCssVar(style: CSSStyleDeclaration, name: string, fallback = "") {
 }
 
 function isCheckoutLockdownNode(el: Element | null | undefined) {
-  return !!el?.closest?.('[data-pmd-checkout-lockdown="1"]')
+  return !!el?.closest?.('[data-pmd-checkout-lockdown="1"], [data-pmd-checkout-v3="1"]')
 }
 
 function setImportant(el: HTMLElement, prop: string, value: string) {
