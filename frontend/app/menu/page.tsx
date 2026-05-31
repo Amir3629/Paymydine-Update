@@ -1344,1042 +1344,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
   }, [checkoutStep, selectedPaymentMethod])
 
-  // PMD_MARK_REAL_PAYMENT_PANELS_EFFECT
-  useEffect(() => {
-    if (checkoutStep !== "payment") return
+  // Checkout card/button styling is now rendered directly in JSX.
 
-    const markRealPaymentPanels = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
-      if (!root) return
-
-      const candidates = Array.from(root.querySelectorAll("div")) as HTMLElement[]
-
-      const normalizedText = (el: HTMLElement) =>
-        (el.textContent || "").replace(/\s+/g, " ").trim()
-
-      const scoreCandidate = (el: HTMLElement) => {
-        const rect = el.getBoundingClientRect()
-        const text = normalizedText(el)
-        return {
-          el,
-          text,
-          area: rect.width * rect.height,
-          length: text.length,
-        }
-      }
-
-      const findSmallestPanel = (required: string[], forbidden: string[] = []) => {
-        return candidates
-          .map(scoreCandidate)
-          .filter((row) => {
-            if (row.area < 8000) return false
-            if (row.length < 5) return false
-            if (!required.every((word) => row.text.includes(word))) return false
-            if (forbidden.some((word) => row.text.includes(word))) return false
-            return true
-          })
-          .sort((a, b) => a.length - b.length || a.area - b.area)[0]?.el || null
-      }
-
-      const summaryPanel = findSmallestPanel(["Ready to pay?", "Base amount", "Payable total"], ["Payment Methods"])
-      const tipCouponPanel = findSmallestPanel(["Add tip", "0%", "5%", "10%"], ["Payment Methods", "Card Information"])
-
-      if (summaryPanel) {
-        summaryPanel.setAttribute("data-pmd-payment-real-panel", "summary")
-      }
-
-      if (tipCouponPanel) {
-        tipCouponPanel.setAttribute("data-pmd-payment-real-panel", "tip-coupon")
-      }
-
-      ;[summaryPanel, tipCouponPanel].filter(Boolean).forEach((panel) => {
-        const el = panel as HTMLElement
-        el.style.setProperty("background", "transparent", "important")
-        el.style.setProperty("background-color", "transparent", "important")
-        el.style.setProperty("border-color", "transparent", "important")
-        el.style.setProperty("box-shadow", "none", "important")
-
-        Array.from(el.querySelectorAll("div")).forEach((child) => {
-          const childEl = child as HTMLElement
-          childEl.style.setProperty("background-color", "transparent", "important")
-          childEl.style.setProperty("background", "transparent", "important")
-          childEl.style.setProperty("box-shadow", "none", "important")
-        })
-      })
-    }
-
-    markRealPaymentPanels()
-
-    const t1 = window.setTimeout(markRealPaymentPanels, 60)
-    const t2 = window.setTimeout(markRealPaymentPanels, 220)
-    const t3 = window.setTimeout(markRealPaymentPanels, 700)
-
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(markRealPaymentPanels)
-    })
-
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
-    if (root) {
-      void observer; // PMD_PERF_SAFE: observer disabled to prevent Payment freeze
-    }
-
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      window.clearTimeout(t3)
-      observer.disconnect()
-    }
-  }, [checkoutStep, couponDiscount, tipPercentage, customTip, appliedCoupon?.code, selectedPaymentMethod])
-
-
-  // PMD_SEND_KITCHEN_BUTTON_MARKER_EFFECT
-  useEffect(() => {
-    const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll('button')) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-        if (txt.includes("Send order to kitchen")) {
-          btn.setAttribute("data-pmd-send-kitchen-btn", "1")
-
-          const spans = btn.querySelectorAll("span")
-          if (spans[0]) spans[0].setAttribute("data-pmd-send-kitchen-label", "1")
-          if (spans[1]) spans[1].setAttribute("data-pmd-send-kitchen-arrow-wrap", "1")
-
-          const svg = btn.querySelector("svg")
-          if (svg) svg.setAttribute("data-pmd-send-kitchen-arrow", "1")
-        }
-      })
-    }
-
-    apply()
-
-    const t1 = window.setTimeout(apply, 40)
-    const t2 = window.setTimeout(apply, 180)
-    const t3 = window.setTimeout(apply, 700)
-
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document.body
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(apply)
-    })
-
-    void observer; // PMD_PERF_SAFE: observer disabled to prevent Payment freeze
-
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      window.clearTimeout(t3)
-      observer.disconnect()
-    }
-  }, [checkoutStep, selectedPaymentMethod, isSplitting, selectedSplitPersonId, couponDiscount, tipPercentage, customTip])
-
-
-  // PMD_MARK_REAL_PAYMENT_PANELS_BG_EFFECT
-  useEffect(() => {
-    if (checkoutStep !== "payment") return
-
-    const markPanels = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
-      if (!root) return
-
-      const allDivs = Array.from(root.querySelectorAll("div")) as HTMLElement[]
-
-      const normalize = (el: HTMLElement) =>
-        (el.textContent || "").replace(/\s+/g, " ").trim()
-
-      const scored = allDivs.map((el) => {
-        const rect = el.getBoundingClientRect()
-        return {
-          el,
-          txt: normalize(el),
-          area: rect.width * rect.height,
-          len: normalize(el).length,
-        }
-      })
-
-      const pick = (required: string[], forbidden: string[] = []) => {
-        return scored
-          .filter((row) => row.area > 9000)
-          .filter((row) => required.every((needle) => row.txt.includes(needle)))
-          .filter((row) => !forbidden.some((needle) => row.txt.includes(needle)))
-          .sort((a, b) => a.len - b.len || a.area - b.area)[0]?.el || null
-      }
-
-      const summary = pick(["Ready to pay?", "Base amount", "Payable total"], ["Card Information", "Payment Methods"])
-      const tipCoupon = pick(["Add tip", "0%", "5%", "10%"], ["Card Information", "Payment Methods"])
-
-      if (summary) summary.setAttribute("data-pmd-payment-real-panel", "summary")
-      if (tipCoupon) tipCoupon.setAttribute("data-pmd-payment-real-panel", "tip-coupon")
-
-      const wrapper = pick(["Ready to pay?", "Add tip"], ["Card Information", "Payment Methods"])
-      if (wrapper) wrapper.setAttribute("data-pmd-payment-adjustment-card", "1")
-    }
-
-    markPanels()
-
-    const t1 = window.setTimeout(markPanels, 50)
-    const t2 = window.setTimeout(markPanels, 220)
-    const t3 = window.setTimeout(markPanels, 800)
-
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]')
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(markPanels)
-    })
-
-    if (root) {
-      void observer; // PMD_PERF_SAFE: observer disabled to prevent Payment freeze
-    }
-
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      window.clearTimeout(t3)
-      observer.disconnect()
-    }
-  }, [checkoutStep, couponDiscount, tipPercentage, customTip, appliedCoupon?.code, selectedPaymentMethod])
-
-  // PMD_COMPACT_ACTIONS_REAL_PAYMENT_BG_EFFECT
-  useEffect(() => {
-    const softCream = "#FAF9F3"
-
-    const normalize = (value: string | null | undefined) =>
-      String(value || "").replace(/\s+/g, " ").trim()
-
-    const setSoftCream = (el: HTMLElement | null) => {
-      if (!el) return
-      el.style.setProperty("background", softCream, "important")
-      el.style.setProperty("background-color", softCream, "important")
-      el.style.setProperty("background-image", "none", "important")
-      el.style.setProperty("box-shadow", "none", "important")
-    }
-
-    const markTableOrderActions = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = normalize(btn.textContent)
-
-        if (txt.includes("Send order to kitchen")) {
-          btn.setAttribute("data-pmd-send-kitchen-btn", "1")
-
-          const spans = btn.querySelectorAll("span")
-          if (spans[0]) spans[0].setAttribute("data-pmd-send-kitchen-label", "1")
-          if (spans[1]) spans[1].setAttribute("data-pmd-send-kitchen-arrow-wrap", "1")
-
-          const svg = btn.querySelector("svg")
-          if (svg) svg.setAttribute("data-pmd-send-kitchen-arrow", "1")
-
-          let parent = btn.parentElement as HTMLElement | null
-          for (let i = 0; i < 6 && parent; i += 1) {
-            const parentText = normalize(parent.textContent)
-            const buttonCount = parent.querySelectorAll("button").length
-
-            if (parentText.includes("Send order to kitchen") && parentText.includes("Continue ordering") && buttonCount >= 2) {
-              parent.setAttribute("data-pmd-table-order-actions-row", "1")
-
-              Array.from(parent.querySelectorAll("button")).forEach((rowButton) => {
-                const rowBtn = rowButton as HTMLElement
-                const rowText = normalize(rowBtn.textContent)
-
-                if (rowText.includes("Continue ordering")) {
-                  rowBtn.setAttribute("data-pmd-table-order-continue-btn", "1")
-                }
-              })
-
-              break
-            }
-
-            parent = parent.parentElement as HTMLElement | null
-          }
-        }
-      })
-    }
-
-    const markPaymentPanels = () => {
-      if (checkoutStep !== "payment") return
-
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
-      if (!root) return
-
-      const divs = Array.from(root.querySelectorAll("div")) as HTMLElement[]
-
-      const score = (el: HTMLElement) => {
-        const rect = el.getBoundingClientRect()
-        const txt = normalize(el.textContent)
-        return {
-          el,
-          txt,
-          area: rect.width * rect.height,
-          len: txt.length,
-        }
-      }
-
-      const rows = divs.map(score)
-
-      const pickSmallest = (required: string[], forbidden: string[] = []) => {
-        return rows
-          .filter((row) => row.area > 4000)
-          .filter((row) => required.every((word) => row.txt.includes(word)))
-          .filter((row) => !forbidden.some((word) => row.txt.includes(word)))
-          .sort((a, b) => a.len - b.len || a.area - b.area)[0]?.el || null
-      }
-
-      const paymentHeader = root.querySelector('[data-pmd-payment-header-copy-row="1"]') as HTMLElement | null
-      const summaryOnly = pickSmallest(["Base amount", "Payable total"], ["Card Information", "Payment Methods"])
-      const tipOnly = pickSmallest(["Add tip", "0%", "5%", "10%"], ["Card Information", "Payment Methods"])
-      const fullAdjustment = pickSmallest(["Base amount", "Payable total", "Add tip"], ["Card Information", "Payment Methods"])
-
-      if (paymentHeader) {
-        paymentHeader.setAttribute("data-pmd-payment-soft-bg", "header")
-        setSoftCream(paymentHeader)
-      }
-
-      if (summaryOnly) {
-        summaryOnly.setAttribute("data-pmd-payment-real-panel", "summary")
-        setSoftCream(summaryOnly)
-      }
-
-      if (tipOnly) {
-        tipOnly.setAttribute("data-pmd-payment-real-panel", "tip-coupon")
-        setSoftCream(tipOnly)
-      }
-
-      if (fullAdjustment) {
-        fullAdjustment.setAttribute("data-pmd-payment-adjustment-shell", "1")
-        fullAdjustment.setAttribute("data-pmd-payment-soft-bg", "shell")
-        setSoftCream(fullAdjustment)
-
-        Array.from(fullAdjustment.querySelectorAll("div")).forEach((child) => {
-          setSoftCream(child as HTMLElement)
-        })
-      }
-
-      ;[paymentHeader, summaryOnly, tipOnly, fullAdjustment].filter(Boolean).forEach((panel) => {
-        const el = panel as HTMLElement
-        el.querySelectorAll("input, textarea, select").forEach((input) => {
-          const inputEl = input as HTMLElement
-          inputEl.style.setProperty("background", softCream, "important")
-          inputEl.style.setProperty("background-color", softCream, "important")
-          inputEl.style.setProperty("box-shadow", "none", "important")
-        })
-      })
-    }
-
-    const applyAll = () => {
-      markTableOrderActions()
-      markPaymentPanels()
-    }
-
-    applyAll()
-
-    const t1 = window.setTimeout(applyAll, 40)
-    const t2 = window.setTimeout(applyAll, 180)
-    const t3 = window.setTimeout(applyAll, 520)
-    const t4 = window.setTimeout(applyAll, 1100)
-
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document.body
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(applyAll)
-    })
-
-    void observer; // PMD_PERF_SAFE: observer disabled to prevent Payment freeze
-
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      window.clearTimeout(t3)
-      window.clearTimeout(t4)
-      observer.disconnect()
-    }
-  }, [checkoutStep, selectedPaymentMethod, couponDiscount, tipPercentage, customTip, appliedCoupon?.code, isSplitting, selectedSplitPersonId])
-
-  // PMD_TABLE_ORDER_BUTTONS_LIKE_CONFIRM_EFFECT
-  useEffect(() => {
-    const normalize = (value: string | null | undefined) =>
-      String(value || "").replace(/\s+/g, " ").trim()
-
-    const applyTableOrderButtonLayout = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const text = normalize(btn.textContent)
-
-        if (!text.includes("Send order to kitchen")) return
-
-        btn.setAttribute("data-pmd-table-order-confirm-like", "primary")
-        btn.setAttribute("data-pmd-send-kitchen-btn", "1")
-
-        const spans = Array.from(btn.querySelectorAll("span")) as HTMLElement[]
-        if (spans[0]) spans[0].setAttribute("data-pmd-send-kitchen-label", "1")
-        if (spans[1]) spans[1].setAttribute("data-pmd-send-kitchen-arrow-wrap", "1")
-
-        const svg = btn.querySelector("svg") as SVGElement | null
-        if (svg) svg.setAttribute("data-pmd-send-kitchen-arrow", "1")
-
-        const readyRow = btn.parentElement as HTMLElement | null
-        if (readyRow && normalize(readyRow.textContent).includes("Ready to send?")) {
-          readyRow.setAttribute("data-pmd-table-order-ready-row", "1")
-        }
-
-        let shell = readyRow?.parentElement as HTMLElement | null
-        for (let i = 0; i < 8 && shell; i += 1) {
-          const shellText = normalize(shell.textContent)
-          const shellButtons = Array.from(shell.querySelectorAll("button")) as HTMLElement[]
-
-          if (
-            shellText.includes("Ready to send?") &&
-            shellText.includes("Send order to kitchen") &&
-            shellText.includes("Continue ordering") &&
-            shellButtons.length >= 2
-          ) {
-            shell.setAttribute("data-pmd-table-order-actions-shell", "1")
-
-            shellButtons.forEach((candidate) => {
-              const candidateText = normalize(candidate.textContent)
-              if (candidateText.includes("Continue ordering")) {
-                candidate.setAttribute("data-pmd-table-order-confirm-like", "secondary")
-                candidate.setAttribute("data-pmd-table-order-continue-btn", "1")
-              }
-            })
-
-            break
-          }
-
-          shell = shell.parentElement as HTMLElement | null
-        }
-      })
-    }
-
-    applyTableOrderButtonLayout()
-
-    const t1 = window.setTimeout(applyTableOrderButtonLayout, 40)
-    const t2 = window.setTimeout(applyTableOrderButtonLayout, 180)
-    const t3 = window.setTimeout(applyTableOrderButtonLayout, 650)
-
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document.body
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(applyTableOrderButtonLayout)
-    })
-
-    void observer; // PMD_PERF_SAFE: observer disabled to prevent Payment freeze
-
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      window.clearTimeout(t3)
-      observer.disconnect()
-    }
-  }, [checkoutStep, submittedSnapshot?.orderId, selectedPaymentMethod])
-
-  // PMD_CARD_ACTION_BUTTONS_CONFIRM_SEND_CONTINUE_EFFECT
-  useEffect(() => {
-    const primaryBg = "#062F2A"
-    const primaryHover = "#021F1C"
-    const secondaryText = "#0D1B1E"
-    const secondaryBorder = "color-mix(in srgb, #b88940 42%, var(--theme-border) 58%)"
-
-    const forceChildrenColor = (btn: HTMLElement, color: string) => {
-      btn.querySelectorAll("*").forEach((node) => {
-        const el = node as HTMLElement
-        el.style.setProperty("color", color, "important")
-        el.style.setProperty("-webkit-text-fill-color", color, "important")
-        el.style.setProperty("text-shadow", "none", "important")
-        if (el.tagName.toLowerCase() === "svg" || el.closest("svg")) {
-          el.style.setProperty("stroke", color, "important")
-        }
-      })
-    }
-
-    const stylePrimary = (btn: HTMLElement) => {
-      btn.style.setProperty("min-height", "3.5rem", "important")
-      btn.style.setProperty("height", "3.5rem", "important")
-      btn.style.setProperty("width", "100%", "important")
-      btn.style.setProperty("border-radius", "9999px", "important")
-      btn.style.setProperty("display", "flex", "important")
-      btn.style.setProperty("align-items", "center", "important")
-      btn.style.setProperty("justify-content", "center", "important")
-      btn.style.setProperty("padding", "0 1.25rem", "important")
-      btn.style.setProperty("background", primaryBg, "important")
-      btn.style.setProperty("background-color", primaryBg, "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1px solid ${primaryBg}`, "important")
-      btn.style.setProperty("color", "#FFFFFF", "important")
-      btn.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-      btn.style.setProperty("font-weight", "700", "important")
-      btn.style.setProperty("font-size", "1rem", "important")
-      btn.style.setProperty("line-height", "1.1", "important")
-      btn.style.setProperty("box-shadow", "0 10px 22px rgba(6, 47, 42, 0.16)", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      btn.style.setProperty("opacity", "1", "important")
-      forceChildrenColor(btn, "#FFFFFF")
-    }
-
-    const styleSecondary = (btn: HTMLElement) => {
-      btn.style.setProperty("min-height", "3.5rem", "important")
-      btn.style.setProperty("height", "3.5rem", "important")
-      btn.style.setProperty("width", "100%", "important")
-      btn.style.setProperty("border-radius", "9999px", "important")
-      btn.style.setProperty("display", "flex", "important")
-      btn.style.setProperty("align-items", "center", "important")
-      btn.style.setProperty("justify-content", "center", "important")
-      btn.style.setProperty("padding", "0 1.25rem", "important")
-      btn.style.setProperty("background", "transparent", "important")
-      btn.style.setProperty("background-color", "transparent", "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1.5px solid ${secondaryBorder}`, "important")
-      btn.style.setProperty("color", secondaryText, "important")
-      btn.style.setProperty("-webkit-text-fill-color", secondaryText, "important")
-      btn.style.setProperty("font-weight", "700", "important")
-      btn.style.setProperty("font-size", "1rem", "important")
-      btn.style.setProperty("line-height", "1.1", "important")
-      btn.style.setProperty("box-shadow", "0 8px 18px rgba(17, 24, 39, 0.04)", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      forceChildrenColor(btn, secondaryText)
-    }
-
-    const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-
-        if (txt === "Confirm") {
-          btn.setAttribute("data-pmd-card-confirm-btn", "1")
-          stylePrimary(btn)
-        }
-
-        if (txt === "Send to kitchen" || txt === "Send order to kitchen" || txt === "Sending...") {
-          btn.setAttribute("data-pmd-card-send-kitchen-btn", "1")
-          stylePrimary(btn)
-        }
-
-        if (txt === "Continue ordering") {
-          btn.setAttribute("data-pmd-card-continue-btn", "1")
-          styleSecondary(btn)
-        }
-      })
-    }
-
-    apply()
-
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(apply)
-    })
-    // PMD_PERF_FIX: body MutationObserver disabled to prevent Payment/Order modal freeze.
-
-    ;[0, 50, 150, 350, 700, 1200].forEach((delay) => {
-      window.setTimeout(apply, delay)
-    })
-
-    return () => observer.disconnect()
-  }, [])
-
-  // PMD_PAY_SPLIT_REVIEW_BUTTONS_EFFECT
-  useEffect(() => {
-    const primaryBg = "#062F2A"
-    const primaryHover = "#021F1C"
-    const secondaryText = "#0D1B1E"
-    const secondaryBorder = "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)"
-
-    const forceChildrenColor = (btn: HTMLElement, color: string) => {
-      btn.querySelectorAll("*").forEach((node) => {
-        const el = node as HTMLElement
-        el.style.setProperty("color", color, "important")
-        el.style.setProperty("-webkit-text-fill-color", color, "important")
-        el.style.setProperty("text-shadow", "none", "important")
-
-        if (el.tagName.toLowerCase() === "svg" || el.closest("svg")) {
-          el.style.setProperty("stroke", color, "important")
-          el.style.setProperty("fill", "none", "important")
-        }
-      })
-    }
-
-    const common = (btn: HTMLElement) => {
-      btn.style.setProperty("min-height", "3.5rem", "important")
-      btn.style.setProperty("height", "3.5rem", "important")
-      btn.style.setProperty("width", "100%", "important")
-      btn.style.setProperty("max-width", "none", "important")
-      btn.style.setProperty("border-radius", "9999px", "important")
-      btn.style.setProperty("display", "flex", "important")
-      btn.style.setProperty("align-items", "center", "important")
-      btn.style.setProperty("justify-content", "center", "important")
-      btn.style.setProperty("gap", "0.55rem", "important")
-      btn.style.setProperty("padding", "0 1.25rem", "important")
-      btn.style.setProperty("font-weight", "700", "important")
-      btn.style.setProperty("font-size", "1rem", "important")
-      btn.style.setProperty("line-height", "1.1", "important")
-      btn.style.setProperty("letter-spacing", "-0.01em", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      btn.style.setProperty("transition", "transform 180ms cubic-bezier(.2,0,0,1), box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease", "important")
-    }
-
-    const stylePrimary = (btn: HTMLElement) => {
-      common(btn)
-      btn.style.setProperty("background", primaryBg, "important")
-      btn.style.setProperty("background-color", primaryBg, "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1px solid ${primaryBg}`, "important")
-      btn.style.setProperty("color", "#FFFFFF", "important")
-      btn.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-      btn.style.setProperty("box-shadow", "0 10px 22px rgba(6, 47, 42, 0.16)", "important")
-      btn.style.setProperty("opacity", "1", "important")
-      forceChildrenColor(btn, "#FFFFFF")
-    }
-
-    const styleSecondary = (btn: HTMLElement) => {
-      common(btn)
-      btn.style.setProperty("background", "transparent", "important")
-      btn.style.setProperty("background-color", "transparent", "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1.5px solid ${secondaryBorder}`, "important")
-      btn.style.setProperty("color", secondaryText, "important")
-      btn.style.setProperty("-webkit-text-fill-color", secondaryText, "important")
-      btn.style.setProperty("box-shadow", "0 8px 18px rgba(17, 24, 39, 0.04)", "important")
-      forceChildrenColor(btn, secondaryText)
-    }
-
-    const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-
-        if (txt.includes("Pay in full")) {
-          btn.setAttribute("data-pmd-card-pay-full-btn", "1")
-          stylePrimary(btn)
-        }
-
-        if (txt.includes("Split bill")) {
-          btn.setAttribute("data-pmd-card-split-bill-btn", "1")
-          styleSecondary(btn)
-        }
-
-        if (txt === "Review split" || txt.includes("Review split")) {
-          btn.setAttribute("data-pmd-card-review-split-btn", "1")
-          stylePrimary(btn)
-        }
-      })
-    }
-
-    apply()
-
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(apply)
-    })
-    // PMD_PERF_FIX: body MutationObserver disabled to prevent Payment/Order modal freeze.
-
-    ;[0, 50, 150, 350, 700, 1200].forEach((delay) => {
-      window.setTimeout(apply, delay)
-    })
-
-    return () => observer.disconnect()
-  }, [])
-
-  // PMD_NO_OBSERVER_BUTTON_STYLE_FINAL
-  useEffect(() => {
-    const primaryBg = "#062F2A"
-    const primaryHover = "#021F1C"
-    const secondaryText = "#0D1B1E"
-    const secondaryBorder = "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)"
-
-    const forceChildren = (btn: HTMLElement, color: string) => {
-      btn.querySelectorAll("*").forEach((node) => {
-        const el = node as HTMLElement
-        el.style.setProperty("color", color, "important")
-        el.style.setProperty("-webkit-text-fill-color", color, "important")
-        el.style.setProperty("text-shadow", "none", "important")
-        if (el.tagName.toLowerCase() === "svg" || el.closest("svg")) {
-          el.style.setProperty("stroke", color, "important")
-        }
-      })
-    }
-
-    const common = (btn: HTMLElement) => {
-      btn.style.setProperty("min-height", "3.5rem", "important")
-      btn.style.setProperty("height", "3.5rem", "important")
-      btn.style.setProperty("width", "100%", "important")
-      btn.style.setProperty("max-width", "none", "important")
-      btn.style.setProperty("border-radius", "9999px", "important")
-      btn.style.setProperty("display", "flex", "important")
-      btn.style.setProperty("align-items", "center", "important")
-      btn.style.setProperty("justify-content", "center", "important")
-      btn.style.setProperty("gap", "0.55rem", "important")
-      btn.style.setProperty("padding", "0 1.25rem", "important")
-      btn.style.setProperty("font-weight", "700", "important")
-      btn.style.setProperty("font-size", "1rem", "important")
-      btn.style.setProperty("line-height", "1.1", "important")
-      btn.style.setProperty("letter-spacing", "-0.01em", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      btn.style.setProperty("opacity", "1", "important")
-    }
-
-    const primary = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-no-observer-action", "primary")
-      common(btn)
-      btn.style.setProperty("background", primaryBg, "important")
-      btn.style.setProperty("background-color", primaryBg, "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1px solid ${primaryBg}`, "important")
-      btn.style.setProperty("color", "#FFFFFF", "important")
-      btn.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-      btn.style.setProperty("box-shadow", "0 10px 22px rgba(6, 47, 42, 0.16)", "important")
-      forceChildren(btn, "#FFFFFF")
-    }
-
-    const secondary = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-no-observer-action", "secondary")
-      common(btn)
-      btn.style.setProperty("background", "transparent", "important")
-      btn.style.setProperty("background-color", "transparent", "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1.5px solid ${secondaryBorder}`, "important")
-      btn.style.setProperty("color", secondaryText, "important")
-      btn.style.setProperty("-webkit-text-fill-color", secondaryText, "important")
-      btn.style.setProperty("box-shadow", "0 8px 18px rgba(17, 24, 39, 0.04)", "important")
-      forceChildren(btn, secondaryText)
-    }
-
-    const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-
-        if (
-          txt === "Confirm" ||
-          txt.includes("Send to kitchen") ||
-          txt.includes("Send order to kitchen") ||
-          txt.includes("Sending") ||
-          txt.includes("Pay in full") ||
-          txt.includes("Review split")
-        ) {
-          primary(btn)
-          return
-        }
-
-        if (
-          txt === "Continue ordering" ||
-          txt.includes("Split bill")
-        ) {
-          secondary(btn)
-          return
-        }
-      })
-    }
-
-    apply()
-    const timers = [0, 80, 200, 500, 900, 1400].map((delay) => window.setTimeout(apply, delay))
-    return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [checkoutStep])
-
-  // PMD_RENDER_SAFE_PLUS_CONFIRM_SEND_SPLIT_FIX
-  useEffect(() => {
-    const primaryBg = "#062F2A"
-    const primaryHover = "#021F1C"
-    const secondaryText = "#0D1B1E"
-    const softBg = "#FAF9F3"
-
-    const forceChildren = (btn: HTMLElement, color: string) => {
-      btn.querySelectorAll("*").forEach((node) => {
-        const el = node as HTMLElement
-        el.style.setProperty("color", color, "important")
-        el.style.setProperty("-webkit-text-fill-color", color, "important")
-        el.style.setProperty("text-shadow", "none", "important")
-        if (el.tagName.toLowerCase() === "svg" || el.closest("svg")) {
-          el.style.setProperty("stroke", color, "important")
-        }
-      })
-    }
-
-    const commonButton = (btn: HTMLElement) => {
-      btn.style.setProperty("min-height", "3.5rem", "important")
-      btn.style.setProperty("height", "3.5rem", "important")
-      btn.style.setProperty("width", "100%", "important")
-      btn.style.setProperty("max-width", "none", "important")
-      btn.style.setProperty("border-radius", "9999px", "important")
-      btn.style.setProperty("display", "flex", "important")
-      btn.style.setProperty("align-items", "center", "important")
-      btn.style.setProperty("justify-content", "center", "important")
-      btn.style.setProperty("gap", "0.55rem", "important")
-      btn.style.setProperty("padding", "0 1.25rem", "important")
-      btn.style.setProperty("font-weight", "700", "important")
-      btn.style.setProperty("font-size", "1rem", "important")
-      btn.style.setProperty("line-height", "1.1", "important")
-      btn.style.setProperty("letter-spacing", "-0.01em", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      btn.style.setProperty("opacity", "1", "important")
-    }
-
-    const primary = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-render-safe-action", "primary")
-      commonButton(btn)
-      btn.style.setProperty("background", primaryBg, "important")
-      btn.style.setProperty("background-color", primaryBg, "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1px solid ${primaryBg}`, "important")
-      btn.style.setProperty("color", "#FFFFFF", "important")
-      btn.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-      btn.style.setProperty("box-shadow", "0 10px 22px rgba(6, 47, 42, 0.16)", "important")
-      forceChildren(btn, "#FFFFFF")
-    }
-
-    const secondary = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-render-safe-action", "secondary")
-      commonButton(btn)
-      btn.style.setProperty("background", "transparent", "important")
-      btn.style.setProperty("background-color", "transparent", "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", "1.5px solid color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", "important")
-      btn.style.setProperty("color", secondaryText, "important")
-      btn.style.setProperty("-webkit-text-fill-color", secondaryText, "important")
-      btn.style.setProperty("box-shadow", "0 8px 18px rgba(17, 24, 39, 0.04)", "important")
-      forceChildren(btn, secondaryText)
-    }
-
-    const splitChoice = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-render-safe-split-method", "1")
-      commonButton(btn)
-      btn.style.setProperty("background", softBg, "important")
-      btn.style.setProperty("background-color", softBg, "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1.5px solid ${primaryBg}`, "important")
-      btn.style.setProperty("color", primaryBg, "important")
-      btn.style.setProperty("-webkit-text-fill-color", primaryBg, "important")
-      btn.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.06)", "important")
-      forceChildren(btn, primaryBg)
-    }
-
-    const plusButton = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-render-safe-plus", "1")
-      btn.style.setProperty("color", "#FFFFFF", "important")
-      btn.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      btn.style.setProperty("font-weight", "900", "important")
-      btn.style.setProperty("opacity", "1", "important")
-    }
-
-    const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-        const aria = btn.getAttribute("aria-label") || ""
-
-        if (aria === "Increase quantity" && txt.includes("+")) {
-          plusButton(btn)
-          return
-        }
-
-        if (
-          txt === "Confirm" ||
-          txt.includes("Send to kitchen") ||
-          txt.includes("Send order to kitchen") ||
-          txt.includes("Sending") ||
-          txt.includes("Pay in full") ||
-          txt.includes("Review split")
-        ) {
-          primary(btn)
-          return
-        }
-
-        if (
-          txt === "Continue ordering" ||
-          txt.includes("Split bill")
-        ) {
-          secondary(btn)
-          return
-        }
-
-        if (
-          false /* PMD_DISABLE_OLD_SPLIT_RUNTIME_WRITER: Split equally */ ||
-          false /* PMD_DISABLE_OLD_SPLIT_RUNTIME_WRITER: By order items */ ||
-          false /* PMD_DISABLE_OLD_SPLIT_RUNTIME_WRITER: By shares */
-        ) {
-          splitChoice(btn)
-          return
-        }
-      })
-    }
-
-    const w = window as any
-    w.__pmdRenderSafeButtonSeq = (w.__pmdRenderSafeButtonSeq || 0) + 1
-    const seq = w.__pmdRenderSafeButtonSeq
-
-    const timers = [0, 40, 120, 260, 520, 900, 1400].map((delay) =>
-      window.setTimeout(() => {
-        if ((window as any).__pmdRenderSafeButtonSeq === seq) apply()
-      }, delay)
-    )
-
-    return () => timers.forEach((timer) => window.clearTimeout(timer))
-  })
-
-  // PMD_PLUS_WHITE_AND_SHARE_LINK_BUTTONS_FIX
-  useEffect(() => {
-    const primaryBg = "#062F2A"
-    const primaryHover = "#021F1C"
-    const softBg = "#FAF9F3"
-
-    const forceChildren = (btn: HTMLElement, color: string) => {
-      btn.querySelectorAll("*").forEach((node) => {
-        const el = node as HTMLElement
-        el.style.setProperty("color", color, "important")
-        el.style.setProperty("-webkit-text-fill-color", color, "important")
-        el.style.setProperty("text-shadow", "none", "important")
-        if (el.tagName.toLowerCase() === "svg" || el.closest("svg")) {
-          el.style.setProperty("stroke", color, "important")
-        }
-      })
-    }
-
-    const commonButton = (btn: HTMLElement) => {
-      btn.style.setProperty("min-height", "3.5rem", "important")
-      btn.style.setProperty("height", "3.5rem", "important")
-      btn.style.setProperty("width", "100%", "important")
-      btn.style.setProperty("border-radius", "9999px", "important")
-      btn.style.setProperty("display", "flex", "important")
-      btn.style.setProperty("align-items", "center", "important")
-      btn.style.setProperty("justify-content", "center", "important")
-      btn.style.setProperty("gap", "0.55rem", "important")
-      btn.style.setProperty("padding", "0 1.25rem", "important")
-      btn.style.setProperty("font-weight", "700", "important")
-      btn.style.setProperty("font-size", "1rem", "important")
-      btn.style.setProperty("line-height", "1.1", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      btn.style.setProperty("opacity", "1", "important")
-    }
-
-    const primary = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-share-extra-action", "primary")
-      commonButton(btn)
-      btn.style.setProperty("background", primaryBg, "important")
-      btn.style.setProperty("background-color", primaryBg, "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1px solid ${primaryBg}`, "important")
-      btn.style.setProperty("color", "#FFFFFF", "important")
-      btn.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-      btn.style.setProperty("box-shadow", "0 10px 22px rgba(6, 47, 42, 0.16)", "important")
-      forceChildren(btn, "#FFFFFF")
-    }
-
-    const secondaryGreenFrame = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-share-extra-action", "secondary")
-      commonButton(btn)
-      btn.style.setProperty("background", softBg, "important")
-      btn.style.setProperty("background-color", softBg, "important")
-      btn.style.setProperty("background-image", "none", "important")
-      btn.style.setProperty("border", `1.5px solid ${primaryBg}`, "important")
-      btn.style.setProperty("color", primaryBg, "important")
-      btn.style.setProperty("-webkit-text-fill-color", primaryBg, "important")
-      btn.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.06)", "important")
-      forceChildren(btn, primaryBg)
-    }
-
-    const plusWhite = (btn: HTMLElement) => {
-      btn.setAttribute("data-pmd-plus-force-white", "1")
-      btn.style.setProperty("color", "#FFFFFF", "important")
-      btn.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-      btn.style.setProperty("text-shadow", "none", "important")
-      btn.style.setProperty("font-weight", "900", "important")
-      btn.style.setProperty("opacity", "1", "important")
-    }
-
-    const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-        const aria = btn.getAttribute("aria-label") || ""
-
-        if (aria === "Increase quantity" && txt.includes("+")) {
-          plusWhite(btn)
-          return
-        }
-
-        if (txt.includes("Pay my share")) {
-          primary(btn)
-          return
-        }
-
-        if (
-          txt.includes("Send payment link to others") ||
-          txt.includes("Show QR/share link")
-        ) {
-          secondaryGreenFrame(btn)
-          return
-        }
-      })
-    }
-
-    const timers = [0, 30, 80, 180, 350, 700, 1200, 1800].map((delay) =>
-      window.setTimeout(apply, delay)
-    )
-
-    return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [checkoutStep])
-
-
-// PMD_SELECT_PAYER_BUTTON_FRAME_FIX
-  useEffect(() => {
-    const applySelectPayerStyle = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-
-        if (txt === "Select payer") {
-          btn.setAttribute("data-pmd-select-payer-btn", "1")
-          btn.style.setProperty("min-height", "3.5rem", "important")
-          btn.style.setProperty("height", "3.5rem", "important")
-          btn.style.setProperty("width", "100%", "important")
-          btn.style.setProperty("border-radius", "9999px", "important")
-          btn.style.setProperty("display", "flex", "important")
-          btn.style.setProperty("align-items", "center", "important")
-          btn.style.setProperty("justify-content", "center", "important")
-          btn.style.setProperty("padding", "0 1.25rem", "important")
-          btn.style.setProperty("background", "#FAF9F3", "important")
-          btn.style.setProperty("background-color", "#FAF9F3", "important")
-          btn.style.setProperty("background-image", "none", "important")
-          btn.style.setProperty("border", "1.5px solid #062F2A", "important")
-          btn.style.setProperty("color", "#062F2A", "important")
-          btn.style.setProperty("-webkit-text-fill-color", "#062F2A", "important")
-          btn.style.setProperty("font-weight", "750", "important")
-          btn.style.setProperty("font-size", "1rem", "important")
-          btn.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.06)", "important")
-          btn.style.setProperty("text-shadow", "none", "important")
-        }
-      })
-    }
-
-    const timers = [0, 60, 160, 350, 700].map((delay) => window.setTimeout(applySelectPayerStyle, delay))
-    return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [checkoutStep, selectedSplitPersonId, splitMethod])
-  const estimatePrepMinutes = (items: Array<any>) => {
-    const normalized = (items || []).map((item) => ({
-      quantity: Math.max(1, Number(item?.quantity || 1)),
-      prep: Math.max(0, Number(item?.prep_time_minutes ?? item?.item?.prep_time_minutes ?? 15) || 15),
-    }))
-    const quantity = normalized.reduce((acc, item) => acc + item.quantity, 0)
-    const base = normalized.reduce((acc, item) => Math.max(acc, item.prep), 15)
-    const buffer = Math.min(15, Math.max(0, (quantity - 1) * 2))
-    return Math.max(10, Math.min(90, Math.round(base + buffer)))
-  }
-  const estimatedMinutes = useMemo(() => {
-    const backendEta = Number(submittedSnapshot?.etaMinutes || submittedSnapshot?.estimated_prep_minutes || 0)
-    if (backendEta > 0) return backendEta
-    return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
-  }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
-  // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
   const vatLabels = useMemo(() => {
     if (!taxSettings.enabled || taxSettings.percentage <= 0) {
       return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
@@ -2400,15 +1366,37 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+  const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "#062F2A",
+    backgroundColor: "#062F2A",
+    backgroundImage: "none",
     color: "#FFFFFF",
+    WebkitTextFillColor: "#FFFFFF",
     textShadow: "none",
     border: "1px solid #062F2A",
+    boxShadow: "0 10px 22px rgba(6, 47, 42, 0.16)",
   }
-  const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
-  const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white pmd-v2-action-circle hover:opacity-90"
+  const modalSecondaryBtnStyle: React.CSSProperties = {
+    background: "transparent",
+    backgroundColor: "transparent",
+    color: "#10201D",
+    WebkitTextFillColor: "#10201D",
+    borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)",
+    textShadow: "none",
+  }
+  const modalSecondaryBtn = "min-h-10 w-full rounded-full border px-4 py-2 text-sm font-semibold transition-colors hover:bg-[color:var(--theme-surface)] inline-flex items-center justify-center gap-2"
+  const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white hover:opacity-90"
+  const checkoutTextVars: React.CSSProperties = {
+    color: "#10201D",
+    WebkitTextFillColor: "#10201D",
+    ["--theme-text-primary" as any]: "#10201D",
+    ["--theme-text-muted" as any]: "#6B7280",
+    ["--pmd-v2-text" as any]: "#10201D",
+    ["--pmd-v2-text-muted" as any]: "#6B7280",
+    ["--theme-surface" as any]: "#FFFFFF",
+  }
+  const checkoutCardTransition = { duration: 0.24, ease: "easeOut" as const }
   const toolbarIconBtnStyle: React.CSSProperties = {
     background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
     border: "1px solid var(--theme-border)",
@@ -3969,37 +2957,6 @@ case "cod":
     }
   }, [isOpen, hasPersonalItems, initialCheckoutStep, checkoutStep])
 
-// PMD_FREEZE_MODAL_TEXT_BUTTONS_FIRST_PAINT
-useLayoutEffect(() => {
-  if (!isOpen || typeof document === "undefined") return
-
-  let cleanupTimer: number | undefined
-  let retryTimer: number | undefined
-
-  const applyFreeze = () => {
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
-    if (!root) return false
-
-    root.setAttribute("data-pmd-step-freeze", "1")
-
-    cleanupTimer = window.setTimeout(() => {
-      root.setAttribute("data-pmd-step-freeze", "0")
-      root.removeAttribute("data-pmd-step-freeze")
-    }, 850)
-
-    return true
-  }
-
-  if (!applyFreeze()) {
-    retryTimer = window.setTimeout(applyFreeze, 16)
-  }
-
-  return () => {
-    if (cleanupTimer) window.clearTimeout(cleanupTimer)
-    if (retryTimer) window.clearTimeout(retryTimer)
-  }
-}, [isOpen, checkoutStep])
-
 const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview
     ? "Table Order"
     : checkoutTitle[checkoutStep]
@@ -4136,12 +3093,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             >
             <ArrowLeft className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
           </Button>
-          <h2 className="text-lg">{modalTitle}</h2>
+          <h2 className="text-lg" style={{ color: "#10201D", WebkitTextFillColor: "#10201D" }}>{modalTitle}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div data-pmd-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1" style={checkoutTextVars}>
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -4365,7 +3322,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview && (
-            <motion.div key="table-order-draft" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+            <motion.div key="table-order-draft" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={checkoutCardTransition} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs muted">Review the items sent for this table.</p>
@@ -4405,11 +3362,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       type="button"
                       disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0}
                       onClick={handleSubmitTableDraft}
-                      whileHover={{ y: submitDraftLoading ? 0 : -1 }}
-                      whileTap={{ scale: submitDraftLoading ? 1 : 0.985 }}
                       aria-label="Send order to kitchen"
                       data-pmd-clean-send-kitchen="1"
-                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-colors hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                       style={{
                         background: "#062F2A",
                         backgroundColor: "#062F2A",
@@ -4436,24 +3391,23 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <motion.button
                       type="button"
                       onClick={onClose}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.985 }}
                       data-pmd-clean-continue-ordering="1"
-                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition hover:opacity-95 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent"
+                      className="min-h-12 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-colors hover:opacity-95 border bg-transparent"
+                      style={modalSecondaryBtnStyle}
                     >
                       Continue ordering
                     </motion.button>
                   </div>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn} style={modalSecondaryBtnStyle}>
                   View order status
                 </button>
               ) : null}
             </motion.div>
           )}
 
-{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={checkoutCardTransition} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
           {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
@@ -4505,6 +3459,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   data-pmd-review-continue="true"
                   onClick={onClose}
                   className={modalSecondaryBtn}
+                  style={modalSecondaryBtnStyle}
                 >
                   Continue ordering
                 </button>
@@ -4647,8 +3602,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     </div>
                   ))}
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => toast({ title: "Payment links ready", description: "Share links can be generated by the payment API when multi-device checkout is enabled." })} className={modalSecondaryBtn}><Link2 className="h-4 w-4" /> Send payment link to others</button>
-                    <button type="button" onClick={() => toast({ title: "QR share", description: "Ask guests to scan the table QR to pay their own share." })} className={modalSecondaryBtn}><QrCode className="h-4 w-4" /> Show QR/share link</button>
+                    <button type="button" onClick={() => toast({ title: "Payment links ready", description: "Share links can be generated by the payment API when multi-device checkout is enabled." })} className={modalSecondaryBtn} style={modalSecondaryBtnStyle}><Link2 className="h-4 w-4" /> Send payment link to others</button>
+                    <button type="button" onClick={() => toast({ title: "QR share", description: "Ask guests to scan the table QR to pay their own share." })} className={modalSecondaryBtn} style={modalSecondaryBtnStyle}><QrCode className="h-4 w-4" /> Show QR/share link</button>
                   </div>
                 </div>
               )}
@@ -4702,47 +3657,6 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               )}
               <div className="flex items-center gap-3">
                 <div
-                ref={(el) => {
-                  if (!el) return
-
-                  const applyOrderReceivedIcon = () => {
-                    el.style.setProperty("background", "#062F2A", "important")
-                    el.style.setProperty("background-color", "#062F2A", "important")
-                    el.style.setProperty("color", "#FFFFFF", "important")
-                    el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                    el.style.setProperty("border", "1px solid #062F2A", "important")
-                    el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.18)", "important")
-
-                    el.querySelectorAll("svg, svg *, path").forEach((node) => {
-                      const iconNode = node as HTMLElement
-                      iconNode.style.setProperty("color", "#FFFFFF", "important")
-                      iconNode.style.setProperty("stroke", "#FFFFFF", "important")
-                      iconNode.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                      iconNode.style.setProperty("background", "transparent", "important")
-                      iconNode.style.setProperty("background-color", "transparent", "important")
-                    })
-                  }
-
-                  applyOrderReceivedIcon()
-
-                  if (el.dataset.pmdOrderReceivedIconLock !== "1") {
-                    el.dataset.pmdOrderReceivedIconLock = "1"
-
-                    const observer = new MutationObserver(() => {
-                      requestAnimationFrame(applyOrderReceivedIcon)
-                    })
-
-                    observer.observe(el, {
-                      attributes: true,
-                      attributeFilter: ["style", "class"],
-                      subtree: true,
-                    })
-
-                    ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                      window.setTimeout(applyOrderReceivedIcon, delay)
-                    })
-                  }
-                }}
                 data-pmd-order-received-icon="1"
                 className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center pmd-order-received-icon"
                 style={{
@@ -4846,18 +3760,14 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <motion.button
                       type="button"
-                      whileHover={{ x: 2 }}
-                      whileTap={{ scale: 0.985 }}
-                      onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
+                                            onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
                       className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition" style={modalPrimaryBtnStyle}
                     >
                       Pay in full <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
                     </motion.button>
                     <motion.button
                       type="button"
-                      whileHover={{ x: 2 }}
-                      whileTap={{ scale: 0.985 }}
-                      onClick={() => startSplitFlow("equal")}
+                                            onClick={() => startSplitFlow("equal")}
                       className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
                       style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}
                     >
@@ -4873,6 +3783,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     onClose()
                   }}
                   className={modalSecondaryBtn}
+                  style={modalSecondaryBtnStyle}
                 >
                   Continue ordering
                 </button>
@@ -4902,7 +3813,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   <div className="flex justify-center pt-1">
                     <img src="/assets/media/uploads/Paymydinelogo.png" alt="PayMyDine" className="max-h-7 max-w-[120px] opacity-70" />
                   </div>
-                  <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+                  <button type="button" onClick={onClose} className={modalSecondaryBtn} style={modalSecondaryBtnStyle}>Back to menu</button>
                 </div>
               )}
             </motion.div>
@@ -4910,7 +3821,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {checkoutStep === "payment" && (
             <>
-              <motion.div key="payment-card-header" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
+              <motion.div key="payment-card-header" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={checkoutCardTransition} className="surface-sub rounded-2xl p-3 space-y-3">
                 <div
                   data-pmd-payment-header-copy-row="1"
                   className="flex items-center gap-3 rounded-2xl p-4"
@@ -4921,46 +3832,6 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   }}
                 >
                   <div
-                    ref={(el) => {
-                      if (!el) return
-
-                      const applyPaymentHeaderIcon = () => {
-                        el.style.setProperty("background", "#062F2A", "important")
-                        el.style.setProperty("background-color", "#062F2A", "important")
-                        el.style.setProperty("border", "1px solid #062F2A", "important")
-                        el.style.setProperty("border-radius", "9999px", "important")
-                        el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.18)", "important")
-                        el.style.setProperty("color", "#FFFFFF", "important")
-                        el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-
-                        el.querySelectorAll("svg, svg *, path, rect, line").forEach((node) => {
-                          const iconNode = node as HTMLElement
-                          iconNode.style.setProperty("color", "#FFFFFF", "important")
-                          iconNode.style.setProperty("stroke", "#FFFFFF", "important")
-                          iconNode.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                        })
-                      }
-
-                      applyPaymentHeaderIcon()
-
-                      if (el.dataset.pmdPaymentHeaderIconLock !== "1") {
-                        el.dataset.pmdPaymentHeaderIconLock = "1"
-
-                        const observer = new MutationObserver(() => {
-                          requestAnimationFrame(applyPaymentHeaderIcon)
-                        })
-
-                        observer.observe(el, {
-                          attributes: true,
-                          attributeFilter: ["style", "class"],
-                          subtree: true,
-                        })
-
-                        ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                          window.setTimeout(applyPaymentHeaderIcon, delay)
-                        })
-                      }
-                    }}
                     data-pmd-payment-header-icon="1"
                     className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center"
                     style={{

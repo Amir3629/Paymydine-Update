@@ -294,29 +294,8 @@ export default function CleanLightCustomerGuard() {
 
     applyCleanLightCustomerUI(pathname)
 
-    const timers = [80, 250, 700, 1400, 2400].map((delay) =>
-      window.setTimeout(() => applyCleanLightCustomerUI(pathname), delay)
-    )
-
-    const onFocus = () => applyCleanLightCustomerUI(pathname)
-    const onPageShow = () => applyCleanLightCustomerUI(pathname)
-    const onInteraction = () => {
-      window.requestAnimationFrame(() => applyCleanLightCustomerUI(pathname))
-      window.setTimeout(() => applyCleanLightCustomerUI(pathname), 80)
-      window.setTimeout(() => applyCleanLightCustomerUI(pathname), 220)
-    }
-
-    window.addEventListener("focus", onFocus)
-    window.addEventListener("pageshow", onPageShow)
-    document.addEventListener("click", onInteraction, true)
-    document.addEventListener("touchend", onInteraction, true)
-
     return () => {
-      timers.forEach(window.clearTimeout)
-      window.removeEventListener("focus", onFocus)
-      window.removeEventListener("pageshow", onPageShow)
-      document.removeEventListener("click", onInteraction, true)
-      document.removeEventListener("touchend", onInteraction, true)
+      cleanupGuardedStyles()
     }
   }, [pathname])
 
