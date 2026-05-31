@@ -135,6 +135,8 @@ export type TableOrderDraftResponse = {
   status?: 'empty' | 'draft' | 'submitted_unpaid' | 'partially_paid' | 'paid';
   draft_id?: number | null;
   order_id?: number | null;
+  orderId?: number | null;
+  orderNumber?: number | string | null;
   table_id?: string | null;
   table_no?: string | null;
   table_name?: string | null;
@@ -143,6 +145,13 @@ export type TableOrderDraftResponse = {
   totals?: { subtotal: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
   settlement?: { orderTotal: number; settledAmount: number; remainingAmount: number; settlementStatus: string };
   payment?: string | null;
+  status_name?: string | null;
+  paymentStatus?: 'paid' | 'partial' | 'unpaid' | string;
+  deliveryStatus?: string | null;
+  hasActiveTableOrder?: boolean;
+  canShowToNewDevice?: boolean;
+  updatedAt?: string | null;
+  total?: number;
   message?: string;
   error?: string;
 };
@@ -723,14 +732,14 @@ export class ApiClient {
 
   async validateCoupon(code: string, subtotal: number): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
-      const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
-      const res = await fetch(`${base}/validate-coupon`, {
+      const endpoint = this.envConfig.getApiEndpoint('/validate-coupon');
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: safeJsonStringify({ code, subtotal }),
+        body: safeJsonStringify({ code, subtotal, amount: subtotal }),
       });
       
       if (!res.ok) {
@@ -861,7 +870,10 @@ export class ApiClient {
     try {
       const params = new URLSearchParams();
       if (context.table_id != null && String(context.table_id).trim() !== '') params.set('table_id', String(context.table_id));
-      if (context.table_no != null && String(context.table_no).trim() !== '') params.set('table_no', String(context.table_no));
+      if (context.table_no != null && String(context.table_no).trim() !== '') {
+        params.set('table_no', String(context.table_no));
+        params.set('table', String(context.table_no));
+      }
       if (context.qr) params.set('qr', context.qr);
       const response = await fetch(`/api/v1/table-order-draft?${params.toString()}`, { headers: { Accept: 'application/json' } });
       const data = await response.json().catch(() => ({}));
@@ -926,6 +938,9 @@ export class ApiClient {
       payment_method: string;
       payment_reference?: string | null;
       amount?: number | null;
+      tip_amount?: number | null;
+      coupon_discount?: number | null;
+      coupon_code?: string | null;
       selected_items?: Array<{ order_menu_id: number; quantity: number }>;
       payer_label?: string | null;
       table_id?: string | null;
@@ -945,6 +960,9 @@ export class ApiClient {
         payment_method: payload.payment_method,
         payment_reference: payload.payment_reference ?? null,
         amount: payload.amount ?? null,
+        tip_amount: payload.tip_amount ?? 0,
+        coupon_discount: payload.coupon_discount ?? 0,
+        coupon_code: payload.coupon_code ?? null,
         selected_items: payload.selected_items ?? [],
         payer_label: payload.payer_label ?? null,
         table_id: payload.table_id ?? null,

@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
@@ -9,7 +8,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { FaviconSetter } from "@/components/favicon-setter"
 import CleanLightCustomerGuard from "@/components/clean-light-customer-guard"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
   title: "PayMyDine - A Luxurious Dining Experience",
@@ -306,11 +304,11 @@ html body [data-pmd-menu-cart-badge="1"] * {
         />
 
       </head>
-      <body className={inter.className + ' text-theme'}>
+      <body className="text-theme">
         <CleanLightCustomerGuard />
         <FaviconSetter />
         <ThemeProvider>
-          <ClientLayout className={cn("min-h-screen font-sans antialiased", inter.variable)}>
+          <ClientLayout className={cn("min-h-screen font-sans antialiased")}>
             {children}
             <Toaster />
           </ClientLayout>

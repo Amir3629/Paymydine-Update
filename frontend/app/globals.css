@@ -64,6 +64,8 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    --font-inter: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-playfair-display: Georgia, "Times New Roman", serif;
   }
  
   .dark {
@@ -6611,8 +6613,8 @@ button[aria-label="Increase quantity"].pmd-v2-action-circle:not(.quantity-btn) {
   background: var(--pmd-v2-action-bg) !important;
   background-color: var(--pmd-v2-action-bg) !important;
   background-image: none !important;
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
   border: 1px solid var(--pmd-v2-action-border) !important;
   border-color: var(--pmd-v2-action-border) !important;
   outline: 0 !important;
@@ -6628,9 +6630,9 @@ button[aria-label="Increase quantity"].pmd-v2-action-circle:not(.quantity-btn) {
 button[aria-label="Increase quantity"]:not(.quantity-btn) *,
 button.absolute.-top-2.-right-2[aria-label="Increase quantity"]:not(.quantity-btn) *,
 button[aria-label="Increase quantity"].pmd-v2-action-circle:not(.quantity-btn) * {
-  color: #111827 !important;
-  stroke: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
   text-decoration: none !important;
   text-shadow: none !important;
 }
@@ -6697,8 +6699,8 @@ button[aria-label="Increase quantity"].pmd-v2-action-circle:not(.quantity-btn) {
   background: var(--pmd-v2-action-bg) !important;
   background-color: var(--pmd-v2-action-bg) !important;
   background-image: none !important;
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
   border: 1px solid var(--pmd-v2-action-border) !important;
   border-color: var(--pmd-v2-action-border) !important;
   outline: 0 !important;
@@ -6732,8 +6734,8 @@ html[data-theme="minimal"] button[aria-label="Increase quantity"].pmd-v2-action-
 html:not([data-theme="minimal"]) button[aria-label="Increase quantity"]:not(.quantity-btn),
 html:not([data-theme="minimal"]) button.absolute.-top-2.-right-2[aria-label="Increase quantity"]:not(.quantity-btn),
 html:not([data-theme="minimal"]) button[aria-label="Increase quantity"].pmd-v2-action-circle:not(.quantity-btn) {
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
 }
 
 button[aria-label="Increase quantity"]:not(.quantity-btn)::before,
@@ -8587,7 +8589,6 @@ html body button.pmd-show-bill-toggle-button:hover {
 /* PMD ORDER RECEIVED + TABLE ORDER ICON FIX START */
 /*
   Fix 1: order confirmation status icon should use PayMyDine green, not pink.
-  Fix 2: Table order active toolbar icon must stay visible white on green.
   Narrow selectors only.
 */
 
@@ -8613,7 +8614,6 @@ html body .pmd-order-received-icon svg * {
   fill: none !important;
 }
 
-/* Table order toolbar action */
 html body [data-pmd-table-order-action="1"],
 html body .pmd-table-order-action-button {
   color: #0D1B1E !important;
@@ -8630,7 +8630,6 @@ html body .pmd-table-order-action-button svg * {
   fill: none !important;
 }
 
-/* If Table order has a number badge, make it match checkout badge style */
 html body [data-pmd-table-order-action="1"] .cart-badge,
 html body [data-pmd-table-order-action="1"] .pmd-v2-badge,
 html body [data-pmd-table-order-action="1"] [data-pmd-table-order-badge="1"] {
@@ -8660,69 +8659,3196 @@ html body [data-pmd-table-order-action="1"] .pmd-v2-badge * {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
 }
-/* PMD ORDER RECEIVED + TABLE ORDER ICON FIX END */
 
-/* PMD REAL TABLE ORDER CSS ONLY START */
-/*
-  Real bottom toolbar Table order button.
-  We target aria-label directly because the JSX source is wrapped/animated
-  and previous data-attribute patch hit the wrong button.
-*/
-html body button[aria-label="Table order"] {
+
+
+/* PMD REAL TABLE ORDER CSS ONLY END */
+
+/* Build-safe local font fallbacks replacing next/font Google network fetches. */
+.pmd-font-fallbacks {
+  --font-inter: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-playfair-display: Georgia, "Times New Roman", serif;
+}
+
+/* PMD split-bill polish: gold-luxury range controls and table-order toolbar refinement. */
+html body .pmd-split-slider {
+  height: 18px;
+  cursor: pointer;
+  accent-color: #b88940;
+  background: transparent;
+}
+
+html body .pmd-split-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #b88940, color-mix(in srgb, #b88940 36%, var(--theme-border) 64%));
+}
+
+html body .pmd-split-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 9999px;
+  background: #062F2A;
+  border: 3px solid #fffaf0;
+  box-shadow: 0 2px 8px rgba(6, 47, 42, 0.22);
+}
+
+html body .pmd-split-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #b88940, color-mix(in srgb, #b88940 36%, var(--theme-border) 64%));
+}
+
+html body .pmd-split-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #062F2A;
+  border: 3px solid #fffaf0;
+  box-shadow: 0 2px 8px rgba(6, 47, 42, 0.22);
+}
+
+
+
+/* PMD FINAL CLEAN: Table order no green frame, hover controlled by Framer source */
+button[data-pmd-bottom-table-order="1"],
+button[data-pmd-bottom-table-order="1"]:hover,
+button[data-pmd-bottom-table-order="1"]:focus,
+button[data-pmd-bottom-table-order="1"]:focus-visible,
+button[data-pmd-bottom-table-order="1"]:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+button[data-pmd-bottom-table-order="1"]::before,
+button[data-pmd-bottom-table-order="1"]::after,
+button[data-pmd-bottom-table-order="1"] *::before,
+button[data-pmd-bottom-table-order="1"] *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+button[data-pmd-bottom-table-order="1"] svg,
+button[data-pmd-bottom-table-order="1"] svg *,
+button[data-pmd-bottom-table-order="1"] path {
+  color: #0D1B1E !important;
+  stroke: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+button[data-pmd-bottom-table-order="1"] > span.absolute {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #b88940 !important;
+  border-radius: 9999px !important;
+}
+/* PMD FINAL CLEAN END */
+
+/* PMD payment header icon visibility lock */
+div[data-pmd-payment-header-icon="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border: 1px solid #062F2A !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.18) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+div[data-pmd-payment-header-icon="1"] svg,
+div[data-pmd-payment-header-icon="1"] svg *,
+div[data-pmd-payment-header-icon="1"] path,
+div[data-pmd-payment-header-icon="1"] rect,
+div[data-pmd-payment-header-icon="1"] line {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+/* PMD payment header icon visibility lock end */
+
+/* =========================================================
+   PMD payment polish
+   ========================================================= */
+
+/* payment adjustment card should blend with card background */
+[data-pmd-payment-adjustment-card="1"] {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-adjustment-card="1"],
+[data-pmd-payment-adjustment-card="1"] > div,
+[data-pmd-payment-adjustment-card="1"] .surface-sub,
+[data-pmd-payment-adjustment-card="1"] .surface,
+[data-pmd-payment-adjustment-card="1"] .rounded-2xl,
+[data-pmd-payment-adjustment-card="1"] .rounded-3xl {
+  background: color-mix(in srgb, var(--theme-secondary) 7%, var(--theme-surface) 93%) !important;
+  border-color: color-mix(in srgb, var(--theme-border) 82%, transparent) !important;
+  box-shadow: none !important;
+}
+
+/* small controls inside payment adjustment area should not look stark white */
+[data-pmd-payment-adjustment-card="1"] input,
+[data-pmd-payment-adjustment-card="1"] textarea,
+[data-pmd-payment-adjustment-card="1"] select,
+[data-pmd-payment-adjustment-card="1"] button:not([type="submit"]) {
+  background: color-mix(in srgb, var(--theme-surface) 96%, #ffffff 4%) !important;
+  border-color: color-mix(in srgb, var(--theme-border) 88%, transparent) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* nicer spacing before payment provider detail/form */
+[data-pmd-payment-selected-detail="1"] {
+  padding-top: 1.15rem !important;
+}
+
+[data-pmd-payment-selected-detail="1"] form,
+[data-pmd-payment-selected-detail="1"] .StripeElement,
+[data-pmd-payment-selected-detail="1"] [class*="Stripe"],
+[data-pmd-payment-selected-detail="1"] [data-testid*="payment"],
+[data-pmd-payment-selected-detail="1"] [data-testid*="Payment"],
+[data-pmd-payment-selected-detail="1"] [role="tabpanel"] {
+  margin-top: 0.9rem !important;
+}
+
+/* unify pay buttons as much as possible */
+[data-pmd-payment-selected-detail="1"] button[type="submit"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton,
+[data-pmd-payment-selected-detail="1"] [data-testid*="pay"]:not([data-testid*="paypal"]),
+[data-pmd-payment-selected-detail="1"] [data-testid*="Pay"]:not([data-testid*="PayPal"]) {
+  width: 100% !important;
+  min-height: 3.35rem !important;
+  margin-top: 1rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid #062F2A !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 24px rgba(6, 47, 42, 0.18) !important;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease !important;
+}
+
+[data-pmd-payment-selected-detail="1"] button[type="submit"]:hover,
+[data-pmd-payment-selected-detail="1"] .SubmitButton:hover,
+[data-pmd-payment-selected-detail="1"] [data-testid*="pay"]:not([data-testid*="paypal"]):hover,
+[data-pmd-payment-selected-detail="1"] [data-testid*="Pay"]:not([data-testid*="PayPal"]):hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 28px rgba(6, 47, 42, 0.22) !important;
+}
+
+[data-pmd-payment-selected-detail="1"] button[type="submit"] svg,
+[data-pmd-payment-selected-detail="1"] button[type="submit"] svg *,
+[data-pmd-payment-selected-detail="1"] .SubmitButton svg,
+[data-pmd-payment-selected-detail="1"] .SubmitButton svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* a bit more space between card fields and final pay button */
+[data-pmd-payment-selected-detail="1"] form > button:last-child,
+[data-pmd-payment-selected-detail="1"] form button[type="submit"]:last-child {
+  margin-top: 1.15rem !important;
+}
+
+/* softer scrolling */
+[data-pmd-checkout-scroll="1"] {
+  scroll-behavior: smooth !important;
+}
+
+/* =========================================================
+   PMD REAL FIX: remove white cards inside Payment adjustment area
+   ========================================================= */
+
+[data-pmd-payment-real-panel="summary"],
+[data-pmd-payment-real-panel="tip-coupon"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* remove nested white card look, but keep real inputs/buttons usable */
+[data-pmd-payment-real-panel="summary"] > div,
+[data-pmd-payment-real-panel="summary"] .surface,
+[data-pmd-payment-real-panel="summary"] .surface-sub,
+[data-pmd-payment-real-panel="summary"] [class*="rounded"],
+[data-pmd-payment-real-panel="tip-coupon"] > div,
+[data-pmd-payment-real-panel="tip-coupon"] .surface,
+[data-pmd-payment-real-panel="tip-coupon"] .surface-sub,
+[data-pmd-payment-real-panel="tip-coupon"] [class*="rounded"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* keep coupon input and tip small controls soft, not white */
+[data-pmd-payment-real-panel="tip-coupon"] input,
+[data-pmd-payment-real-panel="tip-coupon"] textarea,
+[data-pmd-payment-real-panel="tip-coupon"] select {
+  background: color-mix(in srgb, var(--theme-background) 72%, var(--theme-surface) 28%) !important;
+  background-color: color-mix(in srgb, var(--theme-background) 72%, var(--theme-surface) 28%) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 88%, transparent) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* tip percentage buttons / apply / remove should still be visible */
+[data-pmd-payment-real-panel="tip-coupon"] button {
+  background: color-mix(in srgb, var(--theme-background) 78%, var(--theme-surface) 22%) !important;
+  background-color: color-mix(in srgb, var(--theme-background) 78%, var(--theme-surface) 22%) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 88%, transparent) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* selected / primary-looking buttons inside tip/coupon keep dark-green style */
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* make the whole payment adjustment section feel like one clean area */
+[data-pmd-payment-adjustment-card="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Pay button spacing: Stripe/Card button should not stick to field above */
+[data-pmd-payment-selected-detail="1"] button[type="submit"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton {
+  margin-top: 1.35rem !important;
+  border-radius: 9999px !important;
+}
+
+/* smoother modal scroll */
+[data-pmd-checkout-scroll="1"] {
+  scroll-behavior: smooth !important;
+}
+/* PMD REAL FIX end */
+
+/* =========================================================
+   PMD FINAL POLISH: Send button + ETA + Payment background
+   ========================================================= */
+
+/* ---------- 1) SEND ORDER TO KITCHEN BUTTON ---------- */
+button[data-pmd-send-kitchen-btn="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #062F2A !important;
+  box-shadow: 0 10px 24px rgba(6, 47, 42, 0.22) !important;
+  transform: translateX(0) !important;
+  transition:
+    transform 220ms cubic-bezier(.2, 0, 0, 1),
+    box-shadow 220ms ease,
+    filter 180ms ease !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover,
+button[data-pmd-send-kitchen-btn="1"]:focus-visible {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+  transform: translateX(6px) !important;
+  box-shadow: 0 14px 30px rgba(6, 47, 42, 0.28) !important;
+  filter: brightness(1.03) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:active {
+  transform: translateX(2px) scale(0.99) !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-label="1"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"] {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transition: transform 220ms cubic-bezier(.2, 0, 0, 1), background 180ms ease !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover [data-pmd-send-kitchen-arrow-wrap="1"],
+button[data-pmd-send-kitchen-btn="1"]:focus-visible [data-pmd-send-kitchen-arrow-wrap="1"] {
+  transform: translateX(4px) !important;
+  background: #031714 !important;
+  background-color: #031714 !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] svg,
+button[data-pmd-send-kitchen-btn="1"] svg *,
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow="1"] {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ---------- 2) ETA FLOATING CIRCLE LIVE EFFECT ---------- */
+@keyframes pmdEtaPulseRing {
+  0%   { transform: scale(0.94); opacity: 0.52; }
+  70%  { transform: scale(1.12); opacity: 0; }
+  100% { transform: scale(1.16); opacity: 0; }
+}
+
+@keyframes pmdEtaGlow {
+  0%, 100% { box-shadow: 0 16px 34px rgba(6, 47, 42, 0.24); }
+  50%      { box-shadow: 0 18px 40px rgba(6, 47, 42, 0.34); }
+}
+
+@keyframes pmdEtaTick {
+  0%, 100% { transform: translateX(-50%) translateY(-50%) scale(1); }
+  50%      { transform: translateX(-50%) translateY(-50%) scale(1.035); }
+}
+
+[data-pmd-floating-eta-circle="1"] {
+  position: absolute !important;
+  overflow: visible !important;
+  animation: pmdEtaGlow 1.2s ease-in-out infinite, pmdEtaTick 1s ease-in-out infinite !important;
+}
+
+[data-pmd-floating-eta-circle="1"]::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid rgba(184, 137, 64, 0.55);
+  animation: pmdEtaPulseRing 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+[data-pmd-floating-eta-circle="1"]::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 9999px;
+  border: 1px dashed rgba(184, 137, 64, 0.34);
+  animation: pmdEtaPulseRing 2.1s ease-out infinite;
+  pointer-events: none;
+}
+
+/* ---------- 3) PAYMENT ADJUSTMENT AREA MUST BE #FAF9F3 ---------- */
+[data-pmd-payment-adjustment-card="1"],
+[data-pmd-payment-real-panel="summary"],
+[data-pmd-payment-real-panel="tip-coupon"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  border-color: #E6E0D1 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-adjustment-card="1"] > div,
+[data-pmd-payment-real-panel="summary"] > div,
+[data-pmd-payment-real-panel="tip-coupon"] > div,
+[data-pmd-payment-adjustment-card="1"] [class*="rounded"],
+[data-pmd-payment-real-panel="summary"] [class*="rounded"],
+[data-pmd-payment-real-panel="tip-coupon"] [class*="rounded"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-adjustment-card="1"] p,
+[data-pmd-payment-adjustment-card="1"] span,
+[data-pmd-payment-adjustment-card="1"] div,
+[data-pmd-payment-real-panel="summary"] p,
+[data-pmd-payment-real-panel="summary"] span,
+[data-pmd-payment-real-panel="summary"] div,
+[data-pmd-payment-real-panel="tip-coupon"] p,
+[data-pmd-payment-real-panel="tip-coupon"] span,
+[data-pmd-payment-real-panel="tip-coupon"] div {
+  background-color: transparent !important;
+}
+
+/* tip/coupon inputs */
+[data-pmd-payment-real-panel="tip-coupon"] input,
+[data-pmd-payment-real-panel="tip-coupon"] textarea,
+[data-pmd-payment-real-panel="tip-coupon"] select {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border: 1px solid #D8D2C6 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* tip small buttons */
+[data-pmd-payment-real-panel="tip-coupon"] button {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border: 1px solid #D8D2C6 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* active/primary buttons inside payment area stay green */
+[data-pmd-payment-adjustment-card="1"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-adjustment-card="1"] button[style*="#062F2A"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Pay buttons more unified */
+[data-pmd-payment-selected-detail="1"] button,
+[data-pmd-payment-selected-detail="1"] a[role="button"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton {
+  border-radius: 9999px !important;
+}
+
+[data-pmd-payment-selected-detail="1"] button[type="submit"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton,
+[data-pmd-payment-selected-detail="1"] button:not([type="button"]) {
+  margin-top: 1.35rem !important;
+}
+
+/* keep selected payment area clean too */
+[data-pmd-payment-selected-detail="1"],
+[data-pmd-payment-selected-detail="1"] > div,
+[data-pmd-payment-selected-detail="1"] [class*="rounded"] {
+  box-shadow: none !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL OVERRIDE: compact table order actions + soft ETA + real payment bg
+   ========================================================= */
+
+/* 1) Table Order actions: Send order + Continue ordering next to each other */
+[data-pmd-table-order-actions-row="1"] {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 0.7rem !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"],
+button[data-pmd-table-order-continue-btn="1"] {
+  min-height: 2.75rem !important;
+  height: 2.75rem !important;
+  width: 100% !important;
+  padding: 0.55rem 0.85rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.82rem !important;
+  line-height: 1 !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+  transition:
+    transform 180ms cubic-bezier(.2,0,0,1),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 160ms ease !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #062F2A !important;
+  justify-content: center !important;
+  gap: 0.45rem !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover,
+button[data-pmd-send-kitchen-btn="1"]:focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateX(3px) translateY(-1px) !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.18) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:active {
+  transform: translateX(1px) scale(0.99) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-label="1"] {
+  margin-left: 0 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  white-space: nowrap !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"] {
+  width: 1.9rem !important;
+  min-width: 1.9rem !important;
+  height: 1.9rem !important;
+  min-height: 1.9rem !important;
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: none !important;
+  transition: transform 180ms cubic-bezier(.2,0,0,1) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover [data-pmd-send-kitchen-arrow-wrap="1"] {
+  transform: translateX(2px) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] svg,
+button[data-pmd-send-kitchen-btn="1"] svg *,
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow="1"] {
+  width: 1rem !important;
+  height: 1rem !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+button[data-pmd-table-order-continue-btn="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  border: 1px solid var(--theme-border) !important;
+}
+
+button[data-pmd-table-order-continue-btn="1"]:hover,
+button[data-pmd-table-order-continue-btn="1"]:focus-visible {
+  background: color-mix(in srgb, #FAF9F3 78%, var(--theme-surface) 22%) !important;
+  background-color: color-mix(in srgb, #FAF9F3 78%, var(--theme-surface) 22%) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 2) ETA: smoother, less jumpy */
+@keyframes pmdEtaSoftGlowFinal {
+  0%, 100% {
+    box-shadow: 0 14px 30px rgba(6, 47, 42, 0.22);
+  }
+  50% {
+    box-shadow: 0 17px 38px rgba(6, 47, 42, 0.30);
+  }
+}
+
+@keyframes pmdEtaSoftRingFinal {
+  0% {
+    opacity: 0.24;
+    transform: scale(0.98);
+  }
+  60% {
+    opacity: 0.08;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+[data-pmd-floating-eta-circle="1"] {
+  animation: pmdEtaSoftGlowFinal 3.4s ease-in-out infinite !important;
+  overflow: visible !important;
+}
+
+[data-pmd-floating-eta-circle="1"]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -7px !important;
+  border-radius: 9999px !important;
+  border: 1px solid rgba(184, 137, 64, 0.42) !important;
+  animation: pmdEtaSoftRingFinal 3.8s ease-out infinite !important;
+  pointer-events: none !important;
+}
+
+[data-pmd-floating-eta-circle="1"]::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* 3) Payment real background: force all white adjustment blocks to #FAF9F3 */
+[data-pmd-payment-header-copy-row="1"],
+[data-pmd-payment-soft-bg],
+[data-pmd-payment-adjustment-shell="1"],
+[data-pmd-payment-adjustment-card="1"],
+[data-pmd-payment-real-panel="summary"],
+[data-pmd-payment-real-panel="tip-coupon"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  border-color: #E6E0D1 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-header-copy-row="1"] *,
+[data-pmd-payment-soft-bg] *,
+[data-pmd-payment-adjustment-shell="1"] *,
+[data-pmd-payment-adjustment-card="1"] *,
+[data-pmd-payment-real-panel="summary"] *,
+[data-pmd-payment-real-panel="tip-coupon"] * {
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-header-copy-row="1"] div,
+[data-pmd-payment-soft-bg] div,
+[data-pmd-payment-adjustment-shell="1"] div,
+[data-pmd-payment-adjustment-card="1"] div,
+[data-pmd-payment-real-panel="summary"] div,
+[data-pmd-payment-real-panel="tip-coupon"] div {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+}
+
+[data-pmd-payment-adjustment-shell="1"] input,
+[data-pmd-payment-adjustment-shell="1"] textarea,
+[data-pmd-payment-adjustment-shell="1"] select,
+[data-pmd-payment-real-panel="tip-coupon"] input,
+[data-pmd-payment-real-panel="tip-coupon"] textarea,
+[data-pmd-payment-real-panel="tip-coupon"] select {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border-color: #D8D2C6 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+[data-pmd-payment-adjustment-shell="1"] button,
+[data-pmd-payment-real-panel="tip-coupon"] button {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border-color: #D8D2C6 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+[data-pmd-payment-adjustment-shell="1"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-adjustment-shell="1"] button[style*="#062F2A"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* keep Stripe/Card form pay button spaced down */
+[data-pmd-payment-selected-detail="1"] button[type="submit"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton {
+  margin-top: 1.35rem !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL FIX: Table Order action buttons layout
+   Ready to send? full row, then 2 buttons side-by-side
+   ========================================================= */
+
+[data-pmd-table-order-actions-row="1"] {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 0.75rem !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+/* Any text/label like "Ready to send?" must stay above buttons */
+[data-pmd-table-order-actions-row="1"] > :not(button) {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  margin: 0 0 0.15rem 0 !important;
+}
+
+/* Both action buttons same row */
+[data-pmd-table-order-actions-row="1"] > button,
+button[data-pmd-send-kitchen-btn="1"],
+button[data-pmd-table-order-continue-btn="1"] {
+  min-height: 3rem !important;
+  height: 3rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0.65rem 0.85rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.05 !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Primary: Send order to kitchen */
+button[data-pmd-send-kitchen-btn="1"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
   background: #062F2A !important;
   background-color: #062F2A !important;
   background-image: none !important;
   border: 1px solid #062F2A !important;
-  border-color: #062F2A !important;
-  outline-color: #062F2A !important;
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
-  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
-  opacity: 1 !important;
-  filter: none !important;
 }
 
-html body button[aria-label="Table order"] svg,
-html body button[aria-label="Table order"] svg *,
-html body button[aria-label="Table order"] path {
+button[data-pmd-send-kitchen-btn="1"]:hover,
+button[data-pmd-send-kitchen-btn="1"]:focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.18) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:active {
+  transform: scale(0.99) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-label="1"] {
+  margin: 0 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  white-space: normal !important;
+  text-align: center !important;
+}
+
+/* Smaller arrow circle */
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"] {
+  width: 1.85rem !important;
+  min-width: 1.85rem !important;
+  height: 1.85rem !important;
+  min-height: 1.85rem !important;
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover [data-pmd-send-kitchen-arrow-wrap="1"] {
+  transform: translateX(2px) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] svg,
+button[data-pmd-send-kitchen-btn="1"] svg *,
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow="1"] {
+  width: 1rem !important;
+  height: 1rem !important;
   color: #FFFFFF !important;
   stroke: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Secondary: Continue ordering */
+button[data-pmd-table-order-continue-btn="1"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+button[data-pmd-table-order-continue-btn="1"]:hover,
+button[data-pmd-table-order-continue-btn="1"]:focus-visible {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: keep them readable */
+@media (max-width: 420px) {
+  [data-pmd-table-order-actions-row="1"] {
+    gap: 0.55rem !important;
+  }
+
+  button[data-pmd-send-kitchen-btn="1"],
+  button[data-pmd-table-order-continue-btn="1"] {
+    font-size: 0.76rem !important;
+    padding-inline: 0.6rem !important;
+  }
+
+  button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"] {
+    width: 1.65rem !important;
+    min-width: 1.65rem !important;
+    height: 1.65rem !important;
+    min-height: 1.65rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD: make Table Order actions behave like Confirm / Continue
+   ========================================================= */
+
+/* Shell becomes:
+   Ready label full width
+   then two equal buttons side-by-side */
+[data-pmd-table-order-actions-shell="1"] {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 0.75rem !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+/* The original Ready + Send row becomes transparent in layout,
+   so its children become grid items of the shell */
+[data-pmd-table-order-ready-row="1"] {
+  display: contents !important;
+}
+
+/* Ready to send? label */
+[data-pmd-table-order-ready-row="1"] > :not(button) {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  margin: 0 0 0.1rem 0 !important;
+}
+
+/* Both buttons: same sizing language as Confirm / Continue */
+button[data-pmd-table-order-confirm-like="primary"],
+button[data-pmd-table-order-confirm-like="secondary"] {
+  min-height: 3rem !important;
+  height: 3rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0.7rem 1rem !important;
+  border-radius: 1rem !important;
+  font-size: 0.9rem !important;
+  line-height: 1.1 !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+/* Primary = Confirm style */
+button[data-pmd-table-order-confirm-like="primary"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+button[data-pmd-table-order-confirm-like="primary"]:hover,
+button[data-pmd-table-order-confirm-like="primary"]:focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.18) !important;
+}
+
+button[data-pmd-table-order-confirm-like="primary"]:active {
+  transform: scale(0.99) !important;
+}
+
+/* Hide the old arrow circle, because Confirm button style has no side bubble */
+button[data-pmd-table-order-confirm-like="primary"] [data-pmd-send-kitchen-arrow-wrap="1"],
+button[data-pmd-table-order-confirm-like="primary"] [data-pmd-send-kitchen-arrow="1"] {
+  display: none !important;
+}
+
+button[data-pmd-table-order-confirm-like="primary"] [data-pmd-send-kitchen-label="1"] {
+  margin: 0 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-align: center !important;
+  white-space: normal !important;
+}
+
+/* Secondary = Continue ordering style */
+button[data-pmd-table-order-confirm-like="secondary"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1px solid var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+button[data-pmd-table-order-confirm-like="secondary"]:hover,
+button[data-pmd-table-order-confirm-like="secondary"]:focus-visible {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.05) !important;
+}
+
+button[data-pmd-table-order-confirm-like="secondary"]:active {
+  transform: scale(0.99) !important;
+}
+
+/* Mobile small width: still two columns but readable */
+@media (max-width: 420px) {
+  [data-pmd-table-order-actions-shell="1"] {
+    gap: 0.55rem !important;
+  }
+
+  button[data-pmd-table-order-confirm-like="primary"],
+  button[data-pmd-table-order-confirm-like="secondary"] {
+    min-height: 2.85rem !important;
+    height: 2.85rem !important;
+    padding-inline: 0.65rem !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL OVERRIDE: Send order to kitchen is ALWAYS dark green
+   ========================================================= */
+
+button[data-pmd-send-kitchen-btn="1"],
+button[data-pmd-table-order-confirm-like="primary"],
+button:has([data-pmd-send-kitchen-label="1"]) {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.16) !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] span,
+button[data-pmd-send-kitchen-btn="1"] div,
+button[data-pmd-send-kitchen-btn="1"] p,
+button[data-pmd-table-order-confirm-like="primary"] span,
+button[data-pmd-table-order-confirm-like="primary"] div,
+button[data-pmd-table-order-confirm-like="primary"] p,
+button:has([data-pmd-send-kitchen-label="1"]) span,
+button:has([data-pmd-send-kitchen-label="1"]) div,
+button:has([data-pmd-send-kitchen-label="1"]) p,
+span[data-pmd-send-kitchen-label="1"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover,
+button[data-pmd-send-kitchen-btn="1"]:focus-visible,
+button[data-pmd-table-order-confirm-like="primary"]:hover,
+button[data-pmd-table-order-confirm-like="primary"]:focus-visible,
+button:has([data-pmd-send-kitchen-label="1"]):hover,
+button:has([data-pmd-send-kitchen-label="1"]):focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  background-image: none !important;
+  border-color: #021F1C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.20) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:active,
+button[data-pmd-table-order-confirm-like="primary"]:active,
+button:has([data-pmd-send-kitchen-label="1"]):active {
+  transform: scale(0.99) !important;
+}
+
+/* hide old arrow bubble if it is still inside this confirm-like button */
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"],
+button[data-pmd-table-order-confirm-like="primary"] [data-pmd-send-kitchen-arrow-wrap="1"],
+button:has([data-pmd-send-kitchen-label="1"]) [data-pmd-send-kitchen-arrow-wrap="1"] {
+  display: none !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD CLEAN FINAL: Table order buttons without old marker conflicts
+   ========================================================= */
+
+[data-pmd-clean-table-actions="1"] {
+  width: 100% !important;
+}
+
+[data-pmd-clean-table-actions="1"] .grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+}
+
+button[data-pmd-clean-send-kitchen="1"] {
+  min-height: 3rem !important;
+  height: 3rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0.7rem 1rem !important;
+  border-radius: 1rem !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  transform: none !important;
+}
+
+button[data-pmd-clean-send-kitchen="1"] *,
+button[data-pmd-clean-send-kitchen="1"] span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-clean-send-kitchen="1"]:hover,
+button[data-pmd-clean-send-kitchen="1"]:focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.20) !important;
+}
+
+button[data-pmd-clean-send-kitchen="1"]:active {
+  transform: scale(0.99) !important;
+}
+
+button[data-pmd-clean-continue-ordering="1"] {
+  min-height: 3rem !important;
+  height: 3rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0.7rem 1rem !important;
+  border-radius: 1rem !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button[data-pmd-clean-continue-ordering="1"]:hover,
+button[data-pmd-clean-continue-ordering="1"]:focus-visible {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.05) !important;
+}
+
+button[data-pmd-clean-continue-ordering="1"]:active {
+  transform: scale(0.99) !important;
+}
+
+@media (max-width: 420px) {
+  button[data-pmd-clean-send-kitchen="1"],
+  button[data-pmd-clean-continue-ordering="1"] {
+    font-size: 0.78rem !important;
+    padding-inline: 0.55rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL: card action buttons match Pay in full / Split bill
+   ========================================================= */
+
+/* row layout */
+[data-pmd-clean-table-actions="1"] .grid,
+[data-pmd-table-order-actions-row="1"] {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 1rem !important;
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+/* shared pill shape */
+button[data-pmd-clean-send-kitchen="1"],
+button[data-pmd-send-kitchen-btn="1"],
+button[data-pmd-clean-continue-ordering="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 1.35rem !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.01em !important;
+  transition:
+    transform 180ms cubic-bezier(.2, 0, 0, 1),
+    box-shadow 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease !important;
+}
+
+/* primary = Send to kitchen */
+button[data-pmd-clean-send-kitchen="1"],
+button[data-pmd-send-kitchen-btn="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  text-shadow: none !important;
+}
+
+/* force all text/icon inside primary button to white */
+button[data-pmd-clean-send-kitchen="1"] *,
+button[data-pmd-send-kitchen-btn="1"] *,
+button[data-pmd-clean-send-kitchen="1"] span,
+button[data-pmd-send-kitchen-btn="1"] span,
+button[data-pmd-clean-send-kitchen="1"] svg,
+button[data-pmd-send-kitchen-btn="1"] svg,
+button[data-pmd-clean-send-kitchen="1"] svg *,
+button[data-pmd-send-kitchen-btn="1"] svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* primary hover = same feel as other nice action buttons */
+button[data-pmd-clean-send-kitchen="1"]:hover,
+button[data-pmd-send-kitchen-btn="1"]:hover,
+button[data-pmd-clean-send-kitchen="1"]:focus-visible,
+button[data-pmd-send-kitchen-btn="1"]:focus-visible {
+  transform: translateX(2px) !important;
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.22) !important;
+}
+
+button[data-pmd-clean-send-kitchen="1"]:active,
+button[data-pmd-send-kitchen-btn="1"]:active {
+  transform: scale(0.985) !important;
+}
+
+/* secondary = Continue ordering */
+button[data-pmd-clean-continue-ordering="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid color-mix(in srgb, #b88940 42%, var(--theme-border) 58%) !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+}
+
+button[data-pmd-clean-continue-ordering="1"] *,
+button[data-pmd-clean-continue-ordering="1"] span,
+button[data-pmd-clean-continue-ordering="1"] svg,
+button[data-pmd-clean-continue-ordering="1"] svg * {
+  color: #0D1B1E !important;
+  stroke: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+button[data-pmd-clean-continue-ordering="1"]:hover,
+button[data-pmd-clean-continue-ordering="1"]:focus-visible {
+  transform: translateX(2px) !important;
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.06) !important;
+}
+
+button[data-pmd-clean-continue-ordering="1"]:active {
+  transform: scale(0.985) !important;
+}
+
+/* if old broken wrappers still exist, neutralize them */
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"],
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-label="1"] {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* small screens */
+@media (max-width: 520px) {
+  button[data-pmd-clean-send-kitchen="1"],
+  button[data-pmd-send-kitchen-btn="1"],
+  button[data-pmd-clean-continue-ordering="1"] {
+    min-height: 3.25rem !important;
+    height: 3.25rem !important;
+    font-size: 0.92rem !important;
+    padding-inline: 0.9rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD SAFE FINAL: only new homepage direct icon class
+   No global home-action-icon-wrap / pmd-v2-action-circle selectors
+   ========================================================= */
+
+.pmd-home-action-icon-direct {
+  width: 7.25rem !important;
+  height: 7.25rem !important;
+  min-width: 7.25rem !important;
+  min-height: 7.25rem !important;
+  max-width: 7.25rem !important;
+  max-height: 7.25rem !important;
+  aspect-ratio: 1 / 1 !important;
+
+  padding: 0 !important;
+  margin-bottom: 1.5rem !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+
+  border: 1px solid #062F2A !important;
+  box-shadow: 0 14px 32px rgba(6, 47, 42, 0.18) !important;
+
+  transition:
+    transform 180ms cubic-bezier(.2, 0, 0, 1),
+    box-shadow 180ms ease,
+    background-color 180ms ease !important;
+}
+
+.pmd-home-action-icon-direct:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  box-shadow: 0 18px 38px rgba(6, 47, 42, 0.24) !important;
+}
+
+.pmd-home-action-icon-direct svg,
+.pmd-home-action-icon-direct svg * {
+  width: 3.15rem !important;
+  height: 3.15rem !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  opacity: 1 !important;
   fill: none !important;
 }
 
-/* Number bubble on Table order: same visual family as checkout badge */
-html body button[aria-label="Table order"] > span,
-html body button[aria-label="Table order"] span.absolute {
-  background: #b88940 !important;
-  background-color: #b88940 !important;
+.pmd-home-action-icon-direct svg {
+  stroke-width: 2.35 !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 520px) {
+  .pmd-home-action-icon-direct {
+    width: 6.35rem !important;
+    height: 6.35rem !important;
+    min-width: 6.35rem !important;
+    min-height: 6.35rem !important;
+    max-width: 6.35rem !important;
+    max-height: 6.35rem !important;
+  }
+
+  .pmd-home-action-icon-direct svg,
+  .pmd-home-action-icon-direct svg * {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* PMD FINAL SIZE TWEAK: homepage direct icons smaller */
+.pmd-home-action-icon-direct {
+  width: 5.85rem !important;
+  height: 5.85rem !important;
+  min-width: 5.85rem !important;
+  min-height: 5.85rem !important;
+  max-width: 5.85rem !important;
+  max-height: 5.85rem !important;
+  margin-bottom: 1.35rem !important;
+}
+
+.pmd-home-action-icon-direct svg,
+.pmd-home-action-icon-direct svg * {
+  width: 2.55rem !important;
+  height: 2.55rem !important;
+}
+
+@media (max-width: 520px) {
+  .pmd-home-action-icon-direct {
+    width: 5.25rem !important;
+    height: 5.25rem !important;
+    min-width: 5.25rem !important;
+    min-height: 5.25rem !important;
+    max-width: 5.25rem !important;
+    max-height: 5.25rem !important;
+  }
+
+  .pmd-home-action-icon-direct svg,
+  .pmd-home-action-icon-direct svg * {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+  }
+}
+
+/* =========================================================
+   PMD FINAL: Valet success check icon bigger only
+   Parent green circle stays same size.
+   ========================================================= */
+
+.page--valet svg.lucide-circle-check,
+[data-pmd-customer-page="valet"] svg.lucide-circle-check,
+svg.lucide-circle-check.w-8.h-8,
+svg.lucide-circle-check.h-8.w-8 {
+  width: 3.25rem !important;
+  height: 3.25rem !important;
+  min-width: 3.25rem !important;
+  min-height: 3.25rem !important;
+  max-width: 3.25rem !important;
+  max-height: 3.25rem !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke-width: 2.35 !important;
+}
+
+/* keep the inside paths white */
+.page--valet svg.lucide-circle-check *,
+[data-pmd-customer-page="valet"] svg.lucide-circle-check *,
+svg.lucide-circle-check.w-8.h-8 *,
+svg.lucide-circle-check.h-8.w-8 * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL: Confirm / Send to kitchen / Continue ordering
+   same luxury pill button system
+   ========================================================= */
+
+button[data-pmd-card-confirm-btn="1"],
+button[data-pmd-card-send-kitchen-btn="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  border-radius: 9999px !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
   background-image: none !important;
+  border: 1px solid #062F2A !important;
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
-  border: 1px solid #b88940 !important;
-  border-color: #b88940 !important;
-  outline-color: #b88940 !important;
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
-  min-height: 24px !important;
-  padding: 0 !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-card-confirm-btn="1"] *,
+button[data-pmd-card-send-kitchen-btn="1"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-card-confirm-btn="1"]:hover,
+button[data-pmd-card-send-kitchen-btn="1"]:hover,
+button[data-pmd-card-confirm-btn="1"]:focus-visible,
+button[data-pmd-card-send-kitchen-btn="1"]:focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.22) !important;
+}
+
+button[data-pmd-card-confirm-btn="1"]:active,
+button[data-pmd-card-send-kitchen-btn="1"]:active {
+  transform: scale(0.985) !important;
+}
+
+button[data-pmd-card-continue-btn="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid color-mix(in srgb, #b88940 42%, var(--theme-border) 58%) !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-card-continue-btn="1"] * {
+  color: #0D1B1E !important;
+  stroke: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+button[data-pmd-card-continue-btn="1"]:hover,
+button[data-pmd-card-continue-btn="1"]:focus-visible {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.06) !important;
+}
+
+button[data-pmd-card-continue-btn="1"]:active {
+  transform: scale(0.985) !important;
+}
+
+/* mobile */
+@media (max-width: 520px) {
+  button[data-pmd-card-confirm-btn="1"],
+  button[data-pmd-card-send-kitchen-btn="1"],
+  button[data-pmd-card-continue-btn="1"] {
+    min-height: 3.25rem !important;
+    height: 3.25rem !important;
+    font-size: 0.92rem !important;
+    padding-inline: 0.9rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL: Pay in full / Split bill / Review split buttons
+   ========================================================= */
+
+button[data-pmd-card-pay-full-btn="1"],
+button[data-pmd-card-review-split-btn="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.55rem !important;
+
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.01em !important;
+
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-card-pay-full-btn="1"] *,
+button[data-pmd-card-review-split-btn="1"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-card-pay-full-btn="1"]:hover,
+button[data-pmd-card-review-split-btn="1"]:hover,
+button[data-pmd-card-pay-full-btn="1"]:focus-visible,
+button[data-pmd-card-review-split-btn="1"]:focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.22) !important;
+}
+
+button[data-pmd-card-pay-full-btn="1"]:active,
+button[data-pmd-card-review-split-btn="1"]:active {
+  transform: scale(0.985) !important;
+}
+
+button[data-pmd-card-split-bill-btn="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.55rem !important;
+
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+
+  border: 1.5px solid color-mix(in srgb, #b88940 48%, var(--theme-border) 52%) !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.01em !important;
+
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-card-split-bill-btn="1"] * {
+  color: #0D1B1E !important;
+  stroke: #b88940 !important;
+  fill: none !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-card-split-bill-btn="1"]:hover,
+button[data-pmd-card-split-bill-btn="1"]:focus-visible {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.06) !important;
+}
+
+button[data-pmd-card-split-bill-btn="1"]:active {
+  transform: scale(0.985) !important;
+}
+
+@media (max-width: 520px) {
+  button[data-pmd-card-pay-full-btn="1"],
+  button[data-pmd-card-split-bill-btn="1"],
+  button[data-pmd-card-review-split-btn="1"] {
+    min-height: 3.25rem !important;
+    height: 3.25rem !important;
+    font-size: 0.92rem !important;
+    padding-inline: 0.9rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* PMD FINAL BUTTONS WITHOUT OBSERVER */
+button[data-pmd-no-observer-action="primary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-no-observer-action="primary"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-no-observer-action="primary"]:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.22) !important;
+}
+
+button[data-pmd-no-observer-action="secondary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid color-mix(in srgb, #b88940 48%, var(--theme-border) 52%) !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-no-observer-action="secondary"] * {
+  color: #0D1B1E !important;
+  stroke: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+button[data-pmd-no-observer-action="secondary"]:hover {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.06) !important;
+}
+
+/* =========================================================
+   PMD RENDER SAFE BUTTON FIXES
+   No MutationObserver.
+   ========================================================= */
+
+/* Plus quantity button must not flash/become white */
+button[aria-label="Increase quantity"].pmd-v2-action-circle,
+button[data-pmd-render-safe-plus="1"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+button[aria-label="Increase quantity"].pmd-v2-action-circle *,
+button[data-pmd-render-safe-plus="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+/* Primary actions: Confirm / Send to kitchen / Pay in full / Review split */
+button[data-pmd-render-safe-action="primary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-render-safe-action="primary"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-render-safe-action="primary"]:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.22) !important;
+}
+
+/* Secondary actions: Continue ordering / Split bill */
+button[data-pmd-render-safe-action="secondary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid color-mix(in srgb, #b88940 48%, var(--theme-border) 52%) !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-render-safe-action="secondary"] * {
+  color: #0D1B1E !important;
+  stroke: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+button[data-pmd-render-safe-action="secondary"]:hover {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.06) !important;
+}
+
+/* Split method choices: Split equally / By order items / By shares */
+button[data-pmd-render-safe-split-method="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  border: 1.5px solid #062F2A !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.06) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-render-safe-split-method="1"] * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+button[data-pmd-render-safe-split-method="1"]:hover {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(6, 47, 42, 0.1) !important;
+}
+
+@media (max-width: 520px) {
+  button[data-pmd-render-safe-action="primary"],
+  button[data-pmd-render-safe-action="secondary"],
+  button[data-pmd-render-safe-split-method="1"] {
+    min-height: 3.25rem !important;
+    height: 3.25rem !important;
+    font-size: 0.92rem !important;
+    padding-inline: 0.9rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD RENDER SAFE BUTTON FIXES
+   No MutationObserver.
+   ========================================================= */
+
+/* Plus quantity button must not flash/become white */
+button[aria-label="Increase quantity"].pmd-v2-action-circle,
+button[data-pmd-render-safe-plus="1"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+button[aria-label="Increase quantity"].pmd-v2-action-circle *,
+button[data-pmd-render-safe-plus="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+/* Primary actions: Confirm / Send to kitchen / Pay in full / Review split */
+button[data-pmd-render-safe-action="primary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-render-safe-action="primary"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+button[data-pmd-render-safe-action="primary"]:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.22) !important;
+}
+
+/* Secondary actions: Continue ordering / Split bill */
+button[data-pmd-render-safe-action="secondary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid color-mix(in srgb, #b88940 48%, var(--theme-border) 52%) !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-render-safe-action="secondary"] * {
+  color: #0D1B1E !important;
+  stroke: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+button[data-pmd-render-safe-action="secondary"]:hover {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.06) !important;
+}
+
+/* Split method choices: Split equally / By order items / By shares */
+button[data-pmd-render-safe-split-method="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 9999px !important;
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  border: 1.5px solid #062F2A !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.06) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-render-safe-split-method="1"] * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+button[data-pmd-render-safe-split-method="1"]:hover {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(6, 47, 42, 0.1) !important;
+}
+
+@media (max-width: 520px) {
+  button[data-pmd-render-safe-action="primary"],
+  button[data-pmd-render-safe-action="secondary"],
+  button[data-pmd-render-safe-split-method="1"] {
+    min-height: 3.25rem !important;
+    height: 3.25rem !important;
+    font-size: 0.92rem !important;
+    padding-inline: 0.9rem !important;
+  }
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL: plus icon always white + split share extra buttons
+   No MutationObserver.
+   ========================================================= */
+
+/* Small + button on menu item cards must stay white immediately */
+button[aria-label="Increase quantity"].pmd-v2-action-circle,
+button[aria-label="Increase quantity"].pmd-v2-action-circle[data-pmd-render-safe-plus="1"],
+button[data-pmd-plus-force-white="1"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+button[aria-label="Increase quantity"].pmd-v2-action-circle *,
+button[aria-label="Increase quantity"].pmd-v2-action-circle[data-pmd-render-safe-plus="1"] *,
+button[data-pmd-plus-force-white="1"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+/* Pay my share */
+button[data-pmd-share-extra-action="primary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  border-radius: 9999px !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-share-extra-action="primary"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+/* Send payment link / QR share */
+button[data-pmd-share-extra-action="secondary"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  border-radius: 9999px !important;
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  border: 1.5px solid #062F2A !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.06) !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-share-extra-action="secondary"] * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-share-extra-action="primary"]:hover,
+button[data-pmd-share-extra-action="secondary"]:hover {
+  transform: translateY(-1px) !important;
+}
+
+button[data-pmd-share-extra-action="primary"]:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+}
+
+button[data-pmd-share-extra-action="secondary"]:hover {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD TRUE FINAL: exact small item-card + icon must be WHITE
+   This is the tiny absolute top-right add button on food items.
+   ========================================================= */
+
+html body button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+html body button.absolute.-top-2.-right-2[aria-label="Increase quantity"].pmd-v2-action-circle,
+html body button[aria-label="Increase quantity"][data-pmd-item-card-plus="1"],
+html body .page--menu button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+html body .page--menu button.absolute.-top-2.-right-2[aria-label="Increase quantity"].pmd-v2-action-circle,
+html body [data-pmd-customer-page] button.absolute.-top-2.-right-2[aria-label="Increase quantity"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+html body button.absolute.-top-2.-right-2[aria-label="Increase quantity"]::before,
+html body button.absolute.-top-2.-right-2[aria-label="Increase quantity"]::after,
+html body button[aria-label="Increase quantity"][data-pmd-item-card-plus="1"]::before,
+html body button[aria-label="Increase quantity"][data-pmd-item-card-plus="1"]::after {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+html body button.absolute.-top-2.-right-2[aria-label="Increase quantity"] *,
+html body button[aria-label="Increase quantity"][data-pmd-item-card-plus="1"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+/* kill old "small plus stays black" rules for this exact button */
+html:not([data-theme="minimal"]) body button.absolute.-top-2.-right-2[aria-label="Increase quantity"]:not(.quantity-btn),
+html:not([data-theme="minimal"]) body button[aria-label="Increase quantity"][data-pmd-item-card-plus="1"]:not(.quantity-btn) {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+
+/* =========================================================
+   PMD TRUE FINAL RUNTIME PLUS WHITE OVERRIDE
+   Tiny absolute + button on menu item card.
+   ========================================================= */
+
+html body .page--menu button.absolute.-top-2.-right-2[aria-label="Increase quantity"],
+html body .page--menu button.absolute.-top-2.-right-2[aria-label="Increase quantity"].pmd-v2-action-circle,
+html body .page--menu button[data-pmd-item-card-plus="1"],
+html body .page--menu button[data-pmd-render-safe-plus="1"],
+html body .page--menu button[data-pmd-plus-force-white="1"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+}
+
+html body .page--menu button.absolute.-top-2.-right-2[aria-label="Increase quantity"] *,
+html body .page--menu button[data-pmd-item-card-plus="1"] *,
+html body .page--menu button[data-pmd-render-safe-plus="1"] *,
+html body .page--menu button[data-pmd-plus-force-white="1"] * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL REVIEW SPLIT PAYMENT INPUT POLISH
+   - No MutationObserver
+   - Review split: remove extra Back from source
+   - Payment Custom / Coupon fields: full pill
+   - Apply: dark green with white text
+   - Selected tip: dark green with white text
+   ========================================================= */
+
+:root {
+  --pmd-payment-pill-bg: #FAF9F3;
+  --pmd-payment-green: #062F2A;
+  --pmd-payment-green-hover: #021F1C;
+  --pmd-payment-border: rgba(6, 47, 42, 0.22);
+}
+
+/* Custom tip + Coupon inputs: proper rounded left/right pill */
+[data-pmd-checkout-scroll="1"] input[placeholder="Custom"],
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"],
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Custom"],
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] {
+  height: 3.55rem !important;
+  min-height: 3.55rem !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid rgba(6, 47, 42, 0.18) !important;
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  font-size: 1rem !important;
+  font-weight: 650 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(222, 211, 195, 0.78),
+    0 4px 12px rgba(6, 47, 42, 0.03) !important;
+  outline: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Custom"]::placeholder,
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"]::placeholder,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Custom"]::placeholder,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"]::placeholder {
+  color: rgba(13, 27, 30, 0.46) !important;
+  -webkit-text-fill-color: rgba(13, 27, 30, 0.46) !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Custom"]:focus,
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"]:focus,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Custom"]:focus,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"]:focus {
+  border-color: #062F2A !important;
+  box-shadow:
+    0 0 0 3px rgba(6, 47, 42, 0.10),
+    inset 0 0 0 1px rgba(6, 47, 42, 0.22) !important;
+}
+
+/* Coupon Apply button: real frame, dark green inside, white letters */
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button {
+  height: 3.55rem !important;
+  min-height: 3.55rem !important;
+  border-radius: 9999px !important;
+  padding: 0 1.25rem !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1.5px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  font-size: 1rem !important;
+  font-weight: 750 !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.14) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button *,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:hover,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Selected tip button: dark green fill + white text.
+   Scope: only the tip row that contains Custom input. */
+[data-pmd-checkout-scroll="1"] div:has(input[placeholder="Custom"]) > button[style*="rgb(6, 47, 42)"],
+[data-pmd-checkout-scroll="1"] div:has(input[placeholder="Custom"]) > button[style*="#062F2A"],
+[data-pmd-checkout-scroll="1"] div:has(input[placeholder="Custom"]) > button[aria-pressed="true"],
+[data-pmd-payment-adjustment-shell="1"] div:has(input[placeholder="Custom"]) > button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-adjustment-shell="1"] div:has(input[placeholder="Custom"]) > button[style*="#062F2A"],
+[data-pmd-payment-adjustment-shell="1"] div:has(input[placeholder="Custom"]) > button[aria-pressed="true"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border: 1.5px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.12) !important;
+  text-shadow: none !important;
+}
+
+/* Non-selected tip buttons: keep nice pill frame */
+[data-pmd-checkout-scroll="1"] div:has(input[placeholder="Custom"]) > button,
+[data-pmd-payment-adjustment-shell="1"] div:has(input[placeholder="Custom"]) > button {
+  min-width: 4.1rem !important;
+  height: 3.55rem !important;
+  border-radius: 9999px !important;
+  font-size: 1rem !important;
+  font-weight: 750 !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD SELECT PAYER BUTTON FINAL STYLE
+   No MutationObserver.
+   ========================================================= */
+
+button[data-pmd-select-payer-btn="1"] {
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+  width: 100% !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 1.25rem !important;
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  border: 1.5px solid #062F2A !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  font-weight: 750 !important;
+  font-size: 1rem !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.06) !important;
+  text-shadow: none !important;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+button[data-pmd-select-payer-btn="1"] * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+button[data-pmd-select-payer-btn="1"]:hover,
+button[data-pmd-select-payer-btn="1"]:focus-visible {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.18) !important;
+}
+
+button[data-pmd-select-payer-btn="1"]:hover *,
+button[data-pmd-select-payer-btn="1"]:focus-visible * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL: make Payment tip/coupon frames smaller
+   0% / 5% / 10% / Custom / Coupon / Apply
+   No MutationObserver.
+   ========================================================= */
+
+[data-pmd-checkout-scroll="1"] div:has(input[placeholder="Custom"]) > button,
+[data-pmd-payment-adjustment-shell="1"] div:has(input[placeholder="Custom"]) > button {
+  min-width: 3.55rem !important;
+  width: auto !important;
+  height: 2.85rem !important;
+  min-height: 2.85rem !important;
+  padding: 0 1rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.92rem !important;
+  font-weight: 750 !important;
+  line-height: 1 !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Custom"],
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"],
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Custom"],
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] {
+  height: 2.9rem !important;
+  min-height: 2.9rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.92rem !important;
+  font-weight: 650 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(222, 211, 195, 0.72),
+    0 3px 8px rgba(6, 47, 42, 0.025) !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Custom"],
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Custom"] {
+  padding-left: 2.25rem !important;
+  padding-right: 0.9rem !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"],
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button,
+[data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button {
+  height: 2.9rem !important;
+  min-height: 2.9rem !important;
+  min-width: 5rem !important;
+  width: auto !important;
+  padding: 0 1.15rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.92rem !important;
+  font-weight: 750 !important;
+  box-shadow: 0 8px 16px rgba(6, 47, 42, 0.12) !important;
+}
+
+/* make the euro prefix inside Custom input align with the smaller field */
+[data-pmd-checkout-scroll="1"] div:has(> input[placeholder="Custom"]) span,
+[data-pmd-payment-adjustment-shell="1"] div:has(> input[placeholder="Custom"]) span {
+  font-size: 0.92rem !important;
+}
+
+/* reduce vertical heaviness of the whole tip/coupon area a bit */
+[data-pmd-payment-adjustment-shell="1"] {
+  padding-top: 1.15rem !important;
+  padding-bottom: 1.15rem !important;
+}
+
+[data-pmd-payment-adjustment-shell="1"] .gap-3 {
+  gap: 0.65rem !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD SPLIT METHOD BUTTONS SMALLER ACTIVE FINAL
+   Split equally / By order items / By shares
+   No MutationObserver.
+   ========================================================= */
+
+button[data-pmd-split-method-btn] {
+  height: 3.2rem !important;
+  min-height: 3.2rem !important;
+  max-height: 3.2rem !important;
+  padding: 0 1.05rem !important;
+  border-radius: 9999px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+
+  border: 1.5px solid #062F2A !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  line-height: 1.05 !important;
+  text-align: center !important;
+  text-shadow: none !important;
+
+  box-shadow: 0 6px 14px rgba(6, 47, 42, 0.04) !important;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+button[data-pmd-split-method-btn] *,
+button[data-pmd-split-method-btn] span {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  text-shadow: none !important;
+}
+
+/* selected split method = like selected tip */
+button[data-pmd-split-method-btn][data-pmd-active="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+}
+
+button[data-pmd-split-method-btn][data-pmd-active="1"] *,
+button[data-pmd-split-method-btn][data-pmd-active="1"] span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* hover switch for inactive buttons */
+button[data-pmd-split-method-btn]:not([data-pmd-active="1"]):hover,
+button[data-pmd-split-method-btn]:not([data-pmd-active="1"]):focus-visible {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.13) !important;
+}
+
+button[data-pmd-split-method-btn]:not([data-pmd-active="1"]):hover *,
+button[data-pmd-split-method-btn]:not([data-pmd-active="1"]):focus-visible * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* make the top split selector row a bit tighter */
+div:has(> button[data-pmd-split-method-btn]) {
+  gap: 0.65rem !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD TRUE FINAL: split method buttons forced style
+   Split equally / By order items / By shares
+   ========================================================= */
+
+button[data-pmd-split-method-force="1"] {
+  height: 3.05rem !important;
+  min-height: 3.05rem !important;
+  max-height: 3.05rem !important;
+  padding: 0 0.95rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+  line-height: 1.05 !important;
+  text-align: center !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-split-method-force="1"][data-pmd-active="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+button[data-pmd-split-method-force="1"][data-pmd-active="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+button[data-pmd-split-method-force="1"][data-pmd-active="0"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border-color: #062F2A !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+button[data-pmd-split-method-force="1"][data-pmd-active="0"]:hover {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+}
+
+button[data-pmd-split-method-force="1"][data-pmd-active="0"]:hover * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD STABLE SOURCE-ONLY SPLIT METHOD BUTTONS
+   No timers. No MutationObserver. No jumping.
+   ========================================================= */
+
+button[data-pmd-split-method-btn] {
+  height: 3.05rem !important;
+  min-height: 3.05rem !important;
+  max-height: 3.05rem !important;
+  padding: 0 0.95rem !important;
   border-radius: 9999px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 12px !important;
+  text-align: center !important;
+  font-size: 0.9rem !important;
   font-weight: 800 !important;
-  line-height: 1 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  z-index: 30 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  line-height: 1.05 !important;
+  text-shadow: none !important;
+  background-image: none !important;
 }
 
-html body button[aria-label="Table order"] > span *,
-html body button[aria-label="Table order"] span.absolute * {
+button[data-pmd-split-method-btn][data-pmd-active="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border: 1.5px solid #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+}
+
+button[data-pmd-split-method-btn][data-pmd-active="1"] *,
+button[data-pmd-split-method-btn][data-pmd-active="1"] span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+button[data-pmd-split-method-btn][data-pmd-active="0"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border: 1.5px solid #062F2A !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  box-shadow: 0 6px 14px rgba(6, 47, 42, 0.04) !important;
+}
+
+button[data-pmd-split-method-btn][data-pmd-active="0"] *,
+button[data-pmd-split-method-btn][data-pmd-active="0"] span {
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  stroke: #062F2A !important;
+}
+
+button[data-pmd-split-method-btn][data-pmd-active="0"]:hover,
+button[data-pmd-split-method-btn][data-pmd-active="0"]:focus-visible {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.13) !important;
+}
+
+button[data-pmd-split-method-btn][data-pmd-active="0"]:hover *,
+button[data-pmd-split-method-btn][data-pmd-active="0"]:focus-visible * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD REAL SPLIT METHOD MAP BUTTON FINAL
+   Split equally / By order items / By shares
+   Source-only style, no timers, no MutationObserver.
+   ========================================================= */
+
+button[data-pmd-split-method-real] {
+  height: 3.05rem !important;
+  min-height: 3.05rem !important;
+  max-height: 3.05rem !important;
+  padding: 0 0.95rem !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  background-image: none !important;
+  border: 1.5px solid #062F2A !important;
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+  line-height: 1.05 !important;
+  text-shadow: none !important;
+}
+
+button[data-pmd-split-method-real][data-pmd-active="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+}
+
+button[data-pmd-split-method-real][data-pmd-active="1"] *,
+button[data-pmd-split-method-real][data-pmd-active="1"] span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+button[data-pmd-split-method-real][data-pmd-active="0"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  box-shadow: 0 6px 14px rgba(6, 47, 42, 0.04) !important;
+}
+
+button[data-pmd-split-method-real][data-pmd-active="0"] *,
+button[data-pmd-split-method-real][data-pmd-active="0"] span {
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  stroke: #062F2A !important;
+}
+
+button[data-pmd-split-method-real][data-pmd-active="0"]:hover,
+button[data-pmd-split-method-real][data-pmd-active="0"]:focus-visible {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.13) !important;
+}
+
+button[data-pmd-split-method-real][data-pmd-active="0"]:hover *,
+button[data-pmd-split-method-real][data-pmd-active="0"]:focus-visible * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL: selected split method button must have white text
+   Split equally / By order items / By shares
+   ========================================================= */
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"],
+html body button[data-pmd-split-method-real][data-pmd-active="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  outline-color: rgba(184, 137, 64, 0.45) !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"] *,
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"] span,
+html body button[data-pmd-split-method-real][data-pmd-active="1"] *,
+html body button[data-pmd-split-method-real][data-pmd-active="1"] span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"]:focus,
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"]:focus-visible,
+html body button[data-pmd-split-method-real][data-pmd-active="1"]:focus,
+html body button[data-pmd-split-method-real][data-pmd-active="1"]:focus-visible {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  outline: 2px solid rgba(184, 137, 64, 0.45) !important;
+  outline-offset: 2px !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL: Customer card typography system
+   Scope: checkout/order/payment/split/table cards only.
+   No JS. No global admin changes.
+   ========================================================= */
+
+html body [data-pmd-checkout-scroll="1"] {
+  --pmd-type-ink: #0D1B1E;
+  --pmd-type-muted: #687080;
+  --pmd-type-soft: #7A8190;
+  --pmd-type-gold: #B88940;
+
+  color: var(--pmd-type-ink) !important;
+  -webkit-font-smoothing: antialiased !important;
+  text-rendering: geometricPrecision !important;
+}
+
+/* Main modal title: Payment / Split bill / Order Status / Table Order */
+html body [data-pmd-checkout-scroll="1"] h1,
+html body [data-pmd-checkout-scroll="1"] h2,
+html body [data-pmd-checkout-scroll="1"] [class*="text-lg"]:has(+ *) {
+  color: var(--pmd-type-ink) !important;
+  -webkit-text-fill-color: var(--pmd-type-ink) !important;
+  font-size: clamp(1.45rem, 2.7vw, 2rem) !important;
+  line-height: 1.12 !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* Card section titles: Ready to pay, People, Order Summary, Add tip */
+html body [data-pmd-checkout-scroll="1"] h3,
+html body [data-pmd-checkout-scroll="1"] .surface-sub h3,
+html body [data-pmd-checkout-scroll="1"] p.font-semibold,
+html body [data-pmd-checkout-scroll="1"] span.font-semibold {
+  color: var(--pmd-type-ink) !important;
+  -webkit-text-fill-color: var(--pmd-type-ink) !important;
+}
+
+/* Make too-small labels readable inside customer cards */
+html body [data-pmd-checkout-scroll="1"] .text-xs,
+html body [data-pmd-checkout-scroll="1"] .text-\[11px\],
+html body [data-pmd-checkout-scroll="1"] .text-\[10px\] {
+  font-size: clamp(0.9rem, 1.65vw, 1rem) !important;
+  line-height: 1.32 !important;
+}
+
+/* Normal body text inside cards */
+html body [data-pmd-checkout-scroll="1"] .text-sm,
+html body [data-pmd-checkout-scroll="1"] .surface-sub,
+html body [data-pmd-checkout-scroll="1"] .surface-sub div,
+html body [data-pmd-checkout-scroll="1"] .surface-sub span,
+html body [data-pmd-checkout-scroll="1"] .surface-sub p {
+  font-size: clamp(0.98rem, 1.8vw, 1.08rem) !important;
+  line-height: 1.42 !important;
+}
+
+/* Important amounts and totals */
+html body [data-pmd-checkout-scroll="1"] .text-base,
+html body [data-pmd-checkout-scroll="1"] .font-bold,
+html body [data-pmd-checkout-scroll="1"] span[class*="font-bold"],
+html body [data-pmd-checkout-scroll="1"] span[class*="font-semibold"] {
+  line-height: 1.18 !important;
+}
+
+/* Muted text should be gray, but readable, not tiny/faded */
+html body [data-pmd-checkout-scroll="1"] .muted,
+html body [data-pmd-checkout-scroll="1"] [class*="text-gray"],
+html body [data-pmd-checkout-scroll="1"] [style*="theme-text-muted"] {
+  color: var(--pmd-type-muted) !important;
+  -webkit-text-fill-color: var(--pmd-type-muted) !important;
+  opacity: 1 !important;
+  font-weight: 600 !important;
+}
+
+/* Payment summary labels: Base amount / Tip / Remaining */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel] .muted,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-adjustment-shell] .muted,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-adjustment-card] .muted {
+  font-size: clamp(1rem, 1.9vw, 1.1rem) !important;
+  color: var(--pmd-type-muted) !important;
+  -webkit-text-fill-color: var(--pmd-type-muted) !important;
+}
+
+/* Payment totals bigger and premium */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel] span.font-semibold,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel] span.font-bold,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-adjustment-shell] span.font-semibold,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-adjustment-shell] span.font-bold {
+  font-size: clamp(1.05rem, 2vw, 1.25rem) !important;
+  font-weight: 750 !important;
+}
+
+/* Inputs: custom tip / coupon */
+html body [data-pmd-checkout-scroll="1"] input,
+html body [data-pmd-checkout-scroll="1"] input::placeholder {
+  font-size: clamp(0.98rem, 1.8vw, 1.08rem) !important;
+  font-weight: 700 !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] input::placeholder {
+  color: #9097A3 !important;
+  -webkit-text-fill-color: #9097A3 !important;
+}
+
+/* Buttons text: no tiny button labels in customer cards */
+html body [data-pmd-checkout-scroll="1"] button {
+  font-size: clamp(0.98rem, 1.8vw, 1.08rem) !important;
+  font-weight: 750 !important;
+  line-height: 1.15 !important;
+}
+
+/* Keep tiny badges actually tiny-ish, but readable */
+html body [data-pmd-checkout-scroll="1"] .absolute.-top-1,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-floating-eta-circle="1"] span:last-child {
+  font-size: 0.78rem !important;
+  line-height: 1 !important;
+}
+
+/* Order status received title */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-order-received-icon="1"] + div p:first-child,
+html body [data-pmd-checkout-scroll="1"] p:has(+ .text-xs.muted) {
+  font-size: clamp(1.2rem, 2.1vw, 1.45rem) !important;
+  font-weight: 750 !important;
+  color: var(--pmd-type-ink) !important;
+  -webkit-text-fill-color: var(--pmd-type-ink) !important;
+}
+
+/* Split method buttons: keep selected white and readable */
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real] {
+  font-size: clamp(0.95rem, 1.75vw, 1.05rem) !important;
+  font-weight: 800 !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"],
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"] * {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
 }
-/* PMD REAL TABLE ORDER CSS ONLY END */
+
+/* Homepage/table-home card labels */
+html body .page--home .home-action-card h2,
+html body .page--table .home-action-card h2 {
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem) !important;
+  line-height: 1.15 !important;
+  font-weight: 650 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+/* Valet cards text */
+html body .page--valet .pmd-v2-card h2,
+html body .page--valet .pmd-v2-card h3 {
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem) !important;
+  line-height: 1.16 !important;
+  font-weight: 700 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html body .page--valet .pmd-v2-text-muted {
+  font-size: clamp(1rem, 1.8vw, 1.12rem) !important;
+  line-height: 1.45 !important;
+  color: #687080 !important;
+  -webkit-text-fill-color: #687080 !important;
+  opacity: 1 !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD_EMERGENCY_SPLIT_METHOD_CSS_ONLY_FINAL
+   Split equally / By order items / By shares
+   No JS helper. No splitMethod runtime style function.
+   ========================================================= */
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real] {
+  height: 2.72rem !important;
+  min-height: 2.72rem !important;
+  max-height: 2.72rem !important;
+  padding: 0 0.9rem !important;
+  border-radius: 9999px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+
+  border: 1.5px solid #062F2A !important;
+
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+
+  font-size: 0.92rem !important;
+  font-weight: 800 !important;
+  line-height: 1.05 !important;
+  text-shadow: none !important;
+
+  box-shadow: 0 6px 14px rgba(6, 47, 42, 0.04) !important;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16) !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"] *,
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"] span {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real]:hover {
+  transform: translateY(-1px) !important;
+}
+
+/* ========================================================= */
+
+
+
+/* =========================================================
+   PMD_STABLE_MODAL_TEXT_NO_JUMP_FINAL
+   Stop checkout/payment/split/status text from jumping.
+   Keep only calm visual transitions. No global transform transition.
+   ========================================================= */
+
+html body [data-pmd-checkout-scroll="1"] {
+  scroll-behavior: smooth !important;
+  overscroll-behavior: contain !important;
+}
+
+/* Text must not animate position/size. */
+html body [data-pmd-checkout-scroll="1"] h1,
+html body [data-pmd-checkout-scroll="1"] h2,
+html body [data-pmd-checkout-scroll="1"] h3,
+html body [data-pmd-checkout-scroll="1"] h4,
+html body [data-pmd-checkout-scroll="1"] p,
+html body [data-pmd-checkout-scroll="1"] span,
+html body [data-pmd-checkout-scroll="1"] label,
+html body [data-pmd-checkout-scroll="1"] strong,
+html body [data-pmd-checkout-scroll="1"] small {
+  transform: none !important;
+  transition:
+    color 180ms ease,
+    opacity 180ms ease,
+    -webkit-text-fill-color 180ms ease !important;
+}
+
+/* Cards can fade/change color, but do not animate crazy size/position. */
+html body [data-pmd-checkout-scroll="1"] .surface,
+html body [data-pmd-checkout-scroll="1"] .surface-sub,
+html body [data-pmd-checkout-scroll="1"] [class*="rounded-2xl"],
+html body [data-pmd-checkout-scroll="1"] [class*="rounded-3xl"] {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    opacity 220ms ease !important;
+}
+
+/* Buttons keep style transitions but no forced moving/jumping. */
+html body [data-pmd-checkout-scroll="1"] button {
+  transition:
+    background-color 190ms ease,
+    color 190ms ease,
+    border-color 190ms ease,
+    box-shadow 190ms ease,
+    opacity 190ms ease !important;
+}
+
+/* Do not globally move all buttons on hover inside modal. */
+html body [data-pmd-checkout-scroll="1"] button:hover,
+html body [data-pmd-checkout-scroll="1"] button:active {
+  transform: none;
+}
+
+/* Floating ETA can breathe, but slower and less aggressive. */
+html body [data-pmd-floating-eta-circle="1"] {
+  animation-duration: 5.8s !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD_STOP_MODAL_TEXT_BUTTON_BLINK_FIRST_PAINT_FINAL
+   Stop first-second blinking when checkout modal changes card.
+   ========================================================= */
+
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] h1,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] h2,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] h3,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] h4,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] p,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] span,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] label,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] strong,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] small,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] button,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] button *,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] svg,
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] svg * {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] button {
+  opacity: 1 !important;
+  will-change: auto !important;
+}
+
+html body [data-pmd-checkout-scroll="1"][data-pmd-step-freeze="1"] [style*="transition"] {
+  transition: none !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD_TABLE_ORDER_NO_WHITE_BLACK_BLINK_FINAL
+   Stop Table Order / Confirm card text from flashing white -> black.
+   This is a color-stability fix, not a logic change.
+   ========================================================= */
+
+/* Stable default text color inside checkout modal */
+html body [data-pmd-checkout-scroll="1"],
+html body [data-pmd-checkout-scroll="1"] .surface,
+html body [data-pmd-checkout-scroll="1"] .surface-sub {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+}
+
+/* All normal Table Order / review text must start black immediately */
+html body [data-pmd-checkout-scroll="1"] h1,
+html body [data-pmd-checkout-scroll="1"] h2,
+html body [data-pmd-checkout-scroll="1"] h3,
+html body [data-pmd-checkout-scroll="1"] h4,
+html body [data-pmd-checkout-scroll="1"] p,
+html body [data-pmd-checkout-scroll="1"] span,
+html body [data-pmd-checkout-scroll="1"] strong,
+html body [data-pmd-checkout-scroll="1"] label,
+html body [data-pmd-checkout-scroll="1"] div {
+  transition: none !important;
+}
+
+/* Headings / important values */
+html body [data-pmd-checkout-scroll="1"] h1,
+html body [data-pmd-checkout-scroll="1"] h2,
+html body [data-pmd-checkout-scroll="1"] h3,
+html body [data-pmd-checkout-scroll="1"] h4,
+html body [data-pmd-checkout-scroll="1"] .font-bold,
+html body [data-pmd-checkout-scroll="1"] .font-semibold,
+html body [data-pmd-checkout-scroll="1"] .font-medium {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  text-shadow: none !important;
+}
+
+/* Muted helper labels stay gray from first paint */
+html body [data-pmd-checkout-scroll="1"] .muted,
+html body [data-pmd-checkout-scroll="1"] .text-gray-500,
+html body [data-pmd-checkout-scroll="1"] .text-gray-600,
+html body [data-pmd-checkout-scroll="1"] [class*="text-gray"] {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+  text-shadow: none !important;
+}
+
+/* Table Order item names / totals / delivery / price values stable */
+html body [data-pmd-checkout-scroll="1"] [class*="justify-between"] span,
+html body [data-pmd-checkout-scroll="1"] [class*="justify-between"] p,
+html body [data-pmd-checkout-scroll="1"] [class*="justify-between"] div {
+  transition: none !important;
+}
+
+/* Primary dark-green action buttons: Send to kitchen / Pay / Review split */
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-customer-action-btn="1"],
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-table-order-action="1"][data-pmd-active="1"],
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-send-kitchen-btn="1"],
+html body [data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"],
+html body [data-pmd-checkout-scroll="1"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+/* Everything inside primary buttons must stay white */
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-customer-action-btn="1"] *,
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-table-order-action="1"][data-pmd-active="1"] *,
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-send-kitchen-btn="1"] *,
+html body [data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"] *,
+html body [data-pmd-checkout-scroll="1"] button[style*="#062F2A"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  text-shadow: none !important;
+  transition: none !important;
+}
+
+/* Secondary buttons like Continue ordering must stay dark text, no white blink */
+html body [data-pmd-checkout-scroll="1"] button:not([style*="rgb(6, 47, 42)"]):not([style*="#062F2A"]):not([data-pmd-send-kitchen-btn="1"]) {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  text-shadow: none !important;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] button:not([style*="rgb(6, 47, 42)"]):not([style*="#062F2A"]):not([data-pmd-send-kitchen-btn="1"]) * {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  stroke: #10201D !important;
+  text-shadow: none !important;
+}
+
+/* Do not let old theme/global text-white utilities win during first paint */
+html body [data-pmd-checkout-scroll="1"] .text-white:not(button):not(button *),
+html body [data-pmd-checkout-scroll="1"] [class*="text-white"]:not(button):not(button *) {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+}
+
+/* ========================================================= */

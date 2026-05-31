@@ -613,6 +613,425 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     }
                 });
 
+                // Public table-order draft endpoints used by the customer QR frontend.
+                // Keep these in the tenant-scoped public API layer so all devices on the same table can see active orders.
+                $ensureTableOrderDraftTable = function () {
+                    if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_table_order_drafts')) {
+                        \Illuminate\Support\Facades\Schema::create('pmd_table_order_drafts', function (\Illuminate\Database\Schema\Blueprint $table) {
+                            $table->increments('id');
+                            $table->string('table_id', 64)->nullable()->index();
+                            $table->string('table_no', 64)->nullable()->index();
+                            $table->string('table_name', 191)->nullable();
+                            $table->string('qr', 191)->nullable()->index();
+                            $table->string('status', 32)->default('draft')->index();
+                            $table->unsignedInteger('order_id')->nullable()->index();
+                            $table->longText('payload')->nullable();
+                            $table->timestamps();
+                        });
+                    }
+                };
+
+                $resolveTableDraftContext = function (\Illuminate\Http\Request $request) {
+                    $tableId = trim((string)$request->input('table_id', $request->query('table_id', '')));
+                    $tableNo = trim((string)$request->input('table_no', $request->query('table_no', $request->query('table', ''))));
+                    $qr = trim((string)$request->input('qr', $request->query('qr', '')));
+                    $table = null;
+                    foreach (array_values(array_unique(array_filter([$tableId, $tableNo], fn($v) => $v !== ''))) as $candidate) {
+                        $table = DB::table('tables')->where('table_id', $candidate)->orWhere('table_no', $candidate)->first();
+                        if ($table) break;
+                    }
+                    if (!$table && $qr !== '') $table = DB::table('tables')->where('qr_code', $qr)->first();
+                    if ($table) {
+                        $tableId = (string)($table->table_id ?? $tableId);
+                        $tableNo = (string)($table->table_no ?? $tableNo);
+                        if ($qr === '' && !empty($table->qr_code)) $qr = (string)$table->qr_code;
+                    }
+                    return [
+                        'table' => $table,
+                        'table_id' => $tableId,
+                        'table_no' => $tableNo,
+                        'table_name' => $table ? (string)($table->table_name ?? '') : '',
+                        'qr' => $qr,
+                        'candidates' => array_values(array_unique(array_filter([
+                            $table ? (string)$table->table_id : null,
+                            $table ? (string)$table->table_no : null,
+                            $tableId,
+                            $tableNo,
+                        ], fn($v) => $v !== null && $v !== ''))),
+                    ];
+                };
+
+                $normalizeDraftItems = function (array $items): array {
+                    $normalized = [];
+                    foreach ($items as $index => $item) {
+                        $menuId = (int)($item['menu_id'] ?? $item['id'] ?? 0);
+                        $qty = max(1, (int)($item['quantity'] ?? 1));
+                        $price = max(0, (float)($item['price'] ?? 0));
+                        if ($menuId <= 0) continue;
+                        $menu = DB::table('menus')->where('menu_id', $menuId)->where('menu_status', 1)->first();
+                        if (!$menu) continue;
+                        $name = trim((string)($item['name'] ?? '')) ?: (string)($menu->menu_name ?? ('Item '.($index + 1)));
+                        $unitPrice = $price > 0 ? $price : (float)($menu->menu_price ?? 0);
+                        $normalized[] = [
+                            'id' => (int)round(microtime(true) * 1000) + $index,
+                            'menu_id' => $menuId,
+                            'name' => $name,
+                            'quantity' => $qty,
+                            'price' => $unitPrice,
+                            'subtotal' => round($unitPrice * $qty, 4),
+                            'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
+                            'guest_session_id' => trim((string)($item['guest_session_id'] ?? '')),
+                        ];
+                    }
+                    return $normalized;
+                };
+
+                $formatTableOrderResponse = function ($draft = null, ?object $order = null, array $context = []) {
+                    $items = [];
+                    $status = 'empty';
+                    $orderId = null;
+                    $payment = null;
+                    $settledAmount = 0.0;
+                    $total = 0.0;
+                    $statusName = null;
+                    if ($draft) {
+                        $payload = json_decode((string)($draft->payload ?? '[]'), true);
+                        $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+                        $status = (string)($draft->status ?? 'draft');
+                        $orderId = $draft->order_id ? (int)$draft->order_id : null;
+                    }
+                    if ($order) {
+                        $statusName = (string)($order->status_name ?? '');
+                        $status = ((float)($order->settled_amount ?? 0) > 0) ? 'partially_paid' : 'submitted_unpaid';
+                        $orderId = (int)$order->order_id;
+                        $payment = (string)($order->payment ?? '');
+                        $settledAmount = (float)($order->settled_amount ?? 0);
+                        $total = (float)($order->order_total ?? 0);
+                        $items = DB::table('order_menus')
+                            ->where('order_id', $orderId)
+                            ->orderBy('order_menu_id')
+                            ->get(['order_menu_id','menu_id','name','quantity','price','subtotal'])
+                            ->map(fn($row) => [
+                                'order_menu_id' => (int)($row->order_menu_id ?? 0),
+                                'menu_id' => (int)($row->menu_id ?? 0),
+                                'name' => (string)($row->name ?? ''),
+                                'quantity' => (float)($row->quantity ?? 0),
+                                'price' => (float)($row->price ?? 0),
+                                'subtotal' => (float)($row->subtotal ?? 0),
+                                'paid_quantity' => 0,
+                                'unpaid_quantity' => (float)($row->quantity ?? 0),
+                            ])->values()->all();
+                        if ($total <= 0) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? 0), $items));
+                        if ($total > 0 && $settledAmount >= $total - 0.0001) $status = 'paid';
+                    }
+                    if (!$order) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+                    $groups = [];
+                    foreach ($items as $item) {
+                        $guest = (string)($item['guest_session_id'] ?? 'table');
+                        if (!isset($groups[$guest])) $groups[$guest] = ['guest_session_id' => $guest === 'table' ? null : $guest, 'items' => [], 'subtotal' => 0.0];
+                        $groups[$guest]['items'][] = $item;
+                        $groups[$guest]['subtotal'] += (float)($item['subtotal'] ?? 0);
+                    }
+                    $remaining = max(0, $total - $settledAmount);
+                    $hasActive = (bool)($draft || $order);
+                    return response()->json([
+                        'success' => true,
+                        'status' => $status,
+                        'status_name' => $statusName,
+                        'paymentStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid'),
+                        'deliveryStatus' => $statusName,
+                        'hasActiveTableOrder' => $hasActive,
+                        'canShowToNewDevice' => $hasActive,
+                        'draft_id' => $draft ? (int)$draft->id : null,
+                        'order_id' => $orderId,
+                        'orderId' => $orderId,
+                        'orderNumber' => $orderId,
+                        'table_id' => $context['table_id'] ?? ($draft->table_id ?? null),
+                        'table_no' => $context['table_no'] ?? ($draft->table_no ?? null),
+                        'table_name' => $context['table_name'] ?? ($draft->table_name ?? null),
+                        'items' => array_values($items),
+                        'groups' => array_values($groups),
+                        'total' => round($total, 4),
+                        'totals' => ['subtotal' => round($total, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
+                        'settlement' => ['orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4), 'settlementStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid')],
+                        'payment' => $payment,
+                        'updatedAt' => $order ? (string)($order->updated_at ?? '') : ($draft ? (string)($draft->updated_at ?? '') : null),
+                    ]);
+                };
+
+                $findActiveSubmittedTableOrder = function (array $context) {
+                    $candidates = $context['candidates'] ?? [];
+                    if (empty($candidates)) return null;
+                    $orders = DB::table('orders')
+                        ->leftJoin('statuses', 'orders.status_id', '=', 'statuses.status_id')
+                        ->where('orders.payment', 'qr_pay_later')
+                        ->whereIn('orders.order_type', $candidates)
+                        ->orderByDesc('orders.order_id')
+                        ->limit(12)
+                        ->get(['orders.*', 'statuses.status_name']);
+                    $terminalStatusNames = ['completed', 'complete', 'delivered', 'delivery-complete', 'cancelled', 'canceled', 'cancel'];
+                    foreach ($orders as $order) {
+                        $total = (float)($order->order_total ?? 0);
+                        $settled = (float)($order->settled_amount ?? 0);
+                        $settlementStatus = strtolower(trim((string)($order->settlement_status ?? '')));
+                        $statusName = strtolower(trim((string)($order->status_name ?? '')));
+                        $normalizedStatus = str_replace([' ', '_'], '-', $statusName);
+                        $isPaid = in_array($settlementStatus, ['paid', 'settled'], true) || $normalizedStatus === 'paid' || ($total > 0 && $settled >= $total - 0.0001);
+                        $isTerminal = in_array($normalizedStatus, $terminalStatusNames, true);
+                        if (!$isPaid || !$isTerminal) {
+                            if ($isPaid && $statusName === '') {
+                                $updatedAt = $order->updated_at ? \Illuminate\Support\Carbon::parse($order->updated_at) : null;
+                                if ($updatedAt && $updatedAt->lt(now()->subHours(2))) continue;
+                            }
+                            return $order;
+                        }
+                    }
+                    return null;
+                };
+
+
+                // PMD_PUBLIC_API_V1_VALIDATE_COUPON_FIX
+                // Public tenant-scoped coupon validation for Next.js customer frontend.
+                Route::post('/validate-coupon', function (\Illuminate\Http\Request $request) {
+                    try {
+                        $code = strtoupper(trim((string)$request->input('code', '')));
+                        $amount = (float)$request->input('amount', $request->input('subtotal', 0));
+
+                        if ($code === '') {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Coupon code is required',
+                            ]);
+                        }
+
+                        if (!\Illuminate\Support\Facades\Schema::hasTable('igniter_coupons')) {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Coupons are not available',
+                            ]);
+                        }
+
+                        $query = \Illuminate\Support\Facades\DB::table('igniter_coupons')
+                            ->where('code', $code);
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('igniter_coupons', 'status')) {
+                            $query->where('status', 1);
+                        }
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('igniter_coupons', 'card_type')) {
+                            $query->where(function ($q) {
+                                $q->where('card_type', 'coupon')
+                                  ->orWhereNull('card_type')
+                                  ->orWhere('card_type', '');
+                            });
+                        }
+
+                        $coupon = $query->first();
+
+                        if (!$coupon) {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Invalid coupon code',
+                            ]);
+                        }
+
+                        $minTotal = isset($coupon->min_total) ? (float)$coupon->min_total : 0.0;
+                        if ($minTotal > 0 && $amount < $minTotal) {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Minimum order total of €'.number_format($minTotal, 2).' required',
+                            ]);
+                        }
+
+                        $type = strtoupper((string)($coupon->type ?? 'F'));
+                        $rawDiscount = (float)($coupon->discount ?? 0);
+                        $discount = 0.0;
+
+                        if ($type === 'P') {
+                            $discount = $amount * ($rawDiscount / 100);
+                        } else {
+                            $discount = $rawDiscount;
+                        }
+
+                        if (isset($coupon->max_discount_cap) && (float)$coupon->max_discount_cap > 0) {
+                            $discount = min($discount, (float)$coupon->max_discount_cap);
+                        }
+
+                        $discount = max(0, min($discount, $amount));
+                        $discount = round($discount, 2);
+
+                        return response()->json([
+                            'success' => true,
+                            'valid' => true,
+                            'message' => 'Coupon applied',
+                            'code' => $code,
+                            'discountType' => $type,
+                            'discountAmount' => $type === 'F' ? $rawDiscount : null,
+                            'discountPercent' => $type === 'P' ? $rawDiscount : null,
+                            'finalDiscountAmount' => $discount,
+                            'data' => [
+                                'coupon_id' => $coupon->coupon_id ?? null,
+                                'code' => $code,
+                                'name' => $coupon->name ?? $code,
+                                'type' => $type,
+                                'discount' => $discount,
+                                'discount_value' => $rawDiscount,
+                                'min_total' => $minTotal,
+                                'finalDiscountAmount' => $discount,
+                            ],
+                        ]);
+                    } catch (\Throwable $e) {
+                        \Log::error('PMD coupon validation failed', [
+                            'message' => $e->getMessage(),
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine(),
+                            'payload' => $request->all(),
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'valid' => false,
+                            'message' => 'Failed to validate coupon',
+                        ], 500);
+                    }
+                });
+
+                Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder) {
+                    $ensureTableOrderDraftTable();
+                    $context = $resolveTableDraftContext($request);
+                    if (($context['table_id'] ?? '') === '' && ($context['table_no'] ?? '') === '' && ($context['qr'] ?? '') === '') {
+                        return response()->json(['success' => false, 'error' => 'table_id, table_no, or qr is required'], 422);
+                    }
+                    $draft = DB::table('pmd_table_order_drafts')
+                        ->where('status', 'draft')
+                        ->where(function ($q) use ($context) {
+                            if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
+                            if (($context['table_no'] ?? '') !== '') $q->orWhere('table_no', $context['table_no']);
+                            if (($context['qr'] ?? '') !== '') $q->orWhere('qr', $context['qr']);
+                        })
+                        ->orderByDesc('id')
+                        ->first();
+                    if ($draft) return $formatTableOrderResponse($draft, null, $context);
+                    $order = $findActiveSubmittedTableOrder($context);
+                    return $formatTableOrderResponse(null, $order, $context);
+                });
+
+                Route::post('/table-order-draft/confirm-items', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $normalizeDraftItems, $formatTableOrderResponse) {
+                    $ensureTableOrderDraftTable();
+                    $request->validate(['guest_session_id' => 'required|string|max:191', 'items' => 'required|array|min:1']);
+                    $context = $resolveTableDraftContext($request);
+                    $items = $normalizeDraftItems((array)$request->input('items', []));
+                    if (empty($items)) return response()->json(['success' => false, 'error' => 'No valid menu items'], 422);
+                    $draft = DB::transaction(function () use ($context, $items) {
+                        $query = DB::table('pmd_table_order_drafts')->where('status', 'draft')->where(function ($q) use ($context) {
+                            if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
+                            if (($context['table_no'] ?? '') !== '') $q->orWhere('table_no', $context['table_no']);
+                            if (($context['qr'] ?? '') !== '') $q->orWhere('qr', $context['qr']);
+                        });
+                        $draft = $query->lockForUpdate()->orderByDesc('id')->first();
+                        $payload = $draft ? (json_decode((string)$draft->payload, true) ?: []) : [];
+                        $existing = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+                        $merged = array_values(array_merge($existing, $items));
+                        $data = [
+                            'table_id' => $context['table_id'] ?: null,
+                            'table_no' => $context['table_no'] ?: null,
+                            'table_name' => $context['table_name'] ?: null,
+                            'qr' => $context['qr'] ?: null,
+                            'status' => 'draft',
+                            'payload' => json_encode(['items' => $merged], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+                            'updated_at' => now(),
+                        ];
+                        if ($draft) {
+                            DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update($data);
+                            return DB::table('pmd_table_order_drafts')->where('id', $draft->id)->first();
+                        }
+                        $data['created_at'] = now();
+                        $id = DB::table('pmd_table_order_drafts')->insertGetId($data);
+                        return DB::table('pmd_table_order_drafts')->where('id', $id)->first();
+                    });
+                    return $formatTableOrderResponse($draft, null, $context);
+                });
+
+                Route::post('/table-order-draft/submit', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder) {
+                    $ensureTableOrderDraftTable();
+                    $context = $resolveTableDraftContext($request);
+                    $draftId = (int)$request->input('draft_id', 0);
+                    $orderId = null;
+                    $draft = null;
+                    DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request) {
+                        $query = DB::table('pmd_table_order_drafts')->where('status', 'draft');
+                        if ($draftId > 0) $query->where('id', $draftId); else $query->where(function ($q) use ($context) {
+                            if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
+                            if (($context['table_no'] ?? '') !== '') $q->orWhere('table_no', $context['table_no']);
+                            if (($context['qr'] ?? '') !== '') $q->orWhere('qr', $context['qr']);
+                        });
+                        $draft = $query->lockForUpdate()->orderByDesc('id')->first();
+                        if (!$draft) return;
+                        $payload = json_decode((string)$draft->payload, true) ?: [];
+                        $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+                        if (empty($items)) return;
+                        $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+                        $orderNumber = (int)DB::table('orders')->max('order_id') + 1;
+                        $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
+                        $insert = [
+                            'order_id' => $orderNumber,
+                            'first_name' => 'Table',
+                            'last_name' => 'Customer',
+                            'email' => '',
+                            'telephone' => '',
+                            'location_id' => (int)(($context['table']->location_id ?? null) ?: $request->input('location_id', 1)),
+                            'order_type' => (string)(($context['table_id'] ?? '') ?: ($context['table_no'] ?? 'table')),
+                            'order_total' => round($total, 4),
+                            'order_date' => now()->format('Y-m-d'),
+                            'order_time' => now()->format('H:i:s'),
+                            'status_id' => 1,
+                            'comment' => $comment,
+                            'processed' => 1,
+                            'payment' => 'qr_pay_later',
+                            'total_items' => array_sum(array_map(fn($i) => (int)($i['quantity'] ?? 1), $items)),
+                            'ip_address' => $request->ip(),
+                            'user_agent' => $request->userAgent() ?? 'API Client',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) $insert['settlement_status'] = 'unpaid';
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settled_amount')) $insert['settled_amount'] = 0;
+                        $orderId = DB::table('orders')->insertGetId($insert);
+                        foreach ($items as $item) {
+                            DB::table('order_menus')->insert([
+                                'order_id' => $orderId,
+                                'menu_id' => (int)($item['menu_id'] ?? 0),
+                                'name' => (string)($item['name'] ?? 'Item'),
+                                'quantity' => max(1, (int)($item['quantity'] ?? 1)),
+                                'price' => (float)($item['price'] ?? 0),
+                                'subtotal' => (float)($item['subtotal'] ?? 0),
+                                'comment' => '[guest_session:'.(string)($item['guest_session_id'] ?? '').']',
+                                'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
+                            ]);
+                        }
+                        DB::table('order_totals')->insert([
+                            ['order_id' => $orderId, 'code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($total, 4), 'priority' => 1, 'is_summable' => 1],
+                            ['order_id' => $orderId, 'code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0],
+                        ]);
+                        DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update(['status' => 'submitted', 'order_id' => $orderId, 'updated_at' => now()]);
+                        try {
+                            DB::table('notifications')->insert(['type' => 'order', 'title' => 'New table order #'.$orderId, 'table_id' => (int)($context['table_id'] ?: 0), 'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')), 'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id]), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
+                        } catch (\Throwable $ignored) {}
+                    });
+                    if (!$orderId) {
+                        $existing = $findActiveSubmittedTableOrder($context);
+                        if ($existing) return $formatTableOrderResponse(null, $existing, $context);
+                        return response()->json(['success' => false, 'error' => 'No draft items to submit'], 422);
+                    }
+                    $order = DB::table('orders')->leftJoin('statuses', 'orders.status_id', '=', 'statuses.status_id')->where('orders.order_id', $orderId)->first(['orders.*', 'statuses.status_name']);
+                    return $formatTableOrderResponse(null, $order, $context);
+                });
+
+
                 function syncOrderToPOS($orderId)
                 {
                     try {
@@ -1152,11 +1571,12 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
         Route::post('/validate-coupon', function (\Illuminate\Http\Request $request) {
             try {
                 $code = strtoupper(trim($request->input('code', '')));
-                $subtotal = floatval($request->input('subtotal', 0));
+                $subtotal = floatval($request->input('subtotal', $request->input('amount', 0)));
                 
                 if (empty($code)) {
                     return response()->json([
                         'success' => false,
+                        'valid' => false,
                         'message' => 'Coupon code is required'
                     ]);
                 }
@@ -1171,6 +1591,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 if (!$coupon) {
                     return response()->json([
                         'success' => false,
+                        'valid' => false,
                         'message' => 'Invalid coupon code'
                     ]);
                 }
@@ -1179,6 +1600,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 if ($coupon->min_total && $subtotal < $coupon->min_total) {
                     return response()->json([
                         'success' => false,
+                        'valid' => false,
                         'message' => 'Minimum order total of $' . number_format($coupon->min_total, 2) . ' required'
                     ]);
                 }
@@ -1195,12 +1617,19 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 
                 return response()->json([
                     'success' => true,
+                    'valid' => true,
+                    'message' => 'Coupon applied',
+                    'code' => $coupon->code,
+                    'discountAmount' => $coupon->type === 'F' ? floatval($coupon->discount) : null,
+                    'discountPercent' => $coupon->type === 'P' ? floatval($coupon->discount) : null,
+                    'discountType' => $coupon->type,
+                    'finalDiscountAmount' => round($discount, 2),
                     'data' => [
                         'coupon_id' => $coupon->coupon_id,
                         'code' => $coupon->code,
                         'name' => $coupon->name,
                         'type' => $coupon->type,
-                        'discount' => $discount,
+                        'discount' => round($discount, 2),
                         'discount_value' => floatval($coupon->discount),
                         'min_total' => floatval($coupon->min_total ?? 0),
                     ]
@@ -1215,6 +1644,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 ]);
                 return response()->json([
                     'success' => false,
+                    'valid' => false,
                     'message' => 'Failed to validate coupon: ' . $e->getMessage()
                 ]);
             }

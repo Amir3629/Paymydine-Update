@@ -7290,22 +7290,49 @@ Route::group([
             'totals' => ['subtotal' => round($total, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
             'settlement' => ['orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4), 'settlementStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid')],
             'payment' => $payment,
+            'status_name' => $order ? (string)($order->status_name ?? '') : null,
+            'paymentStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid'),
+            'hasActiveTableOrder' => (bool)($draft || $order),
+            'canShowToNewDevice' => (bool)($draft || $order),
+            'updatedAt' => $order ? (string)($order->updated_at ?? '') : ($draft ? (string)($draft->updated_at ?? '') : null),
         ]);
     };
 
     $findActiveSubmittedTableOrder = function (array $context) {
         $candidates = $context['candidates'] ?? [];
         if (empty($candidates)) return null;
-        $query = \Illuminate\Support\Facades\DB::table('orders')
-            ->where('payment', 'qr_pay_later')
-            ->whereIn('order_type', $candidates)
-            ->orderByDesc('order_id');
-        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) {
-            $query->where(function ($q) {
-                $q->whereNull('settlement_status')->orWhereNotIn('settlement_status', ['paid','cancelled','failed']);
-            });
+
+        $orders = \Illuminate\Support\Facades\DB::table('orders')
+            ->leftJoin('statuses', 'orders.status_id', '=', 'statuses.status_id')
+            ->where('orders.payment', 'qr_pay_later')
+            ->whereIn('orders.order_type', $candidates)
+            ->orderByDesc('orders.order_id')
+            ->limit(12)
+            ->get(['orders.*', 'statuses.status_name']);
+
+        $terminalStatusNames = ['completed', 'complete', 'delivered', 'delivery-complete', 'cancelled', 'canceled', 'cancel'];
+        foreach ($orders as $order) {
+            $total = (float)($order->order_total ?? 0);
+            $settled = (float)($order->settled_amount ?? 0);
+            $settlementStatus = strtolower(trim((string)($order->settlement_status ?? '')));
+            $statusName = strtolower(trim((string)($order->status_name ?? '')));
+            $normalizedStatus = str_replace([' ', '_'], '-', $statusName);
+            $isPaid = in_array($settlementStatus, ['paid', 'settled'], true)
+                || $normalizedStatus === 'paid'
+                || ($total > 0 && $settled >= $total - 0.0001);
+            $isTerminal = in_array($normalizedStatus, $terminalStatusNames, true);
+
+            // Cross-device table order visibility: show while unpaid OR not kitchen-completed.
+            if (!$isPaid || !$isTerminal) {
+                if ($isPaid && $statusName === '') {
+                    $updatedAt = $order->updated_at ? \Illuminate\Support\Carbon::parse($order->updated_at) : null;
+                    if ($updatedAt && $updatedAt->lt(now()->subHours(2))) continue;
+                }
+                return $order;
+            }
         }
-        return $query->first();
+
+        return null;
     };
 
     Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatDraftResponse, $findActiveSubmittedTableOrder) {
@@ -7702,6 +7729,9 @@ Route::group([
             'selected_items' => 'nullable|array',
             'selected_items.*.order_menu_id' => 'required_with:selected_items|integer',
             'selected_items.*.quantity' => 'required_with:selected_items|numeric|min:0.001',
+            'tip_amount' => 'nullable|numeric|min:0',
+            'coupon_discount' => 'nullable|numeric|min:0',
+            'coupon_code' => 'nullable|string|max:191',
         ]);
 
         $order = \Admin\Models\Orders_model::query()->where('order_id', $request->order_id)->first();
@@ -7750,7 +7780,7 @@ Route::group([
             'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
             'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
             'order_id' => $order->order_id,
-            'payload' => $request->only(['order_id', 'payment_method', 'payment_reference', 'amount', 'selected_items']),
+            'payload' => $request->only(['order_id', 'payment_method', 'payment_reference', 'amount', 'selected_items', 'tip_amount', 'coupon_discount', 'coupon_code']),
         ]);
 
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
@@ -7887,9 +7917,25 @@ Route::group([
                 if ($calculatedAmount <= 0) {
                     throw new \InvalidArgumentException('Payment amount must be greater than zero');
                 }
+                // PMD_PAY_EXISTING_TIP_COUPON_AMOUNT_FIX
+                // The selected item subtotal closes/settles the order items, but the actual
+                // payment provider charge can be lower/higher because of coupon/tip.
+                $tipAmount = max(0, round((float)$request->input('tip_amount', 0), 4));
+                $couponDiscount = max(0, round((float)$request->input('coupon_discount', 0), 4));
+                $couponDiscount = min($couponDiscount, round($calculatedAmount + $tipAmount, 4));
+                $payableAmount = round(max(0, $calculatedAmount + $tipAmount - $couponDiscount), 4);
+
                 if ($request->filled('amount')) {
                     $requestedAmount = round((float)$request->input('amount'), 4);
-                    if (abs($requestedAmount - $calculatedAmount) > 0.02) {
+                    if (abs($requestedAmount - $payableAmount) > 0.02) {
+                        \Log::warning('QR_SETTLEMENT_DEBUG pay-existing amount mismatch', [
+                            'order_id' => $lockedOrder->order_id,
+                            'requested_amount' => $requestedAmount,
+                            'selected_items_subtotal' => $calculatedAmount,
+                            'tip_amount' => $tipAmount,
+                            'coupon_discount' => $couponDiscount,
+                            'payable_amount' => $payableAmount,
+                        ]);
                         throw new \InvalidArgumentException('Selected items amount mismatch');
                     }
                 }
@@ -7956,7 +8002,7 @@ Route::group([
                 }
                 $lockedOrder->save();
 
-                return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows') + ['alreadyPaid' => false];
+                return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows') + ['alreadyPaid' => false, 'tipAmount' => $tipAmount, 'couponDiscount' => $couponDiscount, 'payableAmount' => $payableAmount];
             });
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 422);

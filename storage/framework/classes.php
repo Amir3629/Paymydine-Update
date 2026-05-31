@@ -235,4 +235,5 @@
   'Admin\\Models\\Pos_devices_model' => 'app/admin/models/Pos_devices_model.php',
   'System\\Controllers\\countries' => 'app/system/controllers/Countries.php',
   'Admin\\Controllers\\combos' => 'app/admin/controllers/Combos.php',
+  'System\\Controllers\\activities' => 'app/system/controllers/Activities.php',
 );

@@ -46,7 +46,33 @@ function HomePageContent() {
   }, [])
 
   const cardStyles = "relative flex flex-col items-center pmd-v2-card backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 w-72 h-56 justify-center home-action-card"
-  const iconContainerStyles = "rounded-full pmd-v2-action-circle p-6 mb-6 home-action-icon-wrap"
+  const iconContainerStyles = "mb-6 pmd-home-action-icon-direct"
+  const iconCircleStyle = {
+    width: "7.25rem",
+    height: "7.25rem",
+    minWidth: "7.25rem",
+    minHeight: "7.25rem",
+    maxWidth: "7.25rem",
+    maxHeight: "7.25rem",
+    padding: 0,
+    borderRadius: "9999px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#062F2A",
+    backgroundColor: "#062F2A",
+    backgroundImage: "none",
+    color: "#FFFFFF",
+    WebkitTextFillColor: "#FFFFFF",
+    border: "1px solid #062F2A",
+    boxShadow: "0 14px 32px rgba(6, 47, 42, 0.18)",
+    overflow: "hidden",
+  }
+  const iconSvgStyle = {
+    color: "#FFFFFF",
+    stroke: "#FFFFFF",
+    WebkitTextFillColor: "#FFFFFF",
+  }
 
   return (
     <div className="min-h-screen bg-theme-background pmd-v2-page pmd-customer-page page--home flex flex-col items-center justify-start p-4 pt-8 pb-16 sm:justify-center sm:pt-4 sm:pb-8" data-pmd-customer-page="home">
@@ -79,6 +105,7 @@ function HomePageContent() {
           >
             <motion.div
               className={iconContainerStyles}
+              style={iconCircleStyle}
               style={{ backgroundColor: "var(--theme-primary)" }}
               variants={{
                 hover: { 
@@ -91,7 +118,7 @@ function HomePageContent() {
                 }
               }}
             >
-              <Utensils className="w-10 h-10" style={{ color: "#FFFFFF" }} />
+              <Utensils className="w-12 h-12" strokeWidth={2.35} style={iconSvgStyle} />
             </motion.div>
             <h2 className="text-2xl font-medium" style={{ color: "var(--theme-text-primary)" }}>
               {t("menuCard")}
@@ -125,6 +152,7 @@ function HomePageContent() {
           >
             <motion.div
               className={iconContainerStyles}
+              style={iconCircleStyle}
               style={{ backgroundColor: "var(--theme-primary)" }}
               variants={{
                 hover: { 
@@ -137,7 +165,7 @@ function HomePageContent() {
                 }
               }}
             >
-              <Car className="w-10 h-10" style={{ color: "#FFFFFF" }} />
+              <Car className="w-12 h-12" strokeWidth={2.35} style={iconSvgStyle} />
             </motion.div>
             <h2 className="text-2xl font-medium" style={{ color: "var(--theme-text-primary)" }}>
               {t("valetParking")}
