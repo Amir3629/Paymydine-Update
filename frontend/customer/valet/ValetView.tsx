@@ -1,14 +1,14 @@
-import { Car, CheckCircle2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 import type { ChangeEvent, FormEvent, ReactNode } from "react"
 import { CustomerShell } from "../components/CustomerShell"
 import { CustomerButton } from "../components/CustomerButton"
 import { CustomerCard } from "../components/CustomerCard"
-import { CustomerHeader } from "../components/CustomerHeader"
 import { CustomerInput } from "../components/CustomerInput"
+import { CustomerTopBar } from "../components/CustomerTopBar"
 
 export type ValetFormData = { name: string; car: string; plate: string }
 
-export function ValetView({ logo, isSuccess, isSubmitting, formData, labels, onInputChange, onSubmit, onHome }: {
+export function ValetView({ isSuccess, isSubmitting, formData, labels, onInputChange, onSubmit, onHome }: {
   logo?: ReactNode
   isSuccess: boolean
   isSubmitting: boolean
@@ -21,10 +21,13 @@ export function ValetView({ logo, isSuccess, isSubmitting, formData, labels, onI
   return (
     <CustomerShell page="valet">
       <main className="pmd-customer-shell__inner pmd-customer-valet">
-        <div className="pmd-customer-logo-area__mark">{logo}</div>
+        <CustomerTopBar contextLabel="Valet" backHref="/" />
         {!isSuccess ? (
           <CustomerCard className="pmd-customer-valet-card">
-            <CustomerHeader eyebrow="Valet" title={labels.valetService} subtitle={labels.valetAvailability} action={<span className="pmd-customer-badge"><Car aria-hidden="true" /> Service</span>} />
+            <div className="pmd-customer-valet-heading">
+              <h1>{labels.valetService}</h1>
+              <p className="pmd-customer-muted">{labels.valetAvailability}</p>
+            </div>
             <form onSubmit={onSubmit} className="pmd-customer-valet-form">
               <label className="pmd-customer-valet-field">
                 <span>{labels.enterName} *</span>
@@ -42,14 +45,14 @@ export function ValetView({ logo, isSuccess, isSubmitting, formData, labels, onI
             </form>
           </CustomerCard>
         ) : (
-          <CustomerCard className="p-6 sm:p-8 text-center">
-            <div className="pmd-customer-action-tile__icon" style={{ margin: "0 auto 1rem" }}><CheckCircle2 aria-hidden="true" /></div>
+          <CustomerCard className="pmd-customer-valet-card pmd-customer-valet-card--success">
+            <div className="pmd-customer-valet-success-icon"><CheckCircle2 aria-hidden="true" /></div>
             <h2 className="pmd-checkout-gold__section-title">{labels.valetRequestSuccess}</h2>
             <p className="pmd-customer-muted">{labels.valetConfirmation}</p>
-            <div style={{ marginTop: "1.25rem" }}><CustomerButton variant="primary" onClick={onHome}>{labels.backToHome}</CustomerButton></div>
+            <CustomerButton variant="primary" onClick={onHome}>{labels.backToHome}</CustomerButton>
           </CustomerCard>
         )}
-        <CustomerCard soft className="p-4 mt-4">
+        <CustomerCard soft className="pmd-customer-valet-note">
           <p className="pmd-customer-muted">{labels.valetTicket}</p>
         </CustomerCard>
       </main>

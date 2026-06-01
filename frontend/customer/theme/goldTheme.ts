@@ -3,9 +3,9 @@ import type { CustomerThemeTokens } from "./themeTypes"
 export const goldTheme: CustomerThemeTokens = {
   id: "gold-v1",
   label: "Gold Luxury",
-  page: "#FAF7F0",
-  surface: "#FFFFFF",
-  surfaceSoft: "#FFF9EF",
+  page: "#fcfff8",
+  surface: "#fcfff8",
+  surfaceSoft: "#fcfff8",
   text: "#10201D",
   muted: "#6B7280",
   primary: "#062F2A",

@@ -180,7 +180,7 @@ function __pmdRemoteConsoleInstallOnce() {
 }
 
 function useThemeBackgroundColor() {
-  return "#FAF7F0"
+  return "#fcfff8"
 }
 import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
@@ -646,7 +646,7 @@ function OrderItemWithOptions({
             <div
               className="overflow-hidden"
             >
-              <div className="p-2 space-y-3 bg-[#FFF9EF]">
+              <div className="p-2 space-y-3 bg-[#fcfff8]">
                 {itemOptions.map((option) => (
                   <div key={option.id}>
                     <h4 className="text-xs font-medium text-paydine-elegant-gray mb-1">
@@ -3205,6 +3205,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
       description={truncateText(itemDescription || "", 96)}
       price={formatCurrency(item.price || 0)}
       image={image}
+      badges={<FoodAttributeTags halal={item.halal} vegetarian={item.vegetarian} vegan={item.vegan} allergens={item.allergens} allergyTags={item.allergy_tags} compact />}
       quantity={quantity}
       onSelect={() => onSelect(item)}
       onAdd={handleAdd}

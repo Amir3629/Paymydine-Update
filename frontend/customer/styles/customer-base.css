@@ -157,7 +157,7 @@
 }
 
 .pmd-customer-modal {
-  width: min(46rem, calc(100vw - 1.5rem));
+  width: min(var(--pmd-customer-modal-max, 40rem), calc(100vw - 1.5rem));
   max-height: 92vh;
   overflow: hidden;
   border: 1px solid rgba(216, 185, 130, 0.78);
@@ -523,9 +523,10 @@
 
 .pmd-customer-action-tile {
   display: grid;
-  min-height: 13rem;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
   place-items: center;
-  gap: 0.9rem;
+  gap: 0.35rem;
   border: 1px solid color-mix(in srgb, var(--pmd-customer-border) 72%, transparent);
   border-radius: 1.75rem;
   background: var(--pmd-customer-surface);
@@ -800,78 +801,181 @@
   gap: 0.85rem;
 }
 
-[data-pmd-customer-app] .pmd-customer-menu-topbar {
+[data-pmd-customer-app] .pmd-customer-topbar {
   display: grid;
-  grid-template-columns: minmax(5.5rem, 1fr) auto minmax(5.5rem, 1fr);
+  grid-template-columns: 2.9rem minmax(0, 1fr) 2.9rem;
   align-items: center;
   gap: 0.75rem;
-  min-height: 3.25rem;
+  width: min(100%, var(--pmd-customer-card-max, 38rem));
+  margin: 0 auto 0.35rem;
 }
 
-[data-pmd-customer-app] .pmd-customer-menu-topbar__back,
-[data-pmd-customer-app] .pmd-customer-menu-topbar__lang,
-[data-pmd-customer-app] .pmd-customer-menu-topbar__context {
+[data-pmd-customer-app] .pmd-customer-topbar__button {
   display: inline-flex;
-  min-height: 2.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--pmd-customer-border);
+  border: 1px solid var(--pmd-customer-primary);
   border-radius: 999px;
-  background: var(--pmd-customer-surface);
-  color: var(--pmd-customer-text);
-  font-weight: 850;
+  background: var(--pmd-customer-primary);
+  color: var(--pmd-customer-primary-text);
+  font-size: 1rem;
+  font-weight: 900;
   line-height: 1;
   text-decoration: none;
-  padding: 0.65rem 0.9rem;
-}
-
-[data-pmd-customer-app] .pmd-customer-menu-topbar__back {
-  justify-self: start;
-}
-
-[data-pmd-customer-app] .pmd-customer-menu-topbar__context {
-  min-width: min(16rem, 48vw);
-  color: var(--pmd-customer-primary);
-}
-
-[data-pmd-customer-app] .pmd-customer-menu-topbar__lang {
-  justify-self: end;
   cursor: pointer;
 }
 
+[data-pmd-customer-app] .pmd-customer-topbar__context {
+  justify-self: center;
+  min-width: min(14rem, 50vw);
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--pmd-customer-border);
+  border-radius: 999px;
+  background: var(--pmd-customer-surface);
+  color: var(--pmd-customer-primary);
+  padding: 0.68rem 1rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 850;
+  line-height: 1;
+}
+
 [data-pmd-customer-app] .pmd-customer-menu-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.55rem;
+  display: flex;
+  width: 100%;
   align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 [data-pmd-customer-app] .pmd-customer-menu-action {
-  width: 100%;
-  min-width: 0;
-  padding-inline: 0.75rem;
+  position: relative;
+  display: inline-grid;
+  min-width: 4.1rem;
+  min-height: 3.25rem;
+  flex: 0 1 auto;
+  grid-auto-flow: row;
+  place-items: center;
+  gap: 0.12rem;
+  padding: 0.42rem 0.62rem;
   white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-menu-action svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-menu-action small {
+  display: block;
+  color: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  opacity: 0.82;
 }
 
 [data-pmd-customer-app] .pmd-customer-menu-action--checkout {
-  grid-column: span 1;
+  min-width: 5rem;
 }
 
 @media (max-width: 760px) {
-  [data-pmd-customer-app] .pmd-customer-menu-topbar {
-    grid-template-columns: auto 1fr auto;
-    gap: 0.45rem;
+  [data-pmd-customer-app] .pmd-customer-topbar {
+    grid-template-columns: 2.65rem minmax(0, 1fr) 2.65rem;
+    gap: 0.5rem;
   }
 
-  [data-pmd-customer-app] .pmd-customer-menu-topbar__back,
-  [data-pmd-customer-app] .pmd-customer-menu-topbar__lang,
-  [data-pmd-customer-app] .pmd-customer-menu-topbar__context {
-    min-height: 2.45rem;
-    padding: 0.55rem 0.7rem;
+  [data-pmd-customer-app] .pmd-customer-topbar__button {
+    width: 2.55rem;
+    height: 2.55rem;
+  }
+
+  [data-pmd-customer-app] .pmd-customer-topbar__context {
+    min-width: 0;
+    padding-inline: 0.85rem;
     font-size: 0.88rem;
   }
 
   [data-pmd-customer-app] .pmd-customer-menu-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
   }
+
+  [data-pmd-customer-app] .pmd-customer-menu-action {
+    min-width: 3.6rem;
+    padding-inline: 0.45rem;
+  }
+}
+
+
+
+[data-pmd-customer-app] .pmd-customer-card {
+  max-width: min(100%, var(--pmd-customer-card-max, 38rem));
+}
+
+[data-pmd-customer-app] .pmd-customer-menu-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-menu-card__badges .food-attribute-tags,
+[data-pmd-customer-app] .pmd-customer-menu-card__badges [class*="food-attribute"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet {
+  width: min(100%, var(--pmd-customer-card-max, 38rem));
+  max-width: var(--pmd-customer-card-max, 38rem);
+  padding-top: clamp(1rem, 3vh, 2rem);
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-card {
+  width: 100%;
+  max-width: 100%;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-heading {
+  display: grid;
+  gap: 0.45rem;
+  text-align: center;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-heading h1 {
+  margin: 0;
+  color: var(--pmd-customer-primary);
+  font-size: clamp(1.55rem, 4vw, 2.25rem);
+  line-height: 1.05;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-card--success {
+  justify-items: center;
+  text-align: center;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-success-icon {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--pmd-customer-primary);
+  color: var(--pmd-customer-primary-text);
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-success-icon svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+[data-pmd-customer-app] .pmd-customer-valet-note {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.85rem 1rem;
+  text-align: center;
 }
