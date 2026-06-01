@@ -1,0 +1,289 @@
+.pmd-checkout-v3-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(6, 18, 16, 0.46);
+  color: #10201D;
+  -webkit-text-fill-color: #10201D;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Arial, sans-serif;
+}
+
+.pmd-checkout-v3,
+.pmd-checkout-v3-overlay,
+.pmd-checkout-v3-overlay * {
+  box-sizing: border-box;
+  text-shadow: none;
+  animation: none !important;
+  transform: none !important;
+  transition-property: opacity, background-color, border-color, box-shadow;
+  transition-duration: 100ms;
+  transition-timing-function: ease-out;
+}
+
+.pmd-checkout-v3-shell {
+  width: min(760px, calc(100vw - 24px));
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(216, 185, 130, 0.72);
+  border-radius: 28px;
+  background: #fffaf0;
+  box-shadow: 0 28px 70px rgba(6, 47, 42, 0.24);
+  color: #10201D;
+  -webkit-text-fill-color: #10201D;
+}
+
+.pmd-checkout-v3-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(216, 185, 130, 0.45);
+  background: linear-gradient(180deg, #fffaf0 0%, #fbf3df 100%);
+}
+
+.pmd-checkout-v3-title {
+  margin: 0;
+  text-align: center;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.7rem);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.pmd-checkout-v3-back,
+.pmd-checkout-v3-btn-primary,
+.pmd-checkout-v3-overlay [data-pmd-checkout-action="primary"],
+.pmd-checkout-v3-overlay [data-pmd-checkout-v3-action="primary"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+.pmd-checkout-v3-back {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #062F2A;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.16);
+}
+
+.pmd-checkout-v3-back-icon {
+  width: 20px;
+  height: 20px;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+.pmd-checkout-v3-header-spacer {
+  width: 42px;
+  height: 42px;
+}
+
+.pmd-checkout-v3-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(14px, 2.4vw, 22px);
+  background: #fffaf0;
+  color: #10201D;
+  -webkit-text-fill-color: #10201D;
+}
+
+.pmd-checkout-v3-body > * + *,
+.pmd-checkout-v3-stack > * + * {
+  margin-top: 14px;
+}
+
+.pmd-checkout-v3-stack {
+  color: #10201D;
+  -webkit-text-fill-color: #10201D;
+}
+
+.pmd-checkout-v3-card,
+.pmd-checkout-v3-overlay .surface-sub,
+.pmd-checkout-v3-overlay [data-pmd-checkout-card="1"] {
+  min-height: 0 !important;
+  border: 1px solid rgba(216, 185, 130, 0.58) !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  box-shadow: 0 10px 26px rgba(6, 47, 42, 0.06) !important;
+}
+
+.pmd-checkout-v3-row,
+.pmd-checkout-v3-overlay [class*="justify-between"] {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+}
+
+.pmd-checkout-v3-muted,
+.pmd-checkout-v3-overlay .muted,
+.pmd-checkout-v3-overlay [class*="text-gray"],
+.pmd-checkout-v3-overlay [style*="theme-text-muted"] {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+  opacity: 1 !important;
+}
+
+.pmd-checkout-v3-total-card,
+.pmd-checkout-v3-payment-summary {
+  border: 1px solid rgba(216, 185, 130, 0.56);
+  border-radius: 20px;
+  background: #fffdf7;
+  padding: 14px;
+}
+
+.pmd-checkout-v3-actions,
+.pmd-checkout-v3-overlay [data-pmd-clean-table-actions="1"] .grid,
+.pmd-checkout-v3-overlay .grid.grid-cols-1.gap-2,
+.pmd-checkout-v3-overlay .grid.grid-cols-2.gap-3 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pmd-checkout-v3-btn-primary,
+.pmd-checkout-v3-btn-secondary,
+.pmd-checkout-v3-overlay button[data-pmd-checkout-action],
+.pmd-checkout-v3-overlay [data-pmd-checkout-v3-action] {
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  min-height: 44px;
+  border-radius: 9999px !important;
+  font-weight: 750;
+  color: #10201D;
+  -webkit-text-fill-color: #10201D;
+  transition-property: opacity, background-color, border-color, box-shadow !important;
+  transition-duration: 100ms !important;
+}
+
+.pmd-checkout-v3-overlay [data-pmd-checkout-action="primary"] *,
+.pmd-checkout-v3-overlay [data-pmd-checkout-v3-action="primary"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.pmd-checkout-v3-btn-secondary,
+.pmd-checkout-v3-overlay [data-pmd-checkout-action="secondary"] {
+  background: rgba(255,255,255,0.72) !important;
+  background-color: rgba(255,255,255,0.72) !important;
+  border-color: rgba(216, 185, 130, 0.86) !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+}
+
+.pmd-checkout-v3-overlay [data-pmd-checkout-action="secondary"] * {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  stroke: #10201D !important;
+}
+
+.pmd-checkout-v3-overlay input,
+.pmd-checkout-v3-overlay textarea,
+.pmd-checkout-v3-overlay select {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-color: rgba(216, 185, 130, 0.72) !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+}
+
+.pmd-checkout-v3-eta,
+.pmd-checkout-v3-overlay [data-pmd-floating-eta-circle="1"] {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 72px;
+  border-radius: 9999px !important;
+  padding: 10px 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 22px rgba(6, 47, 42, 0.14) !important;
+}
+
+.pmd-checkout-v3-overlay [data-pmd-order-status-card="1"] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.pmd-checkout-v3-overlay [data-pmd-order-status-card="1"] > .flex.items-center.gap-3 {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.pmd-checkout-v3-method-grid,
+.pmd-checkout-v3-overlay .flex.justify-center.items-center.gap-3.flex-wrap {
+  justify-content: flex-start !important;
+  gap: 10px !important;
+}
+
+.pmd-checkout-v3-overlay [data-pmd-payment-selected-detail="1"] {
+  padding-top: 10px !important;
+}
+
+.pmd-checkout-v3-overlay [data-pmd-payment-header-copy-row="1"] {
+  padding: 12px !important;
+  border-color: rgba(216, 185, 130, 0.56) !important;
+  background: #fffdf7 !important;
+}
+
+.pmd-checkout-v3-overlay img {
+  -webkit-text-fill-color: initial !important;
+}
+
+@media (max-width: 640px) {
+  .pmd-checkout-v3-overlay {
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  .pmd-checkout-v3-shell {
+    width: calc(100vw - 24px);
+    max-height: 92vh;
+    border-radius: 24px;
+  }
+
+  .pmd-checkout-v3-header {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    padding: 14px 14px 10px;
+  }
+
+  .pmd-checkout-v3-actions,
+  .pmd-checkout-v3-overlay [data-pmd-clean-table-actions="1"] .grid,
+  .pmd-checkout-v3-overlay .grid.grid-cols-1.gap-2,
+  .pmd-checkout-v3-overlay .grid.grid-cols-2.gap-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-checkout-v3-overlay [data-pmd-order-status-card="1"] > .flex.items-center.gap-3 {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}

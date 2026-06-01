@@ -63,8 +63,8 @@ type CartItem = {
   quantity: number;
 }
 
-// Enhanced Waiter Dialog Component
-const EnhancedWaiterDialog = ({
+// Bottom action waiter dialog component
+const BottomActionsWaiterDialog = ({
   isOpen,
   onOpenChange,
 }: {
@@ -229,8 +229,8 @@ const EnhancedWaiterDialog = ({
   )
 }
 
-// Enhanced Note Dialog with smooth animations
-const EnhancedNoteDialog = ({
+// Bottom action note dialog component
+const BottomActionsNoteDialog = ({
   isOpen,
   onOpenChange,
   note,
@@ -703,12 +703,12 @@ export function BottomActions() {
         </div>
       </motion.div>
 
-      <EnhancedWaiterDialog
+      <BottomActionsWaiterDialog
         isOpen={waiterConfirmOpen}
         onOpenChange={setWaiterConfirmOpen}
       />
 
-      <EnhancedNoteDialog
+      <BottomActionsNoteDialog
         isOpen={noteModalOpen}
         onOpenChange={setNoteModalOpen}
         note={note}

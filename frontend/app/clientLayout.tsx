@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
 import { saveSubscription } from "./actions"
 import { useThemeStore } from "@/store/theme-store"
+import { shouldSkipLegacyThemeForGoldCustomer } from "@/lib/customer-route-guard"
 import "@/lib/i18n" // Import i18n configuration
 
 
@@ -34,7 +35,11 @@ export default function ClientLayout({
 
   useEffect(() => {
     setMounted(true)
-    // Load theme settings from admin panel
+    if (shouldSkipLegacyThemeForGoldCustomer()) {
+      return
+    }
+
+    // Load theme settings from admin panel for legacy/non-customer pages
     loadSettings()
     // Ensure a class is present for CSS scope and legacy token mapping
     if (typeof document !== 'undefined') {
@@ -43,8 +48,8 @@ export default function ClientLayout({
   }, [loadSettings])
 
   useEffect(() => {
-    if (mounted) {
-      // Apply CSS variables when settings change
+    if (mounted && !shouldSkipLegacyThemeForGoldCustomer()) {
+      // Apply CSS variables when settings change for legacy/non-customer pages
       const cssVars = getCSSVariables()
       Object.entries(cssVars).forEach(([key, value]) => {
         document.documentElement.style.setProperty(key, value)
