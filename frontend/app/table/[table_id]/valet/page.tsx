@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
+import { CustomerShell } from "@/customer/components/CustomerShell"
 
 function clean(v: unknown): string | null {
   if (v === null || v === undefined) return null
@@ -45,8 +46,10 @@ export default function TableValetRedirect() {
   }, [params, pathname, router, searchParams])
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div>Redirecting to valet...</div>
-    </div>
+    <CustomerShell page="table">
+      <main className="pmd-customer-home">
+        <div className="pmd-customer-card p-6">Redirecting to valet...</div>
+      </main>
+    </CustomerShell>
   )
 }

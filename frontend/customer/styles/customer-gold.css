@@ -1,0 +1,220 @@
+[data-pmd-customer-app="gold-v1"] {
+  --pmd-customer-page: #0F0B05;
+  --pmd-customer-surface: #FFFCF5;
+  --pmd-customer-soft: #FFF9EF;
+  --pmd-customer-text: #10201D;
+  --pmd-customer-muted: #6B7280;
+  --pmd-customer-primary: #062F2A;
+  --pmd-customer-primary-text: #FFFFFF;
+  --pmd-customer-border: #D8B982;
+  --pmd-customer-accent: #B88940;
+  --pmd-customer-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --pmd-customer-font-serif: Georgia, "Times New Roman", serif;
+  background:
+    radial-gradient(circle at top left, rgba(216, 185, 130, 0.18), transparent 34rem),
+    linear-gradient(180deg, #171006 0%, var(--pmd-customer-page) 100%);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-shell__inner {
+  padding-top: clamp(1.25rem, 3vw, 2.4rem);
+  padding-bottom: 8rem;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-header {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(216, 185, 130, 0.34);
+  border-radius: 2rem;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.1), rgba(216, 185, 130, 0.05)),
+    rgba(6, 47, 42, 0.2);
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.22);
+  padding: clamp(1.2rem, 3vw, 2rem);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-header::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -45% 45%;
+  height: 10rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(216, 185, 130, 0.16), transparent 65%);
+  pointer-events: none;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-header__eyebrow {
+  color: #D8B982;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-header__title {
+  color: #FFFCF5;
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-cats {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  margin: 0 -0.25rem 1rem;
+  padding: 0.4rem 0.25rem 1rem;
+  background: linear-gradient(180deg, rgba(15, 11, 5, 0.96), rgba(15, 11, 5, 0));
+  scrollbar-width: none;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-cats::-webkit-scrollbar {
+  display: none;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-cat {
+  border-color: rgba(216, 185, 130, 0.44);
+  background: rgba(255, 252, 245, 0.1);
+  color: rgba(255, 252, 245, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-cat[aria-pressed="true"] {
+  border-color: #D8B982;
+  background: linear-gradient(135deg, #FFFCF5 0%, #F2DEB9 100%);
+  color: #10201D;
+  box-shadow: 0 12px 30px rgba(216, 185, 130, 0.22);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+  gap: clamp(0.9rem, 2vw, 1.25rem);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card {
+  display: grid;
+  grid-template-columns: minmax(8.4rem, 38%) 1fr;
+  min-height: 12.25rem;
+  border-color: rgba(216, 185, 130, 0.72);
+  border-radius: 1.75rem;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.98), rgba(255, 249, 239, 0.94));
+  box-shadow:
+    0 20px 54px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__media {
+  min-height: 100%;
+  border-radius: 1.55rem 0 0 1.55rem;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(216, 185, 130, 0.28), transparent 58%),
+    linear-gradient(145deg, #FFF9EF, #E9D5AC);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__image-frame {
+  padding: 0.85rem;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__image-frame img {
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__body {
+  align-content: space-between;
+  gap: 0.8rem;
+  padding: clamp(1rem, 2.5vw, 1.35rem);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__title {
+  font-family: var(--pmd-customer-font-serif);
+  font-size: clamp(1.18rem, 2.2vw, 1.48rem);
+  line-height: 1.08;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__desc {
+  line-height: 1.55;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__footer {
+  border-top: 1px solid rgba(216, 185, 130, 0.34);
+  padding-top: 0.75rem;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__price {
+  font-family: var(--pmd-customer-font-serif);
+  font-size: 1.2rem;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__add {
+  background: #062F2A;
+  border-color: #062F2A;
+  color: #FFFFFF;
+  box-shadow: 0 14px 26px rgba(6, 47, 42, 0.26);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-bottom-bar {
+  width: min(50rem, calc(100vw - 1.5rem));
+  border-color: rgba(216, 185, 130, 0.82);
+  border-radius: 1.65rem;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.98), rgba(255, 249, 239, 0.92));
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.36);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-bottom strong {
+  color: #10201D;
+  font-size: 1.08rem;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-menu-bottom__actions .pmd-customer-button--ghost {
+  border-color: rgba(216, 185, 130, 0.48);
+  color: #10201D;
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-customer-modal {
+  border-color: rgba(216, 185, 130, 0.88);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.42);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-checkout-gold__card {
+  border-color: rgba(216, 185, 130, 0.68);
+  background: linear-gradient(135deg, #FFFCF5, #FFF9EF);
+}
+
+[data-pmd-customer-app="gold-v1"] .pmd-checkout-gold__total-row {
+  border-top: 1px solid rgba(216, 185, 130, 0.42);
+  padding-top: 0.7rem;
+}
+
+@media (max-width: 760px) {
+  [data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card {
+    grid-template-columns: 7.6rem 1fr;
+    min-height: 10.5rem;
+    border-radius: 1.35rem;
+  }
+
+  [data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__media {
+    border-radius: 1.2rem 0 0 1.2rem;
+  }
+
+  [data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__image-frame {
+    padding: 0.6rem;
+  }
+
+  [data-pmd-customer-app="gold-v1"] .pmd-customer-header {
+    border-radius: 1.45rem;
+  }
+}
+
+@media (max-width: 460px) {
+  [data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card {
+    grid-template-columns: 6.4rem 1fr;
+  }
+
+  [data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__body {
+    padding: 0.85rem;
+  }
+
+  [data-pmd-customer-app="gold-v1"] .pmd-customer-menu-card__add {
+    width: 2.65rem;
+    min-width: 2.65rem;
+    height: 2.65rem;
+    min-height: 2.65rem;
+  }
+}

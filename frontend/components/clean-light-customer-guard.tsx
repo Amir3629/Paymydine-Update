@@ -61,8 +61,20 @@ function isCleanLightTheme() {
   return values.includes("clean-light")
 }
 
+function isGoldCustomerNode(el: Element | null | undefined) {
+  return !!el?.closest?.('[data-pmd-customer-app="gold-v1"]')
+}
+
+function isGoldCustomerDocument() {
+  return typeof document !== "undefined" && !!document.querySelector('[data-pmd-customer-app="gold-v1"], [data-pmd-customer-root="gold-v1"]')
+}
+
+function isCheckoutLockdownNode(el: Element | null | undefined) {
+  return !!el?.closest?.('[data-pmd-checkout-lockdown="1"], [data-pmd-checkout-v3="1"], [data-pmd-customer-app="gold-v1"]')
+}
+
 function markGuarded(el: Element | null | undefined) {
-  if (!el) return
+  if (!el || isCheckoutLockdownNode(el)) return
   if (
     (el as HTMLElement).closest?.(
       ".pmd-v2-page, .pmd-v2-card, .pmd-v2-card-sub, .pmd-v2-action-circle, .pmd-v2-action-button"
@@ -72,13 +84,13 @@ function markGuarded(el: Element | null | undefined) {
 }
 
 function setImportant(el: HTMLElement | null | undefined, prop: string, value: string) {
-  if (!el) return
+  if (!el || isCheckoutLockdownNode(el)) return
   markGuarded(el)
   el.style.setProperty(prop, value, "important")
 }
 
 function setSvgImportant(el: SVGElement | null | undefined, prop: string, value: string) {
-  if (!el) return
+  if (!el || isCheckoutLockdownNode(el)) return
   markGuarded(el)
   el.style.setProperty(prop, value, "important")
 }
@@ -102,7 +114,7 @@ function roseEdgeFilter() {
 }
 
 function applyBaseBackground(pathname: string | null) {
-  if (!isCustomerPath(pathname)) return
+  if (!isCustomerPath(pathname) || isGoldCustomerDocument()) return
 
   const root = document.documentElement
   const body = document.body
@@ -276,7 +288,7 @@ function applySharedControlStyles(pathname: string | null) {
 }
 
 function applyCleanLightCustomerUI(pathname: string | null) {
-  if (!isCustomerPath(pathname)) return
+  if (!isCustomerPath(pathname) || isGoldCustomerDocument()) return
 
   if (!isCleanLightTheme()) {
     cleanupGuardedStyles()
@@ -290,7 +302,7 @@ export default function CleanLightCustomerGuard() {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!isCustomerPath(pathname)) return
+    if (!isCustomerPath(pathname) || isGoldCustomerDocument()) return
 
     applyCleanLightCustomerUI(pathname)
 

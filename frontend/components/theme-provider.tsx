@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react"
 import { initThemeFromAdmin } from "@/lib/theme-loader"
+import { shouldSkipLegacyThemeForGoldCustomer } from "@/lib/customer-route-guard"
 
 interface ThemeProviderProps {
   children: React.ReactNode
@@ -9,7 +10,7 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
-    console.log('🔄 ThemeProvider: Loading theme from admin...')
+    if (shouldSkipLegacyThemeForGoldCustomer()) return
     // Load from admin, then cache theme + overrides for next boot
     initThemeFromAdmin().then((res) => {
       try {
@@ -19,7 +20,6 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           localStorage.setItem(`${tenant}:paymydine-theme`, res.themeId)
           if (res.overrides && Object.keys(res.overrides).length > 0) {
             localStorage.setItem(`${tenant}:paymydine-theme-overrides`, JSON.stringify(res.overrides))
-            console.log(`💾 ThemeProvider: Cached overrides for tenant "${tenant}"`, res.overrides)
           }
         }
       } catch(_) {}
@@ -28,7 +28,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   // Ensure <html> gets theme-vars class early
   useEffect(() => {
-    if (typeof document !== 'undefined') {
+    if (typeof document !== 'undefined' && !shouldSkipLegacyThemeForGoldCustomer()) {
       document.documentElement.classList.add('theme-vars')
     }
   }, [])

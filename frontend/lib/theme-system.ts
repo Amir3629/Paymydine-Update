@@ -1,4 +1,5 @@
 import { normalizeThemeForCustomerPages, enforceCustomerPageTheme, PMD_CLEAN_LIGHT_PAGE_BG } from "@/lib/theme-normalizer"
+import { shouldSkipLegacyThemeForGoldCustomer } from "@/lib/customer-route-guard"
  // Theme System for PayMyDine
 
 // Helper function to convert hex to RGB
@@ -320,6 +321,12 @@ export interface ThemeColors {
   
   // Apply theme to document
   export function applyTheme(themeId: string, overrides?: Partial<ThemeColors>): void {
+    if (shouldSkipLegacyThemeForGoldCustomer()) {
+      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.classList.remove('theme-dark');
+      return;
+    }
+
     const theme = themes[themeId];
     if (!theme) {
       console.warn(`Theme ${themeId} not found, falling back to clean-light`);
@@ -342,7 +349,6 @@ export interface ThemeColors {
     
     // NUCLEAR OPTION: Force background colors if overrides provided
     if (overrides?.background) {
-      console.log('🚀 applyTheme: Forcing background color:', overrides.background);
       document.body.style.background = overrides.background;
       document.documentElement.style.background = overrides.background;
     } else {
