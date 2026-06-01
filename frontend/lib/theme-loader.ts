@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/api-client";
 import { applyTheme } from "@/lib/theme-system";
 import { themes } from "@/lib/theme-system";
+import { shouldSkipLegacyThemeForGoldCustomer } from "@/lib/customer-route-guard";
 
 /**
  * Get tenant ID from hostname for localStorage scoping
@@ -22,7 +23,9 @@ function tenantIdFromHost(hostname: string): string {
  * Call this ONCE on app boot in ThemeProvider
  */
 export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides?: Record<string,string>}> {
-  console.log('🎨 ThemeLoader: Fetching admin-selected theme...');
+  if (shouldSkipLegacyThemeForGoldCustomer()) {
+    return {};
+  }
   
   try {
     const res = await apiClient.getThemeSettings(); // hits /simple-theme
@@ -31,7 +34,9 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
 
     const overrides = buildSafeThemeOverrides(themeId, data);
 
-    console.log(`✅ ThemeLoader: Applying admin theme "${themeId}"`, overrides);
+    if (shouldSkipLegacyThemeForGoldCustomer()) {
+      return {};
+    }
     applyTheme(themeId, overrides);
 
     // Store in tenant-scoped localStorage
@@ -39,7 +44,6 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
       const key = `${tenantIdFromHost(window.location.hostname)}:paymydine-theme`;
       try { 
         localStorage.setItem(key, themeId);
-        console.log(`💾 ThemeLoader: Stored theme for tenant key: ${key}`);
       } catch (e) {
         console.warn('Failed to store theme in localStorage:', e);
       }
@@ -49,8 +53,8 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
     return { themeId, overrides };
   } catch (e) {
     console.error('❌ ThemeLoader: Failed to load admin theme:', e);
-    // Fallback to default theme
-    applyTheme("clean-light");
+    // Fallback to default theme for non-customer pages only
+    if (!shouldSkipLegacyThemeForGoldCustomer()) applyTheme("clean-light");
     return {};
   }
 }
