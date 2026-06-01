@@ -19,6 +19,12 @@ export function CheckoutMyOrderGold(props: CheckoutFlowGoldProps) {
   const primaryLabel = isTableDraft ? (props.submitDraftLoading ? "Sending..." : "Send to kitchen") : (props.isLoading ? "Confirming..." : "Confirm")
   const primaryAction = isTableDraft ? props.onSubmitTableDraft : props.onConfirmItems
   const disabled = isTableDraft ? !!props.submitDraftLoading || !!props.draftLoading || !props.canSubmitDraft : !!props.isLoading || !props.canConfirmItems
+  const fallbackSubtotal = props.tableGroups && props.tableGroups.length > 0
+    ? props.tableGroups.reduce((sum, group) => sum + group.items.reduce((itemSum, item) => itemSum + Number(item.amount || 0), 0), 0)
+    : props.items.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const displayedTotals = fallbackSubtotal > 0 && props.totals.every((row) => !row.strong || /0[,.]00/.test(row.value))
+    ? props.totals.map((row) => row.strong || row.label.toLowerCase().includes("subtotal") ? { ...row, value: new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(fallbackSubtotal) } : row)
+    : props.totals
 
   return (
     <div className="pmd-checkout-gold">
@@ -45,7 +51,7 @@ export function CheckoutMyOrderGold(props: CheckoutFlowGoldProps) {
           </div>
         )}
       </section>
-      <CheckoutSummaryGold rows={props.totals} />
+      <CheckoutSummaryGold rows={displayedTotals} />
       <div className="pmd-checkout-gold__actions">
         <CustomerButton variant="primary" onClick={primaryAction} disabled={disabled}>{primaryLabel}</CustomerButton>
         <CustomerButton variant="secondary" onClick={props.onClose}>Continue ordering</CustomerButton>

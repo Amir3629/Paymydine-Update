@@ -8,7 +8,6 @@ import { type TranslationKey } from "@/lib/translations";
 import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
-import { Logo } from "@/components/logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
 import { FoodAttributeTags } from "@/components/food-attribute-tags";
@@ -962,6 +961,25 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }, 0),
     [itemsToPay, selectedOptions, allItems, taxSettings],
   )
+  const cartReviewSubtotal = useMemo(
+    () => allItems.reduce((acc, cartItem) => {
+      let itemTotal = adjustPriceForVAT(cartItem.item.price || 0) * (cartItem.quantity || 1)
+      const itemOptions = selectedOptions[cartItem.item.id] || {}
+      if (Object.keys(itemOptions).length > 0 && cartItem.item.options) {
+        Object.values(itemOptions).forEach(optionId => {
+          cartItem.item.options!.forEach(option => {
+            const optionValue = option.values.find(val => val.id.toString() === optionId)
+            if (optionValue) {
+              itemTotal += adjustPriceForVAT(optionValue.price) * (cartItem.quantity || 1)
+            }
+          })
+        })
+      }
+      return acc + itemTotal
+    }, 0),
+    [allItems, selectedOptions, taxSettings],
+  )
+
   // Calculate VAT if enabled AND VAT should be applied on checkout (not already included in prices)
   // vat_menu_price: 0 = VAT included in menu price, 1 = apply VAT on checkout
   const taxAmount = useMemo(() => {
@@ -2941,13 +2959,17 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
     ? (tableDraft.status === "draft" ? "table-draft" : "table-submitted")
     : "personal"
 
-  const goldCartItems = allItems.map((cartItem) => ({
-    id: cartItem.item.id,
-    name: cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name,
-    quantity: cartItem.quantity,
-    total: formatCurrency(adjustPriceForVAT(cartItem.item.price || 0) * cartItem.quantity),
-    subtitle: cartItem.item.descriptionKey ? t(cartItem.item.descriptionKey as TranslationKey) : cartItem.item.description,
-  }))
+  const goldCartItems = allItems.map((cartItem) => {
+    const amount = adjustPriceForVAT(cartItem.item.price || 0) * cartItem.quantity
+    return {
+      id: cartItem.item.id,
+      name: cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name,
+      quantity: cartItem.quantity,
+      total: formatCurrency(amount),
+      amount,
+      subtitle: cartItem.item.descriptionKey ? t(cartItem.item.descriptionKey as TranslationKey) : cartItem.item.description,
+    }
+  })
 
   const goldTableGroups = tableDraft?.success
     ? (tableDraft.groups && tableDraft.groups.length > 0 ? tableDraft.groups : [{ guest_session_id: null, items: tableDraft.items || [], subtotal: tableDraft.totals?.subtotal || tableDraft.totals?.total || 0 }]).map((group: any, groupIndex: number) => ({
@@ -2959,16 +2981,28 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           name: String(item.name || `Item ${itemIndex + 1}`),
           quantity: Number(item.quantity || 1),
           total: formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1)))),
+          amount: Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))),
         })),
       }))
     : undefined
 
+  const tableDraftDisplayTotal = Number(
+    tableDraft?.totals?.total ||
+    tableDraft?.totals?.subtotal ||
+    (Array.isArray(tableDraft?.groups) ? tableDraft.groups.reduce((sum: number, group: any) => sum + Number(group?.subtotal || 0), 0) : 0) ||
+    (Array.isArray(tableDraft?.items) ? tableDraft.items.reduce((sum: number, item: any) => sum + Number(item?.subtotal ?? (Number(item?.price || 0) * Number(item?.quantity || 1))), 0) : 0)
+  )
+  const checkoutReviewSubtotal = reviewMode === "personal" ? cartReviewSubtotal : tableDraftDisplayTotal
+  const checkoutSummarySubtotal = checkoutStep === "review" ? checkoutReviewSubtotal : subtotal
+  const checkoutSummaryTax = checkoutStep === "review" ? 0 : taxAmount
+  const checkoutSummaryTotal = checkoutStep === "review" ? checkoutSummarySubtotal + checkoutSummaryTax : (checkoutStep === "payment" ? payableTotal : finalTotal)
+
   const checkoutTotals = [
-    { label: vatLabels.subtotal, value: formatCurrency(subtotal) },
-    ...(taxAmount > 0 ? [{ label: "VAT", value: formatCurrency(taxAmount) }] : []),
-    ...(tipAmount > 0 ? [{ label: "Tip", value: formatCurrency(tipAmount) }] : []),
-    ...(couponDiscount > 0 ? [{ label: "Discount", value: `-${formatCurrency(couponDiscount)}` }] : []),
-    { label: vatLabels.total, value: formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal), strong: true },
+    { label: vatLabels.subtotal, value: formatCurrency(checkoutSummarySubtotal) },
+    ...(checkoutSummaryTax > 0 ? [{ label: "VAT", value: formatCurrency(checkoutSummaryTax) }] : []),
+    ...(checkoutStep !== "review" && tipAmount > 0 ? [{ label: "Tip", value: formatCurrency(tipAmount) }] : []),
+    ...(checkoutStep !== "review" && couponDiscount > 0 ? [{ label: "Discount", value: `-${formatCurrency(couponDiscount)}` }] : []),
+    { label: vatLabels.total, value: formatCurrency(checkoutSummaryTotal), strong: true },
   ]
 
   const statusItems = groupOrderDisplayItems(submittedSnapshot?.submittedItems || tableDraft?.items || []).map((item: any, idx: number) => ({
@@ -3074,8 +3108,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
       isLoading={isLoading}
       submitDraftLoading={submitDraftLoading}
       draftLoading={draftLoading}
-      canSubmitDraft={Number(tableDraft?.totals?.total || 0) > 0}
-      canConfirmItems={goldCartItems.length > 0}
+      canSubmitDraft={tableDraftDisplayTotal > 0 || Boolean(goldTableGroups?.some((group) => group.items.length > 0))}
+      canConfirmItems={goldCartItems.length > 0 && cartReviewSubtotal > 0}
       tableLabel={tableDisplayName}
       contextLabel={isTableContext ? tableDisplayName : "Delivery"}
       items={goldCartItems}
@@ -3734,7 +3768,6 @@ useEffect(() => {
 
   return (
         <MenuPageView title={displayTableNumber ? `Table ${displayTableNumber}` : "Menu"} subtitle="Explore the menu and add your favourites.">
-      <div className="pmd-customer-logo-area__mark"><Logo tableNumber={displayTableNumber} /></div>
       <Suspense fallback={<CustomerLoadingState page="menu" label="Loading menu..." compact />}>
           <MenuCategoryNavGold
             categories={allCategories}

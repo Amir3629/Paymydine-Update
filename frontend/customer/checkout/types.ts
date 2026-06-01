@@ -7,6 +7,7 @@ export type CheckoutGoldItem = {
   name: string
   quantity: number
   total: string
+  amount?: number
   subtitle?: string
 }
 
