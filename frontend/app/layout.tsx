@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
@@ -9,7 +8,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { FaviconSetter } from "@/components/favicon-setter"
 import CleanLightCustomerGuard from "@/components/clean-light-customer-guard"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
   title: "PayMyDine - A Luxurious Dining Experience",
@@ -52,60 +50,7 @@ export default function RootLayout({
         `}</style>
         <script dangerouslySetInnerHTML={{
           __html: `
-            // CART BADGE FORCE FIX - Ensures cart badge is always visible with correct colors
-            (function() {
-              const themeColors = {
-                'clean-light': { badge: '#EFC7B1', text: '#FAFAFA' }, // paydine-rose-beige - matches quantity-btn background
-                'modern-dark': { badge: '#E8B4A0', text: '#0A0E12' }, // rose gold - matches quantity-btn background
-                'gold-luxury': { badge: '#FFF8DC', text: '#0F0B05' }, // cornsilk - matches quantity-btn background
-                'vibrant-colors': { badge: '#FF6B6B', text: '#e2ceb1' }, // electric coral - matches quantity-btn background
-                'minimal': { badge: '#4B8FE2', text: '#CFEBF7' } // blue - matches quantity-btn background
-              };
-              
-              function fixCartBadge() {
-                const theme = document.documentElement.getAttribute('data-theme') || 'clean-light';
-                const colors = themeColors[theme] || themeColors['clean-light'];
-                const cartBadge = document.querySelector('.cart-badge');
-                
-                if (cartBadge) {
-                  cartBadge.style.cssText = \`
-                    background-color: \${colors.badge} !important;
-                    color: \${colors.text} !important;
-                    opacity: 1 !important;
-                    visibility: visible !important;
-                    display: flex !important;
-                    z-index: 9999999 !important;
-                    position: absolute !important;
-                    top: -8px !important;
-                    right: -8px !important;
-                    font-weight: bold !important;
-                    border-radius: 50% !important;
-                    height: 28px !important;
-                    width: 28px !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-                    font-size: 12px !important;
-                    border: none !important;
-                    outline: none !important;
-                  \`;
-                }
-              }
-              
-              // Run immediately
-              fixCartBadge();
-              
-              // Watch for theme changes
-              const observer = new MutationObserver(() => {
-                fixCartBadge();
-              });
-              observer.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['data-theme']
-              });
-              
-              // Also run periodically as safety net
-              setInterval(fixCartBadge, 1000);
+            // PMD cart badge force fix removed: menu badge is now single-owner.
               
               // FOOD ITEM MODAL CARD FIX - Ensures modal cards have correct theme colors
               function fixModalCards() {
@@ -326,12 +271,44 @@ export default function RootLayout({
             })();
           `
         }} />
+      
+        <style
+          id="pmd-cart-badge-cache-bridge"
+          dangerouslySetInnerHTML={{
+            __html: `
+html body span.cart-badge.pmd-v2-badge,
+html body [data-pmd-menu-cart-badge="1"] {
+  --pmd-v2-badge-bg: #b88940 !important;
+  --pmd-v2-badge-text: #FFFFFF !important;
+  --pmd-v2-badge-border: #b88940 !important;
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #b88940 !important;
+  outline-color: #b88940 !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html body span.cart-badge.pmd-v2-badge *,
+html body [data-pmd-menu-cart-badge="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+            `,
+          }}
+        />
+
       </head>
-      <body className={inter.className + ' text-theme'}>
+      <body className="text-theme">
         <CleanLightCustomerGuard />
         <FaviconSetter />
         <ThemeProvider>
-          <ClientLayout className={cn("min-h-screen font-sans antialiased", inter.variable)}>
+          <ClientLayout className={cn("min-h-screen font-sans antialiased")}>
             {children}
             <Toaster />
           </ClientLayout>

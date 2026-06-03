@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import type React from "react"
 import Head from "next/head"
-import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
@@ -11,8 +10,6 @@ import { saveSubscription } from "./actions"
 import { useThemeStore } from "@/store/theme-store"
 import "@/lib/i18n" // Import i18n configuration
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
-const playfairDisplay = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair-display" })
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
@@ -64,7 +61,7 @@ export default function ClientLayout({
   // Use suppressHydrationWarning on the body element
   return (
     <div 
-      className={cn(className, inter.variable, playfairDisplay.variable)}
+      className={cn(className, "pmd-font-fallbacks")}
       suppressHydrationWarning
     >
       {children}

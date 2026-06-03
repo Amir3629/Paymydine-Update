@@ -9,7 +9,6 @@ import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
 import { Logo } from "@/components/logo";
-import { PmdPlatformLogo } from "@/components/pmd-platform-logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
 import { FoodAttributeTags } from "@/components/food-attribute-tags";
@@ -20,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight } from "lucide-react";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -504,7 +503,7 @@ interface PaymentModalProps {
     remainingAmount: number;
   } | null;
   initialSubmittedOrder?: any | null;
-  initialCheckoutStep?: 'review' | 'submitted' | 'payment' | 'paid';
+  initialCheckoutStep?: CheckoutStep;
   onOpenOrderUpdate?: (snapshot: any | null) => void;
 }
 
@@ -530,6 +529,44 @@ interface MenuItemModalProps {
   item: MenuItem | null;
   onClose: () => void;
 }
+
+type CheckoutStep = 'review' | 'submitted' | 'split' | 'split-items' | 'split-shares' | 'split-review' | 'payment' | 'paid'
+
+type SplitMethod = 'equal' | 'items' | 'shares'
+
+type SplitSourceItem = {
+  key: string;
+  name: string;
+  amount: number;
+  orderMenuId?: number;
+}
+
+type SplitPerson = {
+  id: string;
+  name: string;
+  avatar: string;
+  subtotal: number;
+  tax: number;
+  tip: number;
+  discount: number;
+  total: number;
+  items: Array<{ name: string; amount: number; quantity?: number }>;
+  status: 'Ready to pay' | 'Pending' | 'Paid';
+  percent?: number;
+}
+
+const SPLIT_GUEST_PROFILES = [
+  { name: "Luna", avatar: "L" },
+  { name: "Milo", avatar: "M" },
+  { name: "Zara", avatar: "Z" },
+  { name: "Leo", avatar: "L" },
+  { name: "Nova", avatar: "N" },
+  { name: "Coco", avatar: "C" },
+  { name: "Rio", avatar: "R" },
+  { name: "Nala", avatar: "N" },
+  { name: "Oscar", avatar: "O" },
+  { name: "Bella", avatar: "B" },
+]
 
 type SplitBillItem = {
   cartIndex: number;
@@ -630,9 +667,9 @@ function OrderItemWithOptions({
       {/* Expandable options section - only show if there are options */}
       {itemOptions.length > 0 && (
         <div className="border-t border-paydine-champagne/10">
-          <button
+          <button data-pmd-table-order-action="1"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between p-2 text-xs text-paydine-elegant-gray hover:bg-paydine-champagne/5 transition-colors"
+            className="w-full flex items-center justify-between p-2 text-xs text-paydine-elegant-gray hover:bg-paydine-champagne/5 transition-colors pmd-table-order-action-button"
           >
             <span>Customize Options</span>
             <ChevronDown 
@@ -724,9 +761,18 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SplitBillItem>>({})
+  const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal")
+  const [splitGuestCount, setSplitGuestCount] = useState(2)
+  const [itemAssignments, setItemAssignments] = useState<Record<string, number | null>>({})
+  const [sharePercents, setSharePercents] = useState<number[]>([50, 50])
+  const [selectedSplitPersonId, setSelectedSplitPersonId] = useState<string | null>(null)
+  const [paidSplitPeople, setPaidSplitPeople] = useState<Record<string, boolean>>({})
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState("")
   const [selectedOptions, setSelectedOptions] = useState<Record<number, Record<string, string>>>({})
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
+  const [splitPaymentTips, setSplitPaymentTips] = useState<Record<string, { percentage: number; custom: string }>>({})
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [cashCollectionConfirmed, setCashCollectionConfirmed] = useState(false)
   const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
@@ -772,11 +818,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
-  const [checkoutStep, setCheckoutStep] = useState<'review'|'submitted'|'payment'|'paid'>(
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
     initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
   )
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
   const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
+  const hasPersonalItems = allItems.length > 0
   const [draftLoading, setDraftLoading] = useState(false)
   const [submitDraftLoading, setSubmitDraftLoading] = useState(false)
 
@@ -796,8 +843,16 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
   useEffect(() => {
     if (!isOpen) return
-    setCheckoutStep(initialCheckoutStep || (existingOrderId ? 'submitted' : 'review'))
-  }, [isOpen, existingOrderId, initialCheckoutStep])
+    const nextStep = initialCheckoutStep && !(existingOrderId && initialCheckoutStep === 'review')
+      ? initialCheckoutStep
+      : existingOrderId
+        ? 'submitted'
+        : 'review'
+    setCheckoutStep((current) => {
+      if (!hasPersonalItems && (current === 'submitted' || current === 'payment' || current === 'paid' || current === 'split' || current === 'split-items' || current === 'split-shares' || current === 'split-review') && nextStep === 'review') return current
+      return nextStep
+    })
+  }, [isOpen, existingOrderId, initialCheckoutStep, hasPersonalItems])
 
   useEffect(() => {
     if (!initialSubmittedOrder) return
@@ -975,35 +1030,252 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     }
     return subtotal * (taxSettings.percentage / 100)
   }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-  const tipAmount = customTip ? Number.parseFloat(customTip) || 0 : subtotal * (tipPercentage / 100)
+  const submittedBaseTotal = useMemo(() => Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
+  const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
+  const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
+  const tipAmount = customTip ? Number.parseFloat(customTip) || 0 : tipBaseAmount * (tipPercentage / 100)
+  const couponBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
   
   // Calculate coupon discount
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0
-    // Recalculate discount based on current subtotal (in case items changed)
-    const subtotalForCoupon = subtotal
     if (appliedCoupon.type === 'F') {
-      // Fixed amount - don't exceed subtotal
-      return Math.min(appliedCoupon.discount, subtotalForCoupon)
-    } else {
-      // Percentage
-      return subtotalForCoupon * (appliedCoupon.discount_value / 100)
+      return Math.min(appliedCoupon.discount, couponBaseAmount)
     }
-  }, [appliedCoupon, subtotal])
+    return couponBaseAmount * (appliedCoupon.discount_value / 100)
+  }, [appliedCoupon, couponBaseAmount])
   
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
+  const orderStatusTotal = Math.max(0, submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount)
+
+  const splitGuestProfiles = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => SPLIT_GUEST_PROFILES[idx] || { name: `Guest ${idx + 1}`, avatar: String(idx + 1) }), [splitGuestCount])
+  const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
+  const getSplitGuestAvatar = (idx: number) => splitGuestProfiles[idx]?.avatar || String(idx + 1)
+
+  const suggestedSplitGuestCount = useMemo(() => {
+    const groupCount = Array.isArray(tableDraft?.groups)
+      ? tableDraft.groups.filter((group: any) => Array.isArray(group?.items) && group.items.length > 0).length
+      : 0
+    const contributorIds = new Set<string>()
+    const submittedItems = Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : []
+    submittedItems.forEach((item: any) => {
+      const contributor = String(item?.guest_session_id || item?.guestSessionId || item?.submitted_by || "").trim()
+      if (contributor) contributorIds.add(contributor)
+    })
+    const itemContributorCount = contributorIds.size
+    return Math.max(2, Math.min(10, groupCount || itemContributorCount || 2))
+  }, [tableDraft?.groups, submittedSnapshot?.submittedItems])
+
+  const buildEvenSharePercents = (count: number) => {
+    const safeCount = Math.max(2, Math.min(10, count))
+    const base = Math.floor(100 / safeCount)
+    const remainder = 100 - base * safeCount
+    return Array.from({ length: safeCount }, (_, idx) => base + (idx === 0 ? remainder : 0))
+  }
+
+  const addSplitGuest = () => {
+    const nextCount = Math.min(10, splitGuestCount + 1)
+    setSplitGuestCount(nextCount)
+    setSharePercents(buildEvenSharePercents(nextCount))
+  }
+
+  const removeSplitGuest = () => {
+    const nextCount = Math.max(2, splitGuestCount - 1)
+    setSplitGuestCount(nextCount)
+    setSharePercents(buildEvenSharePercents(nextCount))
+  }
+
+  useEffect(() => {
+    setSharePercents((prev) => {
+      const next = Array.from({ length: splitGuestCount }, (_, idx) => prev[idx] ?? 0)
+      if (next.every((value) => value === 0)) return buildEvenSharePercents(splitGuestCount)
+      return next
+    })
+    setItemAssignments((prev) => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, typeof value === "number" && value >= splitGuestCount ? null : value])))
+  }, [splitGuestCount])
+
+  const getOrderItemOptionsKey = (item: any) => {
+    const rawOptions = item?.options ?? item?.modifiers ?? item?.selected_options ?? null
+    if (!rawOptions) return ""
+    if (typeof rawOptions === "string") return rawOptions
+    if (Array.isArray(rawOptions)) return JSON.stringify(rawOptions.map((option) => typeof option === "object" ? Object.keys(option).sort().reduce((acc: any, key) => ({ ...acc, [key]: option[key] }), {}) : option))
+    if (typeof rawOptions === "object") return JSON.stringify(Object.keys(rawOptions).sort().reduce((acc: any, key) => ({ ...acc, [key]: rawOptions[key] }), {}))
+    return String(rawOptions)
+  }
+
+  const getOrderItemUnitAmount = (item: any) => {
+    const quantity = Math.max(1, Number(item?.quantity || 1))
+    const explicitPrice = Number(item?.price ?? item?.unit_price ?? 0)
+    if (Number.isFinite(explicitPrice) && explicitPrice > 0) return explicitPrice
+    const subtotalAmount = Number(item?.subtotal ?? item?.total ?? 0)
+    return Number.isFinite(subtotalAmount) && subtotalAmount > 0 ? subtotalAmount / quantity : 0
+  }
+
+  const groupOrderDisplayItems = (items: any[] = []) => {
+    const grouped = new Map<string, any>()
+    items.forEach((item, index) => {
+      const quantity = Math.max(1, Number(item?.quantity || 1))
+      const unitAmount = getOrderItemUnitAmount(item)
+      const name = String(item?.name || `Item ${index + 1}`)
+      const optionsKey = getOrderItemOptionsKey(item)
+      const key = `${item?.menu_id || item?.order_menu_id || item?.id || name}|${name}|${optionsKey}`
+      const existing = grouped.get(key)
+      if (existing) {
+        existing.quantity += quantity
+        existing.subtotal += unitAmount * quantity
+      } else {
+        grouped.set(key, { ...item, name, quantity, price: unitAmount, subtotal: unitAmount * quantity, optionsKey })
+      }
+    })
+    return Array.from(grouped.values())
+  }
+
+  const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
+    const submittedItems = groupOrderDisplayItems(Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : [])
+    if (submittedItems.length > 0) {
+      return submittedItems.flatMap((item: any, itemIndex: number) => {
+        const quantity = Math.max(1, Number(item?.quantity || 1))
+        const unitAmount = getOrderItemUnitAmount(item)
+        return Array.from({ length: quantity }, (_, unitIndex) => ({
+          key: `submitted-${item?.order_menu_id || item?.menu_id || item?.id || itemIndex}-${unitIndex}`,
+          name: String(item?.name || `Item ${itemIndex + 1}`),
+          amount: Number.isFinite(unitAmount) ? unitAmount : 0,
+          orderMenuId: Number(item?.order_menu_id || item?.id || 0) || undefined,
+        }))
+      })
+    }
+
+    return allItemInstances.map((instance, index) => ({
+      key: instance.key,
+      name: instance.item.nameKey ? t(instance.item.nameKey as TranslationKey) : (instance.item.name || `Item ${index + 1}`),
+      amount: Number(adjustPriceForVAT(instance.price || 0)),
+      orderMenuId: instance.orderMenuId,
+    }))
+  }, [submittedSnapshot?.submittedItems, allItemInstances, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+
+  const splitSubtotal = useMemo(() => splitSourceItems.reduce((sum: number, item: SplitSourceItem) => sum + Number(item.amount || 0), 0), [splitSourceItems])
+  const splitGrandTotal = useMemo(() => submittedBaseTotal > 0 ? orderStatusTotal : finalTotal, [submittedBaseTotal, orderStatusTotal, finalTotal])
+  const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
+
+  const buildSplitPerson = (idx: number, personSubtotal: number, items: SplitPerson["items"], percent?: number): SplitPerson => {
+    const ratio = splitSubtotal > 0 ? personSubtotal / splitSubtotal : (splitGuestCount > 0 ? 1 / splitGuestCount : 0)
+    const extra = splitExtraAmount * ratio
+    const discountShare = couponDiscount > 0 ? couponDiscount * ratio : 0
+    const total = Math.max(0, personSubtotal + extra - discountShare)
+    const id = `guest-${idx}`
+    return {
+      id,
+      name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+      avatar: getSplitGuestAvatar(idx),
+      subtotal: personSubtotal,
+      tax: extra,
+      tip: 0,
+      discount: discountShare,
+      total,
+      items,
+      status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
+      percent,
+    }
+  }
+
+  const equalSplitPeople = useMemo(() => {
+    const totalCents = Math.round(splitGrandTotal * 100)
+    const baseCents = Math.floor(totalCents / splitGuestCount)
+    const remainder = totalCents - baseCents * splitGuestCount
+    return Array.from({ length: splitGuestCount }, (_, idx) => {
+      const cents = baseCents + (idx === 0 ? remainder : 0)
+      const total = cents / 100
+      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 1 / splitGuestCount
+      const id = `guest-${idx}`
+      return {
+        id,
+        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+        avatar: getSplitGuestAvatar(idx),
+        subtotal: splitSubtotal * ratio,
+        tax: splitExtraAmount * ratio,
+        tip: 0,
+        discount: 0,
+        total,
+        items: [{ name: "Equal share", amount: total }],
+        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
+      } as SplitPerson
+    })
+  }, [splitGrandTotal, splitGuestCount, splitGuestNames, splitSubtotal, splitExtraAmount, paidSplitPeople, selectedSplitPersonId])
+
+  const itemSplitPeople = useMemo(() => {
+    return Array.from({ length: splitGuestCount }, (_, idx) => {
+      const personItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === idx).map((item: SplitSourceItem) => ({ name: item.name, amount: item.amount, quantity: 1 }))
+      const personSubtotal = personItems.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0)
+      return buildSplitPerson(idx, personSubtotal, personItems)
+    })
+  }, [splitGuestCount, splitSourceItems, itemAssignments, splitSubtotal, splitExtraAmount, couponDiscount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
+
+  const shareSplitPeople = useMemo(() => {
+    return Array.from({ length: splitGuestCount }, (_, idx) => {
+      const percent = Number(sharePercents[idx] || 0)
+      const total = splitGrandTotal * (percent / 100)
+      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 0
+      const id = `guest-${idx}`
+      return {
+        id,
+        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
+        avatar: getSplitGuestAvatar(idx),
+        subtotal: splitSubtotal * ratio,
+        tax: splitExtraAmount * ratio,
+        tip: 0,
+        discount: 0,
+        total,
+        items: [{ name: `${percent}% share`, amount: total }],
+        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
+        percent,
+      } as SplitPerson
+    })
+  }, [splitGuestCount, sharePercents, splitGrandTotal, splitSubtotal, splitExtraAmount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
+
+  const activeSplitPeople = splitMethod === "items" ? itemSplitPeople : splitMethod === "shares" ? shareSplitPeople : equalSplitPeople
+  const selectedSplitPerson = selectedSplitPersonId ? activeSplitPeople.find((person) => person.id === selectedSplitPersonId) || null : null
+  const unassignedSplitItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === undefined || itemAssignments[item.key] === null).length
+  const sharePercentTotal = sharePercents.slice(0, splitGuestCount).reduce((sum: number, value: number) => sum + Number(value || 0), 0)
+  const canConfirmSplitMethod = splitMethod === "items" ? unassignedSplitItems === 0 : splitMethod === "shares" ? sharePercentTotal === 100 : true
+
   const toPositiveAmount = (value: unknown): number | null => {
     const amount = Number(value)
     return Number.isFinite(amount) && amount > 0 ? amount : null
   }
+  const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
+  const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
+  const paymentCustomTip = selectedSplitPerson ? splitPaymentTip.custom : customTip
+  const paymentBaseAmount = selectedSplitPerson?.total && selectedSplitPerson.total > 0
+    ? selectedSplitPerson.total
+    : (submittedBaseTotal > 0 ? submittedBaseTotal : finalTotal)
+  const paymentTipAmount = paymentCustomTip ? Number.parseFloat(paymentCustomTip) || 0 : paymentBaseAmount * (paymentTipPercentage / 100)
+  const paymentCouponDiscount = selectedSplitPerson ? 0 : couponDiscount
+  const paymentPayableTotal = Math.max(0, paymentBaseAmount + paymentTipAmount - paymentCouponDiscount)
+
+  const updatePaymentTipPercentage = (percentage: number) => {
+    if (selectedSplitPersonId) {
+      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage, custom: "" } }))
+      return
+    }
+    setTipPercentage(percentage)
+    setCustomTip("")
+  }
+
+  const updatePaymentCustomTip = (value: string) => {
+    if (selectedSplitPersonId) {
+      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage: 0, custom: value } }))
+      return
+    }
+    setCustomTip(value)
+    setTipPercentage(0)
+  }
+
   const payableTotal = useMemo(() => {
-    const remainingAmount = toPositiveAmount(pendingSummary?.remainingAmount)
-    const submittedRemaining = toPositiveAmount(submittedSnapshot?.remainingAmount)
-    const submittedTotal = toPositiveAmount(submittedSnapshot?.total ?? submittedSnapshot?.orderTotal)
     const reviewTotal = toPositiveAmount(finalTotal)
-    if (checkoutStep === "payment") return remainingAmount ?? submittedRemaining ?? submittedTotal ?? 0
-    return reviewTotal ?? submittedTotal ?? remainingAmount ?? 0
-  }, [checkoutStep, submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount, finalTotal])
+    const orderTotal = toPositiveAmount(orderStatusTotal)
+    if (checkoutStep === "payment") return paymentPayableTotal
+    return orderTotal ?? reviewTotal ?? 0
+  }, [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
   const estimatePrepMinutes = (items: Array<any>) => {
     const normalized = (items || []).map((item) => ({
       quantity: Math.max(1, Number(item?.quantity || 1)),
@@ -1042,12 +1314,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
-    background: "var(--theme-secondary)",
-    color: "var(--theme-text-primary)", textShadow: "none",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background: "#062F2A",
+    color: "#FFFFFF",
+    textShadow: "none",
+    border: "1px solid #062F2A",
   }
-  const modalSecondaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:opacity-90 active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-[color:var(--theme-surface)]/70"
-  const iconBackBtn = "h-9 w-9 rounded-full border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]/70 text-[color:var(--theme-text-primary)] hover:opacity-90"
+  const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
+  const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white"
   const toolbarIconBtnStyle: React.CSSProperties = {
     background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
     border: "1px solid var(--theme-border)",
@@ -1147,7 +1420,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     try {
       const result = await apiClient.submitTableDraft({ ...getDraftContext(), draft_id: tableDraft?.draft_id ?? null, guest_session_id: ensureGuestSession() })
       setTableDraft(result)
-      setSubmittedSnapshot({
+      clearCart()
+      const submittedTableSnapshot = {
         orderId: result.order_id,
         status: result.status || "submitted_unpaid",
         paymentStatus: result.status === "paid" ? "paid" : "unpaid",
@@ -1159,11 +1433,12 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         settlementStatus: result.settlement?.settlementStatus || "unpaid",
         submittedItems: result.items || [],
         payment: result.payment || "qr_pay_later",
-      })
+      }
+      setSubmittedSnapshot(submittedTableSnapshot)
       setCheckoutStep("submitted")
       console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
       toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
-      onOpenOrderUpdate?.({ orderId: result.order_id, total: result.totals?.total || 0, submittedItems: result.items || [] })
+      onOpenOrderUpdate?.(submittedTableSnapshot)
     } catch (error) {
       await refreshTableDraft()
       toast({ title: "Could not submit table order", description: error instanceof Error ? error.message : "Please refresh and try again.", variant: "destructive" })
@@ -1181,8 +1456,9 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       if (orderIdLike && parsed?.orderId && String(parsed.orderId) !== String(orderIdLike)) return
       parsed.paymentStatus = "paid"
       parsed.status = "paid"
+      parsed.paidAt = Date.now()
       localStorage.setItem(sessionKey, JSON.stringify(parsed))
-      onOpenOrderUpdate?.(null)
+      onOpenOrderUpdate?.(parsed)
     } catch {}
   }
 
@@ -1293,10 +1569,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         payment_provider: selectedProviderCodeForSubmit || undefined,
         payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
         stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
-        total_amount: Number(finalTotal || 0),
-        tip_amount: Number(tipAmount || 0),
-        coupon_code: appliedCoupon?.code ? String(appliedCoupon.code) : null,
-        coupon_discount: Number(couponDiscount || 0),
+        total_amount: Number(checkoutStep === "payment" ? payableTotal : finalTotal),
+        tip_amount: Number(checkoutStep === "payment" ? paymentTipAmount : tipAmount),
+        coupon_code: (checkoutStep === "payment" && selectedSplitPersonId) ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null),
+        coupon_discount: Number(checkoutStep === "payment" ? paymentCouponDiscount : couponDiscount),
         guest_session_id: ensureGuestSession(),
         special_instructions: "",
       }
@@ -1345,7 +1621,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
               provider: selectedProviderCodeForSubmit || "stripe",
             })
           }
-          markOpenOrderAsPaid(paymentOrderIdCandidate)
+          if (selectedSplitPersonId) {
+            setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
+          } else {
+            markOpenOrderAsPaid(paymentOrderIdCandidate)
+          }
           setCheckoutStep("paid")
           setIsLoading(false)
           toast({
@@ -1379,9 +1659,13 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
             }, [])
           : undefined
 
-        const existingOrderAmount = isSplitting
-          ? null
-          : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)
+        const existingOrderAmount = checkoutStep === "payment"
+          ? Number(payableTotal.toFixed(2))
+          : (selectedSplitPerson?.total
+            ? Number(selectedSplitPerson.total.toFixed(2))
+            : (isSplitting
+              ? null
+              : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)))
 
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
@@ -1412,7 +1696,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           params.set("order_id", orderId)
           params.set("return_url", returnUrl)
 
-          markOpenOrderAsPaid(paymentOrderIdCandidate)
+          if (selectedSplitPersonId) {
+            setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
+          } else {
+            markOpenOrderAsPaid(paymentOrderIdCandidate)
+          }
           setCheckoutStep("paid")
           return
         }
@@ -2631,7 +2919,48 @@ case "cod":
 
   const tableDisplayName = tableDraft?.table_name || tableInfo?.table_name || (tableDraft?.table_no || tableInfo?.table_no ? `Table ${tableDraft?.table_no || tableInfo?.table_no}` : "Delivery")
   const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
-  const hasPersonalItems = allItems.length > 0
+
+
+  const checkoutTitle: Record<CheckoutStep, string> = {
+    review: "My Order",
+    submitted: "Order Status",
+    split: "Split bill",
+    "split-items": "Assign items",
+    "split-shares": "Set shares",
+    "split-review": "Review split",
+    payment: "Payment",
+    paid: "Order complete",
+  }
+  const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems
+    ? "Table Order"
+    : checkoutTitle[checkoutStep]
+
+  const startSplitFlow = (method: SplitMethod = splitMethod) => {
+    const isStartingSplit = !isSplitting && !selectedSplitPersonId
+    if (isStartingSplit) {
+      setSplitGuestCount(suggestedSplitGuestCount)
+      setSharePercents(buildEvenSharePercents(suggestedSplitGuestCount))
+    }
+    setIsSplitting(true)
+    setSplitMethod(method)
+    setSelectedPaymentMethod(null)
+    setSelectedSplitPersonId(null)
+    if (method === "items") setCheckoutStep("split-items")
+    else if (method === "shares") setCheckoutStep("split-shares")
+    else setCheckoutStep("split")
+  }
+
+  const chooseSplitMethod = (method: SplitMethod) => {
+    setSplitMethod(method)
+    startSplitFlow(method)
+  }
+
+  const goToSplitReview = () => {
+    if (!canConfirmSplitMethod) return
+    setIsSplitting(true)
+    setSelectedSplitPersonId((current) => current || activeSplitPeople[0]?.id || null)
+    setCheckoutStep("split-review")
+  }
 
   const renderPaymentButton = () => {
     if (!selectedMethod) return null
@@ -2719,14 +3048,15 @@ case "cod":
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (checkoutStep === "payment") setCheckoutStep("submitted")
+              if (checkoutStep === "payment") setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")
+              else if (checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") setCheckoutStep("submitted")
               else onClose()
             }}
             className={iconBackBtn}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-lg">{checkoutStep === "review" ? "Review order" : "My Order"}</h2>
+          <h2 className="text-lg">{modalTitle}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
@@ -2955,11 +3285,10 @@ case "cod":
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && (
-            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ color: "var(--theme-text-primary)" }}>
+            <motion.div key="table-order-draft" layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold">Table Order</h3>
-                  <p className="text-xs muted">Review the items confirmed for this table.</p>
+                  <p className="text-xs muted">Review the items sent for this table.</p>
                 </div>
                 <span className="text-xs font-semibold muted">{tableDisplayName}</span>
               </div>
@@ -2973,8 +3302,8 @@ case "cod":
                     </div>
                     )}
                     <div className="space-y-1">
-                      {(group.items || []).map((item: any, idx: number) => (
-                        <div key={`${item.id || item.order_menu_id || item.menu_id}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                      {groupOrderDisplayItems(group.items || []).map((item: any, idx: number) => (
+                        <div key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
                           <span className="truncate font-medium">{Number(item.quantity || 1)}x {String(item.name || `Item ${idx + 1}`)}</span>
                           <span className="font-semibold">{formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}</span>
                         </div>
@@ -2992,13 +3321,13 @@ case "cod":
                   <p className="text-xs font-semibold muted">Ready to send?</p>
                   <motion.button type="button" disabled={submitDraftLoading || draftLoading || Number(tableDraft.totals?.total || 0) <= 0} onClick={handleSubmitTableDraft} whileHover={{ x: submitDraftLoading ? 0 : 2 }} whileTap={{ scale: submitDraftLoading ? 1 : 0.985 }} className="group flex min-h-14 w-full items-center justify-between rounded-full px-3 py-2 text-sm font-bold shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70" style={modalPrimaryBtnStyle}>
                     <span className="ml-3">{submitDraftLoading ? "Sending..." : "Send order to kitchen"}</span>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:translate-x-1" style={{ background: "var(--theme-surface)", border: "1px solid var(--theme-border)" }}><ArrowRight className="h-5 w-5" /></span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full transition-transform group-hover:translate-x-1" style={{ background: "#021F1C", border: "1px solid rgba(255,255,255,0.18)", color: "#FFFFFF" }}><ArrowRight className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} /></span>
                   </motion.button>
                   <button type="button" onClick={onClose} className={modalSecondaryBtn}>Continue ordering</button>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setCheckoutStep("payment"); setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }) }} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>
-                  Pay
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                  View order status
                 </button>
               ) : null}
             </motion.div>
@@ -3065,11 +3394,165 @@ case "cod":
           </motion.div>)}
           </AnimatePresence>
 
+          {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
+            <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-4">
+              <div className="surface-sub rounded-3xl p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs muted">Share {formatCurrency(splitGrandTotal)} your way.</p>
+                  <button type="button" onClick={() => setCheckoutStep("submitted")} className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>Back</button>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    ["equal", "Split equally"],
+                    ["items", "By order items"],
+                    ["shares", "By shares"],
+                  ] as Array<[SplitMethod, string]>).map(([method, label]) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => chooseSplitMethod(method)}
+                      className={cn("rounded-full border px-2 py-1.5 text-[11px] font-semibold transition", splitMethod === method ? "text-white shadow-sm" : "")}
+                      style={splitMethod === method ? { background: "#062F2A", borderColor: "#062F2A" } : { borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {checkoutStep !== "split-review" && (
+                <div className="surface-sub rounded-3xl p-3 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-sm font-semibold">People</span>
+                      <p className="text-[11px] muted">Split across {splitGuestCount} guests{suggestedSplitGuestCount > 2 ? ` · ${suggestedSplitGuestCount} detected` : ""}.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" aria-label="Remove guest" disabled={splitGuestCount <= 2} onClick={removeSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full border px-2 text-xs font-semibold disabled:opacity-45" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}><Minus className="h-3.5 w-3.5" /> Remove</button>
+                      <span className="min-w-8 rounded-full px-2 py-1 text-center text-sm font-semibold" style={{ background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)", color: "var(--theme-text-primary)" }}>{splitGuestCount}</span>
+                      <button type="button" aria-label="Add guest" disabled={splitGuestCount >= 10} onClick={addSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold text-white disabled:opacity-55" style={{ background: "#062F2A", color: "#FFFFFF" }}><Plus className="h-3.5 w-3.5" /> Add guest</button>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    {splitGuestProfiles.map((guest, idx) => (
+                      <span key={`${guest.name}-${idx}`} className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: "color-mix(in srgb, #b88940 32%, var(--theme-border) 68%)", background: "color-mix(in srgb, #b88940 9%, var(--theme-surface) 91%)", color: "#062F2A" }}>
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "color-mix(in srgb, #b88940 24%, var(--theme-surface) 76%)" }}>{guest.avatar}</span>
+                        {guest.name}
+                      </span>
+                    ))}
+                  </div>
+
+                  {splitMethod === "equal" && (
+                    <div className="space-y-2">
+                      {equalSplitPeople.map((person, idx) => (
+                        <div key={person.id} className="flex items-center justify-between rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{person.avatar}</span>
+                            <span className="truncate text-sm font-medium">{person.name}{idx === 0 ? " (rounding)" : ""}</span>
+                          </div>
+                          <span className="shrink-0 font-semibold">{formatCurrency(person.total)}</span>
+                        </div>
+                      ))}
+                      <p className="rounded-full px-3 py-2 text-[11px] muted" style={{ background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)" }}>Odd cents go to the first payer so totals match exactly.</p>
+                    </div>
+                  )}
+
+                  {splitMethod === "items" && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="muted">Tap items to assign guests.</span>
+                        <span className={cn("rounded-full px-2 py-1 font-semibold", unassignedSplitItems > 0 ? "text-red-700" : "") } style={{ background: unassignedSplitItems > 0 ? "#FEE2E2" : "color-mix(in srgb, #062F2A 12%, var(--theme-surface) 88%)" }}>{unassignedSplitItems} unassigned</span>
+                      </div>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {splitSourceItems.map((item: SplitSourceItem) => {
+                          const assignedIndex = itemAssignments[item.key]
+                          const nextLabel = assignedIndex === undefined || assignedIndex === null ? "Unassigned" : splitGuestNames[assignedIndex]
+                          return (
+                            <button key={item.key} type="button" className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left shadow-sm" style={{ border: "1px solid color-mix(in srgb, var(--theme-border) 70%, transparent)", background: "var(--theme-surface)" }} onClick={() => setItemAssignments((prev) => ({ ...prev, [item.key]: assignedIndex === undefined || assignedIndex === null ? 0 : assignedIndex >= splitGuestCount - 1 ? null : assignedIndex + 1 }))}>
+                              <span className="truncate text-sm font-medium">{item.name}</span>
+                              <span className="shrink-0 text-right text-xs"><span className="font-semibold">{formatCurrency(item.amount)}</span><br /><span className={assignedIndex === undefined || assignedIndex === null ? "text-red-700" : "muted"}>{nextLabel}</span></span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {splitMethod === "shares" && (
+                    <div className="space-y-3">
+                      {sharePercents.slice(0, splitGuestCount).map((percent, idx) => (
+                        <div key={idx} className="rounded-2xl p-3 shadow-sm" style={{ border: "1px solid color-mix(in srgb, var(--theme-border) 70%, transparent)", background: "var(--theme-surface)" }}>
+                          <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+                            <span className="flex min-w-0 items-center gap-2 font-medium"><span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{getSplitGuestAvatar(idx)}</span><span className="truncate">{splitGuestNames[idx]}</span></span>
+                            <span className="shrink-0 font-semibold">{percent}% · {formatCurrency(splitGrandTotal * (percent / 100))}</span>
+                          </div>
+                          <input type="range" min="0" max="100" step="1" value={percent} onChange={(event) => setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? Number(event.target.value) : value))} className="pmd-split-slider w-full" />
+                        </div>
+                      ))}
+                      <div className="flex justify-center">
+                        <span className={cn("rounded-full px-3 py-1.5 text-xs font-semibold", sharePercentTotal === 100 ? "" : "text-red-700")} style={{ background: sharePercentTotal === 100 ? "color-mix(in srgb, #062F2A 12%, var(--theme-surface) 88%)" : "#FEF2F2", border: `1px solid ${sharePercentTotal === 100 ? "color-mix(in srgb, #062F2A 18%, var(--theme-border) 82%)" : "#FCA5A5"}` }}>
+                          {sharePercentTotal === 100 ? "100% ready" : sharePercentTotal < 100 ? `${100 - sharePercentTotal}% remaining` : `Over by ${sharePercentTotal - 100}%`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button type="button" disabled={!canConfirmSplitMethod} onClick={goToSplitReview} className={cn(modalPrimaryBtn, !canConfirmSplitMethod && "cursor-not-allowed")} style={canConfirmSplitMethod ? modalPrimaryBtnStyle : { background: "color-mix(in srgb, var(--theme-border) 50%, var(--theme-surface) 50%)", color: "var(--theme-text-muted)", border: "1px solid var(--theme-border)" }}>
+                    Review split
+                  </button>
+                </div>
+              )}
+
+              {checkoutStep === "split-review" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-2xl px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #b88940 10%, var(--theme-surface) 90%)" }}>
+                    <span className="muted">Adjust before paying.</span>
+                    <button type="button" onClick={() => startSplitFlow(splitMethod)} className="rounded-full px-3 py-1 font-semibold" style={{ background: "#062F2A", color: "#FFFFFF" }}>Change</button>
+                  </div>
+                  {activeSplitPeople.map((person) => (
+                    <div key={person.id} className="rounded-3xl p-3 space-y-2 shadow-sm" style={{ border: `1px solid ${selectedSplitPersonId === person.id ? "#b88940" : "color-mix(in srgb, var(--theme-border) 70%, transparent)"}`, background: "var(--theme-surface)" }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{person.avatar}</span>
+                          <h4 className="truncate font-semibold">{person.name}</h4>
+                        </div>
+                        <span className="shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold" style={{ background: person.status === "Paid" ? "#DCFCE7" : "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: person.status === "Paid" ? "#166534" : "#5A3512" }}>{person.status}</span>
+                      </div>
+                      <div className="space-y-1 text-xs muted">
+                        {person.items.map((item, idx) => <div key={`${person.id}-${idx}`} className="flex justify-between gap-2"><span className="truncate">{item.name}</span><span>{formatCurrency(item.amount)}</span></div>)}
+                        {person.tax > 0 && <div className="flex justify-between"><span>Proportional service/tax</span><span>{formatCurrency(person.tax)}</span></div>}
+                      </div>
+                      <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--theme-border)" }}><span className="font-semibold">Total</span><span className="font-bold">{formatCurrency(person.total)}</span></div>
+                      {selectedSplitPersonId === person.id ? (
+                        <button type="button" onClick={() => setCheckoutStep("payment")} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Pay my share</button>
+                      ) : (
+                        <button type="button" onClick={() => setSelectedSplitPersonId(person.id)} className="w-full rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>Select payer</button>
+                      )}
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button type="button" onClick={() => toast({ title: "Payment links ready", description: "Share links can be generated by the payment API when multi-device checkout is enabled." })} className={modalSecondaryBtn}><Link2 className="h-4 w-4" /> Send payment link to others</button>
+                    <button type="button" onClick={() => toast({ title: "QR share", description: "Ask guests to scan the table QR to pay their own share." })} className={modalSecondaryBtn}><QrCode className="h-4 w-4" /> Show QR/share link</button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div layout className="mt-2 p-1 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[color:var(--theme-secondary)]">
-                  <CheckCircle className="h-5 w-5" style={{ color: "var(--theme-text-primary)" }} />
+                <div
+                data-pmd-order-received-icon="1"
+                className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center pmd-order-received-icon"
+                style={{
+                  background: "#062F2A",
+                  backgroundColor: "#062F2A",
+                  color: "#FFFFFF",
+                  WebkitTextFillColor: "#FFFFFF",
+                }}
+              >
+                  <CheckCircle className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
@@ -3080,7 +3563,7 @@ case "cod":
                 </div>
               </div>
 
-              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ color: "var(--theme-text-primary)" }}>
+              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Order Number:</span>
@@ -3099,9 +3582,27 @@ case "cod":
                     </div>
                   </>
                 )}
+                {(tipAmount > 0 || couponDiscount > 0) && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted font-medium">Items:</span>
+                    <span className="font-semibold text-[15px]">{formatCurrency(submittedBaseTotal || Number(submittedSnapshot?.total ?? 0))}</span>
+                  </div>
+                )}
+                {tipAmount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted font-medium">Tip:</span>
+                    <span className="font-semibold text-[15px]">{formatCurrency(tipAmount)}</span>
+                  </div>
+                )}
+                {couponDiscount > 0 && appliedCoupon && (
+                  <div className="flex items-center justify-between">
+                    <span className="muted font-medium">Coupon {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}:</span>
+                    <span className="font-semibold text-[15px]" style={{ color: "#166534" }}>-{formatCurrency(couponDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="muted font-medium">Order Total:</span>
-                  <span className="font-semibold text-[15px]">{formatCurrency(Number(submittedSnapshot?.total ?? payableTotal ?? 0))}</span>
+                  <span className="font-semibold text-[15px]">{formatCurrency(orderStatusTotal)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="muted font-medium">Table:</span>
@@ -3120,24 +3621,40 @@ case "cod":
               <div className="surface-sub rounded-2xl p-3">
                 <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
                 <div className="space-y-2 max-h-44 overflow-y-auto">
-                  {(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
-                    <div key={`${item?.menu_id || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                  {groupOrderDisplayItems(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
+                    <div key={`${item?.menu_id || item?.order_menu_id || item?.name || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
-                      <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.price || 0) * Number(item?.quantity || 1))}</span>
+                      <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.subtotal ?? (Number(item?.price || 0) * Number(item?.quantity || 1))))}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {checkoutStep !== "paid" && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {checkoutStep !== "paid" && <div className="space-y-3">
                 {checkoutStep === "submitted" && (
-                <button
-                  type="button"
-                  onClick={() => setCheckoutStep('payment')}
-                  className={modalPrimaryBtn} style={modalPrimaryBtnStyle}
-                >
-                  Pay
-                </button>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <motion.button
+                      type="button"
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.985 }}
+                      onClick={() => { setIsSplitting(false); setSelectedSplitPersonId(null); setCheckoutStep('payment') }}
+                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition" style={modalPrimaryBtnStyle}
+                    >
+                      Pay in full <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} />
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.985 }}
+                      onClick={() => startSplitFlow("equal")}
+                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                      style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}
+                    >
+                      <Users className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
+                    </motion.button>
+                    </div>
+                  </div>
                 )}
                 <button
                   type="button"
@@ -3145,16 +3662,38 @@ case "cod":
                     onOpenOrderUpdate?.(submittedSnapshot || initialSubmittedOrder || null)
                     onClose()
                   }}
-                  className={checkoutStep === "payment" ? "sm:col-span-2 " + modalSecondaryBtn : modalSecondaryBtn}
+                  className={modalSecondaryBtn}
                 >
                   Continue ordering
                 </button>
               </div>}
-              <div className="flex justify-center pt-1">
-                <PmdPlatformLogo imgClassName="max-h-9 max-w-[136px] opacity-85" />
-              </div>
               {checkoutStep === "paid" && (
-                <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+                <div className="space-y-3">
+                  <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" style={{ color: "#b88940" }} />
+                      <h3 className="text-sm font-semibold">Rate your visit</h3>
+                    </div>
+                    <p className="text-xs muted">Thank you — a quick note for the restaurant.</p>
+                    <div className="flex gap-1" aria-label="Restaurant rating">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button key={star} type="button" aria-label={`${star} star${star > 1 ? "s" : ""}`} onClick={() => setReviewRating(star)} className="rounded-full p-1">
+                          <Star className="h-6 w-6" style={{ color: "#b88940", fill: reviewRating >= star ? "#b88940" : "transparent" }} />
+                        </button>
+                      ))}
+                    </div>
+                    <Textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Optional comment for the restaurant" className="min-h-[78px] rounded-2xl" />
+                    <button type="button" onClick={() => toast({ title: "Thank you", description: "Your restaurant feedback has been noted on this device." })} className={modalPrimaryBtn} style={{ ...modalPrimaryBtnStyle, background: "#062F2A", color: "#FFFFFF" }}>Submit review</button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button type="button" disabled className="min-h-10 rounded-full border px-4 py-2 text-xs font-semibold opacity-60" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-muted)", background: "transparent" }}>Download business invoice</button>
+                    <button type="button" onClick={() => { if (typeof window !== "undefined") window.print() }} className="min-h-10 rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}>Download receipt</button>
+                  </div>
+                  <div className="flex justify-center pt-1">
+                    <img src="/assets/media/uploads/Paymydinelogo.png" alt="PayMyDine" className="max-h-7 max-w-[120px] opacity-70" />
+                  </div>
+                  <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
+                </div>
               )}
             </motion.div>
           )}
@@ -3163,16 +3702,15 @@ case "cod":
             <>
               <motion.div key="payment-card-header" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="sm" onClick={() => setCheckoutStep("submitted")} className={iconBackBtn}><ArrowLeft className="h-4 w-4" /></Button>
-                  <div>
-                    <h3 className="text-base font-semibold">Payment</h3>
-                    <p className="text-xs muted">Choose how you would like to pay for this order.</p>
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: "#062F2A", color: "#FFFFFF" }}><CreditCard className="h-4 w-4" style={{ color: "#FFFFFF", stroke: "#FFFFFF" }} /></span>
+                  <p className="text-xs muted">Choose how you would like to pay for this order.</p>
+                </div>
+                {selectedSplitPerson && (
+                  <div className="flex items-center justify-between p-3 surface rounded-2xl">
+                    <div className="flex items-center space-x-2"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{selectedSplitPerson.avatar}</span><span className="text-xs font-semibold">{selectedSplitPerson.name}'s share</span></div>
+                    <span className="text-sm font-bold">{formatCurrency(selectedSplitPerson.total)}</span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between p-3 surface rounded-2xl">
-                  <div className="flex items-center space-x-2"><Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} /><span className="text-xs font-semibold">Split Bill</span></div>
-                  <Button variant={isSplitting ? "default" : "outline"} size="sm" onClick={() => setIsSplitting(!isSplitting)} className={clsx("text-xs", isSplitting ? "icon-btn--accent" : "icon-btn")}>{isSplitting ? "ON" : "OFF"}</Button>
-                </div>
+                )}
               </motion.div>
               {pendingSummary && (
                 <div className="surface-sub rounded-2xl p-3 text-xs">
@@ -3181,6 +3719,81 @@ case "cod":
                   <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
                 </div>
               )}
+              <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="muted">{selectedSplitPerson ? "Share amount" : "Base amount"}</span>
+                    <span className="font-semibold">{formatCurrency(paymentBaseAmount)}</span>
+                  </div>
+                  {paymentTipAmount > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="muted">Tip</span>
+                      <span className="font-semibold">{formatCurrency(paymentTipAmount)}</span>
+                    </div>
+                  )}
+                  {paymentCouponDiscount > 0 && appliedCoupon && (
+                    <div className="flex items-center justify-between">
+                      <span className="muted">Coupon {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
+                      <span className="font-semibold" style={{ color: "#166534" }}>-{formatCurrency(paymentCouponDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--theme-border)" }}>
+                    <span className="font-semibold">Payable total</span>
+                    <span className="text-base font-bold" style={{ color: "#b88940" }}>{formatCurrency(paymentPayableTotal)}</span>
+                  </div>
+                </div>
+                {tipSettings.enabled && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">{selectedSplitPerson ? `${selectedSplitPerson.name}'s tip` : "Add tip"}</span>
+                      {paymentTipAmount > 0 && <span className="text-xs font-semibold" style={{ color: "#b88940" }}>{formatCurrency(paymentTipAmount)}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(tipSettings.percentages || []).map((p) => (
+                        <button key={p} type="button" onClick={() => updatePaymentTipPercentage(p)} className="rounded-full border px-3 py-1.5 text-xs font-semibold transition" style={paymentTipPercentage === p && !paymentCustomTip ? { background: "#062F2A", borderColor: "#062F2A", color: "#FFFFFF" } : { borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>{p}%</button>
+                      ))}
+                      <div className="relative min-w-[96px] flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs muted">€</span>
+                        <input type="number" min="0" value={paymentCustomTip} onChange={(event) => updatePaymentCustomTip(event.target.value)} placeholder="Custom" className="h-9 w-full rounded-full border bg-transparent pl-7 pr-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {!appliedCoupon || selectedSplitPerson ? (
+                    <div className="flex gap-2">
+                      <input type="text" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponError(null) }} placeholder="Coupon code" className="h-9 min-w-0 flex-1 rounded-full border bg-transparent px-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} disabled={couponLoading} />
+                      <button type="button" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
+                        if (!couponCode.trim()) return
+                        if (selectedSplitPerson) {
+                          setCouponError("Coupon validation for split payments is coming soon.")
+                          return
+                        }
+                        setCouponLoading(true)
+                        setCouponError(null)
+                        try {
+                          const result = await validateCoupon(couponCode.trim(), paymentBaseAmount)
+                          if (!result.success) setCouponError(result.message || "Coupon will be checked at payment.")
+                          else {
+                            setCouponCode("")
+                            toast({ title: "Coupon applied", description: "Your coupon was added to this payment." })
+                          }
+                        } catch {
+                          setCouponError("Coupon validation coming soon.")
+                        } finally {
+                          setCouponLoading(false)
+                        }
+                      }} className="h-9 rounded-full border px-4 text-xs font-semibold transition disabled:opacity-50" style={{ borderColor: "color-mix(in srgb, #b88940 45%, var(--theme-border) 55%)", color: "#062F2A", background: "transparent" }}>{couponLoading ? "Checking..." : "Apply"}</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
+                      <span className="font-semibold">{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
+                      <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
+                    </div>
+                  )}
+                  {couponError && <p className="text-xs text-red-700">{couponError}</p>}
+                </div>
+              </div>
           {/* Payment Methods */}
           <AnimatePresence mode="wait">
             {checkoutStep === "payment" ? (
@@ -3459,16 +4072,16 @@ function ExpandingBottomToolbar({
   useEffect(() => {
     const applyToolbarBackground = () => {
       const toolbarElement = document.querySelector('.toolbar-inner-fixed') || 
-                            document.querySelector('div[class*="backdrop-blur-lg"][class*="rounded-[2.5rem]"]')
+                            document.querySelector('div[class*=""][class*="rounded-[2.5rem]"]')
       
       if (toolbarElement) {
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'clean-light'
         const themeColors = {
-          'clean-light': 'rgba(250, 250, 250, 0.95)',
-          'modern-dark': 'rgba(10, 14, 18, 0.95)',
-          'gold-luxury': 'rgba(250, 249, 244, 0.96)',
-          'vibrant-colors': 'rgba(226, 206, 177, 0.95)',
-          'minimal': 'rgba(207, 235, 247, 0.95)'
+          'clean-light': 'var(--theme-background, #FAFAFA)',
+          'modern-dark': 'var(--theme-background, #0A0E12)',
+          'gold-luxury': 'var(--theme-background, #FAF9F4)',
+          'vibrant-colors': 'var(--theme-background, #E2CEB1)',
+          'minimal': 'var(--theme-background, #CFEBF7)'
         }
         
         const bgColor = themeColors[currentTheme as keyof typeof themeColors] || themeColors['clean-light']
@@ -3477,7 +4090,7 @@ function ExpandingBottomToolbar({
         const htmlElement = toolbarElement as HTMLElement
         htmlElement.style.background = bgColor
         htmlElement.style.backgroundColor = bgColor
-        htmlElement.style.opacity = '0.95'
+        htmlElement.style.opacity = '1'
         
         // Add ID for future targeting
         toolbarElement.id = 'toolbar-inner-fixed'
@@ -3521,31 +4134,89 @@ function ExpandingBottomToolbar({
       <div
         className="
           relative flex flex-col w-full h-full
-          backdrop-blur-lg
+          
           rounded-[2.5rem] shadow-2xl border border-white/30 ring-1 ring-paydine-champagne/10
         "
         style={{ 
           minHeight: 76, 
           height: "100%",
-          background: "var(--theme-background)",
-          backgroundColor: "var(--theme-background)",
-          opacity: 0.95
+          background: "var(--pmd-v2-page-bg, var(--theme-background))",
+          backgroundColor: "var(--pmd-v2-page-bg, var(--theme-background))",
+          opacity: 1
         }}
       >
         {/* Arrow for expanding/collapsing bill */}
         {showBillArrow && (
           <button
-            className="absolute left-1/2 -top-4 z-10 flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow border border-paydine-champagne/30 transition-all"
-            style={{ transform: "translateX(-50%)" }}
-            onClick={() =>
-              setToolbarState(toolbarState === "expanded" ? "preview" : "expanded")
-            }
+            type="button"
+            data-pmd-show-bill-toggle="1"
+            ref={(el) => {
+              if (!el) return
+
+              const applyPmdShowBillToggle = () => {
+                el.style.setProperty("width", "36px", "important")
+                el.style.setProperty("height", "36px", "important")
+                el.style.setProperty("min-width", "36px", "important")
+                el.style.setProperty("min-height", "36px", "important")
+                el.style.setProperty("background", "#062F2A", "important")
+                el.style.setProperty("background-color", "#062F2A", "important")
+                el.style.setProperty("background-image", "none", "important")
+                el.style.setProperty("color", "#FFFFFF", "important")
+                el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+                el.style.setProperty("border", "1px solid #062F2A", "important")
+                el.style.setProperty("border-color", "#062F2A", "important")
+                el.style.setProperty("outline-color", "#062F2A", "important")
+                el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.22)", "important")
+                el.style.setProperty("opacity", "1", "important")
+                el.style.setProperty("filter", "none", "important")
+                el.style.setProperty("transform", "translateX(-50%)", "important")
+
+                el.querySelectorAll("svg, svg *").forEach((node) => {
+                  const svgEl = node as HTMLElement
+                  svgEl.style.setProperty("width", "16px", "important")
+                  svgEl.style.setProperty("height", "16px", "important")
+                  svgEl.style.setProperty("color", "#FFFFFF", "important")
+                  svgEl.style.setProperty("stroke", "#FFFFFF", "important")
+                  svgEl.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+                  svgEl.style.setProperty("fill", "none", "important")
+                })
+              }
+
+              applyPmdShowBillToggle()
+
+              if (el.dataset.pmdShowBillToggleLock !== "1") {
+                el.dataset.pmdShowBillToggleLock = "1"
+
+                let busy = false
+                const observer = new MutationObserver(() => {
+                  if (busy) return
+                  busy = true
+                  requestAnimationFrame(() => {
+                    applyPmdShowBillToggle()
+                    busy = false
+                  })
+                })
+
+                observer.observe(el, {
+                  attributes: true,
+                  childList: true,
+                  subtree: true,
+                  attributeFilter: ["style", "class", "aria-label"],
+                })
+
+                ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
+                  window.setTimeout(applyPmdShowBillToggle, delay)
+                })
+              }
+            }}
+            onClick={() => setToolbarState(toolbarState === "expanded" ? "preview" : "expanded")}
+            className="absolute left-1/2 -top-4 z-10 flex items-center justify-center rounded-full shadow border transition-all pmd-show-bill-toggle-button"
             aria-label={toolbarState === "expanded" ? "Hide bill" : "Show bill"}
           >
             {toolbarState === "expanded" ? (
-              <ChevronDown className="w-5 h-5 text-paydine-champagne" />
+              <ChevronDown className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
             ) : (
-              <ChevronUp className="w-5 h-5 text-paydine-champagne" />
+              <ChevronUp className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
             )}
           </button>
         )}
@@ -3639,7 +4310,8 @@ function ExpandingBottomToolbar({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="mt-4 pt-4 border-t border-paydine-champagne/30 bg-paydine-rose-beige/10 rounded-xl p-4"
+                    className="mt-4 rounded-2xl p-4"
+                    style={{ background: "color-mix(in srgb, var(--theme-surface) 88%, #fffaf0 12%)", border: "1px solid color-mix(in srgb, #b88940 22%, var(--theme-border) 78%)", boxShadow: "0 8px 18px rgba(6, 47, 42, 0.06)" }}
                   >
                     <div className="flex justify-between items-center">
                       <motion.span
@@ -3714,32 +4386,6 @@ function ExpandingBottomToolbar({
           </motion.button>
           </ActionTooltip>
 
-          <AnimatePresence initial={false}>
-          {showOrderAction && (
-          <ActionTooltip label="Table order">
-          <motion.button
-            key="table-order-action"
-            initial={{ opacity: 0, scale: 0.8, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 8 }}
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.12 }}
-            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
-            style={toolbarIconBtnStyle}
-            onClick={onOrderClick}
-            aria-label="Table order"
-          >
-            <ReceiptText className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
-            {orderCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "var(--theme-secondary)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
-                {orderCount > 9 ? "9+" : orderCount}
-              </span>
-            )}
-          </motion.button>
-          </ActionTooltip>
-          )}
-          </AnimatePresence>
-          
           <ActionTooltip label="Checkout">
           <motion.button
             whileTap={{ scale: 0.92 }}
@@ -3755,19 +4401,62 @@ function ExpandingBottomToolbar({
             onClick={onCartClick}
             aria-label={t("viewCart")}
           >
-            <ShoppingCart className="h-7 w-7" style={{ color: "var(--theme-text-primary)" }} />
+            <ShoppingCart className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
             {totalItems > 0 && (
               <span 
+                data-pmd-menu-cart-badge="1"
+                ref={(el) => {
+                  if (!el) return
+
+                  const applyPmdBadgeColor = () => {
+                    el.style.setProperty("background", "#b88940", "important")
+                    el.style.setProperty("background-color", "#b88940", "important")
+                    el.style.setProperty("background-image", "none", "important")
+                    el.style.setProperty("color", "#FFFFFF", "important")
+                    el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+                    el.style.setProperty("border", "1px solid #b88940", "important")
+                    el.style.setProperty("border-color", "#b88940", "important")
+                    el.style.setProperty("outline-color", "#b88940", "important")
+                    el.style.setProperty("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.15)", "important")
+                    el.style.setProperty("filter", "none", "important")
+                    el.style.setProperty("text-shadow", "none", "important")
+                  }
+
+                  applyPmdBadgeColor()
+
+                  if (el.dataset.pmdBadgeColorLock !== "1") {
+                    el.dataset.pmdBadgeColorLock = "1"
+
+                    let busy = false
+                    const observer = new MutationObserver(() => {
+                      if (busy) return
+                      busy = true
+                      requestAnimationFrame(() => {
+                        applyPmdBadgeColor()
+                        busy = false
+                      })
+                    })
+
+                    observer.observe(el, {
+                      attributes: true,
+                      attributeFilter: ["style", "class"],
+                    })
+
+                    ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
+                      window.setTimeout(applyPmdBadgeColor, delay)
+                    })
+                  }
+                }}
                 className="cart-badge pmd-v2-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
                 style={{
-                  background: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
-                  backgroundColor: "var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg))",
+                  background: "#b88940",
+                  backgroundColor: "#b88940",
                   backgroundImage: "none",
-                  color: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
-                  WebkitTextFillColor: "var(--pmd-v2-badge-text, var(--pmd-v2-action-text))",
-                  border: "1px solid var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
-                  borderColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
-                  outlineColor: "var(--pmd-v2-badge-border, var(--pmd-v2-action-border))",
+                  color: "#FFFFFF",
+                  WebkitTextFillColor: "#FFFFFF",
+                  border: "1px solid #b88940",
+                  borderColor: "#b88940",
+                  outlineColor: "#b88940",
                   zIndex: 9999999,
                 }}>
                 {totalItems}
@@ -3775,6 +4464,39 @@ function ExpandingBottomToolbar({
             )}
           </motion.button>
           </ActionTooltip>
+          <AnimatePresence initial={false}>
+          {showOrderAction && (
+          <ActionTooltip label="Table order">
+          <motion.button
+            key="table-order-action"
+            initial={{ opacity: 0, scale: 0.8, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 8 }}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.12 }}
+            className="h-12 w-12 rounded-full flex flex-col items-center justify-center gap-0.5 relative focus:outline-none transition-all"
+            style={{
+              background: "transparent",
+              border: "1px solid transparent",
+              color: "#062F2A",
+              boxShadow: "none",
+              borderRadius: "9999px",
+            }}
+            onClick={onOrderClick}
+            aria-label="Table order"
+          >
+            <ReceiptText className="h-6 w-6" style={{ color: "#062F2A", stroke: "#062F2A", WebkitTextFillColor: "#062F2A" }} />
+            <span className="text-[9px] font-semibold leading-none" style={{ color: "#062F2A", WebkitTextFillColor: "#062F2A" }}>Table</span>
+            {orderCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md" style={{ background: "#b88940", color: "#FFFFFF", border: "1px solid #b88940" }}>
+                {orderCount > 9 ? "9+" : orderCount}
+              </span>
+            )}
+          </motion.button>
+          </ActionTooltip>
+          )}
+          </AnimatePresence>
+          
         </div>
       </div>
     </motion.div>
@@ -4084,7 +4806,7 @@ function MenuContent() {
   const [toolbarState, setToolbarState] = useState<ToolbarState>("collapsed")
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
-  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<'review' | 'submitted' | 'payment'>('review')
+  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<CheckoutStep>('review')
   const [isLoading, setIsLoading] = useState(true)
   const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
@@ -4105,7 +4827,11 @@ function MenuContent() {
   const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
   const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
   const hydratedPendingOrderRef = useRef<number | null>(null)
-  const shouldHideCartSheet = !!existingOrderId
+  const isRecentPaidTableOrder = localOpenOrder?.paymentStatus === "paid" || localOpenOrder?.status === "paid"
+  const activeExistingOrderId = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : existingOrderId
+  const activePendingSummary = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : pendingSettlementSummary
+  const activeSubmittedOrder = isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder
+  const shouldHideCartSheet = !!activeExistingOrderId
 
   useEffect(() => {
     if (!tableInfo?.table_id && !tableInfo?.table_no) return
@@ -4126,17 +4852,20 @@ function MenuContent() {
             settledAmount: Number(latest.totals?.settledAmount || 0),
             remainingAmount: Number(latest.totals?.remainingAmount || latest.totals?.total || 0),
           })
-          setLocalOpenOrder((prev: any) => prev || {
-            orderId: latest.order_id,
-            status: latest.status,
-            paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
-            tableNumber: latest.table_no || tableInfo?.table_no || null,
-            total: latest.totals?.total || 0,
-            orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
-            remainingAmount: latest.totals?.remainingAmount || 0,
-            settledAmount: latest.totals?.settledAmount || 0,
-            submittedItems: latest.items || [],
-            payment: latest.payment || "qr_pay_later",
+          setLocalOpenOrder((prev: any) => {
+            const latestSnapshot = {
+              orderId: latest.order_id,
+              status: latest.status,
+              paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
+              tableNumber: latest.table_no || tableInfo?.table_no || null,
+              total: latest.totals?.total || 0,
+              orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
+              remainingAmount: latest.totals?.remainingAmount || 0,
+              settledAmount: latest.totals?.settledAmount || 0,
+              submittedItems: latest.items || [],
+              payment: latest.payment || "qr_pay_later",
+            }
+            return !prev || String(prev?.orderId || "") !== String(latest.order_id || "") ? latestSnapshot : { ...prev, ...latestSnapshot }
           })
           setHasLocalOpenOrder(true)
         }
@@ -4172,6 +4901,59 @@ function MenuContent() {
   useEffect(() => {
     __pmdWalletDebugInstallOnce()
     __pmdRemoteConsoleInstallOnce()
+  }, [])
+
+  // PMD visual guard: keep menu action circles/icons white in every click/active state.
+  // Some legacy theme code can apply inline black text-fill to small quantity buttons.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const applyMenuActionCircleColors = () => {
+      const nodes = document.querySelectorAll<HTMLElement>([
+        ".page--menu .pmd-v2-action-circle",
+        ".page--menu button[aria-label='Increase quantity']",
+        ".page--menu button[aria-label='Decrease quantity']",
+        ".page--menu button[aria-label*='Back' i]",
+        ".page--menu button[aria-label*='back' i]"
+      ].join(","))
+
+      nodes.forEach((node) => {
+        node.style.setProperty("color", "#FFFFFF", "important")
+        node.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+
+        node.querySelectorAll("*").forEach((child) => {
+          const el = child as HTMLElement
+          el.style.setProperty("color", "#FFFFFF", "important")
+          el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+          el.style.setProperty("stroke", "#FFFFFF", "important")
+        })
+      })
+    }
+
+    applyMenuActionCircleColors()
+
+    const events = ["pointerdown", "mousedown", "touchstart", "click", "focusin"]
+    events.forEach((eventName) => {
+      document.addEventListener(eventName, applyMenuActionCircleColors, true)
+    })
+
+    const observer = new MutationObserver(applyMenuActionCircleColors)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style", "class"]
+    })
+
+    const timer = window.setTimeout(applyMenuActionCircleColors, 0)
+
+    return () => {
+      window.clearTimeout(timer)
+      observer.disconnect()
+      events.forEach((eventName) => {
+        document.removeEventListener(eventName, applyMenuActionCircleColors, true)
+      })
+    }
   }, [])
 
   // Read raw search params (Next app router)
@@ -4283,40 +5065,27 @@ useEffect(() => {
                   settledAmount: Number((pendingQr.data as any).settled_amount || 0),
                   remainingAmount: Number((pendingQr.data as any).remaining_amount || 0),
                 })
+                setLocalOpenOrder({
+                  orderId: pendingId,
+                  status: "submitted_unpaid",
+                  paymentStatus: "unpaid",
+                  tableNumber: tableResult.data?.table_no ?? table_no ?? null,
+                  total: Number((pendingQr.data as any).order_total || 0),
+                  orderTotal: Number((pendingQr.data as any).order_total || 0),
+                  settledAmount: Number((pendingQr.data as any).settled_amount || 0),
+                  remainingAmount: Number((pendingQr.data as any).remaining_amount || 0),
+                  submittedItems: pendingQr.data.items || [],
+                  payment: "qr_pay_later",
+                })
+                setHasLocalOpenOrder(true)
 
                 if (hydratedPendingOrderRef.current !== pendingId) {
-                  clearCart()
-                  pendingQr.data.items.forEach((orderItem) => {
-                    const menuItem = {
-                      id: Number((orderItem as any).order_menu_id || orderItem.menu_id),
-                      name: String(orderItem.name),
-                      description: "",
-                      price: Number(orderItem.price),
-                      image: "",
-                      category: "Main",
-                      __order_menu_id: Number((orderItem as any).order_menu_id || 0),
-                      __menu_id: Number(orderItem.menu_id),
-                    }
-                    addToCart(menuItem as any, Number(orderItem.quantity || 1))
-                  })
                   hydratedPendingOrderRef.current = pendingId
-
                   try {
                     const state = useCartStore.getState() as any
-                    if (state?.isCartOpen === true) {
-                      useCartStore.setState({ isCartOpen: false })
-                    }
+                    if (state?.isCartOpen === true) useCartStore.setState({ isCartOpen: false })
                   } catch (e) {
-                    console.error('[PMD] close drawer after hydrate failed', e)
-                  }
-
-                  try {
-                    const state = useCartStore.getState() as any
-                    if (state?.isCartOpen !== true) {
-                      useCartStore.setState({ isCartOpen: true })
-                    }
-                  } catch (e) {
-                    console.error('[PMD] open bill after hydrate failed', e)
+                    console.error('[PMD] close drawer after table order sync failed', e)
                   }
                 }
               } else {
@@ -4578,12 +5347,6 @@ useEffect(() => {
         setLocalOpenOrder(null)
         return
       }
-      if (parsed?.paymentStatus === "paid" || parsed?.status === "paid") {
-        localStorage.removeItem(key)
-        setHasLocalOpenOrder(false)
-        setLocalOpenOrder(null)
-        return
-      }
       setHasLocalOpenOrder(!!parsed?.orderId)
       setLocalOpenOrder(parsed)
       if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
@@ -4667,7 +5430,7 @@ useEffect(() => {
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
         onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
-          setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : 'submitted')
+          setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
           setPaymentModalOpen(true)
         } : undefined}
         orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
@@ -4681,19 +5444,20 @@ useEffect(() => {
         onClose={() => setPaymentModalOpen(false)}
         items={items}
         tableInfo={tableInfo}
-        existingOrderId={existingOrderId}
-        pendingSummary={pendingSettlementSummary}
-        initialSubmittedOrder={localOpenOrder}
+        existingOrderId={activeExistingOrderId}
+        pendingSummary={activePendingSummary}
+        initialSubmittedOrder={activeSubmittedOrder}
         initialCheckoutStep={paymentModalInitialStep}
         onOpenOrderUpdate={(snapshot) => {
           if (snapshot?.status === "draft" || snapshot?.draft_id) {
             setSharedTableOrder(snapshot)
             return
           }
-          if (snapshot?.paymentStatus === "paid") {
-            setHasLocalOpenOrder(false)
-            setLocalOpenOrder(null)
-            setSharedTableOrder(null)
+          if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+            const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+            setLocalOpenOrder(normalizedPaid)
+            setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+            setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
             return
           }
           if (snapshot?.orderId || snapshot?.order_id) {

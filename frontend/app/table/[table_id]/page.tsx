@@ -5,10 +5,10 @@ import { useLanguageStore } from "@/store/language-store"
 import { useCmsStore } from "@/store/cms-store"
 import { useCartStore } from "@/store/cart-store"
 import { Logo } from "@/components/logo"
-import { Car, Utensils } from "lucide-react"
+import { Car, ReceiptText, Utensils } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useSearchParams, useParams, useRouter } from "next/navigation"
+import { useSearchParams, useParams } from "next/navigation"
 import { EnvironmentConfig } from "@/lib/environment-config"
 import { setSavedHome } from "@/lib/table-home"
 import { stickySearch } from "@/lib/sticky-query"
@@ -20,7 +20,6 @@ export default function TableHomePage({ params }: { params: { table_id: string }
   const { t } = useLanguageStore()
   const { settings } = useCmsStore()
   const { setTableInfo, clearCart } = useCartStore()
-  const router = useRouter()
   const searchParams = useSearchParams()
   
   // ✅ Don't use React's experimental `use(...)` here; this is a client file.
@@ -33,6 +32,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
   
   const qr = searchParams.get("qr")
   const [table, setTable] = useState<any>(null)
+  const [activeTableOrder, setActiveTableOrder] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Save the home URL to sessionStorage on first landing
@@ -86,20 +86,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             success: tableDraft?.success ?? false,
           })
           if (!cancelled && tableDraft?.success && tableDraft?.status && tableDraft.status !== "empty" && tableDraft.status !== "paid") {
-            console.info("[PMD QR entry] branch chosen: table-draft-or-order->menu", {
-              table_id: resolvedTableId,
-              draft_id: tableDraft.draft_id ?? null,
-              order_id: tableDraft.order_id ?? null,
-              status: tableDraft.status,
-            })
-            const menuUrl = new URL('/menu', window.location.origin)
-            menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
-            menuUrl.searchParams.set('table_id', resolvedTableId)
-            menuUrl.searchParams.set('table', String(res.data.table_no || pathParam))
-            if (qr) menuUrl.searchParams.set('qr', qr)
-            if (tableDraft.order_id) menuUrl.searchParams.set('pending_order_id', String(tableDraft.order_id))
-            router.replace(`${menuUrl.pathname}${menuUrl.search}`)
-            return
+            setActiveTableOrder(tableDraft)
           }
 
           const pending = await api.getPendingQrOrderByTable(resolvedTableId, { tableNo: res.data?.table_no ?? pathParam, qr })
@@ -110,34 +97,18 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             success: pending?.success ?? false,
           })
           if (!cancelled && pending?.success && pending?.data?.order_id) {
-            console.info("[PMD QR entry] branch chosen: pending->menu", {
-              table_id: resolvedTableId,
-              pending_order_id: pending.data.order_id,
-            })
-            const menuUrl = new URL('/menu', window.location.origin)
-            menuUrl.searchParams.set('table_no', String(res.data.table_no || pathParam))
-            menuUrl.searchParams.set('table_id', resolvedTableId)
-            menuUrl.searchParams.set('table', String(res.data.table_no || pathParam))
-            if (qr) menuUrl.searchParams.set('qr', qr)
-            menuUrl.searchParams.set('pending_order_id', String(pending.data.order_id))
-            router.replace(`${menuUrl.pathname}${menuUrl.search}`)
-            return
-          } else if (!cancelled) {
-            console.info("[PMD QR entry] branch chosen: no-pending->stay-table-home", {
-              table_id: resolvedTableId,
-              table_no: res.data?.table_no ?? null,
-            })
+            setActiveTableOrder((current: any) => current || { status: "submitted_unpaid", order_id: pending.data.order_id })
+          }
 
-            // Clear stale pending cart state from prior scans/sessions
-            clearCart()
-            try {
-              const cartState = useCartStore.getState() as any
-              if (cartState?.isCartOpen === true) {
-                useCartStore.setState({ isCartOpen: false })
-              }
-            } catch (e) {
-              console.error("[PMD QR entry] failed to close stale cart drawer", e)
+          // Always keep QR entry on the table home page; guests choose whether to open menu/order.
+          clearCart()
+          try {
+            const cartState = useCartStore.getState() as any
+            if (cartState?.isCartOpen === true) {
+              useCartStore.setState({ isCartOpen: false })
             }
+          } catch (e) {
+            console.error("[PMD QR entry] failed to close stale cart drawer", e)
           }
         }
       } catch (e) {
@@ -151,10 +122,12 @@ export default function TableHomePage({ params }: { params: { table_id: string }
       cancelled = true
     }
     // ✅ Fix dependency to use pathParam instead of undefined table_id
-  }, [pathParam, qr, router, setTableInfo])
+  }, [pathParam, qr, setTableInfo])
 
   const cardStyles = "relative flex flex-col items-center pmd-v2-card backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-sm hover:shadow-xl transition duration-500 w-72 h-56 justify-center home-action-card"
   const iconContainerStyles = "rounded-full pmd-v2-action-circle p-6 mb-6 home-action-icon-wrap"
+  const menuHref = `/table/${pathParam}/menu?qr=${qr || ''}`
+  const tableOrderHref = `/menu?table_no=${encodeURIComponent(String(table?.table_no || pathParam))}&table_id=${encodeURIComponent(String(table?.table_id || pathParam))}&table=${encodeURIComponent(String(table?.table_no || pathParam))}${qr ? `&qr=${encodeURIComponent(qr)}` : ''}${activeTableOrder?.order_id ? `&pending_order_id=${encodeURIComponent(String(activeTableOrder.order_id))}` : ''}`
 
   if (loading) {
     return (
@@ -171,7 +144,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
       
       <div className="flex flex-row flex-wrap gap-6 justify-center">
         <MotionLink 
-          href={`/table/${pathParam}/menu?qr=${qr || ''}`}
+          href={menuHref}
           className="relative group"
           whileHover="hover"
           initial="initial"
@@ -215,6 +188,24 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             </h2>
           </motion.div>
         </MotionLink>
+
+        {activeTableOrder && (
+          <MotionLink
+            href={tableOrderHref}
+            className="relative group"
+            whileHover="hover"
+            initial="initial"
+            animate="animate"
+          >
+            <motion.div className="absolute -inset-1 rounded-3xl opacity-0 group-hover:opacity-100 blur transition duration-500" style={{ background: `linear-gradient(to right, var(--theme-primary)/30, var(--theme-secondary)/30)` }} variants={{ hover: { scale: 1.1 }, initial: { scale: 0.9 } }} />
+            <motion.div className={cardStyles} variants={{ hover: { y: -8 }, initial: { y: 0 } }}>
+              <motion.div className={iconContainerStyles} style={{ backgroundColor: '#062F2A' }} variants={{ hover: { scale: 1.1, backgroundColor: "#062F2A" }, initial: { scale: 1, backgroundColor: "#062F2A" } }}>
+                <ReceiptText className="w-10 h-10" style={{ color: '#FFFFFF' }} />
+              </motion.div>
+              <h2 className="text-2xl font-medium" style={{ color: 'var(--theme-text-primary)' }}>View table order</h2>
+            </motion.div>
+          </MotionLink>
+        )}
 
         <MotionLink 
           href={`/table/${pathParam}/valet?qr=${qr || ''}`}

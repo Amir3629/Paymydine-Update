@@ -7290,22 +7290,49 @@ Route::group([
             'totals' => ['subtotal' => round($total, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
             'settlement' => ['orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4), 'settlementStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid')],
             'payment' => $payment,
+            'status_name' => $order ? (string)($order->status_name ?? '') : null,
+            'paymentStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid'),
+            'hasActiveTableOrder' => (bool)($draft || $order),
+            'canShowToNewDevice' => (bool)($draft || $order),
+            'updatedAt' => $order ? (string)($order->updated_at ?? '') : ($draft ? (string)($draft->updated_at ?? '') : null),
         ]);
     };
 
     $findActiveSubmittedTableOrder = function (array $context) {
         $candidates = $context['candidates'] ?? [];
         if (empty($candidates)) return null;
-        $query = \Illuminate\Support\Facades\DB::table('orders')
-            ->where('payment', 'qr_pay_later')
-            ->whereIn('order_type', $candidates)
-            ->orderByDesc('order_id');
-        if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) {
-            $query->where(function ($q) {
-                $q->whereNull('settlement_status')->orWhereNotIn('settlement_status', ['paid','cancelled','failed']);
-            });
+
+        $orders = \Illuminate\Support\Facades\DB::table('orders')
+            ->leftJoin('statuses', 'orders.status_id', '=', 'statuses.status_id')
+            ->where('orders.payment', 'qr_pay_later')
+            ->whereIn('orders.order_type', $candidates)
+            ->orderByDesc('orders.order_id')
+            ->limit(12)
+            ->get(['orders.*', 'statuses.status_name']);
+
+        $terminalStatusNames = ['completed', 'complete', 'delivered', 'delivery-complete', 'cancelled', 'canceled', 'cancel'];
+        foreach ($orders as $order) {
+            $total = (float)($order->order_total ?? 0);
+            $settled = (float)($order->settled_amount ?? 0);
+            $settlementStatus = strtolower(trim((string)($order->settlement_status ?? '')));
+            $statusName = strtolower(trim((string)($order->status_name ?? '')));
+            $normalizedStatus = str_replace([' ', '_'], '-', $statusName);
+            $isPaid = in_array($settlementStatus, ['paid', 'settled'], true)
+                || $normalizedStatus === 'paid'
+                || ($total > 0 && $settled >= $total - 0.0001);
+            $isTerminal = in_array($normalizedStatus, $terminalStatusNames, true);
+
+            // Cross-device table order visibility: show while unpaid OR not kitchen-completed.
+            if (!$isPaid || !$isTerminal) {
+                if ($isPaid && $statusName === '') {
+                    $updatedAt = $order->updated_at ? \Illuminate\Support\Carbon::parse($order->updated_at) : null;
+                    if ($updatedAt && $updatedAt->lt(now()->subHours(2))) continue;
+                }
+                return $order;
+            }
         }
-        return $query->first();
+
+        return null;
     };
 
     Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatDraftResponse, $findActiveSubmittedTableOrder) {
