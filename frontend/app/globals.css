@@ -14602,3 +14602,42 @@ html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-r
 html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row .font-medium {
   font-weight: 500 !important;
 }
+
+/* PMD_CHECKOUT_FINAL_VISUAL_TUNE_20260604
+   Final scoped polish only: lighter Table Order rows, subtler helper text, calmer status headings.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row {
+  font-size: 0.94rem !important;
+  font-weight: 500 !important;
+  line-height: 1.26 !important;
+  letter-spacing: -0.005em !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row > span:first-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row .font-medium {
+  font-weight: 500 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row > span:last-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row .font-semibold {
+  font-size: 0.94rem !important;
+  font-weight: 600 !important;
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-helper-text {
+  font-size: 0.74rem !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+  opacity: 0.78 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-status-title {
+  font-size: clamp(0.98rem, 3.8vw, 1.12rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -0.012em !important;
+}
