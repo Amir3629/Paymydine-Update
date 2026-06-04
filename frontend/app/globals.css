@@ -14530,3 +14530,51 @@ html body [data-pmd-checkout-design-system="1"] button {
 html body [data-pmd-checkout-design-system="1"] button:active {
   transform: scale(0.985);
 }
+
+/* PMD_CHECKOUT_LIST_SCROLL_SAFETY_20260604
+   Keep long item lists scrollable without clipped final rows and soften normal item-row hierarchy.
+*/
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll {
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+  padding-bottom: 0.55rem !important;
+  scroll-padding-block: 0.55rem !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll > *:last-child {
+  margin-bottom: 0.15rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar {
+  width: 0.35rem;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar-thumb {
+  background: rgba(184, 137, 64, 0.24);
+  border-radius: 9999px;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row {
+  font-weight: 600 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row span:last-child,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-price,
+html body [data-pmd-checkout-design-system="1"] .pmd-customer-price {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-weight: 650 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .border-t span:last-child,
+html body [data-pmd-checkout-design-system="1"] .divider span:last-child,
+html body [data-pmd-checkout-design-system="1"] span[style*="#b88940"] {
+  color: var(--pmd-modal-gold) !important;
+  -webkit-text-fill-color: var(--pmd-modal-gold) !important;
+}
