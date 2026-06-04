@@ -515,6 +515,13 @@ type PaymentFormData = {
   phone: string
 }
 
+type PmdToolbarPricingSnapshot = {
+  items: Array<CartItem & { __pmdDisplayName?: string; __pmdDisplayUnitPrice?: number; __pmdDisplaySubtotal?: number }>;
+  subtotal: number;
+  tax: number;
+  total: number;
+}
+
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -530,6 +537,7 @@ interface PaymentModalProps {
   initialCheckoutStep?: CheckoutStep;
   preferPersonalReview?: boolean
   onOpenOrderUpdate?: (snapshot: any | null) => void;
+  onCartPricingUpdate?: (snapshot: PmdToolbarPricingSnapshot | null) => void;
 }
 
 interface ExpandingBottomToolbarProps {
@@ -538,6 +546,8 @@ interface ExpandingBottomToolbarProps {
   showBillArrow: boolean;
   items: CartItem[];
   totalPrice: number;
+  subtotalPrice?: number;
+  taxAmount?: number;
   t: (key: TranslationKey) => string;
   onCartClick: () => void;
   onWaiterClick?: () => void;
@@ -788,7 +798,7 @@ function OrderItemWithOptions({
 }
 
 // PMD_FORCE_ALL_PLUS_MINUS_SOURCE_WHITE_20260601
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate }: PaymentModalProps) {
 
   // PMD_QUANTITY_ICON_FIRST_PAINT_FIX_20260601
   // Prevent checkout quantity plus/minus icons from flashing black before legacy runtime styles settle.
@@ -1265,6 +1275,42 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
     return subtotal * (taxSettings.percentage / 100)
   }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+  useEffect(() => {
+    if (!onCartPricingUpdate) return
+    if (!Array.isArray(allItems) || allItems.length === 0) {
+      onCartPricingUpdate(null)
+      return
+    }
+
+    const displayItems = personalReviewItems.map((cartItem: any) => {
+      const optionKey = String(cartItem.__pmdOptionKey || cartItem.item.id)
+      const selectedForUnit = selectedOptions[optionKey] || {}
+      const optionDetails: Array<{ name: string; price: number }> = []
+
+      Object.entries(selectedForUnit).forEach(([optionName, optionId]) => {
+        const option = (cartItem.item.options || []).find((candidate: any) => String(candidate.name) === String(optionName))
+        const value = option?.values?.find((candidate: any) => String(candidate.id) === String(optionId))
+        if (value) optionDetails.push({ name: String(value.value || value.name || ''), price: Number(adjustPriceForVAT(Number(value.price || 0))) })
+      })
+
+      const baseName = cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name
+      const optionSummary = optionDetails.map((option) => option.name).filter(Boolean).join(', ')
+      const displayName = optionSummary ? `${baseName} — ${optionSummary}` : String(cartItem.__pmdUnitLabel || baseName)
+      const unitPrice = Number(adjustPriceForVAT(cartItem.item.price || 0)) + optionDetails.reduce((sum, option) => sum + Number(option.price || 0), 0)
+      const quantity = Number(cartItem.quantity || 1)
+
+      return {
+        ...cartItem,
+        quantity,
+        __pmdDisplayName: displayName,
+        __pmdDisplayUnitPrice: unitPrice,
+        __pmdDisplaySubtotal: unitPrice * quantity,
+      }
+    })
+
+    onCartPricingUpdate({ items: displayItems, subtotal, tax: taxAmount, total: subtotal + taxAmount })
+  }, [allItems, personalReviewItems, selectedOptions, subtotal, taxAmount, onCartPricingUpdate, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+
   const submittedBaseTotal = useMemo(() => Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
   const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
   const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
@@ -1486,6 +1532,16 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const paymentTipAmount = paymentCustomTip ? Number.parseFloat(paymentCustomTip) || 0 : paymentBaseAmount * (paymentTipPercentage / 100)
   const paymentCouponDiscount = selectedSplitPerson ? 0 : couponDiscount
   const paymentPayableTotal = Math.max(0, paymentBaseAmount + paymentTipAmount - paymentCouponDiscount)
+  const paymentSubtotalAmount = selectedSplitPerson
+    ? Number(selectedSplitPerson.subtotal || 0)
+    : Number(submittedSnapshot?.subtotal || 0)
+  const paymentVatAmount = selectedSplitPerson
+    ? Number(selectedSplitPerson.tax || 0)
+    : Number(submittedSnapshot?.vatAmount || 0)
+  const paymentVatPercentage = Number(submittedSnapshot?.vatPercentage ?? taxSettings?.percentage ?? 0)
+  const paidTipAmount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTipAmount ?? paymentTipAmount ?? tipAmount ?? 0) : paymentTipAmount
+  const paidCouponDiscount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidCouponDiscount ?? paymentCouponDiscount ?? couponDiscount ?? 0) : paymentCouponDiscount
+  const paidAmountTotal = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTotal ?? Math.max(0, orderStatusTotal + paidTipAmount - paidCouponDiscount)) : paymentPayableTotal
 
   const updatePaymentTipPercentage = (percentage: number) => {
     if (selectedSplitPersonId) {
@@ -2809,7 +2865,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
   }
 
-  const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
+  const markOpenOrderAsPaid = (orderIdLike?: string | number | null, paymentDetails?: { tipAmount?: number; couponDiscount?: number; paidTotal?: number; couponCode?: string | null }) => {
     try {
       const sessionKey = buildOpenOrderStorageKeys().sessionKey
       const raw = localStorage.getItem(sessionKey)
@@ -2819,6 +2875,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       parsed.paymentStatus = "paid"
       parsed.status = "paid"
       parsed.paidAt = Date.now()
+      if (paymentDetails) {
+        parsed.paidTipAmount = Number(paymentDetails.tipAmount || 0)
+        parsed.paidCouponDiscount = Number(paymentDetails.couponDiscount || 0)
+        parsed.paidTotal = Number(paymentDetails.paidTotal || 0)
+        parsed.paidCouponCode = paymentDetails.couponCode || null
+      }
+      setSubmittedSnapshot((prev: any) => prev ? { ...prev, paymentStatus: 'paid', status: 'paid', paidAt: parsed.paidAt, paidTipAmount: parsed.paidTipAmount, paidCouponDiscount: parsed.paidCouponDiscount, paidTotal: parsed.paidTotal, paidCouponCode: parsed.paidCouponCode } : parsed)
       localStorage.setItem(sessionKey, JSON.stringify(parsed))
       onOpenOrderUpdate?.(parsed)
     } catch {}
@@ -2986,7 +3049,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate)
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
           }
           setCheckoutStep("paid")
           setIsLoading(false)
@@ -3064,7 +3127,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate)
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
           }
           setCheckoutStep("paid")
           return
@@ -3146,7 +3209,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         } catch {}
         clearCart()
         if (checkoutStep === "payment") {
-          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null)
+          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
           setCheckoutStep("paid")
         } else {
           setCheckoutStep('submitted')
@@ -5213,27 +5276,27 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     </div>
                   </>
                 )}
-                {(tipAmount > 0 || couponDiscount > 0) && (
+                {(paidTipAmount > 0 || paidCouponDiscount > 0) && (
                   <div className="flex items-center justify-between">
-                    <span className="muted font-medium">Items:</span>
+                    <span className="muted font-medium">Items total:</span>
                     <span className="font-semibold text-[15px]">{formatCurrency(submittedBaseTotal || Number(submittedSnapshot?.total ?? 0))}</span>
                   </div>
                 )}
-                {tipAmount > 0 && (
+                {paidTipAmount > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Tip:</span>
-                    <span className="font-semibold text-[15px]">{formatCurrency(tipAmount)}</span>
+                    <span className="font-semibold text-[15px]">{formatCurrency(paidTipAmount)}</span>
                   </div>
                 )}
-                {couponDiscount > 0 && appliedCoupon && (
+                {paidCouponDiscount > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="muted font-medium">Coupon {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}:</span>
-                    <span className="font-semibold text-[15px]" style={{ color: "#166534" }}>-{formatCurrency(couponDiscount)}</span>
+                    <span className="muted font-medium">Coupon {String(submittedSnapshot?.paidCouponCode || appliedCoupon?.code || "") ? `(${String(submittedSnapshot?.paidCouponCode || appliedCoupon?.code)})` : ""}:</span>
+                    <span className="font-semibold text-[15px]" style={{ color: "#166534" }}>-{formatCurrency(paidCouponDiscount)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="muted font-medium">Order Total:</span>
-                  <span className="font-semibold text-[15px]">{formatCurrency(orderStatusTotal)}</span>
+                  <span className="muted font-medium">{checkoutStep === "paid" && (paidTipAmount > 0 || paidCouponDiscount > 0) ? "Amount paid:" : "Order Total:"}</span>
+                  <span className="font-semibold text-[15px]">{formatCurrency(checkoutStep === "paid" && (paidTipAmount > 0 || paidCouponDiscount > 0) ? paidAmountTotal : orderStatusTotal)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="muted font-medium">Table:</span>
@@ -5442,8 +5505,20 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               )}
               <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
                 <div className="space-y-1 text-sm">
+                  {paymentVatAmount > 0 && !selectedSplitPerson && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="muted">Subtotal</span>
+                        <span className="font-semibold">{formatCurrency(paymentSubtotalAmount)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="muted">VAT {paymentVatPercentage}%</span>
+                        <span className="font-semibold">{formatCurrency(paymentVatAmount)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center justify-between">
-                    <span className="muted">{selectedSplitPerson ? "Share amount" : "Base amount"}</span>
+                    <span className="muted">{selectedSplitPerson ? "Share amount" : "Items total"}</span>
                     <span className="font-semibold">{formatCurrency(paymentBaseAmount)}</span>
                   </div>
                   {paymentTipAmount > 0 && (
@@ -5760,6 +5835,8 @@ function ExpandingBottomToolbar({
   showBillArrow,
   items,
   totalPrice,
+  subtotalPrice = 0,
+  taxAmount = 0,
   t,
   onCartClick,
   onWaiterClick,
@@ -6011,7 +6088,7 @@ function ExpandingBottomToolbar({
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                             >
-                              {item.item.name}
+                              {(item as any).__pmdDisplayName || item.item.name}
                             </motion.div>
                             <motion.div
                               className="text-sm text-gray-500"
@@ -6019,7 +6096,7 @@ function ExpandingBottomToolbar({
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                             >
-          {formatCurrency(adjustPrice(item.item.price || 0))} × {item.quantity}
+          {formatCurrency(Number((item as any).__pmdDisplayUnitPrice ?? adjustPrice(item.item.price || 0)))} × {item.quantity}
                             </motion.div>
                           </div>
                         </div>
@@ -6029,7 +6106,7 @@ function ExpandingBottomToolbar({
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
                         >
-          {formatCurrency(adjustPrice(item.item.price || 0) * item.quantity)}
+          {formatCurrency(Number((item as any).__pmdDisplaySubtotal ?? (adjustPrice(item.item.price || 0) * item.quantity)))}
                         </motion.div>
                       </motion.div>
                     ))}
@@ -6044,6 +6121,12 @@ function ExpandingBottomToolbar({
                     className="mt-4 rounded-2xl p-4"
                     style={{ background: "color-mix(in srgb, var(--theme-surface) 88%, #fffaf0 12%)", border: "1px solid color-mix(in srgb, #b88940 22%, var(--theme-border) 78%)", boxShadow: "0 8px 18px rgba(6, 47, 42, 0.06)" }}
                   >
+                    {taxAmount > 0 && (
+                      <div className="mb-2 space-y-1 text-sm">
+                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">Subtotal</span><span className="font-semibold">{formatCurrency(subtotalPrice)}</span></div>
+                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">VAT</span><span className="font-semibold">{formatCurrency(taxAmount)}</span></div>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <motion.span
                         className="font-bold text-paydine-elegant-gray text-lg"
@@ -6678,6 +6761,7 @@ function MenuContent() {
   const [tableInfo, setTableInfoState] = useState<any>(null)
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
   const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
+  const [toolbarPricingSnapshot, setToolbarPricingSnapshot] = useState<PmdToolbarPricingSnapshot | null>(null)
   const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
   const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
   const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
@@ -7060,17 +7144,29 @@ useEffect(() => {
 
   // Calculate total items and price
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
-  const totalPrice = items.reduce((acc, item) => acc + (item.item.price || 0) * item.quantity, 0)
+  const rawSubtotalPrice = items.reduce((acc, item) => acc + (item.item.price || 0) * item.quantity, 0)
+  const rawTaxAmount = taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1
+    ? rawSubtotalPrice * (taxSettings.percentage / 100)
+    : 0
+  const toolbarSubtotalPrice = toolbarPricingSnapshot?.subtotal ?? rawSubtotalPrice
+  const toolbarTaxAmount = toolbarPricingSnapshot?.tax ?? rawTaxAmount
+  const totalPrice = toolbarPricingSnapshot?.total ?? (rawSubtotalPrice + rawTaxAmount)
 
   // Show arrow if at least one item and not collapsed
+  useEffect(() => {
+    if (items.length === 0 && toolbarPricingSnapshot) setToolbarPricingSnapshot(null)
+  }, [items.length, toolbarPricingSnapshot])
+
   const showBillArrow = totalItems > 0 && toolbarState !== "collapsed"
 
   // Get display items for the toolbar
   const getDisplayItems = () => {
+    const pricedItems = toolbarPricingSnapshot?.items ?? items
     if (toolbarState === "preview" && lastInteractedItem) {
-      return [lastInteractedItem]
+      const pricedLast = pricedItems.find((candidate: any) => candidate.item.id === lastInteractedItem.item.id)
+      return [pricedLast || lastInteractedItem]
     }
-    return items
+    return pricedItems
   }
 
   // Update last interacted item whenever an item is added or selected
@@ -7274,6 +7370,8 @@ useEffect(() => {
         showBillArrow={showBillArrow}
         items={getDisplayItems()}
         totalPrice={totalPrice}
+        subtotalPrice={toolbarSubtotalPrice}
+        taxAmount={toolbarTaxAmount}
         t={t}
         onCartClick={handleCartClick}
         onWaiterClick={tableIdString ? handleWaiterClick : undefined}
@@ -7302,6 +7400,7 @@ useEffect(() => {
         initialSubmittedOrder={activeSubmittedOrder}
         initialCheckoutStep={paymentModalInitialStep}
         preferPersonalReview={paymentModalPreferPersonalReview}
+        onCartPricingUpdate={setToolbarPricingSnapshot}
         onOpenOrderUpdate={(snapshot) => {
           if (snapshot?.status === "draft" || snapshot?.draft_id) {
             setSharedTableOrder(snapshot)

@@ -8131,7 +8131,7 @@ Route::group([
                         'order_id' => (int)$lockedOrder->order_id,
                         'payment_method' => $normalizedPaymentMethod,
                         'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : null,
-                        'amount' => $calculatedAmount,
+                        'amount' => $payableAmount,
                         'settlement_status' => $newSettlementStatus,
                         'payer_label' => $request->filled('payer_label') ? (string)$request->payer_label : null,
                         'paid_at' => now(),
@@ -8192,7 +8192,10 @@ Route::group([
         $newSettlementStatus = $result['newSettlementStatus'];
         $newSettled = $result['newSettled'];
         $remaining = $result['remaining'];
-        $paymentAmount = $result['calculatedAmount'];
+        $paymentAmount = round((float)($result['payableAmount'] ?? $result['calculatedAmount']), 4);
+        $settlementItemAmount = round((float)$result['calculatedAmount'], 4);
+        $tipAmount = round((float)($result['tipAmount'] ?? 0), 4);
+        $couponDiscount = round((float)($result['couponDiscount'] ?? 0), 4);
         $allocationRows = $result['allocationRows'];
         $alreadyPaid = (bool)($result['alreadyPaid'] ?? false);
         $shouldPrintReceipt = !$alreadyPaid && $previousSettlementStatus !== 'paid' && $newSettlementStatus === 'paid';
@@ -8289,6 +8292,9 @@ Route::group([
             'settled_amount' => $newSettled,
             'remaining_amount' => $remaining,
             'paid_amount' => $paymentAmount,
+            'settled_item_amount' => $settlementItemAmount,
+            'tip_amount' => $tipAmount,
+            'coupon_discount' => $couponDiscount,
             'allocations' => $allocationRows,
             'already_paid' => false,
             'should_print_receipt' => $shouldPrintReceipt,
