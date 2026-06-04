@@ -106,7 +106,7 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
  onClick={handleAddToCart}
  aria-label="Add item"
  >
- <Plus className="h-5 w-5" style={{ color: "var(--theme-text-primary)" }} />
+ <Plus data-pmd-menu-plus-white="1" className="h-5 w-5" strokeWidth={3.5} style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
  <span className="sr-only">Add to cart</span>
  </Button>
  </ActionTooltip>

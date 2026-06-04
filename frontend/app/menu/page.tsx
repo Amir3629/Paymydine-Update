@@ -586,22 +586,31 @@ type SplitBillItem = {
 }
 
 // Component for individual order item with expandable options
+// PMD_QUANTITY_ICON_SOURCE_WHITE_FINAL_20260601
+// PMD_QTY_SVG_REPLACED_WITH_TEXT_SYMBOLS_20260601
 function OrderItemWithOptions({ 
   cartItem, 
   addToCart, 
   t,
-  onOptionsChange
+  onOptionsChange,
+  optionKey,
+  unitLabel
 }: { 
   cartItem: CartItem; 
   addToCart: (item: MenuItem, quantity: number) => void;
   t: (key: TranslationKey) => string;
-  onOptionsChange?: (itemId: number, options: Record<string, string>) => void;
+  onOptionsChange?: (itemKey: string | number, options: Record<string, string>) => void;
+  optionKey?: string;
+  unitLabel?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
 
   // Use real backend options from the menu item
   const itemOptions = cartItem.item.options || []
+  const effectiveOptionKey = optionKey || String(cartItem.item.id)
+  const itemDisplayName = cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name
+  const displayLabel = unitLabel || `${cartItem.quantity}x ${itemDisplayName}`
 
   const handleOptionChange = (optionType: string, optionId: string) => {
     const newOptions = {
@@ -612,7 +621,7 @@ function OrderItemWithOptions({
     
     // Notify parent component of option changes
     if (onOptionsChange) {
-      onOptionsChange(cartItem.item.id, newOptions)
+      onOptionsChange(effectiveOptionKey, newOptions)
     }
   }
 
@@ -644,7 +653,7 @@ function OrderItemWithOptions({
       {/* Main item row */}
       <div className="flex justify-between items-center text-xs p-2">
         <span className="text-paydine-elegant-gray min-w-[120px]">
-          {cartItem.quantity}x {cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name}
+          {displayLabel}
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -654,7 +663,7 @@ function OrderItemWithOptions({
             }}
             className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Minus className="w-3 h-3" />
+            <span data-pmd-force-qty-symbol="minus" aria-hidden="true" style={{ color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", fontWeight: 900, fontSize: "22px", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", transform: "translateY(-1px)" }}>−</span>
           </button>
           <span className="text-paydine-elegant-gray font-semibold min-w-[48px] text-center">
             {formatCurrency(getTotalPrice())}
@@ -666,7 +675,7 @@ function OrderItemWithOptions({
             }}
             className="quantity-btn pmd-v2-action-circle w-5 h-5 flex items-center justify-center transition-colors"
           >
-            <Plus className="w-3 h-3" strokeWidth={3.5} />
+            <span data-pmd-force-qty-symbol="plus" aria-hidden="true" style={{ color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", fontWeight: 900, fontSize: "22px", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", transform: "translateY(-1px)" }}>+</span>
           </button>
         </div>
       </div>
@@ -675,16 +684,26 @@ function OrderItemWithOptions({
       {itemOptions.length > 0 && (
         <div className="border-t border-paydine-champagne/10">
           <button
-                    data-pmd-split-method-btn="equal"
-                    data-pmd-active={splitMethod === "equal" ? "1" : "0"} data-pmd-table-order-action="1"
+            type="button"
+            data-pmd-customize-options-btn="1"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between p-2 text-xs text-paydine-elegant-gray hover:bg-paydine-champagne/5 transition-colors pmd-table-order-action-button"
+            className="w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors"
+            style={{
+              background: "rgba(255, 255, 255, 0.62)",
+              backgroundColor: "rgba(255, 255, 255, 0.62)",
+              borderColor: "rgba(216, 185, 130, 0.45)",
+              color: "#374151",
+              WebkitTextFillColor: "#374151",
+              boxShadow: "none",
+              textShadow: "none",
+            }}
           >
             <span>Customize Options</span>
-            <ChevronDown 
+            <ChevronDown
               className={`w-3 h-3 transition-transform duration-200 ${
                 isExpanded ? 'rotate-180' : ''
-              }`} 
+              }`}
+              style={{ color: "#374151", stroke: "#374151" }}
             />
           </button>
           
@@ -707,7 +726,7 @@ function OrderItemWithOptions({
                         <label key={value.id} className="flex items-center gap-2 text-xs cursor-pointer">
                           <input
                             type={option.display_type === 'radio' ? 'radio' : 'checkbox'}
-                            name={`${option.name}-${cartItem.item.id}`}
+                            name={`${option.name}-${effectiveOptionKey}`}
                             value={value.id.toString()}
                             checked={selectedOptions[option.name] === value.id.toString()}
                             onChange={() => {
@@ -750,7 +769,129 @@ function OrderItemWithOptions({
   )
 }
 
+// PMD_FORCE_ALL_PLUS_MINUS_SOURCE_WHITE_20260601
 function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate }: PaymentModalProps) {
+
+  // PMD_QUANTITY_ICON_FIRST_PAINT_FIX_20260601
+  // Prevent checkout quantity plus/minus icons from flashing black before legacy runtime styles settle.
+  useEffect(() => {
+    if (typeof document === "undefined") return
+
+    const fixQuantityIcons = () => {
+      document
+        .querySelectorAll('[role="dialog"] button svg.lucide-plus, [role="dialog"] button svg.lucide-minus, [data-pmd-gold-checkout-modal] button svg.lucide-plus, [data-pmd-gold-checkout-modal] button svg.lucide-minus')
+        .forEach((svg) => {
+          const nodes = [svg, ...Array.from(svg.querySelectorAll("*"))]
+          nodes.forEach((node) => {
+            if (!(node instanceof HTMLElement) && !(node instanceof SVGElement)) return
+            ;(node as HTMLElement | SVGElement).style.setProperty("color", "#FFFFFF", "important")
+            ;(node as HTMLElement | SVGElement).style.setProperty("stroke", "#FFFFFF", "important")
+            ;(node as HTMLElement | SVGElement).style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
+          })
+        })
+    }
+
+    fixQuantityIcons()
+    const timer = window.setInterval(fixQuantityIcons, 250)
+
+    const observer = new MutationObserver(fixQuantityIcons)
+    if (document.body) {
+      observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "style"] })
+    }
+
+    return () => {
+      window.clearInterval(timer)
+      observer.disconnect()
+    }
+  }, [])
+
+
+  // PMD_HIDE_PAYMENT_BASE_AMOUNT_DUPLICATE_20260601
+  // Hide duplicate "Base amount" row in payment UI when Payable total is already shown.
+  useEffect(() => {
+    if (typeof document === "undefined") return
+
+    const hideBaseAmountRows = () => {
+      const roots = document.querySelectorAll("[data-pmd-checkout-scroll], [role='dialog']")
+      roots.forEach((root) => {
+        root.querySelectorAll("span, p, div").forEach((node) => {
+          const text = (node.textContent || "").trim()
+          if (text !== "Base amount") return
+
+          const row =
+            node.closest("div.flex") ||
+            node.closest("div[class*='justify-between']") ||
+            node.parentElement
+
+          if (row instanceof HTMLElement) {
+            row.style.setProperty("display", "none", "important")
+          }
+        })
+      })
+    }
+
+    hideBaseAmountRows()
+
+    const timer = window.setInterval(hideBaseAmountRows, 350)
+    const observer = new MutationObserver(hideBaseAmountRows)
+
+    if (document.body) {
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      })
+    }
+
+    return () => {
+      window.clearInterval(timer)
+      observer.disconnect()
+    }
+  }, [])
+
+
+  // PMD_SPLIT_METHOD_RUNTIME_TEXT_FIX_20260601
+  // Old frontend has runtime/theme rules that override split method button text.
+  // This exact scoped fixer wins by setting active split text with inline !important.
+  useEffect(() => {
+    if (typeof document === "undefined") return
+
+    const applySplitMethodTextFix = () => {
+      document
+        .querySelectorAll('button[data-pmd-split-method-real]')
+        .forEach((button) => {
+          const active = button.getAttribute("data-pmd-active") === "1"
+          const color = active ? "#FFFFFF" : "#10201D"
+          const nodes = [button, ...Array.from(button.querySelectorAll("*"))]
+
+          nodes.forEach((node) => {
+            if (!(node instanceof HTMLElement)) return
+            node.style.setProperty("color", color, "important")
+            node.style.setProperty("-webkit-text-fill-color", color, "important")
+            node.style.setProperty("text-decoration-color", color, "important")
+          })
+        })
+    }
+
+    applySplitMethodTextFix()
+
+    const timer = window.setInterval(applySplitMethodTextFix, 150)
+
+    const observer = new MutationObserver(applySplitMethodTextFix)
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-pmd-active", "class", "style"],
+    })
+
+    return () => {
+      window.clearInterval(timer)
+      observer.disconnect()
+    }
+  }, [])
+
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
@@ -778,7 +919,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [paidSplitPeople, setPaidSplitPeople] = useState<Record<string, boolean>>({})
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState("")
-  const [selectedOptions, setSelectedOptions] = useState<Record<number, Record<string, string>>>({})
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, Record<string, string>>>({})
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
   const [splitPaymentTips, setSplitPaymentTips] = useState<Record<string, { percentage: number; custom: string }>>({})
@@ -830,7 +971,44 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
     initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
   )
-  const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  
+
+  // PMD_ORDER_STATUS_PARENT_JUMP_LOCK_20260603_SAFE
+  // Diagnostic showed orderStatusCard + ETA circle jump together by ~239px.
+  // Their own size/top stayed stable, so the parent scroll/layout wrapper is moving.
+  // useLayoutEffect runs before paint and locks the checkout scroll parent immediately.
+  useLayoutEffect(() => {
+    if (!isOpen || checkoutStep !== "submitted") return;
+
+    const lockOrderStatusParent = () => {
+      const scrollRoots = document.querySelectorAll<HTMLElement>('[data-pmd-checkout-scroll="1"]');
+
+      scrollRoots.forEach((root) => {
+        root.dataset.pmdOrderStatusStable = "1";
+        root.style.scrollBehavior = "auto";
+        root.style.overflowAnchor = "none";
+        root.style.alignItems = "stretch";
+        root.style.justifyContent = "flex-start";
+
+        if (root.scrollTop !== 0) {
+          root.scrollTop = 0;
+        }
+      });
+
+      const card = document.querySelector<HTMLElement>('[data-pmd-order-status-card="1"]');
+      if (card) {
+        card.dataset.pmdOrderStatusStableCard = "1";
+      }
+
+      const eta = document.querySelector<HTMLElement>('[data-pmd-floating-eta-circle="1"]');
+      if (eta) {
+        eta.dataset.pmdEtaStable = "1";
+      }
+    };
+
+    lockOrderStatusParent();
+  }, [isOpen, checkoutStep]);
+const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
   const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
   const hasPersonalItems = allItems.length > 0
   const [draftLoading, setDraftLoading] = useState(false)
@@ -978,12 +1156,41 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   }, [selectedPaymentMethod, methodByCode])
 
   // Handle option changes from OrderItemWithOptions
-  const handleOptionsChange = (itemId: number, options: Record<string, string>) => {
+  const handleOptionsChange = (itemKey: string | number, options: Record<string, string>) => {
     setSelectedOptions(prev => ({
       ...prev,
-      [itemId]: options
+      [String(itemKey)]: options
     }))
   }
+
+  // PMD_UNIT_OPTIONS_CHECKOUT_REVIEW_20260604_V4
+  // Option-enabled items must be configurable per unit in checkout review.
+  // Example: 4x Burger with sides becomes Burger #1..#4.
+  // Simple items without options stay grouped, e.g. 3x Cola.
+  const personalReviewItems = useMemo(() => {
+    return allItems.flatMap((cartItem, cartIndex) => {
+      const quantity = Math.max(1, Number(cartItem.quantity || 1))
+      const hasOptions = Array.isArray((cartItem.item as any)?.options) && (cartItem.item as any).options.length > 0
+      const itemId = String((cartItem.item as any)?.id || `item-${cartIndex}`)
+      const baseName = cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name
+
+      if (!hasOptions) {
+        return [{
+          ...cartItem,
+          __pmdOptionKey: itemId,
+          __pmdUnitLabel: undefined,
+        }]
+      }
+
+      return Array.from({ length: quantity }, (_, unitIndex) => ({
+        ...cartItem,
+        quantity: 1,
+        __pmdOptionKey: `${itemId}-${cartIndex}-${unitIndex}`,
+        __pmdUnitLabel: `${baseName} #${unitIndex + 1}`,
+        __pmdSourceQuantity: quantity,
+      }))
+    })
+  }, [allItems, t])
 
   // Flatten allItems into individual item instances for split bill
   const allItemInstances = allItems.flatMap((cartItem, cartIndex) =>
@@ -1001,10 +1208,11 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   // For split bill, use selected individual items; otherwise, use all items
   const itemsToPay = isSplitting
     ? Object.values(selectedItems)
-    : allItems.map(cartItem => ({
+    : personalReviewItems.map((cartItem: any) => ({
         item: cartItem.item,
         price: adjustPriceForVAT(cartItem.item.price || 0),
-        quantity: cartItem.quantity
+        quantity: Number(cartItem.quantity || 1),
+        optionKey: String(cartItem.__pmdOptionKey || cartItem.item.id)
       }))
 
   const subtotal = useMemo(
@@ -1012,7 +1220,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
       let itemTotal = inst.price * (inst.quantity || 1)
       
       // Add option prices (with VAT adjustment if needed)
-      const itemOptions = selectedOptions[inst.item.id] || {}
+      const itemOptions = selectedOptions[String((inst as any).optionKey || inst.item.id)] || {}
       if (Object.keys(itemOptions).length > 0) {
         const menuItem = allItems.find(cartItem => cartItem.item.id === inst.item.id)
         if (menuItem && menuItem.item.options) {
@@ -2463,18 +2671,58 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     return () => { window.clearInterval(timer); window.removeEventListener("focus", onFocus) }
   }, [isOpen, tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code])
 
-  const buildPersonalDraftItems = () => allItems.map((cartItem) => ({
-    menu_id: Number((cartItem.item as any)?.id || (cartItem.item as any)?.menu_id || 0),
-    name: String((cartItem.item as any)?.name || (cartItem.item as any)?.title || "Item"),
-    quantity: Number(cartItem.quantity || 1),
-    price: Number(adjustPriceForVAT(cartItem.item.price || 0)),
-    subtotal: Number(adjustPriceForVAT(cartItem.item.price || 0)) * Number(cartItem.quantity || 1),
-    options: Object.fromEntries(
-      Object.entries(selectedOptions[(cartItem.item as any)?.id] || {})
-        .map(([key, value]) => [String(key), String(value ?? "")])
-        .filter(([, value]) => value !== "")
-    ),
-  })).filter((item) => item.menu_id > 0 && item.quantity > 0)
+  // PMD_PRICED_OPTIONS_DRAFT_PAYLOAD_20260604
+  // Send option-enabled unit rows with priced options to backend.
+  // Backend remains source of truth for VAT/order totals, but it needs the per-line option subtotal.
+  const buildPersonalDraftItems = () => personalReviewItems.map((cartItem: any) => {
+    const menuId = Number((cartItem.item as any)?.id || (cartItem.item as any)?.menu_id || 0)
+    const baseName = String((cartItem.item as any)?.name || (cartItem.item as any)?.title || "Item")
+    const quantity = Number(cartItem.quantity || 1)
+    const optionKey = String((cartItem as any).__pmdOptionKey || (cartItem.item as any)?.id)
+    const selectedForUnit = selectedOptions[optionKey] || {}
+    const optionGroups = Array.isArray((cartItem.item as any)?.options) ? (cartItem.item as any).options : []
+
+    const optionDetails = Object.entries(selectedForUnit)
+      .map(([groupName, selectedValueId]) => {
+        const group = optionGroups.find((opt: any) =>
+          String(opt?.name || "") === String(groupName) ||
+          String(opt?.id || "") === String(groupName)
+        )
+        const value = (Array.isArray(group?.values) ? group.values : []).find((val: any) =>
+          String(val?.id) === String(selectedValueId)
+        )
+        if (!group || !value) return null
+
+        return {
+          group: String(group?.name || groupName),
+          option_id: String(group?.id || ""),
+          option_value_id: String(value?.id || selectedValueId),
+          value: String(value?.value || value?.name || selectedValueId),
+          price: Number(adjustPriceForVAT(Number(value?.price || 0))),
+        }
+      })
+      .filter(Boolean) as Array<{ group: string; option_id: string; option_value_id: string; value: string; price: number }>
+
+    const optionLabel = optionDetails.map((option) => option.value).filter(Boolean).join(", ")
+    const unitBasePrice = Number(adjustPriceForVAT(cartItem.item.price || 0))
+    const unitOptionPrice = optionDetails.reduce((sum, option) => sum + Number(option.price || 0), 0)
+    const unitPrice = Number((unitBasePrice + unitOptionPrice).toFixed(4))
+    const lineSubtotal = Number((unitPrice * quantity).toFixed(4))
+
+    return {
+      menu_id: menuId,
+      name: optionLabel ? `${baseName} — ${optionLabel}` : baseName,
+      base_name: baseName,
+      quantity,
+      price: unitPrice,
+      base_price: Number(unitBasePrice.toFixed(4)),
+      option_total: Number((unitOptionPrice * quantity).toFixed(4)),
+      subtotal: lineSubtotal,
+      options: Object.fromEntries(optionDetails.map((option) => [option.group, option.option_value_id])),
+      option_details: optionDetails,
+      option_summary: optionLabel,
+    }
+  }).filter((item) => item.menu_id > 0 && item.quantity > 0)
 
   const handleConfirmMyItems = async () => {
     const draftItems = buildPersonalDraftItems()
@@ -2523,6 +2771,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
         payment: result.payment || "qr_pay_later",
       }
       setSubmittedSnapshot(submittedTableSnapshot)
+            // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: clear the old Sending state before showing Order Status.
+      setSubmitDraftLoading(false)
       setCheckoutStep("submitted")
       console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
       toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
@@ -2626,7 +2876,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
           price: Number.isFinite(priceCandidate) && priceCandidate >= 0 ? priceCandidate : 0,
           special_instructions: "",
           options: Object.fromEntries(
-            Object.entries(selectedOptions[(item as any)?.item?.id] || {})
+            Object.entries(selectedOptions[String((item as any)?.optionKey || (item as any)?.item?.id)] || {})
               .map(([key, value]) => [String(key), String(value ?? "")])
               .filter(([, value]) => value !== "")
           ),
@@ -4000,6 +4250,49 @@ useLayoutEffect(() => {
   }
 }, [isOpen, checkoutStep])
 
+
+  // PMD_SUBMITTED_TABLE_DRAFT_SHOULD_SHOW_STATUS
+  const isSubmittedTableDraftForStatus = Boolean(
+    tableDraft?.order_id ||
+    tableDraft?.orderId ||
+    ["submitted", "submitted_unpaid", "partially_paid", "paid"].includes(String(tableDraft?.status || "").toLowerCase())
+  )
+
+
+  // PMD_DIRECT_ORDER_STATUS_AFTER_SEND_20260603
+  useEffect(() => {
+    if (!isOpen) return
+    if (checkoutStep !== "review") return
+    if (hasPersonalItems || preferPersonalReview) return
+    if (!isSubmittedTableDraftForStatus) return
+
+    setSubmittedSnapshot((prev: any) => prev || {
+      orderId: tableDraft?.order_id ?? tableDraft?.orderId ?? null,
+      orderNumber: tableDraft?.orderNumber ?? tableDraft?.order_id ?? tableDraft?.orderId ?? null,
+      total: tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
+      orderTotal: tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
+      remainingAmount: tableDraft?.settlement?.remainingAmount ?? tableDraft?.totals?.remainingAmount ?? tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
+      submittedItems: tableDraft?.items || [],
+      tableNumber: tableDraft?.table_no || tableDraft?.table_id || tableInfo?.table_no || tableInfo?.table_id || null,
+      payment: tableDraft?.payment || "qr_pay_later",
+      paymentStatus: tableDraft?.paymentStatus || "unpaid",
+      status: tableDraft?.status || "submitted_unpaid",
+      createdAt: Date.now(),
+    })
+
+    setSubmitDraftLoading(false)
+    setCheckoutStep("submitted")
+  }, [
+    isOpen,
+    checkoutStep,
+    hasPersonalItems,
+    preferPersonalReview,
+    isSubmittedTableDraftForStatus,
+    tableDraft,
+    tableInfo?.table_no,
+    tableInfo?.table_id,
+  ])
+
 const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview
     ? "Table Order"
     : checkoutTitle[checkoutStep]
@@ -4364,14 +4657,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
 
           <AnimatePresence mode="wait" initial={false}>
-          {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview && (
-            <motion.div key="table-order-draft" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs muted">Review the items sent for this table.</p>
-                </div>
-                <span className="text-xs font-semibold muted">{tableDisplayName}</span>
-              </div>
+          {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !isSubmittedTableDraftForStatus && !hasPersonalItems && !preferPersonalReview && (
+            <motion.div key="table-order-draft" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+
               <div className="space-y-3 max-h-56 overflow-y-auto">
                 {(tableDraft.groups && tableDraft.groups.length > 0 ? tableDraft.groups : [{ guest_session_id: null, items: tableDraft.items || [], subtotal: tableDraft.totals?.subtotal || 0 }]).map((group: any, groupIndex: number) => (
                   <div key={`${group.guest_session_id || 'table'}-${groupIndex}`} className="rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)" }}>
@@ -4398,7 +4686,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </div>
               {tableDraft.status === "draft" ? (
                 <div className="space-y-3" data-pmd-clean-table-actions="1">
-                  <p className="text-xs font-semibold muted">Ready to send?</p>
+                  <p className="text-xs font-semibold muted">{tableDisplayName}</p>
 
                   <div className="grid grid-cols-2 gap-3">
                     <motion.button
@@ -4453,7 +4741,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             </motion.div>
           )}
 
-{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3"><h3 className="text-sm font-semibold">Your items</h3><div className="space-y-2 max-h-56 overflow-y-auto">{allItems.map((cartItem, idx) => (<OrderItemWithOptions key={`${cartItem.item.id}-${idx}`} cartItem={cartItem} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3">{/* PMD_REMOVED_YOUR_ITEMS_TITLE_20260604 */}<div className="space-y-2 max-h-56 overflow-y-auto">{personalReviewItems.map((cartItem: any, idx) => (<OrderItemWithOptions key={String((cartItem as any).__pmdOptionKey || `${cartItem.item.id}-${idx}`)} cartItem={cartItem} optionKey={String((cartItem as any).__pmdOptionKey || cartItem.item.id)} unitLabel={(cartItem as any).__pmdUnitLabel} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
           {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
@@ -4529,12 +4817,26 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <button
                       data-pmd-split-method-real={method}
                       data-pmd-active={splitMethod === method ? "1" : "0"}
+                      data-pmd-split-method-polished="1"
                       key={method}
                       type="button"
                       onClick={() => chooseSplitMethod(method)}
-                      className={cn("rounded-full border px-2 py-1.5 text-[11px] font-semibold transition", splitMethod === method ? "text-white shadow-sm" : "")}
+                      className={cn(
+                        "group rounded-full border px-2 py-1.5 text-[11px] font-semibold transition-colors duration-150 focus:outline-none",
+                        splitMethod === method ? "text-white" : ""
+                      )}
+                      style={{
+                        boxShadow: "none",
+                        outline: "none",
+                      }}
                     >
-                      {label}
+                      <span
+                        data-pmd-split-label="1"
+                        className="inline-block transition-transform duration-150 ease-out"
+                        style={{ willChange: "transform" }}
+                      >
+                        {label === "By order items" ? <>By order<br />items</> : label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -4543,14 +4845,48 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               {checkoutStep !== "split-review" && (
                 <div className="surface-sub rounded-3xl p-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <span className="text-sm font-semibold">People</span>
-                      <p className="text-[11px] muted">Split across {splitGuestCount} guests{suggestedSplitGuestCount > 2 ? ` · ${suggestedSplitGuestCount} detected` : ""}.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button type="button" aria-label="Remove guest" disabled={splitGuestCount <= 2} onClick={removeSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full border px-2 text-xs font-semibold disabled:opacity-45" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}><Minus className="h-3.5 w-3.5" /> Remove</button>
-                      <span className="min-w-8 rounded-full px-2 py-1 text-center text-sm font-semibold" style={{ background: "color-mix(in srgb, #b88940 12%, var(--theme-surface) 88%)", color: "var(--theme-text-primary)" }}>{splitGuestCount}</span>
-                      <button type="button" aria-label="Add guest" disabled={splitGuestCount >= 10} onClick={addSplitGuest} className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold text-white disabled:opacity-55" style={{ background: "#062F2A", color: "#FFFFFF" }}><Plus className="h-3.5 w-3.5" /> Add guest</button>
+                    <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-sm font-semibold">People</span>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <p className="text-[11px] muted">Split across {splitGuestCount} guests{suggestedSplitGuestCount > 2 ? ` · ${suggestedSplitGuestCount} detected` : ""}.</p>
+
+                          <div
+                            data-pmd-split-guest-stepper="1"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-full"
+                          >
+                            <button
+                              type="button"
+                              aria-label="Remove guest"
+                              disabled={splitGuestCount <= 2}
+                              onClick={removeSplitGuest}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-35"
+                              style={{ background: "#062F2A", color: "#FFFFFF" }}
+                            >
+                              <Minus className="h-3.5 w-3.5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
+                            </button>
+
+                            <span
+                              className="min-w-5 text-center text-sm font-semibold"
+                              style={{ color: "var(--theme-text-primary)" }}
+                              aria-label={`${splitGuestCount} guests`}
+                            >
+                              {splitGuestCount}
+                            </span>
+
+                            <button
+                              type="button"
+                              aria-label="Add guest"
+                              disabled={splitGuestCount >= 10}
+                              onClick={addSplitGuest}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full disabled:opacity-35"
+                              style={{ background: "#062F2A", color: "#FFFFFF" }}
+                            >
+                              <Plus className="h-3.5 w-3.5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -4602,9 +4938,54 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="space-y-3">
                       {sharePercents.slice(0, splitGuestCount).map((percent, idx) => (
                         <div key={idx} className="rounded-2xl p-3 shadow-sm" style={{ border: "1px solid color-mix(in srgb, var(--theme-border) 70%, transparent)", background: "var(--theme-surface)" }}>
-                          <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm">
                             <span className="flex min-w-0 items-center gap-2 font-medium"><span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{getSplitGuestAvatar(idx)}</span><span className="truncate">{splitGuestNames[idx]}</span></span>
-                            <span className="shrink-0 font-semibold">{percent}% · {formatCurrency(splitGrandTotal * (percent / 100))}</span>
+
+                            <div
+                              data-pmd-share-edit-group="1"
+                              className="flex shrink-0 items-center gap-1.5"
+                            >
+                              <label className="sr-only" htmlFor={`share-percent-${idx}`}>Share percentage for {splitGuestNames[idx]}</label>
+                              <div className="relative">
+                                <input
+                                  id={`share-percent-${idx}`}
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  step={1}
+                                  value={Math.round(Number(percent || 0))}
+                                  onChange={(event) => {
+                                    const nextPercent = Math.max(0, Math.min(100, Number(event.target.value || 0)))
+                                    setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? nextPercent : value))
+                                  }}
+                                  className="pmd-share-manual-input pmd-share-percent-input"
+                                  inputMode="decimal"
+                                />
+                                <span className="pmd-share-input-suffix">%</span>
+                              </div>
+
+                              <span className="pmd-share-dot">·</span>
+
+                              <label className="sr-only" htmlFor={`share-amount-${idx}`}>Share amount for {splitGuestNames[idx]}</label>
+                              <div className="relative">
+                                <span className="pmd-share-input-prefix">€</span>
+                                <input
+                                  id={`share-amount-${idx}`}
+                                  type="number"
+                                  min={0}
+                                  max={Math.max(0, Number(splitGrandTotal || 0))}
+                                  step={0.01}
+                                  value={(splitGrandTotal * (Number(percent || 0) / 100)).toFixed(2)}
+                                  onChange={(event) => {
+                                    const nextAmount = Math.max(0, Number(event.target.value || 0))
+                                    const nextPercent = Number(splitGrandTotal || 0) > 0 ? Math.max(0, Math.min(100, (nextAmount / Number(splitGrandTotal || 0)) * 100)) : 0
+                                    setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? Math.round(nextPercent) : value))
+                                  }}
+                                  className="pmd-share-manual-input pmd-share-amount-input"
+                                  inputMode="decimal"
+                                />
+                              </div>
+                            </div>
                           </div>
                           <input type="range" min="0" max="100" step="1" value={percent} onChange={(event) => setSharePercents((prev) => prev.map((value, valueIdx) => valueIdx === idx ? Number(event.target.value) : value))} className="pmd-split-slider w-full" />
                         </div>
@@ -4857,9 +5238,22 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       type="button"
                       whileHover={{ x: 2 }}
                       whileTap={{ scale: 0.985 }}
+                      data-pmd-split-bill-stable="1"
                       onClick={() => startSplitFlow("equal")}
-                      className="group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
-                      style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}
+                      className="pmd-split-bill-stable-button group flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                      style={{
+                        border: "1.5px solid #D8B982",
+                        borderColor: "#D8B982",
+                        color: "#10201D",
+                        WebkitTextFillColor: "#10201D",
+                        background: "rgba(255, 255, 255, 0.74)",
+                        backgroundColor: "rgba(255, 255, 255, 0.74)",
+                        backgroundImage: "none",
+                        boxShadow: "0 8px 18px rgba(17, 24, 39, 0.04)",
+                        textShadow: "none",
+                        opacity: 1,
+                        transition: "none",
+                      }}
                     >
                       <Users className="h-4 w-4 transition-transform group-hover:translate-x-0.5" style={{ color: "#b88940", stroke: "#b88940" }} /> Split bill
                     </motion.button>
@@ -4893,7 +5287,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       ))}
                     </div>
                     <Textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Optional comment for the restaurant" className="min-h-[78px] rounded-2xl" />
-                    <button type="button" onClick={() => toast({ title: "Thank you", description: "Your restaurant feedback has been noted on this device." })} className={modalPrimaryBtn} style={{ ...modalPrimaryBtnStyle, background: "#062F2A", color: "#FFFFFF" }}>Submit review</button>
+                    {/* PMD_REMOVED_SUBMIT_REVIEW_BUTTON_20260604 */}
                   </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <button type="button" disabled className="min-h-10 rounded-full border px-4 py-2 text-xs font-semibold opacity-60" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-muted)", background: "transparent" }}>Download business invoice</button>
@@ -5269,43 +5663,49 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
               ) : (
-                <Plus className="h-5 w-5" strokeWidth={3.5} />
+                <span data-pmd-menu-plus-text="1" aria-hidden="true" style={{ color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", fontWeight: 900, fontSize: "28px", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", transform: "translateY(-1px)" }}>+</span>
               )}
               <span className="sr-only">Add to cart</span>
             </button>
             {quantity > 0 && (
                 <button
-                  className="absolute -top-2 -right-2 text-base font-bold cursor-pointer hover:opacity-80 transition-opacity z-10 pmd-v2-action-circle"
-style={{
-  top: "-0.72rem",
-  right: "-0.72rem",
-  width: "1.55rem",
-  height: "1.55rem",
-  minWidth: "1.55rem",
-  minHeight: "1.55rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "9999px",
-  border: "1px solid var(--pmd-v2-action-border)",
-  background: "var(--pmd-v2-action-bg)",
-  color: "var(--pmd-v2-action-text)",
-  WebkitTextFillColor: "var(--pmd-v2-action-text)",
-  lineHeight: "1",
-  fontWeight: 800,
-  fontSize: "0.9rem",
-  padding: 0,
-  boxShadow: "none"
-}}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAdd(e);
-                }}
-                aria-label="Increase quantity"
-              data-pmd-item-card-plus="1"
-              >
-                +
-              </button>
+                  type="button"
+                  className="pmd-item-tiny-plus-stable"
+                  style={{
+                    position: "absolute",
+                    top: "-0.72rem",
+                    right: "-0.72rem",
+                    width: "1.55rem",
+                    height: "1.55rem",
+                    minWidth: "1.55rem",
+                    minHeight: "1.55rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "9999px",
+                    border: "1px solid #062F2A",
+                    background: "#062F2A",
+                    backgroundColor: "#062F2A",
+                    color: "#FFFFFF",
+                    WebkitTextFillColor: "#FFFFFF",
+                    lineHeight: 1,
+                    fontWeight: 900,
+                    fontSize: "0.95rem",
+                    padding: 0,
+                    boxShadow: "none",
+                    textShadow: "none",
+                    opacity: 1,
+                    zIndex: 10,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAdd(e);
+                  }}
+                  aria-label="Add one more item"
+                  data-pmd-stable-tiny-plus="1"
+                >
+                  <span aria-hidden="true" style={{ color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", fontWeight: 900, lineHeight: 1 }}>+</span>
+                </button>
             )}
           </div>
         </div>
@@ -5862,7 +6262,7 @@ function ExpandingBottomToolbar({
                   borderRadius: "9999px",
                 }}
               >
-                {orderCount > 9 ? "9+" : orderCount}
+                {orderCount}
               </span>
             )}
           </motion.button>

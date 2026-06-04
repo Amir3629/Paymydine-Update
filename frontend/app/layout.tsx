@@ -53,6 +53,36 @@ export default function RootLayout({
             // PMD cart badge force fix removed: menu badge is now single-owner.
               
               // FOOD ITEM MODAL CARD FIX - Ensures modal cards have correct theme colors
+              
+              // PMD_SKIP_CHECKOUT_RUNTIME_STYLE_HELPERS_20260602
+              // Old modal helpers repaint gold-luxury modal text to cornsilk/white.
+              // Skip checkout/payment/split/order-status nodes so step changes do not blink white.
+              function pmdSkipCheckoutRuntimeStyleNode(node) {
+                try {
+                  return !!(
+                    node &&
+                    node.closest &&
+                    node.closest(
+                      [
+                        '[data-pmd-checkout-scroll="1"]',
+                        '[data-pmd-gold-checkout-modal]',
+                        '[data-pmd-checkout-modal]',
+                        '[data-pmd-checkout-lockdown="1"]',
+                        '[data-pmd-checkout-v3="1"]',
+                        '[data-pmd-payment-adjustment-shell="1"]',
+                        '[data-pmd-payment-real-panel]',
+                        '[data-pmd-split-method-real]',
+                        '[data-pmd-split-method-polished="1"]',
+                        '[data-pmd-order-status-back="1"]',
+                        '[data-pmd-custom-tip-shows-selected-amount="1"]'
+                      ].join(',')
+                    )
+                  );
+                } catch (e) {
+                  return false;
+                }
+              }
+
               function fixModalCards() {
                 const theme = document.documentElement.getAttribute('data-theme') || 'clean-light';
                 const themeColors = {
@@ -75,6 +105,7 @@ export default function RootLayout({
                 modalCardSelectors.forEach(selector => {
                   const elements = document.querySelectorAll(selector);
                   elements.forEach(element => {
+                    if (pmdSkipCheckoutRuntimeStyleNode(element)) return;
                     const rect = element.getBoundingClientRect();
                     // Make sure it's actually a modal card (not too small, not too big)
                     if (rect.width > 200 && rect.width < 600 && rect.height > 100 && rect.height < 500) {
@@ -100,6 +131,7 @@ export default function RootLayout({
                 backdropSelectors.forEach(selector => {
                   const elements = document.querySelectorAll(selector);
                   elements.forEach(element => {
+                    if (pmdSkipCheckoutRuntimeStyleNode(element)) return;
                     const rect = element.getBoundingClientRect();
                     // Make sure it's the backdrop (full screen size)
                     if (rect.width > window.innerWidth * 0.9 && rect.height > window.innerHeight * 0.9) {
@@ -159,6 +191,7 @@ export default function RootLayout({
                 infoCardSelectors.forEach(selector => {
                   const elements = document.querySelectorAll(selector);
                   elements.forEach(element => {
+                    if (pmdSkipCheckoutRuntimeStyleNode(element)) return;
                     const rect = element.getBoundingClientRect();
                     // Make sure it's an info card (reasonable size for kcal/allergen cards)
                     if (rect.width > 80 && rect.width < 250 && rect.height > 60 && rect.height < 120) {
@@ -215,6 +248,7 @@ export default function RootLayout({
                 modalSelectors.forEach(selector => {
                   const modals = document.querySelectorAll(selector);
                   modals.forEach(modal => {
+                    if (pmdSkipCheckoutRuntimeStyleNode(modal)) return;
                     const rect = modal.getBoundingClientRect();
                     // Check if it's a waiter/note modal (reasonable size)
                     if (rect.width > 300 && rect.width < 600 && rect.height > 200 && rect.height < 500) {

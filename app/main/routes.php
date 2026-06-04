@@ -974,7 +974,28 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         $payload = json_decode((string)$draft->payload, true) ?: [];
                         $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
                         if (empty($items)) return;
-                        $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+                        // PMD_TABLE_ORDER_VAT_TOTALS_SUBMIT_SCOPE_20260604
+                        // Table-order submit source of truth:
+                        // item subtotal already includes priced options from frontend payload.
+                        // We add VAT rows here so Admin / Order Status / Payment / Split all read the same totals.
+                        $itemsSubtotal = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+
+                        $taxEnabled = (string)setting('tax_mode', '0') === '1';
+                        $taxPercent = max(0.0, round((float)setting('tax_percentage', 0), 4));
+                        $taxMenuPrice = (string)setting('tax_menu_price', '1'); // 0=included, 1=add at checkout
+
+                        $taxAmount = 0.0;
+                        $total = round($itemsSubtotal, 4);
+
+                        if ($taxEnabled && $taxPercent > 0) {
+                            if ($taxMenuPrice === '1') {
+                                $taxAmount = round($itemsSubtotal * ($taxPercent / 100), 4);
+                                $total = round($itemsSubtotal + $taxAmount, 4);
+                            } else {
+                                $taxAmount = round($itemsSubtotal - ($itemsSubtotal / (1 + ($taxPercent / 100))), 4);
+                                $total = round($itemsSubtotal, 4);
+                            }
+                        }
                         $orderNumber = (int)DB::table('orders')->max('order_id') + 1;
                         $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
                         $insert = [
@@ -1013,10 +1034,24 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
                             ]);
                         }
-                        DB::table('order_totals')->insert([
-                            ['order_id' => $orderId, 'code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($total, 4), 'priority' => 1, 'is_summable' => 1],
-                            ['order_id' => $orderId, 'code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0],
-                        ]);
+                        $totalsRows = [
+                            ['order_id' => $orderId, 'code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($itemsSubtotal, 4), 'priority' => 1, 'is_summable' => 1],
+                        ];
+
+                        if ($taxEnabled && $taxPercent > 0) {
+                            $totalsRows[] = [
+                                'order_id' => $orderId,
+                                'code' => 'tax',
+                                'title' => $taxMenuPrice === '1' ? 'VAT ('.$taxPercent.'%)' : 'VAT included ('.$taxPercent.'%)',
+                                'value' => round($taxAmount, 4),
+                                'priority' => 2,
+                                'is_summable' => $taxMenuPrice === '1' ? 1 : 0,
+                            ];
+                        }
+
+                        $totalsRows[] = ['order_id' => $orderId, 'code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0];
+
+                        DB::table('order_totals')->insert($totalsRows);
                         DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update(['status' => 'submitted', 'order_id' => $orderId, 'updated_at' => now()]);
                         try {
                             DB::table('notifications')->insert(['type' => 'order', 'title' => 'New table order #'.$orderId, 'table_id' => (int)($context['table_id'] ?: 0), 'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')), 'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id]), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
