@@ -34,6 +34,7 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
+
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,23 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+
+const tableOrderTotalByCode = (response: any, code: string): number => {
+  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
+  const found = rows.find((row: any) => String(row?.code || '').toLowerCase() === code.toLowerCase())
+  const amount = Number(found?.value ?? 0)
+  return Number.isFinite(amount) ? amount : 0
+}
+
+const tableOrderVatPercentage = (response: any, fallback = 0): number => {
+  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
+  const taxRow = rows.find((row: any) => String(row?.code || '').toLowerCase() === 'tax')
+  const title = String(taxRow?.title || '')
+  const match = title.match(/([0-9]+(?:\.[0-9]+)?)\s*%/)
+  const parsed = match ? Number(match[1]) : Number(fallback || 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
@@ -2645,6 +2663,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             status: latest.status,
             paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
             tableNumber: latest.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+            subtotal: Number(latest.totals?.subtotal ?? tableOrderTotalByCode(latest, 'subtotal') ?? 0),
+            vatAmount: Number(latest.totals?.tax ?? tableOrderTotalByCode(latest, 'tax') ?? 0),
+            vatPercentage: tableOrderVatPercentage(latest, taxSettings?.percentage || 0),
             total: latest.totals?.total || 0,
             orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
             settledAmount: latest.totals?.settledAmount || 0,
@@ -2762,6 +2783,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         status: result.status || "submitted_unpaid",
         paymentStatus: result.status === "paid" ? "paid" : "unpaid",
         tableNumber: result.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+        subtotal: Number(result.totals?.subtotal ?? tableOrderTotalByCode(result, 'subtotal') ?? 0),
+        vatAmount: Number(result.totals?.tax ?? tableOrderTotalByCode(result, 'tax') ?? 0),
+        vatPercentage: tableOrderVatPercentage(result, taxSettings?.percentage || 0),
         total: result.totals?.total || 0,
         orderTotal: result.totals?.orderTotal || result.totals?.total || 0,
         settledAmount: result.totals?.settledAmount || 0,
@@ -4269,8 +4293,11 @@ useLayoutEffect(() => {
     setSubmittedSnapshot((prev: any) => prev || {
       orderId: tableDraft?.order_id ?? tableDraft?.orderId ?? null,
       orderNumber: tableDraft?.orderNumber ?? tableDraft?.order_id ?? tableDraft?.orderId ?? null,
+      subtotal: Number(tableDraft?.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0),
+      vatAmount: Number(tableDraft?.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0),
+      vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0),
       total: tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
-      orderTotal: tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
+      orderTotal: tableDraft?.totals?.orderTotal ?? tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
       remainingAmount: tableDraft?.settlement?.remainingAmount ?? tableDraft?.totals?.remainingAmount ?? tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
       submittedItems: tableDraft?.items || [],
       tableNumber: tableDraft?.table_no || tableDraft?.table_id || tableInfo?.table_no || tableInfo?.table_id || null,
@@ -4680,9 +4707,22 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 ))}
               </div>
+              <p className="text-xs muted">Table Order includes all confirmed items for this table.</p>
+              {Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0) > 0 && (
+                <div className="space-y-1 border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
+                  <div className="flex items-center justify-between">
+                    <span className="muted">Subtotal</span>
+                    <span className="font-semibold">{formatCurrency(Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0))}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="muted">VAT {tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0)}%</span>
+                    <span className="font-semibold">{formatCurrency(Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0))}</span>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
                 <span className="font-semibold">Order Total</span>
-                <span className="text-base font-bold">{formatCurrency(Number(tableDraft.totals?.total || 0))}</span>
+                <span className="text-base font-bold">{formatCurrency(Number(tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0))}</span>
               </div>
               {tableDraft.status === "draft" ? (
                 <div className="space-y-3" data-pmd-clean-table-actions="1">
@@ -4734,7 +4774,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, subtotal: Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0), vatAmount: Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0), vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0), total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0, remainingAmount: tableDraft.totals?.remainingAmount || tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
                   View order status
                 </button>
               ) : null}
@@ -5161,7 +5201,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <span className="font-semibold text-[15px]">{submittedSnapshot.orderId}</span>
                   </div>
                 )}
-                {taxSettings.enabled && taxSettings.menuPrice === 1 && Number(submittedSnapshot?.vatAmount ?? 0) > 0 && (
+                {Number(submittedSnapshot?.vatAmount ?? 0) > 0 && (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="muted font-medium">Subtotal:</span>
@@ -6673,6 +6713,9 @@ function MenuContent() {
               status: latest.status,
               paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
               tableNumber: latest.table_no || tableInfo?.table_no || null,
+              subtotal: Number(latest.totals?.subtotal ?? tableOrderTotalByCode(latest, 'subtotal') ?? 0),
+              vatAmount: Number(latest.totals?.tax ?? tableOrderTotalByCode(latest, 'tax') ?? 0),
+              vatPercentage: tableOrderVatPercentage(latest, 0),
               total: latest.totals?.total || 0,
               orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
               remainingAmount: latest.totals?.remainingAmount || 0,

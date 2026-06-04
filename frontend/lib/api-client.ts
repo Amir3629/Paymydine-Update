@@ -142,7 +142,8 @@ export type TableOrderDraftResponse = {
   table_name?: string | null;
   items?: TableOrderDraftItem[];
   groups?: Array<{ guest_session_id: string | null; items: TableOrderDraftItem[]; subtotal: number }>;
-  totals?: { subtotal: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
+  totals?: { subtotal: number; tax?: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
+  order_totals?: Array<{ code: string; title: string; value: number; priority?: number; is_summable?: number }>;
   settlement?: { orderTotal: number; settledAmount: number; remainingAmount: number; settlementStatus: string };
   payment?: string | null;
   status_name?: string | null;

@@ -22,13 +22,30 @@ if (!function_exists('pmd_table_order_tax_settings')) {
 
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                $hasSerializedColumn = \Illuminate\Support\Facades\Schema::hasColumn('settings', 'serialized');
+                $columns = $hasSerializedColumn ? ['item', 'value', 'serialized'] : ['item', 'value'];
                 $rows = \Illuminate\Support\Facades\DB::table('settings')
                     ->whereIn('item', ['tax_mode', 'tax_enabled', 'tax_percentage', 'tax_menu_price'])
-                    ->pluck('value', 'item')
-                    ->all();
-                $settings['tax_mode'] = (string)($rows['tax_mode'] ?? $rows['tax_enabled'] ?? $settings['tax_mode']);
-                $settings['tax_percentage'] = (string)($rows['tax_percentage'] ?? $settings['tax_percentage']);
-                $settings['tax_menu_price'] = (string)($rows['tax_menu_price'] ?? $settings['tax_menu_price']);
+                    ->get($columns);
+
+                $values = [];
+                foreach ($rows as $row) {
+                    $value = $row->value;
+                    if ($hasSerializedColumn && (int)($row->serialized ?? 0) === 1 && is_string($value)) {
+                        $decoded = @unserialize($value);
+                        if ($decoded !== false || $value === 'b:0;') {
+                            $value = $decoded;
+                        }
+                    }
+                    if (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
+                    $values[(string)$row->item] = $value;
+                }
+
+                $settings['tax_mode'] = (string)($values['tax_mode'] ?? $values['tax_enabled'] ?? $settings['tax_mode']);
+                $settings['tax_percentage'] = (string)($values['tax_percentage'] ?? $settings['tax_percentage']);
+                $settings['tax_menu_price'] = (string)($values['tax_menu_price'] ?? $settings['tax_menu_price']);
             }
         } catch (\Throwable $ignored) {}
 
