@@ -1397,10 +1397,10 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const getOrderItemUnitAmount = (item: any) => {
     const quantity = Math.max(1, Number(item?.quantity || 1))
-    const explicitPrice = Number(item?.price ?? item?.unit_price ?? 0)
-    if (Number.isFinite(explicitPrice) && explicitPrice > 0) return explicitPrice
-    const subtotalAmount = Number(item?.subtotal ?? item?.total ?? 0)
-    return Number.isFinite(subtotalAmount) && subtotalAmount > 0 ? subtotalAmount / quantity : 0
+    const explicitPrice = Number(item?.price ?? item?.unit_price)
+    if (Number.isFinite(explicitPrice)) return explicitPrice
+    const subtotalAmount = Number(item?.subtotal ?? item?.total)
+    return Number.isFinite(subtotalAmount) ? subtotalAmount / quantity : 0
   }
 
   const groupOrderDisplayItems = (items: any[] = []) => {

@@ -14586,3 +14586,19 @@ html body [data-pmd-checkout-design-system="1"] span[style*="#b88940"] {
   color: var(--pmd-modal-gold) !important;
   -webkit-text-fill-color: var(--pmd-modal-gold) !important;
 }
+
+/* PMD_CHECKOUT_ITEM_PRICE_COLOR_LOCK_20260604
+   Normal line item prices inside checkout are primary charcoal; only final/accent totals stay gold.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-card .pmd-checkout-item-price,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row > span:last-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row .font-semibold:not(.text-base):not(.text-lg):not(.text-xl):not(.text-2xl) {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-weight: 600 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row > span:first-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row .font-medium {
+  font-weight: 500 !important;
+}

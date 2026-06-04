@@ -7340,18 +7340,23 @@ Route::group([
         foreach ($items as $index => $item) {
             $menuId = (int)($item['menu_id'] ?? $item['id'] ?? 0);
             $qty = max(1, (int)($item['quantity'] ?? 1));
-            $price = max(0, (float)($item['price'] ?? 0));
+            $hasPayloadPrice = array_key_exists('price', $item) && is_numeric($item['price']);
+            $price = $hasPayloadPrice ? (float)$item['price'] : null;
             if ($menuId <= 0) continue;
             $menu = \Illuminate\Support\Facades\DB::table('menus')->where('menu_id', $menuId)->where('menu_status', 1)->first();
             if (!$menu) continue;
             $name = trim((string)($item['name'] ?? '')) ?: (string)($menu->menu_name ?? ('Item '.($index + 1)));
+            $unitPrice = $hasPayloadPrice ? (float)$price : (float)($menu->menu_price ?? 0);
+            $lineSubtotal = array_key_exists('subtotal', $item) && is_numeric($item['subtotal'])
+                ? (float)$item['subtotal']
+                : round($unitPrice * $qty, 4);
             $normalized[] = [
                 'id' => (int)round(microtime(true) * 1000) + $index,
                 'menu_id' => $menuId,
                 'name' => $name,
                 'quantity' => $qty,
-                'price' => $price > 0 ? $price : (float)($menu->menu_price ?? 0),
-                'subtotal' => round(($price > 0 ? $price : (float)($menu->menu_price ?? 0)) * $qty, 4),
+                'price' => $unitPrice,
+                'subtotal' => round($lineSubtotal, 4),
                 'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
                 'guest_session_id' => trim((string)($item['guest_session_id'] ?? '')),
             ];
