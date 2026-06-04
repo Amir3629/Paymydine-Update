@@ -3225,7 +3225,6 @@ Route::group([
                 'resolved_error_code' => 'wero_not_supported',
                 'allow_fallback' => false,
                 'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
-                'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
                 'error' => 'Wero is not available for the current Worldline configuration.',
             ], 503);
         }
@@ -3265,7 +3264,6 @@ Route::group([
                     'error_code' => 'worldline_provider_configuration_invalid',
                     'resolved_error_code' => 'worldline_provider_configuration_invalid',
                     'allow_fallback' => false,
-                    'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
                     'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
                     'error' => 'Worldline Wero payment product id is missing or invalid in provider configuration.',
                     'details' => [
@@ -3328,9 +3326,6 @@ Route::group([
                     'provider' => 'worldline',
                     'method' => 'wero',
                     'error_code' => 'wero_redirect_missing',
-                    'resolved_error_code' => 'wero_redirect_missing',
-                    'allow_fallback' => false,
-                    'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
                     'resolved_error_code' => 'wero_redirect_missing',
                     'allow_fallback' => false,
                     'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
