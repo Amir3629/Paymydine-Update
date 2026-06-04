@@ -14534,12 +14534,20 @@ html body [data-pmd-checkout-design-system="1"] button:active {
 /* PMD_CHECKOUT_LIST_SCROLL_SAFETY_20260604
    Keep long item lists scrollable without clipped final rows and soften normal item-row hierarchy.
 */
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] {
+  overscroll-behavior: contain !important;
+  scroll-padding-block: 1rem !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
 html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll {
-  overflow-y: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
   overscroll-behavior: contain !important;
   scrollbar-gutter: stable !important;
-  padding-bottom: 0.55rem !important;
-  scroll-padding-block: 0.55rem !important;
+  padding-top: 0.18rem !important;
+  padding-bottom: 0.7rem !important;
+  scroll-padding-block: 0.7rem !important;
   -webkit-overflow-scrolling: touch !important;
 }
 

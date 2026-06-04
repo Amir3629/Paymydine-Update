@@ -4370,6 +4370,23 @@ useLayoutEffect(() => {
     tableDraft?.orderId ||
     ["submitted", "submitted_unpaid", "partially_paid", "paid"].includes(String(tableDraft?.status || "").toLowerCase())
   )
+  const checkoutListViewKey = `${checkoutStep}:${hasPersonalItems ? "personal" : "shared"}:${isSubmittedTableDraftForStatus ? "status" : "draft"}`
+
+  useLayoutEffect(() => {
+    if (!isOpen || typeof window === "undefined" || typeof document === "undefined") return
+
+    const resetCheckoutScrollPositions = () => {
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
+      if (root) root.scrollTop = 0
+      document.querySelectorAll<HTMLElement>('.pmd-checkout-list-scroll').forEach((list) => {
+        list.scrollTop = 0
+      })
+    }
+
+    resetCheckoutScrollPositions()
+    const raf = window.requestAnimationFrame(resetCheckoutScrollPositions)
+    return () => window.cancelAnimationFrame(raf)
+  }, [isOpen, checkoutListViewKey])
 
 
   // PMD_DIRECT_ORDER_STATUS_AFTER_SEND_20260603
