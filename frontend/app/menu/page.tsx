@@ -548,6 +548,7 @@ interface ExpandingBottomToolbarProps {
   totalPrice: number;
   subtotalPrice?: number;
   taxAmount?: number;
+  taxPercentage?: number;
   t: (key: TranslationKey) => string;
   onCartClick: () => void;
   onWaiterClick?: () => void;
@@ -1193,7 +1194,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_UNIT_OPTIONS_CHECKOUT_REVIEW_20260604_V4
   // Option-enabled items must be configurable per unit in checkout review.
-  // Example: 4x Burger with sides becomes Burger #1..#4.
+  // Example: 4x Burger with sides becomes Burger · Item 1..4.
   // Simple items without options stay grouped, e.g. 3x Cola.
   const personalReviewItems = useMemo(() => {
     return allItems.flatMap((cartItem, cartIndex) => {
@@ -1210,11 +1211,21 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         }]
       }
 
+      if (quantity <= 1) {
+        return [{
+          ...cartItem,
+          quantity: 1,
+          __pmdOptionKey: `${itemId}-${cartIndex}-0`,
+          __pmdUnitLabel: undefined,
+          __pmdSourceQuantity: quantity,
+        }]
+      }
+
       return Array.from({ length: quantity }, (_, unitIndex) => ({
         ...cartItem,
         quantity: 1,
         __pmdOptionKey: `${itemId}-${cartIndex}-${unitIndex}`,
-        __pmdUnitLabel: `${baseName} #${unitIndex + 1}`,
+        __pmdUnitLabel: `${baseName} · Item ${unitIndex + 1}`,
         __pmdSourceQuantity: quantity,
       }))
     })
@@ -1559,6 +1570,14 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
     setCustomTip(value)
     setTipPercentage(0)
+  }
+
+  const resetPaymentAdjustmentsAfterSuccess = () => {
+    removeCoupon()
+    setCouponCode("")
+    setCouponError(null)
+    setTipPercentage(0)
+    setCustomTip("")
   }
 
   const payableTotal = useMemo(() => {
@@ -3050,6 +3069,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
             markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep("paid")
           setIsLoading(false)
@@ -3128,6 +3148,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
             markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep("paid")
           return
@@ -3210,6 +3231,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         clearCart()
         if (checkoutStep === "payment") {
           markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+          resetPaymentAdjustmentsAfterSuccess()
           setCheckoutStep("paid")
         } else {
           setCheckoutStep('submitted')
@@ -4748,7 +4770,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !isSubmittedTableDraftForStatus && !hasPersonalItems && !preferPersonalReview && (
-            <motion.div key="table-order-draft" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+            <motion.div key="table-order-draft" layout initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
 
               <div className="space-y-3 max-h-56 overflow-y-auto">
                 {(tableDraft.groups && tableDraft.groups.length > 0 ? tableDraft.groups : [{ guest_session_id: null, items: tableDraft.items || [], subtotal: tableDraft.totals?.subtotal || 0 }]).map((group: any, groupIndex: number) => (
@@ -4761,16 +4783,20 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     )}
                     <div className="space-y-1">
                       {groupOrderDisplayItems(group.items || []).map((item: any, idx: number) => (
-                        <div key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                        <motion.div layout key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16, ease: "easeOut" }} className="flex items-center justify-between gap-3 text-sm">
                           <span className="truncate font-medium">{Number(item.quantity || 1)}x {String(item.name || `Item ${idx + 1}`)}</span>
                           <span className="font-semibold">{formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}</span>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-xs muted">Table Order includes all confirmed items for this table.</p>
+              <div className="flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                <span className="muted">{isTableContext ? "Table" : "Location"}</span>
+                <span className="font-semibold">{isTableContext ? tableDisplayName : "Delivery"}</span>
+              </div>
+              <p className="text-xs muted">Confirmed table items</p>
               {Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0) > 0 && (
                 <div className="space-y-1 border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
                   <div className="flex items-center justify-between">
@@ -4789,8 +4815,6 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </div>
               {tableDraft.status === "draft" ? (
                 <div className="space-y-3" data-pmd-clean-table-actions="1">
-                  <p className="text-xs font-semibold muted">{tableDisplayName}</p>
-
                   <div className="grid grid-cols-2 gap-3">
                     <motion.button
                       type="button"
@@ -5587,7 +5611,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   ) : (
                     <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
                       <span className="font-semibold">{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
-                      <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
+                      <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full border px-2.5 py-1 text-[11px] font-semibold transition" style={{ borderColor: "color-mix(in srgb, #b88940 45%, var(--theme-border) 55%)", color: "#062F2A", background: "var(--theme-surface)" }}>Remove</button>
                     </div>
                   )}
                   {couponError && <p className="text-xs text-red-700">{couponError}</p>}
@@ -5837,6 +5861,7 @@ function ExpandingBottomToolbar({
   totalPrice,
   subtotalPrice = 0,
   taxAmount = 0,
+  taxPercentage = 0,
   t,
   onCartClick,
   onWaiterClick,
@@ -5849,6 +5874,7 @@ function ExpandingBottomToolbar({
   themeBackgroundColor,
 }: ExpandingBottomToolbarProps) {
   const { taxSettings } = useCmsStore()
+  const toolbarVatLabel = taxPercentage > 0 ? `VAT ${Number(taxPercentage).toLocaleString(undefined, { maximumFractionDigits: 2 })}%` : "VAT"
   
   // Helper to adjust price if VAT is included
   const adjustPrice = (price: number): number => {
@@ -6124,7 +6150,7 @@ function ExpandingBottomToolbar({
                     {taxAmount > 0 && (
                       <div className="mb-2 space-y-1 text-sm">
                         <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">Subtotal</span><span className="font-semibold">{formatCurrency(subtotalPrice)}</span></div>
-                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">VAT</span><span className="font-semibold">{formatCurrency(taxAmount)}</span></div>
+                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">{toolbarVatLabel}</span><span className="font-semibold">{formatCurrency(taxAmount)}</span></div>
                       </div>
                     )}
                     <div className="flex justify-between items-center">
@@ -7372,6 +7398,7 @@ useEffect(() => {
         totalPrice={totalPrice}
         subtotalPrice={toolbarSubtotalPrice}
         taxAmount={toolbarTaxAmount}
+        taxPercentage={taxSettings.percentage}
         t={t}
         onCartClick={handleCartClick}
         onWaiterClick={tableIdString ? handleWaiterClick : undefined}

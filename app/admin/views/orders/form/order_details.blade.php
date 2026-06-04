@@ -121,9 +121,17 @@ if ($finalTotal <= 0) {
         <a href="{{ url('admin/orders/split-receipt/' . (int)$tx->id) }}" target="_blank">Receipt</a>
     </div>
 
-    @if (!empty($pmdSplitItemsByTx[(int)$tx->id]))
+    @php
+        $pmdTxItems = $pmdSplitItemsByTx[(int)$tx->id] ?? [];
+        $pmdTxItemTotal = 0.0;
+        foreach ($pmdTxItems as $pmdTxItem) {
+            $pmdTxItemTotal += (float)($pmdTxItem->line_total ?? 0);
+        }
+        $pmdTxPaymentAdjustment = round((float)$tx->amount - $pmdTxItemTotal, 2);
+    @endphp
+    @if (!empty($pmdTxItems))
     <ul style="margin:6px 0 0 18px;padding:0;font-size:12px;">
-        @foreach ($pmdSplitItemsByTx[(int)$tx->id] as $itm)
+        @foreach ($pmdTxItems as $itm)
             <li>
                 {{ $itm->name ?: 'Menu #'.$itm->menu_id }}
                 × {{ rtrim(rtrim(number_format($itm->quantity_paid,3,'.',''),'0'),'.') }}
@@ -138,6 +146,11 @@ if ($finalTotal <= 0) {
             </li>
         @endforeach
     </ul>
+    @endif
+    @if (abs($pmdTxPaymentAdjustment) >= 0.01)
+        <div style="margin-top:6px;font-size:12px;color:#5f6368;">
+            Payment adjustment (tip/coupon): {{ $pmdTxPaymentAdjustment >= 0 ? '+' : '-' }}{{ currency_format(abs($pmdTxPaymentAdjustment)) }}
+        </div>
     @endif
 </div>
 @endforeach

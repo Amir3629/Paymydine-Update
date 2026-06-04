@@ -27,6 +27,16 @@
 @endphp
 
 @php
+
+if (!function_exists('pmdCleanGuestSessionComment')) {
+    function pmdCleanGuestSessionComment($comment) {
+        $comment = trim((string)($comment ?? ''));
+        if ($comment === '') return '';
+        $comment = trim(preg_replace('/\s*\[guest_session:\s*\]\s*/u', ' ', $comment));
+        if ($comment === '' || preg_match('/^\[guest_session:[^\]]*\]$/u', $comment)) return '';
+        return $comment;
+    }
+}
 if (!function_exists('pmdR2oOptionLabels')) {
     function pmdR2oOptionLabels($raw) {
         if ($raw === null || $raw === '') return [];
@@ -237,8 +247,9 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                                 @endforeach
                             </div>
                         @endif
-                        @if(!empty($menuItem->comment))
-                            <div class="order-bill-item-comment">{{ $menuItem->comment }}</div>
+                        @php($pmdMenuComment = pmdCleanGuestSessionComment($menuItem->comment ?? ''))
+                        @if($pmdMenuComment !== '')
+                            <div class="order-bill-item-comment">{{ $pmdMenuComment }}</div>
                         @endif
                     </td>
                     <td class="order-bill-quantity text-center">
