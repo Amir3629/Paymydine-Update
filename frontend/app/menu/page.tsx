@@ -678,9 +678,9 @@ function OrderItemWithOptions({
   }
 
   return (
-    <div className="border border-paydine-champagne/20 rounded-2xl overflow-hidden">
+    <div className="pmd-checkout-item-card border border-paydine-champagne/20 rounded-2xl overflow-hidden">
       {/* Main item row */}
-      <div className="flex justify-between items-center text-xs p-2">
+      <div className="pmd-checkout-item-row flex justify-between items-center text-xs p-2">
         <span className="text-paydine-elegant-gray min-w-[120px]">
           {displayLabel}
         </span>
@@ -694,7 +694,7 @@ function OrderItemWithOptions({
           >
             <span data-pmd-force-qty-symbol="minus" aria-hidden="true" style={{ color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", fontWeight: 900, fontSize: "22px", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", transform: "translateY(-1px)" }}>−</span>
           </button>
-          <span className="text-paydine-elegant-gray font-semibold min-w-[48px] text-center">
+          <span className="pmd-checkout-item-price text-paydine-elegant-gray font-semibold min-w-[48px] text-center">
             {formatCurrency(getTotalPrice())}
           </span>
           <button
@@ -4304,6 +4304,10 @@ case "cod":
 
   const tableDisplayName = tableDraft?.table_name || tableInfo?.table_name || (tableDraft?.table_no || tableInfo?.table_no ? `Table ${tableDraft?.table_no || tableInfo?.table_no}` : "Delivery")
   const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
+  const orderContextLabel = isTableContext ? "Table" : "Order type"
+  const orderContextValue = isTableContext ? tableDisplayName : "Delivery"
+  const submittedContextLabel = submittedSnapshot?.tableNumber || isTableContext ? "Table" : "Order type"
+  const submittedContextValue = submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : orderContextValue
 
 
   const checkoutTitle: Record<CheckoutStep, string> = {
@@ -4514,7 +4518,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+        data-pmd-checkout-design-system="1"
+        className="pmd-checkout-modal w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header with close button */}
         <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl">
@@ -4541,7 +4546,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             >
             <ArrowLeft className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
           </Button>
-          <h2 className="text-lg">{modalTitle}</h2>
+          <h2 className="pmd-checkout-modal-title">{modalTitle}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
@@ -4783,7 +4788,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     )}
                     <div className="space-y-1">
                       {groupOrderDisplayItems(group.items || []).map((item: any, idx: number) => (
-                        <motion.div layout key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16, ease: "easeOut" }} className="flex items-center justify-between gap-3 text-sm">
+                        <motion.div layout key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16, ease: "easeOut" }} className="pmd-checkout-item-row flex items-center justify-between gap-3 text-sm">
                           <span className="truncate font-medium">{Number(item.quantity || 1)}x {String(item.name || `Item ${idx + 1}`)}</span>
                           <span className="font-semibold">{formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}</span>
                         </motion.div>
@@ -4792,11 +4797,11 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
-                <span className="muted">{isTableContext ? "Table" : "Location"}</span>
-                <span className="font-semibold">{isTableContext ? tableDisplayName : "Delivery"}</span>
+              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                <span className="muted">{orderContextLabel}</span>
+                <span className="font-semibold">{orderContextValue}</span>
               </div>
-              <p className="text-xs muted">Confirmed table items</p>
+              <p className="pmd-checkout-helper-text text-xs muted">Shared table order</p>
               {Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0) > 0 && (
                 <div className="space-y-1 border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
                   <div className="flex items-center justify-between">
@@ -4902,7 +4907,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {checkoutStep === "review" && hasPersonalItems && (
             <div className="mt-3 space-y-3">
-              <p className="text-xs muted">{isTableContext ? tableDisplayName : "Delivery"}</p>
+              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                <span className="muted">{orderContextLabel}</span>
+                <span className="font-semibold">{orderContextValue}</span>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -5166,7 +5174,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div
               data-pmd-order-status-card="1"
-              className="relative mt-10 p-1 pt-10 space-y-4"
+              className="relative mt-7 p-1 pt-7 space-y-3"
             >
               {(submittedSnapshot?.showCustomerEta ?? true) && (
                 <div
@@ -5174,8 +5182,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   className="absolute left-1/2 top-0 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full"
                   aria-label={`Estimated time ${estimatedMinutes} minutes`}
                   style={{
-                    width: "5.2rem",
-                    height: "5.2rem",
+                    width: "4.45rem",
+                    height: "4.45rem",
                     background: "#062F2A",
                     backgroundColor: "#062F2A",
                     border: "2px solid #b88940",
@@ -5190,7 +5198,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       style={{
                         color: "#FFFFFF",
                         WebkitTextFillColor: "#FFFFFF",
-                        fontSize: "1.7rem",
+                        fontSize: "1.45rem",
                         lineHeight: 1,
                       }}
                     >
@@ -5274,14 +5282,14 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
+                    <p className="pmd-checkout-status-title text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
 
                   </div>
                   {checkoutStep === "paid" && <p className="text-xs muted">Your order is confirmed and being prepared.</p>}
                 </div>
               </div>
 
-              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
+              <div className="pmd-checkout-total-card surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Order Number:</span>
@@ -5323,10 +5331,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   <span className="font-semibold text-[15px]">{formatCurrency(checkoutStep === "paid" && (paidTipAmount > 0 || paidCouponDiscount > 0) ? paidAmountTotal : orderStatusTotal)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="muted font-medium">Table:</span>
-                  <span className="font-semibold text-[15px]">
-                    {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
-                  </span>
+                  <span className="muted font-medium">{submittedContextLabel}:</span>
+                  <span className="font-semibold text-[15px]">{submittedContextValue}</span>
                 </div>
                 {vatLabels.includedNote && (
                   <div className="flex items-center justify-between pt-1 text-xs opacity-75">
@@ -5340,10 +5346,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
                 <div className="space-y-2 max-h-44 overflow-y-auto">
                   {groupOrderDisplayItems(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
-                    <div key={`${item?.menu_id || item?.order_menu_id || item?.name || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                    <motion.div layout key={`${item?.menu_id || item?.order_menu_id || item?.name || idx}-${idx}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16, ease: "easeOut" }} className="pmd-checkout-item-row flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
                       <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.subtotal ?? (Number(item?.price || 0) * Number(item?.quantity || 1))))}</span>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -5431,7 +5437,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {checkoutStep === "payment" && (
             <>
-              <motion.div key="payment-card-header" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
+              <motion.div key="payment-card-header" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="pmd-checkout-payment-card surface-sub rounded-2xl p-3 space-y-3">
                 <div
                   data-pmd-payment-header-copy-row="1"
                   className="flex items-center gap-3 rounded-2xl p-4"
@@ -5527,7 +5533,11 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
                 </div>
               )}
-              <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+              <motion.div layout className="pmd-checkout-total-card rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+                <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                  <span className="muted">{orderContextLabel}</span>
+                  <span className="font-semibold">{orderContextValue}</span>
+                </div>
                 <div className="space-y-1 text-sm">
                   {paymentVatAmount > 0 && !selectedSplitPerson && (
                     <>
@@ -5616,7 +5626,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   )}
                   {couponError && <p className="text-xs text-red-700">{couponError}</p>}
                 </div>
-              </div>
+              </motion.div>
           {/* Payment Methods */}
           <AnimatePresence initial={false} mode="wait">
             {checkoutStep === "payment" ? (

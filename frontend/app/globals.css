@@ -14387,3 +14387,146 @@ html body button[data-pmd-submit-review="1"],
 html body [data-pmd-final-card="1"] button[data-pmd-submit-review="1"] {
   display: none !important;
 }
+
+/* PMD_CHECKOUT_MODAL_DESIGN_SYSTEM_20260604
+   Premium modal polish for My Order / Table Order / Order Status / Payment.
+   Scoped to the checkout modal so existing menu/admin styling is not disturbed.
+*/
+html body [data-pmd-checkout-design-system="1"] {
+  --pmd-modal-text: #0B1F1D;
+  --pmd-modal-muted: #6B7280;
+  --pmd-modal-surface: #FFF9EF;
+  --pmd-modal-card: rgba(255, 252, 245, 0.92);
+  --pmd-modal-card-soft: rgba(255, 249, 239, 0.72);
+  --pmd-modal-border: rgba(216, 185, 130, 0.36);
+  --pmd-modal-emerald: #062F2A;
+  --pmd-modal-gold: #B88940;
+  color: var(--pmd-modal-text) !important;
+  background: linear-gradient(180deg, #fffaf2 0%, #fff7ea 100%) !important;
+  border: 1px solid rgba(216, 185, 130, 0.22) !important;
+  box-shadow: 0 24px 60px rgba(11, 31, 29, 0.18) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-modal-title {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(1.38rem, 5vw, 1.5rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.08 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .surface,
+html body [data-pmd-checkout-design-system="1"] .surface-sub {
+  color: var(--pmd-modal-text) !important;
+  background: var(--pmd-modal-card) !important;
+  border-color: var(--pmd-modal-border) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] > .surface-sub,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card {
+  border: 1px solid var(--pmd-modal-border) !important;
+  box-shadow: 0 10px 24px rgba(11, 31, 29, 0.055) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .muted,
+html body [data-pmd-checkout-design-system="1"] .text-paydine-elegant-gray\/70 {
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] h3,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-status-title {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(1.05rem, 4.3vw, 1.25rem) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.015em !important;
+  line-height: 1.2 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-helper-text {
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  margin-top: -0.15rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row {
+  background: rgba(255, 255, 255, 0.54) !important;
+  border-color: var(--pmd-modal-border) !important;
+  color: var(--pmd-modal-text) !important;
+  font-size: 0.86rem !important;
+  font-weight: 650 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-card {
+  background: rgba(255, 255, 255, 0.48) !important;
+  border-color: var(--pmd-modal-border) !important;
+  box-shadow: 0 8px 18px rgba(11, 31, 29, 0.04) !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row {
+  color: var(--pmd-modal-text) !important;
+  font-size: clamp(0.98rem, 3.8vw, 1.08rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.24 !important;
+  transition: opacity 160ms ease, transform 160ms ease, color 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row span:last-child,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-price {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(0.98rem, 3.8vw, 1.08rem) !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .flex.items-center.justify-between,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card .flex.items-center.justify-between,
+html body [data-pmd-checkout-design-system="1"] .surface-sub.rounded-2xl.p-3.space-y-1 .flex.justify-between {
+  font-size: clamp(0.98rem, 3.8vw, 1.06rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .border-t span:last-child,
+html body [data-pmd-checkout-design-system="1"] .divider span:last-child {
+  color: var(--pmd-modal-gold) !important;
+  -webkit-text-fill-color: var(--pmd-modal-gold) !important;
+  font-size: clamp(1.18rem, 4.8vw, 1.35rem) !important;
+  font-weight: 850 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-floating-eta-circle="1"] {
+  width: 4.45rem !important;
+  height: 4.45rem !important;
+  box-shadow: 0 12px 26px rgba(6, 47, 42, 0.22) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-header-copy-row="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  padding: 0.25rem 0.1rem 0.1rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] input,
+html body [data-pmd-checkout-design-system="1"] textarea {
+  border-color: var(--pmd-modal-border) !important;
+  color: var(--pmd-modal-text) !important;
+  background: rgba(255, 255, 255, 0.58) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] button {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease, opacity 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] button:active {
+  transform: scale(0.985);
+}
