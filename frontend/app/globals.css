@@ -15575,6 +15575,15 @@ html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] 
 
 /* PMD_CHECKOUT_CONSISTENCY_PASS_2_20260605 END */
 
+
+/* PMD_SPLIT_GUEST_COUNT_BORDER_FIX_20260605 START */
+/* Visual-only frame consistency for the filled circular Split bill guest +/- controls. */
+[data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] button[data-pmd-split-guest-count-control] {
+  border: 1px solid color-mix(in srgb, #062F2A 82%, #b88940 18%) !important;
+  box-shadow: none !important;
+}
+/* PMD_SPLIT_GUEST_COUNT_BORDER_FIX_20260605 END */
+
 /* PMD_COUPON_APPLY_DISABLED_FIX_20260605 START */
 
 /* Coupon field + disabled Apply button must stay readable and match checkout frames. */
@@ -15707,3 +15716,140 @@ html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + butt
 }
 
 /* PMD_COUPON_APPLY_VISUAL_ONLY_FIX_20260605 END */
+
+/* PMD_ADD_TIP_PANEL_BG_CSS_ONLY_20260605 START */
+
+/*
+  VISUAL ONLY.
+  Fix only the background behind Add tip / coupon section.
+  No React logic, no payment logic, no coupon logic, no cart/plus-minus logic.
+*/
+
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Inner label/row wrappers behind Add tip should not create a separate card color */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] > div,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] > div > div {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Keep actual controls styled, not transparent */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] button,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] input {
+  background-image: none !important;
+}
+
+/* Selected 0% / active tip button stays dark green */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"],
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* PMD_ADD_TIP_PANEL_BG_CSS_ONLY_20260605 END */
+
+/* PMD_REAL_CHECKOUT_SECTION_WRAPPERS_FLAT_20260606 START */
+
+/*
+  VISUAL ONLY.
+  These are former surface-sub section wrappers in the checkout modal.
+  They should sit on the modal background, not look like separate cards.
+  Real controls, item rows, buttons, payment logic, cart logic are untouched.
+*/
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-flat-section {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+/* Keep actual framed rows/controls readable */
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-item-row,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row {
+  background-color: rgb(250, 249, 243) !important;
+}
+
+/* PMD_REAL_CHECKOUT_SECTION_WRAPPERS_FLAT_20260606 END */
+
+/* PMD_FLATTEN_CHECKOUT_META_ROWS_ONLY_20260606 START */
+
+/*
+  VISUAL ONLY.
+  Flatten only checkout meta rows like Order type / Delivery.
+  Keeps text, border, spacing, buttons, payment/cart logic untouched.
+*/
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* PMD_FLATTEN_CHECKOUT_META_ROWS_ONLY_20260606 END */
+
+/* PMD_FLATTEN_EXACT_CHECKOUT_FRAMES_SAFE_20260606 START */
+
+/*
+  VISUAL ONLY.
+  Flatten exact checkout frame/card divs.
+  Buttons, inputs, Stripe fields, payment forms, and logic are not targeted.
+*/
+
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-header-copy-row="1"],
+html body [data-pmd-checkout-scroll="1"] [data-pmd-split-guest-stepper="1"],
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-flat-section,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-list-scroll,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-4.space-y-4,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-3.space-y-1,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-3.space-y-2,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-3.space-y-3,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-3xl.p-3.space-y-3,
+html body [data-pmd-checkout-scroll="1"] .rounded-2xl.p-3.shadow-sm {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Do not flatten actual payment/card input internals */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-selected-detail="1"],
+html body [data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"],
+html body [data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] * {
+  box-shadow: revert-layer;
+}
+
+/* PMD_FLATTEN_EXACT_CHECKOUT_FRAMES_SAFE_20260606 END */
+
+/* PMD_HIDE_ORDER_TYPE_TABLE_NUMBER_20260606 START */
+
+/*
+  VISUAL ONLY.
+  Hide Order type / Table number / Order Number meta rows inside checkout cards.
+*/
+
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-order-meta-hidden="1"] {
+  display: none !important;
+}
+
+/* PMD_HIDE_ORDER_TYPE_TABLE_NUMBER_20260606 END */

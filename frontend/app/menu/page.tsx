@@ -1944,7 +1944,15 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       if (tipOnly) {
         tipOnly.setAttribute("data-pmd-payment-real-panel", "tip-coupon")
-        setSoftCream(tipOnly)
+        // PMD_REAL_TIP_COUPON_WRITER_NO_BLINK_20260605
+        // Do NOT paint the Add tip / coupon panel cream.
+        // It must be transparent from the same writer that marks it,
+        // otherwise another hook has to correct it after paint and the UI blinks.
+        tipOnly.style.setProperty("background", "transparent", "important")
+        tipOnly.style.setProperty("background-color", "transparent", "important")
+        tipOnly.style.setProperty("background-image", "none", "important")
+        tipOnly.style.setProperty("border-color", "transparent", "important")
+        tipOnly.style.setProperty("box-shadow", "none", "important")
       }
 
       if (fullAdjustment) {
@@ -1953,7 +1961,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         setSoftCream(fullAdjustment)
 
         Array.from(fullAdjustment.querySelectorAll("div")).forEach((child) => {
-          setSoftCream(child as HTMLElement)
+          const childEl = child as HTMLElement
+
+          // PMD_REAL_TIP_COUPON_WRITER_NO_BLINK_20260605
+          // Do not repaint Add tip / coupon inner rows.
+          if (childEl.closest('[data-pmd-payment-real-panel="tip-coupon"]')) return
+
+          setSoftCream(childEl)
         })
       }
 
@@ -2701,6 +2715,176 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
     return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+
+  // PMD_TIP_COUPON_PANEL_INLINE_BG_FINAL_20260605
+  // VISUAL ONLY: override only the inline background of Add tip / coupon panel.
+  // No payment logic, no coupon logic, no cart logic, no plus/minus logic.
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return
+
+    const clearTipCouponPanelBackground = () => {
+      if (checkoutStep !== "payment") return
+
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
+      if (!root) return
+
+      const panel = root.querySelector('[data-pmd-payment-real-panel="tip-coupon"]') as HTMLElement | null
+      if (!panel) return
+
+      const makeTransparent = (el: HTMLElement | null | undefined) => {
+        if (!el) return
+        el.style.setProperty("background", "transparent", "important")
+        el.style.setProperty("background-color", "transparent", "important")
+        el.style.setProperty("background-image", "none", "important")
+        el.style.setProperty("border-color", "transparent", "important")
+        el.style.setProperty("box-shadow", "none", "important")
+      }
+
+      makeTransparent(panel)
+
+      Array.from(panel.children).forEach((child) => {
+        const childEl = child as HTMLElement
+        makeTransparent(childEl)
+
+        Array.from(childEl.children).forEach((grandChild) => {
+          makeTransparent(grandChild as HTMLElement)
+        })
+      })
+    }
+
+    clearTipCouponPanelBackground()
+
+    const t1 = window.setTimeout(clearTipCouponPanelBackground, 60)
+    const t2 = window.setTimeout(clearTipCouponPanelBackground, 220)
+    const t3 = window.setTimeout(clearTipCouponPanelBackground, 700)
+    const t4 = window.setTimeout(clearTipCouponPanelBackground, 1400)
+
+    return () => {
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+      window.clearTimeout(t3)
+      window.clearTimeout(t4)
+    }
+  }, [checkoutStep, couponDiscount, tipPercentage, customTip, appliedCoupon?.code, selectedPaymentMethod])
+
+
+  // PMD_FLATTEN_EXACT_CHECKOUT_FRAMES_SAFE_20260606
+  // VISUAL ONLY: flatten only the exact checkout div frames found by audit.
+  // Does NOT touch buttons, inputs, Pay, Send to kitchen, Split bill, quantity controls, or payment/order logic.
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return
+
+    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
+    if (!root) return
+
+    const flattenDiv = (el: HTMLElement | null | undefined) => {
+      if (!el) return
+
+      // Never touch controls or payment form internals.
+      if (el.matches("button,input,textarea,select")) return
+      if (el.closest('form[data-pmd-stripe-form="1"]')) return
+      if (el.closest('[data-pmd-payment-selected-detail="1"]')) return
+
+      el.style.setProperty("background", "transparent", "important")
+      el.style.setProperty("background-color", "transparent", "important")
+      el.style.setProperty("background-image", "none", "important")
+      el.style.setProperty("border-color", "transparent", "important")
+      el.style.setProperty("box-shadow", "none", "important")
+    }
+
+    const exactSelectors = [
+      '[data-pmd-payment-header-copy-row="1"]',
+      '[data-pmd-split-guest-stepper="1"]',
+      '.pmd-checkout-meta-row',
+      '.pmd-checkout-total-card',
+      '.pmd-checkout-flat-section',
+      '.pmd-checkout-list-scroll',
+      '.pmd-checkout-item-card',
+      '.surface-sub.rounded-2xl.p-4.space-y-4',
+      '.surface-sub.rounded-2xl.p-3.space-y-1',
+      '.surface-sub.rounded-2xl.p-3.space-y-2',
+      '.surface-sub.rounded-2xl.p-3.space-y-3',
+      '.surface-sub.rounded-3xl.p-3.space-y-3',
+      '.rounded-2xl.p-3.shadow-sm',
+      '.rounded-2xl.border.p-3',
+      '.flex.items-center.justify-between.rounded-2xl.border.p-3'
+    ]
+
+    for (const selector of exactSelectors) {
+      root.querySelectorAll(selector).forEach((node) => {
+        flattenDiv(node as HTMLElement)
+      })
+    }
+  }, [checkoutStep, selectedPaymentMethod, splitMethod, splitGuestCount, couponDiscount, tipPercentage, customTip, appliedCoupon?.code])
+
+
+  // PMD_HIDE_ORDER_TYPE_TABLE_NUMBER_20260606
+  // VISUAL ONLY: hide Order type / Table number / Order Number rows inside checkout cards.
+  // Does NOT touch buttons, inputs, payment logic, split logic, quantity controls, or order submit logic.
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return
+
+    const hideOrderMetaRows = () => {
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
+      if (!root) return
+
+      // Main known row used for "Order type Delivery" / table context.
+      root.querySelectorAll(".pmd-checkout-meta-row").forEach((node) => {
+        const el = node as HTMLElement
+        el.setAttribute("data-pmd-order-meta-hidden", "1")
+        el.style.setProperty("display", "none", "important")
+      })
+
+      // Catch small direct rows such as "Order Number: 1606" or "Table number: 4"
+      // without hiding large cards that contain totals.
+      root.querySelectorAll("div").forEach((node) => {
+        const el = node as HTMLElement
+
+        if (el.matches("button,input,textarea,select")) return
+        if (el.closest('form[data-pmd-stripe-form="1"]')) return
+        if (el.closest('[data-pmd-payment-selected-detail="1"]')) return
+
+        const rect = el.getBoundingClientRect()
+        if (rect.width < 80 || rect.height < 10 || rect.height > 80) return
+
+        const text = (el.innerText || "").trim().replace(/\s+/g, " ")
+        if (!text) return
+
+        const firstChildText = ((el.children?.[0] as HTMLElement | undefined)?.innerText || "")
+          .trim()
+          .replace(/\s+/g, " ")
+
+        const isMetaLabel =
+          /^(Order\s*type|Order\s*Number|Table\s*Number|Table)\s*:?\s*$/i.test(firstChildText)
+
+        const isMetaRow =
+          /^(Order\s*type|Order\s*Number|Table\s*Number|Table)\s*:?/i.test(text)
+
+        if (isMetaLabel || isMetaRow) {
+          el.setAttribute("data-pmd-order-meta-hidden", "1")
+          el.style.setProperty("display", "none", "important")
+        }
+      })
+    }
+
+    hideOrderMetaRows()
+
+    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
+    if (!root) return
+
+    const observer = new MutationObserver(() => hideOrderMetaRows())
+    observer.observe(root, { childList: true, subtree: true })
+
+    const t1 = window.setTimeout(hideOrderMetaRows, 50)
+    const t2 = window.setTimeout(hideOrderMetaRows, 250)
+
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+  }, [checkoutStep])
+
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = {
     background: "#062F2A",
@@ -2712,7 +2896,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   // PMD_PERMANENT_CONSOLE_TIP_COUPON_FIX_20260605
   // Narrow runtime visual fix for tip custom field + coupon/apply only.
   // This intentionally does NOT touch plus/minus buttons, cart buttons, Pay in full, Split bill, or payment logic.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === "undefined") return
 
     const forceStyle = (el: HTMLElement | null | undefined, styles: Record<string, string>) => {
@@ -4688,7 +4872,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1">
           {false && checkoutStep === "payment" && pendingSummary && (
-            <div className="surface-sub rounded-2xl p-3 text-xs">
+            <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
                 <span className="muted">Total</span>
                 <span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span>
@@ -4726,7 +4910,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {/* Items List */}
           {false && (checkoutStep === "review" || checkoutStep === "payment") && (isSplitting && checkoutStep === "payment" ? (
-            <div className="surface-sub rounded-2xl p-3 overflow-hidden">
+            <div className="pmd-checkout-flat-section rounded-2xl p-3 overflow-hidden">
               <h3 className="mb-2 text-xs">{t("selectItemsToPay")}</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {allItemInstances.map((instance) => (
@@ -4756,7 +4940,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </div>
             </div>
           ) : (
-            <div className="surface-sub rounded-2xl p-3">
+            <div className="pmd-checkout-flat-section rounded-2xl p-3">
               <div className="mb-2"><h3 className="text-xs font-semibold">{vatLabels.summary}</h3>{vatLabels.includedNote && <p className="mt-0.5 text-[11px] font-medium opacity-70">{vatLabels.includedNote}</p>}</div>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {allItems.map((cartItem) => (
@@ -4774,7 +4958,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {/* Tip Section */}
           {false && checkoutStep === "payment" && tipSettings.enabled && (
-            <div className="surface-sub rounded-2xl p-3">
+            <div className="pmd-checkout-flat-section rounded-2xl p-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative h-4 w-4 flex items-center justify-center">
                   <svg 
@@ -4832,7 +5016,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           )}
 
           {/* Coupon Code Input */}
-          {false && checkoutStep === "payment" && <div className="surface-sub rounded-2xl p-3 space-y-2">
+          {false && checkoutStep === "payment" && <div className="pmd-checkout-flat-section rounded-2xl p-3 space-y-2">
             {!appliedCoupon ? (
               <div className="flex gap-2">
                 <input
@@ -4932,7 +5116,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 ))}
               </div>
-              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)",
+                    background: "transparent",
+                    backgroundColor: "transparent",
+                    boxShadow: "none",}}>
                 <span className="muted">{orderContextLabel}</span>
                 <span className="font-semibold">{orderContextValue}</span>
               </div>
@@ -5008,10 +5195,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             </motion.div>
           )}
 
-{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3">{/* PMD_REMOVED_YOUR_ITEMS_TITLE_20260604 */}<div className="pmd-checkout-list-scroll space-y-2 max-h-56 overflow-y-auto pr-1">{personalReviewItems.map((cartItem: any, idx) => (<OrderItemWithOptions key={String((cartItem as any).__pmdOptionKey || `${cartItem.item.id}-${idx}`)} cartItem={cartItem} optionKey={String((cartItem as any).__pmdOptionKey || cartItem.item.id)} unitLabel={(cartItem as any).__pmdUnitLabel} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="space-y-4"><div className="pmd-checkout-flat-section rounded-2xl p-3 space-y-3">{/* PMD_REMOVED_YOUR_ITEMS_TITLE_20260604 */}<div className="pmd-checkout-list-scroll space-y-2 max-h-56 overflow-y-auto pr-1">{personalReviewItems.map((cartItem: any, idx) => (<OrderItemWithOptions key={String((cartItem as any).__pmdOptionKey || `${cartItem.item.id}-${idx}`)} cartItem={cartItem} optionKey={String((cartItem as any).__pmdOptionKey || cartItem.item.id)} unitLabel={(cartItem as any).__pmdUnitLabel} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
-          {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
+          {checkoutStep === "review" && hasPersonalItems && <div className="pmd-checkout-flat-section rounded-2xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
               <span>{vatLabels.subtotal}</span>
           <span className="font-semibold">{formatCurrency(subtotal)}</span>
@@ -5042,7 +5229,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {checkoutStep === "review" && hasPersonalItems && (
             <div className="mt-3 space-y-3">
-              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)",
+                    background: "transparent",
+                    backgroundColor: "transparent",
+                    boxShadow: "none",}}>
                 <span className="muted">{orderContextLabel}</span>
                 <span className="font-semibold">{orderContextValue}</span>
               </div>
@@ -5074,7 +5264,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-              <div className="surface-sub rounded-3xl p-3 space-y-3">
+              <div className="pmd-checkout-flat-section rounded-3xl p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs muted">Share {formatCurrency(splitGrandTotal)} your way.</p>
                 </div>
@@ -5113,7 +5303,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </div>
 
               {checkoutStep !== "split-review" && (
-                <div className="surface-sub rounded-3xl p-3 space-y-3">
+                <div className="pmd-checkout-flat-section rounded-3xl p-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -5127,6 +5317,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                           >
                             <button
                               type="button"
+                              data-pmd-split-guest-count-control="remove"
                               aria-label="Remove guest"
                               disabled={splitGuestCount <= 2}
                               onClick={removeSplitGuest}
@@ -5146,6 +5337,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
                             <button
                               type="button"
+                              data-pmd-split-guest-count-control="add"
                               aria-label="Add guest"
                               disabled={splitGuestCount >= 10}
                               onClick={addSplitGuest}
@@ -5477,7 +5669,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 )}
               </div>
 
-              <div className="surface-sub rounded-2xl p-3">
+              <div className="pmd-checkout-flat-section rounded-2xl p-3">
                 <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
                 <div className="pmd-checkout-list-scroll space-y-2 max-h-56 overflow-y-auto pr-1">
                   {groupOrderDisplayItems(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
@@ -5662,14 +5854,17 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 )}
               </motion.div>
               {pendingSummary && (
-                <div className="surface-sub rounded-2xl p-3 text-xs">
+                <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
                   <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
                   <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
                   <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
                 </div>
               )}
               <motion.div layout className="pmd-checkout-total-card rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
-                <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)",
+                    background: "transparent",
+                    backgroundColor: "transparent",
+                    boxShadow: "none",}}>
                   <span className="muted">{orderContextLabel}</span>
                   <span className="font-semibold">{orderContextValue}</span>
                 </div>
@@ -5708,7 +5903,14 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
                 {tipSettings.enabled && (
-                  <div className="space-y-2">
+                  <div data-pmd-payment-real-panel="tip-coupon" className="space-y-2"
+                  style={{
+                    background: "transparent",
+                    backgroundColor: "transparent",
+                    backgroundImage: "none",
+                    borderColor: "transparent",
+                    boxShadow: "none",
+                  }}>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold">{selectedSplitPerson ? `${selectedSplitPerson.name}'s tip` : "Add tip"}</span>
                       {paymentTipAmount > 0 && <span className="text-xs font-semibold" style={{ color: "#b88940" }}>{formatCurrency(paymentTipAmount)}</span>}
