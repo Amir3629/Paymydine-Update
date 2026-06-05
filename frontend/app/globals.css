@@ -14641,3 +14641,34 @@ html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-status
   line-height: 1.18 !important;
   letter-spacing: -0.012em !important;
 }
+
+/* PMD_CHECKOUT_BODY_SCROLL_SAFE_AREA_20260605
+   Keep modal dimensions unchanged while making the modal body the reliable scroll area.
+   Prevents expanded payment forms and complete-screen actions from being clipped at the bottom.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-padding-top: 1rem !important;
+  scroll-padding-bottom: calc(2.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(2.25rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail {
+  scroll-margin-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail > .overflow-hidden,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail [class~="overflow-hidden"] {
+  overflow: visible !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-body > *:last-child {
+  margin-bottom: 0.35rem !important;
+}

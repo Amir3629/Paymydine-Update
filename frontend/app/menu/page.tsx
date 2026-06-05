@@ -4568,7 +4568,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1">
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -5724,7 +5724,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   )}
                 </div>
                 {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
-                  <div data-pmd-payment-selected-detail="1" className="pt-2">
+                  <div data-pmd-payment-selected-detail="1" className="pmd-checkout-payment-detail pt-2">
                     {renderPaymentForm()}
                   </div>
                 )}
