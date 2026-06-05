@@ -5127,6 +5127,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                           >
                             <button
                               type="button"
+                              data-pmd-split-guest-count-control="remove"
                               aria-label="Remove guest"
                               disabled={splitGuestCount <= 2}
                               onClick={removeSplitGuest}
@@ -5146,6 +5147,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
                             <button
                               type="button"
+                              data-pmd-split-guest-count-control="add"
                               aria-label="Add guest"
                               disabled={splitGuestCount >= 10}
                               onClick={addSplitGuest}

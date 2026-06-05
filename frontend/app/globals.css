@@ -15575,6 +15575,15 @@ html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] 
 
 /* PMD_CHECKOUT_CONSISTENCY_PASS_2_20260605 END */
 
+
+/* PMD_SPLIT_GUEST_COUNT_BORDER_FIX_20260605 START */
+/* Visual-only frame consistency for the filled circular Split bill guest +/- controls. */
+[data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] button[data-pmd-split-guest-count-control] {
+  border: 1px solid color-mix(in srgb, #062F2A 82%, #b88940 18%) !important;
+  box-shadow: none !important;
+}
+/* PMD_SPLIT_GUEST_COUNT_BORDER_FIX_20260605 END */
+
 /* PMD_COUPON_APPLY_DISABLED_FIX_20260605 START */
 
 /* Coupon field + disabled Apply button must stay readable and match checkout frames. */
