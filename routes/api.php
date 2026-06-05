@@ -331,6 +331,19 @@ Route::middleware(['cors'])->group(function () {
                 'default_language' => $settings['default_language']->value ?? 'en',
                 'order_prefix' => $settings['invoice_prefix']->value ?? '#',
                 'guest_order' => $settings['guest_order']->value ?? '1',
+                // PMD_REVIEW_SOCIAL_SETTINGS_PUBLIC_20260605
+                'pmd_review_share_prompt_enabled' => $settings['pmd_review_share_prompt_enabled']->value ?? '1',
+                'pmd_homepage_social_icons_enabled' => $settings['pmd_homepage_social_icons_enabled']->value ?? '1',
+                'pmd_social_trustpilot_enabled' => $settings['pmd_social_trustpilot_enabled']->value ?? '0',
+                'pmd_social_trustpilot_url' => $settings['pmd_social_trustpilot_url']->value ?? '',
+                'pmd_social_instagram_enabled' => $settings['pmd_social_instagram_enabled']->value ?? '0',
+                'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
+                'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
+                'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
+                'pmd_social_website_enabled' => $settings['pmd_social_website_enabled']->value ?? '0',
+                'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
+                'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
+                'pmd_social_reviews_url' => $settings['pmd_social_reviews_url']->value ?? '',
             ]);
         });
         
@@ -581,9 +594,6 @@ Route::get('api/v1/settings-wrapped', function () {
 });
 
 require __DIR__.'/api_r2o_webhook.php';
-
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 
 Route::get('/payment-methods-public', function () {
     $rows = DB::table('payment_methods')

@@ -15853,3 +15853,15 @@ html body [data-pmd-checkout-scroll="1"] [data-pmd-order-meta-hidden="1"] {
 }
 
 /* PMD_HIDE_ORDER_TYPE_TABLE_NUMBER_20260606 END */
+
+/* PMD_FINAL_REVIEW_SUBMIT_BUTTON_RESTORE_20260605
+   Re-enable only the final paid-card review submit button added for real review storage.
+*/
+html body [data-pmd-final-card="1"] button[data-pmd-submit-review="1"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body button[data-pmd-submit-review="1"] {
+  display: inline-flex !important;
+}

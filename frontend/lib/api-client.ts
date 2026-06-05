@@ -762,6 +762,40 @@ export class ApiClient {
     }
   }
 
+
+  // PMD_REVIEW_INVOICE_API_CLIENT_20260605
+  async submitReview(payload: {
+    order_id?: number | string | null;
+    rating?: number;
+    review?: string;
+    public_share_consent?: boolean | null;
+  }): Promise<{ success: boolean; data?: any; message?: string; error?: string }> {
+    const endpoint = this.envConfig.getApiEndpoint('/reviews');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to submit review');
+    }
+    return data;
+  }
+
+  getBusinessInvoiceUrl(orderId: number | string): string {
+    return this.envConfig.getApiEndpoint(`/orders/${encodeURIComponent(String(orderId))}/business-invoice`);
+  }
+
+  async downloadBusinessInvoice(orderId: number | string): Promise<Blob> {
+    const response = await fetch(this.getBusinessInvoiceUrl(orderId), { headers: { Accept: 'application/pdf' } });
+    if (!response.ok) {
+      const message = await response.text().catch(() => 'Failed to download business invoice');
+      throw new Error(message || 'Failed to download business invoice');
+    }
+    return response.blob();
+  }
+
   async getRestaurantInfo(locationId: number = 1): Promise<{ success: boolean; data: RestaurantInfo }> {
     try {
       const endpoint = this.envConfig.getApiEndpoint(`/restaurant`);

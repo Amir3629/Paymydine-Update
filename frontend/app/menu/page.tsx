@@ -5,7 +5,7 @@ import { formatCurrency } from "@/lib/currency";
 import { categories, menuData, type MenuItem, getMenuData, getCategories } from "@/lib/data";
 import { useLanguageStore } from "@/store/language-store";
 import { type TranslationKey } from "@/lib/translations";
-import { useCmsStore } from "@/store/cms-store";
+import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useThemeStore } from "@/store/theme-store";
 import { Logo } from "@/components/logo";
@@ -948,6 +948,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [paidSplitPeople, setPaidSplitPeople] = useState<Record<string, boolean>>({})
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState("")
+  const [reviewSubmitStatus, setReviewSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [reviewSubmitMessage, setReviewSubmitMessage] = useState("")
+  const [invoiceDownloadStatus, setInvoiceDownloadStatus] = useState<"idle" | "loading" | "error">("idle")
+  const [invoiceDownloadMessage, setInvoiceDownloadMessage] = useState("")
   const [selectedOptions, setSelectedOptions] = useState<Record<string, Record<string, string>>>({})
   const [tipPercentage, setTipPercentage] = useState(0)
   const [customTip, setCustomTip] = useState("")
@@ -4611,6 +4615,65 @@ case "cod":
   const submittedContextLabel = submittedSnapshot?.tableNumber || isTableContext ? "Table" : "Order type"
   const submittedContextValue = submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : orderContextValue
 
+  // PMD_FINAL_REVIEW_INVOICE_ACTIONS_20260605
+  const activeReviewSharePlatforms = useMemo(() => {
+    const platformMeta: Array<{ id: PmdSocialPlatformId; label: string; icon: typeof Star }> = [
+      { id: "trustpilot", label: "Trustpilot", icon: Star },
+      { id: "instagram", label: "Instagram", icon: Link2 },
+      { id: "google", label: "Google Reviews", icon: QrCode },
+      { id: "website", label: "Website", icon: Link2 },
+      { id: "reviews", label: "Reviews page", icon: MessageSquare },
+    ]
+
+    return platformMeta.filter(({ id }) => {
+      const platform = merchantSettings.reviewSocial?.platforms?.[id]
+      return Boolean(platform?.enabled && platform?.url)
+    })
+  }, [merchantSettings.reviewSocial])
+
+  const canSubmitReview = reviewRating > 0 || reviewComment.trim().length > 0
+
+  const handleSubmitReview = async () => {
+    if (!canSubmitReview || reviewSubmitStatus === "loading") return
+    setReviewSubmitStatus("loading")
+    setReviewSubmitMessage("")
+    try {
+      const orderId = submittedSnapshot?.orderId || submittedSnapshot?.order_id || initialSubmittedOrder?.orderId || existingOrderId || null
+      await apiClient.submitReview({ order_id: orderId, rating: reviewRating, review: reviewComment.trim(), public_share_consent: null })
+      setReviewSubmitStatus("success")
+      setReviewSubmitMessage("Thank you — your review was sent to the restaurant.")
+    } catch (error) {
+      setReviewSubmitStatus("error")
+      setReviewSubmitMessage(error instanceof Error ? error.message : "Could not submit your review. Please try again.")
+    }
+  }
+
+  const handleDownloadBusinessInvoice = async () => {
+    const orderId = submittedSnapshot?.orderId || submittedSnapshot?.order_id || initialSubmittedOrder?.orderId || existingOrderId || null
+    if (!orderId || invoiceDownloadStatus === "loading") {
+      setInvoiceDownloadStatus("error")
+      setInvoiceDownloadMessage("Order number is not available yet.")
+      return
+    }
+    setInvoiceDownloadStatus("loading")
+    setInvoiceDownloadMessage("")
+    try {
+      const blob = await apiClient.downloadBusinessInvoice(orderId)
+      const objectUrl = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = objectUrl
+      link.download = `business-invoice-${orderId}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+      setInvoiceDownloadStatus("idle")
+    } catch (error) {
+      setInvoiceDownloadStatus("error")
+      setInvoiceDownloadMessage(error instanceof Error ? error.message : "Could not download the business invoice.")
+    }
+  }
+
 
   const checkoutTitle: Record<CheckoutStep, string> = {
     review: "My Order",
@@ -5741,18 +5804,41 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <p className="text-xs muted">Thank you — a quick note for the restaurant.</p>
                     <div className="flex gap-1" aria-label="Restaurant rating">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <button key={star} type="button" aria-label={`${star} star${star > 1 ? "s" : ""}`} onClick={() => setReviewRating(star)} className="rounded-full p-1">
+                        <button key={star} type="button" aria-label={`${star} star${star > 1 ? "s" : ""}`} onClick={() => { setReviewRating(star); if (reviewSubmitStatus !== "loading") setReviewSubmitStatus("idle") }} className="rounded-full p-1">
                           <Star className="h-6 w-6" style={{ color: "#b88940", fill: reviewRating >= star ? "#b88940" : "transparent" }} />
                         </button>
                       ))}
                     </div>
-                    <Textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Optional comment for the restaurant" className="min-h-[78px] rounded-2xl" />
-                    {/* PMD_REMOVED_SUBMIT_REVIEW_BUTTON_20260604 */}
+                    <Textarea value={reviewComment} onChange={(event) => { setReviewComment(event.target.value); if (reviewSubmitStatus !== "loading") setReviewSubmitStatus("idle") }} placeholder="Optional comment for the restaurant" className="min-h-[78px] rounded-2xl" />
+                    {/* PMD_FINAL_REVIEW_SUBMIT_BUTTON_20260605 */}
+                    <button
+                      type="button"
+                      data-pmd-submit-review="1"
+                      disabled={!canSubmitReview || reviewSubmitStatus === "loading" || reviewSubmitStatus === "success"}
+                      onClick={handleSubmitReview}
+                      className="min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold transition"
+                      style={{ border: "1px solid #062F2A", background: canSubmitReview && reviewSubmitStatus !== "success" ? "#062F2A" : "rgba(6, 47, 42, 0.18)", color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", boxShadow: canSubmitReview ? "0 14px 28px rgba(6, 47, 42, 0.16)" : "none", opacity: !canSubmitReview || reviewSubmitStatus === "success" ? 0.72 : 1 }}
+                    >
+                      {reviewSubmitStatus === "loading" ? "Submitting..." : reviewSubmitStatus === "success" ? "Review submitted" : "Submit review"}
+                    </button>
+                    {reviewSubmitMessage && <p className="text-xs" style={{ color: reviewSubmitStatus === "error" ? "#B42318" : "#166534" }}>{reviewSubmitMessage}</p>}
+                    {reviewSubmitStatus === "success" && merchantSettings.reviewSocial?.sharePromptEnabled && activeReviewSharePlatforms.length > 0 && (
+                      <div className="rounded-2xl border p-3" style={{ borderColor: "rgba(216, 185, 130, 0.42)", background: "rgba(255, 249, 239, 0.78)" }}>
+                        <p className="mb-2 text-xs font-semibold" style={{ color: "#10201D" }}>Would you like to share your review publicly?</p>
+                        <div className="flex flex-wrap gap-2">
+                          {activeReviewSharePlatforms.map(({ id, label, icon: Icon }) => (
+                            <a key={id} href={merchantSettings.reviewSocial.platforms[id].url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: "rgba(6, 47, 42, 0.18)", color: "#062F2A", background: "rgba(255,255,255,0.72)" }}>
+                              <Icon className="h-3.5 w-3.5" /> {label}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <button type="button" disabled className="min-h-10 rounded-full border px-4 py-2 text-xs font-semibold opacity-60" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-muted)", background: "transparent" }}>Download business invoice</button>
-                    <button type="button" onClick={() => { if (typeof window !== "undefined") window.print() }} className="min-h-10 rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent" }}>Download receipt</button>
+                  <div className="flex justify-center">
+                    <button type="button" onClick={handleDownloadBusinessInvoice} disabled={invoiceDownloadStatus === "loading"} className="min-h-10 w-full max-w-[280px] rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "color-mix(in srgb, #b88940 48%, var(--theme-border) 52%)", color: "#062F2A", background: "transparent", opacity: invoiceDownloadStatus === "loading" ? 0.72 : 1 }}>{invoiceDownloadStatus === "loading" ? "Preparing invoice..." : "Download business invoice"}</button>
                   </div>
+                  {invoiceDownloadMessage && <p className="text-center text-xs" style={{ color: "#B42318" }}>{invoiceDownloadMessage}</p>}
                   <div className="flex justify-center pt-1">
                     <img src="/assets/media/uploads/Paymydinelogo.png" alt="PayMyDine" className="max-h-7 max-w-[120px] opacity-70" />
                   </div>
@@ -6141,10 +6227,25 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
         <p dir={getTextDirection(truncatedDescription)} className={`text-sm text-gray-500 mt-1 line-clamp-2 ${getTextAlignClass(truncatedDescription)}`}>{truncatedDescription}</p>
         <div className="flex justify-between items-center mt-2">
         <p className="text-lg font-semibold menu-item-price">{formatCurrency(item.price || 0)}</p>
-          <div className="relative">
+          {/* PMD_MENU_ITEM_MINUS_AFTER_ADD_20260605 */}
+          <div className="relative flex items-center gap-2">
+            {quantity > 0 && (
+              <button
+                type="button"
+                className="quantity-btn pmd-v2-action-circle w-10 h-10 font-bold text-lg"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  addToCart(currentItem?.item || item, -1)
+                }}
+                aria-label="Remove one item"
+              >
+                <Minus className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
+              </button>
+            )}
             <button
               className="quantity-btn pmd-v2-action-circle w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
+              aria-label="Add to cart"
             >
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
@@ -6153,46 +6254,6 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
               )}
               <span className="sr-only">Add to cart</span>
             </button>
-            {quantity > 0 && (
-                <button
-                  type="button"
-                  className="pmd-item-tiny-plus-stable"
-                  style={{
-                    position: "absolute",
-                    top: "-0.72rem",
-                    right: "-0.72rem",
-                    width: "1.55rem",
-                    height: "1.55rem",
-                    minWidth: "1.55rem",
-                    minHeight: "1.55rem",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: "9999px",
-                    border: "1px solid #062F2A",
-                    background: "#062F2A",
-                    backgroundColor: "#062F2A",
-                    color: "#FFFFFF",
-                    WebkitTextFillColor: "#FFFFFF",
-                    lineHeight: 1,
-                    fontWeight: 900,
-                    fontSize: "0.95rem",
-                    padding: 0,
-                    boxShadow: "none",
-                    textShadow: "none",
-                    opacity: 1,
-                    zIndex: 10,
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAdd(e);
-                  }}
-                  aria-label="Add one more item"
-                  data-pmd-stable-tiny-plus="1"
-                >
-                  <span aria-hidden="true" style={{ color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", fontWeight: 900, lineHeight: 1 }}>+</span>
-                </button>
-            )}
           </div>
         </div>
       </div>

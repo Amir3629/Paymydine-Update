@@ -517,6 +517,14 @@ class ServiceProvider extends AppServiceProvider
                             'title' => lang('admin::lang.side_menu.media_manager'),
                             'permission' => 'Admin.MediaManager',
                         ],
+                        // PMD_REVIEW_ADMIN_NAV_20260605
+                        'reviews' => [
+                            'priority' => 45,
+                            'class' => 'reviews',
+                            'href' => admin_url('reviews'),
+                            'title' => 'Customer Reviews',
+                            'permission' => 'Admin.Reviews',
+                        ],
                     ],
                 ],
                 'system' => [
@@ -852,6 +860,10 @@ class ServiceProvider extends AppServiceProvider
                 'Admin.Combos' => [
                     'label' => 'Combo Meals', 'group' => 'admin::lang.permissions.name',
                 ],
+                // PMD_REVIEW_ADMIN_PERMISSION_20260605
+                'Admin.Reviews' => [
+                    'label' => 'Customer Reviews', 'group' => 'admin::lang.permissions.name',
+                ],
             ]);
         });
     }
@@ -1029,6 +1041,16 @@ class ServiceProvider extends AppServiceProvider
                     'url' => admin_url('settings/edit/panel'),
                     'form' => '~/app/admin/models/config/panel_settings',
                     'request' => 'Admin\Requests\PanelSettings',
+                ],
+                // PMD_REVIEW_SOCIAL_SETTINGS_ADMIN_20260605
+                'review_social' => [
+                    'label' => 'Review & Social Links',
+                    'description' => 'Configure checkout review sharing and homepage social icon links',
+                    'icon' => 'fa fa-star',
+                    'priority' => 7,
+                    'permission' => ['Site.Settings'],
+                    'url' => admin_url('settings/edit/review_social'),
+                    'form' => '~/app/admin/models/config/review_social_settings',
                 ],
                 'activities' => [
                     'label' => 'lang:admin::lang.text_activity_title',

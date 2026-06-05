@@ -4657,6 +4657,19 @@ return response()->json([
                 'default_language' => $settings['default_language']->value ?? 'en',
                 'order_prefix' => $settings['invoice_prefix']->value ?? '#',
                 'guest_order' => $settings['guest_order']->value ?? '1',
+                // PMD_REVIEW_SOCIAL_SETTINGS_PUBLIC_20260605
+                'pmd_review_share_prompt_enabled' => $settings['pmd_review_share_prompt_enabled']->value ?? '1',
+                'pmd_homepage_social_icons_enabled' => $settings['pmd_homepage_social_icons_enabled']->value ?? '1',
+                'pmd_social_trustpilot_enabled' => $settings['pmd_social_trustpilot_enabled']->value ?? '0',
+                'pmd_social_trustpilot_url' => $settings['pmd_social_trustpilot_url']->value ?? '',
+                'pmd_social_instagram_enabled' => $settings['pmd_social_instagram_enabled']->value ?? '0',
+                'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
+                'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
+                'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
+                'pmd_social_website_enabled' => $settings['pmd_social_website_enabled']->value ?? '0',
+                'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
+                'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
+                'pmd_social_reviews_url' => $settings['pmd_social_reviews_url']->value ?? '',
             ])->header('Access-Control-Allow-Origin', '*')
               ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
               ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -8420,6 +8433,127 @@ Route::group([
             'currency' => strtoupper((string)(setting('currency_code', 'EUR') ?: 'EUR')),
             'provider' => $provider,
             'payment_method' => $method,
+        ]);
+    });
+
+    // PMD_REVIEW_SAVE_AND_BUSINESS_INVOICE_ENDPOINTS_20260605
+    Route::post('/reviews', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'order_id' => 'nullable|integer|min:1',
+            'rating' => 'nullable|integer|min:0|max:5',
+            'review' => 'nullable|string|max:4000',
+            'public_share_consent' => 'nullable|boolean',
+        ]);
+
+        $rating = (int)($payload['rating'] ?? 0);
+        $reviewText = trim((string)($payload['review'] ?? ''));
+        if ($rating <= 0 && $reviewText === '') {
+            return response()->json(['success' => false, 'error' => 'Please add a star rating or review text.'], 422);
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('reviews')) {
+            \Illuminate\Support\Facades\Schema::create('reviews', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->increments('review_id');
+                $table->unsignedInteger('customer_id')->nullable()->index();
+                $table->unsignedInteger('sale_id')->nullable()->index();
+                $table->string('sale_type')->nullable()->index();
+                $table->unsignedInteger('location_id')->nullable()->index();
+                $table->string('tenant_host')->nullable();
+                $table->string('author')->nullable();
+                $table->unsignedTinyInteger('quality')->default(0);
+                $table->unsignedTinyInteger('service')->default(0);
+                $table->unsignedTinyInteger('delivery')->default(0);
+                $table->text('review_text')->nullable();
+                $table->boolean('review_status')->default(false);
+                $table->boolean('public_share_consent')->nullable();
+                $table->timestamps();
+            });
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('reviews', 'public_share_consent')) {
+            \Illuminate\Support\Facades\Schema::table('reviews', function (\Illuminate\Database\Schema\Blueprint $table) { $table->boolean('public_share_consent')->nullable(); });
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('reviews', 'tenant_host')) {
+            \Illuminate\Support\Facades\Schema::table('reviews', function (\Illuminate\Database\Schema\Blueprint $table) { $table->string('tenant_host')->nullable(); });
+        }
+
+        $locationId = null;
+        $orderId = isset($payload['order_id']) ? (int)$payload['order_id'] : null;
+        if ($orderId) {
+            $locationId = \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->value('location_id');
+        }
+        if (!$locationId) {
+            $locationId = \Illuminate\Support\Facades\DB::table('locations')->value('location_id') ?: null;
+        }
+
+        $reviewId = \Illuminate\Support\Facades\DB::table('reviews')->insertGetId([
+            'customer_id' => null,
+            'sale_id' => $orderId,
+            'sale_type' => $orderId ? 'orders' : null,
+            'location_id' => $locationId,
+            'tenant_host' => $request->getHost(),
+            'author' => 'Checkout guest',
+            'quality' => $rating,
+            'service' => $rating,
+            'delivery' => $rating,
+            'review_text' => $reviewText,
+            'review_status' => 0,
+            'public_share_consent' => array_key_exists('public_share_consent', $payload) ? $payload['public_share_consent'] : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['success' => true, 'data' => ['review_id' => $reviewId]]);
+    });
+
+    Route::get('/orders/{order}/business-invoice', function ($orderId) {
+        $orderId = (int)$orderId;
+        $order = \Admin\Models\Orders_model::query()->where('order_id', $orderId)->first();
+        if (!$order) return response('Order not found', 404);
+
+        $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
+        $restaurant = (string)(optional($settings->get('site_name'))->value ?? 'PayMyDine Restaurant');
+        $currency = (string)(optional($settings->get('default_currency_code'))->value ?? optional($settings->get('default_currency'))->value ?? 'EUR');
+        $lines = [
+            'Business Invoice',
+            $restaurant,
+            'Invoice #: '.$orderId,
+            'Date: '.(string)($order->created_at ?? now()),
+            'Customer: '.((string)($order->customer_name ?? '') ?: 'Guest'),
+            '',
+            'Items:',
+        ];
+        try {
+            foreach (($order->getOrderMenusWithOptions() ?? []) as $row) {
+                $qty = (float)($row->quantity ?? 0);
+                $name = (string)($row->name ?? 'Item');
+                $line = $qty * (float)($row->price ?? 0);
+                $lines[] = rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.').' x '.$name.' - '.number_format($line, 2).' '.$currency;
+            }
+        } catch (\Throwable $e) {}
+        $lines[] = '';
+        $lines[] = 'Total: '.number_format((float)($order->order_total ?? 0), 2).' '.$currency;
+
+        $escape = function ($text) { return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], (string)$text); };
+        $content = "BT /F1 12 Tf 50 790 Td 14 TL";
+        foreach ($lines as $line) $content .= " (".$escape($line).") Tj T*";
+        $content .= " ET";
+        $objects = [];
+        $objects[] = "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n";
+        $objects[] = "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n";
+        $objects[] = "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n";
+        $objects[] = "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n";
+        $objects[] = "5 0 obj << /Length ".strlen($content)." >> stream\n".$content."\nendstream endobj\n";
+        $pdf = "%PDF-1.4\n";
+        $offsets = [0];
+        foreach ($objects as $object) { $offsets[] = strlen($pdf); $pdf .= $object; }
+        $xref = strlen($pdf);
+        $pdf .= "xref\n0 ".(count($objects)+1)."\n0000000000 65535 f \n";
+        for ($i = 1; $i <= count($objects); $i++) $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        $pdf .= "trailer << /Size ".(count($objects)+1)." /Root 1 0 R >>\nstartxref\n".$xref."\n%%EOF";
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="business-invoice-'.$orderId.'.pdf"',
         ]);
     });
 

@@ -14,6 +14,19 @@ type PaymentOption = {
   enabled: boolean
 }
 
+export type PmdSocialPlatformId = "trustpilot" | "instagram" | "google" | "website" | "reviews"
+
+export type PmdSocialPlatformSettings = {
+  enabled: boolean
+  url: string
+}
+
+export type PmdReviewSocialSettings = {
+  sharePromptEnabled: boolean
+  homepageSocialIconsEnabled: boolean
+  platforms: Record<PmdSocialPlatformId, PmdSocialPlatformSettings>
+}
+
 type MerchantSettings = {
   businessName: string
   accountId: string
@@ -26,6 +39,7 @@ type MerchantSettings = {
   bankName: string
   currency: string
   countryCode: string
+  reviewSocial: PmdReviewSocialSettings
 }
 
 type TipSettings = {
@@ -101,6 +115,18 @@ const initialVATSettings: VATSettings = {
   menuPrice: 1, // Default: apply VAT on menu price
 }
 
+const initialReviewSocialSettings: PmdReviewSocialSettings = {
+  sharePromptEnabled: true,
+  homepageSocialIconsEnabled: true,
+  platforms: {
+    trustpilot: { enabled: false, url: "" },
+    instagram: { enabled: false, url: "" },
+    google: { enabled: false, url: "" },
+    website: { enabled: false, url: "" },
+    reviews: { enabled: false, url: "" },
+  },
+}
+
 const initialMerchantSettings: MerchantSettings = {
   businessName: "PayMyDine Restaurant",
   accountId: "",
@@ -113,6 +139,7 @@ const initialMerchantSettings: MerchantSettings = {
   bankName: "",
   currency: "EUR",
   countryCode: "US",
+  reviewSocial: initialReviewSocialSettings,
 }
 
 export const useCmsStore = create<CmsState>()(
@@ -169,6 +196,29 @@ export const useCmsStore = create<CmsState>()(
             return undefined
           }
 
+          // PMD_REVIEW_SOCIAL_SETTINGS_CLIENT_20260605
+          const parseBool = (value: any, fallback = false): boolean => {
+            if (value === undefined || value === null || value === "") return fallback
+            const normalized = String(value).trim().toLowerCase()
+            if (["1", "true", "yes", "on", "enabled"].includes(normalized)) return true
+            if (["0", "false", "no", "off", "disabled"].includes(normalized)) return false
+            return fallback
+          }
+
+          const platformIds: PmdSocialPlatformId[] = ["trustpilot", "instagram", "google", "website", "reviews"]
+          const reviewSocial: PmdReviewSocialSettings = {
+            sharePromptEnabled: parseBool(get("pmd_review_share_prompt_enabled"), initialReviewSocialSettings.sharePromptEnabled),
+            homepageSocialIconsEnabled: parseBool(get("pmd_homepage_social_icons_enabled"), initialReviewSocialSettings.homepageSocialIconsEnabled),
+            platforms: { ...initialReviewSocialSettings.platforms },
+          }
+
+          platformIds.forEach((platformId) => {
+            reviewSocial.platforms[platformId] = {
+              enabled: parseBool(get(`pmd_social_${platformId}_enabled`), initialReviewSocialSettings.platforms[platformId].enabled),
+              url: String(get(`pmd_social_${platformId}_url`) || "").trim(),
+            }
+          })
+
           const newMs = {
             businessName: get("businessName", "business_name", "restaurant_name", "name") || "PayMyDine Restaurant",
             accountId: get("accountId", "account_id", "restaurant_id", "tenant", "slug") || "",
@@ -181,6 +231,7 @@ export const useCmsStore = create<CmsState>()(
             bankName: get("bankName", "bank_name") || "",
             currency: get("currency", "currency_code") || "EUR",
             countryCode: get("countryCode", "country_code") || "US",
+            reviewSocial,
           }
 
           console.log("✅ CMS Store: Merchant settings loaded:", {

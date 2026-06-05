@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react"
 import { useLanguageStore } from "@/store/language-store"
-import { useCmsStore } from "@/store/cms-store"
+import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store"
 import { Logo } from "@/components/logo"
 import { Car, Utensils, Instagram, MapPin, Star, MessageCircle, Globe2 } from "lucide-react"
 import Link from "next/link"
@@ -15,8 +15,12 @@ const MotionLink = motion.create(Link)
 // FIXED: Create a component that uses client-side hooks
 function HomePageContent() {
   const { t } = useLanguageStore()
-  const { settings } = useCmsStore()
+  const { settings, merchantSettings, loadMerchantSettings } = useCmsStore()
   const [platformLogoPosition, setPlatformLogoPosition] = useState<'top-left' | 'bottom-center'>('top-left')
+
+  useEffect(() => {
+    loadMerchantSettings()
+  }, [loadMerchantSettings])
 
   useEffect(() => {
     const readSavedPosition = () => {
@@ -174,39 +178,53 @@ function HomePageContent() {
         </MotionLink>
       </div>
 
-      <div
-        data-pmd-home-social-icons="1"
-        className="PMD_HOME_SOCIAL_ICONS_20260601 fixed bottom-8 left-1/2 z-30 flex -translate-x-1/2 items-center justify-center gap-3"
-        aria-label="Restaurant social and review links"
-      >
-        {[
-          { label: "Instagram", icon: Instagram },
-          { label: "Google Maps", icon: MapPin },
-          { label: "Trustpilot", icon: Star },
-          { label: "Reviews", icon: MessageCircle },
-          { label: "Website", icon: Globe2 },
-        ].map(({ label, icon: Icon }) => (
-          <motion.a
-            key={label}
-            href="#"
-            aria-label={label}
-            title={label}
-            onClick={(event) => event.preventDefault()}
-            whileHover={{ scale: 1.12 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-sm backdrop-blur-md"
-            style={{
-              background: "rgba(255, 255, 255, 0.72)",
-              borderColor: "rgba(6, 47, 42, 0.22)",
-              color: "#062F2A",
-              boxShadow: "0 10px 26px rgba(6, 47, 42, 0.10)",
-            }}
+      {/* PMD_REVIEW_SOCIAL_HOME_LINKS_20260605 */}
+      {(() => {
+        const platformMeta: Array<{ id: PmdSocialPlatformId; label: string; icon: typeof Instagram }> = [
+          { id: "instagram", label: "Instagram", icon: Instagram },
+          { id: "google", label: "Google Maps", icon: MapPin },
+          { id: "trustpilot", label: "Trustpilot", icon: Star },
+          { id: "reviews", label: "Reviews", icon: MessageCircle },
+          { id: "website", label: "Website", icon: Globe2 },
+        ]
+        const activePlatforms = platformMeta.filter(({ id }) => {
+          const platform = merchantSettings.reviewSocial?.platforms?.[id]
+          return Boolean(platform?.enabled && platform?.url)
+        })
+
+        if (!merchantSettings.reviewSocial?.homepageSocialIconsEnabled || activePlatforms.length === 0) return null
+
+        return (
+          <div
+            data-pmd-home-social-icons="1"
+            className="PMD_HOME_SOCIAL_ICONS_20260601 fixed bottom-8 left-1/2 z-30 flex -translate-x-1/2 items-center justify-center gap-3"
+            aria-label="Restaurant social and review links"
           >
-            <Icon className="h-4.5 w-4.5" strokeWidth={2.3} />
-          </motion.a>
-        ))}
-      </div>
+            {activePlatforms.map(({ id, label, icon: Icon }) => (
+              <motion.a
+                key={id}
+                href={merchantSettings.reviewSocial.platforms[id].url}
+                aria-label={label}
+                title={label}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.12 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-sm backdrop-blur-md"
+                style={{
+                  background: "rgba(255, 255, 255, 0.72)",
+                  borderColor: "rgba(6, 47, 42, 0.22)",
+                  color: "#062F2A",
+                  boxShadow: "0 10px 26px rgba(6, 47, 42, 0.10)",
+                }}
+              >
+                <Icon className="h-4.5 w-4.5" strokeWidth={2.3} />
+              </motion.a>
+            ))}
+          </div>
+        )
+      })()}
 
       {platformLogoPosition === 'bottom-center' && (
         <div className="mt-8 flex w-full justify-center pb-2 sm:mt-10">
