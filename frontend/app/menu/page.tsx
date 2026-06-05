@@ -34,6 +34,7 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
+
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,23 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+
+const tableOrderTotalByCode = (response: any, code: string): number => {
+  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
+  const found = rows.find((row: any) => String(row?.code || '').toLowerCase() === code.toLowerCase())
+  const amount = Number(found?.value ?? 0)
+  return Number.isFinite(amount) ? amount : 0
+}
+
+const tableOrderVatPercentage = (response: any, fallback = 0): number => {
+  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
+  const taxRow = rows.find((row: any) => String(row?.code || '').toLowerCase() === 'tax')
+  const title = String(taxRow?.title || '')
+  const match = title.match(/([0-9]+(?:\.[0-9]+)?)\s*%/)
+  const parsed = match ? Number(match[1]) : Number(fallback || 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
@@ -497,6 +515,13 @@ type PaymentFormData = {
   phone: string
 }
 
+type PmdToolbarPricingSnapshot = {
+  items: Array<CartItem & { __pmdDisplayName?: string; __pmdDisplayUnitPrice?: number; __pmdDisplaySubtotal?: number }>;
+  subtotal: number;
+  tax: number;
+  total: number;
+}
+
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -512,6 +537,7 @@ interface PaymentModalProps {
   initialCheckoutStep?: CheckoutStep;
   preferPersonalReview?: boolean
   onOpenOrderUpdate?: (snapshot: any | null) => void;
+  onCartPricingUpdate?: (snapshot: PmdToolbarPricingSnapshot | null) => void;
 }
 
 interface ExpandingBottomToolbarProps {
@@ -520,6 +546,9 @@ interface ExpandingBottomToolbarProps {
   showBillArrow: boolean;
   items: CartItem[];
   totalPrice: number;
+  subtotalPrice?: number;
+  taxAmount?: number;
+  taxPercentage?: number;
   t: (key: TranslationKey) => string;
   onCartClick: () => void;
   onWaiterClick?: () => void;
@@ -649,9 +678,9 @@ function OrderItemWithOptions({
   }
 
   return (
-    <div className="border border-paydine-champagne/20 rounded-2xl overflow-hidden">
+    <div className="pmd-checkout-item-card border border-paydine-champagne/20 rounded-2xl overflow-hidden">
       {/* Main item row */}
-      <div className="flex justify-between items-center text-xs p-2">
+      <div className="pmd-checkout-item-row flex justify-between items-center text-xs p-2">
         <span className="text-paydine-elegant-gray min-w-[120px]">
           {displayLabel}
         </span>
@@ -665,7 +694,7 @@ function OrderItemWithOptions({
           >
             <span data-pmd-force-qty-symbol="minus" aria-hidden="true" style={{ color: "#FFFFFF", WebkitTextFillColor: "#FFFFFF", fontWeight: 900, fontSize: "22px", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", transform: "translateY(-1px)" }}>−</span>
           </button>
-          <span className="text-paydine-elegant-gray font-semibold min-w-[48px] text-center">
+          <span className="pmd-checkout-item-price text-paydine-elegant-gray font-semibold min-w-[48px] text-center">
             {formatCurrency(getTotalPrice())}
           </span>
           <button
@@ -770,7 +799,7 @@ function OrderItemWithOptions({
 }
 
 // PMD_FORCE_ALL_PLUS_MINUS_SOURCE_WHITE_20260601
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate }: PaymentModalProps) {
 
   // PMD_QUANTITY_ICON_FIRST_PAINT_FIX_20260601
   // Prevent checkout quantity plus/minus icons from flashing black before legacy runtime styles settle.
@@ -1165,7 +1194,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_UNIT_OPTIONS_CHECKOUT_REVIEW_20260604_V4
   // Option-enabled items must be configurable per unit in checkout review.
-  // Example: 4x Burger with sides becomes Burger #1..#4.
+  // Example: 4x Burger with sides becomes Burger · Item 1..4.
   // Simple items without options stay grouped, e.g. 3x Cola.
   const personalReviewItems = useMemo(() => {
     return allItems.flatMap((cartItem, cartIndex) => {
@@ -1182,11 +1211,21 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         }]
       }
 
+      if (quantity <= 1) {
+        return [{
+          ...cartItem,
+          quantity: 1,
+          __pmdOptionKey: `${itemId}-${cartIndex}-0`,
+          __pmdUnitLabel: undefined,
+          __pmdSourceQuantity: quantity,
+        }]
+      }
+
       return Array.from({ length: quantity }, (_, unitIndex) => ({
         ...cartItem,
         quantity: 1,
         __pmdOptionKey: `${itemId}-${cartIndex}-${unitIndex}`,
-        __pmdUnitLabel: `${baseName} #${unitIndex + 1}`,
+        __pmdUnitLabel: `${baseName} · Item ${unitIndex + 1}`,
         __pmdSourceQuantity: quantity,
       }))
     })
@@ -1247,6 +1286,42 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
     return subtotal * (taxSettings.percentage / 100)
   }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+  useEffect(() => {
+    if (!onCartPricingUpdate) return
+    if (!Array.isArray(allItems) || allItems.length === 0) {
+      onCartPricingUpdate(null)
+      return
+    }
+
+    const displayItems = personalReviewItems.map((cartItem: any) => {
+      const optionKey = String(cartItem.__pmdOptionKey || cartItem.item.id)
+      const selectedForUnit = selectedOptions[optionKey] || {}
+      const optionDetails: Array<{ name: string; price: number }> = []
+
+      Object.entries(selectedForUnit).forEach(([optionName, optionId]) => {
+        const option = (cartItem.item.options || []).find((candidate: any) => String(candidate.name) === String(optionName))
+        const value = option?.values?.find((candidate: any) => String(candidate.id) === String(optionId))
+        if (value) optionDetails.push({ name: String(value.value || value.name || ''), price: Number(adjustPriceForVAT(Number(value.price || 0))) })
+      })
+
+      const baseName = cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name
+      const optionSummary = optionDetails.map((option) => option.name).filter(Boolean).join(', ')
+      const displayName = optionSummary ? `${baseName} — ${optionSummary}` : String(cartItem.__pmdUnitLabel || baseName)
+      const unitPrice = Number(adjustPriceForVAT(cartItem.item.price || 0)) + optionDetails.reduce((sum, option) => sum + Number(option.price || 0), 0)
+      const quantity = Number(cartItem.quantity || 1)
+
+      return {
+        ...cartItem,
+        quantity,
+        __pmdDisplayName: displayName,
+        __pmdDisplayUnitPrice: unitPrice,
+        __pmdDisplaySubtotal: unitPrice * quantity,
+      }
+    })
+
+    onCartPricingUpdate({ items: displayItems, subtotal, tax: taxAmount, total: subtotal + taxAmount })
+  }, [allItems, personalReviewItems, selectedOptions, subtotal, taxAmount, onCartPricingUpdate, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+
   const submittedBaseTotal = useMemo(() => Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
   const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
   const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
@@ -1322,10 +1397,10 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const getOrderItemUnitAmount = (item: any) => {
     const quantity = Math.max(1, Number(item?.quantity || 1))
-    const explicitPrice = Number(item?.price ?? item?.unit_price ?? 0)
-    if (Number.isFinite(explicitPrice) && explicitPrice > 0) return explicitPrice
-    const subtotalAmount = Number(item?.subtotal ?? item?.total ?? 0)
-    return Number.isFinite(subtotalAmount) && subtotalAmount > 0 ? subtotalAmount / quantity : 0
+    const explicitPrice = Number(item?.price ?? item?.unit_price)
+    if (Number.isFinite(explicitPrice)) return explicitPrice
+    const subtotalAmount = Number(item?.subtotal ?? item?.total)
+    return Number.isFinite(subtotalAmount) ? subtotalAmount / quantity : 0
   }
 
   const groupOrderDisplayItems = (items: any[] = []) => {
@@ -1468,6 +1543,16 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const paymentTipAmount = paymentCustomTip ? Number.parseFloat(paymentCustomTip) || 0 : paymentBaseAmount * (paymentTipPercentage / 100)
   const paymentCouponDiscount = selectedSplitPerson ? 0 : couponDiscount
   const paymentPayableTotal = Math.max(0, paymentBaseAmount + paymentTipAmount - paymentCouponDiscount)
+  const paymentSubtotalAmount = selectedSplitPerson
+    ? Number(selectedSplitPerson.subtotal || 0)
+    : Number(submittedSnapshot?.subtotal || 0)
+  const paymentVatAmount = selectedSplitPerson
+    ? Number(selectedSplitPerson.tax || 0)
+    : Number(submittedSnapshot?.vatAmount || 0)
+  const paymentVatPercentage = Number(submittedSnapshot?.vatPercentage ?? taxSettings?.percentage ?? 0)
+  const paidTipAmount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTipAmount ?? paymentTipAmount ?? tipAmount ?? 0) : paymentTipAmount
+  const paidCouponDiscount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidCouponDiscount ?? paymentCouponDiscount ?? couponDiscount ?? 0) : paymentCouponDiscount
+  const paidAmountTotal = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTotal ?? Math.max(0, orderStatusTotal + paidTipAmount - paidCouponDiscount)) : paymentPayableTotal
 
   const updatePaymentTipPercentage = (percentage: number) => {
     if (selectedSplitPersonId) {
@@ -1485,6 +1570,14 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
     setCustomTip(value)
     setTipPercentage(0)
+  }
+
+  const resetPaymentAdjustmentsAfterSuccess = () => {
+    removeCoupon()
+    setCouponCode("")
+    setCouponError(null)
+    setTipPercentage(0)
+    setCustomTip("")
   }
 
   const payableTotal = useMemo(() => {
@@ -2615,6 +2708,124 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     textShadow: "none",
     border: "1px solid #062F2A",
   }
+
+  // PMD_PERMANENT_CONSOLE_TIP_COUPON_FIX_20260605
+  // Narrow runtime visual fix for tip custom field + coupon/apply only.
+  // This intentionally does NOT touch plus/minus buttons, cart buttons, Pay in full, Split bill, or payment logic.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const forceStyle = (el: HTMLElement | null | undefined, styles: Record<string, string>) => {
+      if (!el) return
+      Object.entries(styles).forEach(([key, value]) => {
+        el.style.setProperty(key, value, "important")
+      })
+    }
+
+    const applyTipCouponVisualFix = () => {
+      const root =
+        (document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null) ||
+        (document.querySelector('[data-pmd-checkout-design-system="1"]') as HTMLElement | null)
+
+      if (!root) return
+
+      const custom = root.querySelector(
+        'input[data-pmd-custom-tip-shows-selected-amount="1"]'
+      ) as HTMLElement | null
+
+      const customWrap = custom?.closest("div") as HTMLElement | null
+      const euro = customWrap?.querySelector("span") as HTMLElement | null
+
+      const coupon = root.querySelector('input[placeholder="Coupon code"]') as HTMLElement | null
+      const applyButton = coupon?.parentElement?.querySelector("button") as HTMLElement | null
+
+      forceStyle(customWrap, {
+        height: "46px",
+        "min-height": "46px",
+        "max-height": "46px",
+      })
+
+      forceStyle(euro, {
+        left: "20px",
+        top: "50%",
+        height: "46px",
+        "line-height": "46px",
+        display: "flex",
+        "align-items": "center",
+        transform: "translateY(-50%)",
+        "font-size": "14px",
+        "font-weight": "750",
+        "z-index": "2",
+        "pointer-events": "none",
+      })
+
+      forceStyle(custom, {
+        height: "46px",
+        "min-height": "46px",
+        "max-height": "46px",
+        "line-height": "46px",
+        "box-sizing": "border-box",
+        "padding-left": "54px",
+        "padding-right": "14px",
+        "font-size": "14.72px",
+        "font-weight": "650",
+        "border-radius": "9999px",
+      })
+
+      forceStyle(coupon, {
+        height: "46px",
+        "min-height": "46px",
+        "max-height": "46px",
+        "line-height": "46px",
+        "box-sizing": "border-box",
+        "padding-left": "16px",
+        "padding-right": "16px",
+        "font-size": "14.72px",
+        "font-weight": "650",
+        "border-radius": "9999px",
+      })
+
+      forceStyle(applyButton, {
+        height: "46px",
+        "min-height": "46px",
+        "max-height": "46px",
+        "line-height": "1",
+        "box-sizing": "border-box",
+        "font-size": "14.72px",
+        "font-weight": "750",
+        "border-radius": "9999px",
+      })
+    }
+
+    let rafId: number | null = null
+
+    const scheduleFix = () => {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        applyTipCouponVisualFix()
+      })
+    }
+
+    applyTipCouponVisualFix()
+
+    const observer = new MutationObserver(scheduleFix)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "disabled"],
+    })
+
+    const intervalId = window.setInterval(applyTipCouponVisualFix, 700)
+
+    return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+      observer.disconnect()
+      window.clearInterval(intervalId)
+    }
+  }, [])
+
   const modalSecondaryBtn = "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
   const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white pmd-v2-action-circle hover:opacity-90"
   const toolbarIconBtnStyle: React.CSSProperties = {
@@ -2645,6 +2856,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             status: latest.status,
             paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
             tableNumber: latest.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+            subtotal: Number(latest.totals?.subtotal ?? tableOrderTotalByCode(latest, 'subtotal') ?? 0),
+            vatAmount: Number(latest.totals?.tax ?? tableOrderTotalByCode(latest, 'tax') ?? 0),
+            vatPercentage: tableOrderVatPercentage(latest, taxSettings?.percentage || 0),
             total: latest.totals?.total || 0,
             orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
             settledAmount: latest.totals?.settledAmount || 0,
@@ -2762,6 +2976,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         status: result.status || "submitted_unpaid",
         paymentStatus: result.status === "paid" ? "paid" : "unpaid",
         tableNumber: result.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+        subtotal: Number(result.totals?.subtotal ?? tableOrderTotalByCode(result, 'subtotal') ?? 0),
+        vatAmount: Number(result.totals?.tax ?? tableOrderTotalByCode(result, 'tax') ?? 0),
+        vatPercentage: tableOrderVatPercentage(result, taxSettings?.percentage || 0),
         total: result.totals?.total || 0,
         orderTotal: result.totals?.orderTotal || result.totals?.total || 0,
         settledAmount: result.totals?.settledAmount || 0,
@@ -2785,7 +3002,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
   }
 
-  const markOpenOrderAsPaid = (orderIdLike?: string | number | null) => {
+  const markOpenOrderAsPaid = (orderIdLike?: string | number | null, paymentDetails?: { tipAmount?: number; couponDiscount?: number; paidTotal?: number; couponCode?: string | null }) => {
     try {
       const sessionKey = buildOpenOrderStorageKeys().sessionKey
       const raw = localStorage.getItem(sessionKey)
@@ -2795,6 +3012,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       parsed.paymentStatus = "paid"
       parsed.status = "paid"
       parsed.paidAt = Date.now()
+      if (paymentDetails) {
+        parsed.paidTipAmount = Number(paymentDetails.tipAmount || 0)
+        parsed.paidCouponDiscount = Number(paymentDetails.couponDiscount || 0)
+        parsed.paidTotal = Number(paymentDetails.paidTotal || 0)
+        parsed.paidCouponCode = paymentDetails.couponCode || null
+      }
+      setSubmittedSnapshot((prev: any) => prev ? { ...prev, paymentStatus: 'paid', status: 'paid', paidAt: parsed.paidAt, paidTipAmount: parsed.paidTipAmount, paidCouponDiscount: parsed.paidCouponDiscount, paidTotal: parsed.paidTotal, paidCouponCode: parsed.paidCouponCode } : parsed)
       localStorage.setItem(sessionKey, JSON.stringify(parsed))
       onOpenOrderUpdate?.(parsed)
     } catch {}
@@ -2962,7 +3186,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate)
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep("paid")
           setIsLoading(false)
@@ -3040,7 +3265,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate)
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep("paid")
           return
@@ -3122,7 +3348,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         } catch {}
         clearCart()
         if (checkoutStep === "payment") {
-          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null)
+          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+          resetPaymentAdjustmentsAfterSuccess()
           setCheckoutStep("paid")
         } else {
           setCheckoutStep('submitted')
@@ -4195,6 +4422,10 @@ case "cod":
 
   const tableDisplayName = tableDraft?.table_name || tableInfo?.table_name || (tableDraft?.table_no || tableInfo?.table_no ? `Table ${tableDraft?.table_no || tableInfo?.table_no}` : "Delivery")
   const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
+  const orderContextLabel = isTableContext ? "Table" : "Order type"
+  const orderContextValue = isTableContext ? tableDisplayName : "Delivery"
+  const submittedContextLabel = submittedSnapshot?.tableNumber || isTableContext ? "Table" : "Order type"
+  const submittedContextValue = submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : orderContextValue
 
 
   const checkoutTitle: Record<CheckoutStep, string> = {
@@ -4257,6 +4488,23 @@ useLayoutEffect(() => {
     tableDraft?.orderId ||
     ["submitted", "submitted_unpaid", "partially_paid", "paid"].includes(String(tableDraft?.status || "").toLowerCase())
   )
+  const checkoutListViewKey = `${checkoutStep}:${hasPersonalItems ? "personal" : "shared"}:${isSubmittedTableDraftForStatus ? "status" : "draft"}`
+
+  useLayoutEffect(() => {
+    if (!isOpen || typeof window === "undefined" || typeof document === "undefined") return
+
+    const resetCheckoutScrollPositions = () => {
+      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
+      if (root) root.scrollTop = 0
+      document.querySelectorAll<HTMLElement>('.pmd-checkout-list-scroll').forEach((list) => {
+        list.scrollTop = 0
+      })
+    }
+
+    resetCheckoutScrollPositions()
+    const raf = window.requestAnimationFrame(resetCheckoutScrollPositions)
+    return () => window.cancelAnimationFrame(raf)
+  }, [isOpen, checkoutListViewKey])
 
 
   // PMD_DIRECT_ORDER_STATUS_AFTER_SEND_20260603
@@ -4269,8 +4517,11 @@ useLayoutEffect(() => {
     setSubmittedSnapshot((prev: any) => prev || {
       orderId: tableDraft?.order_id ?? tableDraft?.orderId ?? null,
       orderNumber: tableDraft?.orderNumber ?? tableDraft?.order_id ?? tableDraft?.orderId ?? null,
+      subtotal: Number(tableDraft?.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0),
+      vatAmount: Number(tableDraft?.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0),
+      vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0),
       total: tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
-      orderTotal: tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
+      orderTotal: tableDraft?.totals?.orderTotal ?? tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
       remainingAmount: tableDraft?.settlement?.remainingAmount ?? tableDraft?.totals?.remainingAmount ?? tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
       submittedItems: tableDraft?.items || [],
       tableNumber: tableDraft?.table_no || tableDraft?.table_id || tableInfo?.table_no || tableInfo?.table_id || null,
@@ -4402,7 +4653,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+        data-pmd-checkout-design-system="1"
+        className="pmd-checkout-modal w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header with close button */}
         <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl">
@@ -4429,12 +4681,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             >
             <ArrowLeft className="h-5 w-5" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
           </Button>
-          <h2 className="text-lg">{modalTitle}</h2>
+          <h2 className="pmd-checkout-modal-title">{modalTitle}</h2>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1">
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="surface-sub rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -4658,9 +4910,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           <AnimatePresence mode="wait" initial={false}>
           {checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !isSubmittedTableDraftForStatus && !hasPersonalItems && !preferPersonalReview && (
-            <motion.div key="table-order-draft" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+            <motion.div key="table-order-draft" layout initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16, ease: "easeOut" }} className="surface-sub rounded-2xl p-4 space-y-4" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
 
-              <div className="space-y-3 max-h-56 overflow-y-auto">
+              <div className="pmd-checkout-list-scroll space-y-3 max-h-64 overflow-y-auto pr-1">
                 {(tableDraft.groups && tableDraft.groups.length > 0 ? tableDraft.groups : [{ guest_session_id: null, items: tableDraft.items || [], subtotal: tableDraft.totals?.subtotal || 0 }]).map((group: any, groupIndex: number) => (
                   <div key={`${group.guest_session_id || 'table'}-${groupIndex}`} className="rounded-2xl border p-3" style={{ borderColor: "var(--theme-border)" }}>
                     {(tableDraft.groups || []).length > 1 && (
@@ -4671,23 +4923,38 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     )}
                     <div className="space-y-1">
                       {groupOrderDisplayItems(group.items || []).map((item: any, idx: number) => (
-                        <div key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                        <motion.div layout key={`${item.id || item.order_menu_id || item.menu_id || item.name}-${idx}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16, ease: "easeOut" }} className="pmd-checkout-item-row pmd-table-order-item-row flex items-center justify-between gap-3 text-sm">
                           <span className="truncate font-medium">{Number(item.quantity || 1)}x {String(item.name || `Item ${idx + 1}`)}</span>
                           <span className="font-semibold">{formatCurrency(Number(item.subtotal ?? (Number(item.price || 0) * Number(item.quantity || 1))))}</span>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
+              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                <span className="muted">{orderContextLabel}</span>
+                <span className="font-semibold">{orderContextValue}</span>
+              </div>
+              {isTableContext && <p className="pmd-checkout-helper-text text-xs muted">Shared table order</p>}
+              {Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0) > 0 && (
+                <div className="space-y-1 border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
+                  <div className="flex items-center justify-between">
+                    <span className="muted">Subtotal</span>
+                    <span className="font-semibold">{formatCurrency(Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0))}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="muted">VAT {tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0)}%</span>
+                    <span className="font-semibold">{formatCurrency(Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0))}</span>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
                 <span className="font-semibold">Order Total</span>
-                <span className="text-base font-bold">{formatCurrency(Number(tableDraft.totals?.total || 0))}</span>
+                <span className="text-base font-bold">{formatCurrency(Number(tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0))}</span>
               </div>
               {tableDraft.status === "draft" ? (
                 <div className="space-y-3" data-pmd-clean-table-actions="1">
-                  <p className="text-xs font-semibold muted">{tableDisplayName}</p>
-
                   <div className="grid grid-cols-2 gap-3">
                     <motion.button
                       type="button"
@@ -4734,14 +5001,14 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, subtotal: Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0), vatAmount: Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0), vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0), total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0, remainingAmount: tableDraft.totals?.remainingAmount || tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
                   View order status
                 </button>
               ) : null}
             </motion.div>
           )}
 
-{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3">{/* PMD_REMOVED_YOUR_ITEMS_TITLE_20260604 */}<div className="space-y-2 max-h-56 overflow-y-auto">{personalReviewItems.map((cartItem: any, idx) => (<OrderItemWithOptions key={String((cartItem as any).__pmdOptionKey || `${cartItem.item.id}-${idx}`)} cartItem={cartItem} optionKey={String((cartItem as any).__pmdOptionKey || cartItem.item.id)} unitLabel={(cartItem as any).__pmdUnitLabel} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
+{checkoutStep === "review" && hasPersonalItems && (<motion.div key="personal-cart-review" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0 }} className="space-y-4"><div className="surface-sub rounded-2xl p-3 space-y-3">{/* PMD_REMOVED_YOUR_ITEMS_TITLE_20260604 */}<div className="pmd-checkout-list-scroll space-y-2 max-h-56 overflow-y-auto pr-1">{personalReviewItems.map((cartItem: any, idx) => (<OrderItemWithOptions key={String((cartItem as any).__pmdOptionKey || `${cartItem.item.id}-${idx}`)} cartItem={cartItem} optionKey={String((cartItem as any).__pmdOptionKey || cartItem.item.id)} unitLabel={(cartItem as any).__pmdUnitLabel} addToCart={addToCart as any} t={t} onOptionsChange={handleOptionsChange} />))}</div></div>
 
           {/* Totals */}
           {checkoutStep === "review" && hasPersonalItems && <div className="surface-sub rounded-2xl p-3 space-y-1">
@@ -4775,7 +5042,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {checkoutStep === "review" && hasPersonalItems && (
             <div className="mt-3 space-y-3">
-              <p className="text-xs muted">{isTableContext ? tableDisplayName : "Delivery"}</p>
+              <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                <span className="muted">{orderContextLabel}</span>
+                <span className="font-semibold">{orderContextValue}</span>
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -5039,7 +5309,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div
               data-pmd-order-status-card="1"
-              className="relative mt-10 p-1 pt-10 space-y-4"
+              className="relative mt-7 p-1 pt-7 space-y-3"
             >
               {(submittedSnapshot?.showCustomerEta ?? true) && (
                 <div
@@ -5047,8 +5317,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   className="absolute left-1/2 top-0 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full"
                   aria-label={`Estimated time ${estimatedMinutes} minutes`}
                   style={{
-                    width: "5.2rem",
-                    height: "5.2rem",
+                    width: "4.45rem",
+                    height: "4.45rem",
                     background: "#062F2A",
                     backgroundColor: "#062F2A",
                     border: "2px solid #b88940",
@@ -5063,7 +5333,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       style={{
                         color: "#FFFFFF",
                         WebkitTextFillColor: "#FFFFFF",
-                        fontSize: "1.7rem",
+                        fontSize: "1.45rem",
                         lineHeight: 1,
                       }}
                     >
@@ -5147,21 +5417,21 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
+                    <p className="pmd-checkout-status-title text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
 
                   </div>
                   {checkoutStep === "paid" && <p className="text-xs muted">Your order is confirmed and being prepared.</p>}
                 </div>
               </div>
 
-              <div className="surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
+              <div className="pmd-checkout-total-card surface-sub rounded-2xl p-3 space-y-2 text-sm" style={{ background: "var(--theme-surface)", color: "var(--theme-text-primary)", border: "1px solid var(--theme-border)" }}>
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Order Number:</span>
                     <span className="font-semibold text-[15px]">{submittedSnapshot.orderId}</span>
                   </div>
                 )}
-                {taxSettings.enabled && taxSettings.menuPrice === 1 && Number(submittedSnapshot?.vatAmount ?? 0) > 0 && (
+                {Number(submittedSnapshot?.vatAmount ?? 0) > 0 && (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="muted font-medium">Subtotal:</span>
@@ -5173,33 +5443,31 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     </div>
                   </>
                 )}
-                {(tipAmount > 0 || couponDiscount > 0) && (
+                {(paidTipAmount > 0 || paidCouponDiscount > 0) && (
                   <div className="flex items-center justify-between">
-                    <span className="muted font-medium">Items:</span>
+                    <span className="muted font-medium">Items total:</span>
                     <span className="font-semibold text-[15px]">{formatCurrency(submittedBaseTotal || Number(submittedSnapshot?.total ?? 0))}</span>
                   </div>
                 )}
-                {tipAmount > 0 && (
+                {paidTipAmount > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Tip:</span>
-                    <span className="font-semibold text-[15px]">{formatCurrency(tipAmount)}</span>
+                    <span className="font-semibold text-[15px]">{formatCurrency(paidTipAmount)}</span>
                   </div>
                 )}
-                {couponDiscount > 0 && appliedCoupon && (
+                {paidCouponDiscount > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="muted font-medium">Coupon {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}:</span>
-                    <span className="font-semibold text-[15px]" style={{ color: "#166534" }}>-{formatCurrency(couponDiscount)}</span>
+                    <span className="muted font-medium">Coupon {String(submittedSnapshot?.paidCouponCode || appliedCoupon?.code || "") ? `(${String(submittedSnapshot?.paidCouponCode || appliedCoupon?.code)})` : ""}:</span>
+                    <span className="font-semibold text-[15px]" style={{ color: "#166534" }}>-{formatCurrency(paidCouponDiscount)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="muted font-medium">Order Total:</span>
-                  <span className="font-semibold text-[15px]">{formatCurrency(orderStatusTotal)}</span>
+                  <span className="muted font-medium">{checkoutStep === "paid" && (paidTipAmount > 0 || paidCouponDiscount > 0) ? "Amount paid:" : "Order Total:"}</span>
+                  <span className="font-semibold text-[15px]">{formatCurrency(checkoutStep === "paid" && (paidTipAmount > 0 || paidCouponDiscount > 0) ? paidAmountTotal : orderStatusTotal)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="muted font-medium">Table:</span>
-                  <span className="font-semibold text-[15px]">
-                    {submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : (tableInfo?.table_name || (tableInfo?.table_no ? `Table ${tableInfo.table_no}` : "Delivery"))}
-                  </span>
+                  <span className="muted font-medium">{submittedContextLabel}:</span>
+                  <span className="font-semibold text-[15px]">{submittedContextValue}</span>
                 </div>
                 {vatLabels.includedNote && (
                   <div className="flex items-center justify-between pt-1 text-xs opacity-75">
@@ -5211,12 +5479,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
               <div className="surface-sub rounded-2xl p-3">
                 <h3 className="mb-2 text-sm font-semibold">{vatLabels.summary}</h3>
-                <div className="space-y-2 max-h-44 overflow-y-auto">
+                <div className="pmd-checkout-list-scroll space-y-2 max-h-56 overflow-y-auto pr-1">
                   {groupOrderDisplayItems(submittedSnapshot?.submittedItems || []).map((item: any, idx: number) => (
-                    <div key={`${item?.menu_id || item?.order_menu_id || item?.name || idx}-${idx}`} className="flex items-center justify-between gap-3 text-sm">
+                    <motion.div layout key={`${item?.menu_id || item?.order_menu_id || item?.name || idx}-${idx}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16, ease: "easeOut" }} className="pmd-checkout-item-row flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{Number(item?.quantity || 1)}x {String(item?.name || `Item ${idx + 1}`)}</span>
                       <span className="font-semibold text-[15px]">{formatCurrency(Number(item?.subtotal ?? (Number(item?.price || 0) * Number(item?.quantity || 1))))}</span>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -5272,7 +5540,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 </button>
               </div>}
               {checkoutStep === "paid" && (
-                <div className="space-y-3">
+                <div className="pmd-order-complete-content space-y-3">
                   <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
                     <div className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4" style={{ color: "#b88940" }} />
@@ -5304,7 +5572,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {checkoutStep === "payment" && (
             <>
-              <motion.div key="payment-card-header" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="surface-sub rounded-2xl p-3 space-y-3">
+              <motion.div key="payment-card-header" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="pmd-checkout-payment-card surface-sub rounded-2xl p-3 space-y-3">
                 <div
                   data-pmd-payment-header-copy-row="1"
                   className="flex items-center gap-3 rounded-2xl p-4"
@@ -5400,10 +5668,26 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
                 </div>
               )}
-              <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+              <motion.div layout className="pmd-checkout-total-card rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+                <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
+                  <span className="muted">{orderContextLabel}</span>
+                  <span className="font-semibold">{orderContextValue}</span>
+                </div>
                 <div className="space-y-1 text-sm">
+                  {paymentVatAmount > 0 && !selectedSplitPerson && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="muted">Subtotal</span>
+                        <span className="font-semibold">{formatCurrency(paymentSubtotalAmount)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="muted">VAT {paymentVatPercentage}%</span>
+                        <span className="font-semibold">{formatCurrency(paymentVatAmount)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center justify-between">
-                    <span className="muted">{selectedSplitPerson ? "Share amount" : "Base amount"}</span>
+                    <span className="muted">{selectedSplitPerson ? "Share amount" : "Items total"}</span>
                     <span className="font-semibold">{formatCurrency(paymentBaseAmount)}</span>
                   </div>
                   {paymentTipAmount > 0 && (
@@ -5472,12 +5756,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   ) : (
                     <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
                       <span className="font-semibold">{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
-                      <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full px-2 py-1 font-semibold" style={{ color: "#062F2A" }}>Remove</button>
+                      <button type="button" onClick={() => { removeCoupon(); setCouponCode(""); setCouponError(null) }} className="rounded-full border px-2.5 py-1 text-[11px] font-semibold transition" style={{ borderColor: "color-mix(in srgb, #b88940 45%, var(--theme-border) 55%)", color: "#062F2A", background: "var(--theme-surface)" }}>Remove</button>
                     </div>
                   )}
                   {couponError && <p className="text-xs text-red-700">{couponError}</p>}
                 </div>
-              </div>
+              </motion.div>
           {/* Payment Methods */}
           <AnimatePresence initial={false} mode="wait">
             {checkoutStep === "payment" ? (
@@ -5558,7 +5842,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   )}
                 </div>
                 {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
-                  <div data-pmd-payment-selected-detail="1" className="pt-2">
+                  <div data-pmd-payment-selected-detail="1" className="pmd-checkout-payment-detail pt-2">
                     {renderPaymentForm()}
                   </div>
                 )}
@@ -5720,6 +6004,9 @@ function ExpandingBottomToolbar({
   showBillArrow,
   items,
   totalPrice,
+  subtotalPrice = 0,
+  taxAmount = 0,
+  taxPercentage = 0,
   t,
   onCartClick,
   onWaiterClick,
@@ -5732,6 +6019,7 @@ function ExpandingBottomToolbar({
   themeBackgroundColor,
 }: ExpandingBottomToolbarProps) {
   const { taxSettings } = useCmsStore()
+  const toolbarVatLabel = taxPercentage > 0 ? `VAT ${Number(taxPercentage).toLocaleString(undefined, { maximumFractionDigits: 2 })}%` : "VAT"
   
   // Helper to adjust price if VAT is included
   const adjustPrice = (price: number): number => {
@@ -5971,7 +6259,7 @@ function ExpandingBottomToolbar({
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                             >
-                              {item.item.name}
+                              {(item as any).__pmdDisplayName || item.item.name}
                             </motion.div>
                             <motion.div
                               className="text-sm text-gray-500"
@@ -5979,7 +6267,7 @@ function ExpandingBottomToolbar({
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                             >
-          {formatCurrency(adjustPrice(item.item.price || 0))} × {item.quantity}
+          {formatCurrency(Number((item as any).__pmdDisplayUnitPrice ?? adjustPrice(item.item.price || 0)))} × {item.quantity}
                             </motion.div>
                           </div>
                         </div>
@@ -5989,7 +6277,7 @@ function ExpandingBottomToolbar({
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
                         >
-          {formatCurrency(adjustPrice(item.item.price || 0) * item.quantity)}
+          {formatCurrency(Number((item as any).__pmdDisplaySubtotal ?? (adjustPrice(item.item.price || 0) * item.quantity)))}
                         </motion.div>
                       </motion.div>
                     ))}
@@ -6004,6 +6292,12 @@ function ExpandingBottomToolbar({
                     className="mt-4 rounded-2xl p-4"
                     style={{ background: "color-mix(in srgb, var(--theme-surface) 88%, #fffaf0 12%)", border: "1px solid color-mix(in srgb, #b88940 22%, var(--theme-border) 78%)", boxShadow: "0 8px 18px rgba(6, 47, 42, 0.06)" }}
                   >
+                    {taxAmount > 0 && (
+                      <div className="mb-2 space-y-1 text-sm">
+                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">Subtotal</span><span className="font-semibold">{formatCurrency(subtotalPrice)}</span></div>
+                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">{toolbarVatLabel}</span><span className="font-semibold">{formatCurrency(taxAmount)}</span></div>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <motion.span
                         className="font-bold text-paydine-elegant-gray text-lg"
@@ -6638,6 +6932,7 @@ function MenuContent() {
   const [tableInfo, setTableInfoState] = useState<any>(null)
   const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
   const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
+  const [toolbarPricingSnapshot, setToolbarPricingSnapshot] = useState<PmdToolbarPricingSnapshot | null>(null)
   const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
   const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
   const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
@@ -6673,6 +6968,9 @@ function MenuContent() {
               status: latest.status,
               paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
               tableNumber: latest.table_no || tableInfo?.table_no || null,
+              subtotal: Number(latest.totals?.subtotal ?? tableOrderTotalByCode(latest, 'subtotal') ?? 0),
+              vatAmount: Number(latest.totals?.tax ?? tableOrderTotalByCode(latest, 'tax') ?? 0),
+              vatPercentage: tableOrderVatPercentage(latest, 0),
               total: latest.totals?.total || 0,
               orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
               remainingAmount: latest.totals?.remainingAmount || 0,
@@ -7017,17 +7315,29 @@ useEffect(() => {
 
   // Calculate total items and price
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
-  const totalPrice = items.reduce((acc, item) => acc + (item.item.price || 0) * item.quantity, 0)
+  const rawSubtotalPrice = items.reduce((acc, item) => acc + (item.item.price || 0) * item.quantity, 0)
+  const rawTaxAmount = taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1
+    ? rawSubtotalPrice * (taxSettings.percentage / 100)
+    : 0
+  const toolbarSubtotalPrice = toolbarPricingSnapshot?.subtotal ?? rawSubtotalPrice
+  const toolbarTaxAmount = toolbarPricingSnapshot?.tax ?? rawTaxAmount
+  const totalPrice = toolbarPricingSnapshot?.total ?? (rawSubtotalPrice + rawTaxAmount)
 
   // Show arrow if at least one item and not collapsed
+  useEffect(() => {
+    if (items.length === 0 && toolbarPricingSnapshot) setToolbarPricingSnapshot(null)
+  }, [items.length, toolbarPricingSnapshot])
+
   const showBillArrow = totalItems > 0 && toolbarState !== "collapsed"
 
   // Get display items for the toolbar
   const getDisplayItems = () => {
+    const pricedItems = toolbarPricingSnapshot?.items ?? items
     if (toolbarState === "preview" && lastInteractedItem) {
-      return [lastInteractedItem]
+      const pricedLast = pricedItems.find((candidate: any) => candidate.item.id === lastInteractedItem.item.id)
+      return [pricedLast || lastInteractedItem]
     }
-    return items
+    return pricedItems
   }
 
   // Update last interacted item whenever an item is added or selected
@@ -7231,6 +7541,9 @@ useEffect(() => {
         showBillArrow={showBillArrow}
         items={getDisplayItems()}
         totalPrice={totalPrice}
+        subtotalPrice={toolbarSubtotalPrice}
+        taxAmount={toolbarTaxAmount}
+        taxPercentage={taxSettings.percentage}
         t={t}
         onCartClick={handleCartClick}
         onWaiterClick={tableIdString ? handleWaiterClick : undefined}
@@ -7259,6 +7572,7 @@ useEffect(() => {
         initialSubmittedOrder={activeSubmittedOrder}
         initialCheckoutStep={paymentModalInitialStep}
         preferPersonalReview={paymentModalPreferPersonalReview}
+        onCartPricingUpdate={setToolbarPricingSnapshot}
         onOpenOrderUpdate={(snapshot) => {
           if (snapshot?.status === "draft" || snapshot?.draft_id) {
             setSharedTableOrder(snapshot)
@@ -7307,4 +7621,4 @@ export default function ExpandingBottomToolbarMenu() {
       </Suspense>
     </div>
   )
-} 
+}

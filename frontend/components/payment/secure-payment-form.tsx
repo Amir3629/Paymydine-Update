@@ -59,7 +59,7 @@ export function StripeCardForm({
         text: "#111827",
         muted: "#6B7280",
         border: "rgba(17,24,39,0.12)",
-        bg: "rgba(255,255,255,0.96)",
+        bg: "rgb(247, 245, 238)",
         label: "#111827",
       }
     }
@@ -87,7 +87,7 @@ export function StripeCardForm({
         text: "#111827",
         muted: "#6B7280",
         border: "rgba(17,24,39,0.12)",
-        bg: "rgba(255,255,255,0.96)",
+        bg: "rgb(247, 245, 238)",
         label: "#111827",
       }
     } catch {
@@ -95,7 +95,7 @@ export function StripeCardForm({
         text: "var(--pmd-customer-control-text, #111827)",
         muted: "#6B7280",
         border: "rgba(17,24,39,0.12)",
-        bg: "rgba(255,255,255,0.96)",
+        bg: "rgb(247, 245, 238)",
         label: "var(--pmd-customer-control-text, #111827)",
       }
     }
@@ -175,12 +175,12 @@ export function StripeCardForm({
     const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
     const dark = luminance < 0.45
 
-    const bg = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.96)"
+    const bg = dark ? "rgba(255,255,255,0.06)" : "rgb(247, 245, 238)"
     const text = dark ? "#F8FAFC" : "#111827"
     const muted = dark ? "rgba(248,250,252,0.60)" : "#6B7280"
     const border = dark ? "rgba(255,255,255,0.14)" : "rgba(17,24,39,0.12)"
     const focus = "rgba(99,91,255,0.70)"
-    const focusShadow = "0 0 0 3px rgba(99,91,255,0.18)"
+    const focusShadow = "0 0 0 3px rgba(6,47,42,0.18)"
 
     const inputs = [
       cardholderInputRef.current,
@@ -191,9 +191,9 @@ export function StripeCardForm({
     for (const el of inputs) {
       el.style.setProperty("box-sizing", "border-box", "important")
       el.style.setProperty("width", "100%", "important")
-      el.style.setProperty("min-height", "44px", "important")
+      el.style.setProperty("min-height", "54px", "important")
       el.style.setProperty("padding", "10px 14px", "important")
-      el.style.setProperty("border-radius", "16px", "important")
+      el.style.setProperty("border-radius", "9999px", "important")
       el.style.setProperty("background", bg, "important")
       el.style.setProperty("background-color", bg, "important")
       el.style.setProperty("color", text, "important")
@@ -209,9 +209,158 @@ export function StripeCardForm({
       wrap.style.setProperty("background", bg, "important")
       wrap.style.setProperty("background-color", bg, "important")
       wrap.style.setProperty("border", `1px solid ${border}`, "important")
-      wrap.style.setProperty("border-radius", "16px", "important")
+      wrap.style.setProperty("border-radius", "9999px", "important")
       wrap.style.setProperty("box-shadow", "none", "important")
       wrap.style.setProperty("width", "100%", "important")
+
+      // PMD_CARD_FIELD_HEIGHT_MATCH_20260605
+      // Match the Stripe CardElement wrapper to the other checkout input fields.
+      wrap.style.setProperty("box-sizing", "border-box", "important")
+      wrap.style.setProperty("height", "54px", "important")
+      wrap.style.setProperty("min-height", "54px", "important")
+      wrap.style.setProperty("max-height", "54px", "important")
+      wrap.style.setProperty("padding", "0 18px", "important")
+      wrap.style.setProperty("display", "flex", "important")
+      wrap.style.setProperty("align-items", "center", "important")
+      wrap.style.setProperty("justify-content", "center", "important")
+      wrap.style.setProperty("overflow", "hidden", "important")
+
+      // PMD_STRIPE_CARD_SURFACE_UNIFY_FINAL_20260605
+      // Keep all Stripe card-payment fields on the same checkout surface.
+      const pmdStripeSurface = "rgb(247, 245, 238)"
+      const pmdStripeBorder = "var(--theme-border)"
+      const pmdStripeText = "var(--theme-text-primary)"
+      const pmdStripeMuted = "var(--theme-text-muted)"
+
+      wrap.style.setProperty("background", "var(--pmd-checkout-field-final, rgb(247, 245, 238))", "important")
+      wrap.style.setProperty("border-color", "var(--pmd-checkout-border-final, var(--theme-border))", "important")
+      wrap.style.setProperty("box-shadow", "none", "important")
+
+      const pmdStripeForm = wrap.closest('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+      if (pmdStripeForm) {
+        pmdStripeForm.style.setProperty("background", "transparent", "important")
+
+        const pmdLabels = Array.from(
+          pmdStripeForm.querySelectorAll("label")
+        ) as HTMLElement[]
+
+        for (const label of pmdLabels) {
+          label.style.setProperty("color", pmdStripeText, "important")
+          label.style.setProperty("-webkit-text-fill-color", pmdStripeText, "important")
+          label.style.setProperty("font-size", "13px", "important")
+          label.style.setProperty("font-weight", "650", "important")
+          label.style.setProperty("line-height", "1.2", "important")
+        }
+
+        const pmdInputs = Array.from(
+          pmdStripeForm.querySelectorAll('input:not(.__PrivateStripeElement-input)')
+        ) as HTMLElement[]
+
+        for (const input of pmdInputs) {
+          input.style.setProperty("background", pmdStripeSurface, "important")
+          input.style.setProperty("border-color", pmdStripeBorder, "important")
+          input.style.setProperty("color", pmdStripeText, "important")
+          input.style.setProperty("-webkit-text-fill-color", pmdStripeText, "important")
+          input.style.setProperty("caret-color", pmdStripeText, "important")
+          input.style.setProperty("box-shadow", "none", "important")
+          input.style.setProperty("height", "54px", "important")
+          input.style.setProperty("min-height", "54px", "important")
+          input.style.setProperty("border-radius", "9999px", "important")
+          input.style.setProperty("padding", "0 18px", "important")
+        }
+
+        const pmdFieldBoxes = Array.from(
+          pmdStripeForm.querySelectorAll(".mt-1.p-3.border.rounded-2xl.w-full")
+        ) as HTMLElement[]
+
+        for (const box of pmdFieldBoxes) {
+          box.style.setProperty("background", pmdStripeSurface, "important")
+          box.style.setProperty("border-color", pmdStripeBorder, "important")
+          box.style.setProperty("box-shadow", "none", "important")
+          box.style.setProperty("height", "54px", "important")
+          box.style.setProperty("min-height", "54px", "important")
+          box.style.setProperty("border-radius", "9999px", "important")
+          box.style.setProperty("padding", "0 18px", "important")
+          box.style.setProperty("display", "flex", "important")
+          box.style.setProperty("align-items", "center", "important")
+        }
+
+        const pmdStripeElements = Array.from(
+          pmdStripeForm.querySelectorAll(".StripeElement, .__PrivateStripeElement")
+        ) as HTMLElement[]
+
+        for (const stripeEl of pmdStripeElements) {
+          stripeEl.style.setProperty("background", "transparent", "important")
+          stripeEl.style.setProperty("width", "100%", "important")
+        }
+      }
+
+      // PMD_STRIPE_FORM_FIELD_UNIFY_20260605
+      // Make Stripe card payment fields visually match the checkout design system.
+      const pmdPaymentForm = wrap.closest('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+      if (pmdPaymentForm) {
+        const labels = Array.from(
+          pmdPaymentForm.querySelectorAll("label")
+        ) as HTMLElement[]
+
+        for (const label of labels) {
+          label.style.setProperty("font-size", "13px", "important")
+          label.style.setProperty("line-height", "1.2", "important")
+          label.style.setProperty("font-weight", "650", "important")
+          label.style.setProperty("color", "var(--theme-text-primary)", "important")
+          label.style.setProperty("-webkit-text-fill-color", "var(--theme-text-primary)", "important")
+          label.style.setProperty("margin-bottom", "6px", "important")
+        }
+
+        const nativeInputs = Array.from(
+          pmdPaymentForm.querySelectorAll('input:not(.__PrivateStripeElement-input)')
+        ) as HTMLElement[]
+
+        for (const input of nativeInputs) {
+          input.style.setProperty("box-sizing", "border-box", "important")
+          input.style.setProperty("width", "100%", "important")
+          input.style.setProperty("height", "54px", "important")
+          input.style.setProperty("min-height", "54px", "important")
+          input.style.setProperty("max-height", "54px", "important")
+          input.style.setProperty("padding", "0 18px", "important")
+          input.style.setProperty("border-radius", "9999px", "important")
+          input.style.setProperty("background", "rgb(247, 245, 238)", "important")
+          input.style.setProperty("border", "1px solid var(--theme-border)", "important")
+          input.style.setProperty("box-shadow", "none", "important")
+          input.style.setProperty("outline", "none", "important")
+          input.style.setProperty("color", "var(--theme-text-primary)", "important")
+          input.style.setProperty("-webkit-text-fill-color", "var(--theme-text-primary)", "important")
+          input.style.setProperty("caret-color", "var(--theme-text-primary)", "important")
+          input.style.setProperty("font-size", "16px", "important")
+          input.style.setProperty("font-weight", "600", "important")
+          input.style.setProperty("letter-spacing", "-0.01em", "important")
+        }
+
+        const formTitle = pmdPaymentForm
+          .closest('[data-pmd-payment-selected-detail="1"]')
+          ?.querySelector(".text-paydine-elegant-gray") as HTMLElement | null
+
+        if (formTitle) {
+          formTitle.style.setProperty("font-size", "13px", "important")
+          formTitle.style.setProperty("font-weight", "650", "important")
+          formTitle.style.setProperty("color", "var(--theme-text-muted)", "important")
+          formTitle.style.setProperty("-webkit-text-fill-color", "var(--theme-text-muted)", "important")
+        }
+      }
+
+      // PMD_STRIPE_INNER_TEXT_RAISE_20260605
+      // Stripe renders the card field inside an iframe; move only its wrapper slightly up.
+      const stripeElements = Array.from(
+        wrap.querySelectorAll(".StripeElement, .__PrivateStripeElement")
+      ) as HTMLElement[]
+
+      for (const stripeEl of stripeElements) {
+        stripeEl.style.setProperty("width", "100%", "important")
+        stripeEl.style.setProperty("transform", "translateY(-2px)", "important")
+        stripeEl.style.setProperty("will-change", "transform", "important")
+      }
     }
 
     if (typeof document !== "undefined") {
@@ -297,15 +446,15 @@ export function StripeCardForm({
       el.style.setProperty("gap", "8px", "important")
       el.style.setProperty("padding", "0 18px", "important")
       el.style.setProperty("margin", "0", "important")
-      el.style.setProperty("border-radius", "16px", "important")
+      el.style.setProperty("border-radius", "9999px", "important")
       el.style.setProperty("border", "0", "important")
       el.style.setProperty("outline", "none", "important")
       el.style.setProperty("appearance", "none", "important")
       el.style.setProperty("-webkit-appearance", "none", "important")
-      el.style.setProperty("background", "linear-gradient(135deg, #635BFF 0%, #4F46E5 100%)", "important")
-      el.style.setProperty("background-color", "#635BFF", "important")
-      el.style.setProperty("background-image", "linear-gradient(135deg, #635BFF 0%, #4F46E5 100%)", "important")
-      el.style.setProperty("box-shadow", "0 8px 22px rgba(99, 91, 255, 0.35)", "important")
+      el.style.setProperty("background", "linear-gradient(135deg, #063F2F 0%, #062F2A 100%)", "important")
+      el.style.setProperty("background-color", "#063F2F", "important")
+      el.style.setProperty("background-image", "linear-gradient(135deg, #063F2F 0%, #062F2A 100%)", "important")
+      el.style.setProperty("box-shadow", "0 8px 22px rgba(6, 47, 42, 0.24)", "important")
       el.style.setProperty("color", "#FFFFFF", "important")
       el.style.setProperty("font-size", "16px", "important")
       el.style.setProperty("font-weight", "700", "important")
@@ -492,7 +641,19 @@ export function StripeCardForm({
           <Label className="text-sm font-medium" style={{ color: fieldTheme.label }}>
             Card Information
           </Label>
-          <div ref={stripeCardWrapRef} className="mt-1 p-3 border rounded-2xl w-full" style={{ background: fieldTheme.bg, borderColor: fieldTheme.border }}>
+          <div ref={stripeCardWrapRef} className="mt-1 p-3 border rounded-2xl w-full" style={{
+              background: fieldTheme.bg,
+              borderColor: fieldTheme.border,
+              boxSizing: "border-box",
+              height: "54px",
+              minHeight: "54px",
+              maxHeight: "54px",
+              padding: "0 18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+            }}>
             <CardElement
               options={{
                 style: {
@@ -534,7 +695,7 @@ export function StripeCardForm({
           minWidth: "100%",
           maxWidth: "100%",
           height: "54px",
-          borderRadius: "16px",
+          borderRadius: "9999px",
           border: "0",
           outline: "none",
           appearance: "none",
@@ -561,9 +722,9 @@ export function StripeCardForm({
             position: "absolute",
             inset: 0,
             zIndex: 0,
-            borderRadius: "16px",
-            background: "linear-gradient(135deg, #635BFF 0%, #4F46E5 100%)",
-            boxShadow: "0 8px 22px rgba(99, 91, 255, 0.35)",
+            borderRadius: "9999px",
+            background: "linear-gradient(135deg, #063F2F 0%, #062F2A 100%)",
+            boxShadow: "0 8px 22px rgba(6, 47, 42, 0.24)",
             pointerEvents: "none",
           }}
         />
@@ -1423,9 +1584,9 @@ const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
             position: "absolute",
             inset: 0,
             zIndex: 0,
-            borderRadius: "16px",
-            background: "linear-gradient(135deg, #635BFF 0%, #4F46E5 100%)",
-            boxShadow: "0 8px 22px rgba(99, 91, 255, 0.35)",
+            borderRadius: "9999px",
+            background: "linear-gradient(135deg, #063F2F 0%, #062F2A 100%)",
+            boxShadow: "0 8px 22px rgba(6, 47, 42, 0.24)",
             pointerEvents: "none",
           }}
         />

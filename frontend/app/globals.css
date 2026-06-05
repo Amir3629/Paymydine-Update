@@ -3118,13 +3118,13 @@ button[data-pmd-stripe-native-button="1"] {
   padding: 0 18px !important;
   margin: 12px 0 0 0 !important;
 
-  background: linear-gradient(135deg, #635BFF 0%, #4F46E5 100%) !important;
-  background-color: #635BFF !important;
+  background: linear-gradient(135deg, #063F2F 0%, #062F2A 100%) !important;
+  background-color: #063F2F !important;
   color: #FFFFFF !important;
 
   border: 0 !important;
   border-radius: 16px !important;
-  box-shadow: 0 8px 22px rgba(99, 91, 255, 0.35) !important;
+  box-shadow: 0 8px 22px rgba(6, 47, 42, 0.24) !important;
 
   font-size: 16px !important;
   font-weight: 700 !important;
@@ -3140,8 +3140,8 @@ button[data-pmd-stripe-native-button="1"] {
 button[data-pmd-stripe-native-button="1"]:hover,
 button[data-pmd-stripe-native-button="1"]:focus,
 button[data-pmd-stripe-native-button="1"]:active {
-  background: linear-gradient(135deg, #5B54F6 0%, #4338CA 100%) !important;
-  background-color: #5B54F6 !important;
+  background: linear-gradient(135deg, #07483F 0%, #062F2A 100%) !important;
+  background-color: #07483F !important;
   color: #FFFFFF !important;
 }
 
@@ -3203,7 +3203,7 @@ form[data-pmd-stripe-form="1"] input#cardholderName:focus,
 form[data-pmd-stripe-form="1"] input#email:focus,
 form[data-pmd-stripe-form="1"] input#phone:focus {
   border-color: rgba(99,91,255,0.70) !important;
-  box-shadow: 0 0 0 3px rgba(99,91,255,0.18) !important;
+  box-shadow: 0 0 0 3px rgba(6,47,42,0.18) !important;
   outline: none !important;
 }
 
@@ -14387,3 +14387,1323 @@ html body button[data-pmd-submit-review="1"],
 html body [data-pmd-final-card="1"] button[data-pmd-submit-review="1"] {
   display: none !important;
 }
+
+/* PMD_CHECKOUT_MODAL_DESIGN_SYSTEM_20260604
+   Premium modal polish for My Order / Table Order / Order Status / Payment.
+   Scoped to the checkout modal so existing menu/admin styling is not disturbed.
+*/
+html body [data-pmd-checkout-design-system="1"] {
+  --pmd-modal-text: #0B1F1D;
+  --pmd-modal-muted: #6B7280;
+  --pmd-modal-surface: #FFF9EF;
+  --pmd-modal-card: rgba(255, 252, 245, 0.92);
+  --pmd-modal-card-soft: rgba(255, 249, 239, 0.72);
+  --pmd-modal-border: rgba(216, 185, 130, 0.36);
+  --pmd-modal-emerald: #062F2A;
+  --pmd-modal-gold: #B88940;
+  color: var(--pmd-modal-text) !important;
+  background: linear-gradient(180deg, #fffaf2 0%, #fff7ea 100%) !important;
+  border: 1px solid rgba(216, 185, 130, 0.22) !important;
+  box-shadow: 0 24px 60px rgba(11, 31, 29, 0.18) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-modal-title {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(1.38rem, 5vw, 1.5rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.08 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .surface,
+html body [data-pmd-checkout-design-system="1"] .surface-sub {
+  color: var(--pmd-modal-text) !important;
+  background: var(--pmd-modal-card) !important;
+  border-color: var(--pmd-modal-border) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] > .surface-sub,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card {
+  border: 1px solid var(--pmd-modal-border) !important;
+  box-shadow: 0 10px 24px rgba(11, 31, 29, 0.055) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .muted,
+html body [data-pmd-checkout-design-system="1"] .text-paydine-elegant-gray\/70 {
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] h3,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-status-title {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(1.05rem, 4.3vw, 1.25rem) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.015em !important;
+  line-height: 1.2 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-helper-text {
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  margin-top: -0.15rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row {
+  background: rgba(255, 255, 255, 0.54) !important;
+  border-color: var(--pmd-modal-border) !important;
+  color: var(--pmd-modal-text) !important;
+  font-size: 0.86rem !important;
+  font-weight: 650 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-card {
+  background: rgba(255, 255, 255, 0.48) !important;
+  border-color: var(--pmd-modal-border) !important;
+  box-shadow: 0 8px 18px rgba(11, 31, 29, 0.04) !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row {
+  color: var(--pmd-modal-text) !important;
+  font-size: clamp(0.98rem, 3.8vw, 1.08rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.24 !important;
+  transition: opacity 160ms ease, transform 160ms ease, color 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row span:last-child,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-price {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(0.98rem, 3.8vw, 1.08rem) !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .flex.items-center.justify-between,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card .flex.items-center.justify-between,
+html body [data-pmd-checkout-design-system="1"] .surface-sub.rounded-2xl.p-3.space-y-1 .flex.justify-between {
+  font-size: clamp(0.98rem, 3.8vw, 1.06rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .border-t span:last-child,
+html body [data-pmd-checkout-design-system="1"] .divider span:last-child {
+  color: var(--pmd-modal-gold) !important;
+  -webkit-text-fill-color: var(--pmd-modal-gold) !important;
+  font-size: clamp(1.18rem, 4.8vw, 1.35rem) !important;
+  font-weight: 850 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-floating-eta-circle="1"] {
+  width: 4.45rem !important;
+  height: 4.45rem !important;
+  box-shadow: 0 12px 26px rgba(6, 47, 42, 0.22) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-header-copy-row="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  padding: 0.25rem 0.1rem 0.1rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] input,
+html body [data-pmd-checkout-design-system="1"] textarea {
+  border-color: var(--pmd-modal-border) !important;
+  color: var(--pmd-modal-text) !important;
+  background: rgba(255, 255, 255, 0.58) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] button {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease, opacity 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] button:active {
+  transform: scale(0.985);
+}
+
+/* PMD_CHECKOUT_LIST_SCROLL_SAFETY_20260604
+   Keep long item lists scrollable without clipped final rows and soften normal item-row hierarchy.
+*/
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] {
+  overscroll-behavior: contain !important;
+  scroll-padding-block: 1rem !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll {
+  max-height: none !important;
+  overflow: visible !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+  padding-top: 0.18rem !important;
+  padding-bottom: 0.7rem !important;
+  scroll-padding-block: 0.7rem !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll > *:last-child {
+  margin-bottom: 0.15rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar {
+  width: 0.35rem;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar-thumb {
+  background: rgba(184, 137, 64, 0.24);
+  border-radius: 9999px;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row {
+  font-weight: 600 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row span:last-child,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-price,
+html body [data-pmd-checkout-design-system="1"] .pmd-customer-price {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-weight: 650 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .border-t span:last-child,
+html body [data-pmd-checkout-design-system="1"] .divider span:last-child,
+html body [data-pmd-checkout-design-system="1"] span[style*="#b88940"] {
+  color: var(--pmd-modal-gold) !important;
+  -webkit-text-fill-color: var(--pmd-modal-gold) !important;
+}
+
+/* PMD_CHECKOUT_ITEM_PRICE_COLOR_LOCK_20260604
+   Normal line item prices inside checkout are primary charcoal; only final/accent totals stay gold.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-card .pmd-checkout-item-price,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row > span:last-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row .font-semibold:not(.text-base):not(.text-lg):not(.text-xl):not(.text-2xl) {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-weight: 600 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row > span:first-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row .font-medium {
+  font-weight: 500 !important;
+}
+
+/* PMD_CHECKOUT_FINAL_VISUAL_TUNE_20260604
+   Final scoped polish only: lighter Table Order rows, subtler helper text, calmer status headings.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row {
+  font-size: 0.92rem !important;
+  font-weight: 450 !important;
+  line-height: 1.26 !important;
+  letter-spacing: -0.005em !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row > span:first-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row .font-medium {
+  font-weight: 450 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row > span:last-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row .font-semibold {
+  font-size: 0.92rem !important;
+  font-weight: 550 !important;
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-helper-text {
+  font-size: 0.74rem !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+  opacity: 0.78 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-status-title {
+  font-size: clamp(0.98rem, 3.8vw, 1.12rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -0.012em !important;
+}
+
+/* PMD_CHECKOUT_BODY_SCROLL_SAFE_AREA_20260605
+   Keep modal dimensions unchanged while making the modal body the reliable scroll area.
+   Prevents expanded payment forms and complete-screen actions from being clipped at the bottom.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-padding-top: 1rem !important;
+  scroll-padding-bottom: calc(2.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(2.25rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail {
+  scroll-margin-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail > .overflow-hidden,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail [class~="overflow-hidden"] {
+  overflow: visible !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-body > *:last-child {
+  margin-bottom: 0.35rem !important;
+}
+
+/* PMD_ORDER_COMPLETE_BOTTOM_REACH_20260605
+   Extra bottom breathing room for complete-screen actions without changing modal size.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-order-complete-content {
+  padding-bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px)) !important;
+  scroll-margin-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* =========================================================
+   PMD_CARD_PAYMENT_BRAND_FIX_20260605
+   Fix Stripe/Card form visual style inside checkout only.
+   - no purple Stripe button
+   - card field matches PayMyDine modal
+   - labels/inputs stay readable
+   ========================================================= */
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"],
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] {
+  color: var(--pmd-modal-text, #0B1F1D) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text, #0B1F1D) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"],
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] {
+  width: 100% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] label,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] label {
+  display: block !important;
+  margin-bottom: 0.35rem !important;
+  font-size: 0.88rem !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  color: #0B1F1D !important;
+  -webkit-text-fill-color: #0B1F1D !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#cardholderName,
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#email,
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#phone,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#cardholderName,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#email,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#phone {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 10px 14px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(11, 31, 29, 0.14) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  color: #0B1F1D !important;
+  -webkit-text-fill-color: #0B1F1D !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65) !important;
+  outline: none !important;
+  caret-color: #063F2F !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input::placeholder,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input::placeholder {
+  color: rgba(88, 99, 113, 0.78) !important;
+  -webkit-text-fill-color: rgba(88, 99, 113, 0.78) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input:focus,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input:focus {
+  border-color: rgba(184, 137, 64, 0.68) !important;
+  box-shadow: 0 0 0 3px rgba(184, 137, 64, 0.14) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement {
+  min-height: 22px !important;
+  width: 100% !important;
+  color: #0B1F1D !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 46px !important;
+  padding: 12px 14px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(11, 31, 29, 0.14) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65) !important;
+  overflow: hidden !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"],
+html body button[data-pmd-stripe-native-button="1"] {
+  all: unset !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 18px !important;
+  margin: 12px 0 0 0 !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  text-decoration: none !important;
+
+  background: linear-gradient(135deg, #063F2F 0%, #062F2A 100%) !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.24) !important;
+
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"]:hover,
+html body .page--menu button[data-pmd-stripe-native-button="1"]:focus,
+html body .page--menu button[data-pmd-stripe-native-button="1"]:active,
+html body button[data-pmd-stripe-native-button="1"]:hover,
+html body button[data-pmd-stripe-native-button="1"]:focus,
+html body button[data-pmd-stripe-native-button="1"]:active {
+  background: linear-gradient(135deg, #07483F 0%, #062F2A 100%) !important;
+  background-color: #07483F !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 14px 28px rgba(6, 47, 42, 0.28) !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"][disabled],
+html body button[data-pmd-stripe-native-button="1"][disabled] {
+  opacity: 0.62 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"] *,
+html body .page--menu button[data-pmd-stripe-native-button="1"] span,
+html body .page--menu button[data-pmd-stripe-native-button="1"] svg,
+html body button[data-pmd-stripe-native-button="1"] *,
+html body button[data-pmd-stripe-native-button="1"] span,
+html body button[data-pmd-stripe-native-button="1"] svg {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: currentColor !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"]::before,
+html body .page--menu button[data-pmd-stripe-native-button="1"]::after,
+html body button[data-pmd-stripe-native-button="1"]::before,
+html body button[data-pmd-stripe-native-button="1"]::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* PMD_STRIPE_CARD_BUTTON_FINAL_VISUAL_FIX_20260605 START */
+
+/* Add real breathing room between Stripe card field and Pay button */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] div:has(> .StripeElement),
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] div:has(> .StripeElement),
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  margin-bottom: 14px !important;
+  min-height: 48px !important;
+}
+
+/* Stripe native Pay button: final PMD visual owner */
+html body .page--menu button[data-pmd-stripe-native-button="1"],
+html body button[data-pmd-stripe-native-button="1"] {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  border-radius: 16px !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Hide old purple internal overlay */
+html body .page--menu button[data-pmd-stripe-native-button="1"] > span[aria-hidden="true"],
+html body button[data-pmd-stripe-native-button="1"] > span[aria-hidden="true"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Green overlay wins visually even if old inline purple background remains */
+html body .page--menu button[data-pmd-stripe-native-button="1"]::before,
+html body button[data-pmd-stripe-native-button="1"]::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #063F2F 0%, #062F2A 100%) !important;
+  pointer-events: none !important;
+}
+
+/* Keep real Pay text/icon above overlay */
+html body .page--menu button[data-pmd-stripe-native-button="1"] > span:not([aria-hidden="true"]),
+html body button[data-pmd-stripe-native-button="1"] > span:not([aria-hidden="true"]) {
+  position: relative !important;
+  z-index: 2 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"] *,
+html body .page--menu button[data-pmd-stripe-native-button="1"] span,
+html body .page--menu button[data-pmd-stripe-native-button="1"] svg,
+html body .page--menu button[data-pmd-stripe-native-button="1"] rect,
+html body .page--menu button[data-pmd-stripe-native-button="1"] path,
+html body button[data-pmd-stripe-native-button="1"] *,
+html body button[data-pmd-stripe-native-button="1"] span,
+html body button[data-pmd-stripe-native-button="1"] svg,
+html body button[data-pmd-stripe-native-button="1"] rect,
+html body button[data-pmd-stripe-native-button="1"] path {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Card iframe wrapper: same premium input style */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement {
+  min-height: 22px !important;
+  width: 100% !important;
+}
+
+/* PMD_STRIPE_CARD_BUTTON_FINAL_VISUAL_FIX_20260605 END */
+
+/* PMD_STRIPE_CARD_FIELD_HEIGHT_MATCH_20260605 START */
+
+/* Make Stripe Card Information field same height as Cardholder/Email/Phone inputs */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  box-sizing: border-box !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* Keep Stripe iframe content centered inside the 44px field */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement {
+  width: 100% !important;
+  min-height: 20px !important;
+}
+
+/* Keep breathing room between card field and Pay button */
+html body .page--menu button[data-pmd-stripe-native-button="1"],
+html body button[data-pmd-stripe-native-button="1"] {
+  margin-top: 14px !important;
+}
+
+/* PMD_STRIPE_CARD_FIELD_HEIGHT_MATCH_20260605 END */
+
+/* PMD_STRIPE_INNER_TEXT_RAISE_20260605 START */
+
+/* Stripe iframe content sits visually a little low; raise only the inner Stripe content */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  width: 100% !important;
+  transform: translateY(-2px) !important;
+  will-change: transform !important;
+}
+
+/* PMD_STRIPE_INNER_TEXT_RAISE_20260605 END */
+
+/* PMD_STRIPE_FORM_FIELD_UNIFY_20260605 START */
+[data-pmd-stripe-form="1"] {
+  width: 100% !important;
+}
+
+[data-pmd-stripe-form="1"] .space-y-3 {
+  gap: 10px !important;
+}
+
+[data-pmd-stripe-form="1"] label {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  margin-bottom: 6px !important;
+  letter-spacing: -0.01em !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input) {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 14px !important;
+  border-radius: 16px !important;
+  background: var(--theme-surface) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  caret-color: var(--theme-text-primary) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input)::placeholder {
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 16px !important;
+  background: var(--theme-surface) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  width: 100% !important;
+}
+
+[data-pmd-payment-selected-detail="1"] .text-paydine-elegant-gray {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+}
+
+[data-pmd-payment-selected-detail="1"] .mb-4 {
+  margin-bottom: 10px !important;
+}
+
+[data-pmd-stripe-native-button="1"] {
+  margin-top: 12px !important;
+}
+/* PMD_STRIPE_FORM_FIELD_UNIFY_20260605 END */
+
+/* PMD_STRIPE_CARD_SURFACE_UNIFY_FINAL_20260605 START */
+[data-pmd-stripe-form="1"] {
+  background: transparent !important;
+}
+
+[data-pmd-stripe-form="1"] label {
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  margin-bottom: 6px !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  background: rgb(250, 249, 243) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  caret-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  border-radius: 9999px !important;
+  box-sizing: border-box !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input) {
+  padding: 0 14px !important;
+}
+
+[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  background: transparent !important;
+  width: 100% !important;
+}
+
+[data-pmd-stripe-native-button="1"] {
+  margin-top: 12px !important;
+  background: rgb(6, 47, 42) !important;
+  box-shadow: rgba(6, 47, 42, 0.22) 0 12px 26px !important;
+}
+
+[data-pmd-stripe-native-button="1"] > span[aria-hidden="true"] {
+  background: rgb(6, 47, 42) !important;
+  box-shadow: rgba(6, 47, 42, 0.22) 0 12px 26px !important;
+}
+/* PMD_STRIPE_CARD_SURFACE_UNIFY_FINAL_20260605 END */
+
+/* PMD_CHECKOUT_MODAL_SURFACE_UNIFY_20260605 START */
+
+/*
+  Final checkout surface system:
+  - Modal shell: warm cream
+  - Cards, rows, inputs: same soft cream
+  - No pure white cards inside checkout
+  - Borders/shadows create separation instead of random background colors
+*/
+
+[data-pmd-checkout-design-system="1"].pmd-checkout-modal {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+}
+
+[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+[data-pmd-checkout-scroll="1"] {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+}
+
+[data-pmd-checkout-design-system="1"] .surface-sub,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll,
+[data-pmd-checkout-scroll="1"] .surface-sub,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-list-scroll {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+  border-color: color-mix(in srgb, #b88940 22%, rgba(6, 47, 42, 0.14) 78%) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: 0 10px 24px rgba(6, 47, 42, 0.045) !important;
+}
+
+/* Inner item rows should not become random white pills */
+[data-pmd-checkout-design-system="1"] .pmd-checkout-item-row,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row,
+[data-pmd-checkout-design-system="1"] .pmd-table-order-item-row,
+[data-pmd-checkout-scroll="1"] .pmd-table-order-item-row {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* Split bill panels, people rows, chips, and item assignment cards */
+[data-pmd-checkout-design-system="1"] [data-pmd-split-method-real],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-method-real],
+[data-pmd-checkout-design-system="1"] [data-pmd-split-guest-stepper],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-guest-stepper],
+[data-pmd-checkout-design-system="1"] input,
+[data-pmd-checkout-scroll="1"] input,
+[data-pmd-checkout-design-system="1"] textarea,
+[data-pmd-checkout-scroll="1"] textarea {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+  border-color: color-mix(in srgb, #b88940 25%, rgba(6, 47, 42, 0.14) 75%) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Keep selected / primary buttons dark green */
+[data-pmd-checkout-design-system="1"] button[data-pmd-split-method-real][data-selected="true"],
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-selected="true"],
+[data-pmd-checkout-design-system="1"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"] {
+  background: rgb(6, 47, 42) !important;
+  background-color: rgb(6, 47, 42) !important;
+  color: rgb(255, 255, 255) !important;
+  -webkit-text-fill-color: rgb(255, 255, 255) !important;
+}
+
+/* Prevent accidental blue text selection on modal headings/buttons */
+[data-pmd-checkout-design-system="1"] h2,
+[data-pmd-checkout-design-system="1"] h3,
+[data-pmd-checkout-design-system="1"] button,
+[data-pmd-checkout-scroll="1"] h2,
+[data-pmd-checkout-scroll="1"] h3,
+[data-pmd-checkout-scroll="1"] button {
+  user-select: none;
+}
+
+/* Do not block selection inside real form fields */
+[data-pmd-checkout-design-system="1"] input,
+[data-pmd-checkout-design-system="1"] textarea,
+[data-pmd-checkout-scroll="1"] input,
+[data-pmd-checkout-scroll="1"] textarea {
+  user-select: text;
+}
+
+/* PMD_CHECKOUT_MODAL_SURFACE_UNIFY_20260605 END */
+
+/* PMD_FORCE_CHECKOUT_WARM_SURFACES_FINAL_20260605 START */
+
+/*
+  Checkout-only final surface cleanup.
+  Fixes remaining pure-white panels/fields in:
+  - Split bill
+  - Payment detail/card fields
+  - Coupon input
+  - People rows / split rows
+  - Nested rounded cards inside checkout
+*/
+
+[data-pmd-checkout-design-system="1"],
+[data-pmd-checkout-scroll="1"] {
+  --pmd-checkout-shell-final: rgb(250, 249, 243);
+  --pmd-checkout-panel-final: rgb(247, 245, 238);
+  --pmd-checkout-field-final: rgb(247, 245, 238);
+  --pmd-checkout-border-final: color-mix(in srgb, #b88940 28%, rgba(6, 47, 42, 0.14) 72%);
+  --pmd-checkout-shadow-final: 0 10px 24px rgba(6, 47, 42, 0.045);
+}
+
+[data-pmd-checkout-design-system="1"].pmd-checkout-modal,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+[data-pmd-checkout-scroll="1"] {
+  background: var(--pmd-checkout-shell-final) !important;
+  background-color: var(--pmd-checkout-shell-final) !important;
+}
+
+/* Main checkout cards/panels */
+[data-pmd-checkout-scroll="1"] .surface-sub,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-list-scroll,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-scroll="1"] div[class*="rounded-2xl"][class*="border"]:not(button):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] div[class*="rounded-3xl"]:not(button):not([data-pmd-payment-header-icon]) {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  box-shadow: var(--pmd-checkout-shadow-final) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* Inner item rows should stay clean, not separate white pills */
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row,
+[data-pmd-checkout-scroll="1"] .pmd-table-order-item-row {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Inputs, coupon, textarea, Stripe visual wrapper */
+[data-pmd-checkout-scroll="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] textarea,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .mt-1.border,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Catch remaining inline white backgrounds inside checkout, but do not touch green buttons/icons/images */
+[data-pmd-checkout-scroll="1"] [style*="background: rgb(255"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="background-color: rgb(255"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="background: #fff"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="background-color: #fff"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="var(--theme-surface)"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]) {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+}
+
+/* Split bill method buttons: unselected should also be warm, selected stays green */
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real]:not([style*="rgb(6, 47, 42)"]) {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: color-mix(in srgb, #b88940 48%, rgba(6, 47, 42, 0.12) 52%) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+/* Payment method buttons: remove pure white look */
+[data-pmd-checkout-scroll="1"] .payment-method-button,
+[data-pmd-checkout-scroll="1"] button.surface-sub,
+[data-pmd-checkout-scroll="1"] button[class*="surface-sub"]:not([style*="rgb(6, 47, 42)"]):not([data-pmd-stripe-native-button]) {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+}
+
+/* Keep primary / selected / pay buttons dark green */
+[data-pmd-checkout-scroll="1"] button[data-pmd-stripe-native-button="1"],
+[data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-checkout-scroll="1"] button[style*="#062F2A"] {
+  background: rgb(6, 47, 42) !important;
+  background-color: rgb(6, 47, 42) !important;
+  color: rgb(255, 255, 255) !important;
+  -webkit-text-fill-color: rgb(255, 255, 255) !important;
+}
+
+/* Primary button children must stay white */
+[data-pmd-checkout-scroll="1"] button[data-pmd-stripe-native-button="1"] *,
+[data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"] *,
+[data-pmd-checkout-scroll="1"] button[style*="#062F2A"] * {
+  color: rgb(255, 255, 255) !important;
+  -webkit-text-fill-color: rgb(255, 255, 255) !important;
+}
+
+/* PMD_FORCE_CHECKOUT_WARM_SURFACES_FINAL_20260605 END */
+
+/* PMD_CHECKOUT_CONSISTENCY_PASS_2_20260605 START */
+
+/*
+  Final checkout consistency pass:
+  - fixed quantity controls alignment in My Order
+  - coupon field surface + border + shape
+  - Stripe/native card fields unified
+  - Pay button unified with checkout primary buttons
+  - nested white surfaces inside checkout removed
+*/
+
+[data-pmd-checkout-design-system="1"],
+[data-pmd-checkout-scroll="1"] {
+  --pmd-checkout-shell-final: rgb(250, 249, 243);
+  --pmd-checkout-panel-final: rgb(247, 245, 238);
+  --pmd-checkout-field-final: rgb(247, 245, 238);
+  --pmd-checkout-border-final: color-mix(in srgb, #b88940 24%, rgba(6, 47, 42, 0.16) 76%);
+  --pmd-checkout-shadow-soft: 0 10px 24px rgba(6, 47, 42, 0.045);
+  --pmd-checkout-primary: #062F2A;
+  --pmd-checkout-primary-2: #0B3F39;
+}
+
+/* shell + common nested surfaces */
+[data-pmd-checkout-design-system="1"].pmd-checkout-modal,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+[data-pmd-checkout-scroll="1"],
+[data-pmd-checkout-scroll="1"] .surface-sub,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.border,
+[data-pmd-checkout-scroll="1"] .rounded-3xl,
+[data-pmd-checkout-scroll="1"] .rounded-3xl.border {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  box-shadow: none !important;
+}
+
+/* generic checkout fields */
+[data-pmd-checkout-scroll="1"] input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not(.__PrivateStripeElement-input):not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] textarea,
+[data-pmd-checkout-scroll="1"] select {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 18px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  caret-color: var(--theme-text-primary) !important;
+}
+
+[data-pmd-checkout-scroll="1"] input::placeholder,
+[data-pmd-checkout-scroll="1"] textarea::placeholder {
+  color: var(--theme-text-muted) !important;
+  opacity: 1 !important;
+}
+
+/* coupon specifically */
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 20px !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button {
+  min-width: 156px !important;
+  height: 54px !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  background: linear-gradient(135deg, var(--pmd-checkout-primary) 0%, var(--pmd-checkout-primary-2) 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: none !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button[disabled] {
+  background: color-mix(in srgb, var(--pmd-checkout-primary) 35%, white 65%) !important;
+  border-color: color-mix(in srgb, var(--pmd-checkout-primary) 22%, var(--pmd-checkout-border-final) 78%) !important;
+  color: rgba(255,255,255,0.98) !important;
+  -webkit-text-fill-color: rgba(255,255,255,0.98) !important;
+  opacity: 1 !important;
+}
+
+/* custom tip input */
+[data-pmd-checkout-scroll="1"] input[placeholder="Custom"] {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+}
+
+/* Stripe / native payment form */
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] {
+  width: 100% !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] label {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  margin-bottom: 6px !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  min-height: 56px !important;
+  height: 56px !important;
+  border-radius: 9999px !important;
+  border: 1px solid color-mix(in srgb, #062F2A 24%, var(--pmd-checkout-border-final) 76%) !important;
+  background: linear-gradient(135deg, var(--pmd-checkout-primary) 0%, var(--pmd-checkout-primary-2) 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.16) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] *,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] svg,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] svg * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* payment method buttons */
+[data-pmd-checkout-scroll="1"] .h-14.w-20.surface-sub,
+[data-pmd-checkout-scroll="1"] button[class*="h-14"][class*="w-20"] {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+/* My Order quantity cluster: keep plus/price/minus in one line */
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > :first-child {
+  min-width: 0 !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child {
+  display: grid !important;
+  grid-auto-flow: column !important;
+  grid-auto-columns: max-content !important;
+  align-items: center !important;
+  justify-content: end !important;
+  column-gap: 14px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child button {
+  width: 56px !important;
+  min-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child span,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child p,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child strong {
+  min-width: 88px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* split-bill inner chips / people rows / list rows */
+[data-pmd-checkout-scroll="1"] [data-pmd-split-method-real],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-guest-stepper],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-bill-stable="1"],
+[data-pmd-checkout-scroll="1"] .rounded-full.border,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.border.p-3,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.p-3.shadow-sm,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.p-3.text-left.shadow-sm {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  box-shadow: none !important;
+}
+
+/* order type row / helper rows */
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row {
+  min-height: 56px !important;
+  border-radius: 9999px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+
+/* remove stray pure-white backgrounds inside checkout only */
+[data-pmd-checkout-scroll="1"] [style*="background: #ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background:#ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background: #fff"],
+[data-pmd-checkout-scroll="1"] [style*="background:#fff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color: #ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color:#ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color: #fff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color:#fff"] {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+}
+
+/* PMD_CHECKOUT_CONSISTENCY_PASS_2_20260605 END */
+
+/* PMD_COUPON_APPLY_DISABLED_FIX_20260605 START */
+
+/* Coupon field + disabled Apply button must stay readable and match checkout frames. */
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  border-radius: 9999px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"]::placeholder {
+  color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button {
+  height: 54px !important;
+  min-height: 54px !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:disabled,
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button[disabled] {
+  background: color-mix(in srgb, var(--pmd-checkout-field-final, rgb(247, 245, 238)) 82%, #9aa7a0 18%) !important;
+  background-color: color-mix(in srgb, var(--pmd-checkout-field-final, rgb(247, 245, 238)) 82%, #9aa7a0 18%) !important;
+  border-color: color-mix(in srgb, var(--pmd-checkout-border-final, var(--theme-border)) 75%, #9aa7a0 25%) !important;
+  color: rgba(6, 47, 42, 0.72) !important;
+  -webkit-text-fill-color: rgba(6, 47, 42, 0.72) !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+/* Custom tip field should match the same frame system. */
+[data-pmd-checkout-scroll="1"] input[data-pmd-custom-tip-shows-selected-amount="1"] {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  border-radius: 9999px !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[data-pmd-custom-tip-shows-selected-amount="1"]::placeholder {
+  color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+}
+
+/* PMD_COUPON_APPLY_DISABLED_FIX_20260605 END */
+
+/* PMD_COUPON_APPLY_VISUAL_ONLY_FIX_20260605 START */
+
+/*
+  VISUAL ONLY.
+  Do not touch React logic.
+  Fix only the coupon input + Apply button colors.
+*/
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"]::placeholder {
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button {
+  opacity: 1 !important;
+  box-shadow: none !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+/* Disabled Apply: readable, not white text */
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:disabled {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border-color: var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+  opacity: 1 !important;
+}
+
+/* Enabled Apply: same dark green as main buttons */
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:not(:disabled) {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:not(:disabled) *,
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:not(:disabled) span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* PMD_COUPON_APPLY_VISUAL_ONLY_FIX_20260605 END */

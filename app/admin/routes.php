@@ -1,5 +1,137 @@
 <?php
 
+
+if (!function_exists('pmd_table_order_item_subtotal')) {
+    function pmd_table_order_item_subtotal(array $items): float
+    {
+        return round(array_sum(array_map(function ($item) {
+            if (is_object($item)) $item = (array)$item;
+            return (float)($item['subtotal'] ?? (((float)($item['price'] ?? 0)) * ((float)($item['quantity'] ?? 0))));
+        }, $items)), 4);
+    }
+}
+
+if (!function_exists('pmd_table_order_tax_settings')) {
+    function pmd_table_order_tax_settings(): array
+    {
+        $settings = [
+            'tax_mode' => (string)setting('tax_mode', setting('tax_enabled', '0')),
+            'tax_percentage' => (string)setting('tax_percentage', '0'),
+            'tax_menu_price' => (string)setting('tax_menu_price', '1'),
+        ];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                $hasSerializedColumn = \Illuminate\Support\Facades\Schema::hasColumn('settings', 'serialized');
+                $columns = $hasSerializedColumn ? ['item', 'value', 'serialized'] : ['item', 'value'];
+                $rows = \Illuminate\Support\Facades\DB::table('settings')
+                    ->whereIn('item', ['tax_mode', 'tax_enabled', 'tax_percentage', 'tax_menu_price'])
+                    ->get($columns);
+
+                $values = [];
+                foreach ($rows as $row) {
+                    $value = $row->value;
+                    if ($hasSerializedColumn && (int)($row->serialized ?? 0) === 1 && is_string($value)) {
+                        $decoded = @unserialize($value);
+                        if ($decoded !== false || $value === 'b:0;') {
+                            $value = $decoded;
+                        }
+                    }
+                    if (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
+                    $values[(string)$row->item] = $value;
+                }
+
+                $settings['tax_mode'] = (string)($values['tax_mode'] ?? $values['tax_enabled'] ?? $settings['tax_mode']);
+                $settings['tax_percentage'] = (string)($values['tax_percentage'] ?? $settings['tax_percentage']);
+                $settings['tax_menu_price'] = (string)($values['tax_menu_price'] ?? $settings['tax_menu_price']);
+            }
+        } catch (\Throwable $ignored) {}
+
+        return [
+            'enabled' => $settings['tax_mode'] === '1',
+            'percentage' => max(0.0, round((float)$settings['tax_percentage'], 4)),
+            'menu_price' => $settings['tax_menu_price'], // 0=included, 1=add at checkout
+        ];
+    }
+}
+
+if (!function_exists('pmd_table_order_calculate_totals')) {
+    function pmd_table_order_calculate_totals(array $items): array
+    {
+        $subtotal = pmd_table_order_item_subtotal($items);
+        $tax = pmd_table_order_tax_settings();
+        $taxAmount = 0.0;
+        $total = $subtotal;
+        $taxTitle = null;
+        $taxSummable = 0;
+
+        if (($tax['enabled'] ?? false) && (float)($tax['percentage'] ?? 0) > 0) {
+            $rate = (float)$tax['percentage'];
+            if ((string)($tax['menu_price'] ?? '1') === '1') {
+                $taxAmount = round($subtotal * ($rate / 100), 4);
+                $total = round($subtotal + $taxAmount, 4);
+                $taxTitle = 'VAT ('.$rate.'%)';
+                $taxSummable = 1;
+            } else {
+                $taxAmount = round($subtotal - ($subtotal / (1 + ($rate / 100))), 4);
+                $total = round($subtotal, 4);
+                $taxTitle = 'VAT included ('.$rate.'%)';
+                $taxSummable = 0;
+            }
+        }
+
+        $rows = [
+            ['code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($subtotal, 4), 'priority' => 1, 'is_summable' => 1],
+        ];
+        if ($taxTitle !== null) {
+            $rows[] = ['code' => 'tax', 'title' => $taxTitle, 'value' => round($taxAmount, 4), 'priority' => 2, 'is_summable' => $taxSummable];
+        }
+        $rows[] = ['code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0];
+
+        return ['subtotal' => round($subtotal, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+if (!function_exists('pmd_table_order_totals_from_order')) {
+    function pmd_table_order_totals_from_order(int $orderId, array $items, float $fallbackOrderTotal): array
+    {
+        $fallbackSubtotal = pmd_table_order_item_subtotal($items);
+        $rows = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('order_totals')) {
+                $rows = \Illuminate\Support\Facades\DB::table('order_totals')
+                    ->where('order_id', $orderId)
+                    ->orderBy('priority')
+                    ->orderBy('order_total_id')
+                    ->get(['code', 'title', 'value', 'priority', 'is_summable'])
+                    ->map(fn($row) => [
+                        'code' => (string)($row->code ?? ''),
+                        'title' => (string)($row->title ?? ''),
+                        'value' => round((float)($row->value ?? 0), 4),
+                        'priority' => (int)($row->priority ?? 0),
+                        'is_summable' => (int)($row->is_summable ?? 0),
+                    ])->values()->all();
+            }
+        } catch (\Throwable $ignored) {}
+
+        $byCode = [];
+        foreach ($rows as $row) {
+            $code = strtolower((string)($row['code'] ?? ''));
+            if ($code !== '' && !isset($byCode[$code])) $byCode[$code] = $row;
+        }
+
+        $subtotal = isset($byCode['subtotal']) ? (float)$byCode['subtotal']['value'] : $fallbackSubtotal;
+        $tax = array_sum(array_map(fn($row) => strtolower((string)($row['code'] ?? '')) === 'tax' ? (float)($row['value'] ?? 0) : 0, $rows));
+        $total = isset($byCode['total']) ? (float)$byCode['total']['value'] : (float)$fallbackOrderTotal;
+        if ($total <= 0) $total = $fallbackSubtotal;
+
+        return ['subtotal' => round($subtotal, 4), 'tax' => round($tax, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+
 use Admin\Controllers\QrRedirectController;
 use Admin\Controllers\SuperAdminController;
 use Admin\Controllers\StaffAuthController;
@@ -3110,7 +3242,6 @@ Route::group([
                 'resolved_error_code' => 'wero_not_supported',
                 'allow_fallback' => false,
                 'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
-                'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
                 'error' => 'Wero is not available for the current Worldline configuration.',
             ], 503);
         }
@@ -3150,7 +3281,6 @@ Route::group([
                     'error_code' => 'worldline_provider_configuration_invalid',
                     'resolved_error_code' => 'worldline_provider_configuration_invalid',
                     'allow_fallback' => false,
-                    'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
                     'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
                     'error' => 'Worldline Wero payment product id is missing or invalid in provider configuration.',
                     'details' => [
@@ -3213,9 +3343,6 @@ Route::group([
                     'provider' => 'worldline',
                     'method' => 'wero',
                     'error_code' => 'wero_redirect_missing',
-                    'resolved_error_code' => 'wero_redirect_missing',
-                    'allow_fallback' => false,
-                    'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
                     'resolved_error_code' => 'wero_redirect_missing',
                     'allow_fallback' => false,
                     'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
@@ -7213,18 +7340,23 @@ Route::group([
         foreach ($items as $index => $item) {
             $menuId = (int)($item['menu_id'] ?? $item['id'] ?? 0);
             $qty = max(1, (int)($item['quantity'] ?? 1));
-            $price = max(0, (float)($item['price'] ?? 0));
+            $hasPayloadPrice = array_key_exists('price', $item) && is_numeric($item['price']);
+            $price = $hasPayloadPrice ? (float)$item['price'] : null;
             if ($menuId <= 0) continue;
             $menu = \Illuminate\Support\Facades\DB::table('menus')->where('menu_id', $menuId)->where('menu_status', 1)->first();
             if (!$menu) continue;
             $name = trim((string)($item['name'] ?? '')) ?: (string)($menu->menu_name ?? ('Item '.($index + 1)));
+            $unitPrice = $hasPayloadPrice ? (float)$price : (float)($menu->menu_price ?? 0);
+            $lineSubtotal = array_key_exists('subtotal', $item) && is_numeric($item['subtotal'])
+                ? (float)$item['subtotal']
+                : round($unitPrice * $qty, 4);
             $normalized[] = [
                 'id' => (int)round(microtime(true) * 1000) + $index,
                 'menu_id' => $menuId,
                 'name' => $name,
                 'quantity' => $qty,
-                'price' => $price > 0 ? $price : (float)($menu->menu_price ?? 0),
-                'subtotal' => round(($price > 0 ? $price : (float)($menu->menu_price ?? 0)) * $qty, 4),
+                'price' => $unitPrice,
+                'subtotal' => round($lineSubtotal, 4),
                 'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
                 'guest_session_id' => trim((string)($item['guest_session_id'] ?? '')),
             ];
@@ -7239,6 +7371,9 @@ Route::group([
         $payment = null;
         $settledAmount = 0.0;
         $total = 0.0;
+        $subtotal = 0.0;
+        $taxAmount = 0.0;
+        $orderTotalsRows = [];
         if ($draft) {
             $payload = json_decode((string)($draft->payload ?? '[]'), true);
             $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
@@ -7265,10 +7400,20 @@ Route::group([
                     'paid_quantity' => 0,
                     'unpaid_quantity' => (float)($row->quantity ?? 0),
                 ])->values()->all();
-            if ($total <= 0) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? 0), $items));
+            $resolvedTotals = pmd_table_order_totals_from_order($orderId, $items, (float)($order->order_total ?? 0));
+            $subtotal = (float)$resolvedTotals['subtotal'];
+            $taxAmount = (float)$resolvedTotals['tax'];
+            $total = (float)$resolvedTotals['total'];
+            $orderTotalsRows = $resolvedTotals['rows'];
             if ($total > 0 && $settledAmount >= $total - 0.0001) $status = 'paid';
         }
-        if (!$order) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+        if (!$order) {
+            $resolvedTotals = pmd_table_order_calculate_totals($items);
+            $subtotal = (float)$resolvedTotals['subtotal'];
+            $taxAmount = (float)$resolvedTotals['tax'];
+            $total = (float)$resolvedTotals['total'];
+            $orderTotalsRows = $resolvedTotals['rows'];
+        }
         $groups = [];
         foreach ($items as $item) {
             $guest = (string)($item['guest_session_id'] ?? 'table');
@@ -7287,7 +7432,8 @@ Route::group([
             'table_name' => $context['table_name'] ?? ($draft->table_name ?? null),
             'items' => array_values($items),
             'groups' => array_values($groups),
-            'totals' => ['subtotal' => round($total, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
+            'order_totals' => $orderTotalsRows,
+            'totals' => ['subtotal' => round($subtotal, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
             'settlement' => ['orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4), 'settlementStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid')],
             'payment' => $payment,
             'status_name' => $order ? (string)($order->status_name ?? '') : null,
@@ -7425,24 +7571,10 @@ Route::group([
             // Active customer /api/v1 table-order submit route in app/admin/routes.php.
             // Item subtotal already includes option prices from frontend payload.
             // Write VAT rows here so Admin / Order Status / Payment / Split all read one source of truth.
-            $itemsSubtotal = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
-
-            $taxEnabled = (string)setting('tax_mode', '0') === '1';
-            $taxPercent = max(0.0, round((float)setting('tax_percentage', 0), 4));
-            $taxMenuPrice = (string)setting('tax_menu_price', '1'); // 0=included, 1=add at checkout
-
-            $taxAmount = 0.0;
-            $total = round($itemsSubtotal, 4);
-
-            if ($taxEnabled && $taxPercent > 0) {
-                if ($taxMenuPrice === '1') {
-                    $taxAmount = round($itemsSubtotal * ($taxPercent / 100), 4);
-                    $total = round($itemsSubtotal + $taxAmount, 4);
-                } else {
-                    $taxAmount = round($itemsSubtotal - ($itemsSubtotal / (1 + ($taxPercent / 100))), 4);
-                    $total = round($itemsSubtotal, 4);
-                }
-            }
+            $resolvedTotals = pmd_table_order_calculate_totals($items);
+            $itemsSubtotal = (float)$resolvedTotals['subtotal'];
+            $taxAmount = (float)$resolvedTotals['tax'];
+            $total = (float)$resolvedTotals['total'];
             $orderNumber = (int)\Illuminate\Support\Facades\DB::table('orders')->max('order_id') + 1;
             $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
             $insert = [
@@ -7481,22 +7613,9 @@ Route::group([
                     'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
                 ]);
             }
-            $totalsRows = [
-                ['order_id' => $orderId, 'code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($itemsSubtotal, 4), 'priority' => 1, 'is_summable' => 1],
-            ];
-
-            if ($taxEnabled && $taxPercent > 0) {
-                $totalsRows[] = [
-                    'order_id' => $orderId,
-                    'code' => 'tax',
-                    'title' => $taxMenuPrice === '1' ? 'VAT ('.$taxPercent.'%)' : 'VAT included ('.$taxPercent.'%)',
-                    'value' => round($taxAmount, 4),
-                    'priority' => 2,
-                    'is_summable' => $taxMenuPrice === '1' ? 1 : 0,
-                ];
-            }
-
-            $totalsRows[] = ['order_id' => $orderId, 'code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0];
+            $totalsRows = array_map(function ($row) use ($orderId) {
+                return array_merge(['order_id' => $orderId], $row);
+            }, $resolvedTotals['rows']);
 
             \Illuminate\Support\Facades\DB::table('order_totals')->insert($totalsRows);
             \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update(['status' => 'submitted', 'order_id' => $orderId, 'updated_at' => now()]);
@@ -7633,6 +7752,14 @@ Route::group([
         $rawItems = \Illuminate\Support\Facades\DB::table('order_menus')
             ->where('order_id', $order->order_id)
             ->get(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal']);
+        $allItemsForTotals = $rawItems->map(fn($row) => [
+            'price' => (float)($row->price ?? 0),
+            'quantity' => (float)($row->quantity ?? 0),
+            'subtotal' => (float)($row->subtotal ?? 0),
+        ])->all();
+        $resolvedOrderTotals = pmd_table_order_totals_from_order((int)$order->order_id, $allItemsForTotals, (float)($order->order_total ?? 0));
+        $orderItemSubtotalTotal = max(0.0, pmd_table_order_item_subtotal($allItemsForTotals));
+        $orderGrossRatio = $orderItemSubtotalTotal > 0 ? max(0.0, round(((float)$resolvedOrderTotals['total']) / $orderItemSubtotalTotal, 8)) : 1.0;
 
         $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
             && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
@@ -7700,7 +7827,7 @@ Route::group([
             ];
         }
 
-        $orderTotal = (float)($order->order_total ?? 0);
+        $orderTotal = (float)$resolvedOrderTotals['total'];
         $settledAmount = $hasSettlementColumns
             ? (float)($order->settled_amount ?? 0)
             : (strtolower((string)($order->payment ?? '')) === 'qr_pay_later' ? 0.0 : $orderTotal);
@@ -7714,7 +7841,7 @@ Route::group([
 
         $remainingAmount = max(0, round($orderTotal - $settledAmount, 4));
         if ($hasSplitTables) {
-            $remainingAmount = round($computedRemainingAmount, 4);
+            $remainingAmount = round($computedRemainingAmount * $orderGrossRatio, 4);
             $settledAmount = max(0, round($orderTotal - $remainingAmount, 4));
         }
         $settlementStatus = $hasSettlementColumns
@@ -7839,7 +7966,11 @@ Route::group([
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $orderTotalForGuard = round((float)($lockedOrder->order_total ?? 0), 4);
+                $canonicalTotalForGuard = \Illuminate\Support\Facades\DB::table('order_totals')
+                    ->where('order_id', $lockedOrder->order_id)
+                    ->where('code', 'total')
+                    ->value('value');
+                $orderTotalForGuard = round((float)($canonicalTotalForGuard ?? $lockedOrder->order_total ?? 0), 4);
                 $currentSettledForGuard = max(0, round((float)($lockedOrder->settled_amount ?? 0), 4));
                 $currentSettlementStatusForGuard = strtolower((string)($lockedOrder->settlement_status ?? 'unpaid'));
                 if (in_array($currentSettlementStatusForGuard, ['cancelled', 'failed'], true)) {
@@ -7861,6 +7992,15 @@ Route::group([
                 $orderMenus = \Illuminate\Support\Facades\DB::table('order_menus')
                     ->where('order_id', $lockedOrder->order_id)
                     ->get(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal']);
+                $orderItemsForTotals = $orderMenus->map(fn($row) => [
+                    'price' => (float)($row->price ?? 0),
+                    'quantity' => (float)($row->quantity ?? 0),
+                    'subtotal' => (float)($row->subtotal ?? 0),
+                ])->all();
+                $resolvedPaymentTotals = pmd_table_order_totals_from_order((int)$lockedOrder->order_id, $orderItemsForTotals, (float)($lockedOrder->order_total ?? 0));
+                $orderItemSubtotalTotal = max(0.0, pmd_table_order_item_subtotal($orderItemsForTotals));
+                $orderGrossRatio = $orderItemSubtotalTotal > 0 ? max(0.0, round(((float)$resolvedPaymentTotals['total']) / $orderItemSubtotalTotal, 8)) : 1.0;
+                $lockedOrder->order_total = (float)$resolvedPaymentTotals['total'];
 
                 $remainingByOrderMenu = [];
                 $paidQtyByOrderMenu = [];
@@ -7948,7 +8088,8 @@ Route::group([
                     $calculatedAmount += $lineTotal;
                 }
 
-                $calculatedAmount = round($calculatedAmount, 4);
+                $calculatedItemSubtotal = round($calculatedAmount, 4);
+                $calculatedAmount = round($calculatedItemSubtotal * $orderGrossRatio, 4);
                 if ($calculatedAmount <= 0) {
                     throw new \InvalidArgumentException('Payment amount must be greater than zero');
                 }
@@ -7966,7 +8107,8 @@ Route::group([
                         \Log::warning('QR_SETTLEMENT_DEBUG pay-existing amount mismatch', [
                             'order_id' => $lockedOrder->order_id,
                             'requested_amount' => $requestedAmount,
-                            'selected_items_subtotal' => $calculatedAmount,
+                            'selected_items_subtotal' => $calculatedItemSubtotal,
+                            'selected_items_payable_total' => $calculatedAmount,
                             'tip_amount' => $tipAmount,
                             'coupon_discount' => $couponDiscount,
                             'payable_amount' => $payableAmount,
@@ -7974,7 +8116,8 @@ Route::group([
                         throw new \InvalidArgumentException('Selected items amount mismatch');
                     }
                 }
-                if ($calculatedAmount > $remainingTotal + 0.0001) {
+                $remainingGrossTotal = round($remainingTotal * $orderGrossRatio, 4);
+                if ($calculatedAmount > $remainingGrossTotal + 0.0001) {
                     throw new \InvalidArgumentException('Cannot overpay remaining amount');
                 }
 
@@ -7993,7 +8136,7 @@ Route::group([
                         'order_id' => (int)$lockedOrder->order_id,
                         'payment_method' => $normalizedPaymentMethod,
                         'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : null,
-                        'amount' => $calculatedAmount,
+                        'amount' => $payableAmount,
                         'settlement_status' => $newSettlementStatus,
                         'payer_label' => $request->filled('payer_label') ? (string)$request->payer_label : null,
                         'paid_at' => now(),
@@ -8054,7 +8197,10 @@ Route::group([
         $newSettlementStatus = $result['newSettlementStatus'];
         $newSettled = $result['newSettled'];
         $remaining = $result['remaining'];
-        $paymentAmount = $result['calculatedAmount'];
+        $paymentAmount = round((float)($result['payableAmount'] ?? $result['calculatedAmount']), 4);
+        $settlementItemAmount = round((float)$result['calculatedAmount'], 4);
+        $tipAmount = round((float)($result['tipAmount'] ?? 0), 4);
+        $couponDiscount = round((float)($result['couponDiscount'] ?? 0), 4);
         $allocationRows = $result['allocationRows'];
         $alreadyPaid = (bool)($result['alreadyPaid'] ?? false);
         $shouldPrintReceipt = !$alreadyPaid && $previousSettlementStatus !== 'paid' && $newSettlementStatus === 'paid';
@@ -8151,6 +8297,9 @@ Route::group([
             'settled_amount' => $newSettled,
             'remaining_amount' => $remaining,
             'paid_amount' => $paymentAmount,
+            'settled_item_amount' => $settlementItemAmount,
+            'tip_amount' => $tipAmount,
+            'coupon_discount' => $couponDiscount,
             'allocations' => $allocationRows,
             'already_paid' => false,
             'should_print_receipt' => $shouldPrintReceipt,
