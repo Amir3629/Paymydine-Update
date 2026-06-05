@@ -4818,7 +4818,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 <span className="muted">{orderContextLabel}</span>
                 <span className="font-semibold">{orderContextValue}</span>
               </div>
-              <p className="pmd-checkout-helper-text text-xs muted">Shared table order</p>
+              {isTableContext && <p className="pmd-checkout-helper-text text-xs muted">Shared table order</p>}
               {Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0) > 0 && (
                 <div className="space-y-1 border-t pt-3 text-sm" style={{ borderColor: "var(--theme-border)" }}>
                   <div className="flex items-center justify-between">
@@ -5422,7 +5422,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 </button>
               </div>}
               {checkoutStep === "paid" && (
-                <div className="space-y-3">
+                <div className="pmd-order-complete-content space-y-3">
                   <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)" }}>
                     <div className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4" style={{ color: "#b88940" }} />
