@@ -15,7 +15,7 @@ MYSQL_BIN="$(command -v mysql || echo /opt/homebrew/bin/mysql)"
 
 echo "========================================"
 echo "PayMyDine local setup"
-echo "This will clone GitHub code, install Composer, copy DB/media from VPS, and start localhost."
+echo "This will clone GitHub code, install Composer, copy real VPS .env, import DBs, sync media, and start localhost."
 echo "========================================"
 
 read -s -p "Local MySQL root password: " LOCAL_MYSQL_PASSWORD
@@ -28,9 +28,16 @@ command -v php >/dev/null 2>&1 || { echo "ERROR: php not found"; exit 1; }
 command -v ssh >/dev/null 2>&1 || { echo "ERROR: ssh not found"; exit 1; }
 command -v rsync >/dev/null 2>&1 || { echo "ERROR: rsync not found"; exit 1; }
 
-if [ ! -x "$MYSQL_BIN" ]; then
+if [ ! -x "$MYSQL_BIN" ] && ! command -v mysql >/dev/null 2>&1; then
   echo "ERROR: mysql client not found"
-  echo "Install MySQL client first."
+  exit 1
+fi
+
+MYSQL_BIN="$(command -v mysql || echo "$MYSQL_BIN")"
+
+if [ "$(pwd)" = "$PROJECT_DIR" ]; then
+  echo "ERROR: Do not run this script from inside $PROJECT_DIR"
+  echo "Run it from ~/Downloads instead."
   exit 1
 fi
 
@@ -60,69 +67,111 @@ mkdir -p storage/app/public
 mkdir -p bootstrap/cache
 chmod -R u+rwX storage bootstrap/cache
 
-echo "==> Creating local .env"
-if [ -f ".env.example" ]; then
-  cp .env.example .env
-else
-  touch .env
-fi
+echo "==> Testing SSH to VPS"
+ssh -o ConnectTimeout=10 "${SERVER_USER}@${SERVER_HOST}" "echo SSH_OK"
 
-python3 <<PY
+echo "==> Copying real .env from VPS"
+ssh "${SERVER_USER}@${SERVER_HOST}" "cat '${REMOTE_APP_DIR}/.env'" > .env
+
+echo "==> Localizing .env for this computer"
+export LOCAL_MYSQL_PASSWORD
+
+python3 <<'PY'
+import os
 from pathlib import Path
 
 p = Path(".env")
 text = p.read_text() if p.exists() else ""
 
-settings = {
+local_password = os.environ.get("LOCAL_MYSQL_PASSWORD", "")
+
+overrides = {
     "APP_ENV": "local",
-    "APP_DEBUG": "false",
+    "APP_DEBUG": "true",
     "APP_URL": "http://127.0.0.1:8000",
+
     "DB_CONNECTION": "mysql",
     "DB_HOST": "127.0.0.1",
     "DB_PORT": "3306",
     "DB_DATABASE": "paymydine",
     "DB_USERNAME": "root",
-    "DB_PASSWORD": "${LOCAL_MYSQL_PASSWORD}",
+    "DB_PASSWORD": local_password,
+
     "TENANT_DB_HOST": "127.0.0.1",
     "TENANT_DB_PORT": "3306",
     "TENANT_DB_USERNAME": "root",
-    "TENANT_DB_PASSWORD": "${LOCAL_MYSQL_PASSWORD}",
+    "TENANT_DB_PASSWORD": local_password,
+
+    "DB_TENANT_HOST": "127.0.0.1",
+    "DB_TENANT_PORT": "3306",
+    "DB_TENANT_USERNAME": "root",
+    "DB_TENANT_PASSWORD": local_password,
+
+    "TENANCY_DB_HOST": "127.0.0.1",
+    "TENANCY_DB_PORT": "3306",
+    "TENANCY_DB_USERNAME": "root",
+    "TENANCY_DB_PASSWORD": local_password,
+
     "CACHE_DRIVER": "file",
     "SESSION_DRIVER": "file",
     "QUEUE_CONNECTION": "sync",
     "BROADCAST_DRIVER": "log",
+    "FILESYSTEM_DISK": "local",
 }
 
 lines = text.splitlines()
-seen = set()
 out = []
+seen = set()
 
 for line in lines:
-    if "=" in line and not line.strip().startswith("#"):
-        key = line.split("=", 1)[0].strip()
-        if key in settings:
-            out.append(f"{key}={settings[key]}")
-            seen.add(key)
-        else:
-            out.append(line)
-    else:
-        out.append(line)
+    stripped = line.strip()
 
-for key, value in settings.items():
+    if stripped and not stripped.startswith("#") and "=" in line:
+        key = line.split("=", 1)[0].strip()
+
+        if key in overrides:
+            if key not in seen:
+                out.append(f"{key}={overrides[key]}")
+                seen.add(key)
+            continue
+
+    out.append(line)
+
+for key, value in overrides.items():
     if key not in seen:
         out.append(f"{key}={value}")
 
-p.write_text("\\n".join(out) + "\\n")
+p.write_text("\n".join(out) + "\n")
 PY
 
-echo "==> Testing SSH to VPS"
-ssh -o ConnectTimeout=10 "${SERVER_USER}@${SERVER_HOST}" "echo SSH_OK"
+echo "==> Preparing local MySQL login"
+LOCAL_CNF="$(mktemp)"
+chmod 600 "$LOCAL_CNF"
+
+cat > "$LOCAL_CNF" <<EOF
+[client]
+host=127.0.0.1
+port=3306
+user=root
+password=$LOCAL_MYSQL_PASSWORD
+default-character-set=utf8mb4
+EOF
+
+cleanup() {
+  rm -f "$LOCAL_CNF"
+}
+trap cleanup EXIT
+
+echo "==> Testing local MySQL"
+"$MYSQL_BIN" --defaults-extra-file="$LOCAL_CNF" -e "SELECT VERSION();"
 
 echo "==> Dumping production DBs from VPS"
 ssh "${SERVER_USER}@${SERVER_HOST}" 'bash -s' <<'REMOTE'
 set -Eeuo pipefail
 
-cd /var/www/paymydine
+REMOTE_APP_DIR="/var/www/paymydine"
+
+cd "$REMOTE_APP_DIR"
 
 rm -rf /tmp/pmd-local-sync
 mkdir -p /tmp/pmd-local-sync
@@ -131,23 +180,43 @@ php <<'PHP' > /tmp/pmd_db_creds.env
 <?php
 function read_env_file($path) {
     $env = [];
+
+    if (!is_file($path)) {
+        fwrite(STDERR, "ERROR: .env not found at {$path}\n");
+        exit(1);
+    }
+
     foreach (file($path, FILE_IGNORE_NEW_LINES) as $line) {
         $line = trim($line);
-        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
+
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
+        }
+
         [$key, $value] = explode('=', $line, 2);
+
         $key = trim($key);
         $value = trim($value);
-        if ((str_starts_with($value, '"') && str_ends_with($value, '"')) || (str_starts_with($value, "'") && str_ends_with($value, "'"))) {
+
+        if (
+            (str_starts_with($value, '"') && str_ends_with($value, '"')) ||
+            (str_starts_with($value, "'") && str_ends_with($value, "'"))
+        ) {
             $value = substr($value, 1, -1);
         }
+
         $env[$key] = $value;
     }
+
     return $env;
 }
+
 function shell_value($value) {
     return "'" . str_replace("'", "'\\''", $value) . "'";
 }
+
 $env = read_env_file('/var/www/paymydine/.env');
+
 echo "DB_HOST=" . shell_value($env['DB_HOST'] ?? '127.0.0.1') . PHP_EOL;
 echo "DB_PORT=" . shell_value($env['DB_PORT'] ?? '3306') . PHP_EOL;
 echo "DB_USERNAME=" . shell_value($env['DB_USERNAME'] ?? '') . PHP_EOL;
@@ -173,7 +242,13 @@ trap 'rm -f "$CNF"' EXIT
 
 for db in paymydine mimoza rosana persian; do
   echo "Dumping $db..."
-  mysqldump --defaults-extra-file="$CNF" --single-transaction "$db" > "/tmp/pmd-local-sync/$db.sql"
+
+  if mysql --defaults-extra-file="$CNF" -N -B -e "SHOW DATABASES LIKE '$db';" | grep -Fxq "$db"; then
+    mysqldump --defaults-extra-file="$CNF" --single-transaction "$db" > "/tmp/pmd-local-sync/$db.sql"
+  else
+    echo "ERROR: Database $db not found on VPS"
+    exit 1
+  fi
 done
 
 tar -czf /tmp/pmd-local-dbs.tar.gz -C /tmp/pmd-local-sync .
@@ -187,19 +262,30 @@ rm -rf "$LOCAL_BASE/pmd-local-dbs"
 mkdir -p "$LOCAL_BASE/pmd-local-dbs"
 tar -xzf "$LOCAL_BASE/pmd-local-dbs.tar.gz" -C "$LOCAL_BASE/pmd-local-dbs"
 
-echo "==> Creating local databases"
-"$MYSQL_BIN" -u root -p"${LOCAL_MYSQL_PASSWORD}" -e "
-CREATE DATABASE IF NOT EXISTS paymydine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS mimoza CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS rosana CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS persian CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+echo "==> Resetting local databases"
+"$MYSQL_BIN" --defaults-extra-file="$LOCAL_CNF" -e "
+DROP DATABASE IF EXISTS paymydine;
+DROP DATABASE IF EXISTS mimoza;
+DROP DATABASE IF EXISTS rosana;
+DROP DATABASE IF EXISTS persian;
+
+CREATE DATABASE paymydine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE mimoza CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE rosana CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE persian CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 "
 
 echo "==> Importing databases"
-"$MYSQL_BIN" -u root -p"${LOCAL_MYSQL_PASSWORD}" paymydine < "$LOCAL_BASE/pmd-local-dbs/paymydine.sql"
-"$MYSQL_BIN" -u root -p"${LOCAL_MYSQL_PASSWORD}" mimoza < "$LOCAL_BASE/pmd-local-dbs/mimoza.sql"
-"$MYSQL_BIN" -u root -p"${LOCAL_MYSQL_PASSWORD}" rosana < "$LOCAL_BASE/pmd-local-dbs/rosana.sql"
-"$MYSQL_BIN" -u root -p"${LOCAL_MYSQL_PASSWORD}" persian < "$LOCAL_BASE/pmd-local-dbs/persian.sql"
+"$MYSQL_BIN" --defaults-extra-file="$LOCAL_CNF" paymydine < "$LOCAL_BASE/pmd-local-dbs/paymydine.sql"
+"$MYSQL_BIN" --defaults-extra-file="$LOCAL_CNF" mimoza < "$LOCAL_BASE/pmd-local-dbs/mimoza.sql"
+"$MYSQL_BIN" --defaults-extra-file="$LOCAL_CNF" rosana < "$LOCAL_BASE/pmd-local-dbs/rosana.sql"
+"$MYSQL_BIN" --defaults-extra-file="$LOCAL_CNF" persian < "$LOCAL_BASE/pmd-local-dbs/persian.sql"
+
+echo "==> Verifying menu counts"
+for db in paymydine mimoza rosana persian; do
+  echo "--- $db ---"
+  "$MYSQL_BIN" --defaults-extra-file="$LOCAL_CNF" "$db" -e "SELECT COUNT(*) AS menus FROM ti_menus;" || true
+done
 
 echo "==> Syncing media from VPS"
 mkdir -p assets/media
@@ -225,6 +311,8 @@ php artisan view:clear
 
 echo "==> Verifying important files"
 test -f app/admin/models/Fiskaly_configs_model.php
+test -f app/admin/models/Fiskaly_transactions_model.php
+test -f app/admin/services/Fiskaly/FiskalyConfigResolver.php
 test -f app/admin/assets/css/pmd-admin-theme-v1.css
 test -d assets/media/attachments/public
 
@@ -235,6 +323,9 @@ echo ""
 echo "DONE."
 echo "Open this URL:"
 echo "http://mimoza.lvh.me:8000/admin/menus"
+echo ""
+echo "Do NOT open:"
+echo "http://127.0.0.1:8000/admin/menus"
 echo ""
 
 php -S 127.0.0.1:8000 server.php
