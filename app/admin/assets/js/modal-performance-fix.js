@@ -3,13 +3,22 @@
 
 (function() {
     'use strict';
-    
+
+    // PMD_NATIVE_MEDIA_CONTEXT_GUARD
+    var pmdNativeMediaPath = window.location && window.location.pathname ? window.location.pathname : '';
+    if (/\/admin\/settings(\/|$)/.test(pmdNativeMediaPath) || /\/admin\/media_manager(\/|$)/.test(pmdNativeMediaPath)) {
+        if (window.console) console.log('[PMD] custom media helper skipped on native settings/media manager page:', pmdNativeMediaPath);
+        return;
+    }
+
+
+
     console.log('🚀 Modal Performance Fix: Initializing...');
-    
+
     // Global flag - all observers should check this
     window.MODAL_IS_OPEN = false;
     window.SKIP_EXPENSIVE_OBSERVERS = false;
-    
+
     // Function to check if we should skip processing
     window.shouldSkipObserver = function(mutation) {
         if (window.SKIP_EXPENSIVE_OBSERVERS) {
@@ -39,7 +48,7 @@
         }
         return false;
     };
-    
+
     // Set flag when modal opens
     document.addEventListener('show.bs.modal', function(e) {
         const modal = e.target;
@@ -49,14 +58,14 @@
             window.SKIP_EXPENSIVE_OBSERVERS = true;
         }
     }, { passive: true });
-    
+
     document.addEventListener('shown.bs.modal', function(e) {
         const modal = e.target;
         if (modal.id === 'media-manager' || modal.classList.contains('media-modal')) {
             console.log('✅ Media manager opened - SKIP flag active');
         }
     }, { passive: true });
-    
+
     // Clear flag when modal closes
     document.addEventListener('hide.bs.modal', function(e) {
         const modal = e.target;
@@ -68,7 +77,7 @@
             }, 100);
         }
     }, { passive: true });
-    
+
     document.addEventListener('hidden.bs.modal', function(e) {
         const modal = e.target;
         if (modal.id === 'media-manager' || modal.classList.contains('media-modal')) {
@@ -77,7 +86,7 @@
             window.SKIP_EXPENSIVE_OBSERVERS = false;
         }
     }, { passive: true });
-    
+
     // Also watch for modal-open class on body (backup)
     const bodyObserver = new MutationObserver(function(mutations) {
         for (const mutation of mutations) {
@@ -85,7 +94,7 @@
                 const hasModalOpen = document.body.classList.contains('modal-open');
                 const modal = document.querySelector('.modal.show');
                 const isMediaModal = modal && (modal.id === 'media-manager' || modal.classList.contains('media-modal'));
-                
+
                 if (hasModalOpen && isMediaModal) {
                     window.MODAL_IS_OPEN = true;
                     window.SKIP_EXPENSIVE_OBSERVERS = true;
@@ -96,12 +105,12 @@
             }
         }
     });
-    
+
     bodyObserver.observe(document.body, {
         attributes: true,
         attributeFilter: ['class']
     });
-    
+
     console.log('✅ Modal Performance Fix: Active');
     console.log('   Use window.SKIP_EXPENSIVE_OBSERVERS in observer callbacks to skip processing');
 })();

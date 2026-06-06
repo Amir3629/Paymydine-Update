@@ -7,6 +7,16 @@ $__autoPrint=(string)$__s('invoice_auto_print_dialog','0')==='1';
 @endphp
 
 @php
+
+if (!function_exists('pmdCleanGuestSessionComment')) {
+    function pmdCleanGuestSessionComment($comment) {
+        $comment = trim((string)($comment ?? ''));
+        if ($comment === '') return '';
+        $comment = trim(preg_replace('/\s*\[guest_session:\s*\]\s*/u', ' ', $comment));
+        if ($comment === '' || preg_match('/^\[guest_session:[^\]]*\]$/u', $comment)) return '';
+        return $comment;
+    }
+}
     $__pmdOrderCommentRaw = (string) ($model->comment ?? '');
     $__pmdIsPosImport = stripos($__pmdOrderCommentRaw, 'ready2order') !== false
         || stripos($__pmdOrderCommentRaw, 'r2o-invoice') !== false
@@ -453,8 +463,8 @@ TOTALS:
                     <th class="text-right" width="21%"><b>TOTAL</b></th>
                 </tr>
                 </thead>
-                
-                    
+
+
 @php
     /* PMD_CANONICAL_GROSS_DISPLAY_V3 */
     $orderTotals = collect($model->getOrderTotals() ?? []);
@@ -552,9 +562,10 @@ TOTALS:
                                     @endforeach
                                 @endif
 
-                                @if(!empty($menuItem->comment))
+                                @php($pmdMenuComment = pmdCleanGuestSessionComment($menuItem->comment ?? ''))
+                                @if($pmdMenuComment !== '')
                                     <div style="margin-top:2px;">
-                                        <small><b>{{ $menuItem->comment }}</b></small>
+                                        <small><b>{{ $pmdMenuComment }}</b></small>
                                     </div>
                                 @endif
                             </td>
@@ -564,7 +575,7 @@ TOTALS:
                     @endforeach
                     </tbody>
 
-                
+
                     <tfoot>
                     @php
                         $orderTotals = collect($model->getOrderTotals() ?? []);

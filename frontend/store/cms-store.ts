@@ -14,6 +14,19 @@ type PaymentOption = {
   enabled: boolean
 }
 
+export type PmdSocialPlatformId = "trustpilot" | "instagram" | "google" | "website" | "reviews"
+
+export type PmdSocialPlatformSettings = {
+  enabled: boolean
+  url: string
+}
+
+export type PmdReviewSocialSettings = {
+  sharePromptEnabled: boolean
+  homepageSocialIconsEnabled: boolean
+  platforms: Record<PmdSocialPlatformId, PmdSocialPlatformSettings>
+}
+
 type MerchantSettings = {
   businessName: string
   accountId: string
@@ -26,6 +39,7 @@ type MerchantSettings = {
   bankName: string
   currency: string
   countryCode: string
+  reviewSocial: PmdReviewSocialSettings
 }
 
 type TipSettings = {
@@ -101,6 +115,18 @@ const initialVATSettings: VATSettings = {
   menuPrice: 1, // Default: apply VAT on menu price
 }
 
+const initialReviewSocialSettings: PmdReviewSocialSettings = {
+  sharePromptEnabled: true,
+  homepageSocialIconsEnabled: true,
+  platforms: {
+    trustpilot: { enabled: false, url: "" },
+    instagram: { enabled: false, url: "" },
+    google: { enabled: false, url: "" },
+    website: { enabled: false, url: "" },
+    reviews: { enabled: false, url: "" },
+  },
+}
+
 const initialMerchantSettings: MerchantSettings = {
   businessName: "PayMyDine Restaurant",
   accountId: "",
@@ -113,6 +139,7 @@ const initialMerchantSettings: MerchantSettings = {
   bankName: "",
   currency: "EUR",
   countryCode: "US",
+  reviewSocial: initialReviewSocialSettings,
 }
 
 export const useCmsStore = create<CmsState>()(
@@ -169,6 +196,29 @@ export const useCmsStore = create<CmsState>()(
             return undefined
           }
 
+          // PMD_REVIEW_SOCIAL_SETTINGS_CLIENT_20260605
+          const parseBool = (value: any, fallback = false): boolean => {
+            if (value === undefined || value === null || value === "") return fallback
+            const normalized = String(value).trim().toLowerCase()
+            if (["1", "true", "yes", "on", "enabled"].includes(normalized)) return true
+            if (["0", "false", "no", "off", "disabled"].includes(normalized)) return false
+            return fallback
+          }
+
+          const platformIds: PmdSocialPlatformId[] = ["trustpilot", "instagram", "google", "website", "reviews"]
+          const reviewSocial: PmdReviewSocialSettings = {
+            sharePromptEnabled: parseBool(get("pmd_review_share_prompt_enabled"), initialReviewSocialSettings.sharePromptEnabled),
+            homepageSocialIconsEnabled: parseBool(get("pmd_homepage_social_icons_enabled"), initialReviewSocialSettings.homepageSocialIconsEnabled),
+            platforms: { ...initialReviewSocialSettings.platforms },
+          }
+
+          platformIds.forEach((platformId) => {
+            reviewSocial.platforms[platformId] = {
+              enabled: parseBool(get(`pmd_social_${platformId}_enabled`), initialReviewSocialSettings.platforms[platformId].enabled),
+              url: String(get(`pmd_social_${platformId}_url`) || "").trim(),
+            }
+          })
+
           const newMs = {
             businessName: get("businessName", "business_name", "restaurant_name", "name") || "PayMyDine Restaurant",
             accountId: get("accountId", "account_id", "restaurant_id", "tenant", "slug") || "",
@@ -181,6 +231,7 @@ export const useCmsStore = create<CmsState>()(
             bankName: get("bankName", "bank_name") || "",
             currency: get("currency", "currency_code") || "EUR",
             countryCode: get("countryCode", "country_code") || "US",
+            reviewSocial,
           }
 
           console.log("✅ CMS Store: Merchant settings loaded:", {
@@ -203,7 +254,7 @@ export const useCmsStore = create<CmsState>()(
           console.log('🔄 CMS Store: Loading VAT settings from backend...')
           const response = await apiClient.getVATSettings()
           console.log('📡 CMS Store: VAT settings API response:', response)
-          
+
           if (response.success && response.data) {
             const parseModeEnabled = (raw: any): boolean => {
               const normalized = String(raw ?? '').trim().toLowerCase()
@@ -215,13 +266,13 @@ export const useCmsStore = create<CmsState>()(
             const taxModeRaw = response.data.vat_mode ?? response.data.tax_mode ?? '0'
             const taxPercentage = parseFloat(response.data.vat_percentage || response.data.tax_percentage || '0')
             const taxMenuPrice = parseInt(response.data.vat_menu_price || response.data.tax_menu_price || '1', 10)
-            
+
             console.log('✅ CMS Store: Parsed VAT settings:', {
               enabled: parseModeEnabled(taxModeRaw),
               percentage: taxPercentage,
               menuPrice: taxMenuPrice,
             })
-            
+
             set({
               taxSettings: {
                 enabled: parseModeEnabled(taxModeRaw),
@@ -242,7 +293,7 @@ export const useCmsStore = create<CmsState>()(
           console.log('🔄 CMS Store: Validating coupon code:', code)
           const response = await apiClient.validateCoupon(code, subtotal)
           console.log('📡 CMS Store: Coupon validation response:', response)
-          
+
           if (response.success && response.data) {
             set({
               appliedCoupon: {
@@ -291,12 +342,12 @@ export const useCmsStore = create<CmsState>()(
         if (persistedState?.state?.tipSettings) {
           const currentPercentages = persistedState.state.tipSettings.percentages || []
           const correctPercentages = [0, 5, 10]
-          
+
           // Check if migration is needed
-          const needsMigration = 
+          const needsMigration =
             currentPercentages.length !== correctPercentages.length ||
             !currentPercentages.every((p: number, i: number) => p === correctPercentages[i])
-          
+
           if (needsMigration) {
             persistedState.state.tipSettings = {
               enabled: persistedState.state.tipSettings.enabled ?? true,
@@ -325,10 +376,10 @@ export const useCmsStore = create<CmsState>()(
           // Backup check: Ensure tip settings are correct even after migration
           const correctPercentages = [0, 5, 10]
           const currentPercentages = state.tipSettings?.percentages || []
-          const needsUpdate = 
+          const needsUpdate =
             currentPercentages.length !== correctPercentages.length ||
             !currentPercentages.every((p, i) => p === correctPercentages[i])
-          
+
           if (needsUpdate) {
             state.tipSettings = {
               enabled: state.tipSettings?.enabled ?? true,

@@ -164,12 +164,12 @@ class Orders_model extends Model
                 'message' => 'New order received',
                 'priority' => 'high'
             ];
-            
+
             // Use the order's order_type_name attribute if available
             if (!empty($this->order_type_name)) {
                 $notificationData['table_name'] = $this->order_type_name;
             }
-            
+
             \App\Helpers\NotificationHelper::createOrderNotification($notificationData);
         }
     } catch (\Exception $e) {
@@ -557,14 +557,14 @@ class Orders_model extends Model
 
         $data['order_payment'] = $model->payment_method->name ?? lang('admin::lang.orders.text_no_payment');
 
-        
-        
+
+
         $data['order_menus'] = [];
         $menus = $model->getOrderMenusWithOptions();
 
         $orderTotalsByCode = collect($model->getOrderTotals())->keyBy('code');
         $taxTotalRow = $orderTotalsByCode->get('tax');
-        $displayTaxTitle = htmlspecialchars_decode((string) optional($taxTotalRow)->title ?: 'Tax');
+        $displayTaxTitle = htmlspecialchars_decode((string) optional($taxTotalRow)->title ?: 'VAT');
         $pmdTaxIncluded = stripos($displayTaxTitle, 'included') !== false;
 
         $displaySubtotal = 0.0;

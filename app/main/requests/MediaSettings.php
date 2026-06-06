@@ -22,7 +22,7 @@ class MediaSettings extends FormRequest
     public function rules()
     {
         return [
-            'image_manager.max_size' => ['required', 'numeric'],
+            'image_manager.max_size' => ['required', 'numeric', 'min:1', 'max:51200'],
             'image_manager.uploads' => ['integer'],
             'image_manager.new_folder' => ['integer'],
             'image_manager.copy' => ['integer'],

@@ -146,10 +146,10 @@ Route::middleware(['cors'])->group(function () {
         // Remove any query parameters
         $path = explode('?', $path)[0];
         $filename = basename($path);
-        
+
         // Base path for media files
         $basePath = base_path('assets/media/attachments/public');
-        
+
         // Strategy 1: Try direct path (as stored in database)
         $mediaPath = $basePath . '/' . $path;
         if (file_exists($mediaPath)) {
@@ -159,7 +159,7 @@ Route::middleware(['cors'])->group(function () {
                 'Cache-Control' => 'public, max-age=31536000'
             ]);
         }
-        
+
         // Strategy 2: Try nested folder pattern (first 3 chars / next 3 chars / next 3 chars / filename)
         // Example: 693397f3775b7344959764.png -> 693/397/f37/693397f3775b7344959764.png
         if (strlen($filename) >= 9) {
@@ -172,7 +172,7 @@ Route::middleware(['cors'])->group(function () {
                 ]);
             }
         }
-        
+
         // Strategy 3: Recursive search for the filename
         $foundPath = null;
         if (is_dir($basePath)) {
@@ -181,7 +181,7 @@ Route::middleware(['cors'])->group(function () {
                     new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS),
                     RecursiveIteratorIterator::SELF_FIRST
                 );
-                
+
                 foreach ($iterator as $file) {
                     if ($file->isFile() && $file->getFilename() === $filename) {
                         $foundPath = $file->getPathname();
@@ -192,7 +192,7 @@ Route::middleware(['cors'])->group(function () {
                 // If recursive search fails, continue to fallback
             }
         }
-        
+
         if ($foundPath && file_exists($foundPath)) {
             $mimeType = mime_content_type($foundPath);
             return response()->file($foundPath, [
@@ -200,7 +200,7 @@ Route::middleware(['cors'])->group(function () {
                 'Cache-Control' => 'public, max-age=31536000'
             ]);
         }
-        
+
         // Fallback to pasta.png if image not found
         $fallbackPath = public_path('images/pasta.png');
         if (file_exists($fallbackPath)) {
@@ -215,17 +215,17 @@ Route::middleware(['cors'])->group(function () {
 
     // API v1 routes
     Route::prefix('v1')->middleware(['web', 'detect.tenant'])->group(function () {
-        
+
         // Menu endpoints
         Route::get('/menu', [MenuController::class, 'index']);
         Route::get('/menu/categories', [CategoryController::class, 'index']);
         Route::get('/menu/items', [MenuController::class, 'items']);
         Route::get('/menu/categories/{categoryId}/items', [MenuController::class, 'itemsByCategory']);
-        
+
         // Categories endpoints
         Route::get('/categories', [CategoryController::class, 'index']);
         Route::get('/categories/{categoryId}', [CategoryController::class, 'show']);
-        
+
         // TEMP debug endpoint - REMOVE THIS AFTER VERIFICATION
         // This endpoint helps verify tenant isolation is working correctly
         // DELETE this route once you've confirmed each tenant uses their own database
@@ -285,7 +285,7 @@ Route::middleware(['cors'])->group(function () {
         // --- /COMPAT ALIASES ---
 
         });
-        
+
         // Order endpoints
         Route::post('/orders', [OrderController::class, 'store']);
         Route::get('/orders/{orderId}', [OrderController::class, 'show']);
@@ -293,17 +293,17 @@ Route::middleware(['cors'])->group(function () {
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/order-status', [OrderController::class, 'getOrderStatus']);
         Route::post('/order-status', [OrderController::class, 'updateOrderStatus']);
-        
+
         // Table endpoints
         Route::get('/tables/{qrCode}', [TableController::class, 'getByQrCode']);
         Route::get('/tables', [TableController::class, 'index']);
         Route::get('/table-info', [TableController::class, 'getTableInfo']);
         Route::get('/table-menu', [MenuController::class, 'getTableMenu']);
-        
+
         // Restaurant info endpoint
         Route::get('/restaurant', function (Request $request) {
             $restaurant = \Illuminate\Support\Facades\DB::table('locations')->first();
-            
+
             return response()->json([
                 'id' => 1,
                 'name' => $restaurant->location_name ?? 'PayMyDine',
@@ -319,11 +319,11 @@ Route::middleware(['cors'])->group(function () {
                 ]
             ]);
         });
-        
+
         // Settings endpoint
         Route::get('/settings', function () {
             $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
-            
+
             return response()->json([
                 'site_name' => $settings['site_name']->value ?? 'PayMyDine',
                 'site_logo' => $settings['site_logo']->value ?? '',
@@ -331,9 +331,22 @@ Route::middleware(['cors'])->group(function () {
                 'default_language' => $settings['default_language']->value ?? 'en',
                 'order_prefix' => $settings['invoice_prefix']->value ?? '#',
                 'guest_order' => $settings['guest_order']->value ?? '1',
+                // PMD_REVIEW_SOCIAL_SETTINGS_PUBLIC_20260605
+                'pmd_review_share_prompt_enabled' => $settings['pmd_review_share_prompt_enabled']->value ?? '1',
+                'pmd_homepage_social_icons_enabled' => $settings['pmd_homepage_social_icons_enabled']->value ?? '1',
+                'pmd_social_trustpilot_enabled' => $settings['pmd_social_trustpilot_enabled']->value ?? '0',
+                'pmd_social_trustpilot_url' => $settings['pmd_social_trustpilot_url']->value ?? '',
+                'pmd_social_instagram_enabled' => $settings['pmd_social_instagram_enabled']->value ?? '0',
+                'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
+                'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
+                'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
+                'pmd_social_website_enabled' => $settings['pmd_social_website_enabled']->value ?? '0',
+                'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
+                'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
+                'pmd_social_reviews_url' => $settings['pmd_social_reviews_url']->value ?? '',
             ]);
         });
-        
+
         // Waiter call endpoint
         Route::post('/waiter-call', function (Request $request) {
             \Log::info('TRACE', [
@@ -345,24 +358,24 @@ Route::middleware(['cors'])->group(function () {
                 'tenant' => request()->attributes->get('tenant_id')
                              ?? (app()->bound('tenant') ? optional(app('tenant'))->id : null),
             ]);
-            
+
             $request->validate([
                 'table_id' => 'required|string',
                 'message' => 'required|string|max:500'
             ]);
-            
+
             try {
                 // Get tenant context from middleware
                 $tenant = $request->attributes->get('tenant');
                 if (!$tenant) {
                     return response()->json(['success' => false, 'error' => 'Tenant not found'], 400);
                 }
-                
+
                 // Validate table exists
                 if (!\App\Helpers\TableHelper::validateTable($request->table_id)) {
                     return response()->json(['success' => false, 'error' => 'Table not found'], 404);
                 }
-                
+
                 // Use transaction for data consistency
                 return DB::transaction(function() use ($request, $tenant) {
                     // Store waiter call request
@@ -373,14 +386,14 @@ Route::middleware(['cors'])->group(function () {
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                    
+
                     // Create notification
                     $notification = \App\Helpers\NotificationHelper::createWaiterCallNotification([
                         'tenant_id' => $tenant->id,
                         'table_id' => $request->table_id,
                         'message' => $request->message
                     ]);
-                    
+
                     \Log::info('TRACE', [
                         'where'  => __FILE__ . ':' . __LINE__,
                         'route'  => request()->path() ?? null,
@@ -391,7 +404,7 @@ Route::middleware(['cors'])->group(function () {
                                      ?? (app()->bound('tenant') ? optional(app('tenant'))->id : null),
                         'notification_id' => $notification->id ?? null,
                     ]);
-                    
+
                     return response()->json([
                         'ok' => true,
                         'message' => 'Waiter called successfully',
@@ -400,21 +413,21 @@ Route::middleware(['cors'])->group(function () {
                         'created_at' => now()->toISOString()
                     ], 201);
                 });
-                
+
             } catch (\Exception $e) {
                 \Log::error('Waiter call failed', [
                     'error' => $e->getMessage(),
                     'table_id' => $request->table_id,
                     'tenant' => $tenant->id ?? 'unknown'
                 ]);
-                
+
                 return response()->json([
                     'success' => false,
                     'error' => 'Failed to process waiter call'
                 ], 500);
             }
         });
-        
+
         // Valet request endpoint
         Route::post('/valet-request', function (Request $request) {
             $request->validate([
@@ -423,25 +436,25 @@ Route::middleware(['cors'])->group(function () {
                 'car_make' => 'required|string|max:255',
                 'license_plate' => 'required|string|max:20'
             ]);
-            
+
             try {
                 // Get tenant context from middleware
                 $tenant = $request->attributes->get('tenant');
                 if (!$tenant) {
                     return response()->json(['success' => false, 'error' => 'Tenant not found'], 400);
                 }
-                
+
                 // Validate table exists
                 if (!\App\Helpers\TableHelper::validateTable($request->table_id)) {
                     return response()->json(['success' => false, 'error' => 'Table not found'], 404);
                 }
-                
+
                 // Use transaction for data consistency (simplified to match app/main/routes.php)
                 return DB::transaction(function() use ($request, $tenant) {
                     // Get table info
                     $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
                     $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
-                    
+
                     // Create notification directly (same as waiter-call & table-notes)
                     $id = DB::table('notifications')->insertGetId([
                         'type'       => 'valet_request',
@@ -458,7 +471,7 @@ Route::middleware(['cors'])->group(function () {
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
-                    
+
                     return response()->json([
                         'ok' => true,
                         'message' => 'Valet request submitted successfully',
@@ -466,21 +479,21 @@ Route::middleware(['cors'])->group(function () {
                         'created_at' => now()->toISOString()
                     ], 201);
                 });
-                
+
             } catch (\Exception $e) {
                 \Log::error('Valet request failed', [
                     'error' => $e->getMessage(),
                     'table_id' => $request->table_id,
                     'tenant' => $tenant->id ?? 'unknown'
                 ]);
-                
+
                 return response()->json([
                     'success' => false,
                     'error' => 'Failed to process valet request'
                 ], 500);
             }
         });
-        
+
         // Table notes endpoint
         Route::post('/table-notes', function (Request $request) {
             $request->validate([
@@ -488,19 +501,19 @@ Route::middleware(['cors'])->group(function () {
                 'note' => 'required|string|max:500',
                 'timestamp' => 'required|date'
             ]);
-            
+
             try {
                 // Get tenant context from middleware
                 $tenant = $request->attributes->get('tenant');
                 if (!$tenant) {
                     return response()->json(['success' => false, 'error' => 'Tenant not found'], 400);
                 }
-                
+
                 // Validate table exists
                 if (!\App\Helpers\TableHelper::validateTable($request->table_id)) {
                     return response()->json(['success' => false, 'error' => 'Table not found'], 404);
                 }
-                
+
                 // Use transaction for data consistency
                 return DB::transaction(function() use ($request, $tenant) {
                     // Store table note
@@ -512,7 +525,7 @@ Route::middleware(['cors'])->group(function () {
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                    
+
                     // Create notification
                     $notification = \App\Helpers\NotificationHelper::createTableNoteNotification([
                         'tenant_id' => $tenant->id,
@@ -520,7 +533,7 @@ Route::middleware(['cors'])->group(function () {
                         'note' => $request->note,
                         'timestamp' => $request->timestamp
                     ]);
-                    
+
                     return response()->json([
                         'ok' => true,
                         'message' => 'Note submitted successfully',
@@ -529,14 +542,14 @@ Route::middleware(['cors'])->group(function () {
                         'created_at' => now()->toISOString()
                     ], 201);
                 });
-                
+
             } catch (\Exception $e) {
                 \Log::error('Table note failed', [
                     'error' => $e->getMessage(),
                     'table_id' => $request->table_id,
                     'tenant' => $tenant->id ?? 'unknown'
                 ]);
-                
+
                 return response()->json([
                     'ok' => false,
                     'error' => 'Failed to process table note'
@@ -581,9 +594,6 @@ Route::get('api/v1/settings-wrapped', function () {
 });
 
 require __DIR__.'/api_r2o_webhook.php';
-
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 
 Route::get('/payment-methods-public', function () {
     $rows = DB::table('payment_methods')

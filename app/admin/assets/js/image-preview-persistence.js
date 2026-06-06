@@ -1,28 +1,39 @@
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
+if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
 /**
  * 🔧 Image Preview Persistence Fix
- * 
+ *
  * Fixes the issue where image previews disappear after page refresh.
  * Since the Blade template doesn't populate inputs after refresh,
  * this script stores values in localStorage when saved and restores them.
- * 
+ *
  * @author Auto (Cursor AI)
  * @version 1.0
  */
 
 (function() {
     'use strict';
-    
+
+    // PMD_NATIVE_MEDIA_CONTEXT_GUARD
+    var pmdNativeMediaPath = window.location && window.location.pathname ? window.location.pathname : '';
+    if (/\/admin\/settings(\/|$)/.test(pmdNativeMediaPath) || /\/admin\/media_manager(\/|$)/.test(pmdNativeMediaPath)) {
+        if (window.console) console.log('[PMD] custom media helper skipped on native settings/media manager page:', pmdNativeMediaPath);
+        return;
+    }
+
+
+
     // Only run on settings pages with MediaFinder widgets
     if (window.location.pathname.indexOf('/admin/settings/edit/general') === -1) {
         return;
     }
-    
+
     console.log('%c🔧 IMAGE PREVIEW PERSISTENCE FIX', 'background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 5px;');
-    
+
     function getBaseUrl() {
         return window.location.protocol + '//' + window.location.host;
     }
-    
+
     function buildImageUrl(path) {
         if (!path) return '';
         if (path.indexOf('http') === 0) {
@@ -35,18 +46,18 @@
         }
         return getBaseUrl() + '/assets/media/uploads/' + path;
     }
-    
+
     // Save values to localStorage when form is submitted
     function saveValuesToStorage() {
         var values = {};
         var fields = ['dashboard_logo', 'favicon_logo'];
         var stored = getValuesFromStorage();
         var hasChanges = false;
-        
+
         fields.forEach(function(field) {
             var inputs = document.querySelectorAll('[name="setting[' + field + ']"]');
             var fieldValue = null;
-            
+
             for (var i = 0; i < inputs.length; i++) {
                 var value = (inputs[i].value || '').trim();
                 if (value !== '') {
@@ -54,7 +65,7 @@
                     break;
                 }
             }
-            
+
             // Check if there's a preview showing (visual check)
             var mediaFinder = document.querySelector('[id*="mediafinder"][id*="' + field.replace(/_/g, '-') + '"]');
             if (!mediaFinder) {
@@ -67,13 +78,13 @@
                     }
                 }
             }
-            
+
             var hasPreview = false;
             if (mediaFinder) {
                 var previewImg = mediaFinder.querySelector('[data-find-image]');
                 hasPreview = previewImg && previewImg.src && previewImg.src.indexOf('http') === 0;
             }
-            
+
             // CRITICAL: Only save if there's a preview showing (visual confirmation)
             // If there's no preview, the image was removed, even if the input has a value
             if (fieldValue && hasPreview) {
@@ -91,7 +102,7 @@
                 }
             }
         });
-        
+
         if (hasChanges) {
             if (Object.keys(values).length > 0) {
                 localStorage.setItem('paymydine_logo_settings', JSON.stringify(values));
@@ -103,7 +114,7 @@
             }
         }
     }
-    
+
     // Get values from localStorage
     function getValuesFromStorage() {
         try {
@@ -116,29 +127,29 @@
         }
         return {};
     }
-    
+
     // Restore preview
     function restorePreview(mediaFinder, savedValue) {
         if (!mediaFinder || !savedValue) return false;
-        
+
         var grid = mediaFinder.querySelector('.grid');
         if (!grid) return false;
-        
+
         // Check if there's already a valid preview showing
         var existingPreview = grid.querySelector('[data-find-image]');
         if (existingPreview && existingPreview.src && existingPreview.src.indexOf('http') === 0) {
             return true;
         }
-        
+
         // CRITICAL: After page refresh, Blade template creates blank buttons but doesn't populate inputs
         // The savedValue parameter comes from localStorage, which means it was saved
         // So we should restore it, regardless of blank button or empty input
         // The only reason to skip restore is if there's already a valid preview showing
-        
+
         console.log('🔧 Restoring preview for', mediaFinder.id, '- Value:', savedValue);
-        
+
         console.log('🔧 Restoring preview for', mediaFinder.id, '- Value:', savedValue);
-        
+
         var imageUrl = buildImageUrl(savedValue);
         var mediaFinderId = mediaFinder.id || '';
         var fieldName = '';
@@ -148,7 +159,7 @@
                 fieldName = parts.slice(2).join('_');
             }
         }
-        
+
         var findValue = mediaFinder.querySelector('[data-find-value]');
         if (findValue) {
             findValue.value = savedValue;
@@ -156,11 +167,11 @@
                 findValue.setAttribute('name', 'setting[' + fieldName + ']');
             }
         }
-        
+
         var filename = savedValue.split('/').pop() || savedValue;
         var blankButton = grid.querySelector('.find-button.blank-cover');
         if (blankButton) blankButton.remove();
-        
+
         var existingElements = grid.querySelectorAll('.find-remove-button, .icon-container, .find-config-button');
         var hasValidPreview = false;
         existingElements.forEach(function(el) {
@@ -169,7 +180,7 @@
                 hasValidPreview = true;
             }
         });
-        
+
         if (!hasValidPreview) {
             existingElements.forEach(function(el) { el.remove(); });
         } else {
@@ -177,12 +188,12 @@
             if (existingImg) existingImg.src = imageUrl;
             return true;
         }
-        
+
         var removeIcon = document.createElement('i');
         removeIcon.className = 'find-remove-button fa fa-times-circle';
         removeIcon.setAttribute('title', 'Remove');
         removeIcon.style.cssText = 'position: absolute; top: 8px; right: 8px; z-index: 9999; cursor: pointer; background: rgba(255,255,255,0.9); border-radius: 50%; padding: 2px;';
-        
+
         var iconDiv = document.createElement('div');
         iconDiv.className = 'icon-container';
         var nameSpan = document.createElement('span');
@@ -190,34 +201,34 @@
         nameSpan.setAttribute('title', filename);
         nameSpan.textContent = filename;
         iconDiv.appendChild(nameSpan);
-        
+
         var configLink = document.createElement('a');
         configLink.className = 'find-config-button';
         configLink.style.cssText = 'position: relative; z-index: 1;';
-        
+
         var coverDiv = document.createElement('div');
         coverDiv.className = 'img-cover';
-        
+
         var img = document.createElement('img');
         img.setAttribute('data-find-image', '');
         img.className = 'img-responsive';
         img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
         img.src = imageUrl;
         img.alt = filename;
-        
+
         img.onload = function() {
             console.log('   ✅ Image loaded:', imageUrl);
         };
-        
+
         img.onerror = function() {
             console.warn('   ⚠️ Image failed:', imageUrl);
             var altUrl = getBaseUrl() + '/' + savedValue;
             if (altUrl !== imageUrl) this.src = altUrl;
         };
-        
+
         coverDiv.appendChild(img);
         configLink.appendChild(coverDiv);
-        
+
         if (findValue && findValue.parentNode) {
             grid.insertBefore(removeIcon, findValue);
             grid.insertBefore(iconDiv, findValue);
@@ -227,7 +238,7 @@
             grid.appendChild(iconDiv);
             grid.appendChild(configLink);
         }
-        
+
         var findId = mediaFinder.querySelector('[data-find-identifier]');
         if (!findId) {
             findId = document.createElement('input');
@@ -239,20 +250,20 @@
                 grid.appendChild(findId);
             }
         }
-        
+
         console.log('   ✅ Preview restored');
         return true;
     }
-    
+
     // Restore all previews
     function restoreAllPreviews() {
         var values = getValuesFromStorage();
         console.log('🔧 Restoring previews with values from localStorage:', values);
-        
+
         // Also check current page inputs - but prioritize form inputs over localStorage
         var fields = ['dashboard_logo', 'favicon_logo'];
         var formValues = {};
-        
+
         fields.forEach(function(field) {
             var inputs = document.querySelectorAll('[name="setting[' + field + ']"]');
             for (var i = 0; i < inputs.length; i++) {
@@ -263,7 +274,7 @@
                 }
             }
         });
-        
+
         // Use form values if available, otherwise use localStorage
         // CRITICAL: After page refresh, Blade template creates blank buttons but doesn't populate inputs
         // So we need to restore from localStorage if there's a value, regardless of blank button
@@ -286,11 +297,11 @@
                         }
                     }
                 }
-                
+
                 if (mediaFinder) {
                     var existingPreview = mediaFinder.querySelector('[data-find-image]');
                     var hasPreview = existingPreview && existingPreview.src && existingPreview.src.indexOf('http') === 0;
-                    
+
                     // If there's already a preview showing, don't restore
                     if (hasPreview) {
                         console.log('✅', field, 'already has preview - skipping restore');
@@ -309,21 +320,21 @@
                 }
             }
         });
-        
+
         var mediaFinders = document.querySelectorAll('[data-control="mediafinder"]');
         var restored = 0;
-        
+
         mediaFinders.forEach(function(mediaFinder) {
             var mediaFinderId = mediaFinder.id || '';
             var fieldName = '';
-            
+
             if (mediaFinderId.indexOf('mediafinder-') === 0) {
                 var parts = mediaFinderId.split('-');
                 if (parts.length >= 3) {
                     fieldName = parts.slice(2).join('_');
                 }
             }
-            
+
             if (fieldName && valuesToUse[fieldName]) {
                 // CRITICAL: Don't check if input is empty - after page refresh, Blade template
                 // doesn't populate inputs, but we still need to restore from localStorage
@@ -336,14 +347,14 @@
                 }
             }
         });
-        
+
         if (restored > 0) {
             console.log('✅ Restored', restored, 'previews');
         }
         initPlusButtons();
         initRemoveButtons();
     }
-    
+
     // Initialize plus buttons to open media manager
     function initPlusButtons() {
         document.querySelectorAll('.find-button.blank-cover, .blank-cover').forEach(function(btn) {
@@ -351,28 +362,28 @@
             if (btn.hasAttribute('data-plus-handler-initialized')) {
                 return;
             }
-            
+
             // If button already has data-plus-handler, it means existing handlers from image_grid.blade.php
             // should handle it - don't interfere
             if (btn.hasAttribute('data-plus-handler')) {
                 console.log('✅ Plus button already has handler from page - skipping');
                 return;
             }
-            
+
             btn.setAttribute('data-plus-handler-initialized', 'true');
-            
+
             // Use jQuery to trigger the MediaFinder widget's click handler if available
             if (typeof jQuery !== 'undefined') {
                 var $btn = jQuery(btn);
                 var $mediaFinder = $btn.closest('[data-control="mediafinder"]');
-                
+
                 // Check if MediaFinder widget is initialized
                 if ($mediaFinder.length && $mediaFinder.data('ti.mediaFinder')) {
                     // Use the widget's existing onClickFindButton method
                     $btn.off('click.mediafinder').on('click.mediafinder', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        
+
                         var mediaFinderInstance = $mediaFinder.data('ti.mediaFinder');
                         if (mediaFinderInstance && typeof mediaFinderInstance.onClickFindButton === 'function') {
                             mediaFinderInstance.onClickFindButton(e);
@@ -382,34 +393,34 @@
                     return;
                 }
             }
-            
+
             // Fallback: Manual handler using TastyIgniter media manager
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 console.log('🔵 Plus button clicked to open media manager');
-                
+
                 var mediaFinder = this.closest('[data-control="mediafinder"]');
                 if (!mediaFinder) {
                     mediaFinder = this.closest('.media-finder');
                 }
-                
+
                 if (!mediaFinder) {
                     console.error('MediaFinder container not found');
                     return;
                 }
-                
+
                 // First, try to use existing handlers from the page (image_grid.blade.php)
                 // These handlers use data-plus-handler attribute
                 if (typeof jQuery !== 'undefined') {
                     var $btn = jQuery(this);
                     var $mf = jQuery(mediaFinder);
-                    
+
                     // Check if there's an existing handler attached via data-plus-handler
                     // The image_grid.blade.php script should handle this, but if it doesn't,
                     // we'll use our fallback
-                    
+
                     // Try to trigger the MediaFinder widget's click handler
                     var instance = $mf.data('ti.mediaFinder');
                     if (instance && typeof instance.onClickFindButton === 'function') {
@@ -421,7 +432,7 @@
                         }
                     }
                 }
-                
+
                 // Get options from data attributes
                 var alias = mediaFinder.getAttribute('data-alias') || 'mediamanager';
                 var useAttachmentAttr = mediaFinder.getAttribute('data-use-attachment');
@@ -429,7 +440,7 @@
                 var chooseButtonText = mediaFinder.getAttribute('data-choose-button-text') || 'Choose';
                 var findValue = mediaFinder.querySelector('[data-find-value]');
                 var currentValue = findValue ? findValue.value : null;
-                
+
                 // Use TastyIgniter's media manager
                 if (typeof jQuery !== 'undefined' && jQuery.ti && jQuery.ti.mediaManager && jQuery.ti.mediaManager.modal) {
                     try {
@@ -444,7 +455,7 @@
                                     console.warn('No items selected');
                                     return;
                                 }
-                                
+
                                 var item = items[0];
                                 var itemData = {
                                     identifier: item.identifier || item.id || '',
@@ -453,13 +464,13 @@
                                     fileType: item.fileType || 'image',
                                     name: item.name || ''
                                 };
-                                
+
                                 // Fix localhost URLs
                                 if (itemData.publicUrl) {
                                     itemData.publicUrl = itemData.publicUrl.replace(/http:\/\/127\.0\.0\.1:8000/g, getBaseUrl());
                                     itemData.publicUrl = itemData.publicUrl.replace(/http:\/\/localhost:8000/g, getBaseUrl());
                                 }
-                                
+
                                 // Update the MediaFinder using existing function if available
                                 if (typeof updateMediaFinder === 'function') {
                                     updateMediaFinder(mediaFinder, itemData);
@@ -473,7 +484,7 @@
                                         }
                                     }
                                 }
-                                
+
                                 // CRITICAL: Ensure the input has a proper name attribute after update
                                 setTimeout(function() {
                                     var findValue = mediaFinder.querySelector('[data-find-value]');
@@ -481,19 +492,19 @@
                                         var currentName = findValue.getAttribute('name');
                                         var mediaFinderId = mediaFinder.id || '';
                                         var fieldName = '';
-                                        
+
                                         if (mediaFinderId.indexOf('mediafinder-') === 0) {
                                             var parts = mediaFinderId.split('-');
                                             if (parts.length >= 3) {
                                                 fieldName = parts.slice(2).join('_');
                                             }
                                         }
-                                        
+
                                         if (fieldName && (!currentName || currentName.indexOf('setting[') !== 0)) {
                                             findValue.setAttribute('name', 'setting[' + fieldName + ']');
                                             console.log('✅ Set name attribute for', fieldName, ':', 'setting[' + fieldName + ']');
                                         }
-                                        
+
                                         // Verify value is set
                                         if (!findValue.value && itemData.path) {
                                             findValue.value = itemData.path;
@@ -501,7 +512,7 @@
                                         }
                                     }
                                 }, 200);
-                                
+
                                 // Save to localStorage
                                 saveValuesToStorage();
                             }
@@ -511,7 +522,7 @@
                         console.warn('MediaManager.modal failed:', e);
                     }
                 }
-                
+
                 // Last resort: try to find and trigger existing handlers from image_grid.blade.php
                 // Those handlers should be listening for clicks on .find-button elements
                 console.warn('⚠️ Could not open media manager - trying to trigger existing page handlers');
@@ -520,33 +531,33 @@
             }, true);
         });
     }
-    
+
     function initRemoveButtons() {
         document.querySelectorAll('.find-remove-button').forEach(function(btn) {
             if (btn.hasAttribute('data-preview-persistence-handler')) return;
             btn.setAttribute('data-preview-persistence-handler', 'true');
-            
+
             var newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
-            
+
             newBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 var mediaFinder = this.closest('[data-control="mediafinder"]');
                 if (!mediaFinder) return;
-                
+
                 var findValue = mediaFinder.querySelector('[data-find-value]');
                 if (findValue) {
                     findValue.value = '';
                     findValue.removeAttribute('name');
                 }
-                
+
                 var findId = mediaFinder.querySelector('[data-find-identifier]');
                 if (findId) {
                     findId.value = '';
                 }
-                
+
                 // Get field name to clear from localStorage
                 var mediaFinderId = mediaFinder.id || '';
                 var fieldName = '';
@@ -556,12 +567,12 @@
                         fieldName = parts.slice(2).join('_');
                     }
                 }
-                
+
                 var grid = mediaFinder.querySelector('.grid');
                 if (grid) {
                     var previewElements = grid.querySelectorAll('.find-remove-button, .icon-container, .find-config-button');
                     previewElements.forEach(function(el) { el.remove(); });
-                    
+
                     // Create new blank button
                     var blankButton = document.createElement('a');
                     blankButton.className = 'find-button blank-cover';
@@ -573,7 +584,7 @@
                     } else {
                         grid.appendChild(blankButton);
                     }
-                    
+
                     // CRITICAL: Re-initialize plus button handler immediately
                     // Use a small delay to ensure DOM is updated and existing handlers are ready
                     setTimeout(function() {
@@ -581,7 +592,7 @@
                         if (typeof jQuery !== 'undefined') {
                             var $mf = jQuery(mediaFinder);
                             var $btn = jQuery(blankButton);
-                            
+
                             // Check if MediaFinder widget exists
                             var instance = $mf.data('ti.mediaFinder');
                             if (instance && typeof instance.onClickFindButton === 'function') {
@@ -594,7 +605,7 @@
                                 console.log('✅ Attached MediaFinder widget handler to new plus button');
                                 return;
                             }
-                            
+
                             // Try to initialize widget if not initialized
                             if (typeof jQuery.fn.mediaFinder !== 'undefined' && !instance) {
                                 try {
@@ -614,7 +625,7 @@
                                 }
                             }
                         }
-                        
+
                         // The existing handlers from image_grid.blade.php should handle clicks
                         // on buttons with data-plus-handler attribute. If they don't work,
                         // our fallback handler in initPlusButtons will catch it
@@ -623,7 +634,7 @@
                         initPlusButtons();
                     }, 200);
                 }
-                
+
                 // CRITICAL: Clear this specific field from localStorage immediately
                 if (fieldName) {
                     var storedValues = getValuesFromStorage();
@@ -637,29 +648,29 @@
                         console.log('🗑️ Cleared', fieldName, 'from localStorage');
                     }
                 }
-                
+
                 // Don't call saveValuesToStorage() here - it would read the empty input
                 // and potentially save it back. The form submission will handle saving.
             });
         });
     }
-    
+
     // Ensure all MediaFinder inputs have proper name attributes and values before form submission
     function ensureAllMediaFinderInputsReady() {
         var fields = ['dashboard_logo', 'favicon_logo'];
         var allReady = true;
         var fixed = 0;
-        
+
         fields.forEach(function(field) {
             var fieldName = 'setting[' + field + ']';
-            
+
             // First, try to find input by name attribute (most reliable)
             var findValue = document.querySelector('[name="' + fieldName + '"]');
-            
+
             // If not found by name, try to find by MediaFinder ID pattern
             if (!findValue) {
                 var mediaFinder = null;
-                
+
                 // Try multiple ID patterns
                 var patterns = [
                     '[id*="mediafinder"][id*="' + field.replace(/_/g, '-') + '"]',
@@ -667,18 +678,18 @@
                     '[id*="' + field.replace(/_/g, '-') + '"]',
                     '[id*="' + field + '"]'
                 ];
-                
+
                 for (var p = 0; p < patterns.length && !mediaFinder; p++) {
                     mediaFinder = document.querySelector(patterns[p]);
                 }
-                
+
                 // If still not found, search all MediaFinders
                 if (!mediaFinder) {
                     var allMediaFinders = document.querySelectorAll('[data-control="mediafinder"]');
                     for (var i = 0; i < allMediaFinders.length; i++) {
                         var mfId = (allMediaFinders[i].id || '').toLowerCase();
                         var fieldLower = field.toLowerCase();
-                        if (mfId.indexOf(fieldLower.replace(/_/g, '-')) !== -1 || 
+                        if (mfId.indexOf(fieldLower.replace(/_/g, '-')) !== -1 ||
                             mfId.indexOf(fieldLower) !== -1 ||
                             mfId.indexOf(field.replace(/_/g, '')) !== -1) {
                             mediaFinder = allMediaFinders[i];
@@ -686,23 +697,23 @@
                         }
                     }
                 }
-                
+
                 if (mediaFinder) {
                     findValue = mediaFinder.querySelector('[data-find-value]');
                 }
             }
-            
+
             if (findValue) {
                 var currentName = findValue.getAttribute('name');
                 var currentValue = findValue.value || '';
-                
+
                 // If missing name, set it
                 if (!currentName || currentName.indexOf('setting[') !== 0) {
                     findValue.setAttribute('name', fieldName);
                     fixed++;
                     console.log('🔧 Fixed name for', field, ':', fieldName);
                 }
-                
+
                 // Verify the input is in the form
                 var form = findValue.closest('form');
                 if (!form) {
@@ -713,7 +724,7 @@
                         console.log('🔧 Moved input for', field, 'into form');
                     }
                 }
-                
+
                 // Check if value exists (even if empty, the input should be present)
                 if (!currentValue) {
                     console.warn('⚠️', field, 'has no value');
@@ -737,7 +748,7 @@
                             }
                         }
                     }
-                    
+
                     if (mediaFinder) {
                         var grid = mediaFinder.querySelector('.grid');
                         if (grid) {
@@ -757,77 +768,77 @@
                 }
             }
         });
-        
+
         if (fixed > 0) {
             console.log('🔧 Fixed', fixed, 'MediaFinder input(s) before submission');
         }
-        
+
         return allReady;
     }
-    
+
     // Intercept form submission to save values and ensure all inputs are ready
     function interceptFormSubmit() {
         if (typeof jQuery === 'undefined') return;
-        
+
         // Remove any existing handlers to avoid duplicates
         jQuery(document).off('submit.preview-persistence ajaxSend.preview-persistence');
-        
+
         // Intercept regular form submission
         jQuery(document).on('submit.preview-persistence', 'form', function(e) {
             var $form = jQuery(this);
             if ($form.attr('action') && $form.attr('action').indexOf('settings/edit/general') !== -1) {
                 console.log('🔧 Intercepting form submit - ensuring all MediaFinder inputs are ready...');
-                
+
                 // CRITICAL: Ensure all inputs have names and values before submission
                 ensureAllMediaFinderInputsReady();
-                
+
                 // Also save to localStorage
                 saveValuesToStorage();
             }
         });
-        
+
         // Intercept ajaxSetup event (fires before form serialization in TastyIgniter)
         jQuery(document).on('ajaxSetup.preview-persistence', 'form', function(event, options) {
             var $form = jQuery(this);
             if ($form.attr('action') && $form.attr('action').indexOf('settings/edit/general') !== -1) {
                 console.log('🔧 Intercepting ajaxSetup - ensuring all MediaFinder inputs are ready...');
-                
+
                 // CRITICAL: Ensure all inputs have names and values before form serialization
                 ensureAllMediaFinderInputsReady();
-                
+
                 // Store reference to form for later use in ajaxSend
                 options._previewPersistenceForm = $form;
             }
         });
-        
+
         // Intercept AJAX form submissions (this is the main one used by TastyIgniter)
         jQuery(document).on('ajaxSend.preview-persistence', function(event, xhr, settings) {
             if (settings.type === 'POST' && settings.url && settings.url.indexOf('settings/edit/general') !== -1) {
                 console.log('🔧 Intercepting AJAX form submission - ensuring all MediaFinder inputs are ready...');
-                
+
                 // CRITICAL: Ensure all inputs have names and values before AJAX serialization
                 ensureAllMediaFinderInputsReady();
-                
+
                 // Fields to check
                 var fields = ['dashboard_logo', 'favicon_logo'];
-                
+
                 // Intercept the actual data being sent
                 if (settings.data) {
                     var formData = settings.data;
-                    
+
                     // Get values from localStorage as backup
                     var storedValues = getValuesFromStorage();
-                    
+
                     // If data is a string (form serialized), parse it and add missing fields
                     if (typeof formData === 'string') {
                         var params = new URLSearchParams(formData);
                         var added = 0;
-                        
+
                         fields.forEach(function(field) {
                             var fieldName = 'setting[' + field + ']';
                             var input = document.querySelector('[name="' + fieldName + '"]');
                             var value = null;
-                            
+
                             // Get value from input if available
                             if (input && input.value) {
                                 value = input.value;
@@ -836,7 +847,7 @@
                                 value = storedValues[field];
                                 console.log('📦 Using localStorage value for', field, ':', value.substring(0, 50));
                             }
-                            
+
                             if (value) {
                                 // Check if already present
                                 if (!params.has(fieldName)) {
@@ -853,7 +864,7 @@
                                 }
                             }
                         });
-                        
+
                         if (added > 0) {
                             settings.data = params.toString();
                             console.log('🔧 Added', added, 'missing field(s) to form data');
@@ -865,7 +876,7 @@
                             var fieldName = 'setting[' + field + ']';
                             var input = document.querySelector('[name="' + fieldName + '"]');
                             var value = null;
-                            
+
                             // Get value from input if available
                             if (input && input.value) {
                                 value = input.value;
@@ -874,7 +885,7 @@
                                 value = storedValues[field];
                                 console.log('📦 Using localStorage value for', field, ':', value.substring(0, 50));
                             }
-                            
+
                             if (value) {
                                 if (!formData[fieldName]) {
                                     formData[fieldName] = value;
@@ -886,7 +897,7 @@
                                 }
                             }
                         });
-                        
+
                         if (added > 0) {
                             console.log('🔧 Added', added, 'missing field(s) to form data object');
                         }
@@ -899,11 +910,11 @@
                         // Get current serialized data
                         var serialized = $form.serialize();
                         var missing = [];
-                        
+
                         fields.forEach(function(field) {
                             var fieldName = 'setting[' + field + ']';
                             var input = document.querySelector('[name="' + fieldName + '"]');
-                            
+
                             if (input && input.value) {
                                 // Check if field is in serialized data
                                 if (serialized.indexOf(fieldName + '=') === -1) {
@@ -912,7 +923,7 @@
                                 }
                             }
                         });
-                        
+
                         if (missing.length > 0) {
                             // Add missing fields to the request
                             if (!settings.data) {
@@ -932,18 +943,18 @@
                         }
                     }
                 }
-                
+
                 // Save to localStorage
                 saveValuesToStorage();
             }
         });
     }
-    
+
     function init() {
         interceptFormSubmit();
         restoreAllPreviews();
     }
-    
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(init, 500);
@@ -951,7 +962,7 @@
     } else {
         setTimeout(init, 500);
     }
-    
+
     if (typeof jQuery !== 'undefined') {
         jQuery(document).on('ajaxUpdateComplete', function() {
             setTimeout(function() {
@@ -960,7 +971,7 @@
             }, 500);
         });
     }
-    
+
     // Watch for dynamically added plus buttons
     var observer = new MutationObserver(function(mutations) {
         var shouldInit = false;
@@ -975,17 +986,20 @@
                 }
             });
         });
-        
+
         if (shouldInit) {
             setTimeout(initPlusButtons, 100);
         }
     });
-    
+
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
-    
+
     window.restoreImagePreviews = restoreAllPreviews;
-    
+
 })();
+
+}
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_END */

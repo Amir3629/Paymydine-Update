@@ -1,0 +1,28 @@
+// ======================================================================== //
+// Import vendors
+// ======================================================================== //
+
+@import "bootstrap-partials";
+//
+// Raty
+@import "jquery.raty";
+//
+// Animate.css
+@import "animate";
+//
+// mCustomScrollbar
+@import "jquery.mCustomScrollbar";
+//
+// bootstrap-icons
+@import "bootstrap-icons";
+//
+// International Telephone Input
+@import "intlTelInput";
+.iti__flag {background-image: url("../../images/intlTelInput/flags.png");}
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .iti__flag {background-image: url("../../images/intlTelInput/flags@2x.png");}
+}
+.intl-tel-input,
+.iti{
+  width: 100%;
+}

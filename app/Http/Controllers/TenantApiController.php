@@ -21,7 +21,7 @@ class TenantApiController extends Controller
     {
         try {
             $tenant = $request->attributes->get('tenant');
-            
+
             if (!$tenant) {
                 return Response::json(['error' => 'Tenant not found'], 404);
             }
@@ -79,7 +79,7 @@ class TenantApiController extends Controller
     {
         try {
             $categoryId = $request->query('category');
-            
+
             $menuSelect = array_merge([
                 'menu_id as id',
                 'menu_name as name',
@@ -108,16 +108,16 @@ class TenantApiController extends Controller
                     ->where('categories.status', 1)
                     ->select('categories.category_id as id', 'categories.name')
                     ->get();
-                
+
                 $item->categories = $categories;
                 $item->category_id = $categories->first()->id ?? null;
-                
+
                 // Get media/images if available
                 $media = DB::table('media_attachments')
                     ->where('attachment_type', 'Admin\Models\Menus_model')
                     ->where('attachment_id', $item->id)
                     ->first();
-                
+
                 $item->image = $media ? $media->path : null;
                 $item->price = (float) $item->price;
                 $this->normalizeFoodAttributes($item);
@@ -161,7 +161,7 @@ class TenantApiController extends Controller
                 ->where('categories.status', 1)
                 ->select('categories.category_id as id', 'categories.name')
                 ->get();
-            
+
             $item->categories = $categories;
             $item->category_id = $categories->first()->id ?? null;
 
@@ -170,7 +170,7 @@ class TenantApiController extends Controller
                 ->where('attachment_type', 'Admin\Models\Menus_model')
                 ->where('attachment_id', $item->id)
                 ->first();
-            
+
             $item->image = $media ? $media->path : null;
             $item->price = (float) $item->price;
             $this->normalizeFoodAttributes($item);
@@ -193,7 +193,7 @@ class TenantApiController extends Controller
                     ->where('option_id', $option->id)
                     ->select('option_value_id as id', 'value', 'price')
                     ->get();
-                
+
                 $option->values = $values;
             }
 
@@ -233,6 +233,7 @@ class TenantApiController extends Controller
             $this->optionalMenuColumnExpression('is_halal', 'halal', $table),
             $this->optionalMenuColumnExpression('is_vegetarian', 'vegetarian', $table),
             $this->optionalMenuColumnExpression('is_vegan', 'vegan', $table),
+            $this->optionalMenuColumnExpression('color', 'color', $table),
         ];
     }
 
@@ -282,6 +283,9 @@ class TenantApiController extends Controller
         }
 
         $item->serving_size = isset($item->serving_size) && $item->serving_size !== '' ? (string)$item->serving_size : null;
+        $item->color = isset($item->color) && preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/', (string)$item->color)
+            ? (string)$item->color
+            : null;
 
         $hasNutrition = $item->calories !== null
             || $item->protein !== null
@@ -297,6 +301,7 @@ class TenantApiController extends Controller
             'fat' => $item->fat,
             'sugar' => $item->sugar,
             'serving_size' => $item->serving_size,
+            'color' => $item->color,
             'disclaimer' => 'Restaurant-provided estimates. Values may vary by portion size, ingredients, and preparation.',
         ] : null;
 
@@ -325,20 +330,20 @@ class TenantApiController extends Controller
             // Calculate total
             $total = 0;
             $orderItems = [];
-            
+
             foreach ($validated['items'] as $item) {
                 $menuItem = DB::table('menus')
                     ->where('menu_id', $item['id'])
                     ->where('menu_status', 1)
                     ->first();
-                
+
                 if (!$menuItem) {
                     throw new \Exception("Menu item {$item['id']} not found");
                 }
-                
+
                 $itemTotal = $menuItem->menu_price * $item['quantity'];
                 $total += $itemTotal;
-                
+
                 $orderItems[] = [
                     'menu_id' => $item['id'],
                     'name' => $menuItem->menu_name,
@@ -475,4 +480,4 @@ class TenantApiController extends Controller
             return Response::json(['error' => 'Failed to fetch orders'], 500);
         }
     }
-} 
+}

@@ -142,7 +142,8 @@ export type TableOrderDraftResponse = {
   table_name?: string | null;
   items?: TableOrderDraftItem[];
   groups?: Array<{ guest_session_id: string | null; items: TableOrderDraftItem[]; subtotal: number }>;
-  totals?: { subtotal: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
+  totals?: { subtotal: number; tax?: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
+  order_totals?: Array<{ code: string; title: string; value: number; priority?: number; is_summable?: number }>;
   settlement?: { orderTotal: number; settledAmount: number; remainingAmount: number; settlementStatus: string };
   payment?: string | null;
   status_name?: string | null;
@@ -308,7 +309,7 @@ const safeJsonStringify = (value: any) => JSON.stringify(normalizeForJson(value)
 export class ApiClient {
   private baseURL: string;
   private envConfig: EnvironmentConfig;
-  
+
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
     this.envConfig = EnvironmentConfig.getInstance();
@@ -316,7 +317,7 @@ export class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: {
         'Accept': 'application/json',
@@ -333,7 +334,7 @@ export class ApiClient {
         const msg = await response.text().catch(() => '');
         throw new Error(`HTTP ${response.status} ${response.statusText} @ ${endpoint}: ${msg}`);
       }
-      
+
       const data = await response.json();
       return data;
     } catch (error) {
@@ -355,8 +356,8 @@ export class ApiClient {
         url = new URL(endpoint);
       } else {
         // For relative URLs, provide a base URL for SSR
-        const base = typeof window !== 'undefined' 
-          ? window.location.origin 
+        const base = typeof window !== 'undefined'
+          ? window.location.origin
           : (process.env.NEXT_PUBLIC_SITE_URL || 'https://amir.paymydine.com');
         url = new URL(endpoint, base);
       }
@@ -391,11 +392,11 @@ export class ApiClient {
       const menuResponse = await this.getMenu();
       let items = (menuResponse?.data?.items ?? menuResponse?.data ?? []);
       if (!Array.isArray(items)) items = [];
-      
+
       if (categoryId) {
         items = items.filter(item => item.category_id === categoryId);
       }
-      
+
       return {
         success: true,
         data: items
@@ -413,13 +414,13 @@ export class ApiClient {
     try {
       const endpoint = this.envConfig.getApiEndpoint('/payments');
       const response = await fetch(endpoint);
-      
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
         console.error('[PMD /orders error body]', errorText);
         throw new Error(`HTTP ${response.status} ${response.statusText}: ${errorText}`);
       }
-      
+
       const data = await response.json();
       const rawMethods = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : null);
       if (!rawMethods) {
@@ -457,7 +458,7 @@ export class ApiClient {
         },
         body: safeJsonStringify(order),
       });
-      
+
       if (!response.ok) {
         const responseText = await response.text().catch(() => '');
         let parsedBody: any = null;
@@ -487,7 +488,7 @@ export class ApiClient {
         error.details = parsedBody?.details;
         throw error;
       }
-      
+
       const data = await response.json();
       return data;
     } catch (error) {
@@ -588,14 +589,14 @@ export class ApiClient {
         },
         body: safeJsonStringify({ table_id: safeTableId, message: safeMessage }),
       });
-      
+
       if (!response.ok) {
         // Try to read API validation message
         let errMsg = `HTTP ${response.status}`;
         try { const j = await response.json(); if (j?.message) errMsg = j.message; } catch {}
         throw new Error(errMsg);
       }
-      
+
       const data = await response.json();
       return data;
     } catch (error) {
@@ -741,7 +742,7 @@ export class ApiClient {
         },
         body: safeJsonStringify({ code, subtotal, amount: subtotal }),
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Failed to validate coupon' }));
         return {
@@ -749,7 +750,7 @@ export class ApiClient {
           message: errorData.message || 'Failed to validate coupon',
         };
       }
-      
+
       const json = await res.json();
       return json;
     } catch (error) {
@@ -759,6 +760,40 @@ export class ApiClient {
         message: 'Failed to validate coupon',
       };
     }
+  }
+
+
+  // PMD_REVIEW_INVOICE_API_CLIENT_20260605
+  async submitReview(payload: {
+    order_id?: number | string | null;
+    rating?: number;
+    review?: string;
+    public_share_consent?: boolean | null;
+  }): Promise<{ success: boolean; data?: any; message?: string; error?: string }> {
+    const endpoint = this.envConfig.getApiEndpoint('/reviews');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to submit review');
+    }
+    return data;
+  }
+
+  getBusinessInvoiceUrl(orderId: number | string): string {
+    return this.envConfig.getApiEndpoint(`/orders/${encodeURIComponent(String(orderId))}/business-invoice`);
+  }
+
+  async downloadBusinessInvoice(orderId: number | string): Promise<Blob> {
+    const response = await fetch(this.getBusinessInvoiceUrl(orderId), { headers: { Accept: 'application/pdf' } });
+    if (!response.ok) {
+      const message = await response.text().catch(() => 'Failed to download business invoice');
+      throw new Error(message || 'Failed to download business invoice');
+    }
+    return response.blob();
   }
 
   async getRestaurantInfo(locationId: number = 1): Promise<{ success: boolean; data: RestaurantInfo }> {
@@ -802,11 +837,11 @@ export class ApiClient {
           status_id: statusId
         })
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       return data;
     } catch (error) {
@@ -827,7 +862,7 @@ export class ApiClient {
         }
       }
       if (qrCode) params.append('qr_code', qrCode);
-      
+
       const endpoint = this.envConfig.getApiEndpoint(`/table-info?${params}`);
       const response = await fetch(endpoint);
       const data = await response.json();
@@ -843,7 +878,7 @@ export class ApiClient {
       const params = new URLSearchParams();
       params.append('table_id', tableId);
       if (locationId) params.append('location_id', locationId.toString());
-      
+
       const endpoint = this.envConfig.getApiEndpoint(`/table-menu?${params.toString()}`);
       const response = await fetch(endpoint);
       const data = await response.json();
@@ -938,6 +973,9 @@ export class ApiClient {
       payment_method: string;
       payment_reference?: string | null;
       amount?: number | null;
+      tip_amount?: number | null;
+      coupon_discount?: number | null;
+      coupon_code?: string | null;
       selected_items?: Array<{ order_menu_id: number; quantity: number }>;
       payer_label?: string | null;
       table_id?: string | null;
@@ -957,6 +995,9 @@ export class ApiClient {
         payment_method: payload.payment_method,
         payment_reference: payload.payment_reference ?? null,
         amount: payload.amount ?? null,
+        tip_amount: payload.tip_amount ?? 0,
+        coupon_discount: payload.coupon_discount ?? 0,
+        coupon_code: payload.coupon_code ?? null,
         selected_items: payload.selected_items ?? [],
         payer_label: payload.payer_label ?? null,
         table_id: payload.table_id ?? null,
@@ -1049,11 +1090,11 @@ export class ApiClient {
         },
         body: safeJsonStringify(settings)
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       return data;
     } catch (error) {

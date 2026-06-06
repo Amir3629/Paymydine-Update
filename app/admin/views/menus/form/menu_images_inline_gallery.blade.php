@@ -33,6 +33,11 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
             <div class="menu-inline-gallery__item" data-gallery-item>
                 <div class="menu-inline-gallery__thumb-wrap">
                     <img class="menu-inline-gallery__thumb" src="{{ $thumb }}" alt="Additional image">
+                    @unless($isPreview)
+                        <button type="button" class="menu-inline-gallery__remove-overlay" data-gallery-remove title="Remove image" aria-label="Remove image">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    @endunless
                 </div>
                 <div class="menu-inline-gallery__controls">
                     <input type="number" min="1" class="form-control form-control-sm" data-gallery-order name="menu_images_inline[{{ $index }}][sort_order]" value="{{ $sortOrder }}" {{ $isPreview ? 'disabled' : '' }}>
@@ -287,6 +292,93 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
     justify-content: center !important;
 }
 /* PMD_GALLERY_REMOVE_VISIBLE_CONTROLS_END */
+
+
+/* PMD_GALLERY_REMOVE_OVERLAY_START
+   Keep controls hidden, but show a compact X button on each additional image frame. */
+#menu-inline-gallery .menu-inline-gallery__thumb-wrap {
+    position: relative !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 999px !important;
+    border: 3px solid #fff !important;
+    background: #e94458 !important;
+    color: #fff !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    box-shadow: 0 10px 24px rgba(233, 68, 88, .28) !important;
+    z-index: 5 !important;
+    cursor: pointer !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay:hover {
+    background: #d92d45 !important;
+    transform: translateY(-1px) !important;
+}
+/* PMD_GALLERY_REMOVE_OVERLAY_END */
+
+
+/* PMD_SMALL_ADDITIONAL_IMAGE_REMOVE_X_START
+   Final override: keep the additional image remove button small like the native mediafinder X. */
+#menu-inline-gallery .menu-inline-gallery__remove-overlay {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    top: 8px !important;
+    right: 8px !important;
+    border-radius: 999px !important;
+    border: 3px solid #fff !important;
+    background: #e84d5b !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    box-shadow: 0 8px 18px rgba(232, 77, 91, .22) !important;
+    padding: 0 !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay i {
+    font-size: 13px !important;
+    line-height: 1 !important;
+}
+/* PMD_SMALL_ADDITIONAL_IMAGE_REMOVE_X_END */
+
+
+/* PMD_FINAL_TINY_GALLERY_X_START */
+#menu-inline-gallery .menu-inline-gallery__remove-overlay {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    top: 8px !important;
+    right: 8px !important;
+    border-radius: 999px !important;
+    border: 3px solid #fff !important;
+    background: #e84d5b !important;
+    color: #fff !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+    box-shadow: 0 6px 16px rgba(232, 77, 91, .22) !important;
+}
+
+#menu-inline-gallery .menu-inline-gallery__remove-overlay i {
+    font-size: 11px !important;
+    line-height: 1 !important;
+}
+/* PMD_FINAL_TINY_GALLERY_X_END */
 
 </style>
 
@@ -566,6 +658,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
         div.innerHTML =
             '<div class="menu-inline-gallery__thumb-wrap">' +
                 '<img class="menu-inline-gallery__thumb" src="' + publicUrl + '" alt="Additional image">' +
+                '<button type="button" class="menu-inline-gallery__remove-overlay" data-gallery-remove title="Remove image" aria-label="Remove image"><i class="fa fa-times"></i></button>' +
             '</div>' +
             '<div class="menu-inline-gallery__controls">' +
                 '<input type="number" min="1" class="form-control form-control-sm" data-gallery-order name="menu_images_inline[' + idx + '][sort_order]" value="' + (idx + 1) + '">' +
@@ -635,7 +728,7 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
         if ($.ti && $.ti.mediaManager && $.ti.mediaManager.modal) {
             new $.ti.mediaManager.modal({
                 alias: 'mediamanager',
-                selectMode: 'single',
+                selectMode: 'multi',
                 chooseButton: true,
                 chooseButtonText: 'Select',
                 onInsert: function(items) {
@@ -644,23 +737,30 @@ $isPreview = method_exists($this, 'previewMode') ? $this->previewMode : false;
                         return;
                     }
 
-                    var selected = items[0];
-                    var holder = null;
+                    var selectedCollection = Array.isArray(items) ? items : [items];
+                    var addedCount = 0;
 
-                    try {
-                        holder = $(selected).closest('.media-item');
-                    } catch (e) {
-                        holder = $();
-                    }
+                    selectedCollection.forEach(function(selected) {
+                        var holder = null;
 
-                    var media = normalizeSelectedMedia(items, selected, holder);
+                        try {
+                            holder = $(selected).closest('.media-item');
+                        } catch (e) {
+                            holder = $();
+                        }
 
-                    if (!media.path) {
+                        var media = normalizeSelectedMedia(selectedCollection, selected, holder);
+
+                        if (media.path) {
+                            appendImage(media.path, media.publicUrl);
+                            addedCount++;
+                        }
+                    });
+
+                    if (!addedCount) {
                         flashError('Could not read selected image path. Check console for PMD inline gallery debug output.');
                         return;
                     }
-
-                    appendImage(media.path, media.publicUrl);
 
                     if (this.hide) this.hide();
                 }

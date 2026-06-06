@@ -1,5 +1,137 @@
 <?php
 
+
+if (!function_exists('pmd_table_order_item_subtotal')) {
+    function pmd_table_order_item_subtotal(array $items): float
+    {
+        return round(array_sum(array_map(function ($item) {
+            if (is_object($item)) $item = (array)$item;
+            return (float)($item['subtotal'] ?? (((float)($item['price'] ?? 0)) * ((float)($item['quantity'] ?? 0))));
+        }, $items)), 4);
+    }
+}
+
+if (!function_exists('pmd_table_order_tax_settings')) {
+    function pmd_table_order_tax_settings(): array
+    {
+        $settings = [
+            'tax_mode' => (string)setting('tax_mode', setting('tax_enabled', '0')),
+            'tax_percentage' => (string)setting('tax_percentage', '0'),
+            'tax_menu_price' => (string)setting('tax_menu_price', '1'),
+        ];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                $hasSerializedColumn = \Illuminate\Support\Facades\Schema::hasColumn('settings', 'serialized');
+                $columns = $hasSerializedColumn ? ['item', 'value', 'serialized'] : ['item', 'value'];
+                $rows = \Illuminate\Support\Facades\DB::table('settings')
+                    ->whereIn('item', ['tax_mode', 'tax_enabled', 'tax_percentage', 'tax_menu_price'])
+                    ->get($columns);
+
+                $values = [];
+                foreach ($rows as $row) {
+                    $value = $row->value;
+                    if ($hasSerializedColumn && (int)($row->serialized ?? 0) === 1 && is_string($value)) {
+                        $decoded = @unserialize($value);
+                        if ($decoded !== false || $value === 'b:0;') {
+                            $value = $decoded;
+                        }
+                    }
+                    if (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
+                    $values[(string)$row->item] = $value;
+                }
+
+                $settings['tax_mode'] = (string)($values['tax_mode'] ?? $values['tax_enabled'] ?? $settings['tax_mode']);
+                $settings['tax_percentage'] = (string)($values['tax_percentage'] ?? $settings['tax_percentage']);
+                $settings['tax_menu_price'] = (string)($values['tax_menu_price'] ?? $settings['tax_menu_price']);
+            }
+        } catch (\Throwable $ignored) {}
+
+        return [
+            'enabled' => $settings['tax_mode'] === '1',
+            'percentage' => max(0.0, round((float)$settings['tax_percentage'], 4)),
+            'menu_price' => $settings['tax_menu_price'], // 0=included, 1=add at checkout
+        ];
+    }
+}
+
+if (!function_exists('pmd_table_order_calculate_totals')) {
+    function pmd_table_order_calculate_totals(array $items): array
+    {
+        $subtotal = pmd_table_order_item_subtotal($items);
+        $tax = pmd_table_order_tax_settings();
+        $taxAmount = 0.0;
+        $total = $subtotal;
+        $taxTitle = null;
+        $taxSummable = 0;
+
+        if (($tax['enabled'] ?? false) && (float)($tax['percentage'] ?? 0) > 0) {
+            $rate = (float)$tax['percentage'];
+            if ((string)($tax['menu_price'] ?? '1') === '1') {
+                $taxAmount = round($subtotal * ($rate / 100), 4);
+                $total = round($subtotal + $taxAmount, 4);
+                $taxTitle = 'VAT ('.$rate.'%)';
+                $taxSummable = 1;
+            } else {
+                $taxAmount = round($subtotal - ($subtotal / (1 + ($rate / 100))), 4);
+                $total = round($subtotal, 4);
+                $taxTitle = 'VAT included ('.$rate.'%)';
+                $taxSummable = 0;
+            }
+        }
+
+        $rows = [
+            ['code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($subtotal, 4), 'priority' => 1, 'is_summable' => 1],
+        ];
+        if ($taxTitle !== null) {
+            $rows[] = ['code' => 'tax', 'title' => $taxTitle, 'value' => round($taxAmount, 4), 'priority' => 2, 'is_summable' => $taxSummable];
+        }
+        $rows[] = ['code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0];
+
+        return ['subtotal' => round($subtotal, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+if (!function_exists('pmd_table_order_totals_from_order')) {
+    function pmd_table_order_totals_from_order(int $orderId, array $items, float $fallbackOrderTotal): array
+    {
+        $fallbackSubtotal = pmd_table_order_item_subtotal($items);
+        $rows = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('order_totals')) {
+                $rows = \Illuminate\Support\Facades\DB::table('order_totals')
+                    ->where('order_id', $orderId)
+                    ->orderBy('priority')
+                    ->orderBy('order_total_id')
+                    ->get(['code', 'title', 'value', 'priority', 'is_summable'])
+                    ->map(fn($row) => [
+                        'code' => (string)($row->code ?? ''),
+                        'title' => (string)($row->title ?? ''),
+                        'value' => round((float)($row->value ?? 0), 4),
+                        'priority' => (int)($row->priority ?? 0),
+                        'is_summable' => (int)($row->is_summable ?? 0),
+                    ])->values()->all();
+            }
+        } catch (\Throwable $ignored) {}
+
+        $byCode = [];
+        foreach ($rows as $row) {
+            $code = strtolower((string)($row['code'] ?? ''));
+            if ($code !== '' && !isset($byCode[$code])) $byCode[$code] = $row;
+        }
+
+        $subtotal = isset($byCode['subtotal']) ? (float)$byCode['subtotal']['value'] : $fallbackSubtotal;
+        $tax = array_sum(array_map(fn($row) => strtolower((string)($row['code'] ?? '')) === 'tax' ? (float)($row['value'] ?? 0) : 0, $rows));
+        $total = isset($byCode['total']) ? (float)$byCode['total']['value'] : (float)$fallbackOrderTotal;
+        if ($total <= 0) $total = $fallbackSubtotal;
+
+        return ['subtotal' => round($subtotal, 4), 'tax' => round($tax, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+
 // PMD_MENU_GALLERY_IMAGES_HELPERS_START
 if (!function_exists('pmd_menu_gallery_image_url')) {
     function pmd_menu_gallery_image_url($path) {
@@ -95,7 +227,7 @@ if (!function_exists('getMenuItemOptions')) {
     try {
         $p = DB::connection()->getTablePrefix();
         $optionsQuery = "
-            SELECT 
+            SELECT
                 mo.option_id as id,
                 mo.option_name as name,
                 mo.display_type,
@@ -106,13 +238,13 @@ if (!function_exists('getMenuItemOptions')) {
             WHERE mio.menu_id = ?
             ORDER BY mio.priority ASC, mo.option_name ASC
         ";
-        
+
         $options = DB::select($optionsQuery, [$menuId]);
-        
+
         // For each option, get its values
         foreach ($options as &$option) {
             $valuesQuery = "
-                SELECT 
+                SELECT
                     mov.option_value_id as id,
                     mov.value,
                     COALESCE(miov.new_price, mov.price) as price,
@@ -123,19 +255,19 @@ if (!function_exists('getMenuItemOptions')) {
                 WHERE mio.menu_id = ? AND mio.option_id = ?
                 ORDER BY miov.priority ASC, mov.value ASC
             ";
-            
+
             $values = DB::select($valuesQuery, [$menuId, $option->id]);
-            
+
             // Convert prices to float
             foreach ($values as &$value) {
                 $value->price = (float)$value->price;
             }
-            
+
             $option->values = $values;
         }
-        
+
         return $options;
-        
+
     } catch (\Exception $e) {
                 \Log::error('PMD_ORDER_DEBUG exception', [
                     'message' => $e->getMessage(),
@@ -246,32 +378,32 @@ App::before(function () {
             Route::get('/media/{path}', function ($path) {
                 // Remove any query parameters
                 $path = explode('?', $path)[0];
-                
+
                 // First try the direct path (as stored in database)
                 $mediaPath = base_path('assets/media/attachments/public/' . $path);
-                
+
                 if (!file_exists($mediaPath)) {
                     // If not found, search recursively for the filename
                     $filename = basename($path);
                     $searchPath = base_path('assets/media/attachments/public');
-                    
+
                     $foundPath = null;
                     $iterator = new RecursiveIteratorIterator(
                         new RecursiveDirectoryIterator($searchPath, RecursiveDirectoryIterator::SKIP_DOTS)
                     );
-                    
+
                     foreach ($iterator as $file) {
                         if ($file->getFilename() === $filename) {
                             $foundPath = $file->getPathname();
                             break;
                         }
                     }
-                    
+
                     if ($foundPath) {
                         $mediaPath = $foundPath;
                     }
                 }
-                
+
                 if (file_exists($mediaPath)) {
                     $mimeType = mime_content_type($mediaPath);
                     return response()->file($mediaPath, [
@@ -294,24 +426,24 @@ App::before(function () {
 
             /*
              * RE-ENABLED: /api/v1 routes (NOW SECURED)
-             * 
+             *
              * This group is now safe to use because:
              * 1. DetectTenant middleware added (line below)
              * 2. All hardcoded ti_* replaced with {$p} dynamic prefix
              * 3. Returns 404 when no tenant detected
-             * 
+             *
              * Note: This may create duplicates with routes.php and routes/api.php
              * But now all three sources are tenant-protected, so it's safe
              * (First registered route wins - they all have same middleware now)
-             * 
+             *
              * Fixed: 2025-10-10 - See EMERGENCY_FIX_CODE_CHANGES.md
              */
-            
-            // API v1 routes  
+
+            // API v1 routes
             // Note: Must use full class name in App::before() context (middleware aliases not yet registered)
-            
+
 Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class])->group(function () {
-                
+
                 // ================================
                 // COMPAT endpoints (frontend needs)
                 // No tenant hardcoding; DetectTenant already applied
@@ -381,7 +513,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             return pmdMenuColumnSelect($conn, 'm', $column);
                         }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']));
                         $query = "
-                            SELECT 
+                            SELECT
                                 m.menu_id as id,
                                 m.menu_name as name,
                                 m.menu_description as description,
@@ -403,15 +535,15 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             FROM {$p}menus m
                             LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
                             LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
-                            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus' 
-                                AND ma.attachment_id = m.menu_id 
+                            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus'
+                                AND ma.attachment_id = m.menu_id
                                 AND ma.tag = 'thumb'
                             WHERE m.menu_status = 1
                             ORDER BY c.priority ASC, COALESCE(m.menu_priority, 999999) ASC, m.menu_name ASC
                         ";
-                        
+
                         $items = $conn->select($query);
-                        
+
                         // Convert prices to float, fix image paths, add options, mark as non-combo
                         foreach ($items as &$item) {
                             $item->price = (float)$item->price;
@@ -434,10 +566,10 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             // PMD_MENU_GALLERY_IMAGES_RESPONSE_END
                             $item->options = getMenuItemOptions($item->id);
                         }
-                        
+
                         // Get combos from menu_combos on tenant DB (same connection as menu items)
                         $combosQuery = "
-                            SELECT 
+                            SELECT
                                 mc.combo_id as id,
                                 mc.combo_name as name,
                                 mc.combo_description as description,
@@ -445,8 +577,8 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 'Combos' as category_name,
                                 ma.name as image
                             FROM {$p}menu_combos mc
-                            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos' 
-                                AND ma.attachment_id = mc.combo_id 
+                            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos'
+                                AND ma.attachment_id = mc.combo_id
                                 AND ma.tag = 'thumb'
                             WHERE mc.combo_status = 1
                             ORDER BY mc.combo_priority ASC, mc.combo_name ASC
@@ -478,16 +610,16 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             $combo->nutrition = null;
                         }
                         $allItems = array_merge($items, $combos);
-                        
+
                         // Get all enabled categories (tenant DB)
                         $categoriesQuery = "
-                            SELECT category_id as id, name, priority 
-                            FROM {$p}categories 
-                            WHERE status = 1 
+                            SELECT category_id as id, name, priority
+                            FROM {$p}categories
+                            WHERE status = 1
                             ORDER BY priority ASC, name ASC
                         ";
                         $categories = $conn->select($categoriesQuery);
-                        
+
                         // Add "Combos" category if we have combos and it doesn't exist
                         if (count($combos) > 0) {
                             $hasCombosCategory = false;
@@ -515,7 +647,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         $hasLogo = $logoValue !== '' && stripos($logoValue, 'default') === false && stripos($logoValue, 'placeholder') === false;
                         $hasCustomSettings = ($siteNameValue !== '' && strcasecmp($siteNameValue, 'PayMyDine') !== 0) || $mailValue !== '';
                         $isFrontendConfigured = $hasCategories || $hasMenuItems || $hasLogo || $hasCustomSettings;
-                        
+
                         return response()->json([
                             'success' => true,
                             'data' => [
@@ -553,7 +685,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         $table_no = request()->query('table_no');
                         $qr_code = request()->query('qr_code');
                         $qr = request()->query('qr'); // Legacy support
-                        
+
                         // Priority order: qr_code  table_no  table_id
                         if ($qr_code) {
                             $table = DB::table('tables')->where('qr_code', $qr_code)->first();
@@ -569,22 +701,22 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 'error' => 'table_id, table_no, or qr_code is required'
                             ], 400);
                         }
-                        
+
                         if (!$table) {
                             return response()->json([
                                 'success' => false,
                                 'error' => 'Table not found'
                             ], 404);
                         }
-                        
+
                         // Get location information
                         $location = DB::table('locationables')
                             ->where('locationable_id', $table_id)
                             ->where('locationable_type', 'tables')
                             ->first();
-                        
+
                         $location_id = $location ? $location->location_id : 1;
-                        
+
                         return response()->json([
                             'success' => true,
                             'data' => [
@@ -666,19 +798,23 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     foreach ($items as $index => $item) {
                         $menuId = (int)($item['menu_id'] ?? $item['id'] ?? 0);
                         $qty = max(1, (int)($item['quantity'] ?? 1));
-                        $price = max(0, (float)($item['price'] ?? 0));
+                        $hasPayloadPrice = array_key_exists('price', $item) && is_numeric($item['price']);
+                        $price = $hasPayloadPrice ? (float)$item['price'] : null;
                         if ($menuId <= 0) continue;
                         $menu = DB::table('menus')->where('menu_id', $menuId)->where('menu_status', 1)->first();
                         if (!$menu) continue;
                         $name = trim((string)($item['name'] ?? '')) ?: (string)($menu->menu_name ?? ('Item '.($index + 1)));
-                        $unitPrice = $price > 0 ? $price : (float)($menu->menu_price ?? 0);
+                        $unitPrice = $hasPayloadPrice ? (float)$price : (float)($menu->menu_price ?? 0);
+                        $lineSubtotal = array_key_exists('subtotal', $item) && is_numeric($item['subtotal'])
+                            ? (float)$item['subtotal']
+                            : round($unitPrice * $qty, 4);
                         $normalized[] = [
                             'id' => (int)round(microtime(true) * 1000) + $index,
                             'menu_id' => $menuId,
                             'name' => $name,
                             'quantity' => $qty,
                             'price' => $unitPrice,
-                            'subtotal' => round($unitPrice * $qty, 4),
+                            'subtotal' => round($lineSubtotal, 4),
                             'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
                             'guest_session_id' => trim((string)($item['guest_session_id'] ?? '')),
                         ];
@@ -693,6 +829,9 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     $payment = null;
                     $settledAmount = 0.0;
                     $total = 0.0;
+                    $subtotal = 0.0;
+                    $taxAmount = 0.0;
+                    $orderTotalsRows = [];
                     $statusName = null;
                     if ($draft) {
                         $payload = json_decode((string)($draft->payload ?? '[]'), true);
@@ -721,10 +860,20 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 'paid_quantity' => 0,
                                 'unpaid_quantity' => (float)($row->quantity ?? 0),
                             ])->values()->all();
-                        if ($total <= 0) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? 0), $items));
+                        $resolvedTotals = pmd_table_order_totals_from_order($orderId, $items, (float)($order->order_total ?? 0));
+                        $subtotal = (float)$resolvedTotals['subtotal'];
+                        $taxAmount = (float)$resolvedTotals['tax'];
+                        $total = (float)$resolvedTotals['total'];
+                        $orderTotalsRows = $resolvedTotals['rows'];
                         if ($total > 0 && $settledAmount >= $total - 0.0001) $status = 'paid';
                     }
-                    if (!$order) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+                    if (!$order) {
+                        $resolvedTotals = pmd_table_order_calculate_totals($items);
+                        $subtotal = (float)$resolvedTotals['subtotal'];
+                        $taxAmount = (float)$resolvedTotals['tax'];
+                        $total = (float)$resolvedTotals['total'];
+                        $orderTotalsRows = $resolvedTotals['rows'];
+                    }
                     $groups = [];
                     foreach ($items as $item) {
                         $guest = (string)($item['guest_session_id'] ?? 'table');
@@ -752,7 +901,8 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         'items' => array_values($items),
                         'groups' => array_values($groups),
                         'total' => round($total, 4),
-                        'totals' => ['subtotal' => round($total, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
+                        'order_totals' => $orderTotalsRows,
+                        'totals' => ['subtotal' => round($subtotal, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
                         'settlement' => ['orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4), 'settlementStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid')],
                         'payment' => $payment,
                         'updatedAt' => $order ? (string)($order->updated_at ?? '') : ($draft ? (string)($draft->updated_at ?? '') : null),
@@ -788,6 +938,117 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     }
                     return null;
                 };
+
+
+                // PMD_PUBLIC_API_V1_VALIDATE_COUPON_FIX
+                // Public tenant-scoped coupon validation for Next.js customer frontend.
+                Route::post('/validate-coupon', function (\Illuminate\Http\Request $request) {
+                    try {
+                        $code = strtoupper(trim((string)$request->input('code', '')));
+                        $amount = (float)$request->input('amount', $request->input('subtotal', 0));
+
+                        if ($code === '') {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Coupon code is required',
+                            ]);
+                        }
+
+                        if (!\Illuminate\Support\Facades\Schema::hasTable('igniter_coupons')) {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Coupons are not available',
+                            ]);
+                        }
+
+                        $query = \Illuminate\Support\Facades\DB::table('igniter_coupons')
+                            ->where('code', $code);
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('igniter_coupons', 'status')) {
+                            $query->where('status', 1);
+                        }
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('igniter_coupons', 'card_type')) {
+                            $query->where(function ($q) {
+                                $q->where('card_type', 'coupon')
+                                  ->orWhereNull('card_type')
+                                  ->orWhere('card_type', '');
+                            });
+                        }
+
+                        $coupon = $query->first();
+
+                        if (!$coupon) {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Invalid coupon code',
+                            ]);
+                        }
+
+                        $minTotal = isset($coupon->min_total) ? (float)$coupon->min_total : 0.0;
+                        if ($minTotal > 0 && $amount < $minTotal) {
+                            return response()->json([
+                                'success' => false,
+                                'valid' => false,
+                                'message' => 'Minimum order total of €'.number_format($minTotal, 2).' required',
+                            ]);
+                        }
+
+                        $type = strtoupper((string)($coupon->type ?? 'F'));
+                        $rawDiscount = (float)($coupon->discount ?? 0);
+                        $discount = 0.0;
+
+                        if ($type === 'P') {
+                            $discount = $amount * ($rawDiscount / 100);
+                        } else {
+                            $discount = $rawDiscount;
+                        }
+
+                        if (isset($coupon->max_discount_cap) && (float)$coupon->max_discount_cap > 0) {
+                            $discount = min($discount, (float)$coupon->max_discount_cap);
+                        }
+
+                        $discount = max(0, min($discount, $amount));
+                        $discount = round($discount, 2);
+
+                        return response()->json([
+                            'success' => true,
+                            'valid' => true,
+                            'message' => 'Coupon applied',
+                            'code' => $code,
+                            'discountType' => $type,
+                            'discountAmount' => $type === 'F' ? $rawDiscount : null,
+                            'discountPercent' => $type === 'P' ? $rawDiscount : null,
+                            'finalDiscountAmount' => $discount,
+                            'data' => [
+                                'coupon_id' => $coupon->coupon_id ?? null,
+                                'code' => $code,
+                                'name' => $coupon->name ?? $code,
+                                'type' => $type,
+                                'discount' => $discount,
+                                'discount_value' => $rawDiscount,
+                                'min_total' => $minTotal,
+                                'finalDiscountAmount' => $discount,
+                            ],
+                        ]);
+                    } catch (\Throwable $e) {
+                        \Log::error('PMD coupon validation failed', [
+                            'message' => $e->getMessage(),
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine(),
+                            'payload' => $request->all(),
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'valid' => false,
+                            'message' => 'Failed to validate coupon',
+                        ], 500);
+                    }
+                });
 
                 Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder) {
                     $ensureTableOrderDraftTable();
@@ -863,7 +1124,14 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         $payload = json_decode((string)$draft->payload, true) ?: [];
                         $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
                         if (empty($items)) return;
-                        $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+                        // PMD_TABLE_ORDER_VAT_TOTALS_SUBMIT_SCOPE_20260604
+                        // Table-order submit source of truth:
+                        // item subtotal already includes priced options from frontend payload.
+                        // We add VAT rows here so Admin / Order Status / Payment / Split all read the same totals.
+                        $resolvedTotals = pmd_table_order_calculate_totals($items);
+                        $itemsSubtotal = (float)$resolvedTotals['subtotal'];
+                        $taxAmount = (float)$resolvedTotals['tax'];
+                        $total = (float)$resolvedTotals['total'];
                         $orderNumber = (int)DB::table('orders')->max('order_id') + 1;
                         $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
                         $insert = [
@@ -902,10 +1170,11 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                                 'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
                             ]);
                         }
-                        DB::table('order_totals')->insert([
-                            ['order_id' => $orderId, 'code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($total, 4), 'priority' => 1, 'is_summable' => 1],
-                            ['order_id' => $orderId, 'code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0],
-                        ]);
+                        $totalsRows = array_map(function ($row) use ($orderId) {
+                            return array_merge(['order_id' => $orderId], $row);
+                        }, $resolvedTotals['rows']);
+
+                        DB::table('order_totals')->insert($totalsRows);
                         DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update(['status' => 'submitted', 'order_id' => $orderId, 'updated_at' => now()]);
                         try {
                             DB::table('notifications')->insert(['type' => 'order', 'title' => 'New table order #'.$orderId, 'table_id' => (int)($context['table_id'] ?: 0), 'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')), 'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id]), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
@@ -1188,9 +1457,9 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         'provider' => 'lightspeed',
                     ];
                 }
-                
+
                 // Orders endpoint
-                
+
                 // Single source of truth for menu: see Route::get('/menu', ...) at top of this v1 group (with DetectTenant + combos).
 
                 Route::get('/categories', function () {
@@ -1200,7 +1469,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                             ->orderBy('priority', 'asc')
                             ->orderBy('name', 'asc')
                             ->get(['category_id as id', 'name', 'priority']);
-                        
+
                         return response()->json([
                             'success' => true,
                             'data' => $categories
@@ -1224,7 +1493,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                 // Restaurant info endpoint
                 Route::get('/restaurant', function () {
                     $restaurant = DB::table('locations')->first();
-                    
+
                     return response()->json([
                         'id' => 1,
                         'name' => $restaurant->location_name ?? 'PayMyDine',
@@ -1422,7 +1691,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
         Route::get('/vat-settings', function () {
             try {
                 $settings = DB::table('settings')->get()->keyBy('item');
-                
+
                 return response()->json([
                     'success' => true,
                     'data' => [
@@ -1461,7 +1730,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
             try {
                 $code = strtoupper(trim($request->input('code', '')));
                 $subtotal = floatval($request->input('subtotal', $request->input('amount', 0)));
-                
+
                 if (empty($code)) {
                     return response()->json([
                         'success' => false,
@@ -1469,14 +1738,14 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         'message' => 'Coupon code is required'
                     ]);
                 }
-                
+
                 // Find coupon by code
                 // Use 'igniter_coupons' - Laravel will automatically add the 'ti_' prefix
                 $coupon = DB::table('igniter_coupons')
                     ->where('code', $code)
                     ->where('status', 1)
                     ->first();
-                
+
                 if (!$coupon) {
                     return response()->json([
                         'success' => false,
@@ -1484,7 +1753,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         'message' => 'Invalid coupon code'
                     ]);
                 }
-                
+
                 // Check minimum total requirement
                 if ($coupon->min_total && $subtotal < $coupon->min_total) {
                     return response()->json([
@@ -1493,7 +1762,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                         'message' => 'Minimum order total of $' . number_format($coupon->min_total, 2) . ' required'
                     ]);
                 }
-                
+
                 // Calculate discount
                 $discount = 0;
                 if ($coupon->type === 'F') {
@@ -1503,7 +1772,7 @@ Route::prefix('v1')->middleware(['web', \App\Http\Middleware\DetectTenant::class
                     // Percentage
                     $discount = $subtotal * (floatval($coupon->discount) / 100);
                 }
-                
+
                 return response()->json([
                     'success' => true,
                     'valid' => true,

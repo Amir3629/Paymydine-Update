@@ -86,19 +86,10 @@
 @endphp
 
 <div class="container-fluid pt-4 pmd-settings-page" data-pmd-settings-page>
-    <section class="pmd-settings-hero" aria-labelledby="pmd-settings-title">
-        <div>
-            <p class="pmd-settings-eyebrow">POS control center</p>
-            <h1 id="pmd-settings-title">Settings</h1>
-            <p class="pmd-settings-subtitle">Manage your restaurant, POS devices, payments, staff, and system configuration.</p>
-        </div>
-        <label class="pmd-settings-search" for="pmd-settings-search-input">
-            <i class="fa fa-search" aria-hidden="true"></i>
-            <input id="pmd-settings-search-input" type="search" placeholder="Search settings..." autocomplete="off" data-pmd-settings-search>
-        </label>
-    </section>
-
-    <div class="pmd-settings-empty d-none" data-pmd-settings-empty>
+    <div class="pmd-settings-intro" aria-label="Settings overview">
+        Manage and customize your restaurant system.
+    </div>
+<div class="pmd-settings-empty d-none" data-pmd-settings-empty>
         <i class="fa fa-search" aria-hidden="true"></i>
         <strong>No settings found</strong>
         <span>Try a different restaurant, POS, payment, or system keyword.</span>

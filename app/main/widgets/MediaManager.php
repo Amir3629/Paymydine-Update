@@ -83,8 +83,9 @@ class MediaManager extends BaseWidget
         $this->vars['isPopup'] = $this->popupLoaded;
         $this->vars['selectMode'] = $this->selectMode;
         $this->vars['selectItem'] = $this->selectItem;
-        // max_size is in KB; convert to MB for Dropzone. Enforce at least 2 MB so uploads aren't blocked by a tiny saved value.
-        $maxSizeKb = (int) $this->getSetting('max_size', 30720);
+        // max_size is stored in MB in Media settings.
+        $maxSizeMb = (float)$this->getSetting('max_size', 30);
+        $maxSizeKb = (int)round(max(1, $maxSizeMb) * 1024);
         $minKb = 2048;
         $phpMaxKb = $this->getPhpUploadMaxSizeKb();
         $effectiveMaxKb = $maxSizeKb > 0 ? max($minKb, min($maxSizeKb, $phpMaxKb ?: PHP_INT_MAX)) : max($minKb, $phpMaxKb);
@@ -608,8 +609,9 @@ class MediaManager extends BaseWidget
             if (!$uploadedFile->isValid())
                 throw new ApplicationException($uploadedFile->getErrorMessage());
 
-            // Use same effective limit as frontend: at least 2 MB so tiny saved values (e.g. 300 KB) don't block uploads
-            $maxSizeKb = (int) $this->getSetting('max_size', 30720);
+            // Use same effective limit as frontend.
+            $maxSizeMb = (float)$this->getSetting('max_size', 30);
+            $maxSizeKb = (int)round(max(1, $maxSizeMb) * 1024);
             $minKb = 2048; // 2 MB
             $phpMaxKb = $this->getPhpUploadMaxSizeKb();
             $effectiveMaxKb = $maxSizeKb > 0 ? max($minKb, min($maxSizeKb, $phpMaxKb)) : min($minKb, $phpMaxKb);

@@ -1,3 +1,19 @@
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
+if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
+;(function () {
+  // PMD_NATIVE_MEDIA_CONTEXT_GUARD_STRICT
+  var pmdPath = window.location && window.location.pathname ? window.location.pathname : "";
+  var isNativeMediaPage =
+    /\/admin\/settings(\/|$)/.test(pmdPath) ||
+    /\/admin\/media_manager(\/|$)/.test(pmdPath);
+
+  if (isNativeMediaPage) {
+    if (window.console) {
+      console.log("[PMD] fix-media-finder-inline-styles skipped on native MediaManager/settings page:", pmdPath);
+    }
+    return;
+  }
+
 /**
  * Fix Media Finder Inline Styles
  * Removes problematic inline styles that override our beautiful CSS
@@ -9,14 +25,14 @@
     function fixMediaFinderStyles() {
         // Find all media finder inline mode instances
         const mediaFinders = document.querySelectorAll('.mediafinder.inline-mode, .mediafinder[data-mode="inline"]');
-        
+
         mediaFinders.forEach(function(mediaFinder) {
             const inputGroup = mediaFinder.querySelector('.media-finder .input-group');
             const inputGroupText = mediaFinder.querySelector('.media-finder .input-group-text');
             const formControl = mediaFinder.querySelector('.media-finder .form-control[data-find-name]');
             const findButton = mediaFinder.querySelector('.media-finder .find-button');
             const removeButton = mediaFinder.querySelector('.media-finder .find-remove-button');
-            
+
             // Fix input-group alignment - ensure everything is in one line
             if (inputGroup) {
                 inputGroup.style.display = 'flex';
@@ -24,14 +40,14 @@
                 inputGroup.style.alignItems = 'stretch';
                 inputGroup.style.flexWrap = 'nowrap';
             }
-            
+
             // Fix input-group-text - remove inline width, ensure proper display
             if (inputGroupText) {
                 // Remove inline width styles (keep our CSS width)
                 if (inputGroupText.style.width && inputGroupText.style.width === '50px') {
                     inputGroupText.style.removeProperty('width');
                 }
-                
+
                 // Ensure proper display - Fix for vertical centering
                 inputGroupText.style.display = 'flex';
                 inputGroupText.style.alignItems = 'center';
@@ -41,13 +57,13 @@
                 inputGroupText.style.height = '48px';
                 inputGroupText.style.lineHeight = '0';
                 inputGroupText.style.boxSizing = 'border-box';
-                
+
                 // Add placeholder icon if empty (using FontAwesome icon)
-                const hasContent = inputGroupText.innerHTML.trim().length > 0 || 
-                                 inputGroupText.querySelector('img') || 
+                const hasContent = inputGroupText.innerHTML.trim().length > 0 ||
+                                 inputGroupText.querySelector('img') ||
                                  inputGroupText.querySelector('.media-icon') ||
                                  inputGroupText.querySelector('i');
-                
+
                 if (!hasContent) {
                     // Check if placeholder already exists
                     let placeholder = inputGroupText.querySelector('.placeholder-icon');
@@ -86,7 +102,7 @@
                         placeholder.remove();
                     }
                 }
-                
+
                 // Ensure images are centered
                 const img = inputGroupText.querySelector('img');
                 if (img) {
@@ -95,7 +111,7 @@
                     img.style.maxWidth = '100%';
                     img.style.height = 'auto';
                 }
-                
+
                 // Ensure icons are centered - Fix FontAwesome icon alignment
                 const allIcons = inputGroupText.querySelectorAll('.media-icon i, i:not(.placeholder-icon), .placeholder-icon');
                 allIcons.forEach(function(icon) {
@@ -107,7 +123,7 @@
                     icon.style.margin = '0';
                     icon.style.padding = '0';
                     icon.style.boxSizing = 'content-box';
-                    
+
                     // Set explicit dimensions for FontAwesome icons
                     if (!icon.style.width || icon.style.width === '100%') {
                         icon.style.width = '24px';
@@ -117,21 +133,21 @@
                     }
                 });
             }
-            
+
             // Fix form-control alignment
             if (formControl) {
                 formControl.style.display = 'flex';
                 formControl.style.alignItems = 'center';
                 formControl.style.verticalAlign = 'middle';
             }
-            
+
             // Fix buttons - ensure proper alignment
             if (findButton) {
                 findButton.style.display = 'inline-flex';
                 findButton.style.alignItems = 'center';
                 findButton.style.justifyContent = 'center';
                 findButton.style.verticalAlign = 'middle';
-                
+
                 // Remove any green color references
                 if (findButton.style.backgroundColor && (
                     findButton.style.backgroundColor.includes('green') ||
@@ -141,7 +157,7 @@
                     findButton.style.removeProperty('background-color');
                     findButton.style.removeProperty('background');
                 }
-                
+
                 // Ensure button icon is centered
                 const buttonIcon = findButton.querySelector('i');
                 if (buttonIcon) {
@@ -154,13 +170,13 @@
                     buttonIcon.style.padding = '0';
                 }
             }
-            
+
             if (removeButton) {
                 removeButton.style.display = 'inline-flex';
                 removeButton.style.alignItems = 'center';
                 removeButton.style.justifyContent = 'center';
                 removeButton.style.verticalAlign = 'middle';
-                
+
                 // Remove any green color references
                 if (removeButton.style.backgroundColor && (
                     removeButton.style.backgroundColor.includes('green') ||
@@ -170,7 +186,7 @@
                     removeButton.style.removeProperty('background-color');
                     removeButton.style.removeProperty('background');
                 }
-                
+
                 // Ensure button icon is centered
                 const buttonIcon = removeButton.querySelector('i');
                 if (buttonIcon) {
@@ -216,7 +232,7 @@
                 }
             });
         });
-        
+
         if (shouldFix) {
             setTimeout(fixMediaFinderStyles, 100);
         }
@@ -237,3 +253,8 @@
         });
     }
 })();
+
+})(); // PMD_NATIVE_MEDIA_CONTEXT_GUARD_STRICT
+
+}
+/* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_END */

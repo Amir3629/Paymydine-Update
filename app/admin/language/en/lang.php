@@ -61,7 +61,7 @@ return [
     'label_status' => 'Status',
     'label_location' => 'Location(s)',
     'label_description' => 'Description',
-    
+
     'label_url' => 'API Base URL',
     'label_access_token_pos' => 'Access Token',
     'label_id_application_pos' => 'Merchant Code',
@@ -602,9 +602,9 @@ return [
         'label_password' => 'Password',
         'label_password_confirm' => 'Confirm Password',
 
-        'alert_username_not_found' => 'Login failed, please try again or contact the system administrator!',
+        'alert_username_not_found' => 'We could not sign you in. Please check your username and password. If you are not sure about the username, ask your manager. If you forgot the password, use the reset link below.',
         'alert_success_reset' => 'You\'ve successfully changed your password.',
-        'alert_failed_reset' => 'The reset code is either invalid or expired.',
+        'alert_failed_reset' => 'This reset link is invalid or expired. Please request a new password reset link.',
         'alert_success_logout' => 'You are now logged out.',
         'alert_email_sent' => 'We\'ve sent a password reset link to your email.',
         'alert_email_not_sent' => 'The e-mail could not be sent. Possible reason: your host may have disabled the mail() function.',
@@ -930,13 +930,13 @@ return [
 
     'settings' => [
         'text_tab_setup' => 'Sales',
-        'text_tab_tax' => 'Tax',
+        'text_tab_tax' => 'VAT',
         'text_tab_user' => 'Customer registration',
         'text_tab_panel' => 'Panel settings',
 
         'text_tab_desc_user' => 'Configure registration email confirmation ...',
         'text_tab_desc_setup' => 'Configure order, reservation and invoicing settings',
-        'text_tab_desc_tax' => 'Configure tax settings',
+        'text_tab_desc_tax' => 'Configure VAT settings',
         'text_tab_desc_panel' => 'Configure panel behavior, maintenance mode, system logs, and activity tracking.',
 
         'label_after_save_action' => 'After saving action',
@@ -1138,7 +1138,7 @@ return [
         'label_devices' => 'Devices',
 
         'help_devices' => 'Specify which devices the POS should belong to. Segmenting agents into devices lets you easily assign orders.',
-    
+
         'alert_login_restricted' => 'Warning: You do not have the right permission to <b>access a POS config</b>, please contact system administrator.',
         'alert_impersonate_confirm' => 'Are you sure you want to impersonate this POS Config? You can revert to your original state by logging out.',
         'alert_impersonate_success' => 'You are now impersonating POS Config: %s',

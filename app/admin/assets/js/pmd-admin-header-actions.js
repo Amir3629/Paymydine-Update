@@ -7,7 +7,60 @@
       : fn();
   }
 
+    function pmdMarkLegacyToolbarSources() {
+      try {
+        var selectors = [
+          '.toolbar-action',
+          '.progress-indicator-container',
+          '.form-toolbar',
+          '.control-toolbar',
+          '.page-actions',
+          '.page-title-section .pull-right',
+          '.list-toolbar',
+          '.toolbar.btn-toolbar',
+          '.btn-toolbar'
+        ].join(',');
+
+        document.querySelectorAll(selectors).forEach(function (wrap) {
+          if (!wrap) return;
+
+          if (
+            wrap.closest('table, thead, tbody, tr, th, td, .fixed-table-container, .list-setup, .bulk-actions, .dropdown-menu, .modal, .modal-content, .media-manager, .media-toolbar, .select2-container, #notification-panel')
+          ) {
+            return;
+          }
+
+          wrap.classList.add('pmd-legacy-toolbar-source');
+
+          wrap.querySelectorAll(':scope > .btn, :scope > a.btn, :scope > button.btn, :scope > .btn-group, :scope > .pmd-toolbar-right-buttons > .btn, :scope > .pmd-toolbar-right-buttons > a.btn, :scope > .pmd-toolbar-right-buttons > button.btn, :scope > .pmd-toolbar-right-buttons > .btn-group').forEach(function (el) {
+            if (!el.classList || !el.classList.contains('pmd-header-action-btn')) {
+              el.setAttribute('data-pmd-legacy-toolbar-source', '1');
+            }
+          });
+        });
+      } catch (e) {}
+    }
+
+
   ready(function () {
+    // PMD_MARK_LEGACY_ON_READY
+    pmdMarkLegacyToolbarSources();
+    pmdMarkLegacyToolbarSources();
+
+    function pmdRevealToolbarPreboot(reason) {
+      try {
+        /*
+         * PMD no-flash rule:
+         * Do NOT remove pmd-admin-toolbar-preboot here.
+         * Some pages render toolbar actions after the first sync, so removing
+         * the guard early makes old buttons flash/jump before proxy buttons settle.
+         * The layout fallback removes preboot after a short safe delay.
+         */
+        document.documentElement.classList.add('pmd-admin-toolbar-ready');
+        if (document.body) document.body.classList.add('pmd-admin-toolbar-ready');
+      } catch (e) {}
+    }
+
     if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return;
 
     const mainMenu = document.querySelector('#menu-mainmenu');
@@ -404,6 +457,11 @@
     }
 
     function makeProxy(original) {
+      try {
+        original.setAttribute('data-pmd-legacy-toolbar-source', '1');
+        const legacyWrap = original.closest && original.closest('.toolbar-action, .progress-indicator-container, .form-toolbar, .control-toolbar, .page-actions, .page-title-section .pull-right');
+        if (legacyWrap) legacyWrap.classList.add('pmd-legacy-toolbar-source');
+      } catch (e) {}
       const id = ensureId(original);
       const label = textOf(original) || 'Action';
       const icon = iconClass(original, label);
@@ -462,6 +520,13 @@
     }
 
     function playHeaderFlip(beforeRects) {
+      /*
+       * PMD dashboard polish:
+       * Dashboard widgets/toolbar render in several passes on refresh.
+       * Header FLIP animation during those passes creates a visible vibration.
+       * Keep proxy/header behavior, but disable the movement animation on dashboard only.
+       */
+      if (isDashboardPage()) return;
       if (!beforeRects || !beforeRects.size) return;
 
       const nodes = [
@@ -540,6 +605,10 @@
           proxy = makeProxy(original);
           proxy.classList.add('pmd-header-action-enter');
           bar.appendChild(proxy);
+          // PMD_NO_DELAY_PROXY_VISIBLE
+          proxy.classList.remove('pmd-header-action-enter', 'pmd-header-action-exiting');
+          proxy.classList.add('pmd-header-action-visible');
+          normalizeVisual(proxy);
 
           requestAnimationFrame(() => {
             proxy.classList.remove('pmd-header-action-enter');
@@ -556,6 +625,7 @@
     }
 
     function sync() {
+      pmdMarkLegacyToolbarSources();
       if (isRendering) return;
       isRendering = true;
 
@@ -571,6 +641,7 @@
 
         bar.querySelectorAll('.pmd-header-action-btn').forEach(normalizeVisual);
         document.querySelectorAll('.pmd-header-title-back').forEach(normalizeVisual);
+        pmdRevealToolbarPreboot('sync-complete');
         normalizeHeaderIconTooltips();
 
         document.body.classList.toggle('pmd-has-header-actions', originals.length > 0);
@@ -656,8 +727,14 @@
       subtree: true
     });
 
+    // PMD_FAST_SYNC_ALL_PAGES
+    try { requestAnimationFrame(sync); } catch (e) {}
+    setTimeout(sync, 0);
+    setTimeout(sync, 40);
+    setTimeout(sync, 120);
     setTimeout(sync, 250);
     setTimeout(sync, 900);
+    pmdRevealToolbarPreboot('after-header-action-sync');
 
     window.PMDHeaderActions = {
       refresh: sync,
@@ -674,3 +751,17 @@
     };
   });
 })();
+
+
+/* PMD_FORCE_PROXY_NO_DELAY_ALL_PAGES */
+try {
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.pmd-header-action-btn, .pmd-header-action-enter, .pmd-header-action-visible, .pmd-header-title-back').forEach(function (el) {
+      el.classList.remove('pmd-header-action-enter', 'pmd-header-action-exiting');
+      el.classList.add('pmd-header-action-visible');
+      el.style.opacity = '1';
+      el.style.visibility = 'visible';
+      el.style.transform = 'none';
+    });
+  });
+} catch (e) {}

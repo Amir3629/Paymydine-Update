@@ -217,14 +217,7 @@ export function LanguageSwitcher() {
         "button:has(svg.lucide-arrow-left)",
         ".page--valet .rounded-full:has(svg.lucide-circle-check)"
       ].forEach((selector) => applyToSelector(selector, applyAction));
-
-      ;[
-        ".pmd-v2-badge",
-        ".cart-badge",
-        "span.cart-badge",
-        ".cart-badge.pmd-v2-badge"
-      ].forEach((selector) => applyToSelector(selector, applyBadge));
-
+      // PMD: badge is single-owner now; do not runtime-force cart badge here.
       ;[
         ".pmd-v2-price",
         ".menu-item-price",

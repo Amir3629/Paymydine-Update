@@ -1,5 +1,137 @@
 <?php
 
+
+if (!function_exists('pmd_table_order_item_subtotal')) {
+    function pmd_table_order_item_subtotal(array $items): float
+    {
+        return round(array_sum(array_map(function ($item) {
+            if (is_object($item)) $item = (array)$item;
+            return (float)($item['subtotal'] ?? (((float)($item['price'] ?? 0)) * ((float)($item['quantity'] ?? 0))));
+        }, $items)), 4);
+    }
+}
+
+if (!function_exists('pmd_table_order_tax_settings')) {
+    function pmd_table_order_tax_settings(): array
+    {
+        $settings = [
+            'tax_mode' => (string)setting('tax_mode', setting('tax_enabled', '0')),
+            'tax_percentage' => (string)setting('tax_percentage', '0'),
+            'tax_menu_price' => (string)setting('tax_menu_price', '1'),
+        ];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                $hasSerializedColumn = \Illuminate\Support\Facades\Schema::hasColumn('settings', 'serialized');
+                $columns = $hasSerializedColumn ? ['item', 'value', 'serialized'] : ['item', 'value'];
+                $rows = \Illuminate\Support\Facades\DB::table('settings')
+                    ->whereIn('item', ['tax_mode', 'tax_enabled', 'tax_percentage', 'tax_menu_price'])
+                    ->get($columns);
+
+                $values = [];
+                foreach ($rows as $row) {
+                    $value = $row->value;
+                    if ($hasSerializedColumn && (int)($row->serialized ?? 0) === 1 && is_string($value)) {
+                        $decoded = @unserialize($value);
+                        if ($decoded !== false || $value === 'b:0;') {
+                            $value = $decoded;
+                        }
+                    }
+                    if (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
+                    $values[(string)$row->item] = $value;
+                }
+
+                $settings['tax_mode'] = (string)($values['tax_mode'] ?? $values['tax_enabled'] ?? $settings['tax_mode']);
+                $settings['tax_percentage'] = (string)($values['tax_percentage'] ?? $settings['tax_percentage']);
+                $settings['tax_menu_price'] = (string)($values['tax_menu_price'] ?? $settings['tax_menu_price']);
+            }
+        } catch (\Throwable $ignored) {}
+
+        return [
+            'enabled' => $settings['tax_mode'] === '1',
+            'percentage' => max(0.0, round((float)$settings['tax_percentage'], 4)),
+            'menu_price' => $settings['tax_menu_price'], // 0=included, 1=add at checkout
+        ];
+    }
+}
+
+if (!function_exists('pmd_table_order_calculate_totals')) {
+    function pmd_table_order_calculate_totals(array $items): array
+    {
+        $subtotal = pmd_table_order_item_subtotal($items);
+        $tax = pmd_table_order_tax_settings();
+        $taxAmount = 0.0;
+        $total = $subtotal;
+        $taxTitle = null;
+        $taxSummable = 0;
+
+        if (($tax['enabled'] ?? false) && (float)($tax['percentage'] ?? 0) > 0) {
+            $rate = (float)$tax['percentage'];
+            if ((string)($tax['menu_price'] ?? '1') === '1') {
+                $taxAmount = round($subtotal * ($rate / 100), 4);
+                $total = round($subtotal + $taxAmount, 4);
+                $taxTitle = 'VAT ('.$rate.'%)';
+                $taxSummable = 1;
+            } else {
+                $taxAmount = round($subtotal - ($subtotal / (1 + ($rate / 100))), 4);
+                $total = round($subtotal, 4);
+                $taxTitle = 'VAT included ('.$rate.'%)';
+                $taxSummable = 0;
+            }
+        }
+
+        $rows = [
+            ['code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($subtotal, 4), 'priority' => 1, 'is_summable' => 1],
+        ];
+        if ($taxTitle !== null) {
+            $rows[] = ['code' => 'tax', 'title' => $taxTitle, 'value' => round($taxAmount, 4), 'priority' => 2, 'is_summable' => $taxSummable];
+        }
+        $rows[] = ['code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0];
+
+        return ['subtotal' => round($subtotal, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+if (!function_exists('pmd_table_order_totals_from_order')) {
+    function pmd_table_order_totals_from_order(int $orderId, array $items, float $fallbackOrderTotal): array
+    {
+        $fallbackSubtotal = pmd_table_order_item_subtotal($items);
+        $rows = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('order_totals')) {
+                $rows = \Illuminate\Support\Facades\DB::table('order_totals')
+                    ->where('order_id', $orderId)
+                    ->orderBy('priority')
+                    ->orderBy('order_total_id')
+                    ->get(['code', 'title', 'value', 'priority', 'is_summable'])
+                    ->map(fn($row) => [
+                        'code' => (string)($row->code ?? ''),
+                        'title' => (string)($row->title ?? ''),
+                        'value' => round((float)($row->value ?? 0), 4),
+                        'priority' => (int)($row->priority ?? 0),
+                        'is_summable' => (int)($row->is_summable ?? 0),
+                    ])->values()->all();
+            }
+        } catch (\Throwable $ignored) {}
+
+        $byCode = [];
+        foreach ($rows as $row) {
+            $code = strtolower((string)($row['code'] ?? ''));
+            if ($code !== '' && !isset($byCode[$code])) $byCode[$code] = $row;
+        }
+
+        $subtotal = isset($byCode['subtotal']) ? (float)$byCode['subtotal']['value'] : $fallbackSubtotal;
+        $tax = array_sum(array_map(fn($row) => strtolower((string)($row['code'] ?? '')) === 'tax' ? (float)($row['value'] ?? 0) : 0, $rows));
+        $total = isset($byCode['total']) ? (float)$byCode['total']['value'] : (float)$fallbackOrderTotal;
+        if ($total <= 0) $total = $fallbackSubtotal;
+
+        return ['subtotal' => round($subtotal, 4), 'tax' => round($tax, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+
 use Admin\Controllers\QrRedirectController;
 use Admin\Controllers\SuperAdminController;
 use Admin\Controllers\StaffAuthController;
@@ -15,7 +147,7 @@ require_once base_path('app/system/helpers/r2o_outbound_dryrun_helper.php');
 use Illuminate\Support\Facades\DB;
 
 App::before(function () {
-    
+
     /*
      * Register Admin app routes
      *
@@ -43,7 +175,7 @@ App::before(function () {
                     ->where('domain', $host)
                     ->where('status', 'new')
                     ->first();
-                
+
                 if ($tenantFromDb && !empty($tenantFromDb->domain)) {
                     $scheme = request()->isSecure() ? 'https' : 'http';
                     return "{$scheme}://{$tenantFromDb->domain}";
@@ -63,7 +195,7 @@ App::before(function () {
                 try {
                     // Look for existing Cashier table
                     $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
-                
+
                     if ($cashierTable) {
                         // Check if it's linked to the location
                         $locationLink = DB::table('locationables')
@@ -71,7 +203,7 @@ App::before(function () {
                             ->where('locationable_type', 'tables')
                             ->where('location_id', $locationId)
                             ->first();
-                    
+
                         if (!$locationLink) {
                             // Link to the location
                             DB::table('locationables')->insert([
@@ -81,7 +213,7 @@ App::before(function () {
                                 'options' => null,
                             ]);
                         }
-                    
+
                         return $cashierTable->table_id;
                     } else {
                         // Create Cashier table if it doesn't exist
@@ -136,7 +268,7 @@ App::before(function () {
                     $time = date('H:i');
 
                     $tableNumber = ($cashierTable->table_no > 0) ? $cashierTable->table_no : $cashierTableId;
-                
+
                     return rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
                         'location' => $locationId,
                         'guest' => 1,
@@ -158,11 +290,11 @@ App::before(function () {
             $controller->initialize();
             return $controller->index($stationSlug);
         })->where('stationSlug', '[a-z0-9\-]+');
-        
+
         Route::post('kitchendisplay/{stationSlug}', function ($stationSlug) {
             $controller = app()->make(\Admin\Controllers\KitchenDisplay::class);
             $controller->initialize();
-            
+
             // Handle AJAX requests (onRefresh, onUpdateStatus)
             $handler = request()->post('_handler');
             if ($handler === 'onRefresh') {
@@ -170,7 +302,7 @@ App::before(function () {
             } elseif ($handler === 'onUpdateStatus') {
                 return $controller->index_onUpdateStatus();
             }
-            
+
             return $controller->index($stationSlug);
         })->where('stationSlug', '[a-z0-9\-]+');
 
@@ -186,7 +318,7 @@ App::before(function () {
                     ->select(
                         'tables.table_name',
                         'statuses.status_name',
-                        DB::raw('CASE 
+                        DB::raw('CASE
                             WHEN ti_statuses.status_name = "Preparation" THEN "preparing"
                             WHEN ti_statuses.status_name = "Received" THEN "received"
                             WHEN ti_statuses.status_name = "Pending" THEN "pending"
@@ -222,7 +354,7 @@ App::before(function () {
         Route::get('/orders/get-cashier-url', function (Request $request) {
             try {
                 $locationId = (int) $request->get('location_id', 1);
-                
+
                 // FIXED: Use tenant-aware URL resolution
                 $frontendUrl = resolveFrontendUrlForLocation($locationId);
                 $url = rtrim($frontendUrl, '/').'/cashier?'.http_build_query([
@@ -247,7 +379,7 @@ App::before(function () {
             try {
                 $locationId = (int) $request->get('location_id', 1);
                 $url = buildCashierTableUrl($locationId);
-                
+
                 if ($url) {
                     return redirect($url);
                 } else {
@@ -271,18 +403,18 @@ App::before(function () {
             Route::get('/enroll_staff', function() {
                 return redirect(admin_url('biometric_devices?tab=enroll'));
             });
-            
+
             // Device operations
             Route::post('/{id}/test-connection', [Biometricdevices::class, 'onTestConnection'])->name('biometric_devices.test_connection');
             Route::post('/{id}/sync-staff', [Biometricdevices::class, 'onSyncStaff'])->name('biometric_devices.sync_staff');
             Route::post('/{id}/sync-attendance', [Biometricdevices::class, 'onSyncAttendance'])->name('biometric_devices.sync_attendance');
-            
+
             // Schedule routes
             Route::post('/schedule/store', [Biometricdevices::class, 'scheduleStore'])->name('biometric_devices.schedule_store');
             Route::get('/schedule/get/{id}', [Biometricdevices::class, 'scheduleGet'])->name('biometric_devices.schedule_get');
             Route::post('/schedule/update', [Biometricdevices::class, 'scheduleUpdate'])->name('biometric_devices.schedule_update');
             Route::post('/schedule/assign-staff', [Biometricdevices::class, 'scheduleAssignStaff'])->name('biometric_devices.schedule_assign_staff');
-            
+
             // Report export routes
             Route::get('/report/export', [Biometricdevices::class, 'reportExport'])->name('biometric_devices.report_export');
         });
@@ -298,36 +430,36 @@ App::before(function () {
             Route::post('devices/{id}/reconnect', [BiometricDevicesAPI::class, 'forceReconnect']);
             Route::get('devices/{id}/health', [BiometricDevicesAPI::class, 'checkHealth']);
             Route::get('devices/{id}/uptime', [BiometricDevicesAPI::class, 'getDeviceUptime']);
-            
+
             // Sync Operations
             Route::post('devices/{id}/sync/attendance', [BiometricDevicesAPI::class, 'syncAttendance']);
             Route::post('devices/{id}/sync/staff', [BiometricDevicesAPI::class, 'syncStaff']);
-            
+
             // Attendance Operations
             Route::post('attendance/manual', [BiometricDevicesAPI::class, 'manualAttendance']);
-            
+
             // Enrollment Operations
             Route::post('devices/{id}/enroll', [BiometricDevicesAPI::class, 'enrollStaff']);
             Route::delete('devices/{id}/unenroll/{staffId}', [BiometricDevicesAPI::class, 'removeEnrollment']);
-            
+
             // Staff Operations
             Route::get('staff', [BiometricDevicesAPI::class, 'getStaff']);
             Route::get('staff/{id}', [BiometricDevicesAPI::class, 'getStaffDetails']);
             Route::get('staff/{id}/enrollments', [BiometricDevicesAPI::class, 'getStaffEnrollments']);
             Route::post('staff/create-with-card', [BiometricDevicesAPI::class, 'createStaffWithCard']);
-            
+
             // Card Operations
             Route::get('cards/assignments', [BiometricDevicesAPI::class, 'getCardAssignments']);
             Route::get('cards/unassigned', [BiometricDevicesAPI::class, 'getUnassignedCards']);
             Route::post('cards/assign', [BiometricDevicesAPI::class, 'assignCard']);
             Route::delete('cards/unassign/{id}', [BiometricDevicesAPI::class, 'unassignCard']);
             Route::post('devices/{id}/read-card', [BiometricDevicesAPI::class, 'readCard']);
-            
+
             // Notifications
             Route::get('notifications', [BiometricDevicesAPI::class, 'getNotifications']);
             Route::post('notifications/{id}/read', [BiometricDevicesAPI::class, 'markNotificationRead']);
             Route::post('notifications/read-all', [BiometricDevicesAPI::class, 'markAllNotificationsRead']);
-            
+
             // Dashboard & Status
             Route::get('dashboard', [BiometricDevicesAPI::class, 'getDashboard']);
             Route::get('status/realtime', [BiometricDevicesAPI::class, 'getRealTimeStatus']);
@@ -360,23 +492,23 @@ App::before(function () {
     Route::any(config('system.adminUri', 'admin'), 'System\Classes\Controller@runAdmin');
     Route::get('/redirect/qr', [QrRedirectController::class, 'handleRedirect'])
     ->middleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
- 
-    
+
+
     Route::get('/new', [SuperAdminController::class, 'showNewPage'])
         ->name('superadmin.new')
         ->middleware('superadmin.auth') // Protect this route
         ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-    
+
     Route::get('/index', [SuperAdminController::class, 'showIndex'])
     ->name('superadmin.index')
     ->middleware('superadmin.auth') // Protect this route
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-    
+
     Route::get('/settings', [SuperAdminController::class, 'settings'])
     ->name('superadmin.settings')
     ->middleware('superadmin.auth') // Protect this route
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-    
+
 
     // Backward-compatible alias
     Route::match(['get', 'post'], '/new/store', [SuperAdminController::class, 'store'])
@@ -389,7 +521,7 @@ App::before(function () {
     ->name('tenants.update')
     ->middleware('superadmin.auth')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-    
+
     // Backward-compatible alias
     Route::get('/tenants/delete/{id}', [SuperAdminController::class, 'delete'])
     ->name('tenants.delete')
@@ -403,9 +535,9 @@ App::before(function () {
     Route::post('/tenant/update-status', function (Request $request) {
         $id = $request->input('id');
         $status = $request->input('status') === 'activate' ? 'active' : 'disabled';
-    
+
         $updated = DB::connection('mysql')->table('tenants')->where('id', $id)->update(['status' => $status]);
-    
+
         if ($updated) {
             return response()->json(['success' => true]);
         } else {
@@ -424,36 +556,36 @@ App::before(function () {
             $sourceTableId = $request->input('source_table_id');
             $destTableName = $request->input('dest_table_name');
             $destTableId = $request->input('dest_table_id');
-            
+
             if (!$sourceTableName || !$destTableName) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Source and destination table names are required'
                 ], 400);
             }
-            
+
             // Get paid status ID
             $paidStatus = DB::table('statuses')->where('status_name', 'Paid')->first();
             $paidStatusId = $paidStatus ? $paidStatus->status_id : 10;
-            
+
             // Get active orders for source table (not paid)
             $sourceOrders = DB::table('orders')
                 ->where('order_type', $sourceTableName)
                 ->where('status_id', '!=', $paidStatusId)
                 ->get();
-            
+
             // Get active orders for destination table (not paid)
             $destOrders = DB::table('orders')
                 ->where('order_type', $destTableName)
                 ->where('status_id', '!=', $paidStatusId)
                 ->get();
-            
+
             // Get table info for notifications
             $sourceTableInfo = DB::table('tables')->where('table_id', $sourceTableId)->first();
             $destTableInfo = DB::table('tables')->where('table_id', $destTableId)->first();
             $sourceTableDisplayName = $sourceTableInfo ? $sourceTableInfo->table_name : $sourceTableName;
             $destTableDisplayName = $destTableInfo ? $destTableInfo->table_name : $destTableName;
-            
+
             $frontendPaymentMethod = (string)($request->payment_method ?? '');
             $normalizedPaymentMethod = match ($frontendPaymentMethod) {
                 'stripe', 'apple_pay', 'google_pay' => 'card',
@@ -468,7 +600,7 @@ App::before(function () {
                 'normalized_payment_method' => $normalizedPaymentMethod,
             ]);
 
-            
+
             $frontendPaymentMethod = (string)($request->payment_method ?? '');
 
             $normalizedPaymentMethod = match ($frontendPaymentMethod) {
@@ -486,7 +618,7 @@ App::before(function () {
 
             DB::beginTransaction();
 
-            
+
             try {
                 // Move orders from source to destination
                 foreach ($sourceOrders as $order) {
@@ -496,7 +628,7 @@ App::before(function () {
                             'order_type' => $destTableName,
                             'updated_at' => now()
                         ]);
-                    
+
                     // Update comment if it contains table reference
                     if ($order->comment) {
                         $updatedComment = str_replace($sourceTableName, $destTableName, $order->comment);
@@ -505,7 +637,7 @@ App::before(function () {
                             ->update(['comment' => $updatedComment]);
                     }
                 }
-                
+
                 // Move orders from destination to source (swap)
                 foreach ($destOrders as $order) {
                     DB::table('orders')
@@ -514,7 +646,7 @@ App::before(function () {
                             'order_type' => $sourceTableName,
                             'updated_at' => now()
                         ]);
-                    
+
                     // Update comment if it contains table reference
                     if ($order->comment) {
                         $updatedComment = str_replace($destTableName, $sourceTableName, $order->comment);
@@ -523,11 +655,11 @@ App::before(function () {
                             ->update(['comment' => $updatedComment]);
                     }
                 }
-                
+
                 // Create notification for table move
                 $movedCount = $sourceOrders->count();
                 $swappedCount = $destOrders->count();
-                
+
                 $notificationMessage = '';
                 if ($movedCount > 0 && $swappedCount > 0) {
                     $notificationMessage = "Orders swapped: {$movedCount} order(s) moved from {$sourceTableDisplayName} to {$destTableDisplayName}, {$swappedCount} order(s) moved from {$destTableDisplayName} to {$sourceTableDisplayName}";
@@ -538,10 +670,10 @@ App::before(function () {
                 } else {
                     $notificationMessage = "Table move completed: {$sourceTableDisplayName} ↔ {$destTableDisplayName}";
                 }
-                
+
                 // Get current user for notification
                 $userId = auth('admin')->id() ?? null;
-                
+
                 // Create notification
                 $notificationId = DB::table('notifications')->insertGetId([
                     'type' => 'table_move',
@@ -564,9 +696,9 @@ App::before(function () {
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                
+
                 DB::commit();
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => $notificationMessage,
@@ -574,21 +706,21 @@ App::before(function () {
                     'swapped_count' => $swappedCount,
                     'notification_id' => $notificationId
                 ]);
-                
+
             } catch (\Exception $e) {
                 if (DB::transactionLevel() > 0) {
                 DB::rollBack();
             }
                 throw $e;
             }
-            
+
         } catch (\Exception $e) {
             \Log::error('Move table error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to move orders: ' . $e->getMessage()
@@ -599,7 +731,7 @@ App::before(function () {
     Route::post('/orders/save-table-layout', function (Request $request) {
         try {
             $layout = $request->input('layout');
-            
+
             if (!$layout || !is_array($layout)) {
                 return response()->json([
                     'success' => false,
@@ -610,7 +742,7 @@ App::before(function () {
             // Save layout to database or session
             // For now, we'll just return success
             // You can implement actual saving logic here
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Layout saved successfully',
@@ -649,7 +781,7 @@ App::before(function () {
                 ->where('locationable_id', $tableId)
                 ->where('locationable_type', 'tables')
                 ->first();
-                
+
             $locationId = $locationData ? $locationData->location_id : 1;
             $maxCapacity = $table->max_capacity ?? 3;
             $date = date('Y-m-d');
@@ -657,9 +789,9 @@ App::before(function () {
 
             // FIXED: Use tenant domain from database (same logic as other routes)
             $frontendUrl = resolveFrontendUrlForLocation($locationId);
-                
+
             $tableNumber = ($table->table_no > 0) ? $table->table_no : $tableId;
-                
+
             $qrUrl = rtrim($frontendUrl, '/') . '/table/' . $tableNumber . '?' . http_build_query([
                 'location' => $locationId,
                 'guest' => $maxCapacity,
@@ -754,7 +886,7 @@ App::before(function () {
 //     Route::get('restaurant/{locationId}', 'RestaurantController@getRestaurantInfo');
 //     Route::get('restaurant/{locationId}/menu', 'RestaurantController@getMenu');
 //     // Route::post('webhooks/pos', 'PosWebhookController@handle')->middleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
-    
+
 //     // Order endpoints
 //     Route::post('restaurant/{locationId}/order', 'OrderController@createOrder');
 //     Route::get('restaurant/{locationId}/order/{orderId}', 'OrderController@getOrderStatus');
@@ -3110,7 +3242,6 @@ Route::group([
                 'resolved_error_code' => 'wero_not_supported',
                 'allow_fallback' => false,
                 'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
-                'display_message' => 'Wero is not available for the current store configuration. Please choose another payment method.',
                 'error' => 'Wero is not available for the current Worldline configuration.',
             ], 503);
         }
@@ -3150,7 +3281,6 @@ Route::group([
                     'error_code' => 'worldline_provider_configuration_invalid',
                     'resolved_error_code' => 'worldline_provider_configuration_invalid',
                     'allow_fallback' => false,
-                    'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
                     'display_message' => 'Wero is not configured correctly for this store. Please choose another payment method.',
                     'error' => 'Worldline Wero payment product id is missing or invalid in provider configuration.',
                     'details' => [
@@ -3213,9 +3343,6 @@ Route::group([
                     'provider' => 'worldline',
                     'method' => 'wero',
                     'error_code' => 'wero_redirect_missing',
-                    'resolved_error_code' => 'wero_redirect_missing',
-                    'allow_fallback' => false,
-                    'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
                     'resolved_error_code' => 'wero_redirect_missing',
                     'allow_fallback' => false,
                     'display_message' => 'Wero checkout could not be started. Please choose another payment method.',
@@ -3647,7 +3774,7 @@ Route::group([
     });
 
     // Create Stripe PaymentIntent using tenant secret from DB
-    
+
 
     $resolvePaypalRuntimeConfig = function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting): array {
         $methods = collect($loadJsonSetting('payment_methods', $defaultPaymentMethods))->keyBy('code');
@@ -4247,7 +4374,7 @@ Route::group([
             'customerInfo' => 'nullable|array',
             'tableNumber' => 'nullable',
         ]);
-        
+
         \Illuminate\Support\Facades\Log::info('[Stripe create-intent] incoming', [
             'currency' => $body['currency'] ?? null,
             'amount' => $body['amount'] ?? null,
@@ -4353,7 +4480,7 @@ return response()->json([
         try {
             // Get menu items with categories (matching old API structure)
             $query = "
-                SELECT 
+                SELECT
                     m.menu_id as id,
                     m.menu_name as name,
                     m.menu_description as description,
@@ -4363,15 +4490,15 @@ return response()->json([
                 FROM menus m
                 LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
                 LEFT JOIN categories c ON mc.category_id = c.category_id
-                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
-                    AND ma.attachment_id = m.menu_id 
+                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus'
+                    AND ma.attachment_id = m.menu_id
                     AND ma.tag = 'thumb'
                 WHERE m.menu_status = 1
                 ORDER BY c.priority ASC, m.menu_name ASC
             ";
-            
+
             $items = DB::select($query);
-            
+
             // Convert prices to float and fix image paths
             foreach ($items as &$item) {
                 $item->price = (float)$item->price;
@@ -4383,16 +4510,16 @@ return response()->json([
                     $item->image = '/images/pasta.png';
                 }
             }
-            
+
             // Get all enabled categories
             $categoriesQuery = "
-                SELECT category_id as id, name, priority 
-                FROM categories 
-                WHERE status = 1 
+                SELECT category_id as id, name, priority
+                FROM categories
+                WHERE status = 1
                 ORDER BY priority ASC, name ASC
             ";
             $categories = DB::select($categoriesQuery);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -4446,7 +4573,7 @@ return response()->json([
         if (empty($filename)) {
             abort(404);
         }
-        
+
         // Extract hash directories from filename (e.g., 688a367fbc700218826107.jpg -> 688/a36/7fb)
         if (preg_match('/^(\w{3})(\w{3})(\w{3})/', $filename, $matches)) {
             $hash1 = $matches[1];
@@ -4457,7 +4584,7 @@ return response()->json([
             // Fallback to direct path
             $imagePath = storage_path('app/public/assets/media/attachments/public/' . $filename);
         }
-        
+
         if (file_exists($imagePath)) {
             $mimeType = mime_content_type($imagePath);
             return response()->file($imagePath, [
@@ -4482,7 +4609,7 @@ return response()->json([
     Route::get('/restaurant', function () {
         try {
             $restaurant = DB::table('locations')->first();
-            
+
             return response()->json([
                 'id' => 1,
                 'name' => $restaurant->location_name ?? 'PayMyDine',
@@ -4511,7 +4638,7 @@ return response()->json([
     Route::get('/settings', function () {
         try {
             $settings = DB::table('settings')->get()->keyBy('item');
-            
+
             return response()->json([
                 'site_name' => $settings['site_name']->value ?? 'PayMyDine',
                 'site_logo' => $settings['site_logo']->value ?? '',
@@ -4530,6 +4657,19 @@ return response()->json([
                 'default_language' => $settings['default_language']->value ?? 'en',
                 'order_prefix' => $settings['invoice_prefix']->value ?? '#',
                 'guest_order' => $settings['guest_order']->value ?? '1',
+                // PMD_REVIEW_SOCIAL_SETTINGS_PUBLIC_20260605
+                'pmd_review_share_prompt_enabled' => $settings['pmd_review_share_prompt_enabled']->value ?? '1',
+                'pmd_homepage_social_icons_enabled' => $settings['pmd_homepage_social_icons_enabled']->value ?? '1',
+                'pmd_social_trustpilot_enabled' => $settings['pmd_social_trustpilot_enabled']->value ?? '0',
+                'pmd_social_trustpilot_url' => $settings['pmd_social_trustpilot_url']->value ?? '',
+                'pmd_social_instagram_enabled' => $settings['pmd_social_instagram_enabled']->value ?? '0',
+                'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
+                'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
+                'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
+                'pmd_social_website_enabled' => $settings['pmd_social_website_enabled']->value ?? '0',
+                'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
+                'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
+                'pmd_social_reviews_url' => $settings['pmd_social_reviews_url']->value ?? '',
             ])->header('Access-Control-Allow-Origin', '*')
               ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
               ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -5655,7 +5795,7 @@ return response()->json([
     // Order status endpoints
     Route::get('/order-status', function (Request $request) {
         $orderId = $request->get('order_id');
-        
+
         if (!$orderId) {
             return response()->json([
                 'error' => 'order_id is required'
@@ -5851,7 +5991,7 @@ return response()->json([
             // Get table info from URL parameters (set by QR redirect)
             $tableId = $request->get('table_id');
             $tableName = $request->get('table_name');
-            
+
             if (!$tableId || !$tableName) {
                 return response()->json([
                     'success' => false,
@@ -5908,11 +6048,11 @@ return response()->json([
                 'table_id' => 'required|string',
                 'message' => 'required|string|max:500'
             ]);
-        
+
             try {
                 // For testing, use a default tenant ID
                 $tenantId = 1;
-            
+
                 // Use transaction for data consistency
                 return DB::transaction(function () use ($request, $tenantId) {
                     // Store waiter call
@@ -5923,11 +6063,11 @@ return response()->json([
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                
+
                     // Get table info for notification
                     $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
                     $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
-                
+
                     // Create notification directly
                     DB::table('notifications')->insert([
                         'type'       => 'waiter_call',
@@ -5939,7 +6079,7 @@ return response()->json([
                         'created_at' => \Carbon\Carbon::now(),
                         'updated_at' => \Carbon\Carbon::now(),
                     ]);
-                
+
                     return response()->json([
                         'ok' => true,
                         'message' => 'Waiter called successfully',
@@ -5947,22 +6087,22 @@ return response()->json([
                         'created_at' => now()->toISOString()
                     ], 201);
                 });
-            
+
             } catch (\Exception $e) {
                 \Log::error('Waiter call failed', [
                     'error' => $e->getMessage(),
                     'table_id' => $request->table_id,
                     'tenant' => $tenantId ?? 'unknown'
                 ]);
-            
+
                 return response()->json([
                     'ok' => false,
                     'error' => 'Failed to process waiter call'
                 ], 500);
             }
         });
-    
-    
+
+
         // Table notes endpoint
         Route::post('/table-notes', function (Request $request) {
             $request->validate([
@@ -5970,11 +6110,11 @@ return response()->json([
                 'note' => 'required|string|max:500',
                 'timestamp' => 'required|date'
             ]);
-        
+
             try {
                 // For testing, use a default tenant ID
                 $tenantId = 1;
-            
+
                 // Use transaction for data consistency
                 return DB::transaction(function () use ($request, $tenantId) {
                     // Store table note
@@ -5986,11 +6126,11 @@ return response()->json([
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                
+
                     // Get table info for notification
                     $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
                     $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
-                
+
                     // Create notification directly
                     DB::table('notifications')->insert([
                         'type'       => 'table_note',
@@ -6002,7 +6142,7 @@ return response()->json([
                         'created_at' => \Carbon\Carbon::now(),
                         'updated_at' => \Carbon\Carbon::now(),
                     ]);
-                
+
                     return response()->json([
                         'ok' => true,
                         'message' => 'Note submitted successfully',
@@ -6010,14 +6150,14 @@ return response()->json([
                         'created_at' => now()->toISOString()
                     ], 201);
                 });
-            
+
             } catch (\Exception $e) {
                 \Log::error('Table note failed', [
                     'error' => $e->getMessage(),
                     'table_id' => $request->table_id,
                     'tenant' => $tenantId ?? 'unknown'
                 ]);
-            
+
                 return response()->json([
                     'ok' => false,
                     'error' => 'Failed to process table note'
@@ -6041,7 +6181,7 @@ return response()->json([
         Route::get('note-suggestions', [\Admin\Controllers\NotificationsApi::class, 'getNoteSuggestions']);
         Route::get('note-suggestions-debug', function() {
             $debug = [];
-            
+
             // Check extension_settings
             $ext = DB::table('extension_settings')->where('item', 'core.panel')->first();
             if ($ext) {
@@ -6057,7 +6197,7 @@ return response()->json([
             } else {
                 $debug['extension_settings'] = 'NOT FOUND';
             }
-            
+
             // Check settings table
             $set = DB::table('settings')->where('item', 'core.panel')->first();
             if ($set) {
@@ -6070,13 +6210,13 @@ return response()->json([
             } else {
                 $debug['settings'] = 'NOT FOUND';
             }
-            
+
             return response()->json($debug);
         });
     });
 
     // ========== Staff Authentication & Biometric Device Routes ==========
-    
+
     // Staff authentication routes (for card/fingerprint login)
     Route::group(['prefix' => 'staff-auth'], function () {
         Route::post('/card', [StaffAuthController::class, 'authenticateByCard']);
@@ -7213,18 +7353,23 @@ Route::group([
         foreach ($items as $index => $item) {
             $menuId = (int)($item['menu_id'] ?? $item['id'] ?? 0);
             $qty = max(1, (int)($item['quantity'] ?? 1));
-            $price = max(0, (float)($item['price'] ?? 0));
+            $hasPayloadPrice = array_key_exists('price', $item) && is_numeric($item['price']);
+            $price = $hasPayloadPrice ? (float)$item['price'] : null;
             if ($menuId <= 0) continue;
             $menu = \Illuminate\Support\Facades\DB::table('menus')->where('menu_id', $menuId)->where('menu_status', 1)->first();
             if (!$menu) continue;
             $name = trim((string)($item['name'] ?? '')) ?: (string)($menu->menu_name ?? ('Item '.($index + 1)));
+            $unitPrice = $hasPayloadPrice ? (float)$price : (float)($menu->menu_price ?? 0);
+            $lineSubtotal = array_key_exists('subtotal', $item) && is_numeric($item['subtotal'])
+                ? (float)$item['subtotal']
+                : round($unitPrice * $qty, 4);
             $normalized[] = [
                 'id' => (int)round(microtime(true) * 1000) + $index,
                 'menu_id' => $menuId,
                 'name' => $name,
                 'quantity' => $qty,
-                'price' => $price > 0 ? $price : (float)($menu->menu_price ?? 0),
-                'subtotal' => round(($price > 0 ? $price : (float)($menu->menu_price ?? 0)) * $qty, 4),
+                'price' => $unitPrice,
+                'subtotal' => round($lineSubtotal, 4),
                 'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
                 'guest_session_id' => trim((string)($item['guest_session_id'] ?? '')),
             ];
@@ -7239,6 +7384,9 @@ Route::group([
         $payment = null;
         $settledAmount = 0.0;
         $total = 0.0;
+        $subtotal = 0.0;
+        $taxAmount = 0.0;
+        $orderTotalsRows = [];
         if ($draft) {
             $payload = json_decode((string)($draft->payload ?? '[]'), true);
             $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
@@ -7265,10 +7413,20 @@ Route::group([
                     'paid_quantity' => 0,
                     'unpaid_quantity' => (float)($row->quantity ?? 0),
                 ])->values()->all();
-            if ($total <= 0) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? 0), $items));
+            $resolvedTotals = pmd_table_order_totals_from_order($orderId, $items, (float)($order->order_total ?? 0));
+            $subtotal = (float)$resolvedTotals['subtotal'];
+            $taxAmount = (float)$resolvedTotals['tax'];
+            $total = (float)$resolvedTotals['total'];
+            $orderTotalsRows = $resolvedTotals['rows'];
             if ($total > 0 && $settledAmount >= $total - 0.0001) $status = 'paid';
         }
-        if (!$order) $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+        if (!$order) {
+            $resolvedTotals = pmd_table_order_calculate_totals($items);
+            $subtotal = (float)$resolvedTotals['subtotal'];
+            $taxAmount = (float)$resolvedTotals['tax'];
+            $total = (float)$resolvedTotals['total'];
+            $orderTotalsRows = $resolvedTotals['rows'];
+        }
         $groups = [];
         foreach ($items as $item) {
             $guest = (string)($item['guest_session_id'] ?? 'table');
@@ -7287,7 +7445,8 @@ Route::group([
             'table_name' => $context['table_name'] ?? ($draft->table_name ?? null),
             'items' => array_values($items),
             'groups' => array_values($groups),
-            'totals' => ['subtotal' => round($total, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
+            'order_totals' => $orderTotalsRows,
+            'totals' => ['subtotal' => round($subtotal, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4)],
             'settlement' => ['orderTotal' => round($total, 4), 'settledAmount' => round($settledAmount, 4), 'remainingAmount' => round($remaining, 4), 'settlementStatus' => $status === 'paid' ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid')],
             'payment' => $payment,
             'status_name' => $order ? (string)($order->status_name ?? '') : null,
@@ -7421,7 +7580,14 @@ Route::group([
             $payload = json_decode((string)$draft->payload, true) ?: [];
             $items = is_array($payload['items'] ?? null) ? $payload['items'] : [];
             if (empty($items)) return;
-            $total = array_sum(array_map(fn($i) => (float)($i['subtotal'] ?? ((float)($i['price'] ?? 0) * (float)($i['quantity'] ?? 0))), $items));
+            // PMD_ADMIN_TABLE_ORDER_VAT_TOTALS_SUBMIT_20260604
+            // Active customer /api/v1 table-order submit route in app/admin/routes.php.
+            // Item subtotal already includes option prices from frontend payload.
+            // Write VAT rows here so Admin / Order Status / Payment / Split all read one source of truth.
+            $resolvedTotals = pmd_table_order_calculate_totals($items);
+            $itemsSubtotal = (float)$resolvedTotals['subtotal'];
+            $taxAmount = (float)$resolvedTotals['tax'];
+            $total = (float)$resolvedTotals['total'];
             $orderNumber = (int)\Illuminate\Support\Facades\DB::table('orders')->max('order_id') + 1;
             $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
             $insert = [
@@ -7460,10 +7626,11 @@ Route::group([
                     'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
                 ]);
             }
-            \Illuminate\Support\Facades\DB::table('order_totals')->insert([
-                ['order_id' => $orderId, 'code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($total, 4), 'priority' => 1, 'is_summable' => 1],
-                ['order_id' => $orderId, 'code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0],
-            ]);
+            $totalsRows = array_map(function ($row) use ($orderId) {
+                return array_merge(['order_id' => $orderId], $row);
+            }, $resolvedTotals['rows']);
+
+            \Illuminate\Support\Facades\DB::table('order_totals')->insert($totalsRows);
             \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update(['status' => 'submitted', 'order_id' => $orderId, 'updated_at' => now()]);
             try {
                 \Illuminate\Support\Facades\DB::table('notifications')->insert(['type' => 'order', 'title' => 'New table order #'.$orderId, 'table_id' => (int)($context['table_id'] ?: 0), 'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')), 'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id]), 'status' => 'new', 'created_at' => now(), 'updated_at' => now()]);
@@ -7598,6 +7765,14 @@ Route::group([
         $rawItems = \Illuminate\Support\Facades\DB::table('order_menus')
             ->where('order_id', $order->order_id)
             ->get(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal']);
+        $allItemsForTotals = $rawItems->map(fn($row) => [
+            'price' => (float)($row->price ?? 0),
+            'quantity' => (float)($row->quantity ?? 0),
+            'subtotal' => (float)($row->subtotal ?? 0),
+        ])->all();
+        $resolvedOrderTotals = pmd_table_order_totals_from_order((int)$order->order_id, $allItemsForTotals, (float)($order->order_total ?? 0));
+        $orderItemSubtotalTotal = max(0.0, pmd_table_order_item_subtotal($allItemsForTotals));
+        $orderGrossRatio = $orderItemSubtotalTotal > 0 ? max(0.0, round(((float)$resolvedOrderTotals['total']) / $orderItemSubtotalTotal, 8)) : 1.0;
 
         $hasSplitTables = \Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
             && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items');
@@ -7665,7 +7840,7 @@ Route::group([
             ];
         }
 
-        $orderTotal = (float)($order->order_total ?? 0);
+        $orderTotal = (float)$resolvedOrderTotals['total'];
         $settledAmount = $hasSettlementColumns
             ? (float)($order->settled_amount ?? 0)
             : (strtolower((string)($order->payment ?? '')) === 'qr_pay_later' ? 0.0 : $orderTotal);
@@ -7679,7 +7854,7 @@ Route::group([
 
         $remainingAmount = max(0, round($orderTotal - $settledAmount, 4));
         if ($hasSplitTables) {
-            $remainingAmount = round($computedRemainingAmount, 4);
+            $remainingAmount = round($computedRemainingAmount * $orderGrossRatio, 4);
             $settledAmount = max(0, round($orderTotal - $remainingAmount, 4));
         }
         $settlementStatus = $hasSettlementColumns
@@ -7729,6 +7904,9 @@ Route::group([
             'selected_items' => 'nullable|array',
             'selected_items.*.order_menu_id' => 'required_with:selected_items|integer',
             'selected_items.*.quantity' => 'required_with:selected_items|numeric|min:0.001',
+            'tip_amount' => 'nullable|numeric|min:0',
+            'coupon_discount' => 'nullable|numeric|min:0',
+            'coupon_code' => 'nullable|string|max:191',
         ]);
 
         $order = \Admin\Models\Orders_model::query()->where('order_id', $request->order_id)->first();
@@ -7777,7 +7955,7 @@ Route::group([
             'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
             'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
             'order_id' => $order->order_id,
-            'payload' => $request->only(['order_id', 'payment_method', 'payment_reference', 'amount', 'selected_items']),
+            'payload' => $request->only(['order_id', 'payment_method', 'payment_reference', 'amount', 'selected_items', 'tip_amount', 'coupon_discount', 'coupon_code']),
         ]);
 
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
@@ -7801,7 +7979,11 @@ Route::group([
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $orderTotalForGuard = round((float)($lockedOrder->order_total ?? 0), 4);
+                $canonicalTotalForGuard = \Illuminate\Support\Facades\DB::table('order_totals')
+                    ->where('order_id', $lockedOrder->order_id)
+                    ->where('code', 'total')
+                    ->value('value');
+                $orderTotalForGuard = round((float)($canonicalTotalForGuard ?? $lockedOrder->order_total ?? 0), 4);
                 $currentSettledForGuard = max(0, round((float)($lockedOrder->settled_amount ?? 0), 4));
                 $currentSettlementStatusForGuard = strtolower((string)($lockedOrder->settlement_status ?? 'unpaid'));
                 if (in_array($currentSettlementStatusForGuard, ['cancelled', 'failed'], true)) {
@@ -7823,6 +8005,15 @@ Route::group([
                 $orderMenus = \Illuminate\Support\Facades\DB::table('order_menus')
                     ->where('order_id', $lockedOrder->order_id)
                     ->get(['order_menu_id', 'menu_id', 'name', 'quantity', 'price', 'subtotal']);
+                $orderItemsForTotals = $orderMenus->map(fn($row) => [
+                    'price' => (float)($row->price ?? 0),
+                    'quantity' => (float)($row->quantity ?? 0),
+                    'subtotal' => (float)($row->subtotal ?? 0),
+                ])->all();
+                $resolvedPaymentTotals = pmd_table_order_totals_from_order((int)$lockedOrder->order_id, $orderItemsForTotals, (float)($lockedOrder->order_total ?? 0));
+                $orderItemSubtotalTotal = max(0.0, pmd_table_order_item_subtotal($orderItemsForTotals));
+                $orderGrossRatio = $orderItemSubtotalTotal > 0 ? max(0.0, round(((float)$resolvedPaymentTotals['total']) / $orderItemSubtotalTotal, 8)) : 1.0;
+                $lockedOrder->order_total = (float)$resolvedPaymentTotals['total'];
 
                 $remainingByOrderMenu = [];
                 $paidQtyByOrderMenu = [];
@@ -7910,17 +8101,36 @@ Route::group([
                     $calculatedAmount += $lineTotal;
                 }
 
-                $calculatedAmount = round($calculatedAmount, 4);
+                $calculatedItemSubtotal = round($calculatedAmount, 4);
+                $calculatedAmount = round($calculatedItemSubtotal * $orderGrossRatio, 4);
                 if ($calculatedAmount <= 0) {
                     throw new \InvalidArgumentException('Payment amount must be greater than zero');
                 }
+                // PMD_PAY_EXISTING_TIP_COUPON_AMOUNT_FIX
+                // The selected item subtotal closes/settles the order items, but the actual
+                // payment provider charge can be lower/higher because of coupon/tip.
+                $tipAmount = max(0, round((float)$request->input('tip_amount', 0), 4));
+                $couponDiscount = max(0, round((float)$request->input('coupon_discount', 0), 4));
+                $couponDiscount = min($couponDiscount, round($calculatedAmount + $tipAmount, 4));
+                $payableAmount = round(max(0, $calculatedAmount + $tipAmount - $couponDiscount), 4);
+
                 if ($request->filled('amount')) {
                     $requestedAmount = round((float)$request->input('amount'), 4);
-                    if (abs($requestedAmount - $calculatedAmount) > 0.02) {
+                    if (abs($requestedAmount - $payableAmount) > 0.02) {
+                        \Log::warning('QR_SETTLEMENT_DEBUG pay-existing amount mismatch', [
+                            'order_id' => $lockedOrder->order_id,
+                            'requested_amount' => $requestedAmount,
+                            'selected_items_subtotal' => $calculatedItemSubtotal,
+                            'selected_items_payable_total' => $calculatedAmount,
+                            'tip_amount' => $tipAmount,
+                            'coupon_discount' => $couponDiscount,
+                            'payable_amount' => $payableAmount,
+                        ]);
                         throw new \InvalidArgumentException('Selected items amount mismatch');
                     }
                 }
-                if ($calculatedAmount > $remainingTotal + 0.0001) {
+                $remainingGrossTotal = round($remainingTotal * $orderGrossRatio, 4);
+                if ($calculatedAmount > $remainingGrossTotal + 0.0001) {
                     throw new \InvalidArgumentException('Cannot overpay remaining amount');
                 }
 
@@ -7939,7 +8149,7 @@ Route::group([
                         'order_id' => (int)$lockedOrder->order_id,
                         'payment_method' => $normalizedPaymentMethod,
                         'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : null,
-                        'amount' => $calculatedAmount,
+                        'amount' => $payableAmount,
                         'settlement_status' => $newSettlementStatus,
                         'payer_label' => $request->filled('payer_label') ? (string)$request->payer_label : null,
                         'paid_at' => now(),
@@ -7983,7 +8193,7 @@ Route::group([
                 }
                 $lockedOrder->save();
 
-                return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows') + ['alreadyPaid' => false];
+                return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows') + ['alreadyPaid' => false, 'tipAmount' => $tipAmount, 'couponDiscount' => $couponDiscount, 'payableAmount' => $payableAmount];
             });
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
@@ -8000,7 +8210,10 @@ Route::group([
         $newSettlementStatus = $result['newSettlementStatus'];
         $newSettled = $result['newSettled'];
         $remaining = $result['remaining'];
-        $paymentAmount = $result['calculatedAmount'];
+        $paymentAmount = round((float)($result['payableAmount'] ?? $result['calculatedAmount']), 4);
+        $settlementItemAmount = round((float)$result['calculatedAmount'], 4);
+        $tipAmount = round((float)($result['tipAmount'] ?? 0), 4);
+        $couponDiscount = round((float)($result['couponDiscount'] ?? 0), 4);
         $allocationRows = $result['allocationRows'];
         $alreadyPaid = (bool)($result['alreadyPaid'] ?? false);
         $shouldPrintReceipt = !$alreadyPaid && $previousSettlementStatus !== 'paid' && $newSettlementStatus === 'paid';
@@ -8097,6 +8310,9 @@ Route::group([
             'settled_amount' => $newSettled,
             'remaining_amount' => $remaining,
             'paid_amount' => $paymentAmount,
+            'settled_item_amount' => $settlementItemAmount,
+            'tip_amount' => $tipAmount,
+            'coupon_discount' => $couponDiscount,
             'allocations' => $allocationRows,
             'already_paid' => false,
             'should_print_receipt' => $shouldPrintReceipt,
@@ -8217,6 +8433,127 @@ Route::group([
             'currency' => strtoupper((string)(setting('currency_code', 'EUR') ?: 'EUR')),
             'provider' => $provider,
             'payment_method' => $method,
+        ]);
+    });
+
+    // PMD_REVIEW_SAVE_AND_BUSINESS_INVOICE_ENDPOINTS_20260605
+    Route::post('/reviews', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'order_id' => 'nullable|integer|min:1',
+            'rating' => 'nullable|integer|min:0|max:5',
+            'review' => 'nullable|string|max:4000',
+            'public_share_consent' => 'nullable|boolean',
+        ]);
+
+        $rating = (int)($payload['rating'] ?? 0);
+        $reviewText = trim((string)($payload['review'] ?? ''));
+        if ($rating <= 0 && $reviewText === '') {
+            return response()->json(['success' => false, 'error' => 'Please add a star rating or review text.'], 422);
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('reviews')) {
+            \Illuminate\Support\Facades\Schema::create('reviews', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->increments('review_id');
+                $table->unsignedInteger('customer_id')->nullable()->index();
+                $table->unsignedInteger('sale_id')->nullable()->index();
+                $table->string('sale_type')->nullable()->index();
+                $table->unsignedInteger('location_id')->nullable()->index();
+                $table->string('tenant_host')->nullable();
+                $table->string('author')->nullable();
+                $table->unsignedTinyInteger('quality')->default(0);
+                $table->unsignedTinyInteger('service')->default(0);
+                $table->unsignedTinyInteger('delivery')->default(0);
+                $table->text('review_text')->nullable();
+                $table->boolean('review_status')->default(false);
+                $table->boolean('public_share_consent')->nullable();
+                $table->timestamps();
+            });
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('reviews', 'public_share_consent')) {
+            \Illuminate\Support\Facades\Schema::table('reviews', function (\Illuminate\Database\Schema\Blueprint $table) { $table->boolean('public_share_consent')->nullable(); });
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('reviews', 'tenant_host')) {
+            \Illuminate\Support\Facades\Schema::table('reviews', function (\Illuminate\Database\Schema\Blueprint $table) { $table->string('tenant_host')->nullable(); });
+        }
+
+        $locationId = null;
+        $orderId = isset($payload['order_id']) ? (int)$payload['order_id'] : null;
+        if ($orderId) {
+            $locationId = \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->value('location_id');
+        }
+        if (!$locationId) {
+            $locationId = \Illuminate\Support\Facades\DB::table('locations')->value('location_id') ?: null;
+        }
+
+        $reviewId = \Illuminate\Support\Facades\DB::table('reviews')->insertGetId([
+            'customer_id' => null,
+            'sale_id' => $orderId,
+            'sale_type' => $orderId ? 'orders' : null,
+            'location_id' => $locationId,
+            'tenant_host' => $request->getHost(),
+            'author' => 'Checkout guest',
+            'quality' => $rating,
+            'service' => $rating,
+            'delivery' => $rating,
+            'review_text' => $reviewText,
+            'review_status' => 0,
+            'public_share_consent' => array_key_exists('public_share_consent', $payload) ? $payload['public_share_consent'] : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['success' => true, 'data' => ['review_id' => $reviewId]]);
+    });
+
+    Route::get('/orders/{order}/business-invoice', function ($orderId) {
+        $orderId = (int)$orderId;
+        $order = \Admin\Models\Orders_model::query()->where('order_id', $orderId)->first();
+        if (!$order) return response('Order not found', 404);
+
+        $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
+        $restaurant = (string)(optional($settings->get('site_name'))->value ?? 'PayMyDine Restaurant');
+        $currency = (string)(optional($settings->get('default_currency_code'))->value ?? optional($settings->get('default_currency'))->value ?? 'EUR');
+        $lines = [
+            'Business Invoice',
+            $restaurant,
+            'Invoice #: '.$orderId,
+            'Date: '.(string)($order->created_at ?? now()),
+            'Customer: '.((string)($order->customer_name ?? '') ?: 'Guest'),
+            '',
+            'Items:',
+        ];
+        try {
+            foreach (($order->getOrderMenusWithOptions() ?? []) as $row) {
+                $qty = (float)($row->quantity ?? 0);
+                $name = (string)($row->name ?? 'Item');
+                $line = $qty * (float)($row->price ?? 0);
+                $lines[] = rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.').' x '.$name.' - '.number_format($line, 2).' '.$currency;
+            }
+        } catch (\Throwable $e) {}
+        $lines[] = '';
+        $lines[] = 'Total: '.number_format((float)($order->order_total ?? 0), 2).' '.$currency;
+
+        $escape = function ($text) { return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], (string)$text); };
+        $content = "BT /F1 12 Tf 50 790 Td 14 TL";
+        foreach ($lines as $line) $content .= " (".$escape($line).") Tj T*";
+        $content .= " ET";
+        $objects = [];
+        $objects[] = "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n";
+        $objects[] = "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n";
+        $objects[] = "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n";
+        $objects[] = "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n";
+        $objects[] = "5 0 obj << /Length ".strlen($content)." >> stream\n".$content."\nendstream endobj\n";
+        $pdf = "%PDF-1.4\n";
+        $offsets = [0];
+        foreach ($objects as $object) { $offsets[] = strlen($pdf); $pdf .= $object; }
+        $xref = strlen($pdf);
+        $pdf .= "xref\n0 ".(count($objects)+1)."\n0000000000 65535 f \n";
+        for ($i = 1; $i <= count($objects); $i++) $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        $pdf .= "trailer << /Size ".(count($objects)+1)." /Root 1 0 R >>\nstartxref\n".$xref."\n%%EOF";
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="business-invoice-'.$orderId.'.pdf"',
         ]);
     });
 

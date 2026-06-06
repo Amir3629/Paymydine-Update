@@ -27,6 +27,16 @@
 @endphp
 
 @php
+
+if (!function_exists('pmdCleanGuestSessionComment')) {
+    function pmdCleanGuestSessionComment($comment) {
+        $comment = trim((string)($comment ?? ''));
+        if ($comment === '') return '';
+        $comment = trim(preg_replace('/\s*\[guest_session:\s*\]\s*/u', ' ', $comment));
+        if ($comment === '' || preg_match('/^\[guest_session:[^\]]*\]$/u', $comment)) return '';
+        return $comment;
+    }
+}
 if (!function_exists('pmdR2oOptionLabels')) {
     function pmdR2oOptionLabels($raw) {
         if ($raw === null || $raw === '') return [];
@@ -119,7 +129,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? 'Tax');
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? 'VAT');
     $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
 
     $pmdNetSubtotal = 0.0;
@@ -147,7 +157,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
             </tr>
         </thead>
         <tbody>
-            
+
 @php
     /* PMD_CANONICAL_GROSS_DISPLAY_V3 */
     $orderTotals = collect($model->getOrderTotals() ?? []);
@@ -161,7 +171,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     $couponTotal = $couponTotal ?? $discountTotal ?? null;
     $couponCode = $couponCode ?? (($model->coupon_code ?? null) ?: ($model->coupon ?? null));
 
-    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $pmdTaxLabel ?? 'Tax');
+    $pmdTaxLabelFromTotals = (string)($taxTotal->title ?? $pmdTaxLabel ?? 'VAT');
     $pmdTaxIncluded = stripos($pmdTaxLabelFromTotals, 'included') !== false;
 
     $displayTotalItems = 0;
@@ -237,8 +247,9 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                                 @endforeach
                             </div>
                         @endif
-                        @if(!empty($menuItem->comment))
-                            <div class="order-bill-item-comment">{{ $menuItem->comment }}</div>
+                        @php($pmdMenuComment = pmdCleanGuestSessionComment($menuItem->comment ?? ''))
+                        @if($pmdMenuComment !== '')
+                            <div class="order-bill-item-comment">{{ $pmdMenuComment }}</div>
                         @endif
                     </td>
                     <td class="order-bill-quantity text-center">
@@ -333,7 +344,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
             @endif
         </tfoot>
     </table>
-    
+
     <!-- Add Item Button -->
     <div class="order-bill-actions" style="margin-top: 20px; padding-top: 15px;">
         <button type="button" class="btn btn-primary btn-add-item" id="btn-add-item" onclick="event.preventDefault(); event.stopPropagation(); addItemToOrder({{ $model->order_id }});">
@@ -762,39 +773,39 @@ const CURRENT_ORDER_ID = {{ $model->order_id }};
  */
 function updateOrderItemQuantity(orderMenuId, change) {
     console.log('updateOrderItemQuantity called', orderMenuId, change);
-    
+
     const controls = document.querySelector(`.quantity-controls[data-order-menu-id="${orderMenuId}"]`);
     if (!controls) {
         console.error('Controls not found for order_menu_id:', orderMenuId);
         return;
     }
-    
+
     const qtyDisplay = document.getElementById(`qty-${orderMenuId}`);
     const subtotalDisplay = document.getElementById(`subtotal-${orderMenuId}`);
-    
+
     if (!qtyDisplay || !subtotalDisplay) {
         console.error('Display elements not found');
         return;
     }
-    
+
     const currentQty = parseInt(qtyDisplay.textContent) || 0;
     const newQty = currentQty + change;
     const price = parseFloat(controls.getAttribute('data-price')) || 0;
-    
+
     // Prevent negative quantities
     if (newQty < 0) {
         return;
     }
-    
+
     // If quantity becomes 0, remove the item immediately without confirmation
     if (newQty === 0) {
         removeOrderItem(orderMenuId);
         return;
     }
-    
+
     // Disable controls during update
     controls.classList.add('loading');
-    
+
     // Make AJAX request to update quantity using Laravel AJAX handler
     $.request('onUpdateItemQuantity', {
         data: {
@@ -806,18 +817,18 @@ function updateOrderItemQuantity(orderMenuId, change) {
             // Laravel AJAX handler wraps response in 'result' property
             const response = data.result || data;
             console.log('Parsed update response:', response);
-            
+
             if (response && response.success) {
                 // Update display
                 qtyDisplay.textContent = newQty;
                 const newSubtotal = (price * newQty).toFixed(2);
                 subtotalDisplay.textContent = formatCurrency(newSubtotal);
-                
+
                 // Update totals
                 if (response.totals) {
                     updateOrderTotals(response.totals);
                 }
-                
+
                 // No success notification - updates happen silently
             } else {
                 showNotification(response?.error || 'Failed to update quantity', 'error');
@@ -835,7 +846,7 @@ function updateOrderItemQuantity(orderMenuId, change) {
             controls.classList.remove('loading');
         }
     });
-    
+
     // Old fetch code (keeping as fallback)
     /*
     fetch(`/admin/orders/edit/${CURRENT_ORDER_ID}/update-item-quantity`, {
@@ -863,11 +874,11 @@ function removeOrderItem(orderMenuId) {
         return;
     }
     const row = controls.closest('tr');
-    
+
     // Disable controls
     row.style.opacity = '0.5';
     row.style.pointerEvents = 'none';
-    
+
     // Use Laravel AJAX handler
     $.request('onRemoveItem', {
         data: {
@@ -878,7 +889,7 @@ function removeOrderItem(orderMenuId) {
             // Laravel AJAX handler wraps response in 'result' property
             const response = data.result || data;
             console.log('Parsed remove response:', response);
-            
+
             if (response && response.success) {
                 // Remove row with animation
                 row.style.transition = 'opacity 0.3s ease';
@@ -894,7 +905,7 @@ function removeOrderItem(orderMenuId) {
                         }
                     }
                 }, 300);
-                
+
                 // No success notification - updates happen silently
             } else {
                 showNotification(response?.error || 'Failed to remove item', 'error');
@@ -920,7 +931,7 @@ function updateOrderTotals(totals) {
     if (subtotalEl && totals.subtotal !== undefined) {
         subtotalEl.textContent = formatCurrency(totals.subtotal);
     }
-    
+
     // Update tax if it exists
     const taxRow = document.querySelector('.order-bill-tax');
     if (taxRow && totals.tax !== undefined) {
@@ -929,7 +940,7 @@ function updateOrderTotals(totals) {
             taxValueEl.textContent = formatCurrency(totals.tax);
         }
     }
-    
+
     // Update tip if it exists
     const tipRow = document.querySelector('.order-bill-tip');
     if (tipRow && totals.tip !== undefined) {
@@ -938,7 +949,7 @@ function updateOrderTotals(totals) {
             tipValueEl.textContent = formatCurrency(totals.tip);
         }
     }
-    
+
     // Update coupon if it exists
     const couponRow = document.querySelector('.order-bill-discount');
     if (couponRow && totals.coupon !== undefined) {
@@ -948,14 +959,14 @@ function updateOrderTotals(totals) {
             couponValueEl.textContent = (couponValue < 0 ? '--' : '') + formatCurrency(Math.abs(couponValue));
         }
     }
-    
+
     // Update item count
     const itemCountEl = document.querySelector('.order-bill-subtotal-note');
     if (itemCountEl && totals.total_items !== undefined) {
         const itemText = totals.total_items === 1 ? 'item' : 'items';
         itemCountEl.textContent = `(${totals.total_items} ${itemText})`;
     }
-    
+
     // Update final total
     const totalEl = document.getElementById('order-final-total');
     if (totalEl && totals.total !== undefined) {
@@ -971,7 +982,7 @@ function addItemToOrder(orderId) {
     // Get table info from order
     const tableId = '{{ $model->table_id ?? "" }}';
     const locationId = '{{ $model->location_id ?? 1 }}';
-    
+
     // Navigate to create page with order_id parameter
     const url = `/admin/orders/create?order_id=${orderId}&table_id=${tableId}&location_id=${locationId}`;
     window.location.href = url;

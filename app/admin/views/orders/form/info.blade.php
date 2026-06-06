@@ -748,15 +748,15 @@ div.toolbar-action a.btn-send-invoice {
         gap: 12px;
         padding: 10px 16px;
     }
-    
+
     .order-info-item {
         min-width: auto;
     }
-    
+
     .order-info-value {
         font-size: 15px;
     }
-    
+
     .order-info-label {
         font-size: 12px;
     }
@@ -769,27 +769,27 @@ div.toolbar-action a.btn-send-invoice {
         padding: 10px 14px;
         flex-wrap: wrap;
     }
-    
+
     .order-info-item {
         min-width: auto;
         flex: 0 0 calc(33.333% - 10px);
     }
-    
+
     .order-info-item.invoice,
     .order-info-item.send-invoice,
     .order-info-item.note {
         flex: 0 0 calc(33.333% - 10px);
         min-width: 100px;
     }
-    
+
     .order-info-value {
         font-size: 14px;
     }
-    
+
     .order-info-label {
         font-size: 11px;
     }
-    
+
     .order-info-separator {
         display: none;
     }
@@ -802,46 +802,46 @@ div.toolbar-action a.btn-send-invoice {
         padding: 10px 12px;
         min-height: auto;
     }
-    
+
     .order-info-item {
         flex: 0 0 calc(50% - 6px);
         min-width: 0;
     }
-    
+
     .order-info-item.table-number,
     .order-info-item.order-id {
         flex: 0 0 calc(50% - 6px);
     }
-    
+
     .order-info-item.date-time {
         flex: 0 0 calc(50% - 6px);
     }
-    
+
     .order-info-item.status,
     .order-info-item.assignee {
         flex: 0 0 calc(50% - 6px);
     }
-    
+
     .order-info-item.invoice-combined {
         flex: 0 0 calc(50% - 6px);
         min-width: 120px;
     }
-    
+
     .order-info-item.invoice,
     .order-info-item.send-invoice,
     .order-info-item.note {
         flex: 0 0 calc(50% - 6px);
         min-width: 90px;
     }
-    
+
     .order-info-value {
         font-size: 13px;
     }
-    
+
     .order-info-label {
         font-size: 10px;
     }
-    
+
     .send-invoice-icon-btn,
     .invoice-icon-btn,
     .note-icon-btn {
@@ -852,7 +852,7 @@ div.toolbar-action a.btn-send-invoice {
         max-width: 36px !important;
         max-height: 36px !important;
     }
-    
+
     .invoice-buttons-container {
         gap: 12px;
     }
@@ -867,7 +867,7 @@ div.toolbar-action a.btn-send-invoice {
         flex-wrap: wrap !important;
         display: flex !important;
     }
-    
+
     /* Show all items in a compact grid - 2 items per row */
     .order-info-item {
         flex: 0 0 calc(50% - 3px) !important;
@@ -879,13 +879,13 @@ div.toolbar-action a.btn-send-invoice {
         align-items: center !important;
         justify-content: flex-start !important;
     }
-    
+
     /* Combined invoice item */
     .order-info-item.invoice-combined {
         flex: 0 0 calc(50% - 3px) !important;
         min-width: 120px;
     }
-    
+
     /* Smaller items (invoice, send invoice, note) - 2 per row */
     .order-info-item.invoice,
     .order-info-item.send-invoice,
@@ -893,47 +893,47 @@ div.toolbar-action a.btn-send-invoice {
         flex: 0 0 calc(50% - 3px) !important;
         min-width: 0;
     }
-    
+
     /* Table, Order ID - first row */
     .order-info-item.table-number,
     .order-info-item.order-id {
         flex: 0 0 calc(50% - 3px) !important;
     }
-    
+
     /* Date/Time, Status - second row */
     .order-info-item.date-time,
     .order-info-item.status {
         flex: 0 0 calc(50% - 3px) !important;
     }
-    
+
     /* Assignee, Invoice - third row */
     .order-info-item.assignee,
     .order-info-item.invoice-combined {
         flex: 0 0 calc(50% - 3px) !important;
     }
-    
+
     .order-info-item:last-child {
         margin-bottom: 6px;
     }
-    
+
     .order-info-separator {
         display: none !important;
     }
-    
+
     .order-info-value {
         font-size: 12px !important;
         text-align: center !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
     }
-    
+
     .order-info-label {
         font-size: 9px !important;
         margin-bottom: 3px !important;
         text-align: center !important;
         white-space: nowrap !important;
     }
-    
+
     .send-invoice-icon-btn,
     .invoice-icon-btn,
     .note-icon-btn {
@@ -945,29 +945,29 @@ div.toolbar-action a.btn-send-invoice {
         max-height: 36px !important;
         margin-top: 0 !important;
     }
-    
+
     .invoice-buttons-container {
         gap: 12px;
     }
-    
+
     .send-invoice-icon-btn i,
     .invoice-icon-btn i,
     .note-icon-btn i {
         font-size: 16px !important;
     }
-    
+
     /* Remove borders - cleaner look */
     .order-info-item {
         border-bottom: none !important;
         padding-bottom: 4px !important;
     }
-    
+
     /* Make status badge smaller on mobile */
     .order-info-item.status .order-info-value {
         font-size: 11px !important;
         padding: 3px 8px !important;
     }
-    
+
     /* Make assignee smaller on mobile */
     .order-info-item.assignee .order-info-value {
         font-size: 11px !important;
@@ -981,7 +981,7 @@ div.toolbar-action a.btn-send-invoice {
         margin-top: -15px !important;
         gap: 4px !important;
     }
-    
+
     /* Ensure all items are visible - 2 per row */
     .order-info-item {
         flex: 0 0 calc(50% - 2px) !important;
@@ -991,17 +991,17 @@ div.toolbar-action a.btn-send-invoice {
         flex-direction: column !important;
         align-items: center !important;
     }
-    
+
     .order-info-value {
         font-size: 11px !important;
         text-align: center !important;
     }
-    
+
     .order-info-label {
         font-size: 8px !important;
         margin-bottom: 2px !important;
     }
-    
+
     .send-invoice-icon-btn,
     .invoice-icon-btn,
     .note-icon-btn {
@@ -1013,23 +1013,23 @@ div.toolbar-action a.btn-send-invoice {
         max-height: 32px !important;
         margin-top: 0 !important;
     }
-    
+
     .invoice-buttons-container {
         gap: 12px;
     }
-    
+
     .send-invoice-icon-btn i,
     .invoice-icon-btn i,
     .note-icon-btn i {
         font-size: 14px !important;
     }
-    
+
     /* Smaller status badge */
     .order-info-item.status .order-info-value {
         font-size: 10px !important;
         padding: 2px 6px !important;
     }
-    
+
     /* Smaller assignee text */
     .order-info-item.assignee .order-info-value {
         font-size: 10px !important;
@@ -1072,17 +1072,17 @@ div.toolbar-action a.btn-send-invoice {
         <label class="order-info-label">Table</label>
         <div class="order-info-value">{{ $formModel->order_type_name ?: 'N/A' }}</div>
     </div>
-    
+
     <div class="order-info-separator"></div>
-    
+
     <!-- Order ID -->
     <div class="order-info-item order-id">
         <label class="order-info-label">Order ID</label>
         <div class="order-info-value order-id-value">#{{ $formModel->order_id }}</div>
     </div>
-    
+
     <div class="order-info-separator"></div>
-    
+
     <!-- Date/Time -->
     <div class="order-info-item date-time">
         <label class="order-info-label">Date & Time</label>
@@ -1093,9 +1093,9 @@ div.toolbar-action a.btn-send-invoice {
             @endif
         </div>
     </div>
-    
+
     <div class="order-info-separator"></div>
-    
+
     <!-- Status - Clickable -->
     <div class="order-info-item status">
         <label class="order-info-label">Status</label>
@@ -1115,9 +1115,9 @@ div.toolbar-action a.btn-send-invoice {
             @endif
         </a>
     </div>
-    
+
     <div class="order-info-separator"></div>
-    
+
     <!-- Assignee - Clickable -->
     <div class="order-info-item assignee">
         <label class="order-info-label">Assignee</label>
@@ -1136,7 +1136,7 @@ div.toolbar-action a.btn-send-invoice {
             @endif
         </a>
     </div>
-    
+
     @php
         $__statusName = strtolower((string)optional($formModel->status)->status_name);
         $__isPaidOrder = !empty($formModel->settled_at)
@@ -1144,7 +1144,7 @@ div.toolbar-action a.btn-send-invoice {
             || ((bool)($formModel->processed ?? false) && in_array($__statusName, ['paid', 'complete', 'completed'], true));
     @endphp
     <div class="order-info-separator"></div>
-    
+
     <!-- Note - Add staff note button -->
     <div class="order-info-item note">
         <label class="order-info-label">Note</label>
@@ -1162,15 +1162,31 @@ div.toolbar-action a.btn-send-invoice {
             </a>
         </div>
     </div>
-    
+
     @if($formModel->order_id)
         <div class="order-info-separator"></div>
-        
+
         <!-- Invoice - Combined card with both buttons -->
         <div class="order-info-item invoice-combined">
             <label class="order-info-label">Invoice</label>
             <div class="invoice-buttons-container">
-            <a
+
+{{-- PMD_ORDER_ETA_BADGE_START --}}
+@if(!empty($formModel->estimated_prep_minutes))
+    <a
+        class="btn btn-default"
+        href="javascript:;"
+        title="Estimated preparation time"
+        aria-label="Estimated preparation time"
+        style="min-width:40px;"
+    >
+        <i class="fa fa-clock-o"></i>
+        <span class="hidden-xs">~{{ (int)$formModel->estimated_prep_minutes }} min</span>
+    </a>
+@endif
+{{-- PMD_ORDER_ETA_BADGE_END --}}
+
+<a
                 class="invoice-icon-btn"
                 href="{{ admin_url('orders/customerInvoice/'.$formModel->order_id) }}"
                 target="_blank"
@@ -1215,70 +1231,70 @@ div.toolbar-action a.btn-send-invoice {
             setTimeout(initHeaderClickHandlers, 100);
             return;
         }
-        
+
         // Find the statuseditor widget
         var $statusEditor = $('[data-control="status-editor"]');
         if (!$statusEditor.length) {
             setTimeout(initHeaderClickHandlers, 200);
             return;
         }
-        
+
         // Get the statuseditor instance
         var statusEditorInstance = $statusEditor.data('ti.statusEditor');
         if (!statusEditorInstance) {
             setTimeout(initHeaderClickHandlers, 200);
             return;
         }
-        
+
         // Handle Status click
         $('.header-status-clickable').off('click.header-status').on('click.header-status', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Create a fake event object that mimics what statuseditor expects
             var fakeEvent = {
                 currentTarget: this,
                 preventDefault: function() {},
                 stopPropagation: function() {}
             };
-            
+
             // Trigger the statuseditor's onControlClick method
             statusEditorInstance.onControlClick(fakeEvent);
         });
-        
+
         // Handle Assignee click
         $('.header-assignee-clickable').off('click.header-assignee').on('click.header-assignee', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Create a fake event object that mimics what statuseditor expects
             var fakeEvent = {
                 currentTarget: this,
                 preventDefault: function() {},
                 stopPropagation: function() {}
             };
-            
+
             // Trigger the statuseditor's onControlClick method
             statusEditorInstance.onControlClick(fakeEvent);
         });
     }
-    
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initHeaderClickHandlers);
     } else {
         initHeaderClickHandlers();
     }
-    
+
     // Also try after delays to ensure statuseditor is initialized
     setTimeout(initHeaderClickHandlers, 500);
     setTimeout(initHeaderClickHandlers, 1000);
-    
+
     // Re-initialize after AJAX updates
     $(document).on('ajaxUpdateComplete', function() {
         setTimeout(initHeaderClickHandlers, 200);
     });
-    
+
     // Fix Invoice buttons icon centering - Remove inline styles that interfere
     function fixInvoiceButtonsIconCentering() {
         var $ = window.jQuery || window.$;
@@ -1286,29 +1302,29 @@ div.toolbar-action a.btn-send-invoice {
             setTimeout(fixInvoiceButtonsIconCentering, 100);
             return;
         }
-        
+
         // Fix both invoice and send invoice icon buttons, plus note button
         $('.invoice-icon-btn i, .send-invoice-icon-btn i, .note-icon-btn i').each(function() {
             var $icon = $(this);
             var currentStyle = $icon.attr('style') || '';
-            
+
             // Remove margin-related styles from inline style attribute
             currentStyle = currentStyle.replace(/margin[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-right[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-left[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-top[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-bottom[^;]*;?/gi, '');
-            
+
             // Clean up any double semicolons
             currentStyle = currentStyle.replace(/;;+/g, ';').replace(/^;|;$/g, '');
-            
+
             // Update or remove style attribute
             if (currentStyle.trim()) {
                 $icon.attr('style', currentStyle);
             } else {
                 $icon.removeAttr('style');
             }
-            
+
             // Force our CSS values - Center icon in button
             $icon.css({
                 'margin': '0',
@@ -1320,7 +1336,7 @@ div.toolbar-action a.btn-send-invoice {
                 'top': '0'
             });
         });
-        
+
         // Ensure both buttons are centered and perfect square (same size), plus note button
         $('.invoice-icon-btn, .send-invoice-icon-btn, .note-icon-btn').css({
             'display': 'inline-flex',
@@ -1340,7 +1356,7 @@ div.toolbar-action a.btn-send-invoice {
             'padding': '0',
             'vertical-align': 'middle'
         });
-        
+
         // Specifically ensure send invoice icon and note icon are centered
         $('.send-invoice-icon-btn, .note-icon-btn').each(function() {
             var $btn = $(this);
@@ -1358,7 +1374,7 @@ div.toolbar-action a.btn-send-invoice {
                     'height': '100%',
                     'width': '100%'
                 });
-                
+
                 // Ensure button itself is properly set up for centering
                 $btn.css({
                     'display': 'inline-flex',
@@ -1369,23 +1385,23 @@ div.toolbar-action a.btn-send-invoice {
             }
         });
     }
-    
+
     // Run on page load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', fixInvoiceButtonsIconCentering);
     } else {
         fixInvoiceButtonsIconCentering();
     }
-    
+
     // Also run after delays to catch dynamically added elements
     setTimeout(fixInvoiceButtonsIconCentering, 300);
     setTimeout(fixInvoiceButtonsIconCentering, 800);
-    
+
     // Re-run after AJAX updates
     $(document).on('ajaxUpdateComplete', function() {
         setTimeout(fixInvoiceButtonsIconCentering, 200);
     });
-    
+
     // Fix Invoice icon centering - Remove inline styles that interfere
     function fixInvoiceIconCentering() {
         var $ = window.jQuery || window.$;
@@ -1393,28 +1409,28 @@ div.toolbar-action a.btn-send-invoice {
             setTimeout(fixInvoiceIconCentering, 100);
             return;
         }
-        
+
         $('.invoice-icon-btn i').each(function() {
             var $icon = $(this);
             var currentStyle = $icon.attr('style') || '';
-            
+
             // Remove margin-related styles from inline style attribute
             currentStyle = currentStyle.replace(/margin[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-right[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-left[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-top[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/margin-bottom[^;]*;?/gi, '');
-            
+
             // Clean up any double semicolons
             currentStyle = currentStyle.replace(/;;+/g, ';').replace(/^;|;$/g, '');
-            
+
             // Update or remove style attribute
             if (currentStyle.trim()) {
                 $icon.attr('style', currentStyle);
             } else {
                 $icon.removeAttr('style');
             }
-            
+
             // Force our CSS values - Center icon in button
             $icon.css({
                 'margin': '0',
@@ -1426,7 +1442,7 @@ div.toolbar-action a.btn-send-invoice {
                 'top': '0'
             });
         });
-        
+
         // Ensure button is centered and perfect square
         $('.invoice-icon-btn').css({
             'display': 'inline-flex',
@@ -1446,23 +1462,23 @@ div.toolbar-action a.btn-send-invoice {
             'padding': '0'
         });
     }
-    
+
     // Run on page load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', fixInvoiceIconCentering);
     } else {
         fixInvoiceIconCentering();
     }
-    
+
     // Also run after delays to catch dynamically added elements
     setTimeout(fixInvoiceIconCentering, 300);
     setTimeout(fixInvoiceIconCentering, 800);
-    
+
     // Re-run after AJAX updates
     $(document).on('ajaxUpdateComplete', function() {
         setTimeout(fixInvoiceIconCentering, 200);
     });
-    
+
     // Force STATUS and ASSIGNEE buttons to match invoice button colors exactly
     function forceStatusAssigneeIceWhite() {
         var $ = window.jQuery || window.$;
@@ -1470,7 +1486,7 @@ div.toolbar-action a.btn-send-invoice {
             setTimeout(forceStatusAssigneeIceWhite, 100);
             return;
         }
-        
+
         // Fix STATUS button colors
         $('.order-info-value.status-value, .status-value.header-status-clickable, a.status-value').each(function() {
             var $btn = $(this);
@@ -1483,7 +1499,7 @@ div.toolbar-action a.btn-send-invoice {
                 'color': '#364a63',
                 'padding': '6px 4px'
             });
-            
+
             // Remove any inline styles that override colors
             var currentStyle = $btn.attr('style') || '';
             currentStyle = currentStyle.replace(/background[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
@@ -1492,11 +1508,11 @@ div.toolbar-action a.btn-send-invoice {
             currentStyle = currentStyle.replace(/color[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/border-bottom[^;]*dashed[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/;;+/g, ';').replace(/^;|;$/g, '');
-            
+
             if (currentStyle.trim()) {
                 $btn.attr('style', currentStyle);
             }
-            
+
             // Force colors with setProperty
             if ($btn[0]) {
                 $btn[0].style.setProperty('background', '#f1f4fb', 'important');
@@ -1510,7 +1526,7 @@ div.toolbar-action a.btn-send-invoice {
                     $btn[0].style.setProperty('padding', '6px 4px', 'important');
                 }
             }
-            
+
             // Apply status color to dot icon
             var $dotIcon = $btn.find('i.fa-circle, i.status-dot-icon');
             if ($dotIcon.length) {
@@ -1523,7 +1539,7 @@ div.toolbar-action a.btn-send-invoice {
                 }
             }
         });
-        
+
         // Fix ASSIGNEE button colors
         $('.order-info-value.assignee-value, .assignee-value.header-assignee-clickable, a.assignee-value').each(function() {
             var $btn = $(this);
@@ -1535,7 +1551,7 @@ div.toolbar-action a.btn-send-invoice {
                 'border-radius': '10px',
                 'color': '#364a63'
             });
-            
+
             // Remove any inline styles that override colors
             var currentStyle = $btn.attr('style') || '';
             currentStyle = currentStyle.replace(/background[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
@@ -1544,11 +1560,11 @@ div.toolbar-action a.btn-send-invoice {
             currentStyle = currentStyle.replace(/color[^;]*rgb\([^)]*\)[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/border-bottom[^;]*dashed[^;]*;?/gi, '');
             currentStyle = currentStyle.replace(/;;+/g, ';').replace(/^;|;$/g, '');
-            
+
             if (currentStyle.trim()) {
                 $btn.attr('style', currentStyle);
             }
-            
+
             // Force colors with setProperty
             if ($btn[0]) {
                 $btn[0].style.setProperty('background', '#f1f4fb', 'important');
@@ -1560,19 +1576,19 @@ div.toolbar-action a.btn-send-invoice {
             }
         });
     }
-    
+
     // Run on page load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', forceStatusAssigneeIceWhite);
     } else {
         forceStatusAssigneeIceWhite();
     }
-    
+
     // Also run after delays
     setTimeout(forceStatusAssigneeIceWhite, 100);
     setTimeout(forceStatusAssigneeIceWhite, 500);
     setTimeout(forceStatusAssigneeIceWhite, 1000);
-    
+
     // Re-run after AJAX updates
     $(document).on('ajaxUpdateComplete', function() {
         setTimeout(forceStatusAssigneeIceWhite, 200);
@@ -1596,12 +1612,12 @@ div.toolbar-action a.btn-send-invoice {
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="orderNoteText">Note <span class="text-danger">*</span></label>
-                        <textarea 
-                            class="form-control" 
-                            id="orderNoteText" 
-                            name="note" 
-                            rows="4" 
-                            required 
+                        <textarea
+                            class="form-control"
+                            id="orderNoteText"
+                            name="note"
+                            rows="4"
+                            required
                             placeholder="Enter your note here..."
                         ></textarea>
                         <small class="form-text text-muted">
@@ -1611,8 +1627,8 @@ div.toolbar-action a.btn-send-invoice {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="$('#addOrderNoteModal').modal('hide');">Cancel</button>
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         id="orderNoteSubmitBtn"
                         class="btn btn-primary"
                         data-request="onAddOrderNote"
@@ -1636,12 +1652,12 @@ div.toolbar-action a.btn-send-invoice {
             setTimeout(initNoteButton, 100);
             return;
         }
-        
+
         // Handle note button click
         $(document).off('click', '.note-icon-btn').on('click', '.note-icon-btn', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             var $modal = $('#addOrderNoteModal');
             if ($modal.length) {
                 $modal.modal('show');
@@ -1649,34 +1665,34 @@ div.toolbar-action a.btn-send-invoice {
                 console.error('Note modal not found!');
             }
         });
-        
+
         // Initialize modal properly
         $('#addOrderNoteModal').on('shown.bs.modal', function() {
             $('#orderNoteText').focus();
         });
-        
+
         // Clear form when modal is hidden
         $('#addOrderNoteModal').on('hidden.bs.modal', function() {
             $('#orderNoteText').val('');
         });
-        
+
         // Handle save note button click - ensure it works with data-request
         $('#orderNoteSubmitBtn').off('click.saveNote').on('click.saveNote', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             var $btn = $(this);
             var noteText = $('#orderNoteText').val().trim();
-            
+
             if (!noteText) {
                 alert('Please enter a note');
                 $('#orderNoteText').focus();
                 return false;
             }
-            
+
             // Set the note value in the form so it gets submitted
             $('#addOrderNoteForm').append('<input type="hidden" name="note" value="' + noteText.replace(/"/g, '&quot;') + '">');
-            
+
             // Trigger the AJAX request using TastyIgniter's system
             if (window.$ && $.request) {
                 $.request('onAddOrderNote', {
@@ -1697,22 +1713,22 @@ div.toolbar-action a.btn-send-invoice {
             } else {
                 alert('AJAX request system not available');
             }
-            
+
             return false;
         });
     }
-    
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initNoteButton);
     } else {
         initNoteButton();
     }
-    
+
     // Also try after delays
     setTimeout(initNoteButton, 500);
     setTimeout(initNoteButton, 1000);
-    
+
     // Re-initialize after AJAX updates
     $(document).on('ajaxUpdateComplete', function() {
         setTimeout(initNoteButton, 200);
@@ -1725,10 +1741,10 @@ function onOrderNoteAdded() {
     if ($) {
         // Close modal
         $('#addOrderNoteModal').modal('hide');
-        
+
         // Clear form
         $('#orderNoteText').val('');
-        
+
         // Show success message
         if (window.oc && window.oc.flashMsg) {
             window.oc.flashMsg({
@@ -1737,7 +1753,7 @@ function onOrderNoteAdded() {
                 interval: 3
             });
         }
-        
+
         // Reload the page to show updated note count
         setTimeout(function() {
             window.location.reload();
