@@ -4,7 +4,7 @@ import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft } from "lucide-react"
-import type { MenuItem } from "@/lib/data"
+import { defaultMenuHighlightSettings, type MenuHighlightSettings, type MenuItem } from "@/lib/data"
 import { getMenuImageUrl } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { useLanguageStore } from "@/store/language-store"
@@ -18,21 +18,23 @@ import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
 interface MenuItemModalProps {
  item: MenuItem | null
  onClose: () => void
+ highlightSettings?: MenuHighlightSettings
 }
 
-function MenuRecommendationBadges({ item }: { item: MenuItem }) {
+function MenuRecommendationBadges({ item, settings = defaultMenuHighlightSettings }: { item: MenuItem; settings?: MenuHighlightSettings }) {
+ if (!settings.show_modal_badges) return null
  const badges = [] as Array<{ key: string; label: string; icon: string; style: CSSProperties }>
  if ((item as any).is_bestseller) {
- badges.push({ key: 'best', label: 'Best Seller', icon: '★', style: { background: 'linear-gradient(135deg, #8A5A12, #D8B982)', color: '#FFFFFF', borderColor: 'rgba(138,90,18,0.28)' } })
+ badges.push({ key: 'best', label: settings.bestseller_label || 'Best Seller', icon: '🏆', style: { background: 'linear-gradient(135deg, #7A4D10, #D8B982 55%, #FFF1C7)', color: '#FFFFFF', borderColor: 'rgba(138,90,18,0.28)', boxShadow: '0 10px 24px rgba(138,90,18,0.22)' } })
  }
  if ((item as any).is_chef_recommended) {
- badges.push({ key: 'chef', label: 'Chef Recommended', icon: '♨', style: { background: 'rgba(6, 47, 42, 0.96)', color: '#FFFFFF', borderColor: 'rgba(6,47,42,0.26)' } })
+ badges.push({ key: 'chef', label: settings.chef_label || 'Chef Recommended', icon: '👨‍🍳', style: { background: 'linear-gradient(135deg, #062F2A, #0E5A4F)', color: '#FFFFFF', borderColor: 'rgba(6,47,42,0.26)', boxShadow: '0 10px 24px rgba(6,47,42,0.2)' } })
  }
  if (!badges.length) return null
  return (
  <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5" aria-label="Menu item highlights">
  {badges.map((badge) => (
- <span key={badge.key} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.04em] shadow-sm" style={badge.style}>
+ <span key={badge.key} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.05em] shadow-sm" style={badge.style} aria-label={badge.label}>
  <span aria-hidden="true">{badge.icon}</span>{badge.label}
  </span>
  ))}
@@ -43,7 +45,7 @@ function MenuRecommendationBadges({ item }: { item: MenuItem }) {
 // PMD_RTL_DO_NOT_ALIGN_MODAL_TITLE
 // PMD_FORCE_MODAL_FOOD_TITLE_NOT_RTL
 // PMD_FOOD_MODAL_TITLE_ALWAYS_CENTER
-export function MenuItemModal({ item, onClose }: MenuItemModalProps) {
+export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHighlightSettings }: MenuItemModalProps) {
  const { t } = useLanguageStore()
  const [activeImageIndex, setActiveImageIndex] = useState(0)
  const [renderedItem, setRenderedItem] = useState<MenuItem | null>(item)
@@ -258,7 +260,7 @@ const handleModalClose = (event?: any) => {
 
  {/* Content */}
 	 <h2 dir="auto" className="font-serif text-3xl font-bold pmd-v2-text mb-3 text-center">{itemName}</h2>
- <MenuRecommendationBadges item={renderedItem} />
+ <MenuRecommendationBadges item={renderedItem} settings={highlightSettings} />
  <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
  <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
  <FoodAttributeTags

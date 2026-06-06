@@ -48,6 +48,33 @@ export type MenuItem = {
   popularity_count?: number
 }
 
+
+export type MenuHighlightSettings = {
+  chef_section_enabled: boolean
+  bestseller_section_enabled: boolean
+  show_card_badges: boolean
+  show_modal_badges: boolean
+  chef_label: string
+  bestseller_label: string
+  max_chef_items: number
+  max_bestseller_items: number
+  badge_style: 'compact' | 'ribbon' | 'premium'
+  section_placement: 'top' | 'after_categories' | 'hidden'
+}
+
+export const defaultMenuHighlightSettings: MenuHighlightSettings = {
+  chef_section_enabled: true,
+  bestseller_section_enabled: true,
+  show_card_badges: true,
+  show_modal_badges: true,
+  chef_label: "Chef’s Choice",
+  bestseller_label: 'Best Seller',
+  max_chef_items: 8,
+  max_bestseller_items: 8,
+  badge_style: 'premium',
+  section_placement: 'after_categories',
+}
+
 export interface MenuItemOption {
   id: number
   name: string
@@ -179,8 +206,45 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
   }
 }
 
+
+const normalizeMenuHighlightSettings = (value: any): MenuHighlightSettings => {
+  const raw = value && typeof value === 'object' ? value : {}
+  const boolValue = (key: keyof MenuHighlightSettings, fallback: boolean): boolean => {
+    const v = raw[key]
+    if (v === undefined || v === null || v === '') return fallback
+    if (typeof v === 'boolean') return v
+    const normalized = String(v).trim().toLowerCase()
+    if (['1', 'true', 'yes', 'on', 'enabled'].includes(normalized)) return true
+    if (['0', 'false', 'no', 'off', 'disabled'].includes(normalized)) return false
+    return fallback
+  }
+  const intValue = (key: keyof MenuHighlightSettings, fallback: number): number => {
+    const parsed = Number(raw[key])
+    return Number.isFinite(parsed) ? Math.max(1, Math.min(24, Math.round(parsed))) : fallback
+  }
+  const textValue = (key: keyof MenuHighlightSettings, fallback: string): string => {
+    const text = String(raw[key] ?? '').trim()
+    return text || fallback
+  }
+  const badgeStyle = textValue('badge_style', defaultMenuHighlightSettings.badge_style)
+  const sectionPlacement = textValue('section_placement', defaultMenuHighlightSettings.section_placement)
+
+  return {
+    chef_section_enabled: boolValue('chef_section_enabled', true),
+    bestseller_section_enabled: boolValue('bestseller_section_enabled', true),
+    show_card_badges: boolValue('show_card_badges', true),
+    show_modal_badges: boolValue('show_modal_badges', true),
+    chef_label: textValue('chef_label', defaultMenuHighlightSettings.chef_label),
+    bestseller_label: textValue('bestseller_label', defaultMenuHighlightSettings.bestseller_label),
+    max_chef_items: intValue('max_chef_items', 8),
+    max_bestseller_items: intValue('max_bestseller_items', 8),
+    badge_style: (['compact', 'ribbon', 'premium'].includes(badgeStyle) ? badgeStyle : 'premium') as MenuHighlightSettings['badge_style'],
+    section_placement: (['top', 'after_categories', 'hidden'].includes(sectionPlacement) ? sectionPlacement : 'after_categories') as MenuHighlightSettings['section_placement'],
+  }
+}
+
 // FIXED: Update getMenuData to return categoryNames from API
-export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[], isFrontendConfigured: boolean }> {
+export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[], isFrontendConfigured: boolean, menuHighlightSettings: MenuHighlightSettings, menuCacheVersion: string }> {
   try {
     const menuResponse = await apiClient.getMenu()
     
@@ -207,10 +271,10 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
     
     const categories = Object.values(categoryGroups)
     
-    return { categories, menuItems, categoryNames, isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false }
+    return { categories, menuItems, categoryNames, isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false, menuHighlightSettings: normalizeMenuHighlightSettings((menuResponse?.data as any)?.menu_highlight_settings), menuCacheVersion: String((menuResponse?.data as any)?.menu_cache_version || 'default') }
   } catch (error) {
     console.error('Failed to fetch menu data from API:', error)
-    return { categories: [], menuItems: [], categoryNames: [], isFrontendConfigured: true }
+    return { categories: [], menuItems: [], categoryNames: [], isFrontendConfigured: true, menuHighlightSettings: defaultMenuHighlightSettings, menuCacheVersion: 'fallback' }
   }
 }
 

@@ -348,6 +348,16 @@ Route::middleware(['cors'])->group(function () {
                 'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
                 'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
                 'pmd_social_reviews_url' => $settings['pmd_social_reviews_url']->value ?? '',
+                'pmd_menu_highlights_chef_section_enabled' => $settings['pmd_menu_highlights_chef_section_enabled']->value ?? '1',
+                'pmd_menu_highlights_bestseller_section_enabled' => $settings['pmd_menu_highlights_bestseller_section_enabled']->value ?? '1',
+                'pmd_menu_highlights_show_card_badges' => $settings['pmd_menu_highlights_show_card_badges']->value ?? '1',
+                'pmd_menu_highlights_show_modal_badges' => $settings['pmd_menu_highlights_show_modal_badges']->value ?? '1',
+                'pmd_menu_highlights_chef_label' => $settings['pmd_menu_highlights_chef_label']->value ?? 'Chef’s Choice',
+                'pmd_menu_highlights_bestseller_label' => $settings['pmd_menu_highlights_bestseller_label']->value ?? 'Best Seller',
+                'pmd_menu_highlights_max_chef_items' => $settings['pmd_menu_highlights_max_chef_items']->value ?? '8',
+                'pmd_menu_highlights_max_bestseller_items' => $settings['pmd_menu_highlights_max_bestseller_items']->value ?? '8',
+                'pmd_menu_highlights_badge_style' => $settings['pmd_menu_highlights_badge_style']->value ?? 'premium',
+                'pmd_menu_highlights_section_placement' => $settings['pmd_menu_highlights_section_placement']->value ?? 'after_categories',
             ]);
         });
 

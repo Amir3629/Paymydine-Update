@@ -77,6 +77,8 @@ export interface MenuResponse {
   data: {
     items?: MenuItem[];
     categories?: Category[];
+    menu_highlight_settings?: any;
+    menu_cache_version?: string;
     is_frontend_configured?: boolean;
     setup_status?: {
       has_categories: boolean;

@@ -52,6 +52,11 @@ class Settings extends \Admin\Classes\AdminController
     public function index()
     {
 
+        // PMD_MENU_HIGHLIGHTS_DIRECT_BYPASS_20260606
+        if (strpos((string)request()->path(), 'settings/edit/menu_highlights') !== false) {
+            return $this->pmdMenuHighlightsDirectBypass20260606();
+        }
+
         // PMD_REVIEW_SOCIAL_HARD_DIRECT_BYPASS_20260606
         if (strpos((string)request()->path(), 'settings/edit/review_social') !== false) {
             return $this->pmdReviewSocialHardDirectBypass20260606();
@@ -152,6 +157,11 @@ class Settings extends \Admin\Classes\AdminController
 
     public function edit($context, $settingCode = null)
     {
+        // PMD_MENU_HIGHLIGHTS_DIRECT_BYPASS_20260606
+        if (strpos((string)request()->path(), 'settings/edit/menu_highlights') !== false) {
+            return $this->pmdMenuHighlightsDirectBypass20260606();
+        }
+
         // PMD_REVIEW_SOCIAL_HARD_DIRECT_BYPASS_20260606
         if (strpos((string)request()->path(), 'settings/edit/review_social') !== false) {
             return $this->pmdReviewSocialHardDirectBypass20260606();
@@ -630,6 +640,66 @@ class Settings extends \Admin\Classes\AdminController
         }
     }
 
+
+
+    /**
+     * Render Menu Highlights settings inside normal admin layout/sidebar/header.
+     */
+    protected function pmdMenuHighlightsDirectBypass20260606()
+    {
+        $this->pageTitle = 'Menu Highlights';
+
+        if (request()->isMethod('post')) {
+            $keys = [
+                'pmd_menu_highlights_chef_section_enabled',
+                'pmd_menu_highlights_bestseller_section_enabled',
+                'pmd_menu_highlights_show_card_badges',
+                'pmd_menu_highlights_show_modal_badges',
+                'pmd_menu_highlights_chef_label',
+                'pmd_menu_highlights_bestseller_label',
+                'pmd_menu_highlights_max_chef_items',
+                'pmd_menu_highlights_max_bestseller_items',
+                'pmd_menu_highlights_badge_style',
+                'pmd_menu_highlights_section_placement',
+            ];
+
+            if (!\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                return redirect(admin_url('settings/edit/menu_highlights'))->with('error', 'settings table not found');
+            }
+
+            $cols = \Illuminate\Support\Facades\Schema::getColumnListing('settings');
+            $keyCol = in_array('item', $cols, true) ? 'item' : (in_array('key', $cols, true) ? 'key' : null);
+            $valueCol = in_array('value', $cols, true) ? 'value' : (in_array('data', $cols, true) ? 'data' : null);
+            if (!$keyCol || !$valueCol) {
+                return redirect(admin_url('settings/edit/menu_highlights'))->with('error', 'settings table columns not recognized');
+            }
+
+            foreach ($keys as $key) {
+                $value = (string)request()->input($key, '');
+                if (in_array($key, ['pmd_menu_highlights_max_chef_items', 'pmd_menu_highlights_max_bestseller_items'], true)) {
+                    $value = (string)max(1, min(24, (int)$value));
+                }
+                if ($key === 'pmd_menu_highlights_badge_style' && !in_array($value, ['compact', 'ribbon', 'premium'], true)) {
+                    $value = 'premium';
+                }
+                if ($key === 'pmd_menu_highlights_section_placement' && !in_array($value, ['top', 'after_categories', 'hidden'], true)) {
+                    $value = 'after_categories';
+                }
+
+                $payload = [$valueCol => $value];
+                if (in_array('serialized', $cols, true)) $payload['serialized'] = 0;
+                if (in_array('updated_at', $cols, true)) $payload['updated_at'] = now();
+                $insert = $payload;
+                if (in_array('created_at', $cols, true)) $insert['created_at'] = now();
+
+                DB::table('settings')->updateOrInsert([$keyCol => $key], $insert);
+            }
+
+            return redirect(admin_url('settings/edit/menu_highlights'))->with('success', 'Menu Highlights settings saved.');
+        }
+
+        return $this->makeView('settings/menu_highlights_direct');
+    }
 
     /**
      * PMD_REVIEW_SOCIAL_MISSING_METHOD_FIX_20260606
