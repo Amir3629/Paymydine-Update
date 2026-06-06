@@ -9,6 +9,8 @@ use Carbon\Carbon;
 use Igniter\Flame\Database\Attach\HasMedia;
 use Igniter\Flame\Database\Model;
 use Igniter\Flame\Database\Traits\Purgeable;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Menus Model Class
@@ -239,6 +241,38 @@ class Menus_model extends Model
     //
     // Events
     //
+
+
+    protected function beforeSave()
+    {
+        $this->guardRecommendationFieldsForTenantSchema();
+    }
+
+    protected function guardRecommendationFieldsForTenantSchema(): void
+    {
+        $recommendationColumns = [
+            'is_chef_recommended',
+            'is_manual_bestseller',
+            'bestseller_override_mode',
+        ];
+
+        foreach ($recommendationColumns as $column) {
+            if (!Schema::hasColumn($this->getTable(), $column)) {
+                unset($this->attributes[$column]);
+                Log::warning('PMD_MENU_RECOMMENDATION_COLUMN_MISSING_ON_SAVE', [
+                    'table' => $this->getTable(),
+                    'column' => $column,
+                    'connection' => $this->getConnectionName() ?: config('database.default'),
+                    'database' => $this->getConnection()->getDatabaseName(),
+                ]);
+            }
+        }
+
+        if (array_key_exists('bestseller_override_mode', $this->attributes)) {
+            $mode = (string)($this->attributes['bestseller_override_mode'] ?: 'auto');
+            $this->attributes['bestseller_override_mode'] = in_array($mode, ['auto', 'force_on', 'force_off'], true) ? $mode : 'auto';
+        }
+    }
 
     protected function afterSave()
     {

@@ -16,15 +16,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('menus')) return;
-
-        Schema::table('menus', function (Blueprint $table) {
-            foreach (['bestseller_override_mode', 'is_manual_bestseller', 'is_chef_recommended'] as $column) {
-                if (Schema::hasColumn('menus', $column)) {
-                    $table->dropColumn($column);
-                }
-            }
-        });
+        // no-op: repair migration only, do not remove production columns
     }
 
     private function ensureColumnsOnCurrentConnection(): void
@@ -34,27 +26,21 @@ return new class extends Migration
         if (!Schema::hasColumn('menus', 'is_chef_recommended')) {
             Schema::table('menus', function (Blueprint $table) {
                 $column = $table->boolean('is_chef_recommended')->default(false);
-                if (Schema::hasColumn('menus', 'menu_status')) {
-                    $column->after('menu_status');
-                }
+                if (Schema::hasColumn('menus', 'menu_status')) $column->after('menu_status');
             });
         }
 
         if (!Schema::hasColumn('menus', 'is_manual_bestseller')) {
             Schema::table('menus', function (Blueprint $table) {
                 $column = $table->boolean('is_manual_bestseller')->default(false);
-                if (Schema::hasColumn('menus', 'is_chef_recommended')) {
-                    $column->after('is_chef_recommended');
-                }
+                if (Schema::hasColumn('menus', 'is_chef_recommended')) $column->after('is_chef_recommended');
             });
         }
 
         if (!Schema::hasColumn('menus', 'bestseller_override_mode')) {
             Schema::table('menus', function (Blueprint $table) {
                 $column = $table->string('bestseller_override_mode', 20)->default('auto');
-                if (Schema::hasColumn('menus', 'is_manual_bestseller')) {
-                    $column->after('is_manual_bestseller');
-                }
+                if (Schema::hasColumn('menus', 'is_manual_bestseller')) $column->after('is_manual_bestseller');
             });
         }
     }
@@ -62,12 +48,8 @@ return new class extends Migration
     private function ensureColumnsOnActiveTenantConnections(): void
     {
         try {
-            if (!DB::connection('mysql')->getSchemaBuilder()->hasTable('tenants')) {
-                return;
-            }
-
-            $tenantDatabases = DB::connection('mysql')
-                ->table('tenants')
+            if (!DB::connection('mysql')->getSchemaBuilder()->hasTable('tenants')) return;
+            $tenantDatabases = DB::connection('mysql')->table('tenants')
                 ->where('status', 'active')
                 ->whereNotNull('database')
                 ->where('database', '!=', '')
@@ -89,8 +71,7 @@ return new class extends Migration
                 DB::setDefaultConnection('tenant');
                 $this->ensureColumnsOnCurrentConnection();
             } catch (\Throwable $e) {
-                // Keep igniter:up safe for tenants that are unavailable; the current tenant
-                // request guard prevents stale schemas from breaking admin saves.
+                // Skip unavailable tenant DBs; do not block igniter:up for other tenants.
             }
         }
 

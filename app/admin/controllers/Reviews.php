@@ -64,8 +64,13 @@ class Reviews extends AdminController
         }
     }
 
-    public function index_onUpdateStatus()
+    public function onUpdateStatus()
     {
+        $user = $this->getUser();
+        if (!$user || !$user->hasPermission('Site.Settings')) {
+            abort(403, 'You do not have permission to moderate reviews.');
+        }
+
         $reviewId = (int)post('review_id');
         $status = (string)post('status', 'pending');
         if (!in_array($status, ['pending', 'approved', 'hidden', 'rejected'], true)) {
