@@ -1,4 +1,4 @@
-# Secrets
+# Environment / secrets
 .env
 .env.*
 !.env.example
@@ -8,7 +8,7 @@
 /node_modules/
 /frontend/node_modules/
 
-# Build output
+# Next / build output
 /.next/
 /frontend/.next/
 /out/
@@ -16,7 +16,7 @@
 /dist/
 /frontend/dist/
 
-# Runtime/cache/uploaded media
+# Runtime storage / cache / uploads
 /storage/*
 !/storage/.gitignore
 !/storage/app/
@@ -24,46 +24,32 @@
 !/storage/app/public/
 !/storage/app/public/.gitignore
 /assets/media/
-public/storage
 
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Backups / temp / docs / scripts
+# Backups / temporary / old files
 .deploy-backups/
 .audit-backups/
 docs/
 frontend/docs/
+*.log
+*.cache
+*.tmp
+*.temp
+*.old
+*.orig
+*.bak
+*.bak.*
+*.bak_*
+*.backup
+*.backup.*
+*.before_*
+*.pre_*
+*.broken_before*
+*.bridge_backup*
 *.sh
 *.md
 *.markdown
-*.bak
-*.bak_*
-*.backup
-*.old
-*.orig
-*.tmp
-*.temp
-*.swp
-*.swo
-*.before_*
-*.pre_*
-*.broken_*
-*.bridge_backup*
-*.pre_media_fix*
-*.before_restore*
-*.before_clean*
-*.before_auto*
-*.before_reset*
-*.before_media*
-*broken_before*
-*clean_reset*
-*auto_candidate*
 
-# OS/editor
+# OS / editor
 .DS_Store
 .idea/
 .vscode/
