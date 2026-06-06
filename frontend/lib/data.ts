@@ -42,6 +42,10 @@ export type MenuItem = {
   available?: boolean
   options?: MenuItemOption[]
   prep_time_minutes?: number
+  is_chef_recommended?: boolean
+  is_bestseller?: boolean
+  bestseller_source?: 'manual' | 'auto' | null
+  popularity_count?: number
 }
 
 export interface MenuItemOption {
@@ -167,7 +171,11 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     minimum_qty: apiItem.minimum_qty || 1,
     available: apiItem.available !== false && (apiItem.stock_qty === null || (apiItem.stock_qty ?? 0) > 0),
     options: apiItem.options || [],
-    prep_time_minutes: Number((apiItem as any).prep_time_minutes || 15)
+    prep_time_minutes: Number((apiItem as any).prep_time_minutes || 15),
+    is_chef_recommended: toBoolean((apiItem as any).is_chef_recommended),
+    is_bestseller: toBoolean((apiItem as any).is_bestseller),
+    bestseller_source: (apiItem as any).bestseller_source || null,
+    popularity_count: Number((apiItem as any).popularity_count || 0)
   }
 }
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\CategoryController;
 
 // Apply CORS middleware to all API routes
 Route::middleware(['cors'])->group(function () {
+
 
     // Health check endpoint
     Route::get('/health', function () {
@@ -215,6 +217,8 @@ Route::middleware(['cors'])->group(function () {
 
     // API v1 routes
     Route::prefix('v1')->middleware(['web', 'detect.tenant'])->group(function () {
+
+        Route::post('/reviews', [ReviewController::class, 'store']);
 
         // Menu endpoints
         Route::get('/menu', [MenuController::class, 'index']);

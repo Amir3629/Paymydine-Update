@@ -2,7 +2,7 @@
 
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import type { MenuItem } from "@/lib/data"
 import { getMenuImageUrl } from "@/lib/api-client"
@@ -18,6 +18,26 @@ import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
 interface MenuItemModalProps {
  item: MenuItem | null
  onClose: () => void
+}
+
+function MenuRecommendationBadges({ item }: { item: MenuItem }) {
+ const badges = [] as Array<{ key: string; label: string; icon: string; style: CSSProperties }>
+ if ((item as any).is_bestseller) {
+ badges.push({ key: 'best', label: 'Best Seller', icon: '★', style: { background: 'linear-gradient(135deg, #8A5A12, #D8B982)', color: '#FFFFFF', borderColor: 'rgba(138,90,18,0.28)' } })
+ }
+ if ((item as any).is_chef_recommended) {
+ badges.push({ key: 'chef', label: 'Chef Recommended', icon: '♨', style: { background: 'rgba(6, 47, 42, 0.96)', color: '#FFFFFF', borderColor: 'rgba(6,47,42,0.26)' } })
+ }
+ if (!badges.length) return null
+ return (
+ <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5" aria-label="Menu item highlights">
+ {badges.map((badge) => (
+ <span key={badge.key} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.04em] shadow-sm" style={badge.style}>
+ <span aria-hidden="true">{badge.icon}</span>{badge.label}
+ </span>
+ ))}
+ </div>
+ )
 }
 
 // PMD_RTL_DO_NOT_ALIGN_MODAL_TITLE
@@ -238,6 +258,7 @@ const handleModalClose = (event?: any) => {
 
  {/* Content */}
 	 <h2 dir="auto" className="font-serif text-3xl font-bold pmd-v2-text mb-3 text-center">{itemName}</h2>
+ <MenuRecommendationBadges item={renderedItem} />
  <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
  <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
  <FoodAttributeTags

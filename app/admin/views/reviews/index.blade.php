@@ -37,13 +37,18 @@ try {
 
 $showColumns = array_values(array_filter([
     in_array('review_id', $columns, true) ? 'review_id' : null,
-    in_array('order_id', $columns, true) ? 'order_id' : null,
+    in_array('order_id', $columns, true) ? 'order_id' : (in_array('sale_id', $columns, true) ? 'sale_id' : null),
+    in_array('menu_id', $columns, true) ? 'menu_id' : null,
+    in_array('customer_name', $columns, true) ? 'customer_name' : (in_array('author', $columns, true) ? 'author' : null),
     in_array('tenant_host', $columns, true) ? 'tenant_host' : null,
     in_array('location_id', $columns, true) ? 'location_id' : null,
     in_array('rating', $columns, true) ? 'rating' : null,
-    in_array('rating_value', $columns, true) ? 'rating_value' : null,
+    in_array('quality', $columns, true) ? 'quality' : null,
     in_array('review_text', $columns, true) ? 'review_text' : null,
     in_array('comment', $columns, true) ? 'comment' : null,
+    in_array('status', $columns, true) ? 'status' : null,
+    in_array('review_status', $columns, true) ? 'review_status' : null,
+    in_array('source', $columns, true) ? 'source' : null,
     in_array('public_share_consent', $columns, true) ? 'public_share_consent' : null,
     in_array('created_at', $columns, true) ? 'created_at' : null,
 ]));
@@ -80,6 +85,7 @@ if (empty($showColumns)) {
                             <?php foreach ($showColumns as $column): ?>
                                 <th><?= e(ucwords(str_replace('_', ' ', $column))) ?></th>
                             <?php endforeach; ?>
+                            <th>Moderation</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -97,6 +103,14 @@ if (empty($showColumns)) {
                                         <?= e(\Illuminate\Support\Str::limit($value, 180)) ?>
                                     </td>
                                 <?php endforeach; ?>
+                                    <td style="min-width: 220px;">
+                                        <?php $reviewId = $row->review_id ?? null; ?>
+                                        <?php if ($reviewId): ?>
+                                            <button class="btn btn-xs btn-success" data-request="index_onUpdateStatus" data-request-data="review_id: <?= (int)$reviewId ?>, status: 'approved'" data-request-success="location.reload()">Approve</button>
+                                            <button class="btn btn-xs btn-warning" data-request="index_onUpdateStatus" data-request-data="review_id: <?= (int)$reviewId ?>, status: 'hidden'" data-request-success="location.reload()">Hide</button>
+                                            <button class="btn btn-xs btn-default" data-request="index_onUpdateStatus" data-request-data="review_id: <?= (int)$reviewId ?>, status: 'pending'" data-request-success="location.reload()">Pending</button>
+                                        <?php endif; ?>
+                                    </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

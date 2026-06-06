@@ -43,6 +43,8 @@ class Menus_model extends Model
         'menu_priority' => 'integer',
         'prep_time_minutes' => 'integer',
         'is_stock_out' => 'boolean',
+        'is_chef_recommended' => 'boolean',
+        'is_manual_bestseller' => 'boolean',
         'is_halal' => 'boolean',
         'is_vegetarian' => 'boolean',
         'is_vegan' => 'boolean',

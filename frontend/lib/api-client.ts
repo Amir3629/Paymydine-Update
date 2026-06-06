@@ -44,6 +44,10 @@ export interface MenuItem {
   minimum_qty?: number;
   available?: boolean;
   options?: MenuItemOption[];
+  is_chef_recommended?: boolean;
+  is_bestseller?: boolean;
+  bestseller_source?: 'manual' | 'auto' | null;
+  popularity_count?: number;
 }
 
 export interface MenuItemOption {

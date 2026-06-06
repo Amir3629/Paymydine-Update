@@ -698,6 +698,9 @@
                 <button type="button" id="merge-tables-btn" class="btn btn-outline-warning btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
                     <i class="fa fa-object-group"></i> Drag to Merge
                 </button>
+                <button type="button" id="unmerge-tables-btn" class="btn btn-outline-danger btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
+                    <i class="fa fa-chain-broken"></i> Unmerge/Split
+                </button>
                 @endif
                 @endif
                 <button type="button" id="move-table-btn" class="btn btn-outline-primary btn-sm" style="pointer-events: auto !important; display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 99999 !important;">
@@ -5270,45 +5273,93 @@ document.addEventListener("DOMContentLoaded", function () {
     let moveInstructionElement = null;
 
     let isMergeMode = false;
-    let selectedMergeTableIds = new Set();
-    function getLocationId(){ return parseInt(document.querySelector('input[name=\"location_id\"]')?.value || '0', 10) || 0; }
+    let mergeDragSource = null;
+    const unmergeTablesBtn = document.getElementById('unmerge-tables-btn');
+    function getLocationId(){ return parseInt(document.querySelector('input[name="location_id"]')?.value || '0', 10) || 0; }
     function paintMergedTables(groups){
-        document.querySelectorAll('.table-item').forEach(el=>{ el.classList.remove('table-merged'); el.removeAttribute('data-table-group-id'); });
-        (groups||[]).forEach(g => (g.table_ids||[]).forEach(id => { const el = document.querySelector('.table-item[data-id=\"'+id+'\"]'); if(el){ el.classList.add('table-merged'); el.setAttribute('data-table-group-id', g.table_group_id); el.setAttribute('title', g.name); } }));
+        document.querySelectorAll('.table-item').forEach(el=>{ el.classList.remove('table-merged','merge-main','merge-attached'); el.removeAttribute('data-table-group-id'); el.removeAttribute('data-merge-name'); });
+        (groups||[]).forEach(g => (g.table_ids||[]).forEach((id, idx) => { const el = document.querySelector('.table-item[data-table-id="'+id+'"]'); if(el){ el.classList.add('table-merged', idx === 0 ? 'merge-main' : 'merge-attached'); el.setAttribute('data-table-group-id', g.table_group_id); el.setAttribute('data-merge-name', g.name); el.setAttribute('title', g.name + ' (double click or use Unmerge/Split to split)'); } }));
     }
     async function loadGroups(){
         const fd = new FormData(); fd.append('_handler','onGetTableGroups'); fd.append('location_id', String(getLocationId()));
-        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
+        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content || ''}});
         const json = await res.json(); if (json && json.groups) paintMergedTables(json.groups);
     }
-    if (mergeTablesBtn) mergeTablesBtn.addEventListener('click', async function () {
-        isMergeMode = !isMergeMode; selectedMergeTableIds.clear();
-        this.classList.toggle('active', isMergeMode);
-        this.innerHTML = isMergeMode ? '<i class=\"fa fa-save\"></i> Confirm Merge' : '<i class=\"fa fa-object-group\"></i> Drag to Merge';
-        if (!isMergeMode) return;
-        alert('Select 2 or more tables to merge, then click Drag to Merge again to confirm.');
-    });
-    tableItems.forEach(item => item.addEventListener("click", async function(event){
-        if (!isMergeMode) return;
-        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
-        const tid = parseInt(this.dataset.id || '0', 10); if (!tid) return;
-        if (selectedMergeTableIds.has(tid)) { selectedMergeTableIds.delete(tid); this.classList.remove('merge-selected'); } else { selectedMergeTableIds.add(tid); this.classList.add('merge-selected'); }
-        if (selectedMergeTableIds.size >= 2 && mergeTablesBtn.innerHTML.indexOf('Confirm Merge') !== -1) {
-            const name = prompt('Optional group name', '') || '';
-            const fd = new FormData(); fd.append('_handler','onMergeTables'); fd.append('location_id', String(getLocationId())); fd.append('name', name); selectedMergeTableIds.forEach(id=>fd.append('table_ids[]', String(id)));
-            const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
-            const json = await res.json();
-            if (json.success) { isMergeMode = false; mergeTablesBtn.classList.remove('active'); mergeTablesBtn.innerHTML = '<i class=\"fa fa-object-group\"></i> Drag to Merge'; document.querySelectorAll('.table-item.merge-selected').forEach(el=>el.classList.remove('merge-selected')); await loadGroups(); }
-            else alert(json.message || 'Merge failed');
+    async function mergeTwoTables(sourceId, targetId){
+        if (!sourceId || !targetId || sourceId === targetId) return;
+        const sourceEl = document.querySelector('.table-item[data-table-id="'+sourceId+'"]');
+        const targetEl = document.querySelector('.table-item[data-table-id="'+targetId+'"]');
+        const sourceName = sourceEl?.dataset?.tableName || sourceEl?.dataset?.value || ('Table '+sourceId);
+        const targetName = targetEl?.dataset?.tableName || targetEl?.dataset?.value || ('Table '+targetId);
+        if (!confirm('Merge '+sourceName+' into '+targetName+'? Active order billing remains attached to the selected/main table order.')) return;
+        const fd = new FormData();
+        fd.append('_handler','onMergeTables');
+        fd.append('location_id', String(getLocationId()));
+        fd.append('name', targetName + ' + ' + sourceName);
+        fd.append('table_ids[]', String(targetId));
+        fd.append('table_ids[]', String(sourceId));
+        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content || ''}});
+        const json = await res.json();
+        if (json.success) { await loadGroups(); showSaveMessage(json.message || 'Tables merged successfully.', 'success'); }
+        else alert(json.message || 'Merge failed');
+    }
+    function setMergeMode(active){
+        isMergeMode = active;
+        if (mergeTablesBtn) {
+            mergeTablesBtn.classList.toggle('active', active);
+            mergeTablesBtn.innerHTML = active ? '<i class="fa fa-object-group"></i> Dragging Enabled' : '<i class="fa fa-object-group"></i> Drag to Merge';
         }
-    }, true));
+        tableItems.forEach(item => {
+            item.classList.toggle('merge-drag-enabled', active);
+            item.setAttribute('draggable', active ? 'true' : 'false');
+        });
+        if (active) showSaveMessage('Drag one table onto another table to merge them.', 'success');
+    }
+    if (mergeTablesBtn) mergeTablesBtn.addEventListener('click', function () { setMergeMode(!isMergeMode); });
+    tableItems.forEach(item => {
+        item.addEventListener('dragstart', function(event){
+            if (!isMergeMode) return event.preventDefault();
+            mergeDragSource = this;
+            this.classList.add('merge-drag-source');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', this.dataset.tableId || this.dataset.id || '');
+        });
+        item.addEventListener('dragover', function(event){
+            if (!isMergeMode || !mergeDragSource || mergeDragSource === this) return;
+            event.preventDefault();
+            this.classList.add('merge-drop-target');
+        });
+        item.addEventListener('dragleave', function(){ this.classList.remove('merge-drop-target'); });
+        item.addEventListener('drop', async function(event){
+            if (!isMergeMode || !mergeDragSource || mergeDragSource === this) return;
+            event.preventDefault();
+            this.classList.remove('merge-drop-target');
+            const sourceId = parseInt(mergeDragSource.dataset.tableId || mergeDragSource.dataset.id || '0', 10);
+            const targetId = parseInt(this.dataset.tableId || this.dataset.id || '0', 10);
+            await mergeTwoTables(sourceId, targetId);
+            setMergeMode(false);
+        });
+        item.addEventListener('dragend', function(){
+            this.classList.remove('merge-drag-source');
+            document.querySelectorAll('.merge-drop-target').forEach(el=>el.classList.remove('merge-drop-target'));
+            mergeDragSource = null;
+        });
+    });
+    async function unmergeGroupId(gid){
+        if (!gid) return;
+        if (!confirm('Unmerge/split this table group? If active orders exist, verify the order before payment.')) return;
+        const fd = new FormData(); fd.append('_handler','onUnmergeTableGroup'); fd.append('table_group_id', gid);
+        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content || ''}});
+        const json = await res.json(); if (json.success) { await loadGroups(); showSaveMessage(json.message || 'Table group unmerged.', 'success'); } else alert(json.message || 'Unmerge failed');
+    }
     document.addEventListener('dblclick', async function(e){
         const el = e.target.closest('.table-item.table-merged'); if (!el || !mergeTablesBtn) return;
-        const gid = el.getAttribute('data-table-group-id'); if (!gid) return;
-        if (!confirm('Unmerge this table group?')) return;
-        const fd = new FormData(); fd.append('_handler','onUnmergeTableGroup'); fd.append('table_group_id', gid);
-        const res = await fetch(window.location.href, {method:'POST', body:fd, headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=\"csrf-token\"]')?.content || ''}});
-        const json = await res.json(); if (json.success) await loadGroups(); else alert(json.message || 'Unmerge failed');
+        await unmergeGroupId(el.getAttribute('data-table-group-id'));
+    });
+    if (unmergeTablesBtn) unmergeTablesBtn.addEventListener('click', async function(){
+        const selected = document.querySelector('.table-item.selected.table-merged') || document.querySelector('.table-item.table-merged');
+        if (!selected) return alert('Select or double-click a merged table group first.');
+        await unmergeGroupId(selected.getAttribute('data-table-group-id'));
     });
     setTimeout(loadGroups, 400);
 
@@ -6214,6 +6265,11 @@ document.addEventListener("DOMContentLoaded", function () {
 <style id="pmd-table-map-background-runtime-style">
     .table-item.table-merged .table-circle{box-shadow:0 0 0 3px #f59e0b inset!important;}
     .table-item.merge-selected .table-circle{box-shadow:0 0 0 3px #2563eb inset!important;}
+    .table-item.merge-drag-enabled .table-circle{cursor:grab!important;}
+    .table-item.merge-drag-source{opacity:.65!important;}
+    .table-item.merge-drop-target .table-circle{box-shadow:0 0 0 4px #16a34a inset,0 0 0 8px rgba(22,163,74,.18)!important;}
+    .table-item.table-merged{position:relative;}
+    .table-item.table-merged::after{content:attr(data-merge-name);position:absolute;left:50%;top:-12px;transform:translateX(-50%);white-space:nowrap;background:#fff7ed;border:1px solid #f59e0b;color:#92400e;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;z-index:3;}
 
     .pmd-table-map-has-bg {
         background-repeat: no-repeat !important;

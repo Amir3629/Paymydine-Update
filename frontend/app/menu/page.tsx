@@ -614,6 +614,42 @@ type SplitBillItem = {
   menuId?: number;
 }
 
+function MenuRecommendationBadges({ item, compact = false }: { item: MenuItem; compact?: boolean }) {
+  const badges = [] as Array<{ key: string; label: string; icon: string; style: React.CSSProperties }>
+  if ((item as any).is_bestseller) {
+    badges.push({
+      key: 'best',
+      label: 'Best Seller',
+      icon: '★',
+      style: { background: 'linear-gradient(135deg, #8A5A12, #D8B982)', color: '#FFFFFF', borderColor: 'rgba(138,90,18,0.28)' },
+    })
+  }
+  if ((item as any).is_chef_recommended) {
+    badges.push({
+      key: 'chef',
+      label: compact ? "Chef's Choice" : 'Chef Recommended',
+      icon: '♨',
+      style: { background: 'rgba(6, 47, 42, 0.96)', color: '#FFFFFF', borderColor: 'rgba(6,47,42,0.26)' },
+    })
+  }
+  if (!badges.length) return null
+
+  return (
+    <div className="pmd-menu-recommendation-badges flex flex-wrap items-center gap-1.5" aria-label="Menu item highlights">
+      {badges.map((badge) => (
+        <span
+          key={badge.key}
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 ${compact ? 'text-[10px]' : 'text-[11px]'} font-bold uppercase tracking-[0.04em] shadow-sm`}
+          style={badge.style}
+        >
+          <span aria-hidden="true">{badge.icon}</span>
+          {badge.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 // Component for individual order item with expandable options
 // PMD_QUANTITY_ICON_SOURCE_WHITE_FINAL_20260601
 // PMD_QTY_SVG_REPLACED_WITH_TEXT_SYMBOLS_20260601
@@ -6214,6 +6250,7 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
             compact
           />
           <FoodItemColorDot color={item.color} label={`${itemName} color`} />
+          <MenuRecommendationBadges item={item} compact />
           <FoodNutritionSummary
             calories={item.calories}
             protein={item.protein}

@@ -4,6 +4,8 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class Reviews extends AdminController
 {
@@ -60,6 +62,37 @@ class Reviews extends AdminController
         } catch (\Throwable $e) {
             // Menu context should never break the page.
         }
+    }
+
+    public function index_onUpdateStatus()
+    {
+        $reviewId = (int)post('review_id');
+        $status = (string)post('status', 'pending');
+        if (!in_array($status, ['pending', 'approved', 'hidden', 'rejected'], true)) {
+            $status = 'pending';
+        }
+
+        if ($reviewId <= 0 || !Schema::hasTable('reviews')) {
+            return ['success' => false, 'message' => 'Invalid review.'];
+        }
+
+        $columns = Schema::getColumnListing('reviews');
+        $payload = [];
+        if (in_array('status', $columns, true)) {
+            $payload['status'] = $status;
+        }
+        if (in_array('review_status', $columns, true)) {
+            $payload['review_status'] = $status === 'approved' ? 1 : 0;
+        }
+        if (in_array('updated_at', $columns, true)) {
+            $payload['updated_at'] = now();
+        }
+
+        if ($payload) {
+            DB::table('reviews')->where('review_id', $reviewId)->update($payload);
+        }
+
+        return ['success' => true, 'message' => 'Review status updated.'];
     }
 
     public function index()

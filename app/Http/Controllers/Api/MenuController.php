@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Services\MenuPopularityService;
 
 class MenuController extends Controller
 {
@@ -33,6 +34,9 @@ class MenuController extends Controller
                     COALESCE(m.is_vegan, 0) as vegan,
                     {$nutritionSelect},
                     {$this->getOptionalMenuColumnExpression('color', 'm')},
+                    {$this->getOptionalMenuColumnExpression('is_chef_recommended', 'm')},
+                    {$this->getOptionalMenuColumnExpression('is_manual_bestseller', 'm')},
+                    {$this->getOptionalMenuColumnExpression('bestseller_override_mode', 'm')},
                     (
                         SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
                         FROM {$p}allergenables aa
@@ -57,12 +61,16 @@ class MenuController extends Controller
             
             $items = DB::select($query);
             $menuImagesByMenuId = $this->getOrderedMenuImagesByMenuIds(array_map(fn($menu) => (int)$menu->id, $items));
+            $bestsellerStats = app(MenuPopularityService::class)->bestsellerStats();
+            $autoBestsellerIds = array_flip($bestsellerStats['ids']);
+            $popularityCounts = $bestsellerStats['counts'];
             
             // Convert prices to float, fix image paths, and add options
             foreach ($items as &$item) {
                 $item->price = (float)$item->price;
                 $this->normalizeFoodAttributes($item);
                 $this->normalizeNutrition($item);
+                $this->applyRecommendationMetadata($item, $autoBestsellerIds, $popularityCounts);
                 $item->is_stock_out = (bool)($item->is_stock_out ?? 0);
                 $item->available = (bool)($item->available ?? 1);
                 
@@ -259,6 +267,9 @@ class MenuController extends Controller
                     DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
                     DB::raw($this->getOptionalMenuColumnExpression('color', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('is_chef_recommended', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('is_manual_bestseller', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('bestseller_override_mode', 'menus')),
                     'categories.category_id',
                     'categories.name as category_name'
                 ]);
@@ -520,6 +531,33 @@ class MenuController extends Controller
     /**
      * Build a raw SELECT fragment for optional nutrition columns.
      */
+    private function applyRecommendationMetadata(&$item, array $autoBestsellerIds, array $popularityCounts): void
+    {
+        $menuId = (int)($item->id ?? $item->menu_id ?? 0);
+        $overrideMode = (string)($item->bestseller_override_mode ?? 'auto');
+        $manualBestseller = (bool)($item->is_manual_bestseller ?? false);
+        $autoBestseller = $menuId > 0 && isset($autoBestsellerIds[$menuId]);
+
+        $isBestseller = false;
+        $source = null;
+        if ($overrideMode === 'force_off') {
+            $isBestseller = false;
+        } elseif ($overrideMode === 'force_on' || $manualBestseller) {
+            $isBestseller = true;
+            $source = 'manual';
+        } elseif ($autoBestseller) {
+            $isBestseller = true;
+            $source = 'auto';
+        }
+
+        $item->is_chef_recommended = (bool)($item->is_chef_recommended ?? false);
+        $item->is_manual_bestseller = $manualBestseller;
+        $item->bestseller_override_mode = in_array($overrideMode, ['auto', 'force_on', 'force_off'], true) ? $overrideMode : 'auto';
+        $item->is_bestseller = $isBestseller;
+        $item->bestseller_source = $source;
+        $item->popularity_count = $popularityCounts[$menuId] ?? 0;
+    }
+
     private function getNutritionRawSelect($tableAlias)
     {
         return implode(",
