@@ -310,7 +310,8 @@ tar -czf /tmp/pmd-local-dbs.tar.gz -C /tmp/pmd-local-sync .
     $DbDir = Join-Path $LocalBase "pmd-local-dbs"
 
     Write-Host "==> Downloading DB dumps"
-    & $Scp "$ServerUser@$ServerHost:/tmp/pmd-local-dbs.tar.gz" $DbTar
+    $RemoteDbTar = "${ServerUser}@${ServerHost}:/tmp/pmd-local-dbs.tar.gz"
+    & $Scp $RemoteDbTar $DbTar
     Assert-LastExit "download DB dumps"
 
     Write-Host "==> Extracting DB dumps"
@@ -374,7 +375,8 @@ ls -lh /tmp/pmd-local-media.tar.gz
     $MediaTar = Join-Path $LocalBase "pmd-local-media.tar.gz"
 
     Write-Host "==> Downloading media from VPS"
-    & $Scp "$ServerUser@$ServerHost:/tmp/pmd-local-media.tar.gz" $MediaTar
+    $RemoteMediaTar = "${ServerUser}@${ServerHost}:/tmp/pmd-local-media.tar.gz"
+    & $Scp $RemoteMediaTar $MediaTar
     Assert-LastExit "download media"
 
     Write-Host "==> Restoring media locally"
