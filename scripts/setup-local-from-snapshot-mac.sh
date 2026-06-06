@@ -67,6 +67,12 @@ else
   echo "Warning: $MEDIA_DIR/storage-public.tar.gz not found"
 fi
 
+echo "==> Restoring Git-tracked custom app files overwritten by composer packages"
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git reset --hard HEAD
+  git clean -fd app/admin app/main app/system
+fi
+
 echo "==> Clearing Laravel/TastyIgniter cache"
 composer dump-autoload
 php artisan config:clear
