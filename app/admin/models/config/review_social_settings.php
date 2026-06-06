@@ -2,9 +2,9 @@
 
 /*
 |--------------------------------------------------------------------------
-| PMD_REVIEW_SOCIAL_SETTINGS_SAFE_FORM_20260606
+| PMD_REVIEW_SOCIAL_SETTINGS_DIRECT_FORM_20260606
 |--------------------------------------------------------------------------
-| Settings_model requires top-level form.
+| Config for /admin/settings/edit/review_social
 |--------------------------------------------------------------------------
 */
 
@@ -13,14 +13,13 @@ $config['form']['fields'] = [
         'label' => 'Enable checkout review share prompt',
         'type' => 'switch',
         'default' => 1,
-        'comment' => 'Show the public review sharing prompt after checkout review submission.',
     ],
     'pmd_home_social_icons_enabled' => [
         'label' => 'Enable homepage social icons',
         'type' => 'switch',
         'default' => 1,
-        'comment' => 'Show the floating social/review icons on the homepage.',
     ],
+
     'pmd_social_instagram_enabled' => [
         'label' => 'Instagram enabled',
         'type' => 'switch',
@@ -31,6 +30,7 @@ $config['form']['fields'] = [
         'type' => 'text',
         'default' => '',
     ],
+
     'pmd_social_google_enabled' => [
         'label' => 'Google / Maps enabled',
         'type' => 'switch',
@@ -41,6 +41,7 @@ $config['form']['fields'] = [
         'type' => 'text',
         'default' => '',
     ],
+
     'pmd_social_trustpilot_enabled' => [
         'label' => 'Trustpilot enabled',
         'type' => 'switch',
@@ -51,6 +52,7 @@ $config['form']['fields'] = [
         'type' => 'text',
         'default' => '',
     ],
+
     'pmd_social_reviews_enabled' => [
         'label' => 'Reviews page enabled',
         'type' => 'switch',
@@ -61,6 +63,7 @@ $config['form']['fields'] = [
         'type' => 'text',
         'default' => '',
     ],
+
     'pmd_social_website_enabled' => [
         'label' => 'Website enabled',
         'type' => 'switch',

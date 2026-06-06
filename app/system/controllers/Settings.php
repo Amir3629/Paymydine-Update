@@ -51,6 +51,89 @@ class Settings extends \Admin\Classes\AdminController
 
     public function index()
     {
+
+        // PMD_REVIEW_SOCIAL_HARD_DIRECT_BYPASS_20260606
+        if (strpos((string)request()->path(), 'settings/edit/review_social') !== false) {
+            return $this->pmdReviewSocialHardDirectBypass20260606();
+        }
+
+        /*
+         * PMD_REVIEW_SOCIAL_DIRECT_CONTROLLER_BYPASS_20260606
+         * Bypass broken System Settings widget rendering only for:
+         * /admin/settings/edit/review_social
+         */
+        if (preg_match('#(^|/)settings/edit/review_social$#', request()->path())) {
+            $keys = [
+                'pmd_review_share_prompt_enabled',
+                'pmd_home_social_icons_enabled',
+
+                'pmd_social_instagram_enabled',
+                'pmd_social_instagram_url',
+
+                'pmd_social_google_enabled',
+                'pmd_social_google_url',
+
+                'pmd_social_trustpilot_enabled',
+                'pmd_social_trustpilot_url',
+
+                'pmd_social_reviews_enabled',
+                'pmd_social_reviews_url',
+
+                'pmd_social_website_enabled',
+                'pmd_social_website_url',
+            ];
+
+            if (request()->isMethod('post')) {
+                if (!\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                    return redirect(admin_url('settings/edit/review_social'))
+                        ->with('error', 'settings table not found');
+                }
+
+                $cols = \Illuminate\Support\Facades\Schema::getColumnListing('settings');
+                $keyCol = in_array('item', $cols, true) ? 'item' : (in_array('key', $cols, true) ? 'key' : null);
+                $valueCol = in_array('value', $cols, true) ? 'value' : (in_array('data', $cols, true) ? 'data' : null);
+
+                if (!$keyCol || !$valueCol) {
+                    return redirect(admin_url('settings/edit/review_social'))
+                        ->with('error', 'settings table columns not recognized');
+                }
+
+                foreach ($keys as $key) {
+                    $value = (string)request()->input($key, '');
+
+                    $payload = [$valueCol => $value];
+
+                    if (in_array('serialized', $cols, true)) {
+                        $payload['serialized'] = 0;
+                    }
+
+                    if (in_array('updated_at', $cols, true)) {
+                        $payload['updated_at'] = now();
+                    }
+
+                    $insert = $payload;
+
+                    if (in_array('created_at', $cols, true)) {
+                        $insert['created_at'] = now();
+                    }
+
+                    \Illuminate\Support\Facades\DB::table('settings')->updateOrInsert(
+                        [$keyCol => $key],
+                        $insert
+                    );
+                }
+
+                return redirect(admin_url('settings/edit/review_social'))
+                    ->with('success', 'Review & Social Links settings saved.');
+            }
+
+            return \Illuminate\Support\Facades\Response::make(
+                \Illuminate\Support\Facades\View::file(
+                    base_path('app/admin/views/settings/review_social_direct.blade.php')
+                )->render()
+            );
+        }
+
         Mail_templates_model::syncAll();
 
         $this->validateSettingItems(true);
@@ -69,6 +152,11 @@ class Settings extends \Admin\Classes\AdminController
 
     public function edit($context, $settingCode = null)
     {
+        // PMD_REVIEW_SOCIAL_HARD_DIRECT_BYPASS_20260606
+        if (strpos((string)request()->path(), 'settings/edit/review_social') !== false) {
+            return $this->pmdReviewSocialHardDirectBypass20260606();
+        }
+
         try {
             $this->settingCode = $settingCode;
 
@@ -540,6 +628,24 @@ class Settings extends \Admin\Classes\AdminController
         } catch (\Throwable $e) {
             \Log::warning('PMD_SETTINGS_DEDUP_FAILED',['error'=>$e->getMessage()]);
         }
+    }
+
+
+    /**
+     * PMD_REVIEW_SOCIAL_MISSING_METHOD_FIX_20260606
+     * Direct standalone page for /admin/settings/edit/review_social.
+     * This bypasses the broken System Settings widget render.
+     */
+
+    /**
+     * PMD_REVIEW_SOCIAL_ADMIN_LAYOUT_FIX_20260606
+     * Render Review & Social Links inside normal admin layout/sidebar/header.
+     */
+    protected function pmdReviewSocialHardDirectBypass20260606()
+    {
+        $this->pageTitle = 'Review & Social Links';
+
+        return $this->makeView('settings/review_social_direct');
     }
 
 }

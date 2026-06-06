@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,12 +27,7 @@ class DetectTenant
 
         if ($subdomain && $subdomain !== 'www') {
             try {
-                // Query the main database for tenant information
-                // Note: Use unprefixed table name; Laravel auto-adds prefix from config
-                $tenant = DB::connection('mysql')->table('tenants')
-                    ->where('domain', 'like', $subdomain . '.%')
-                    ->orWhere('domain', $subdomain)
-                    ->first();
+                $tenant = $this->resolveTenant($subdomain);
 
                 if ($tenant && $tenant->database) {
                     // Configure tenant connection
@@ -84,6 +80,27 @@ class DetectTenant
         return $next($request);
     }
 
+    private function resolveTenant(string $subdomain): ?object
+    {
+        $cacheKey = 'tenant_lookup:' . $subdomain;
+
+        try {
+            return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($subdomain) {
+                return DB::connection('mysql')->table('tenants')
+                    ->where('domain', 'like', $subdomain . '.%')
+                    ->orWhere('domain', $subdomain)
+                    ->first();
+            });
+        } catch (\Throwable $e) {
+            // Redis unavailable — fall back to direct DB query
+            Log::warning('Tenant cache unavailable, falling back to DB: ' . $e->getMessage());
+            return DB::connection('mysql')->table('tenants')
+                ->where('domain', 'like', $subdomain . '.%')
+                ->orWhere('domain', $subdomain)
+                ->first();
+        }
+    }
+
     /**
      * Extract subdomain from host header
      *
@@ -113,4 +130,4 @@ class DetectTenant
 
         return null;
     }
-} 
+}

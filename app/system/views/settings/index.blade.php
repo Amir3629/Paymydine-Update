@@ -1,3 +1,18 @@
+<?php
+/*
+|--------------------------------------------------------------------------
+| PMD_REVIEW_SOCIAL_SETTINGS_VIEW_BYPASS_20260606
+|--------------------------------------------------------------------------
+| The normal System Settings form widget is null for review_social on this
+| install, so bypass only this URL and render the safe manual settings view.
+|--------------------------------------------------------------------------
+*/
+if (preg_match('#(^|/)settings/edit/review_social$#', request()->path())) {
+    include base_path('app/admin/views/settings/review_social_safe.blade.php');
+    return;
+}
+?>
+
 @php
     $pmdSettingGroups = [
         'restaurant' => [
