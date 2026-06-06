@@ -1051,6 +1051,7 @@ class ServiceProvider extends AppServiceProvider
                     'permission' => ['Site.Settings'],
                     'url' => admin_url('settings/edit/review_social'),
                     'form' => '~/app/admin/models/config/review_social_settings',
+                    'request' => 'Admin\\Requests\\ReviewSocialSettings',
                 ],
                 'activities' => [
                     'label' => 'lang:admin::lang.text_activity_title',
