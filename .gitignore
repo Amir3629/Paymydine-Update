@@ -1,14 +1,14 @@
-# Environment / secrets
+# secrets
 .env
 .env.*
 !.env.example
 
-# Dependencies
+# dependencies
 /vendor/
 /node_modules/
 /frontend/node_modules/
 
-# Next / build output
+# builds
 /.next/
 /frontend/.next/
 /out/
@@ -16,40 +16,30 @@
 /dist/
 /frontend/dist/
 
-# Runtime storage / cache / uploads
-/storage/*
-!/storage/.gitignore
-!/storage/app/
-!/storage/app/.gitignore
-!/storage/app/public/
-!/storage/app/public/.gitignore
+# runtime/cache/uploads
+/storage/
 /assets/media/
+/public/storage
 
-# Backups / temporary / old files
-.deploy-backups/
-.audit-backups/
-docs/
-frontend/docs/
+# backups / reports / temp
+/.deploy-backups/
+/.audit-backups/
+/docs/
+/frontend/docs/
 *.log
-*.cache
 *.tmp
 *.temp
+*.bak
+*.backup
 *.old
 *.orig
-*.bak
-*.bak.*
-*.bak_*
-*.backup
-*.backup.*
-*.before_*
-*.pre_*
-*.broken_before*
-*.bridge_backup*
+*.swp
+*.swo
 *.sh
 *.md
 *.markdown
-
-# OS / editor
-.DS_Store
-.idea/
-.vscode/
+*before_*
+*.before_*
+*pre_*
+*bridge_backup*
+*broken_before*
