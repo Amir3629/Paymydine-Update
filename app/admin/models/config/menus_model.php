@@ -138,6 +138,16 @@ $config['list']['columns'] = [
         'label' => 'lang:admin::lang.label_status',
         'type' => 'switch',
     ],
+    'is_chef_recommended' => [
+        'label' => 'Chef Recommended',
+        'type' => 'switch',
+        'sortable' => true,
+    ],
+    'is_manual_bestseller' => [
+        'label' => 'Manual Bestseller',
+        'type' => 'switch',
+        'sortable' => true,
+    ],
     'is_stock_out' => [
         'label' => 'Stock Out',
         'type' => 'switch',
@@ -363,6 +373,38 @@ $config['form']['tabs'] = [
             'type' => 'switch',
             'default' => 1,
             'span' => 'right',
+        ],
+        'recommendation_section' => [
+            'label' => 'Customer Badges',
+            'type' => 'section',
+            'span' => 'full',
+            'comment' => 'Highlight items on the customer menu. Bestseller can be automatic from recent completed/paid orders or manually overridden below.',
+        ],
+        'is_chef_recommended' => [
+            'label' => 'Chef Recommended',
+            'type' => 'switch',
+            'span' => 'left',
+            'default' => 0,
+            'comment' => 'Shows a Chef Recommended / Chef’s Choice badge on the customer menu.',
+        ],
+        'bestseller_override_mode' => [
+            'label' => 'Bestseller Override',
+            'type' => 'select',
+            'span' => 'right',
+            'default' => 'auto',
+            'options' => [
+                'auto' => 'Auto from recent sales',
+                'force_on' => 'Force Bestseller on',
+                'force_off' => 'Force Bestseller off',
+            ],
+            'comment' => 'Auto uses recent paid/completed order history. Force on/off overrides automatic detection.',
+        ],
+        'is_manual_bestseller' => [
+            'label' => 'Force Bestseller (legacy quick toggle)',
+            'type' => 'switch',
+            'span' => 'left',
+            'default' => 0,
+            'comment' => 'Also marks this item as Bestseller. Prefer the override selector for explicit force off.',
         ],
         'menu_description' => [
             'label' => 'lang:admin::lang.label_description',

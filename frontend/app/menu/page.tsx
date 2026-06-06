@@ -2,7 +2,7 @@
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, Suspense } from "react";
 import { formatCurrency } from "@/lib/currency";
-import { categories, menuData, type MenuItem, getMenuData, getCategories } from "@/lib/data";
+import { categories, menuData, type MenuItem, type MenuHighlightSettings, defaultMenuHighlightSettings, getMenuData, getCategories } from "@/lib/data";
 import { useLanguageStore } from "@/store/language-store";
 import { type TranslationKey } from "@/lib/translations";
 import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store";
@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare } from "lucide-react";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare, ChefHat, Trophy } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -612,6 +612,114 @@ type SplitBillItem = {
   quantity: number;
   orderMenuId?: number;
   menuId?: number;
+}
+
+function MenuRecommendationBadges({
+  item,
+  compact = false,
+  settings = defaultMenuHighlightSettings,
+  placement = 'card',
+}: {
+  item: MenuItem
+  compact?: boolean
+  settings?: MenuHighlightSettings
+  placement?: 'card' | 'modal' | 'section'
+}) {
+  if (placement === 'card' && !settings.show_card_badges) return null
+  if (placement === 'modal' && !settings.show_modal_badges) return null
+
+  const isRibbon = settings.badge_style === 'ribbon' && placement === 'card'
+  const isPremium = settings.badge_style === 'premium' || placement === 'modal' || placement === 'section'
+  const badgeBase = compact
+    ? 'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-md'
+    : 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.05em] shadow-lg'
+
+  const badges = [] as Array<{ key: string; label: string; icon: React.ReactNode; style: React.CSSProperties }>
+  if ((item as any).is_bestseller) {
+    badges.push({
+      key: 'best',
+      label: settings.bestseller_label || 'Best Seller',
+      icon: <Trophy className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden="true" />,
+      style: {
+        background: isPremium ? 'linear-gradient(135deg, #7A4D10, #D8B982 55%, #FFF1C7)' : '#8A5A12',
+        color: '#FFFFFF',
+        borderColor: 'rgba(138,90,18,0.35)',
+        boxShadow: isPremium ? '0 10px 24px rgba(138,90,18,0.22)' : undefined,
+      },
+    })
+  }
+  if ((item as any).is_chef_recommended) {
+    badges.push({
+      key: 'chef',
+      label: settings.chef_label || "Chef’s Choice",
+      icon: <ChefHat className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden="true" />,
+      style: {
+        background: isPremium ? 'linear-gradient(135deg, #062F2A, #0E5A4F)' : '#062F2A',
+        color: '#FFFFFF',
+        borderColor: 'rgba(6,47,42,0.32)',
+        boxShadow: isPremium ? '0 10px 24px rgba(6,47,42,0.2)' : undefined,
+      },
+    })
+  }
+  if (!badges.length) return null
+
+  return (
+    <div className={`pmd-menu-recommendation-badges flex ${isRibbon ? 'flex-col items-start' : 'flex-wrap items-center'} gap-1.5`} aria-label="Menu item highlights">
+      {badges.map((badge) => (
+        <span
+          key={badge.key}
+          className={`${badgeBase} ${isRibbon ? 'rounded-l-none pl-2.5 pr-3' : ''}`}
+          style={badge.style}
+          aria-label={badge.label}
+        >
+          {badge.icon}
+          <span>{badge.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function MenuHighlightSection({
+  title,
+  subtitle,
+  items,
+  settings,
+  onSelect,
+  onFirstAdd,
+}: {
+  title: string
+  subtitle: string
+  items: MenuItem[]
+  settings: MenuHighlightSettings
+  onSelect: (item: MenuItem) => void
+  onFirstAdd: (item: MenuItem) => void
+}) {
+  if (!items.length) return null
+
+  return (
+    <section className="mb-8 px-4" aria-label={title}>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-paydine-elegant-gray">{title}</h2>
+          <p className="text-sm text-gray-500">{subtitle}</p>
+        </div>
+      </div>
+      <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible">
+        {items.map((item, index) => (
+          <div key={`highlight-${title}-${item.id}`} className="min-w-[82vw] md:min-w-0">
+            <ExpandingToolbarMenuItemCard
+              item={item}
+              onSelect={onSelect}
+              onFirstAdd={() => onFirstAdd(item)}
+              prioritizeImage={index < 2}
+              highlightSettings={settings}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 // Component for individual order item with expandable options
@@ -6145,7 +6253,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
   )
 }
 
-function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeImage = false }: { item: MenuItem; onSelect: (item: MenuItem) => void; onFirstAdd: () => void; prioritizeImage?: boolean }) {
+function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeImage = false, highlightSettings = defaultMenuHighlightSettings }: { item: MenuItem; onSelect: (item: MenuItem) => void; onFirstAdd: () => void; prioritizeImage?: boolean; highlightSettings?: MenuHighlightSettings }) {
   const addToCart = useCartStore((state) => state.addToCart)
   const { items } = useCartStore()
   const { t } = useLanguageStore()
@@ -6194,6 +6302,9 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
       onClick={() => onSelect(item)}
     >
       <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
+        <div className="absolute left-0 top-0 z-10 max-w-[150px]">
+          <MenuRecommendationBadges item={item} compact settings={highlightSettings} placement="card" />
+        </div>
         <OptimizedImage
           src={item.image || (Array.isArray((item as any).images) ? (item as any).images[0] : "") || "/placeholder.svg"}
           alt={itemName}
@@ -7182,6 +7293,7 @@ function MenuContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
+  const [menuHighlightSettings, setMenuHighlightSettings] = useState<MenuHighlightSettings>(defaultMenuHighlightSettings)
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
   const { menuItems, taxSettings, loadVATSettings } = useCmsStore()
 
@@ -7391,6 +7503,7 @@ useEffect(() => {
               if (isFresh) {
                 setApiMenuItems(Array.isArray(parsed.items) ? parsed.items : [])
                 setDynamicCategories(Array.isArray(parsed.categories) ? parsed.categories : [])
+                if (parsed.menuHighlightSettings) setMenuHighlightSettings({ ...defaultMenuHighlightSettings, ...parsed.menuHighlightSettings })
                 console.info("PMD_MENU_CACHE_HIT")
               } else {
                 console.info("PMD_MENU_CACHE_MISS")
@@ -7501,11 +7614,14 @@ useEffect(() => {
         setApiMenuItems(menuResult.menuItems)
         setDynamicCategories(menuResult.categoryNames)
         setIsFrontendConfigured(menuResult.isFrontendConfigured ?? true)
+        setMenuHighlightSettings(menuResult.menuHighlightSettings || defaultMenuHighlightSettings)
         if (cacheKey) {
           localStorage.setItem(cacheKey, JSON.stringify({
             categories: menuResult.categoryNames,
             items: menuResult.menuItems,
             timestamp: Date.now(),
+            menuHighlightSettings: menuResult.menuHighlightSettings,
+            menuCacheVersion: menuResult.menuCacheVersion,
           }))
           console.info("PMD_MENU_CACHE_REFRESHED")
         }
@@ -7568,6 +7684,30 @@ useEffect(() => {
     // Otherwise, filter by selected category
     return itemsWithAdjustedPrices.filter((item) => item.category === currentCategory);
   }, [apiMenuItems, menuItems, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
+
+  const highlightSourceItems = useMemo(() => {
+    const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+    return availableItems.map(item => ({
+      ...item,
+      price: adjustPriceForVAT(item.price),
+      options: item.options?.map(option => ({
+        ...option,
+        values: option.values.map(value => ({ ...value, price: adjustPriceForVAT(value.price) }))
+      }))
+    }))
+  }, [apiMenuItems, menuItems, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+
+  const chefRecommendationItems = useMemo(() => {
+    if (!menuHighlightSettings.chef_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
+    return highlightSourceItems.filter((item) => Boolean((item as any).is_chef_recommended)).slice(0, menuHighlightSettings.max_chef_items)
+  }, [highlightSourceItems, menuHighlightSettings])
+
+  const bestsellerItems = useMemo(() => {
+    if (!menuHighlightSettings.bestseller_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
+    return highlightSourceItems.filter((item) => Boolean((item as any).is_bestseller)).slice(0, menuHighlightSettings.max_bestseller_items)
+  }, [highlightSourceItems, menuHighlightSettings])
+
+  const showVirtualHighlightSections = (selectedCategory || "All") === "All" && menuHighlightSettings.section_placement !== 'hidden'
 
   // Initialize with "All" category when data loads
   useEffect(() => {
@@ -7749,6 +7889,12 @@ useEffect(() => {
       </header>
       <Suspense fallback={<LoadingSpinner />}>
         <main className="max-w-4xl mx-auto">
+          {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'top' && (
+            <>
+              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
+              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
+            </>
+          )}
           <CategoryNav
             categories={allCategories}
             selectedCategory={selectedCategory || "All"} // Force "All" if no selection
@@ -7760,6 +7906,12 @@ useEffect(() => {
               }
             }}
           />
+          {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'after_categories' && (
+            <>
+              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
+              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
+            </>
+          )}
           <section className="w-full mb-12">
             {!isFrontendConfigured && filteredItems.length === 0 ? (
               <TenantSetupSplash />
@@ -7772,6 +7924,7 @@ useEffect(() => {
                   onSelect={handleItemSelect}
                   onFirstAdd={() => handleFirstAdd(item)}
                   prioritizeImage={index < 4}
+                  highlightSettings={menuHighlightSettings}
                 />
               ))}
             </div>
@@ -7824,7 +7977,7 @@ useEffect(() => {
       {!shouldHideCartSheet && (
       <CartSheet />
       )}
-      <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+      <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} highlightSettings={menuHighlightSettings} />
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}

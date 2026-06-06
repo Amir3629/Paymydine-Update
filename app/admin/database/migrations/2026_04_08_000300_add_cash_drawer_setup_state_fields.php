@@ -14,17 +14,36 @@ class AddCashDrawerSetupStateFields extends Migration
             return;
         }
 
-        Schema::table('cash_drawers', function (Blueprint $table) {
-            if (!Schema::hasColumn('cash_drawers', 'setup_state')) {
-                $table->string('setup_state', 30)->nullable()->after('last_command_message');
-            }
-            if (!Schema::hasColumn('cash_drawers', 'setup_message')) {
-                $table->text('setup_message')->nullable()->after('setup_state');
-            }
-            if (!Schema::hasColumn('cash_drawers', 'setup_completed_at')) {
-                $table->timestamp('setup_completed_at')->nullable()->after('setup_message');
-            }
-        });
+        if (!Schema::hasColumn('cash_drawers', 'setup_state')) {
+            Schema::table('cash_drawers', function (Blueprint $table) {
+                $column = $table->string('setup_state', 30)->nullable();
+                if (Schema::hasColumn('cash_drawers', 'last_command_message')) {
+                    $column->after('last_command_message');
+                }
+            });
+        }
+
+        if (!Schema::hasColumn('cash_drawers', 'setup_message')) {
+            Schema::table('cash_drawers', function (Blueprint $table) {
+                $column = $table->text('setup_message')->nullable();
+                if (Schema::hasColumn('cash_drawers', 'setup_state')) {
+                    $column->after('setup_state');
+                } elseif (Schema::hasColumn('cash_drawers', 'last_command_message')) {
+                    $column->after('last_command_message');
+                }
+            });
+        }
+
+        if (!Schema::hasColumn('cash_drawers', 'setup_completed_at')) {
+            Schema::table('cash_drawers', function (Blueprint $table) {
+                $column = $table->timestamp('setup_completed_at')->nullable();
+                if (Schema::hasColumn('cash_drawers', 'setup_message')) {
+                    $column->after('setup_message');
+                } elseif (Schema::hasColumn('cash_drawers', 'setup_state')) {
+                    $column->after('setup_state');
+                }
+            });
+        }
     }
 
     public function down()

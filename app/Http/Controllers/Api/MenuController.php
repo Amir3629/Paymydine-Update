@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Services\MenuPopularityService;
 
 class MenuController extends Controller
 {
@@ -33,6 +34,9 @@ class MenuController extends Controller
                     COALESCE(m.is_vegan, 0) as vegan,
                     {$nutritionSelect},
                     {$this->getOptionalMenuColumnExpression('color', 'm')},
+                    {$this->getOptionalMenuColumnExpression('is_chef_recommended', 'm')},
+                    {$this->getOptionalMenuColumnExpression('is_manual_bestseller', 'm')},
+                    {$this->getOptionalMenuColumnExpression('bestseller_override_mode', 'm')},
                     (
                         SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
                         FROM {$p}allergenables aa
@@ -57,12 +61,16 @@ class MenuController extends Controller
             
             $items = DB::select($query);
             $menuImagesByMenuId = $this->getOrderedMenuImagesByMenuIds(array_map(fn($menu) => (int)$menu->id, $items));
+            $bestsellerStats = app(MenuPopularityService::class)->bestsellerStats();
+            $autoBestsellerIds = array_flip($bestsellerStats['ids']);
+            $popularityCounts = $bestsellerStats['counts'];
             
             // Convert prices to float, fix image paths, and add options
             foreach ($items as &$item) {
                 $item->price = (float)$item->price;
                 $this->normalizeFoodAttributes($item);
                 $this->normalizeNutrition($item);
+                $this->applyRecommendationMetadata($item, $autoBestsellerIds, $popularityCounts);
                 $item->is_stock_out = (bool)($item->is_stock_out ?? 0);
                 $item->available = (bool)($item->available ?? 1);
                 
@@ -119,6 +127,12 @@ class MenuController extends Controller
                 
                 // Combos don't have options (they're pre-configured)
                 $combo->options = [];
+                $combo->is_chef_recommended = false;
+                $combo->is_manual_bestseller = false;
+                $combo->bestseller_override_mode = 'auto';
+                $combo->is_bestseller = false;
+                $combo->bestseller_source = null;
+                $combo->popularity_count = 0;
                 
                 // Combos are always available (no stock-out for combos yet)
                 $combo->is_stock_out = false;
@@ -172,7 +186,9 @@ class MenuController extends Controller
                 'success' => true,
                 'data' => [
                     'items' => $allItems,
-                    'categories' => $categories
+                    'categories' => $categories,
+                    'menu_highlight_settings' => $this->getMenuHighlightSettings(),
+                    'menu_cache_version' => $this->getMenuHighlightCacheVersion()
                 ]
             ]);
 
@@ -259,6 +275,9 @@ class MenuController extends Controller
                     DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
                     DB::raw($this->getOptionalMenuColumnExpression('color', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('is_chef_recommended', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('is_manual_bestseller', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('bestseller_override_mode', 'menus')),
                     'categories.category_id',
                     'categories.name as category_name'
                 ]);
@@ -277,9 +296,11 @@ class MenuController extends Controller
                 });
             }
 
-            $items = $query->get()->map(function ($item) {
+            $recommendationContext = $this->getRecommendationContext();
+            $items = $query->get()->map(function ($item) use ($recommendationContext) {
                 $this->normalizeFoodAttributes($item);
                 $this->normalizeNutrition($item);
+                $this->applyRecommendationMetadata($item, $recommendationContext['auto_ids'], $recommendationContext['counts']);
 
                 return [
                     'id' => $item->id,
@@ -304,7 +325,13 @@ class MenuController extends Controller
                     'sugar' => $item->sugar,
                     'serving_size' => $item->serving_size,
                     'color' => $item->color,
-                    'nutrition' => $item->nutrition
+                    'nutrition' => $item->nutrition,
+                    'is_chef_recommended' => (bool)$item->is_chef_recommended,
+                    'is_manual_bestseller' => (bool)$item->is_manual_bestseller,
+                    'bestseller_override_mode' => $item->bestseller_override_mode,
+                    'is_bestseller' => (bool)$item->is_bestseller,
+                    'bestseller_source' => $item->bestseller_source,
+                    'popularity_count' => (int)$item->popularity_count
                 ];
             });
 
@@ -363,12 +390,18 @@ class MenuController extends Controller
                     DB::raw($this->getNutritionColumnExpression('fat', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('sugar', 'menus')),
                     DB::raw($this->getNutritionColumnExpression('serving_size', 'menus')),
-                    DB::raw($this->getOptionalMenuColumnExpression('color', 'menus'))
+                    DB::raw($this->getOptionalMenuColumnExpression('color', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('is_chef_recommended', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('is_manual_bestseller', 'menus')),
+                    DB::raw($this->getOptionalMenuColumnExpression('bestseller_override_mode', 'menus'))
                 ])
-                ->get()
-                ->map(function ($item) {
-                    $this->normalizeFoodAttributes($item);
+                ->get();
+
+            $recommendationContext = $this->getRecommendationContext();
+            $items = $items->map(function ($item) use ($recommendationContext) {
+                $this->normalizeFoodAttributes($item);
                 $this->normalizeNutrition($item);
+                $this->applyRecommendationMetadata($item, $recommendationContext['auto_ids'], $recommendationContext['counts']);
 
                     return [
                         'id' => $item->id,
@@ -391,7 +424,13 @@ class MenuController extends Controller
                         'sugar' => $item->sugar,
                         'serving_size' => $item->serving_size,
                         'color' => $item->color,
-                        'nutrition' => $item->nutrition
+                        'nutrition' => $item->nutrition,
+                        'is_chef_recommended' => (bool)$item->is_chef_recommended,
+                        'is_manual_bestseller' => (bool)$item->is_manual_bestseller,
+                        'bestseller_override_mode' => $item->bestseller_override_mode,
+                        'is_bestseller' => (bool)$item->is_bestseller,
+                        'bestseller_source' => $item->bestseller_source,
+                        'popularity_count' => (int)$item->popularity_count
                     ];
                 });
 
@@ -463,7 +502,9 @@ class MenuController extends Controller
                         'table_status' => $tableInfo->table_status
                     ],
                     'menu_items' => $menuData['data']['items'],
-                    'categories' => $menuData['data']['categories']
+                    'categories' => $menuData['data']['categories'],
+                    'menu_highlight_settings' => $menuData['data']['menu_highlight_settings'] ?? $this->getMenuHighlightSettings(),
+                    'menu_cache_version' => $menuData['data']['menu_cache_version'] ?? $this->getMenuHighlightCacheVersion()
                 ]
             ]);
 
@@ -520,6 +561,139 @@ class MenuController extends Controller
     /**
      * Build a raw SELECT fragment for optional nutrition columns.
      */
+    private function getRecommendationContext(): array
+    {
+        $bestsellerStats = app(MenuPopularityService::class)->bestsellerStats();
+
+        return [
+            'auto_ids' => array_flip($bestsellerStats['ids']),
+            'counts' => $bestsellerStats['counts'],
+        ];
+    }
+
+    private function getMenuHighlightSettings(): array
+    {
+        $defaults = [
+            'chef_section_enabled' => true,
+            'bestseller_section_enabled' => true,
+            'show_card_badges' => true,
+            'show_modal_badges' => true,
+            'chef_label' => "Chef’s Choice",
+            'bestseller_label' => 'Best Seller',
+            'max_chef_items' => 8,
+            'max_bestseller_items' => 8,
+            'badge_style' => 'premium',
+            'section_placement' => 'after_categories',
+        ];
+
+        if (!Schema::hasTable('settings')) {
+            return $defaults;
+        }
+
+        $keys = [
+            'pmd_menu_highlights_chef_section_enabled',
+            'pmd_menu_highlights_bestseller_section_enabled',
+            'pmd_menu_highlights_show_card_badges',
+            'pmd_menu_highlights_show_modal_badges',
+            'pmd_menu_highlights_chef_label',
+            'pmd_menu_highlights_bestseller_label',
+            'pmd_menu_highlights_max_chef_items',
+            'pmd_menu_highlights_max_bestseller_items',
+            'pmd_menu_highlights_badge_style',
+            'pmd_menu_highlights_section_placement',
+        ];
+        $columns = Schema::getColumnListing('settings');
+        $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+        $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
+        if (!$keyColumn || !$valueColumn) {
+            return $defaults;
+        }
+
+        $rows = DB::table('settings')
+            ->whereIn($keyColumn, $keys)
+            ->get()
+            ->keyBy($keyColumn);
+
+        $bool = fn($key, $fallback) => filter_var($rows[$key]->{$valueColumn} ?? $fallback, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool)$fallback;
+        $int = function ($key, $fallback) use ($rows, $valueColumn) {
+            $value = (int)($rows[$key]->{$valueColumn} ?? $fallback);
+            return max(1, min(24, $value));
+        };
+        $text = fn($key, $fallback) => trim((string)($rows[$key]->{$valueColumn} ?? $fallback)) ?: $fallback;
+
+        $badgeStyle = $text('pmd_menu_highlights_badge_style', $defaults['badge_style']);
+        if (!in_array($badgeStyle, ['compact', 'ribbon', 'premium'], true)) $badgeStyle = 'premium';
+
+        $placement = $text('pmd_menu_highlights_section_placement', $defaults['section_placement']);
+        if (!in_array($placement, ['top', 'after_categories', 'hidden'], true)) $placement = 'after_categories';
+
+        return [
+            'chef_section_enabled' => $bool('pmd_menu_highlights_chef_section_enabled', true),
+            'bestseller_section_enabled' => $bool('pmd_menu_highlights_bestseller_section_enabled', true),
+            'show_card_badges' => $bool('pmd_menu_highlights_show_card_badges', true),
+            'show_modal_badges' => $bool('pmd_menu_highlights_show_modal_badges', true),
+            'chef_label' => $text('pmd_menu_highlights_chef_label', $defaults['chef_label']),
+            'bestseller_label' => $text('pmd_menu_highlights_bestseller_label', $defaults['bestseller_label']),
+            'max_chef_items' => $int('pmd_menu_highlights_max_chef_items', 8),
+            'max_bestseller_items' => $int('pmd_menu_highlights_max_bestseller_items', 8),
+            'badge_style' => $badgeStyle,
+            'section_placement' => $placement,
+        ];
+    }
+
+    private function getMenuHighlightCacheVersion(): string
+    {
+        if (!Schema::hasTable('settings')) {
+            return 'default';
+        }
+
+        $columns = Schema::getColumnListing('settings');
+        $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+        if (!$keyColumn) {
+            return 'default';
+        }
+
+        if (in_array('updated_at', $columns, true)) {
+            $updatedAt = DB::table('settings')
+                ->where($keyColumn, 'like', 'pmd_menu_highlights_%')
+                ->max('updated_at');
+
+            return $updatedAt ? (string)$updatedAt : 'default';
+        }
+
+        return sha1(json_encode(DB::table('settings')
+            ->where($keyColumn, 'like', 'pmd_menu_highlights_%')
+            ->pluck(in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : $keyColumn), $keyColumn)
+            ->all()));
+    }
+
+    private function applyRecommendationMetadata(&$item, array $autoBestsellerIds, array $popularityCounts): void
+    {
+        $menuId = (int)($item->id ?? $item->menu_id ?? 0);
+        $overrideMode = (string)($item->bestseller_override_mode ?? 'auto');
+        $manualBestseller = (bool)($item->is_manual_bestseller ?? false);
+        $autoBestseller = $menuId > 0 && isset($autoBestsellerIds[$menuId]);
+
+        $isBestseller = false;
+        $source = null;
+        if ($overrideMode === 'force_off') {
+            $isBestseller = false;
+        } elseif ($overrideMode === 'force_on' || $manualBestseller) {
+            $isBestseller = true;
+            $source = 'manual';
+        } elseif ($autoBestseller) {
+            $isBestseller = true;
+            $source = 'auto';
+        }
+
+        $item->is_chef_recommended = (bool)($item->is_chef_recommended ?? false);
+        $item->is_manual_bestseller = $manualBestseller;
+        $item->bestseller_override_mode = in_array($overrideMode, ['auto', 'force_on', 'force_off'], true) ? $overrideMode : 'auto';
+        $item->is_bestseller = $isBestseller;
+        $item->bestseller_source = $source;
+        $item->popularity_count = $popularityCounts[$menuId] ?? 0;
+    }
+
     private function getNutritionRawSelect($tableAlias)
     {
         return implode(",

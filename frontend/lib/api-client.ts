@@ -44,6 +44,10 @@ export interface MenuItem {
   minimum_qty?: number;
   available?: boolean;
   options?: MenuItemOption[];
+  is_chef_recommended?: boolean;
+  is_bestseller?: boolean;
+  bestseller_source?: 'manual' | 'auto' | null;
+  popularity_count?: number;
 }
 
 export interface MenuItemOption {
@@ -73,6 +77,8 @@ export interface MenuResponse {
   data: {
     items?: MenuItem[];
     categories?: Category[];
+    menu_highlight_settings?: any;
+    menu_cache_version?: string;
     is_frontend_configured?: boolean;
     setup_status?: {
       has_categories: boolean;
