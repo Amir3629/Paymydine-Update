@@ -1,0 +1,902 @@
+/* ============================================
+   SUPERADMIN MOBILE/TABLET SIDEBAR FIX
+   Hides sidebar on mobile/tablet, shows menu toggle button
+   Sidebar slides in smoothly with logo when toggle is clicked
+   ============================================ */
+
+/* ============================================
+   1. MOBILE/TABLET BREAKPOINT (below 1200px)
+   ============================================ */
+
+@media (max-width: 1199.98px) {
+  
+  /* ============================================
+     SIDEBAR - HIDE BY DEFAULT ON MOBILE/TABLET
+     ============================================ */
+  
+  /* Sidebar starts hidden - slides in from left when opened */
+  /* AGGRESSIVE: Hide sidebar by default on mobile - maximum specificity */
+  /* Default state: hidden */
+  body .nk-app-root .nk-main .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  body .nk-body .nk-app-root .nk-main .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  html body .nk-app-root .nk-main .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  html body .nk-body .nk-app-root .nk-main .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  div.sidebar:not(.show),
+  .nk-sidebar.nk-sidebar-mobile:not(.show):not(.nk-sidebar-active),
+  .nk-sidebar.nk-sidebar-fixed:not(.show):not(.nk-sidebar-active),
+  /* Also target sidebar without show/active classes - catch all */
+  body .nk-app-root .nk-main .nk-sidebar,
+  body .nk-body .nk-app-root .nk-main .nk-sidebar {
+    transform: translateX(-100%) !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 1040 !important; /* Above content when open */
+  }
+  
+  /* Override: Show when explicitly opened (must come after default rule) */
+  body .nk-app-root .nk-main .nk-sidebar.show,
+  body .nk-app-root .nk-main .nk-sidebar.nk-sidebar-active,
+  body .nk-body .nk-app-root .nk-main .nk-sidebar.show,
+  body .nk-body .nk-app-root .nk-main .nk-sidebar.nk-sidebar-active,
+  html body .nk-app-root .nk-main .nk-sidebar.show,
+  html body .nk-app-root .nk-main .nk-sidebar.nk-sidebar-active,
+  .nk-sidebar.show,
+  .nk-sidebar.nk-sidebar-active,
+  div.sidebar.show {
+    transform: translateX(0) !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* Sidebar visible when toggled - smooth slide in */
+  .nk-sidebar.show,
+  .nk-sidebar.nk-sidebar-active,
+  div.sidebar.show {
+    transform: translateX(0) !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* ============================================
+     LOGO - HIDE BY DEFAULT, SHOW WHEN SIDEBAR OPEN
+     ============================================ */
+  
+  /* Logo ALWAYS hidden by default on mobile/tablet - even if sidebar element exists */
+  .nk-sidebar-brand,
+  .nk-sidebar-element.nk-sidebar-head,
+  div.nk-sidebar-brand,
+  .nk-sidebar .nk-sidebar-brand,
+  .nk-sidebar .nk-sidebar-element.nk-sidebar-head {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Logo shows ONLY when sidebar is open - slides in with sidebar */
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand,
+  .nk-sidebar.show .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-element.nk-sidebar-head,
+  .nk-sidebar.show div.nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active div.nk-sidebar-brand,
+  .nk-sidebar.show .nk-sidebar-brand,
+  .nk-sidebar.nk-sidebar-active .nk-sidebar-brand {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    height: 170px !important;
+    max-height: 170px !important;
+    animation: slideInLogo 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  @keyframes slideInLogo {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* ============================================
+     MENU TOGGLE BUTTON - SHOW ON MOBILE/TABLET
+     ============================================ */
+  
+  /* Menu toggle button in header - always visible on mobile/tablet */
+  /* Position it where logo would be (top-left) */
+  .nk-header .nk-menu-trigger,
+  .nk-header .nk-nav-toggle,
+  .nk-header .navbar-toggler {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    top: 15px !important;
+    left: 15px !important;
+    z-index: 1050 !important; /* Above everything */
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Ensure menu toggle is visible even when sidebar logo area would be there */
+  /* Menu icon replaces logo position on mobile */
+  .nk-header .nk-menu-trigger,
+  .nk-header .nk-menu-trigger a,
+  .nk-header .nk-nav-toggle {
+    position: fixed !important;
+    top: 15px !important;
+    left: 15px !important;
+    z-index: 1051 !important; /* Above logo area */
+  }
+  
+  /* Menu toggle link inside - styled as icon button */
+  .nk-header .nk-menu-trigger a,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle,
+  .nk-header .nk-nav-toggle a {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 8px !important;
+    cursor: pointer !important;
+    color: #ffffff !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    transition: transform 0.3s ease !important;
+    pointer-events: auto !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Hover effect - scale only */
+  .nk-header .nk-menu-trigger a:hover,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle:hover,
+  .nk-header .nk-nav-toggle a:hover {
+    background: transparent !important;
+    transform: scale(1.1) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+  }
+  
+  /* Active/pressed state */
+  .nk-header .nk-menu-trigger a:active,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle:active,
+  .nk-header .nk-nav-toggle a:active {
+    background: transparent !important;
+    transform: scale(0.95) !important;
+    box-shadow: none !important;
+  }
+  
+  /* Icon inside toggle */
+  .nk-header .nk-menu-trigger a em.icon,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle em.icon,
+  .nk-header .nk-nav-toggle a em.icon {
+    font-size: 24px !important;
+    color: inherit !important;
+    line-height: 1 !important;
+  }
+  
+  /* Hide toggle when sidebar is open */
+  .nk-sidebar.show ~ .nk-header .nk-menu-trigger,
+  .nk-sidebar.nk-sidebar-active ~ .nk-header .nk-menu-trigger,
+  body.sidebar-open .nk-header .nk-menu-trigger,
+  body.sidebar-open .nk-header .nk-nav-toggle {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* ============================================
+     HEADER - FULL WIDTH ON MOBILE/TABLET
+     ============================================ */
+  
+  /* Header full width when sidebar is hidden - MAXIMUM SPECIFICITY OVERRIDE */
+  /* This must override superadmin-exact-match.css and all other rules */
+  /* NUCLEAR OPTION: Override ALL possible header selectors */
+  body .nk-app-root .nk-main .nk-header,
+  body .nk-app-root .nk-main .nk-header.nk-header-fixed,
+  body .nk-app-root .nk-main .nk-header.is-light,
+  body .nk-app-root .nk-main .nk-header.nk-header-fixed.is-light,
+  body .nk-body .nk-app-root .nk-main .nk-header,
+  body .nk-body .nk-app-root .nk-main .nk-header.nk-header-fixed,
+  body .nk-body .nk-app-root .nk-main .nk-header.is-light,
+  html body .nk-app-root .nk-main .nk-header,
+  html body .nk-app-root .nk-main .nk-header.nk-header-fixed,
+  html body .nk-app-root .nk-main .nk-header.is-light,
+  html body .nk-body .nk-app-root .nk-main .nk-header,
+  html body .nk-body .nk-app-root .nk-main .nk-header.nk-header-fixed,
+  html body .nk-body .nk-app-root .nk-main .nk-header.is-light,
+  body .nk-sidebar + .nk-wrap > .nk-header-fixed,
+  body .nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+  html body .nk-sidebar + .nk-wrap > .nk-header-fixed,
+  html body .nk-sidebar-overlay + .nk-wrap > .nk-header-fixed,
+  body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed,
+  body .nk-body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed,
+  html body .nk-app-root .nk-main .nk-sidebar + .nk-wrap > .nk-header-fixed,
+  .nk-sidebar ~ .nk-wrap .nk-header,
+  .nk-sidebar ~ .nk-wrap .nk-header.nk-header-fixed,
+  .nk-sidebar ~ .nk-wrap .nk-header.is-light,
+  .nk-wrap > .nk-header,
+  .nk-wrap > .nk-header.nk-header-fixed,
+  .nk-wrap > .nk-header.is-light,
+  .nk-header,
+  .nk-header.nk-header-fixed,
+  .nk-header.is-light,
+  .nk-header.nk-header-fixed.is-light,
+  div.nk-header,
+  div.nk-header.nk-header-fixed,
+  div.nk-header.is-light,
+  nav.navbar-top {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    transform: translateX(0) !important; /* Override any transforms */
+    max-width: 100% !important;
+  }
+  
+  /* Also override any inline styles that might be set by JavaScript */
+  .nk-header[style*="left"],
+  .nk-header.nk-header-fixed[style*="left"],
+  .nk-header.is-light[style*="left"],
+  .nk-header[style*="width"],
+  .nk-header.nk-header-fixed[style*="width"],
+  .nk-header.is-light[style*="width"] {
+    left: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Header container/wrap - also full width */
+  .nk-header .container-fluid,
+  .nk-header-wrap,
+  .nk-header .nk-header-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 20px !important; /* Keep side padding for content */
+    padding-right: 20px !important;
+  }
+  
+  /* ============================================
+     MAIN CONTENT - FULL WIDTH ON MOBILE/TABLET
+     ============================================ */
+  
+  /* Main content wrapper - FULL WIDTH on mobile */
+  .nk-sidebar ~ .nk-main .nk-wrap,
+  body:has(.nk-sidebar) .nk-wrap,
+  html body .nk-app-root .nk-main .nk-wrap,
+  body .nk-app-root .nk-main .nk-wrap {
+    position: fixed !important;
+    top: 64px !important; /* Below header */
+    left: 0 !important; /* FULL WIDTH - start from left edge */
+    right: 0 !important; /* Stretch to right edge */
+    bottom: 0 !important; /* Stretch to bottom */
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important; /* FULL WIDTH */
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+  
+  /* Main container - FULL WIDTH */
+  .nk-main,
+  body:has(.nk-sidebar) .nk-main,
+  html body:has(.nk-sidebar) .nk-main,
+  body .nk-app-root .nk-main {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Content area - FULL WIDTH */
+  .nk-content,
+  body:has(.nk-sidebar) .nk-content,
+  .nk-sidebar ~ .nk-main .nk-content {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Container fluid - FULL WIDTH */
+  .nk-content .container-fluid,
+  body .nk-content .container-fluid,
+  .nk-wrap .nk-content .container-fluid {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 20px !important; /* Keep side padding for content */
+    padding-right: 20px !important;
+  }
+  
+  /* Body - no left margin */
+  body {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+  
+  /* ============================================
+     HIDE BODY PSEUDO-ELEMENT BACKGROUND ON MOBILE
+     ============================================ */
+  
+  /* Hide the body::before pseudo-element that creates sidebar background */
+  body:has(.nk-sidebar)::before,
+  html:has(.nk-sidebar)::before,
+  body.nk-body:has(.nk-sidebar)::before,
+  html body.nk-body:has(.nk-sidebar)::before {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    content: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  /* Also hide sidebar::before pseudo-element */
+  .nk-sidebar::before,
+  div.sidebar::before {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    content: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  /* Ensure sidebar background is not visible when hidden */
+  .nk-sidebar:not(.show):not(.nk-sidebar-active),
+  div.sidebar:not(.show) {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+  
+  /* ============================================
+     OVERLAY - REMOVED (NO DARK BACKGROUND)
+     ============================================ */
+  
+  /* No overlay needed - sidebar slides over content */
+  .nk-sidebar-overlay,
+  .sidebar-overlay {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* ============================================
+     CLOSE BUTTON INSIDE SIDEBAR (OPTIONAL)
+     ============================================ */
+  
+  /* If there's a close button in sidebar, ensure it's visible when sidebar is open */
+  .nk-sidebar.show .nk-menu-trigger,
+  .nk-sidebar.nk-sidebar-active .nk-menu-trigger,
+  .nk-sidebar.show .nk-nav-toggle {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    z-index: 1051 !important;
+    width: 40px !important;
+    height: 40px !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    color: #ffffff !important;
+    background: transparent !important;
+  }
+  
+  .nk-sidebar.show .nk-menu-trigger a,
+  .nk-sidebar.nk-sidebar-active .nk-menu-trigger a,
+  .nk-sidebar.show .nk-nav-toggle a {
+    display: inline-flex !important;
+    width: 40px !important;
+    height: 40px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #ffffff !important;
+    background: transparent !important;
+    text-decoration: none !important;
+  }
+}
+
+/* ============================================
+   2. DESKTOP (1200px and above)
+   ============================================ */
+
+@media (min-width: 1200px) {
+  
+  /* Desktop: sidebar always visible */
+  .nk-sidebar,
+  div.sidebar {
+    transform: translateX(0) !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Desktop: logo always visible */
+  .nk-sidebar-brand,
+  .nk-sidebar-element.nk-sidebar-head,
+  div.nk-sidebar-brand {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Desktop: hide menu toggle button */
+  .nk-header .nk-menu-trigger,
+  .nk-header .nk-nav-toggle,
+  .nk-header .navbar-toggler {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+  
+  /* Desktop: header positioned after sidebar */
+  .nk-header,
+  .nk-header.nk-header-fixed,
+  .nk-header.is-light {
+    width: calc(100% - 230px) !important;
+    left: 230px !important;
+  }
+  
+  /* Desktop: main content has left margin for sidebar */
+  .nk-main,
+  .nk-wrap {
+    margin-left: 230px !important;
+  }
+}
+
+/* ============================================
+   3. SMOOTH TRANSITIONS FOR ALL SCREEN SIZES
+   ============================================ */
+
+/* Ensure smooth transitions when sidebar opens/closes */
+.nk-sidebar,
+div.sidebar {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.nk-sidebar-brand,
+.nk-sidebar-element.nk-sidebar-head,
+div.nk-sidebar-brand {
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ============================================
+   4. PREVENT BODY SCROLL WHEN SIDEBAR IS OPEN (MOBILE)
+   ============================================ */
+
+@media (max-width: 1199.98px) {
+  body.sidebar-open {
+    overflow: hidden !important;
+  }
+  
+  /* Allow scrolling inside sidebar */
+  .nk-sidebar.show,
+  .nk-sidebar.nk-sidebar-active {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+
+/* ============================================
+   MOBILE ADMIN STABILITY OVERRIDES
+   ============================================ */
+
+.nk-header,
+.navbar-top,
+.nk-header.nk-header-fixed {
+  z-index: 999999 !important;
+}
+
+.nk-sidebar,
+.nk-sidebar-fixed,
+.sidebar,
+.nav-sidebar {
+  z-index: 999998 !important;
+}
+
+#toast-container,
+.toast-container,
+.notification-toast-container {
+  z-index: 999997 !important;
+}
+
+#toast-container,
+.toast-container,
+.notification-toast-container {
+  top: 80px;
+  max-width: 90vw;
+}
+
+@media (max-width: 1199.98px) {
+  .nk-sidebar,
+  .nk-sidebar-fixed,
+  .sidebar,
+  .nav-sidebar {
+    width: min(85vw, 320px);
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .nk-sidebar.show,
+  .nk-sidebar.nk-sidebar-active,
+  .sidebar.show,
+  .nav-sidebar.show,
+  .nav-sidebar.nk-sidebar-active {
+    transform: translateX(0);
+  }
+
+  .navbar-top .navbar-toggler,
+  .navbar-top button.navbar-toggler,
+  .nk-header .navbar-toggler,
+  .nk-header .nk-nav-toggle,
+  .nk-header .nk-menu-trigger a.nk-nav-toggle {
+    position: relative;
+    left: 0;
+    right: auto;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #toast-container,
+  .toast-container,
+  .notification-toast-container {
+    top: 80px;
+    width: 90vw;
+    max-width: 90vw;
+  }
+
+  button,
+  .btn,
+  .btn-icon,
+  .btn-trigger,
+  .navbar-toggler,
+  [type="button"],
+  [type="submit"],
+  [role="button"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea,
+  .form-control {
+    min-height: 40px;
+  }
+}
+
+
+/* PMD final toast/header polish */
+#toast-container,
+.toast-container,
+.notification-toast-container {
+  top: 100px !important;
+}
+
+@media (max-width: 1199.98px) {
+  #toast-container,
+  .toast-container,
+  .notification-toast-container {
+    top: 100px !important;
+    width: min(90vw, 550px) !important;
+    max-width: 90vw !important;
+  }
+
+  .notification-toast,
+  .notification-toast-close,
+  .navbar-top .nav-link,
+  .navbar-top .dropdown-toggle,
+  .navbar-top .navbar-toggler,
+  .navbar-top .nav-link i,
+  .navbar-top .dropdown-toggle i,
+  .navbar-top .navbar-toggler i {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+
+
+
+/* =========================================================
+   PMD V3 - SIDEBAR / FORM NAV / MOBILE STACK FIX
+   ========================================================= */
+
+@media (max-width: 1199.98px) {
+  .sidebar,
+  .nk-sidebar,
+  .nk-sidebar-fixed,
+  .nav-sidebar,
+  #navSidebar {
+    width: min(85vw, 320px) !important;
+    max-width: 320px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  #navSidebar .nav,
+  #navSidebar .nav-item,
+  #navSidebar .nav-link,
+  .nav-sidebar .nav,
+  .nav-sidebar .nav-item,
+  .nav-sidebar .nav-link {
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  #navSidebar .nav-link,
+  .nav-sidebar .nav-link {
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    padding-right: 14px !important;
+  }
+
+  #navSidebar .nav-link i,
+  .nav-sidebar .nav-link i {
+    min-width: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* فرم تب‌ها / منوهای داخلی صفحه */
+  .nav-tabs,
+  .nav-pills,
+  .tab-nav,
+  .location-nav,
+  .form-nav,
+  .menu-list,
+  .nav.form-nav {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  .nav-tabs .nav-item,
+  .nav-pills .nav-item,
+  .tab-nav .nav-item,
+  .location-nav .nav-item,
+  .form-nav .nav-item,
+  .menu-list .nav-item {
+    flex: 0 1 auto !important;
+    max-width: 100% !important;
+  }
+
+  .nav-tabs .nav-link,
+  .nav-pills .nav-link,
+  .tab-nav .nav-link,
+  .location-nav .nav-link,
+  .form-nav .nav-link,
+  .menu-list .nav-link {
+    white-space: normal !important;
+    word-break: break-word !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  /* فرم دو ستونه -> تک ستونه */
+  .row > [class*="col-"],
+  .form-row > [class*="col-"] {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .row > .col,
+  .row > [class^="col-"],
+  .row > [class*=" col-"],
+  .form-row > .col,
+  .form-row > [class^="col-"],
+  .form-row > [class*=" col-"] {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  .card,
+  .panel,
+  .card-body,
+  .panel-body,
+  .form-fields,
+  .form-widget {
+    overflow-x: hidden !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  .form-check-input {
+    min-width: 22px !important;
+    width: 22px !important;
+    min-height: 22px !important;
+    height: 22px !important;
+  }
+
+  label,
+  .form-check-label {
+    line-height: 1.4 !important;
+  }
+}
+
+
+
+
+/* =========================================================
+   PMD V4 - LOCATION EDIT RESPONSIVE STACK
+   ========================================================= */
+
+@media (max-width: 991.98px) {
+  .edit-form,
+  .form-fields,
+  .form-widget,
+  .panel-body,
+  .card-body,
+  .container-fluid .row,
+  .container-fluid .form-row {
+    min-width: 0 !important;
+  }
+
+  .container-fluid .row > [class*="col-md-6"],
+  .container-fluid .row > [class*="col-lg-6"],
+  .container-fluid .row > [class*="col-xl-6"],
+  .container-fluid .form-row > [class*="col-md-6"],
+  .container-fluid .form-row > [class*="col-lg-6"],
+  .container-fluid .form-row > [class*="col-xl-6"] {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  .container-fluid input[type="text"],
+  .container-fluid input[type="email"],
+  .container-fluid input[type="tel"],
+  .container-fluid input[type="number"],
+  .container-fluid input[type="url"],
+  .container-fluid select,
+  .container-fluid textarea,
+  .container-fluid .form-control,
+  .container-fluid .select2-selection,
+  .container-fluid .select2-selection--single {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .nav-tabs,
+  .nav-pills,
+  .tab-nav,
+  .nav.form-nav,
+  .nav-tabs.nav,
+  ul.nav-tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    row-gap: 8px !important;
+    column-gap: 8px !important;
+    border-bottom: 1px solid rgba(80,100,130,.15) !important;
+    overflow: visible !important;
+  }
+
+  .nav-tabs .nav-item,
+  .nav-pills .nav-item,
+  .tab-nav .nav-item,
+  .nav.form-nav .nav-item,
+  ul.nav-tabs .nav-item {
+    flex: 0 1 auto !important;
+    max-width: 100% !important;
+  }
+
+  .nav-tabs .nav-link,
+  .nav-pills .nav-link,
+  .tab-nav .nav-link,
+  .nav.form-nav .nav-link,
+  ul.nav-tabs .nav-link {
+    white-space: normal !important;
+    word-break: break-word !important;
+    min-height: 44px !important;
+    padding: 10px 14px !important;
+  }
+
+  /* slug row, image/settings area, and checkbox groups */
+  .form-group,
+  .field-group,
+  .location-fields,
+  .settings-fields {
+    min-width: 0 !important;
+  }
+
+  .form-check,
+  .custom-control,
+  .checkbox,
+  .switch,
+  .form-check-inline {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-height: 32px !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  .form-check-input {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .container-fluid,
+  .content,
+  .content-area,
+  .page-content,
+  .main-content,
+  .nk-content,
+  .nk-content-body {
+    overflow-x: hidden !important;
+  }
+
+  .container-fluid .row > [class*="col-"],
+  .container-fluid .form-row > [class*="col-"] {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  .nav-tabs .nav-item,
+  .nav-pills .nav-item,
+  .tab-nav .nav-item,
+  .nav.form-nav .nav-item,
+  ul.nav-tabs .nav-item {
+    width: calc(50% - 4px) !important;
+  }
+
+  .nav-tabs .nav-link,
+  .nav-pills .nav-link,
+  .tab-nav .nav-link,
+  .nav.form-nav .nav-link,
+  ul.nav-tabs .nav-link {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+}
+

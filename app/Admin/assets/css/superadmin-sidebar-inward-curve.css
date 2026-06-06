@@ -1,0 +1,179 @@
+/* ============================================
+   SUPERADMIN SIDEBAR - INWARD CURVE AT TOP-RIGHT
+   Creates an inward curve (concave) at the top-right corner
+   where the sidebar meets the header
+   ============================================ */
+
+/* Sidebar width - MUST BE 230px to match admin panel */
+.nk-sidebar {
+  width: 230px !important; /* EXACT same as admin panel - was incorrectly 300px */
+  min-width: 230px !important;
+  max-width: 230px !important;
+  position: relative !important;
+  z-index: 1030 !important; /* Ensure it's above other elements */
+  overflow: visible !important; /* Allow the curve to be visible */
+  border-top-right-radius: 0 !important; /* Remove any existing radius */
+}
+
+/* Create inward curve using a pseudo-element that creates a notch */
+.nk-sidebar::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 50px !important; /* Width of the curve area */
+  height: 50px !important; /* Height of the curve area */
+  background: inherit !important; /* Match sidebar background */
+  /* Create inward curve by using border-radius on opposite corner */
+  border-radius: 0 0 0 50px !important; /* Bottom-left radius creates inward curve effect */
+  /* Use clip-path for precise inward curve */
+  clip-path: ellipse(50px 50px at 100% 0%) !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+}
+
+/* Better approach: Use clip-path directly on sidebar to create inward notch */
+.nk-sidebar {
+  /* Create inward curve (concave) at top-right: 
+     The polygon creates a notch that curves inward toward the content */
+  clip-path: polygon(
+    0% 0%,
+    calc(100% - 50px) 0%,
+    calc(100% - 40px) 10px,
+    calc(100% - 30px) 18px,
+    calc(100% - 20px) 25px,
+    calc(100% - 10px) 32px,
+    100% 40px,
+    100% 100%,
+    0% 100%
+  ) !important;
+  -webkit-clip-path: polygon(
+    0% 0%,
+    calc(100% - 50px) 0%,
+    calc(100% - 40px) 10px,
+    calc(100% - 30px) 18px,
+    calc(100% - 20px) 25px,
+    calc(100% - 10px) 32px,
+    100% 40px,
+    100% 100%,
+    0% 100%
+  ) !important;
+}
+
+/* Ensure the sidebar brand area also respects the curve */
+.nk-sidebar-brand {
+  border-top-right-radius: 0 !important;
+  /* Match the parent curve - inward curve at top-right */
+  clip-path: polygon(
+    0% 0%,
+    calc(100% - 50px) 0%,
+    calc(100% - 40px) 10px,
+    calc(100% - 30px) 18px,
+    calc(100% - 20px) 25px,
+    calc(100% - 10px) 32px,
+    100% 40px,
+    100% 100%,
+    0% 100%
+  ) !important;
+  -webkit-clip-path: polygon(
+    0% 0%,
+    calc(100% - 50px) 0%,
+    calc(100% - 40px) 10px,
+    calc(100% - 30px) 18px,
+    calc(100% - 20px) 25px,
+    calc(100% - 10px) 32px,
+    100% 40px,
+    100% 100%,
+    0% 100%
+  ) !important;
+}
+
+/* Adjust content padding - MUST BE 230px to match sidebar */
+.nk-sidebar + .nk-wrap,
+.nk-sidebar-overlay + .nk-wrap {
+  padding-left: 230px !important; /* EXACT same as sidebar width - was incorrectly 300px */
+}
+
+/* Header position - MUST BE 230px to match sidebar */
+.nk-sidebar + .nk-wrap > .nk-header-fixed,
+.nk-sidebar-overlay + .nk-wrap > .nk-header-fixed {
+  left: 230px !important; /* EXACT same as sidebar width - was incorrectly 300px */
+}
+
+/* Ensure header alignment is maintained */
+.nk-header,
+.nk-header.nk-header-fixed {
+  z-index: 1031 !important; /* Slightly above sidebar to ensure clean connection */
+  /* FORCE HEADER TO MATCH ADMIN PANEL - MAXIMUM SPECIFICITY */
+  height: 64px !important; /* EXACT same as admin panel */
+  min-height: 64px !important;
+  max-height: 64px !important;
+  background: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(90deg, #516584 0%, #516584 30%, #2a3447 70%, #2a3447 100%) !important;
+  box-shadow: 0 4px 15px rgba(31, 43, 58, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  border-bottom: none !important;
+  border-bottom-right-radius: 25px !important;
+}
+
+.nk-header .container-fluid,
+.nk-header-wrap {
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+}
+
+/* Media query adjustments for responsive design */
+@media (min-width: 1200px) {
+  .nk-sidebar {
+    width: 230px !important; /* EXACT same as admin panel - was incorrectly 300px */
+    min-width: 230px !important;
+    max-width: 230px !important;
+    transform: translateX(0) !important;
+  }
+  
+  .nk-sidebar + .nk-wrap,
+  .nk-sidebar-overlay + .nk-wrap {
+    padding-left: 230px !important; /* EXACT same as sidebar width - was incorrectly 300px */
+  }
+  
+  .nk-sidebar + .nk-wrap > .nk-header-fixed,
+  .nk-sidebar-overlay + .nk-wrap > .nk-header-fixed {
+    left: 230px !important; /* EXACT same as sidebar width - was incorrectly 300px */
+  }
+  
+  /* Compact mode - remove curve when sidebar is compact */
+  .nk-sidebar.is-compact:not(.has-hover) {
+    width: 74px !important;
+    clip-path: none !important; /* Remove curve when compact */
+    -webkit-clip-path: none !important;
+  }
+  
+  .nk-sidebar.is-compact:not(.has-hover) .nk-sidebar-brand {
+    clip-path: none !important; /* Remove curve from brand when compact */
+    -webkit-clip-path: none !important;
+  }
+  
+  .nk-sidebar.is-compact:not(.has-hover) + .nk-wrap {
+    padding-left: 74px !important;
+  }
+  
+  .nk-sidebar.is-compact:not(.has-hover) + .nk-wrap > .nk-header-fixed {
+    left: 74px !important;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 1199.98px) {
+  .nk-sidebar {
+    width: 230px !important; /* EXACT same as admin panel - was incorrectly 300px */
+    min-width: 230px !important;
+    max-width: 230px !important;
+  }
+  
+  .nk-sidebar-mobile {
+    width: 230px !important; /* EXACT same as admin panel - was incorrectly 300px */
+    min-width: 230px !important;
+    max-width: 230px !important;
+  }
+}

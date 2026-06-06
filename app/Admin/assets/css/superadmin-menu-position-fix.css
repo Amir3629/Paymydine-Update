@@ -1,0 +1,36 @@
+/* ============================================
+   SUPERADMIN MENU POSITION FIX
+   Ensure menu items start BELOW the logo (after 170px)
+   Logo area color: #516584 (matches header left side and sidebar top)
+   ============================================ */
+
+/* CRITICAL: Sidebar MUST have padding-top: 170px to push menu items below logo */
+.nk-sidebar {
+  padding-top: 170px !important; /* Space for logo - menu items start below */
+}
+
+/* Logo area gradient - smooth transition from top to #516584 (bottom) */
+.nk-sidebar-brand,
+.nk-sidebar-element.nk-sidebar-head {
+  background: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+  background-color: #516584 !important;
+  background-image: linear-gradient(180deg, #516584 0%, #4e6381 40%, #516584 100%) !important;
+}
+
+/* Ensure menu items don't have extra padding that would move them up */
+.nk-sidebar-menu,
+.nk-sidebar .nk-menu,
+.nk-sidebar-element.nk-sidebar-body,
+.nk-sidebar-content,
+.nk-sidebar-main {
+  padding-top: 0px !important; /* No extra padding - sidebar already has 170px */
+  margin-top: 0px !important;
+}
+
+/* First menu item should start right after logo space */
+.nk-sidebar-menu > .nk-menu-item:first-child,
+.nk-sidebar .nk-menu > .nk-menu-item:first-child {
+  margin-top: 0px !important;
+  padding-top: 0px !important;
+}
+

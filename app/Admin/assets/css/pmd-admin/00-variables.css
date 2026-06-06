@@ -1,0 +1,29 @@
+/*
+ * PayMyDine Admin modular CSS foundation: design tokens.
+ *
+ * These variables are intentionally passive. This file is not loaded by the
+ * admin layout yet, and the variables do not style existing Laravel/TastyIgniter
+ * admin UI unless a future `.pmd-` class opts in to using them.
+ */
+:root {
+  --pmd-color-primary: #364a63;
+  --pmd-color-primary-hover: #526484;
+  --pmd-color-danger: #dc3545;
+  --pmd-color-success: #198754;
+  --pmd-color-warning: #ffc107;
+  --pmd-color-text: #202938;
+  --pmd-color-muted: #6c757d;
+  --pmd-color-border: #d9dee8;
+  --pmd-color-surface: #ffffff;
+
+  --pmd-radius-sm: 4px;
+  --pmd-radius-md: 8px;
+  --pmd-radius-lg: 12px;
+
+  --pmd-space-xs: 4px;
+  --pmd-space-sm: 8px;
+  --pmd-space-md: 16px;
+  --pmd-space-lg: 24px;
+
+  --pmd-transition-fast: 150ms ease-in-out;
+}

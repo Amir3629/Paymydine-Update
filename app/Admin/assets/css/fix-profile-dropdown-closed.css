@@ -1,0 +1,42 @@
+/* CRITICAL FIX: Disable profile dropdown items when dropdown is CLOSED (no .show class) */
+
+/* When profile dropdown is CLOSED - completely disable all interactions */
+.profile-dropdown-menu:not(.show) {
+  pointer-events: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  z-index: -1 !important;
+}
+
+/* Disable ALL interactive elements when dropdown is closed */
+.profile-dropdown-menu:not(.show) *,
+.profile-dropdown-menu:not(.show) a,
+.profile-dropdown-menu:not(.show) button,
+.profile-dropdown-menu:not(.show) .dropdown-item,
+.profile-dropdown-menu:not(.show) [href],
+.profile-dropdown-menu:not(.show) [data-request],
+.profile-dropdown-menu:not(.show) [data-bs-toggle] {
+  pointer-events: none !important;
+  cursor: default !important;
+  z-index: -1 !important;
+}
+
+/* Override ANY inline styles that might force pointer-events: auto */
+.profile-dropdown-menu:not(.show) .dropdown-item[style*="pointer-events"],
+.profile-dropdown-menu:not(.show) a[style*="pointer-events"],
+.profile-dropdown-menu:not(.show) button[style*="pointer-events"] {
+  pointer-events: none !important;
+}
+
+/* When profile dropdown IS open (.show class) - allow interactions */
+.profile-dropdown-menu.show {
+  pointer-events: auto !important;
+}
+
+.profile-dropdown-menu.show *,
+.profile-dropdown-menu.show a,
+.profile-dropdown-menu.show button,
+.profile-dropdown-menu.show .dropdown-item {
+  pointer-events: auto !important;
+}
