@@ -28,17 +28,17 @@ interface ThemeStore {
 }
 
 const defaultSettings: ThemeSettings = {
-  theme_id: 'clean-light',
-  primary_color: '#E7CBA9',
-  secondary_color: '#EFC7B1',
-  accent_color: '#3B3B3B',
-  background_color: '#fdf7f4'
+  theme_id: 'gold-luxury',
+  primary_color: '#062F2A',
+  secondary_color: '#062F2A',
+  accent_color: '#C89B4A',
+  background_color: '#FAF9F4'
 }
 
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
-      currentTheme: 'clean-light', // Default, will be updated on client
+      currentTheme: 'gold-luxury', // Default, will be updated on client
       availableThemes: themes,
       settings: defaultSettings,
       isLoading: false,
@@ -66,7 +66,7 @@ export const useThemeStore = create<ThemeStore>()(
           console.log('📡 ThemeStore: API response:', response)
           
           if (response.success && response.data) {
-            const adminThemeId = response.data.theme_id || response.frontend_theme || 'clean-light'
+            const adminThemeId = response.data.theme_id || response.frontend_theme || 'gold-luxury'
             
             const overrides = buildSafeThemeOverrides(adminThemeId, response.data)
 

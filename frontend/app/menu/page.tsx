@@ -7,7 +7,6 @@ import { useLanguageStore } from "@/store/language-store";
 import { type TranslationKey } from "@/lib/translations";
 import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
-import { useThemeStore } from "@/store/theme-store";
 import { Logo } from "@/components/logo";
 import { CartSheet } from "@/components/cart-sheet";
 import { CategoryNav } from "@/components/category-nav";
@@ -43,6 +42,45 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+
+
+// PMD_REMOVE_CODEX_ORGANIC_THEME_20260607
+// Organic Botanical Paper now uses the exact v0 standalone frontend.
+// These local placeholders keep the old Codex organic UI out of the build path.
+const ORGANIC_BOTANICAL_THEME_KEY = "organic_botanical_paper"
+const organicBotanicalVars = (): React.CSSProperties => ({})
+const OrganicBotanicalHero = (_props: any) => <OrganicExactV0Frame />
+const OrganicBotanicalCategoryNav = (_props: any) => null
+const OrganicBotanicalMenuCard = (_props: any) => null
+
+// PMD_ORGANIC_EXACT_FRAME_COMPONENT_20260607
+function OrganicExactV0Frame() {
+  const [frameSrc, setFrameSrc] = React.useState("/dev/botanical-v0-exact/")
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const params = new URLSearchParams()
+    params.set("embed", "1")
+    params.set("parentPath", window.location.pathname)
+    params.set("parentSearch", window.location.search || "")
+    params.set("host", window.location.host)
+    params.set("ts", String(Date.now()))
+
+    setFrameSrc(`/dev/botanical-v0-exact/?${params.toString()}`)
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-[999999] bg-[#f6efe2]">
+      <iframe
+        title="Organic Botanical Paper Menu"
+        src={frameSrc}
+        className="h-screen w-full border-0"
+        style={{ width: "100%", height: "100vh", border: 0, display: "block" }}
+      />
+    </div>
+  )
+}
 
 const tableOrderTotalByCode = (response: any, code: string): number => {
   const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
@@ -189,6 +227,25 @@ function __pmdRemoteConsoleInstallOnce() {
 
     origLog("[PMD] Remote console enabled (?debug=1)");
   } catch {}
+}
+
+function useCurrentFrontendTheme() {
+  const [themeId, setThemeId] = useState('gold-luxury')
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const readTheme = () => {
+      const nextTheme = document.documentElement.getAttribute('data-theme') || 'gold-luxury'
+      setThemeId(nextTheme)
+
+    }
+    readTheme()
+    const observer = new MutationObserver(readTheme)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return themeId
 }
 
 function useThemeBackgroundColor() {
@@ -682,6 +739,8 @@ function MenuHighlightSection({
   settings,
   onSelect,
   onFirstAdd,
+  organic = false,
+  onOrganicAdd,
 }: {
   title: string
   subtitle: string
@@ -689,27 +748,39 @@ function MenuHighlightSection({
   settings: MenuHighlightSettings
   onSelect: (item: MenuItem) => void
   onFirstAdd: (item: MenuItem) => void
+  organic?: boolean
+  onOrganicAdd?: (item: MenuItem, event: React.MouseEvent) => void
 }) {
   if (!items.length) return null
 
   return (
-    <section className="mb-8 px-4" aria-label={title}>
-      <div className="mb-3 flex items-end justify-between gap-3">
+    <section className={organic ? "organic-highlight-section relative mb-9 px-4" : "mb-8 px-4"} aria-label={title}>
+      <div className={organic ? "mb-4 text-center" : "mb-3 flex items-end justify-between gap-3"}>
         <div>
-          <h2 className="font-serif text-2xl font-bold text-paydine-elegant-gray">{title}</h2>
-          <p className="text-sm text-gray-500">{subtitle}</p>
+          {organic && <div className="mx-auto mb-2 flex w-fit items-center gap-2 text-[var(--organic-accent)]" aria-hidden="true"><span className="h-px w-8 bg-current" /><span className="text-lg">☘</span><span className="h-px w-8 bg-current" /></div>}
+          <h2 className={organic ? "font-serif text-3xl uppercase tracking-[0.16em] text-[var(--organic-text)]" : "font-serif text-2xl font-bold text-paydine-elegant-gray"}>{title}</h2>
+          <p className={organic ? "mt-1 font-serif text-sm text-[var(--organic-muted)]" : "text-sm text-gray-500"}>{subtitle}</p>
         </div>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible">
+      <div className={organic ? "flex gap-4 overflow-x-auto rounded-[2.4rem] border border-[#E5D8BF]/70 bg-[#FFF9EF]/42 p-3 pb-4 shadow-[inset_0_1px_0_rgba(255,255,255,.65)] md:grid md:grid-cols-2 md:overflow-visible" : "flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible"}>
         {items.map((item, index) => (
           <div key={`highlight-${title}-${item.id}`} className="min-w-[82vw] md:min-w-0">
-            <ExpandingToolbarMenuItemCard
-              item={item}
-              onSelect={onSelect}
-              onFirstAdd={() => onFirstAdd(item)}
-              prioritizeImage={index < 2}
-              highlightSettings={settings}
-            />
+            {organic ? (
+              <OrganicBotanicalMenuCard
+                item={item}
+                onSelect={onSelect}
+                onAdd={(event) => onOrganicAdd ? onOrganicAdd(item, event) : onFirstAdd(item)}
+                highlightSettings={settings}
+              />
+            ) : (
+              <ExpandingToolbarMenuItemCard
+                item={item}
+                onSelect={onSelect}
+                onFirstAdd={() => onFirstAdd(item)}
+                prioritizeImage={index < 2}
+                highlightSettings={settings}
+              />
+            )}
           </div>
         ))}
       </div>
@@ -7297,10 +7368,12 @@ function MenuContent() {
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
   const [menuHighlightSettings, setMenuHighlightSettings] = useState<MenuHighlightSettings>(defaultMenuHighlightSettings)
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
-  const { menuItems, taxSettings, loadVATSettings } = useCmsStore()
+  const { menuItems, taxSettings, loadVATSettings, settings: cmsSettings, merchantSettings } = useCmsStore()
 
   const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
   const themeBackgroundColor = useThemeBackgroundColor()
+  const currentFrontendTheme = useCurrentFrontendTheme()
+  const isOrganicBotanicalTheme = currentFrontendTheme === ORGANIC_BOTANICAL_THEME_KEY
   const { t } = useLanguageStore()
   const { toast } = useToast()
   const [isNoteModalOpen, setNoteModalOpen] = useState(false)
@@ -7365,7 +7438,7 @@ function MenuContent() {
     }
     void loadSharedTableOrder()
     const timer = window.setInterval(loadSharedTableOrder, 12000)
-    return () => { cancelled = true; window.clearInterval(timer) }
+return () => { cancelled = true; window.clearInterval(timer) }
   }, [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, searchParams])
 
   // close side cart for pending QR
@@ -7761,6 +7834,27 @@ useEffect(() => {
     if (cartItem) setLastInteractedItem(cartItem)
   }
 
+  const handleOrganicAdd = (item: MenuItem, event: React.MouseEvent) => {
+    event.stopPropagation()
+    let itemToAdd = { ...item }
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
+      if (itemToAdd.options) {
+        itemToAdd.options = itemToAdd.options.map(option => ({
+          ...option,
+          values: option.values.map(value => ({
+            ...value,
+            price: value.price / (1 + taxSettings.percentage / 100)
+          }))
+        }))
+      }
+    }
+    const currentQuantity = items.find(cartItem => cartItem.item.id === item.id)?.quantity || 0
+    addToCart(itemToAdd)
+    if (currentQuantity === 0) handleFirstAdd(item)
+  }
+
+
   const handleItemSelect = (item: MenuItem) => {
     setSelectedItem(item)
     const cartItem = items.find(i => i.item.id === item.id)
@@ -7776,6 +7870,121 @@ useEffect(() => {
       setPaymentModalOpen(true)
     }
   }
+
+  // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleBotanicalMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+
+      const msg = event.data
+      if (!msg || typeof msg !== "object") return
+
+      const type = String((msg as any).type || "")
+      if (!type.startsWith("PMD_BOTANICAL_")) return
+
+      if (type === "PMD_BOTANICAL_ADD_ITEM") {
+        const id = String((msg as any).itemId || "")
+        const quantity = Math.max(1, Number((msg as any).quantity || 1))
+
+        const sourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+        const found = sourceItems.find((candidate: any) => {
+          return String(candidate?.id ?? candidate?.menu_id ?? candidate?.menuId ?? "") === id
+        })
+
+        if (!found) {
+          console.warn("[PMD botanical bridge] item not found", { id })
+          toast({
+            title: "Item not found",
+            description: "Please refresh the menu and try again.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        let itemToAdd: MenuItem = { ...(found as MenuItem) }
+
+        // Keep same VAT behavior as current organic/gold logic.
+        if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+          itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
+          if (itemToAdd.options) {
+            itemToAdd.options = itemToAdd.options.map((option: any) => ({
+              ...option,
+              values: (option.values || []).map((value: any) => ({
+                ...value,
+                price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
+              })),
+            }))
+          }
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          addToCart(itemToAdd)
+        }
+
+        handleFirstAdd(found as MenuItem)
+        toast({
+          title: "Added to order",
+          description: String((found as any).name || (found as any).menu_name || "Item added"),
+        })
+        return
+      }
+
+      if (type === "PMD_BOTANICAL_CALL_WAITER") {
+        handleWaiterClick()
+        return
+      }
+
+      if (type === "PMD_BOTANICAL_ADD_NOTE") {
+        handleNoteClick()
+        return
+      }
+
+      if (type === "PMD_BOTANICAL_CHECKOUT" || type === "PMD_BOTANICAL_TABLE_ORDER") {
+        handleCartClick()
+        return
+      }
+
+
+      if (type === "PMD_BOTANICAL_GO_VALET") {
+        const incomingPath = String((msg as any).parentPath || window.location.pathname || "/menu")
+        const incomingSearch = String((msg as any).parentSearch || window.location.search || "")
+
+        let targetPath = "/valet"
+
+        if (/\/table\/[^/]+\/menu\/?$/.test(incomingPath)) {
+          targetPath = incomingPath.replace(/\/menu\/?$/, "/valet")
+        } else if (/\/menu\/?$/.test(incomingPath)) {
+          targetPath = "/valet"
+        } else if (/\/menu\/table-[^/]+\/?$/.test(incomingPath)) {
+          targetPath = "/valet"
+        }
+
+        window.location.href = `${targetPath}${incomingSearch || ""}`
+        return
+      }
+
+      if (type === "PMD_BOTANICAL_LANGUAGE") {
+        toast({
+          title: "Language",
+          description: "Language switch is still handled by the PayMyDine shell.",
+        })
+      }
+    }
+
+    window.addEventListener("message", handleBotanicalMessage)
+    return () => window.removeEventListener("message", handleBotanicalMessage)
+  }, [
+    apiMenuItems,
+    menuItems,
+    items.length,
+    taxSettings.enabled,
+    taxSettings.percentage,
+    taxSettings.menuPrice,
+    addToCart,
+    toast,
+  ])
   const handleSendNote = async () => {
     const trimmedNote = (note ?? '').trim();
     if (!trimmedNote) {
@@ -7882,54 +8091,90 @@ useEffect(() => {
     return <LoadingSpinner />
   }
 
+  const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
+  const heroItem = highlightSourceItems.find((item) => item.image || (Array.isArray((item as any).images) && (item as any).images.length)) || highlightSourceItems[0] || null
+
   return (
-        <div className="relative min-h-screen w-full bg-theme-background pb-32">
-      <header className="py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <Logo tableNumber={displayTableNumber} />
-        </div>
-      </header>
+        <div className={`${isOrganicBotanicalTheme ? 'pmd-organic-menu' : ''} relative min-h-screen w-full bg-theme-background pb-32`} style={isOrganicBotanicalTheme ? organicBotanicalVars() : undefined}>
+      {isOrganicBotanicalTheme ? (
+        <OrganicBotanicalHero restaurantName={restaurantDisplayName} tableNumber={displayTableNumber} heroItem={heroItem} />
+      ) : (
+        <header className="py-8">
+          <div className="max-w-4xl mx-auto px-4">
+            <Logo tableNumber={displayTableNumber} />
+          </div>
+        </header>
+      )}
       <Suspense fallback={<LoadingSpinner />}>
-        <main className="max-w-4xl mx-auto">
+        <main className={`${isOrganicBotanicalTheme ? 'mx-auto max-w-4xl pt-5' : 'max-w-4xl mx-auto'}`}>
           {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'top' && (
             <>
-              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
-              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
+              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
+              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
             </>
           )}
-          <CategoryNav
-            categories={allCategories}
-            selectedCategory={selectedCategory || "All"} // Force "All" if no selection
-            onSelectCategory={(category) => {
-              setSelectedCategory(category);
-              // Auto-select "All" if no category is passed
-              if (!category) {
-                setSelectedCategory("All");
-              }
-            }}
-          />
+          {isOrganicBotanicalTheme ? (
+            <OrganicBotanicalCategoryNav
+              categories={allCategories}
+              selectedCategory={selectedCategory || "All"}
+              onSelectCategory={(category) => {
+                setSelectedCategory(category || "All");
+              }}
+            />
+          ) : (
+            <CategoryNav
+              categories={allCategories}
+              selectedCategory={selectedCategory || "All"} // Force "All" if no selection
+              onSelectCategory={(category) => {
+                setSelectedCategory(category);
+                // Auto-select "All" if no category is passed
+                if (!category) {
+                  setSelectedCategory("All");
+                }
+              }}
+            />
+          )}
           {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'after_categories' && (
             <>
-              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
-              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} />
+              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
+              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
             </>
           )}
           <section className="w-full mb-12">
             {!isFrontendConfigured && filteredItems.length === 0 ? (
               <TenantSetupSplash />
             ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4">
+            <>
+            {isOrganicBotanicalTheme && (
+              <div className="organic-menu-section-heading px-4 pb-5 text-center">
+                <div className="mx-auto mb-2 flex w-fit items-center gap-2 text-[var(--organic-accent)]" aria-hidden="true"><span className="h-px w-9 bg-current" /><span className="text-lg">☘</span><span className="h-px w-9 bg-current" /></div>
+                <h2 className="font-serif text-3xl uppercase tracking-[0.18em] text-[var(--organic-text)]">{selectedCategory || 'Seasonal'}</h2>
+                <p className="mt-1 font-serif text-sm text-[var(--organic-muted)]">Inspired by what’s fresh right now.</p>
+              </div>
+            )}
+            <div className={`${isOrganicBotanicalTheme ? 'grid grid-cols-1 gap-4 px-4 md:grid-cols-2' : 'grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4'}`}>
               {filteredItems.map((item: MenuItem, index: number) => (
-                <ExpandingToolbarMenuItemCard
-                  key={item.id}
-                  item={item}
-                  onSelect={handleItemSelect}
-                  onFirstAdd={() => handleFirstAdd(item)}
-                  prioritizeImage={index < 4}
-                  highlightSettings={menuHighlightSettings}
-                />
+                isOrganicBotanicalTheme ? (
+                  <OrganicBotanicalMenuCard
+                    key={item.id}
+                    item={item}
+                    onSelect={handleItemSelect}
+                    onAdd={(event) => handleOrganicAdd(item, event)}
+                    highlightSettings={menuHighlightSettings}
+                  />
+                ) : (
+                  <ExpandingToolbarMenuItemCard
+                    key={item.id}
+                    item={item}
+                    onSelect={handleItemSelect}
+                    onFirstAdd={() => handleFirstAdd(item)}
+                    prioritizeImage={index < 4}
+                    highlightSettings={menuHighlightSettings}
+                  />
+                )
               ))}
             </div>
+            </>
             )}
           </section>
         </main>
@@ -7937,6 +8182,41 @@ useEffect(() => {
 
       {/* Button Animation Styles */}
       <style jsx global>{`
+        .pmd-organic-menu {
+          background:
+            radial-gradient(circle at 12% 8%, rgba(255,249,239,.95), transparent 28%),
+            radial-gradient(circle at 88% 12%, rgba(184,134,75,.10), transparent 24%),
+            linear-gradient(180deg, var(--organic-bg), #EFE6D5 42%, #F7F1E7 76%, var(--organic-bg));
+          color: var(--organic-text);
+        }
+        .pmd-organic-menu:before {
+          content: "";
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          opacity: .18;
+          background-image: radial-gradient(rgba(74,65,46,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.38), transparent 35%, rgba(110,94,64,.08));
+          background-size: 13px 13px, 100% 100%;
+          z-index: 0;
+        }
+        .pmd-organic-menu > * { position: relative; z-index: 1; }
+        .pmd-organic-menu .organic-highlight-section:before,
+        .pmd-organic-menu .organic-menu-section-heading:before {
+          content: "";
+          display: block;
+          width: min(560px, 92vw);
+          height: 22px;
+          margin: 0 auto 8px;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at center, rgba(115,122,85,.16), transparent 68%);
+        }
+        .pmd-organic-menu .toolbar-inner-fixed,
+        .pmd-organic-menu .fixed.bottom-\[1\.35rem\] > div {
+          border-color: rgba(115, 122, 85, 0.20) !important;
+          background: color-mix(in srgb, var(--organic-surface) 92%, transparent) !important;
+          box-shadow: 0 18px 45px rgba(66,55,35,0.16) !important;
+          border-radius: 1.75rem !important;
+        }
         @keyframes btn-bounce {
           0% { transform: scale(1); }
           40% { transform: scale(1.2); }

@@ -3,7 +3,7 @@
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Leaf } from "lucide-react"
 import { defaultMenuHighlightSettings, type MenuHighlightSettings, type MenuItem } from "@/lib/data"
 import { getMenuImageUrl } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
@@ -59,6 +59,15 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  }, [])
  // PMD_MODAL_PORTAL_MOUNT_END
 
+ useEffect(() => {
+ if (typeof document === 'undefined') return
+ const readTheme = () => setCurrentTheme(document.documentElement.getAttribute('data-theme') || 'gold-luxury')
+ readTheme()
+ const observer = new MutationObserver(readTheme)
+ observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+ return () => observer.disconnect()
+ }, [])
+
  // PMD_MODAL_OPEN_SYNC_FIX_START
  // The modal component can mount with item=null and later receive the clicked item.
  // Keep renderedItem in sync so clicking a food item always opens the detail card.
@@ -71,6 +80,7 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  }, [item])
  // PMD_MODAL_OPEN_SYNC_FIX_END
  const [isVisible, setIsVisible] = useState(Boolean(item))
+ const [currentTheme, setCurrentTheme] = useState('gold-luxury')
  const closeTimerRef = useRef<number | null>(null)
 
  useEffect(() => {
@@ -207,9 +217,13 @@ const handleModalClose = (event?: any) => {
  animate={{ scale: isVisible ? 1 : 0.97, y: isVisible ? 0 : 8, opacity: isVisible ? 1 : 0 }}
  exit={{ scale: 0.97, y: 8, opacity: 0 }}
  transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-	 className="relative surface pmd-v2-card rounded-3xl shadow-2xl w-full max-w-xl max-h-[90dvh] overflow-hidden"
+	 className={`relative surface pmd-v2-card w-full max-w-xl max-h-[90dvh] overflow-hidden ${currentTheme === 'organic_botanical_paper' ? 'rounded-[2.35rem] border border-[#D8CBAF] shadow-[0_28px_80px_rgba(66,55,35,0.24)]' : 'rounded-3xl shadow-2xl'}`}
+ style={currentTheme === 'organic_botanical_paper' ? { background: 'radial-gradient(circle at 18% 8%, rgba(255,255,255,.9), transparent 34%), radial-gradient(circle at 85% 16%, rgba(184,134,75,.12), transparent 28%), #FFF9EF', color: '#352F28' } : undefined}
  onClick={(e) => e.stopPropagation()}
  >
+ {currentTheme === 'organic_botanical_paper' && (
+   <Leaf className="pointer-events-none absolute -right-4 top-16 z-0 h-24 w-24 rotate-12 text-[#737A55]/10" />
+ )}
  {/* Close button */}
  <Button
    variant="ghost"
@@ -217,12 +231,12 @@ const handleModalClose = (event?: any) => {
    onClick={handleModalClose}
    className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 pmd-v2-action-circle hover:opacity-90 absolute top-4 left-4 z-10"
    style={{
-     background: "#062F2A",
-     backgroundColor: "#062F2A",
+     background: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
+     backgroundColor: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
      color: "#FFFFFF",
      WebkitTextFillColor: "#FFFFFF",
-     borderColor: "#062F2A",
-     outlineColor: "#062F2A",
+     borderColor: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
+     outlineColor: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
      textDecoration: "none",
    }}
  >
@@ -237,8 +251,8 @@ const handleModalClose = (event?: any) => {
    Back
  </Button>
 
- <div className="p-6 overflow-y-auto overscroll-contain max-h-[90dvh]">
- <div className="relative w-full h-[180px] md:h-[230px] mb-6 rounded-2xl overflow-hidden flex items-center justify-center">
+ <div className={`relative z-10 overflow-y-auto overscroll-contain max-h-[90dvh] ${currentTheme === 'organic_botanical_paper' ? 'bg-transparent p-5 sm:p-6' : 'p-6'}`}>
+ <div className={`relative w-full h-[180px] md:h-[230px] mb-6 overflow-hidden flex items-center justify-center ${currentTheme === 'organic_botanical_paper' ? 'border border-[#E1D4B9] bg-[#F3EBDD] shadow-inner' : 'rounded-2xl'}`} style={currentTheme === 'organic_botanical_paper' ? { borderRadius: '38% 62% 44% 56% / 55% 42% 58% 45%' } : undefined}>
  <AnimatePresence mode="wait">
  <motion.div
  key={`${renderedItem?.id}-${activeImageIndex}`}
@@ -260,7 +274,7 @@ const handleModalClose = (event?: any) => {
  </div>
 
  {/* Content */}
-	 <h2 dir="auto" className="font-serif text-3xl font-bold pmd-v2-text mb-3 text-center">{itemName}</h2>
+	 <h2 dir="auto" className={`font-serif text-3xl font-bold mb-3 text-center ${currentTheme === 'organic_botanical_paper' ? 'text-[#352F28]' : 'pmd-v2-text'}`}>{itemName}</h2>
  <MenuRecommendationBadges item={renderedItem} settings={highlightSettings} />
  <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
  <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
@@ -273,7 +287,7 @@ const handleModalClose = (event?: any) => {
  className="justify-center"
  />
  </div>
-	 <p dir={getTextDirection(itemDescription)} className={`pmd-v2-text-muted text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
+	 <p dir={getTextDirection(itemDescription)} className={`${currentTheme === 'organic_botanical_paper' ? 'text-[#7D7467]' : 'pmd-v2-text-muted'} text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
  <FoodNutritionSummary
  calories={renderedItem?.calories}
  protein={renderedItem?.protein}

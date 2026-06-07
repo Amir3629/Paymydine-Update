@@ -27,7 +27,7 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
   try {
     const res = await apiClient.getThemeSettings(); // hits /simple-theme
     const data = res?.data || {};
-    const themeId: string = data.theme_id || res?.frontend_theme || "clean-light";
+    const themeId: string = data.theme_id || res?.frontend_theme || "gold-luxury";
 
     const overrides = buildSafeThemeOverrides(themeId, data);
 
@@ -50,7 +50,7 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
   } catch (e) {
     console.error('❌ ThemeLoader: Failed to load admin theme:', e);
     // Fallback to default theme
-    applyTheme("clean-light");
+    applyTheme("gold-luxury");
     return {};
   }
 }
