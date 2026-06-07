@@ -15865,3 +15865,45 @@ html body [data-pmd-final-card="1"] button[data-pmd-submit-review="1"] {
 html body button[data-pmd-submit-review="1"] {
   display: inline-flex !important;
 }
+
+/* Organic Botanical Paper: theme-specific valet and shared modal polish. */
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-page {
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255,249,239,.95), transparent 30%),
+    radial-gradient(circle at 90% 12%, rgba(184,134,75,.13), transparent 26%),
+    linear-gradient(180deg, var(--theme-background, #F3EBDD), #EFE6D5 58%, #F7F1E7) !important;
+  color: var(--theme-text-primary, #352F28) !important;
+}
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-card,
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-card-sub {
+  background: radial-gradient(circle at 18% 8%, rgba(255,255,255,.88), transparent 34%), var(--theme-input, #FFF9EF) !important;
+  border: 1px solid var(--theme-border, #D8CBAF) !important;
+  border-radius: 2rem !important;
+  box-shadow: 0 22px 60px rgba(66,55,35,.16) !important;
+  color: var(--theme-text-primary, #352F28) !important;
+}
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-text,
+html[data-theme="organic_botanical_paper"] .page--valet label {
+  color: var(--theme-text-primary, #352F28) !important;
+}
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-text-muted {
+  color: var(--theme-text-secondary, #7D7467) !important;
+}
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-input {
+  background: #FFF9EF !important;
+  border-color: var(--theme-border, #D8CBAF) !important;
+  color: var(--theme-text-primary, #352F28) !important;
+  border-radius: 1.25rem !important;
+}
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-action-button,
+html[data-theme="organic_botanical_paper"] .page--valet .pmd-v2-action-circle {
+  background: var(--pmd-primary, var(--theme-primary, #737A55)) !important;
+  border-color: var(--pmd-primary, var(--theme-primary, #737A55)) !important;
+  color: #FFF9EF !important;
+}
+html[data-theme="organic_botanical_paper"] [role="dialog"],
+html[data-theme="organic_botanical_paper"] .pmd-checkout-flat-section,
+html[data-theme="organic_botanical_paper"] [data-pmd-checkout-scroll="1"] {
+  --pmd-checkout-field-final: #FFF9EF;
+  --pmd-checkout-border-final: #D8CBAF;
+}

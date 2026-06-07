@@ -3,7 +3,7 @@
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, Leaf } from "lucide-react"
+import { ArrowLeft, Leaf, Minus, Plus } from "lucide-react"
 import { defaultMenuHighlightSettings, type MenuHighlightSettings, type MenuItem } from "@/lib/data"
 import { getMenuImageUrl } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,9 @@ import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
 import { FoodItemColorDot } from "@/components/food-item-color-dot"
 import { createPortal } from "react-dom"
 import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
+import { useCartStore } from "@/store/cart-store"
+import { useCmsStore } from "@/store/cms-store"
+import { formatCurrency } from "@/lib/currency"
 
 interface MenuItemModalProps {
  item: MenuItem | null
@@ -52,6 +55,10 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  const [renderedItem, setRenderedItem] = useState<MenuItem | null>(item)
  const [isLocallyClosed, setIsLocallyClosed] = useState(false)
  const [isPortalMounted, setIsPortalMounted] = useState(false)
+ const [quantity, setQuantity] = useState(1)
+ const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
+ const addToCart = useCartStore((state) => state.addToCart)
+ const { taxSettings } = useCmsStore()
 
  // PMD_MODAL_PORTAL_MOUNT_START
  useEffect(() => {
@@ -76,6 +83,8 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  setIsLocallyClosed(false)
  setRenderedItem(item)
  setActiveImageIndex(0)
+ setQuantity(1)
+ setSelectedOptions({})
  }
  }, [item])
  // PMD_MODAL_OPEN_SYNC_FIX_END
@@ -181,6 +190,38 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  }
  }, [isModalOpen])
  // PMD_FOOD_MODAL_BODY_SCROLL_LOCK_END
+
+const handleModalAddToCart = (event?: any) => {
+ event?.stopPropagation?.()
+ if (!renderedItem) return
+ const selected = Object.keys(selectedOptions).reduce((acc: Record<string, string>, key) => {
+ const value = selectedOptions[key]
+ if (value) acc[key] = value
+ return acc
+ }, {})
+ let itemToAdd: MenuItem & { __pmdSelectedOptions?: Record<string, string> } = { ...(renderedItem as any), __pmdSelectedOptions: selected }
+ if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+ itemToAdd = {
+ ...(itemToAdd as any),
+ price: Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100),
+ options: itemToAdd.options?.map((option) => ({
+ ...option,
+ values: option.values.map((value) => ({
+ ...value,
+ price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
+ })),
+ })),
+ }
+ }
+ addToCart(itemToAdd, quantity)
+ handleModalClose(event)
+}
+
+const selectedOptionPrice = renderedItem?.options?.reduce((sum, option) => {
+ const selectedId = selectedOptions[option.name]
+ const value = option.values.find((candidate) => String(candidate.id) === String(selectedId))
+ return sum + Number(value?.price || 0)
+}, 0) || 0
 
 const handleModalClose = (event?: any) => {
  event?.stopPropagation?.()
@@ -296,6 +337,53 @@ const handleModalClose = (event?: any) => {
  sugar={renderedItem?.sugar}
  servingSize={renderedItem?.serving_size}
  />
+ {currentTheme === 'organic_botanical_paper' && Array.isArray(renderedItem?.options) && renderedItem.options.length > 0 && (
+ <div className={`mt-5 space-y-4 rounded-3xl border p-4 ${currentTheme === 'organic_botanical_paper' ? 'border-[#E1D4B9] bg-[#F3EBDD]/65' : 'border-theme-border bg-theme-input/40'}`}>
+ {renderedItem.options.map((option) => (
+ <div key={option.id} className="space-y-2">
+ <div className="flex items-center justify-between gap-2">
+ <h3 className={`text-sm font-semibold ${currentTheme === 'organic_botanical_paper' ? 'font-serif text-[#352F28]' : 'pmd-v2-text'}`}>{option.name}</h3>
+ {option.required && <span className="text-[11px] uppercase tracking-[0.12em] text-[#B8864B]">Required</span>}
+ </div>
+ <div className="grid gap-2">
+ {option.values.map((value) => {
+ const checked = selectedOptions[option.name] === String(value.id)
+ return (
+ <label key={value.id} className={`flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-2 text-sm transition ${checked ? 'border-[var(--theme-primary,#737A55)] bg-[#EEF2E5]' : 'border-[#E1D4B9] bg-[#FFF9EF]/70'}`}>
+ <span className="flex items-center gap-2">
+ <input
+ type={option.display_type === 'checkbox' ? 'checkbox' : 'radio'}
+ name={`modal-option-${renderedItem.id}-${option.id}`}
+ checked={checked}
+ onChange={() => setSelectedOptions((prev) => ({ ...prev, [option.name]: checked && option.display_type === 'checkbox' ? '' : String(value.id) }))}
+ />
+ <span>{value.value}</span>
+ </span>
+ {Number(value.price || 0) > 0 && <span className="font-semibold text-[var(--theme-accent,#B8864B)]">+{formatCurrency(value.price)}</span>}
+ </label>
+ )
+ })}
+ </div>
+ </div>
+ ))}
+ </div>
+ )}
+ {currentTheme === 'organic_botanical_paper' && (
+ <>
+ <div className={`mt-5 flex items-center justify-between gap-3 rounded-3xl border p-3 ${currentTheme === 'organic_botanical_paper' ? 'border-[#E1D4B9] bg-[#FFF9EF]/85' : 'border-theme-border bg-theme-input/50'}`}>
+ <div>
+ <p className={`text-xs uppercase tracking-[0.16em] ${currentTheme === 'organic_botanical_paper' ? 'text-[#7D7467]' : 'pmd-v2-text-muted'}`}>Total</p>
+ <p className="font-serif text-2xl font-semibold text-[var(--theme-accent,#B8864B)]">{formatCurrency((Number(renderedItem?.price || 0) + selectedOptionPrice) * quantity)}</p>
+ </div>
+ <div className="flex items-center gap-2">
+ <Button type="button" variant="ghost" size="icon" className="rounded-full border border-[#D8CBAF]" onClick={(event) => { event.stopPropagation(); setQuantity((value) => Math.max(1, value - 1)) }}><Minus className="h-4 w-4" /></Button>
+ <span className="w-7 text-center font-serif text-lg font-semibold">{quantity}</span>
+ <Button type="button" variant="ghost" size="icon" className="rounded-full border border-[#D8CBAF]" onClick={(event) => { event.stopPropagation(); setQuantity((value) => value + 1) }}><Plus className="h-4 w-4" /></Button>
+ </div>
+ </div>
+ <Button type="button" onClick={handleModalAddToCart} className={`mt-3 h-12 w-full rounded-full font-serif text-base ${currentTheme === 'organic_botanical_paper' ? 'bg-[var(--theme-primary,#737A55)] text-[#FFF9EF] hover:bg-[var(--theme-primary,#737A55)]/90' : 'pmd-v2-action-button'}`}>Add to order</Button>
+ </>
+ )}
  </div>
  </motion.div>
  </motion.div>

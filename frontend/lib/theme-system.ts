@@ -309,6 +309,8 @@ export interface ThemeColors {
       '--theme-primary': colors.primary,
       '--theme-secondary': colors.secondary,
       '--theme-accent': colors.accent,
+      '--pmd-primary': colors.primary,
+      '--pmd-accent': colors.accent,
       '--theme-background': colors.background,
       '--theme-text-primary': colors.textPrimary,
       '--theme-text-secondary': colors.textSecondary,

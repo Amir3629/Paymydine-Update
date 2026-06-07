@@ -37,9 +37,9 @@ export default function RootLayout({
             var ov=null; try{ ov=JSON.parse(localStorage.getItem(ovKey)||"null"); }catch(e){}
             if(ov && typeof ov==="object"){
               var r=document.documentElement.style;
-              if(ov.primary)   r.setProperty("--theme-primary",ov.primary);
+              if(ov.primary)   { r.setProperty("--theme-primary",ov.primary); r.setProperty("--pmd-primary",ov.primary); }
               if(ov.secondary) r.setProperty("--theme-secondary",ov.secondary);
-              if(ov.accent)    r.setProperty("--theme-accent",ov.accent);
+              if(ov.accent)    { r.setProperty("--theme-accent",ov.accent); r.setProperty("--pmd-accent",ov.accent); }
               if(ov.background)r.setProperty("--theme-background",ov.background);
             }
           }catch(e){}})()`

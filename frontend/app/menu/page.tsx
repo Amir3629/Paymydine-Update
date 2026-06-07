@@ -33,6 +33,13 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
+import {
+  ORGANIC_BOTANICAL_THEME_KEY,
+  OrganicBotanicalCategoryNav,
+  OrganicBotanicalHero,
+  OrganicBotanicalMenuCard,
+  organicBotanicalVars,
+} from "@/components/menu-themes/organic-botanical-paper";
 
 import {
   Dialog,
@@ -43,44 +50,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 
-
-// PMD_REMOVE_CODEX_ORGANIC_THEME_20260607
-// Organic Botanical Paper now uses the exact v0 standalone frontend.
-// These local placeholders keep the old Codex organic UI out of the build path.
-const ORGANIC_BOTANICAL_THEME_KEY = "organic_botanical_paper"
-const organicBotanicalVars = (): React.CSSProperties => ({})
-const OrganicBotanicalHero = (_props: any) => <OrganicExactV0Frame />
-const OrganicBotanicalCategoryNav = (_props: any) => null
-const OrganicBotanicalMenuCard = (_props: any) => null
-
-// PMD_ORGANIC_EXACT_FRAME_COMPONENT_20260607
-function OrganicExactV0Frame() {
-  const [frameSrc, setFrameSrc] = React.useState("/dev/botanical-v0-exact/")
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const params = new URLSearchParams()
-    params.set("embed", "1")
-    params.set("parentPath", window.location.pathname)
-    params.set("parentSearch", window.location.search || "")
-    params.set("host", window.location.host)
-    params.set("ts", String(Date.now()))
-
-    setFrameSrc(`/dev/botanical-v0-exact/?${params.toString()}`)
-  }, [])
-
-  return (
-    <div className="fixed inset-0 z-[999999] bg-[#f6efe2]">
-      <iframe
-        title="Organic Botanical Paper Menu"
-        src={frameSrc}
-        className="h-screen w-full border-0"
-        style={{ width: "100%", height: "100vh", border: 0, display: "block" }}
-      />
-    </div>
-  )
-}
 
 const tableOrderTotalByCode = (response: any, code: string): number => {
   const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
@@ -1408,6 +1377,19 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       }))
     })
   }, [allItems, t])
+
+  useEffect(() => {
+    const seeded: Record<string, Record<string, string>> = {}
+    personalReviewItems.forEach((cartItem: any) => {
+      const preselected = cartItem?.item?.__pmdSelectedOptions
+      if (preselected && typeof preselected === "object" && Object.keys(preselected).length > 0) {
+        seeded[String(cartItem.__pmdOptionKey || cartItem.item.id)] = preselected
+      }
+    })
+    if (Object.keys(seeded).length > 0) {
+      setSelectedOptions((prev) => ({ ...seeded, ...prev }))
+    }
+  }, [personalReviewItems])
 
   // Flatten allItems into individual item instances for split bill
   const allItemInstances = allItems.flatMap((cartItem, cartIndex) =>
@@ -7871,120 +7853,15 @@ useEffect(() => {
     }
   }
 
-  // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
-  useEffect(() => {
+  const handleValetClick = () => {
     if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search || "")
+    if (tableIdString && !params.get("table_id")) params.set("table_id", tableIdString)
+    if (displayTableNumber !== null && displayTableNumber !== undefined && !params.get("table_no")) params.set("table_no", String(displayTableNumber))
+    const tablePath = tableInfo ? `${buildTablePath(tableInfo, String(displayTableNumber || ""))}/valet` : "/valet"
+    window.location.href = `${tablePath}${params.toString() ? `?${params.toString()}` : ""}`
+  }
 
-    const handleBotanicalMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-
-      const msg = event.data
-      if (!msg || typeof msg !== "object") return
-
-      const type = String((msg as any).type || "")
-      if (!type.startsWith("PMD_BOTANICAL_")) return
-
-      if (type === "PMD_BOTANICAL_ADD_ITEM") {
-        const id = String((msg as any).itemId || "")
-        const quantity = Math.max(1, Number((msg as any).quantity || 1))
-
-        const sourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-        const found = sourceItems.find((candidate: any) => {
-          return String(candidate?.id ?? candidate?.menu_id ?? candidate?.menuId ?? "") === id
-        })
-
-        if (!found) {
-          console.warn("[PMD botanical bridge] item not found", { id })
-          toast({
-            title: "Item not found",
-            description: "Please refresh the menu and try again.",
-            variant: "destructive",
-          })
-          return
-        }
-
-        let itemToAdd: MenuItem = { ...(found as MenuItem) }
-
-        // Keep same VAT behavior as current organic/gold logic.
-        if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-          itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
-          if (itemToAdd.options) {
-            itemToAdd.options = itemToAdd.options.map((option: any) => ({
-              ...option,
-              values: (option.values || []).map((value: any) => ({
-                ...value,
-                price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
-              })),
-            }))
-          }
-        }
-
-        for (let i = 0; i < quantity; i++) {
-          addToCart(itemToAdd)
-        }
-
-        handleFirstAdd(found as MenuItem)
-        toast({
-          title: "Added to order",
-          description: String((found as any).name || (found as any).menu_name || "Item added"),
-        })
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_CALL_WAITER") {
-        handleWaiterClick()
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_ADD_NOTE") {
-        handleNoteClick()
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_CHECKOUT" || type === "PMD_BOTANICAL_TABLE_ORDER") {
-        handleCartClick()
-        return
-      }
-
-
-      if (type === "PMD_BOTANICAL_GO_VALET") {
-        const incomingPath = String((msg as any).parentPath || window.location.pathname || "/menu")
-        const incomingSearch = String((msg as any).parentSearch || window.location.search || "")
-
-        let targetPath = "/valet"
-
-        if (/\/table\/[^/]+\/menu\/?$/.test(incomingPath)) {
-          targetPath = incomingPath.replace(/\/menu\/?$/, "/valet")
-        } else if (/\/menu\/?$/.test(incomingPath)) {
-          targetPath = "/valet"
-        } else if (/\/menu\/table-[^/]+\/?$/.test(incomingPath)) {
-          targetPath = "/valet"
-        }
-
-        window.location.href = `${targetPath}${incomingSearch || ""}`
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_LANGUAGE") {
-        toast({
-          title: "Language",
-          description: "Language switch is still handled by the PayMyDine shell.",
-        })
-      }
-    }
-
-    window.addEventListener("message", handleBotanicalMessage)
-    return () => window.removeEventListener("message", handleBotanicalMessage)
-  }, [
-    apiMenuItems,
-    menuItems,
-    items.length,
-    taxSettings.enabled,
-    taxSettings.percentage,
-    taxSettings.menuPrice,
-    addToCart,
-    toast,
-  ])
   const handleSendNote = async () => {
     const trimmedNote = (note ?? '').trim();
     if (!trimmedNote) {
@@ -8092,12 +7969,10 @@ useEffect(() => {
   }
 
   const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
-  const heroItem = highlightSourceItems.find((item) => item.image || (Array.isArray((item as any).images) && (item as any).images.length)) || highlightSourceItems[0] || null
-
   return (
         <div className={`${isOrganicBotanicalTheme ? 'pmd-organic-menu' : ''} relative min-h-screen w-full bg-theme-background pb-32`} style={isOrganicBotanicalTheme ? organicBotanicalVars() : undefined}>
       {isOrganicBotanicalTheme ? (
-        <OrganicBotanicalHero restaurantName={restaurantDisplayName} tableNumber={displayTableNumber} heroItem={heroItem} />
+        <OrganicBotanicalHero restaurantName={restaurantDisplayName} tableNumber={displayTableNumber} onValetClick={handleValetClick} />
       ) : (
         <header className="py-8">
           <div className="max-w-4xl mx-auto px-4">
@@ -8212,10 +8087,23 @@ useEffect(() => {
         }
         .pmd-organic-menu .toolbar-inner-fixed,
         .pmd-organic-menu .fixed.bottom-\[1\.35rem\] > div {
-          border-color: rgba(115, 122, 85, 0.20) !important;
+          border: 1px solid rgba(115, 122, 85, 0.20) !important;
           background: color-mix(in srgb, var(--organic-surface) 92%, transparent) !important;
           box-shadow: 0 18px 45px rgba(66,55,35,0.16) !important;
           border-radius: 1.75rem !important;
+          color: var(--organic-text) !important;
+          backdrop-filter: blur(18px);
+        }
+        .pmd-organic-menu .pmd-v2-action-circle,
+        .pmd-organic-menu .quantity-btn {
+          background: var(--organic-primary) !important;
+          color: #FFF9EF !important;
+          border-color: var(--organic-primary) !important;
+          box-shadow: 0 10px 24px rgba(115,122,85,.28) !important;
+        }
+        .pmd-organic-menu .menu-item-price,
+        .pmd-organic-menu .pmd-checkout-total-price {
+          color: var(--organic-accent) !important;
         }
         @keyframes btn-bounce {
           0% { transform: scale(1); }
