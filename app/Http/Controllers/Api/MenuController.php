@@ -182,13 +182,18 @@ class MenuController extends Controller
                 }
             }
             
+            $setupStatus = $this->getFrontendSetupStatus($allItems, $categories);
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'items' => $allItems,
                     'categories' => $categories,
+                    'is_frontend_configured' => $setupStatus['is_frontend_configured'],
+                    'setup_status' => $setupStatus['setup_status'],
                     'menu_highlight_settings' => $this->getMenuHighlightSettings(),
-                    'menu_cache_version' => $this->getMenuHighlightCacheVersion()
+                    'menu_cache_version' => $this->getMenuHighlightCacheVersion(),
+                    'menu_api_version' => 'menu-highlights-v2'
                 ]
             ]);
 
@@ -504,7 +509,8 @@ class MenuController extends Controller
                     'menu_items' => $menuData['data']['items'],
                     'categories' => $menuData['data']['categories'],
                     'menu_highlight_settings' => $menuData['data']['menu_highlight_settings'] ?? $this->getMenuHighlightSettings(),
-                    'menu_cache_version' => $menuData['data']['menu_cache_version'] ?? $this->getMenuHighlightCacheVersion()
+                    'menu_cache_version' => $menuData['data']['menu_cache_version'] ?? $this->getMenuHighlightCacheVersion(),
+                    'menu_api_version' => $menuData['data']['menu_api_version'] ?? 'menu-highlights-v2'
                 ]
             ]);
 
@@ -568,6 +574,41 @@ class MenuController extends Controller
         return [
             'auto_ids' => array_flip($bestsellerStats['ids']),
             'counts' => $bestsellerStats['counts'],
+        ];
+    }
+
+    private function getFrontendSetupStatus(array $items, array $categories): array
+    {
+        $hasCategories = count($categories) > 0;
+        $hasMenuItems = count($items) > 0;
+        $hasLogo = false;
+        $hasCustomSettings = false;
+
+        if (Schema::hasTable('settings')) {
+            $columns = Schema::getColumnListing('settings');
+            $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+            $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
+            if ($keyColumn && $valueColumn) {
+                $settings = DB::table('settings')
+                    ->whereIn($keyColumn, ['site_logo', 'site_name', 'mail_from_address'])
+                    ->get()
+                    ->keyBy($keyColumn);
+                $logoValue = trim((string)($settings['site_logo']->{$valueColumn} ?? ''));
+                $siteNameValue = trim((string)($settings['site_name']->{$valueColumn} ?? ''));
+                $mailValue = trim((string)($settings['mail_from_address']->{$valueColumn} ?? ''));
+                $hasLogo = $logoValue !== '' && stripos($logoValue, 'default') === false && stripos($logoValue, 'placeholder') === false;
+                $hasCustomSettings = ($siteNameValue !== '' && strcasecmp($siteNameValue, 'PayMyDine') !== 0) || $mailValue !== '';
+            }
+        }
+
+        return [
+            'is_frontend_configured' => $hasCategories || $hasMenuItems || $hasLogo || $hasCustomSettings,
+            'setup_status' => [
+                'has_categories' => $hasCategories,
+                'has_menu_items' => $hasMenuItems,
+                'has_logo' => $hasLogo,
+                'has_custom_settings' => $hasCustomSettings,
+            ],
         ];
     }
 

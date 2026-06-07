@@ -529,66 +529,9 @@ Route::group([
     });
 
     // Menu endpoints
-    Route::get('/menu', function () {
-        try {
-            // Get menu items with categories (matching old API structure)
-            $query = "
-                SELECT 
-                    m.menu_id as id,
-                    m.menu_name as name,
-                    m.menu_description as description,
-                    CAST(m.menu_price AS DECIMAL(10,2)) as price,
-                    COALESCE(c.name, 'Main') as category_name,
-                    ma.name as image
-                FROM ti_menus m
-                LEFT JOIN ti_menu_categories mc ON m.menu_id = mc.menu_id
-                LEFT JOIN ti_categories c ON mc.category_id = c.category_id
-                LEFT JOIN ti_media_attachments ma ON ma.attachment_type = 'menus' 
-                    AND ma.attachment_id = m.menu_id 
-                    AND ma.tag = 'thumb'
-                WHERE m.menu_status = 1
-                ORDER BY c.priority ASC, m.menu_name ASC
-            ";
-            
-            $items = DB::select($query);
-            
-            // Convert prices to float and fix image paths
-            foreach ($items as &$item) {
-                $item->price = (float)$item->price;
-                if ($item->image) {
-                    // If image exists, construct the full URL
-                    $item->image = "/api/media/" . $item->image;
-                } else {
-                    // Use default image if none exists
-                    $item->image = '/images/pasta.png';
-                }
-            }
-            
-            // Get all enabled categories
-            $categoriesQuery = "
-                SELECT category_id as id, name, priority 
-                FROM ti_categories 
-                WHERE status = 1 
-                ORDER BY priority ASC, name ASC
-            ";
-            $categories = DB::select($categoriesQuery);
-            
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'items' => $items,
-                    'categories' => $categories
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to fetch menu',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    });
+    Route::get('/menu', function (\Illuminate\Http\Request $request) {
+                    return app(\App\Http\Controllers\Api\MenuController::class)->index($request);
+                });
 
     // Categories endpoints
     Route::get('/categories', function () {
