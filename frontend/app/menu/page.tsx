@@ -712,14 +712,15 @@ function MenuHighlightSection({
   if (!items.length) return null
 
   return (
-    <section className="mb-8 px-4" aria-label={title}>
-      <div className="mb-3 flex items-end justify-between gap-3">
+    <section className={organic ? "organic-highlight-section relative mb-9 px-4" : "mb-8 px-4"} aria-label={title}>
+      <div className={organic ? "mb-4 text-center" : "mb-3 flex items-end justify-between gap-3"}>
         <div>
-          <h2 className="font-serif text-2xl font-bold text-paydine-elegant-gray">{title}</h2>
-          <p className="text-sm text-gray-500">{subtitle}</p>
+          {organic && <div className="mx-auto mb-2 flex w-fit items-center gap-2 text-[var(--organic-accent)]" aria-hidden="true"><span className="h-px w-8 bg-current" /><span className="text-lg">☘</span><span className="h-px w-8 bg-current" /></div>}
+          <h2 className={organic ? "font-serif text-3xl uppercase tracking-[0.16em] text-[var(--organic-text)]" : "font-serif text-2xl font-bold text-paydine-elegant-gray"}>{title}</h2>
+          <p className={organic ? "mt-1 font-serif text-sm text-[var(--organic-muted)]" : "text-sm text-gray-500"}>{subtitle}</p>
         </div>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible">
+      <div className={organic ? "flex gap-4 overflow-x-auto rounded-[2.4rem] border border-[#E5D8BF]/70 bg-[#FFF9EF]/42 p-3 pb-4 shadow-[inset_0_1px_0_rgba(255,255,255,.65)] md:grid md:grid-cols-2 md:overflow-visible" : "flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible"}>
         {items.map((item, index) => (
           <div key={`highlight-${title}-${item.id}`} className="min-w-[82vw] md:min-w-0">
             {organic ? (
@@ -7986,6 +7987,14 @@ useEffect(() => {
             {!isFrontendConfigured && filteredItems.length === 0 ? (
               <TenantSetupSplash />
             ) : (
+            <>
+            {isOrganicBotanicalTheme && (
+              <div className="organic-menu-section-heading px-4 pb-5 text-center">
+                <div className="mx-auto mb-2 flex w-fit items-center gap-2 text-[var(--organic-accent)]" aria-hidden="true"><span className="h-px w-9 bg-current" /><span className="text-lg">☘</span><span className="h-px w-9 bg-current" /></div>
+                <h2 className="font-serif text-3xl uppercase tracking-[0.18em] text-[var(--organic-text)]">{selectedCategory || 'Seasonal'}</h2>
+                <p className="mt-1 font-serif text-sm text-[var(--organic-muted)]">Inspired by what’s fresh right now.</p>
+              </div>
+            )}
             <div className={`${isOrganicBotanicalTheme ? 'grid grid-cols-1 gap-4 px-4 md:grid-cols-2' : 'grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4'}`}>
               {filteredItems.map((item: MenuItem, index: number) => (
                 isOrganicBotanicalTheme ? (
@@ -8008,6 +8017,7 @@ useEffect(() => {
                 )
               ))}
             </div>
+            </>
             )}
           </section>
         </main>
@@ -8017,15 +8027,38 @@ useEffect(() => {
       <style jsx global>{`
         .pmd-organic-menu {
           background:
-            radial-gradient(circle at 20% 0%, rgba(255,249,239,.9), transparent 34%),
-            linear-gradient(180deg, var(--organic-bg), #EFE6D5 45%, var(--organic-bg));
+            radial-gradient(circle at 12% 8%, rgba(255,249,239,.95), transparent 28%),
+            radial-gradient(circle at 88% 12%, rgba(184,134,75,.10), transparent 24%),
+            linear-gradient(180deg, var(--organic-bg), #EFE6D5 42%, #F7F1E7 76%, var(--organic-bg));
           color: var(--organic-text);
+        }
+        .pmd-organic-menu:before {
+          content: "";
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          opacity: .18;
+          background-image: radial-gradient(rgba(74,65,46,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.38), transparent 35%, rgba(110,94,64,.08));
+          background-size: 13px 13px, 100% 100%;
+          z-index: 0;
+        }
+        .pmd-organic-menu > * { position: relative; z-index: 1; }
+        .pmd-organic-menu .organic-highlight-section:before,
+        .pmd-organic-menu .organic-menu-section-heading:before {
+          content: "";
+          display: block;
+          width: min(560px, 92vw);
+          height: 22px;
+          margin: 0 auto 8px;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at center, rgba(115,122,85,.16), transparent 68%);
         }
         .pmd-organic-menu .toolbar-inner-fixed,
         .pmd-organic-menu .fixed.bottom-\[1\.35rem\] > div {
-          border-color: rgba(115, 122, 85, 0.22) !important;
-          background: color-mix(in srgb, var(--organic-surface) 94%, transparent) !important;
-          box-shadow: 0 18px 45px rgba(66,55,35,0.15) !important;
+          border-color: rgba(115, 122, 85, 0.20) !important;
+          background: color-mix(in srgb, var(--organic-surface) 92%, transparent) !important;
+          box-shadow: 0 18px 45px rgba(66,55,35,0.16) !important;
+          border-radius: 1.75rem !important;
         }
         @keyframes btn-bounce {
           0% { transform: scale(1); }
