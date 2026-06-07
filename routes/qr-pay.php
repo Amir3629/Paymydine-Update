@@ -1163,15 +1163,15 @@ Route::group([
     Route::post('/reviews', function (\Illuminate\Http\Request $request) {
         $payload = $request->validate([
             'order_id' => 'nullable|integer|min:1',
-            'rating' => 'nullable|integer|min:0|max:5',
+            'rating' => 'required|integer|min:1|max:5',
             'review' => 'nullable|string|max:4000',
             'public_share_consent' => 'nullable|boolean',
         ]);
 
         $rating = (int)($payload['rating'] ?? 0);
         $reviewText = trim((string)($payload['review'] ?? ''));
-        if ($rating <= 0 && $reviewText === '') {
-            return response()->json(['success' => false, 'error' => 'Please add a star rating or review text.'], 422);
+        if ($rating < 1 || $rating > 5) {
+            return response()->json(['success' => false, 'error' => 'Please select a star rating from 1 to 5.'], 422);
         }
 
         if (!\Illuminate\Support\Facades\Schema::hasTable('reviews')) {
@@ -1198,6 +1198,24 @@ Route::group([
         if (!\Illuminate\Support\Facades\Schema::hasColumn('reviews', 'tenant_host')) {
             \Illuminate\Support\Facades\Schema::table('reviews', function (\Illuminate\Database\Schema\Blueprint $table) { $table->string('tenant_host')->nullable(); });
         }
+        foreach ([
+            'order_id' => 'unsignedInteger',
+            'menu_id' => 'unsignedInteger',
+            'customer_name' => 'string',
+            'rating' => 'unsignedTinyInteger',
+            'comment' => 'text',
+            'status' => 'string',
+            'source' => 'string',
+        ] as $column => $type) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('reviews', $column)) {
+                \Illuminate\Support\Facades\Schema::table('reviews', function (\Illuminate\Database\Schema\Blueprint $table) use ($column, $type) {
+                    if ($type === 'unsignedInteger') $table->unsignedInteger($column)->nullable()->index();
+                    elseif ($type === 'unsignedTinyInteger') $table->unsignedTinyInteger($column)->default(0);
+                    elseif ($type === 'text') $table->text($column)->nullable();
+                    else $table->string($column)->nullable();
+                });
+            }
+        }
 
         $locationId = null;
         $orderId = isset($payload['order_id']) ? (int)$payload['order_id'] : null;
@@ -1208,7 +1226,8 @@ Route::group([
             $locationId = \Illuminate\Support\Facades\DB::table('locations')->value('location_id') ?: null;
         }
 
-        $reviewId = \Illuminate\Support\Facades\DB::table('reviews')->insertGetId([
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('reviews');
+        $insert = [
             'customer_id' => null,
             'sale_id' => $orderId,
             'sale_type' => $orderId ? 'orders' : null,
@@ -1221,9 +1240,17 @@ Route::group([
             'review_text' => $reviewText,
             'review_status' => 0,
             'public_share_consent' => array_key_exists('public_share_consent', $payload) ? $payload['public_share_consent'] : null,
+            'order_id' => $orderId,
+            'customer_name' => 'Checkout guest',
+            'rating' => $rating,
+            'comment' => $reviewText,
+            'status' => 'pending',
+            'source' => 'frontend',
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+        $insert = array_intersect_key($insert, array_flip($columns));
+        $reviewId = \Illuminate\Support\Facades\DB::table('reviews')->insertGetId($insert);
 
         return response()->json(['success' => true, 'data' => ['review_id' => $reviewId]]);
     });

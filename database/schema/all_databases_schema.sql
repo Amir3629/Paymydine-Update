@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Sat Jun  6 22:40:14 UTC 2026
+-- Generated UTC: Sun Jun  7 00:02:46 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 
@@ -312,6 +312,11 @@ CREATE TABLE `ti_cash_drawers` (
   `pos_device_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Linked POS device (optional)',
   `local_pos_device_id` bigint(20) unsigned DEFAULT NULL,
   `local_mapping_invalid` tinyint(1) NOT NULL DEFAULT 0,
+  `last_command_status` varchar(20) DEFAULT NULL,
+  `last_command_message` text DEFAULT NULL,
+  `setup_state` varchar(30) DEFAULT NULL,
+  `setup_message` text DEFAULT NULL,
+  `setup_completed_at` timestamp NULL DEFAULT NULL,
   `connection_type` enum('rj11_printer','usb','serial','network','integrated') NOT NULL DEFAULT 'rj11_printer' COMMENT 'How the drawer is connected',
   `device_path` varchar(255) DEFAULT NULL COMMENT 'COM port, USB path, IP address, or printer name',
   `printer_id` bigint(20) unsigned DEFAULT NULL COMMENT 'If RJ11, link to printer device',
@@ -1764,8 +1769,12 @@ CREATE TABLE `ti_menus` (
   `menu_price` decimal(15,4) NOT NULL,
   `minimum_qty` int(11) NOT NULL DEFAULT 0,
   `menu_status` tinyint(1) NOT NULL,
+  `is_chef_recommended` tinyint(1) NOT NULL DEFAULT 0,
+  `is_manual_bestseller` tinyint(1) NOT NULL DEFAULT 0,
+  `bestseller_override_mode` varchar(20) NOT NULL DEFAULT 'auto',
   `is_stock_out` tinyint(1) NOT NULL DEFAULT 0,
   `menu_priority` int(11) NOT NULL DEFAULT 0,
+  `prep_time_minutes` smallint(5) unsigned NOT NULL DEFAULT 15,
   `order_restriction` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -1823,7 +1832,7 @@ CREATE TABLE `ti_migrations` (
   `migration` varchar(128) NOT NULL,
   `batch` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=172 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=191 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1939,6 +1948,54 @@ CREATE TABLE `ti_order_notes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_order_payment_transaction_items`
+--
+
+DROP TABLE IF EXISTS `ti_order_payment_transaction_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_order_payment_transaction_items` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `transaction_id` bigint(20) unsigned NOT NULL,
+  `order_menu_id` bigint(20) unsigned NOT NULL,
+  `menu_id` bigint(20) unsigned DEFAULT NULL,
+  `quantity_paid` decimal(10,3) NOT NULL,
+  `unit_price` decimal(15,4) NOT NULL,
+  `line_total` decimal(15,4) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `opti_txn_menu_idx` (`transaction_id`,`order_menu_id`),
+  KEY `opti_menu_idx` (`order_menu_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_order_payment_transactions`
+--
+
+DROP TABLE IF EXISTS `ti_order_payment_transactions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_order_payment_transactions` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) unsigned NOT NULL,
+  `payment_method` varchar(50) NOT NULL,
+  `payment_reference` varchar(128) DEFAULT NULL,
+  `amount` decimal(15,4) NOT NULL,
+  `settlement_status` varchar(20) NOT NULL DEFAULT 'partial',
+  `payer_label` varchar(191) DEFAULT NULL,
+  `invoice_id` bigint(20) unsigned DEFAULT NULL,
+  `paid_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `opt_order_created_idx` (`order_id`,`created_at`),
+  KEY `opt_order_status_idx` (`order_id`,`settlement_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_order_totals`
 --
 
@@ -1993,6 +2050,7 @@ CREATE TABLE `ti_orders` (
   `order_time` time NOT NULL,
   `order_date` date NOT NULL,
   `order_total` decimal(15,4) DEFAULT NULL,
+  `estimated_prep_minutes` smallint(5) unsigned DEFAULT NULL,
   `status_id` int(11) NOT NULL,
   `ip_address` varchar(40) NOT NULL,
   `user_agent` varchar(128) NOT NULL,
@@ -2044,6 +2102,35 @@ CREATE TABLE `ti_pages` (
   PRIMARY KEY (`page_id`),
   KEY `ti_pages_language_id_foreign` (`language_id`),
   CONSTRAINT `ti_pages_language_id_foreign` FOREIGN KEY (`language_id`) REFERENCES `ti_languages` (`language_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_payment_attempts`
+--
+
+DROP TABLE IF EXISTS `ti_payment_attempts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_payment_attempts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) unsigned NOT NULL,
+  `provider_code` varchar(50) NOT NULL,
+  `terminal_id` varchar(120) DEFAULT NULL,
+  `amount` decimal(14,4) NOT NULL DEFAULT 0.0000,
+  `currency` varchar(3) NOT NULL DEFAULT 'EUR',
+  `status` varchar(30) NOT NULL DEFAULT 'pending',
+  `provider_reference` varchar(190) DEFAULT NULL,
+  `request_payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`request_payload`)),
+  `response_payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`response_payload`)),
+  `error_message` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_payment_attempts_order_id_index` (`order_id`),
+  KEY `ti_payment_attempts_provider_code_index` (`provider_code`),
+  KEY `ti_payment_attempts_status_index` (`status`),
+  KEY `ti_payment_attempts_provider_reference_index` (`provider_reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2193,6 +2280,11 @@ CREATE TABLE `ti_pos_configs` (
   `url` varchar(255) NOT NULL,
   `access_token` varchar(255) NOT NULL,
   `id_application` varchar(255) NOT NULL,
+  `sumup_affiliate_key` varchar(191) DEFAULT NULL,
+  `sumup_reader_id` varchar(191) DEFAULT NULL,
+  `sumup_pairing_code` varchar(191) DEFAULT NULL,
+  `sumup_pairing_state` varchar(50) DEFAULT NULL,
+  `sumup_reader_label` varchar(191) DEFAULT NULL,
   `username` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -2363,6 +2455,47 @@ CREATE TABLE `ti_reservations` (
   KEY `ti_reservations_location_id_table_id_index` (`location_id`,`table_id`),
   KEY `ti_reservations_hash_index` (`hash`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_reviews`
+--
+
+DROP TABLE IF EXISTS `ti_reviews`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_reviews` (
+  `review_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` int(10) unsigned DEFAULT NULL,
+  `menu_id` int(10) unsigned DEFAULT NULL,
+  `customer_name` varchar(120) DEFAULT NULL,
+  `rating` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `comment` text DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `source` varchar(30) NOT NULL DEFAULT 'frontend',
+  `customer_id` int(10) unsigned DEFAULT NULL,
+  `sale_id` int(10) unsigned DEFAULT NULL,
+  `sale_type` varchar(128) DEFAULT NULL,
+  `location_id` int(10) unsigned DEFAULT NULL,
+  `tenant_host` varchar(128) DEFAULT NULL,
+  `author` varchar(128) DEFAULT NULL,
+  `quality` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `service` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `delivery` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `review_text` text DEFAULT NULL,
+  `review_status` tinyint(1) NOT NULL DEFAULT 0,
+  `public_share_consent` tinyint(1) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`review_id`),
+  KEY `ti_reviews_customer_id_index` (`customer_id`),
+  KEY `ti_reviews_sale_id_index` (`sale_id`),
+  KEY `ti_reviews_sale_type_index` (`sale_type`),
+  KEY `ti_reviews_location_id_index` (`location_id`),
+  KEY `ti_reviews_order_id_index` (`order_id`),
+  KEY `ti_reviews_menu_id_index` (`menu_id`),
+  KEY `ti_reviews_status_index` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2794,6 +2927,48 @@ CREATE TABLE `ti_superadmin` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_table_group_tables`
+--
+
+DROP TABLE IF EXISTS `ti_table_group_tables`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_table_group_tables` (
+  `table_group_table_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `table_group_id` bigint(20) unsigned NOT NULL,
+  `table_id` bigint(20) unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`table_group_table_id`),
+  UNIQUE KEY `ti_table_group_tables_table_group_id_table_id_unique` (`table_group_id`,`table_id`),
+  UNIQUE KEY `ti_table_group_tables_table_id_unique` (`table_id`),
+  KEY `ti_table_group_tables_table_group_id_index` (`table_group_id`),
+  KEY `ti_table_group_tables_table_id_index` (`table_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_table_groups`
+--
+
+DROP TABLE IF EXISTS `ti_table_groups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_table_groups` (
+  `table_group_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'active',
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`table_group_id`),
+  KEY `ti_table_groups_location_id_index` (`location_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_table_notes`
 --
 
@@ -2866,6 +3041,33 @@ CREATE TABLE `ti_tenants` (
   UNIQUE KEY `unique_domain` (`domain`(191)),
   UNIQUE KEY `unique_database` (`database`(191))
 ) ENGINE=MyISAM AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_terminal_devices`
+--
+
+DROP TABLE IF EXISTS `ti_terminal_devices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_terminal_devices` (
+  `terminal_device_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `provider_code` varchar(50) NOT NULL,
+  `location_id` int(10) unsigned DEFAULT NULL,
+  `affiliate_key` varchar(191) DEFAULT NULL,
+  `reader_id` varchar(191) DEFAULT NULL,
+  `reader_label` varchar(191) DEFAULT NULL,
+  `pairing_state` varchar(50) DEFAULT NULL,
+  `terminal_status` varchar(191) DEFAULT NULL,
+  `metadata` longtext DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`terminal_device_id`),
+  KEY `ti_terminal_devices_provider_code_index` (`provider_code`),
+  KEY `ti_terminal_devices_location_id_index` (`location_id`),
+  KEY `ti_terminal_devices_reader_id_index` (`reader_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3044,6 +3246,70 @@ CREATE TABLE `ti_valet_requests` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_vr_payment_sessions`
+--
+
+DROP TABLE IF EXISTS `ti_vr_payment_sessions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_vr_payment_sessions` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `provider_code` varchar(50) NOT NULL DEFAULT 'vr_payment',
+  `method_code` varchar(50) DEFAULT NULL,
+  `merchant_reference` varchar(191) DEFAULT NULL,
+  `session_id` varchar(191) DEFAULT NULL,
+  `transaction_id` varchar(191) DEFAULT NULL,
+  `provider_reference` varchar(191) DEFAULT NULL,
+  `state` varchar(50) NOT NULL DEFAULT 'pending',
+  `order_id` int(10) unsigned DEFAULT NULL,
+  `amount` decimal(12,4) DEFAULT NULL,
+  `currency` varchar(10) DEFAULT NULL,
+  `raw_snapshot` longtext DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_vr_payment_sessions_session_id_unique` (`session_id`),
+  KEY `ti_vr_payment_sessions_provider_code_index` (`provider_code`),
+  KEY `ti_vr_payment_sessions_method_code_index` (`method_code`),
+  KEY `ti_vr_payment_sessions_merchant_reference_index` (`merchant_reference`),
+  KEY `ti_vr_payment_sessions_transaction_id_index` (`transaction_id`),
+  KEY `ti_vr_payment_sessions_provider_reference_index` (`provider_reference`),
+  KEY `ti_vr_payment_sessions_state_index` (`state`),
+  KEY `ti_vr_payment_sessions_order_id_index` (`order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_vr_payment_webhook_events`
+--
+
+DROP TABLE IF EXISTS `ti_vr_payment_webhook_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_vr_payment_webhook_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `event_id` varchar(191) NOT NULL,
+  `event_type` varchar(100) DEFAULT NULL,
+  `session_id` varchar(191) DEFAULT NULL,
+  `transaction_id` varchar(191) DEFAULT NULL,
+  `provider_reference` varchar(191) DEFAULT NULL,
+  `state` varchar(50) DEFAULT NULL,
+  `processed_at` timestamp NULL DEFAULT NULL,
+  `payload` longtext DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_vr_payment_webhook_events_event_id_unique` (`event_id`),
+  KEY `ti_vr_payment_webhook_events_event_type_index` (`event_type`),
+  KEY `ti_vr_payment_webhook_events_session_id_index` (`session_id`),
+  KEY `ti_vr_payment_webhook_events_transaction_id_index` (`transaction_id`),
+  KEY `ti_vr_payment_webhook_events_provider_reference_index` (`provider_reference`),
+  KEY `ti_vr_payment_webhook_events_state_index` (`state`),
+  KEY `ti_vr_payment_webhook_events_processed_at_index` (`processed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_waiter_calls`
 --
 
@@ -3140,7 +3406,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-06 22:40:14
+-- Dump completed on 2026-06-07  0:02:46
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -4741,7 +5007,7 @@ CREATE TABLE `ti_menu_images` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `ti_menu_images_menu_id_sort_order_index` (`menu_id`,`sort_order`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4876,6 +5142,9 @@ CREATE TABLE `ti_menus` (
   `menu_price` decimal(15,4) NOT NULL,
   `minimum_qty` int(11) NOT NULL DEFAULT 0,
   `menu_status` tinyint(1) NOT NULL,
+  `is_chef_recommended` tinyint(1) NOT NULL DEFAULT 0,
+  `is_manual_bestseller` tinyint(1) NOT NULL DEFAULT 0,
+  `bestseller_override_mode` varchar(20) NOT NULL DEFAULT 'auto',
   `prep_time_minutes` smallint(5) unsigned NOT NULL DEFAULT 15,
   `is_halal` tinyint(1) NOT NULL DEFAULT 0,
   `is_vegetarian` tinyint(1) NOT NULL DEFAULT 0,
@@ -4960,7 +5229,7 @@ CREATE TABLE `ti_notifications` (
   KEY `idx_status_created` (`status`,`created_at` DESC),
   KEY `idx_type` (`type`),
   KEY `idx_table_id` (`table_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1148 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1149 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5006,7 +5275,7 @@ CREATE TABLE `ti_order_menus` (
   `combo_items_description` text DEFAULT NULL COMMENT 'Description of combo items',
   PRIMARY KEY (`order_menu_id`),
   KEY `idx_combo_id` (`combo_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4184 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4187 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5097,7 +5366,7 @@ CREATE TABLE `ti_order_totals` (
   `priority` tinyint(1) NOT NULL DEFAULT 0,
   `is_summable` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`order_total_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4947 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4949 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5159,7 +5428,7 @@ CREATE TABLE `ti_orders` (
   KEY `idx_orders_fiskaly_status` (`fiskaly_status`),
   KEY `idx_orders_fiskaly_transaction_id_ref` (`fiskaly_transaction_id_ref`),
   KEY `ti_orders_settlement_status_index` (`settlement_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=1615 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1616 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5673,7 +5942,7 @@ CREATE TABLE `ti_settings` (
   `serialized` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`setting_id`),
   UNIQUE KEY `ti_settings_sort_item_unique` (`sort`,`item`)
-) ENGINE=InnoDB AUTO_INCREMENT=405 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=415 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -6133,7 +6402,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-06 22:40:14
+-- Dump completed on 2026-06-07  0:02:46
 
 -- ============================================================
 -- DATABASE: rosana
@@ -7608,6 +7877,9 @@ CREATE TABLE `ti_menus` (
   `menu_price` decimal(15,4) NOT NULL,
   `minimum_qty` int(11) NOT NULL DEFAULT 0,
   `menu_status` tinyint(1) NOT NULL,
+  `is_chef_recommended` tinyint(1) NOT NULL DEFAULT 0,
+  `is_manual_bestseller` tinyint(1) NOT NULL DEFAULT 0,
+  `bestseller_override_mode` varchar(20) NOT NULL DEFAULT 'auto',
   `is_halal` tinyint(1) NOT NULL DEFAULT 0,
   `is_vegetarian` tinyint(1) NOT NULL DEFAULT 0,
   `is_vegan` tinyint(1) NOT NULL DEFAULT 0,
@@ -8465,7 +8737,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-06 22:40:15
+-- Dump completed on 2026-06-07  0:02:47
 
 -- ============================================================
 -- DATABASE: persian
@@ -9688,6 +9960,9 @@ CREATE TABLE `ti_menus` (
   `menu_price` decimal(15,4) NOT NULL,
   `minimum_qty` int(11) NOT NULL DEFAULT 0,
   `menu_status` tinyint(1) NOT NULL,
+  `is_chef_recommended` tinyint(1) NOT NULL DEFAULT 0,
+  `is_manual_bestseller` tinyint(1) NOT NULL DEFAULT 0,
+  `bestseller_override_mode` varchar(20) NOT NULL DEFAULT 'auto',
   `menu_priority` int(11) NOT NULL DEFAULT 0,
   `order_restriction` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -10392,7 +10667,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-06 22:40:15
+-- Dump completed on 2026-06-07  0:02:47
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -12319,4 +12594,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-06 22:40:15
+-- Dump completed on 2026-06-07  0:02:47
