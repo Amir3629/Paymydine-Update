@@ -625,55 +625,50 @@ function MenuRecommendationBadges({
   settings?: MenuHighlightSettings
   placement?: 'card' | 'modal' | 'section'
 }) {
-  if (placement === 'card' && !settings.show_card_badges) return null
+  if (placement === 'card' && (!settings.show_card_badges || settings.badge_position === 'hidden')) return null
   if (placement === 'modal' && !settings.show_modal_badges) return null
 
-  const isRibbon = settings.badge_style === 'ribbon' && placement === 'card'
-  const isPremium = settings.badge_style === 'premium' || placement === 'modal' || placement === 'section'
-  const badgeBase = compact
-    ? 'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-md'
-    : 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.05em] shadow-lg'
-
-  const badges = [] as Array<{ key: string; label: string; icon: React.ReactNode; style: React.CSSProperties }>
-  if ((item as any).is_bestseller) {
-    badges.push({
-      key: 'best',
-      label: settings.bestseller_label || 'Best Seller',
-      icon: <Trophy className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden="true" />,
-      style: {
-        background: isPremium ? 'linear-gradient(135deg, #7A4D10, #D8B982 55%, #FFF1C7)' : '#8A5A12',
-        color: '#FFFFFF',
-        borderColor: 'rgba(138,90,18,0.35)',
-        boxShadow: isPremium ? '0 10px 24px rgba(138,90,18,0.22)' : undefined,
-      },
-    })
-  }
+  const candidates = [] as Array<{ key: string; label: string; icon: React.ReactNode; tone: 'gold' | 'emerald' }>
   if ((item as any).is_chef_recommended) {
-    badges.push({
+    candidates.push({
       key: 'chef',
       label: settings.chef_label || "Chef’s Choice",
-      icon: <ChefHat className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden="true" />,
-      style: {
-        background: isPremium ? 'linear-gradient(135deg, #062F2A, #0E5A4F)' : '#062F2A',
-        color: '#FFFFFF',
-        borderColor: 'rgba(6,47,42,0.32)',
-        boxShadow: isPremium ? '0 10px 24px rgba(6,47,42,0.2)' : undefined,
-      },
+      icon: <ChefHat className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} aria-hidden="true" />,
+      tone: 'emerald',
     })
   }
+  if ((item as any).is_bestseller) {
+    candidates.push({
+      key: 'best',
+      label: settings.bestseller_label || 'Best Seller',
+      icon: <Trophy className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} aria-hidden="true" />,
+      tone: 'gold',
+    })
+  }
+  const badges = settings.badge_display_mode === 'show_all' ? candidates : candidates.slice(0, 1)
   if (!badges.length) return null
 
+  const showText = placement === 'modal' ? settings.show_badge_text_in_modal : settings.show_badge_text_on_cards
+  const style = placement === 'modal' ? 'soft_pill' : settings.badge_style
+  const cardCircle = style === 'minimal_circle'
+  const cardRibbon = style === 'corner_ribbon' && placement === 'card'
+
+  const classFor = (tone: 'gold' | 'emerald') => {
+    const colors = tone === 'gold'
+      ? 'border-[#C7A45A]/45 bg-[#F7E8BD] text-[#704A10]'
+      : 'border-[#0F4D43]/35 bg-[#E6F2EF] text-[#0F4D43]'
+    if (cardCircle) return `inline-flex h-8 w-8 items-center justify-center rounded-full border ${colors} shadow-sm`
+    if (cardRibbon) return `inline-flex items-center gap-1 border ${colors} px-2 py-1 text-[10px] font-bold uppercase tracking-[0.05em] shadow-sm`
+    if (style === 'luxury_label') return `inline-flex items-center gap-1.5 rounded-md border ${colors} px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] shadow-sm`
+    return `inline-flex items-center gap-1.5 rounded-full border ${colors} px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.04em] shadow-sm`
+  }
+
   return (
-    <div className={`pmd-menu-recommendation-badges flex ${isRibbon ? 'flex-col items-start' : 'flex-wrap items-center'} gap-1.5`} aria-label="Menu item highlights">
+    <div className={`pmd-menu-recommendation-badges flex flex-wrap items-center gap-1 ${cardRibbon ? 'max-w-[112px]' : ''}`} aria-label="Menu item highlights">
       {badges.map((badge) => (
-        <span
-          key={badge.key}
-          className={`${badgeBase} ${isRibbon ? 'rounded-l-none pl-2.5 pr-3' : ''}`}
-          style={badge.style}
-          aria-label={badge.label}
-        >
+        <span key={badge.key} className={classFor(badge.tone)} aria-label={badge.label} title={badge.label}>
           {badge.icon}
-          <span>{badge.label}</span>
+          {showText && !cardCircle && <span>{badge.label}</span>}
         </span>
       ))}
     </div>
@@ -6302,9 +6297,11 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
       onClick={() => onSelect(item)}
     >
       <div className="relative w-28 h-28 md:w-36 md:h-36 flex-shrink-0">
-        <div className="absolute left-0 top-0 z-10 max-w-[150px]">
-          <MenuRecommendationBadges item={item} compact settings={highlightSettings} placement="card" />
-        </div>
+        {highlightSettings.badge_position !== 'title_inline' && highlightSettings.badge_position !== 'hidden' && (
+          <div className={`absolute top-1 z-10 ${highlightSettings.badge_position === 'image_top_right' ? 'right-1' : 'left-1'}`}>
+            <MenuRecommendationBadges item={item} compact settings={highlightSettings} placement="card" />
+          </div>
+        )}
         <OptimizedImage
           src={item.image || (Array.isArray((item as any).images) ? (item as any).images[0] : "") || "/placeholder.svg"}
           alt={itemName}
@@ -6314,7 +6311,12 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
         />
       </div>
       <div className="flex-grow">
-        <h3 dir={getTextDirection(itemName)} className={`text-lg font-bold text-paydine-elegant-gray ${getTextAlignClass(itemName)}`}>{itemName}</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 dir={getTextDirection(itemName)} className={`text-lg font-bold text-paydine-elegant-gray ${getTextAlignClass(itemName)}`}>{itemName}</h3>
+          {highlightSettings.badge_position === 'title_inline' && (
+            <MenuRecommendationBadges item={item} compact settings={highlightSettings} placement="card" />
+          )}
+        </div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <FoodAttributeTags
             halal={item.halal}

@@ -182,13 +182,18 @@ class MenuController extends Controller
                 }
             }
             
+            $setupStatus = $this->getFrontendSetupStatus($allItems, $categories);
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'items' => $allItems,
                     'categories' => $categories,
+                    'is_frontend_configured' => $setupStatus['is_frontend_configured'],
+                    'setup_status' => $setupStatus['setup_status'],
                     'menu_highlight_settings' => $this->getMenuHighlightSettings(),
-                    'menu_cache_version' => $this->getMenuHighlightCacheVersion()
+                    'menu_cache_version' => $this->getMenuHighlightCacheVersion(),
+                    'menu_api_version' => 'menu-highlights-v2'
                 ]
             ]);
 
@@ -504,7 +509,8 @@ class MenuController extends Controller
                     'menu_items' => $menuData['data']['items'],
                     'categories' => $menuData['data']['categories'],
                     'menu_highlight_settings' => $menuData['data']['menu_highlight_settings'] ?? $this->getMenuHighlightSettings(),
-                    'menu_cache_version' => $menuData['data']['menu_cache_version'] ?? $this->getMenuHighlightCacheVersion()
+                    'menu_cache_version' => $menuData['data']['menu_cache_version'] ?? $this->getMenuHighlightCacheVersion(),
+                    'menu_api_version' => $menuData['data']['menu_api_version'] ?? 'menu-highlights-v2'
                 ]
             ]);
 
@@ -571,73 +577,130 @@ class MenuController extends Controller
         ];
     }
 
+    private function getFrontendSetupStatus(array $items, array $categories): array
+    {
+        $hasCategories = count($categories) > 0;
+        $hasMenuItems = count($items) > 0;
+        $hasLogo = false;
+        $hasCustomSettings = false;
+
+        if (Schema::hasTable('settings')) {
+            $columns = Schema::getColumnListing('settings');
+            $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+            $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
+            if ($keyColumn && $valueColumn) {
+                $settings = DB::table('settings')
+                    ->whereIn($keyColumn, ['site_logo', 'site_name', 'mail_from_address'])
+                    ->get()
+                    ->keyBy($keyColumn);
+                $logoValue = trim((string)($settings['site_logo']->{$valueColumn} ?? ''));
+                $siteNameValue = trim((string)($settings['site_name']->{$valueColumn} ?? ''));
+                $mailValue = trim((string)($settings['mail_from_address']->{$valueColumn} ?? ''));
+                $hasLogo = $logoValue !== '' && stripos($logoValue, 'default') === false && stripos($logoValue, 'placeholder') === false;
+                $hasCustomSettings = ($siteNameValue !== '' && strcasecmp($siteNameValue, 'PayMyDine') !== 0) || $mailValue !== '';
+            }
+        }
+
+        return [
+            'is_frontend_configured' => $hasCategories || $hasMenuItems || $hasLogo || $hasCustomSettings,
+            'setup_status' => [
+                'has_categories' => $hasCategories,
+                'has_menu_items' => $hasMenuItems,
+                'has_logo' => $hasLogo,
+                'has_custom_settings' => $hasCustomSettings,
+            ],
+        ];
+    }
+
     private function getMenuHighlightSettings(): array
     {
         $defaults = [
-            'chef_section_enabled' => true,
-            'bestseller_section_enabled' => true,
-            'show_card_badges' => true,
-            'show_modal_badges' => true,
-            'chef_label' => "Chef’s Choice",
-            'bestseller_label' => 'Best Seller',
-            'max_chef_items' => 8,
-            'max_bestseller_items' => 8,
-            'badge_style' => 'premium',
-            'section_placement' => 'after_categories',
+            'enable_chef_recommendations_section' => false,
+            'enable_best_sellers_section' => false,
+            'section_placement' => 'hidden',
+            'max_chef_recommendation_items' => 8,
+            'max_best_seller_items' => 8,
+            'show_badges_on_cards' => false,
+            'show_badges_in_modal' => true,
+            'badge_display_mode' => 'priority_only',
+            'badge_style' => 'minimal',
+            'badge_position' => 'title_inline',
+            'show_badge_text_on_cards' => false,
+            'show_badge_text_in_modal' => true,
+            'chef_recommendation_label' => "Chef’s Choice",
+            'best_seller_label' => 'Best Seller',
+        ];
+
+        $aliases = [
+            'enable_chef_recommendations_section' => ['pmd_menu_highlights_enable_chef_recommendations_section', 'pmd_menu_highlights_chef_section_enabled'],
+            'enable_best_sellers_section' => ['pmd_menu_highlights_enable_best_sellers_section', 'pmd_menu_highlights_bestseller_section_enabled'],
+            'section_placement' => ['pmd_menu_highlights_section_placement'],
+            'max_chef_recommendation_items' => ['pmd_menu_highlights_max_chef_recommendation_items', 'pmd_menu_highlights_max_chef_items'],
+            'max_best_seller_items' => ['pmd_menu_highlights_max_best_seller_items', 'pmd_menu_highlights_max_bestseller_items'],
+            'show_badges_on_cards' => ['pmd_menu_highlights_show_badges_on_cards', 'pmd_menu_highlights_show_card_badges'],
+            'show_badges_in_modal' => ['pmd_menu_highlights_show_badges_in_modal', 'pmd_menu_highlights_show_modal_badges'],
+            'badge_display_mode' => ['pmd_menu_highlights_badge_display_mode'],
+            'badge_style' => ['pmd_menu_highlights_badge_style'],
+            'badge_position' => ['pmd_menu_highlights_badge_position'],
+            'show_badge_text_on_cards' => ['pmd_menu_highlights_show_badge_text_on_cards'],
+            'show_badge_text_in_modal' => ['pmd_menu_highlights_show_badge_text_in_modal'],
+            'chef_recommendation_label' => ['pmd_menu_highlights_chef_recommendation_label', 'pmd_menu_highlights_chef_label'],
+            'best_seller_label' => ['pmd_menu_highlights_best_seller_label', 'pmd_menu_highlights_bestseller_label'],
         ];
 
         if (!Schema::hasTable('settings')) {
-            return $defaults;
+            return $this->withMenuHighlightLegacyAliases($defaults);
         }
 
-        $keys = [
-            'pmd_menu_highlights_chef_section_enabled',
-            'pmd_menu_highlights_bestseller_section_enabled',
-            'pmd_menu_highlights_show_card_badges',
-            'pmd_menu_highlights_show_modal_badges',
-            'pmd_menu_highlights_chef_label',
-            'pmd_menu_highlights_bestseller_label',
-            'pmd_menu_highlights_max_chef_items',
-            'pmd_menu_highlights_max_bestseller_items',
-            'pmd_menu_highlights_badge_style',
-            'pmd_menu_highlights_section_placement',
-        ];
         $columns = Schema::getColumnListing('settings');
         $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
         $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
         if (!$keyColumn || !$valueColumn) {
-            return $defaults;
+            return $this->withMenuHighlightLegacyAliases($defaults);
         }
 
-        $rows = DB::table('settings')
-            ->whereIn($keyColumn, $keys)
-            ->get()
-            ->keyBy($keyColumn);
-
-        $bool = fn($key, $fallback) => filter_var($rows[$key]->{$valueColumn} ?? $fallback, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool)$fallback;
-        $int = function ($key, $fallback) use ($rows, $valueColumn) {
-            $value = (int)($rows[$key]->{$valueColumn} ?? $fallback);
-            return max(1, min(24, $value));
+        $keys = array_values(array_unique(array_merge(...array_values($aliases))));
+        $rows = DB::table('settings')->whereIn($keyColumn, $keys)->get()->keyBy($keyColumn);
+        $valueFor = function (string $name) use ($aliases, $rows, $valueColumn, $defaults) {
+            foreach ($aliases[$name] ?? [] as $key) {
+                if (isset($rows[$key]) && $rows[$key]->{$valueColumn} !== null && $rows[$key]->{$valueColumn} !== '') return $rows[$key]->{$valueColumn};
+            }
+            return $defaults[$name];
         };
-        $text = fn($key, $fallback) => trim((string)($rows[$key]->{$valueColumn} ?? $fallback)) ?: $fallback;
+        $bool = fn($name) => filter_var($valueFor($name), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool)$defaults[$name];
+        $int = fn($name) => max(1, min(24, (int)$valueFor($name) ?: (int)$defaults[$name]));
+        $text = fn($name) => trim((string)$valueFor($name)) ?: (string)$defaults[$name];
+        $enum = fn($name, $allowed) => in_array($text($name), $allowed, true) ? $text($name) : (string)$defaults[$name];
 
-        $badgeStyle = $text('pmd_menu_highlights_badge_style', $defaults['badge_style']);
-        if (!in_array($badgeStyle, ['compact', 'ribbon', 'premium'], true)) $badgeStyle = 'premium';
+        return $this->withMenuHighlightLegacyAliases([
+            'enable_chef_recommendations_section' => $bool('enable_chef_recommendations_section'),
+            'enable_best_sellers_section' => $bool('enable_best_sellers_section'),
+            'section_placement' => $enum('section_placement', ['top', 'after_categories', 'hidden']),
+            'max_chef_recommendation_items' => $int('max_chef_recommendation_items'),
+            'max_best_seller_items' => $int('max_best_seller_items'),
+            'show_badges_on_cards' => $bool('show_badges_on_cards'),
+            'show_badges_in_modal' => $bool('show_badges_in_modal'),
+            'badge_display_mode' => $enum('badge_display_mode', ['priority_only', 'show_all']),
+            'badge_style' => $enum('badge_style', ['minimal_circle', 'corner_ribbon', 'soft_pill', 'luxury_label']),
+            'badge_position' => $enum('badge_position', ['image_top_left', 'image_top_right', 'title_inline', 'hidden']),
+            'show_badge_text_on_cards' => $bool('show_badge_text_on_cards'),
+            'show_badge_text_in_modal' => $bool('show_badge_text_in_modal'),
+            'chef_recommendation_label' => $text('chef_recommendation_label'),
+            'best_seller_label' => $text('best_seller_label'),
+        ]);
+    }
 
-        $placement = $text('pmd_menu_highlights_section_placement', $defaults['section_placement']);
-        if (!in_array($placement, ['top', 'after_categories', 'hidden'], true)) $placement = 'after_categories';
-
-        return [
-            'chef_section_enabled' => $bool('pmd_menu_highlights_chef_section_enabled', true),
-            'bestseller_section_enabled' => $bool('pmd_menu_highlights_bestseller_section_enabled', true),
-            'show_card_badges' => $bool('pmd_menu_highlights_show_card_badges', true),
-            'show_modal_badges' => $bool('pmd_menu_highlights_show_modal_badges', true),
-            'chef_label' => $text('pmd_menu_highlights_chef_label', $defaults['chef_label']),
-            'bestseller_label' => $text('pmd_menu_highlights_bestseller_label', $defaults['bestseller_label']),
-            'max_chef_items' => $int('pmd_menu_highlights_max_chef_items', 8),
-            'max_bestseller_items' => $int('pmd_menu_highlights_max_bestseller_items', 8),
-            'badge_style' => $badgeStyle,
-            'section_placement' => $placement,
+    private function withMenuHighlightLegacyAliases(array $settings): array
+    {
+        return $settings + [
+            'chef_section_enabled' => $settings['enable_chef_recommendations_section'],
+            'bestseller_section_enabled' => $settings['enable_best_sellers_section'],
+            'show_card_badges' => $settings['show_badges_on_cards'],
+            'show_modal_badges' => $settings['show_badges_in_modal'],
+            'chef_label' => $settings['chef_recommendation_label'],
+            'bestseller_label' => $settings['best_seller_label'],
+            'max_chef_items' => $settings['max_chef_recommendation_items'],
+            'max_bestseller_items' => $settings['max_best_seller_items'],
         ];
     }
 
