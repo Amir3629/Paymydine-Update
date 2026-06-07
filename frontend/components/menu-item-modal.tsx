@@ -2,7 +2,7 @@
 
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { defaultMenuHighlightSettings, type MenuHighlightSettings, type MenuItem } from "@/lib/data"
 import { getMenuImageUrl } from "@/lib/api-client"
@@ -23,19 +23,20 @@ interface MenuItemModalProps {
 
 function MenuRecommendationBadges({ item, settings = defaultMenuHighlightSettings }: { item: MenuItem; settings?: MenuHighlightSettings }) {
  if (!settings.show_modal_badges) return null
- const badges = [] as Array<{ key: string; label: string; icon: string; style: CSSProperties }>
- if ((item as any).is_bestseller) {
- badges.push({ key: 'best', label: settings.bestseller_label || 'Best Seller', icon: '🏆', style: { background: 'linear-gradient(135deg, #7A4D10, #D8B982 55%, #FFF1C7)', color: '#FFFFFF', borderColor: 'rgba(138,90,18,0.28)', boxShadow: '0 10px 24px rgba(138,90,18,0.22)' } })
- }
+ const candidates = [] as Array<{ key: string; label: string; icon: string; className: string }>
  if ((item as any).is_chef_recommended) {
- badges.push({ key: 'chef', label: settings.chef_label || 'Chef Recommended', icon: '👨‍🍳', style: { background: 'linear-gradient(135deg, #062F2A, #0E5A4F)', color: '#FFFFFF', borderColor: 'rgba(6,47,42,0.26)', boxShadow: '0 10px 24px rgba(6,47,42,0.2)' } })
+ candidates.push({ key: 'chef', label: settings.chef_label || 'Chef’s Choice', icon: '👨‍🍳', className: 'border-[#0F4D43]/35 bg-[#E6F2EF] text-[#0F4D43]' })
  }
+ if ((item as any).is_bestseller) {
+ candidates.push({ key: 'best', label: settings.bestseller_label || 'Best Seller', icon: '🏆', className: 'border-[#C7A45A]/45 bg-[#F7E8BD] text-[#704A10]' })
+ }
+ const badges = settings.badge_display_mode === 'show_all' ? candidates : candidates.slice(0, 1)
  if (!badges.length) return null
  return (
  <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5" aria-label="Menu item highlights">
  {badges.map((badge) => (
- <span key={badge.key} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.05em] shadow-sm" style={badge.style} aria-label={badge.label}>
- <span aria-hidden="true">{badge.icon}</span>{badge.label}
+ <span key={badge.key} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] shadow-sm ${badge.className}`} aria-label={badge.label} title={badge.label}>
+ <span aria-hidden="true">{badge.icon}</span>{settings.show_badge_text_in_modal && <span>{badge.label}</span>}
  </span>
  ))}
  </div>

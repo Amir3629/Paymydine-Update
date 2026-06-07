@@ -221,7 +221,10 @@ Route::middleware(['cors'])->group(function () {
         Route::post('/reviews', [ReviewController::class, 'store']);
 
         // Menu endpoints
-        Route::get('/menu', [MenuController::class, 'index']);
+        Route::get('/menu', function () {
+            require_once base_path('app/main/routes/menu-highlight-response.php');
+            return pmd_menu_highlights_response_20260607();
+        });
         Route::get('/menu/categories', [CategoryController::class, 'index']);
         Route::get('/menu/items', [MenuController::class, 'items']);
         Route::get('/menu/categories/{categoryId}/items', [MenuController::class, 'itemsByCategory']);
@@ -348,16 +351,20 @@ Route::middleware(['cors'])->group(function () {
                 'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
                 'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
                 'pmd_social_reviews_url' => $settings['pmd_social_reviews_url']->value ?? '',
-                'pmd_menu_highlights_chef_section_enabled' => $settings['pmd_menu_highlights_chef_section_enabled']->value ?? '1',
-                'pmd_menu_highlights_bestseller_section_enabled' => $settings['pmd_menu_highlights_bestseller_section_enabled']->value ?? '1',
-                'pmd_menu_highlights_show_card_badges' => $settings['pmd_menu_highlights_show_card_badges']->value ?? '1',
-                'pmd_menu_highlights_show_modal_badges' => $settings['pmd_menu_highlights_show_modal_badges']->value ?? '1',
-                'pmd_menu_highlights_chef_label' => $settings['pmd_menu_highlights_chef_label']->value ?? 'Chef’s Choice',
-                'pmd_menu_highlights_bestseller_label' => $settings['pmd_menu_highlights_bestseller_label']->value ?? 'Best Seller',
-                'pmd_menu_highlights_max_chef_items' => $settings['pmd_menu_highlights_max_chef_items']->value ?? '8',
-                'pmd_menu_highlights_max_bestseller_items' => $settings['pmd_menu_highlights_max_bestseller_items']->value ?? '8',
-                'pmd_menu_highlights_badge_style' => $settings['pmd_menu_highlights_badge_style']->value ?? 'premium',
-                'pmd_menu_highlights_section_placement' => $settings['pmd_menu_highlights_section_placement']->value ?? 'after_categories',
+                'pmd_menu_highlights_enable_chef_recommendations_section' => $settings['pmd_menu_highlights_enable_chef_recommendations_section']->value ?? ($settings['pmd_menu_highlights_chef_section_enabled']->value ?? '0'),
+                'pmd_menu_highlights_enable_best_sellers_section' => $settings['pmd_menu_highlights_enable_best_sellers_section']->value ?? ($settings['pmd_menu_highlights_bestseller_section_enabled']->value ?? '0'),
+                'pmd_menu_highlights_show_badges_on_cards' => $settings['pmd_menu_highlights_show_badges_on_cards']->value ?? ($settings['pmd_menu_highlights_show_card_badges']->value ?? '1'),
+                'pmd_menu_highlights_show_badges_in_modal' => $settings['pmd_menu_highlights_show_badges_in_modal']->value ?? ($settings['pmd_menu_highlights_show_modal_badges']->value ?? '1'),
+                'pmd_menu_highlights_chef_recommendation_label' => $settings['pmd_menu_highlights_chef_recommendation_label']->value ?? ($settings['pmd_menu_highlights_chef_label']->value ?? 'Chef’s Choice'),
+                'pmd_menu_highlights_best_seller_label' => $settings['pmd_menu_highlights_best_seller_label']->value ?? ($settings['pmd_menu_highlights_bestseller_label']->value ?? 'Best Seller'),
+                'pmd_menu_highlights_max_chef_recommendation_items' => $settings['pmd_menu_highlights_max_chef_recommendation_items']->value ?? ($settings['pmd_menu_highlights_max_chef_items']->value ?? '8'),
+                'pmd_menu_highlights_max_best_seller_items' => $settings['pmd_menu_highlights_max_best_seller_items']->value ?? ($settings['pmd_menu_highlights_max_bestseller_items']->value ?? '8'),
+                'pmd_menu_highlights_badge_display_mode' => $settings['pmd_menu_highlights_badge_display_mode']->value ?? 'priority_only',
+                'pmd_menu_highlights_badge_style' => $settings['pmd_menu_highlights_badge_style']->value ?? 'corner_ribbon',
+                'pmd_menu_highlights_badge_position' => $settings['pmd_menu_highlights_badge_position']->value ?? 'image_top_left',
+                'pmd_menu_highlights_show_badge_text_on_cards' => $settings['pmd_menu_highlights_show_badge_text_on_cards']->value ?? '0',
+                'pmd_menu_highlights_show_badge_text_in_modal' => $settings['pmd_menu_highlights_show_badge_text_in_modal']->value ?? '1',
+                'pmd_menu_highlights_section_placement' => $settings['pmd_menu_highlights_section_placement']->value ?? 'hidden',
             ]);
         });
 

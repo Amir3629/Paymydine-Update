@@ -651,15 +651,19 @@ class Settings extends \Admin\Classes\AdminController
 
         if (request()->isMethod('post')) {
             $keys = [
-                'pmd_menu_highlights_chef_section_enabled',
-                'pmd_menu_highlights_bestseller_section_enabled',
-                'pmd_menu_highlights_show_card_badges',
-                'pmd_menu_highlights_show_modal_badges',
-                'pmd_menu_highlights_chef_label',
-                'pmd_menu_highlights_bestseller_label',
-                'pmd_menu_highlights_max_chef_items',
-                'pmd_menu_highlights_max_bestseller_items',
+                'pmd_menu_highlights_enable_chef_recommendations_section',
+                'pmd_menu_highlights_enable_best_sellers_section',
+                'pmd_menu_highlights_show_badges_on_cards',
+                'pmd_menu_highlights_show_badges_in_modal',
+                'pmd_menu_highlights_chef_recommendation_label',
+                'pmd_menu_highlights_best_seller_label',
+                'pmd_menu_highlights_max_chef_recommendation_items',
+                'pmd_menu_highlights_max_best_seller_items',
+                'pmd_menu_highlights_badge_display_mode',
                 'pmd_menu_highlights_badge_style',
+                'pmd_menu_highlights_badge_position',
+                'pmd_menu_highlights_show_badge_text_on_cards',
+                'pmd_menu_highlights_show_badge_text_in_modal',
                 'pmd_menu_highlights_section_placement',
             ];
 
@@ -676,14 +680,20 @@ class Settings extends \Admin\Classes\AdminController
 
             foreach ($keys as $key) {
                 $value = (string)request()->input($key, '');
-                if (in_array($key, ['pmd_menu_highlights_max_chef_items', 'pmd_menu_highlights_max_bestseller_items'], true)) {
+                if (in_array($key, ['pmd_menu_highlights_max_chef_recommendation_items', 'pmd_menu_highlights_max_best_seller_items'], true)) {
                     $value = (string)max(1, min(24, (int)$value));
                 }
-                if ($key === 'pmd_menu_highlights_badge_style' && !in_array($value, ['compact', 'ribbon', 'premium'], true)) {
-                    $value = 'premium';
+                if ($key === 'pmd_menu_highlights_badge_display_mode' && !in_array($value, ['priority_only', 'show_all'], true)) {
+                    $value = 'priority_only';
+                }
+                if ($key === 'pmd_menu_highlights_badge_style' && !in_array($value, ['minimal_circle', 'corner_ribbon', 'soft_pill', 'luxury_label'], true)) {
+                    $value = 'corner_ribbon';
+                }
+                if ($key === 'pmd_menu_highlights_badge_position' && !in_array($value, ['image_top_left', 'image_top_right', 'title_inline', 'hidden'], true)) {
+                    $value = 'image_top_left';
                 }
                 if ($key === 'pmd_menu_highlights_section_placement' && !in_array($value, ['top', 'after_categories', 'hidden'], true)) {
-                    $value = 'after_categories';
+                    $value = 'hidden';
                 }
 
                 $payload = [$valueCol => $value];

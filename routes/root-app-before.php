@@ -529,8 +529,9 @@ Route::group([
     });
 
     // Menu endpoints
-    Route::get('/menu', function (\Illuminate\Http\Request $request) {
-                    return app(\App\Http\Controllers\Api\MenuController::class)->index($request);
+    Route::get('/menu', function () {
+                    require_once base_path('app/main/routes/menu-highlight-response.php');
+                    return pmd_menu_highlights_response_20260607();
                 });
 
     // Categories endpoints

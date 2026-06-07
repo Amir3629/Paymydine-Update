@@ -399,13 +399,6 @@ $config['form']['tabs'] = [
             ],
             'comment' => 'Auto uses recent paid/completed order history. Force on/off overrides automatic detection.',
         ],
-        'is_manual_bestseller' => [
-            'label' => 'Force Bestseller (legacy quick toggle)',
-            'type' => 'switch',
-            'span' => 'left',
-            'default' => 0,
-            'comment' => 'Also marks this item as Bestseller. Prefer the override selector for explicit force off.',
-        ],
         'menu_description' => [
             'label' => 'lang:admin::lang.label_description',
             'type' => 'textarea',
