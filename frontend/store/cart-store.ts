@@ -3,9 +3,20 @@ import { persist, createJSONStorage } from "zustand/middleware"
 import type { MenuItem } from "@/lib/data"
 
 export type CartItem = {
-  item: MenuItem
+  item: MenuItem & { __pmdSelectedOptions?: Record<string, string> }
   quantity: number
 }
+
+const selectedOptionsKey = (item: MenuItem & { __pmdSelectedOptions?: Record<string, string> }) => {
+  const selected = item.__pmdSelectedOptions || {}
+  return JSON.stringify(Object.keys(selected).sort().reduce((acc: Record<string, string>, key) => {
+    acc[key] = String(selected[key])
+    return acc
+  }, {}))
+}
+
+const sameCartItem = (a: MenuItem & { __pmdSelectedOptions?: Record<string, string> }, b: MenuItem & { __pmdSelectedOptions?: Record<string, string> }) =>
+  a.id === b.id && selectedOptionsKey(a) === selectedOptionsKey(b)
 
 export type TableInfo = {
   table_id: string
@@ -39,19 +50,19 @@ export const useCartStore = create<CartState>()(
       tableInfo: null,
       addToCart: (item, quantity = 1) =>
         set((state) => {
-          const existingItem = state.items.find((cartItem) => cartItem.item.id === item.id)
+          const existingItem = state.items.find((cartItem) => sameCartItem(cartItem.item, item))
           if (existingItem) {
             const newQuantity = existingItem.quantity + quantity
             // Remove item if quantity would be 0 or less
             if (newQuantity <= 0) {
               return {
-                items: state.items.filter((cartItem) => cartItem.item.id !== item.id)
+                items: state.items.filter((cartItem) => !sameCartItem(cartItem.item, item))
               }
             }
             // Update quantity if item exists
             return {
               items: state.items.map((cartItem) =>
-                cartItem.item.id === item.id ? { ...cartItem, quantity: newQuantity } : cartItem
+                sameCartItem(cartItem.item, item) ? { ...cartItem, quantity: newQuantity } : cartItem
               )
             }
           }
@@ -63,16 +74,16 @@ export const useCartStore = create<CartState>()(
         }),
       removeFromCart: (item) =>
         set((state) => {
-          const existingItem = state.items.find((cartItem) => cartItem.item.id === item.id)
+          const existingItem = state.items.find((cartItem) => sameCartItem(cartItem.item, item))
           if (existingItem && existingItem.quantity > 1) {
             return {
               items: state.items.map((cartItem) =>
-                cartItem.item.id === item.id ? { ...cartItem, quantity: cartItem.quantity - 1 } : cartItem,
+                sameCartItem(cartItem.item, item) ? { ...cartItem, quantity: cartItem.quantity - 1 } : cartItem,
               ),
             }
           }
           return {
-            items: state.items.filter((cartItem) => cartItem.item.id !== item.id),
+            items: state.items.filter((cartItem) => !sameCartItem(cartItem.item, item)),
           }
         }),
       updateQuantity: (itemId, quantity) =>
