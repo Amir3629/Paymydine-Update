@@ -66,12 +66,13 @@ function OrganicExactV0Frame() {
     params.set("parentSearch", window.location.search || "")
     params.set("host", window.location.host)
     params.set("ts", String(Date.now()))
+    params.set("hideDock", "1")
 
     setFrameSrc(`/dev/botanical-v0-exact/?${params.toString()}`)
   }, [])
 
   return (
-    <div className="fixed inset-0 z-[999999] bg-[#f6efe2]">
+    <div className="fixed inset-0 z-[1] bg-[#f6efe2]">
       <iframe
         title="Organic Botanical Paper Menu"
         src={frameSrc}
@@ -7931,17 +7932,34 @@ useEffect(() => {
         return
       }
 
-      if (type === "PMD_BOTANICAL_CALL_WAITER") {
+      if (
+        type === "PMD_BOTANICAL_CALL_WAITER" ||
+        type === "pmd:call-waiter"
+      ) {
         handleWaiterClick()
         return
       }
 
-      if (type === "PMD_BOTANICAL_ADD_NOTE") {
+      if (
+        type === "PMD_BOTANICAL_ADD_NOTE" ||
+        type === "pmd:add-note"
+      ) {
         handleNoteClick()
         return
       }
 
-      if (type === "PMD_BOTANICAL_CHECKOUT" || type === "PMD_BOTANICAL_TABLE_ORDER") {
+      if (
+        type === "PMD_BOTANICAL_CHECKOUT" ||
+        type === "pmd:checkout"
+      ) {
+        handleCartClick()
+        return
+      }
+
+      if (
+        type === "PMD_BOTANICAL_TABLE_ORDER" ||
+        type === "pmd:table-order"
+      ) {
         handleCartClick()
         return
       }
@@ -8087,12 +8105,496 @@ useEffect(() => {
     } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
   }, [tableInfo, searchParams, existingOrderId])
 
+
+  // PMD_ORGANIC_V0_PARENT_MESSAGE_BRIDGE_FINAL_20260607
+  React.useEffect(() => {
+    if (!isOrganicBotanicalTheme || typeof window === "undefined") return
+
+    function handleBotanicalV0Message(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return
+
+      const data: any = event.data || {}
+      const type = String(data.type || "")
+
+      if (type === "pmd:call-waiter") {
+        if (tableIdString) handleWaiterClick()
+        return
+      }
+
+      if (type === "pmd:add-note") {
+        if (tableIdString) handleNoteClick()
+        return
+      }
+
+      if (type === "pmd:checkout") {
+        handleCartClick()
+        return
+      }
+
+      if (type === "pmd:table-order") {
+        setPaymentModalInitialStep(
+          sharedTableOrder?.status === "draft"
+            ? "review"
+            : sharedTableOrder?.status === "paid"
+              ? "paid"
+              : "submitted"
+        )
+        setPaymentModalOpen(true)
+        return
+      }
+
+      if (type === "pmd:add-item" && data.item) {
+        handleFirstAdd(data.item as MenuItem)
+        return
+      }
+
+      if (type === "pmd:open-valet") {
+        const currentSearch = window.location.search || ""
+        if (tableIdString) {
+          window.location.href = `/table/${tableIdString}/valet${currentSearch}`
+        } else {
+          window.location.href = `/valet${currentSearch}`
+        }
+        return
+      }
+    }
+
+    window.addEventListener("message", handleBotanicalV0Message)
+    return () => window.removeEventListener("message", handleBotanicalV0Message)
+  }, [isOrganicBotanicalTheme, tableIdString])
+
+
+  // PMD_ORGANIC_DOCK_DELEGATED_ACTIONS_20260608
+  React.useEffect(() => {
+    if (!isOrganicBotanicalTheme || typeof document === "undefined") return
+
+    let lastActionAt = 0
+
+    function runOrganicDockAction(action: string) {
+      if (action === "waiter") {
+        handleWaiterClick()
+        return
+      }
+
+      if (action === "note") {
+        handleNoteClick()
+        return
+      }
+
+      if (action === "checkout") {
+        handleCartClick()
+        return
+      }
+
+      if (action === "table-order") {
+        setPaymentModalInitialStep(
+          sharedTableOrder?.status === "draft"
+            ? "review"
+            : sharedTableOrder?.status === "paid"
+              ? "paid"
+              : "submitted"
+        )
+        setPaymentModalOpen(true)
+        return
+      }
+    }
+
+    function onOrganicDockPress(event: Event) {
+      const target = event.target as HTMLElement | null
+      const button = target?.closest?.("[data-pmd-organic-dock-action]") as HTMLElement | null
+      if (!button) return
+
+      const now = Date.now()
+      if (now - lastActionAt < 350) return
+      lastActionAt = now
+
+      event.preventDefault()
+      event.stopPropagation()
+      ;(event as any).stopImmediatePropagation?.()
+
+      const action = String(button.getAttribute("data-pmd-organic-dock-action") || "")
+      console.info("PMD_ORGANIC_DOCK_CLICK", action)
+      runOrganicDockAction(action)
+    }
+
+    document.addEventListener("pointerdown", onOrganicDockPress, true)
+    document.addEventListener("click", onOrganicDockPress, true)
+
+    return () => {
+      document.removeEventListener("pointerdown", onOrganicDockPress, true)
+      document.removeEventListener("click", onOrganicDockPress, true)
+    }
+  }, [isOrganicBotanicalTheme, sharedTableOrder?.status])
+
   if (!isClient) {
     return <LoadingSpinner />
   }
 
   const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
   const heroItem = highlightSourceItems.find((item) => item.image || (Array.isArray((item as any).images) && (item as any).images.length)) || highlightSourceItems[0] || null
+
+  // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
+  if (isOrganicBotanicalTheme) {
+    return (
+      <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#f6efe2]">
+        <OrganicExactV0Frame />
+
+        {/* PMD_ORGANIC_PARENT_NATIVE_BOTTOM_DOCK_20260608 */}
+        <div
+          data-pmd-organic-native-dock="1"
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: "1.35rem",
+            transform: "translateX(-50%)",
+            width: "100%",
+            maxWidth: "23.5rem",
+            padding: "0 0.5rem",
+            zIndex: 2147483647,
+            pointerEvents: "auto",
+          }}
+        >
+          <div
+            style={{
+              minHeight: 76,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "12px 18px",
+              borderRadius: "2.5rem",
+              background: "rgba(255,250,240,0.96)",
+              border: "1px solid rgba(223,210,184,0.95)",
+              boxShadow: "0 18px 45px rgba(52,53,41,0.18), inset 0 1px 0 rgba(255,255,255,0.75)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+              pointerEvents: "auto",
+            }}
+          >
+            {[
+              {
+                action: "waiter",
+                label: "Call waiter",
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3V2" />
+                    <path d="M5 10a7.1 7.1 0 0 1 14 0" />
+                    <path d="M4 10h16" />
+                    <path d="M2 14h12a2 2 0 1 1 0 4h-2" />
+                    <path d="m15.4 17.4 3.2-2.8a2 2 0 0 1 2.8 2.9l-3.6 3.3c-.7.8-1.7 1.2-2.8 1.2h-4c-1.1 0-2.1-.4-2.8-1.2L5 18" />
+                    <path d="M5 14v7H2" />
+                  </svg>
+                ),
+              },
+              {
+                action: "note",
+                label: "Add note",
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4" />
+                    <path d="M2 6h4" />
+                    <path d="M2 10h4" />
+                    <path d="M2 14h4" />
+                    <path d="M2 18h4" />
+                    <path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
+                  </svg>
+                ),
+              },
+              {
+                action: "checkout",
+                label: "",
+                main: true,
+                icon: (
+                  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                  </svg>
+                ),
+              },
+              {
+                action: "checkout",
+                label: "Checkout",
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                    <path d="M3 6h18" />
+                    <path d="M16 10a4 4 0 0 1-8 0" />
+                  </svg>
+                ),
+              },
+              {
+                action: "table-order",
+                label: "Table order",
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 5h6" />
+                    <path d="M9 12h6" />
+                    <path d="M9 19h6" />
+                    <path d="M5 5h.01" />
+                    <path d="M5 12h.01" />
+                    <path d="M5 19h.01" />
+                    <rect width="18" height="20" x="3" y="2" rx="2" />
+                  </svg>
+                ),
+              },
+            ].map((button: any) => (
+              <button
+                key={`${button.action}-${button.label || "main"}`}
+                type="button"
+                data-pmd-organic-dock-action={button.action}
+                aria-label={button.label || "Checkout"}
+                title={button.label || "Checkout"}
+                style={{
+                  position: "relative",
+                  width: button.main ? 58 : 62,
+                  minWidth: button.main ? 58 : 62,
+                  height: button.main ? 58 : 54,
+                  marginTop: button.main ? -34 : 0,
+                  borderRadius: button.main ? 9999 : "1.35rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  background: button.main ? "var(--theme-primary, #6f7654)" : "rgba(255,250,240,0.98)",
+                  color: button.main ? "#fffaf0" : "var(--theme-text-primary, #343529)",
+                  border: button.main ? "1px solid rgba(111,118,84,0.55)" : "1px solid rgba(223,210,184,0.92)",
+                  boxShadow: button.main ? "0 12px 24px -8px rgba(60,53,41,0.7)" : "none",
+                  outline: button.main ? "5px solid rgba(255,250,240,0.98)" : "none",
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                  {button.icon}
+                </span>
+                {button.label && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      lineHeight: "11px",
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
+                      color: "var(--theme-text-primary, #343529)",
+                      whiteSpace: "nowrap",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {button.label}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* PMD_ORGANIC_PARENT_NATIVE_BOTTOM_DOCK_END_20260608 */}
+
+
+        
+
+
+        {/* PMD_ORGANIC_PARENT_NATIVE_BOTTOM_DOCK_20260608 */}
+        <div
+          className="fixed bottom-[1.35rem] left-1/2 z-[1000002] w-full max-w-[23.5rem] -translate-x-1/2 px-2"
+          style={{ pointerEvents: "auto" }}
+        >
+          <div
+            className="flex items-center justify-between gap-5 rounded-[2.5rem] border px-6 py-4 shadow-2xl backdrop-blur-xl"
+            style={{
+              minHeight: 76,
+              background: "color-mix(in srgb, var(--theme-surface, #fffaf0) 90%, transparent)",
+              borderColor: "var(--theme-border, #e3dac8)",
+              color: "var(--theme-text-primary, #343529)",
+              boxShadow: "0 -2px 30px -8px rgba(60,53,41,0.35)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleWaiterClick}
+              aria-label="Call Waiter"
+              className="relative flex h-12 w-12 items-center justify-center rounded-full transition-all active:scale-95"
+              style={{
+                background: "color-mix(in srgb, var(--theme-surface, #fffaf0) 92%, #ffffff 8%)",
+                border: "1px solid var(--theme-border, #e3dac8)",
+                color: "var(--theme-text-primary, #343529)",
+                boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              }}
+            >
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3V2" />
+                <path d="M5 10a7.1 7.1 0 0 1 14 0" />
+                <path d="M4 10h16" />
+                <path d="M2 14h12a2 2 0 1 1 0 4h-2" />
+                <path d="m15.4 17.4 3.2-2.8a2 2 0 0 1 2.8 2.9l-3.6 3.3c-.7.8-1.7 1.2-2.8 1.2h-4c-1.1 0-2.1-.4-2.8-1.2L5 18" />
+                <path d="M5 14v7H2" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNoteClick}
+              aria-label="Leave Note"
+              className="relative flex h-12 w-12 items-center justify-center rounded-full transition-all active:scale-95"
+              style={{
+                background: "color-mix(in srgb, var(--theme-surface, #fffaf0) 92%, #ffffff 8%)",
+                border: "1px solid var(--theme-border, #e3dac8)",
+                color: "var(--theme-text-primary, #343529)",
+                boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              }}
+            >
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4" />
+                <path d="M2 6h4" />
+                <path d="M2 10h4" />
+                <path d="M2 14h4" />
+                <path d="M2 18h4" />
+                <path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCartClick}
+              aria-label="Checkout"
+              className="relative -mt-8 flex h-14 w-14 items-center justify-center rounded-full transition-all active:scale-95"
+              style={{
+                background: "var(--theme-primary, #6f7654)",
+                color: "#fffaf0",
+                border: "1px solid color-mix(in srgb, var(--theme-primary, #6f7654) 70%, #ffffff 30%)",
+                boxShadow: "0 12px 24px -8px rgba(60,53,41,0.7)",
+                outline: "4px solid var(--theme-surface, #fffaf0)",
+              }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="8" cy="21" r="1" />
+                <circle cx="19" cy="21" r="1" />
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+              </svg>
+              {items.length > 0 && (
+                <span
+                  className="absolute -right-1 -top-1 flex min-w-[20px] items-center justify-center rounded-full px-1 text-[11px] font-semibold leading-5"
+                  style={{
+                    background: "var(--theme-accent, #b98755)",
+                    color: "#fffaf0",
+                    boxShadow: "0 0 0 2px var(--theme-surface, #fffaf0)",
+                  }}
+                >
+                  {items.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCartClick}
+              aria-label="Checkout"
+              className="relative flex h-12 w-12 items-center justify-center rounded-full transition-all active:scale-95"
+              style={{
+                background: "color-mix(in srgb, var(--theme-surface, #fffaf0) 92%, #ffffff 8%)",
+                border: "1px solid var(--theme-border, #e3dac8)",
+                color: "var(--theme-text-primary, #343529)",
+                boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              }}
+            >
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPaymentModalInitialStep(
+                  sharedTableOrder?.status === "draft"
+                    ? "review"
+                    : sharedTableOrder?.status === "paid"
+                      ? "paid"
+                      : "submitted"
+                )
+                setPaymentModalOpen(true)
+              }}
+              aria-label="Table order"
+              className="relative flex h-12 w-12 items-center justify-center rounded-full transition-all active:scale-95"
+              style={{
+                background: "color-mix(in srgb, var(--theme-surface, #fffaf0) 92%, #ffffff 8%)",
+                border: "1px solid var(--theme-border, #e3dac8)",
+                color: "var(--theme-text-primary, #343529)",
+                boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
+              }}
+            >
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 5h6" />
+                <path d="M9 12h6" />
+                <path d="M9 19h6" />
+                <path d="M5 5h.01" />
+                <path d="M5 12h.01" />
+                <path d="M5 19h.01" />
+                <rect width="18" height="20" x="3" y="2" rx="2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+
+        {!shouldHideCartSheet && (
+          <CartSheet />
+        )}
+
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
+          items={items}
+          tableInfo={tableInfo}
+          existingOrderId={activeExistingOrderId}
+          pendingSummary={activePendingSummary}
+          initialSubmittedOrder={activeSubmittedOrder}
+          initialCheckoutStep={paymentModalInitialStep}
+          preferPersonalReview={paymentModalPreferPersonalReview}
+          onCartPricingUpdate={setToolbarPricingSnapshot}
+          onOpenOrderUpdate={(snapshot) => {
+            if (snapshot?.status === "draft" || snapshot?.draft_id) {
+              setSharedTableOrder(snapshot)
+              return
+            }
+            if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+              const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+              setLocalOpenOrder(normalizedPaid)
+              setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+              setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
+              return
+            }
+            if (snapshot?.orderId || snapshot?.order_id) {
+              const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+              setLocalOpenOrder(normalized)
+              setHasLocalOpenOrder(true)
+              setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
+            }
+          }}
+        />
+
+        <EnhancedWaiterDialog
+          isOpen={isWaiterConfirmOpen}
+          onOpenChange={setWaiterConfirmOpen}
+          tableId={tableIdString}
+          tableName={tableName}
+        />
+
+        <EnhancedNoteDialog
+          isOpen={isNoteModalOpen}
+          onOpenChange={setNoteModalOpen}
+          note={note}
+          setNote={setNote}
+          onSend={handleSendNote}
+          tableId={tableIdString}
+          tableName={tableName}
+        />
+      </div>
+    )
+  }
 
   return (
         <div className={`${isOrganicBotanicalTheme ? 'pmd-organic-menu' : ''} relative min-h-screen w-full bg-theme-background pb-32`} style={isOrganicBotanicalTheme ? organicBotanicalVars() : undefined}>
