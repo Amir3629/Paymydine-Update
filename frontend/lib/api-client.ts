@@ -1075,11 +1075,11 @@ export class ApiClient {
       return {
         success: true,
         data: {
-          theme_id: 'clean-light',
-          primary_color: '#E7CBA9',
-          secondary_color: '#EFC7B1',
-          accent_color: '#3B3B3B',
-          background_color: '#fdf7f4'
+          theme_id: 'gold-luxury',
+          primary_color: '#062F2A',
+          secondary_color: '#062F2A',
+          accent_color: '#C89B4A',
+          background_color: '#FAF9F4'
         }
       };
     }

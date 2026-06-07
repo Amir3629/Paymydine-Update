@@ -59,6 +59,15 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  }, [])
  // PMD_MODAL_PORTAL_MOUNT_END
 
+ useEffect(() => {
+ if (typeof document === 'undefined') return
+ const readTheme = () => setCurrentTheme(document.documentElement.getAttribute('data-theme') || 'gold-luxury')
+ readTheme()
+ const observer = new MutationObserver(readTheme)
+ observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+ return () => observer.disconnect()
+ }, [])
+
  // PMD_MODAL_OPEN_SYNC_FIX_START
  // The modal component can mount with item=null and later receive the clicked item.
  // Keep renderedItem in sync so clicking a food item always opens the detail card.
@@ -71,6 +80,7 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  }, [item])
  // PMD_MODAL_OPEN_SYNC_FIX_END
  const [isVisible, setIsVisible] = useState(Boolean(item))
+ const [currentTheme, setCurrentTheme] = useState('gold-luxury')
  const closeTimerRef = useRef<number | null>(null)
 
  useEffect(() => {
@@ -207,7 +217,8 @@ const handleModalClose = (event?: any) => {
  animate={{ scale: isVisible ? 1 : 0.97, y: isVisible ? 0 : 8, opacity: isVisible ? 1 : 0 }}
  exit={{ scale: 0.97, y: 8, opacity: 0 }}
  transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-	 className="relative surface pmd-v2-card rounded-3xl shadow-2xl w-full max-w-xl max-h-[90dvh] overflow-hidden"
+	 className={`relative surface pmd-v2-card w-full max-w-xl max-h-[90dvh] overflow-hidden ${currentTheme === 'organic_botanical_paper' ? 'rounded-[2rem] border border-[#D8CBAF] shadow-[0_24px_70px_rgba(66,55,35,0.22)]' : 'rounded-3xl shadow-2xl'}`}
+ style={currentTheme === 'organic_botanical_paper' ? { background: '#FFF9EF', color: '#352F28' } : undefined}
  onClick={(e) => e.stopPropagation()}
  >
  {/* Close button */}
@@ -237,8 +248,8 @@ const handleModalClose = (event?: any) => {
    Back
  </Button>
 
- <div className="p-6 overflow-y-auto overscroll-contain max-h-[90dvh]">
- <div className="relative w-full h-[180px] md:h-[230px] mb-6 rounded-2xl overflow-hidden flex items-center justify-center">
+ <div className={`p-6 overflow-y-auto overscroll-contain max-h-[90dvh] ${currentTheme === 'organic_botanical_paper' ? 'bg-[#FFF9EF]' : ''}`}>
+ <div className={`relative w-full h-[180px] md:h-[230px] mb-6 overflow-hidden flex items-center justify-center ${currentTheme === 'organic_botanical_paper' ? 'rounded-[1.75rem] bg-[#F3EBDD]' : 'rounded-2xl'}`}>
  <AnimatePresence mode="wait">
  <motion.div
  key={`${renderedItem?.id}-${activeImageIndex}`}
@@ -260,7 +271,7 @@ const handleModalClose = (event?: any) => {
  </div>
 
  {/* Content */}
-	 <h2 dir="auto" className="font-serif text-3xl font-bold pmd-v2-text mb-3 text-center">{itemName}</h2>
+	 <h2 dir="auto" className={`font-serif text-3xl font-bold mb-3 text-center ${currentTheme === 'organic_botanical_paper' ? 'text-[#352F28]' : 'pmd-v2-text'}`}>{itemName}</h2>
  <MenuRecommendationBadges item={renderedItem} settings={highlightSettings} />
  <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
  <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
@@ -273,7 +284,7 @@ const handleModalClose = (event?: any) => {
  className="justify-center"
  />
  </div>
-	 <p dir={getTextDirection(itemDescription)} className={`pmd-v2-text-muted text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
+	 <p dir={getTextDirection(itemDescription)} className={`${currentTheme === 'organic_botanical_paper' ? 'text-[#7D7467]' : 'pmd-v2-text-muted'} text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
  <FoodNutritionSummary
  calories={renderedItem?.calories}
  protein={renderedItem?.protein}

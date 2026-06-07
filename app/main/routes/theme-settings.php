@@ -27,25 +27,28 @@
 
             if ($row && !empty($row->data)) {
                 $data = json_decode($row->data, true) ?: [];
-                $adminTheme = $data['theme_configuration'] ?? 'light';
+                $adminTheme = $data['theme_configuration'] ?? 'gold_luxury';
                 $map = [
-                    'light' => 'clean-light',
-                    'dark' => 'modern-dark',
+                    'gold_luxury' => 'gold-luxury',
                     'gold' => 'gold-luxury',
-                    'colorful' => 'vibrant-colors',
-                    'minimal' => 'minimal',
+                    'organic_botanical_paper' => 'organic_botanical_paper',
+                    'light' => 'gold-luxury',
+                    'dark' => 'gold-luxury',
+                    'colorful' => 'gold-luxury',
+                    'minimal' => 'gold-luxury',
                 ];
-                $frontend = $map[$adminTheme] ?? 'clean-light';
+                $frontend = $map[$adminTheme] ?? 'gold-luxury';
+                $isOrganic = $frontend === 'organic_botanical_paper';
                 return response()->json([
                     'success' => true,
                     'admin_theme' => $adminTheme,
                     'frontend_theme' => $frontend,
                     'data' => [
                         'theme_id' => $frontend,
-                        'primary_color' => $data['primary_color'] ?? '#E7CBA9',
-                        'secondary_color' => $data['secondary_color'] ?? '#EFC7B1',
-                        'accent_color' => $data['accent_color'] ?? '#3B3B3B',
-                        'background_color' => $data['background_color'] ?? '#FAFAFA',
+                        'primary_color' => $isOrganic ? ($data['primary_color'] ?? '#737A55') : '#062F2A',
+                        'secondary_color' => $isOrganic ? '#FFF9EF' : '#062F2A',
+                        'accent_color' => $isOrganic ? ($data['accent_color'] ?? '#B8864B') : '#C89B4A',
+                        'background_color' => $isOrganic ? '#F3EBDD' : '#FAF9F4',
                     ],
                 ]);
             }
@@ -53,13 +56,13 @@
             return response()->json([
                 'success' => true,
                 'admin_theme' => 'NOT_FOUND',
-                'frontend_theme' => 'clean-light',
+                'frontend_theme' => 'gold-luxury',
                 'data' => [
-                    'theme_id' => 'clean-light',
-                    'primary_color' => '#E7CBA9',
-                    'secondary_color' => '#EFC7B1',
-                    'accent_color' => '#3B3B3B',
-                    'background_color' => '#FAFAFA',
+                    'theme_id' => 'gold-luxury',
+                    'primary_color' => '#062F2A',
+                    'secondary_color' => '#062F2A',
+                    'accent_color' => '#C89B4A',
+                    'background_color' => '#FAF9F4',
                 ],
             ]);
         });

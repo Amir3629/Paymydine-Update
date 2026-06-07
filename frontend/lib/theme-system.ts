@@ -172,6 +172,43 @@ export interface ThemeColors {
         info: '#0E7490'
       }
     },
+
+    'organic_botanical_paper': {
+      id: 'organic_botanical_paper',
+      name: 'Organic Botanical Paper',
+      description: 'Warm handcrafted paper theme with sage botanical accents',
+      colors: {
+        primary: '#737A55',
+        secondary: '#FFF9EF',
+        accent: '#B8864B',
+        background: '#F3EBDD',
+
+        textPrimary: '#352F28',
+        textSecondary: '#7D7467',
+        textMuted: '#9A907F',
+
+        border: '#D8CBAF',
+        input: '#FFF9EF',
+        button: '#737A55',
+        buttonHover: '#5F6747',
+
+        menuItemBackground: '#FFF9EF',
+        menuItemBorder: '#E0D3B8',
+        categoryActive: '#737A55',
+        categoryInactive: '#A69A83',
+        priceColor: '#B8864B',
+
+        cartBackground: '#FFF9EF',
+        cartBorder: '#D8CBAF',
+        paymentButton: '#737A55',
+        paymentButtonHover: '#5F6747',
+
+        success: '#537A4D',
+        warning: '#B8864B',
+        error: '#A65748',
+        info: '#6F7651'
+      }
+    },
     
     'vibrant-colors': {
       id: 'vibrant-colors',
@@ -322,8 +359,8 @@ export interface ThemeColors {
   export function applyTheme(themeId: string, overrides?: Partial<ThemeColors>): void {
     const theme = themes[themeId];
     if (!theme) {
-      console.warn(`Theme ${themeId} not found, falling back to clean-light`);
-      applyTheme('clean-light', overrides);
+      console.warn(`Theme ${themeId} not found, falling back to gold-luxury`);
+      applyTheme('gold-luxury', overrides);
       return;
     }
     
@@ -360,9 +397,9 @@ export interface ThemeColors {
   // Get current theme from localStorage (SSR safe)
   export function getCurrentTheme(): string {
     if (typeof window === 'undefined') {
-      return 'clean-light'; // Default for SSR
+      return 'gold-luxury'; // Default for SSR
     }
-    return localStorage.getItem('paymydine-theme') || 'clean-light';
+    return localStorage.getItem('paymydine-theme') || 'gold-luxury';
   }
   
   // Initialize theme on app load

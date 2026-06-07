@@ -89,6 +89,7 @@ export default function RootLayout({
                   'clean-light': { bg: '#FAFAFA', text: '#3B3B3B' },
                   'modern-dark': { bg: '#0A0E12', text: '#F8FAFC' },
                   'gold-luxury': { bg: '#0F0B05', text: '#FFF8DC' },
+                  'organic_botanical_paper': { bg: '#FFF9EF', text: '#352F28' },
                   'vibrant-colors': { bg: '#e2ceb1', text: '#1E293B' },
                   'minimal': { bg: '#CFEBF7', text: '#1A202C' }
                 };
@@ -166,6 +167,11 @@ export default function RootLayout({
                     text: '#FFF8DC',
                     border: '#FFF8DC'
                   },
+                  'organic_botanical_paper': {
+                    bg: 'rgba(255, 249, 239, 0.95)',
+                    text: '#352F28',
+                    border: '#D8C9AC'
+                  },
                   'vibrant-colors': {
                     bg: 'rgba(255, 255, 255, 0.95)',
                     text: '#1E293B',
@@ -223,6 +229,7 @@ export default function RootLayout({
                   'clean-light': { bg: '#FAFAFA', text: '#3B3B3B', border: '#EDEDED' },
                   'modern-dark': { bg: '#0A0E12', text: '#F8FAFC', border: '#334155' },
                   'gold-luxury': { bg: '#0F0B05', text: '#FFF8DC', border: '#FFF8DC' },
+                  'organic_botanical_paper': { bg: '#FFF9EF', text: '#352F28', border: '#D8C9AC' },
                   'vibrant-colors': { bg: '#e2ceb1', text: '#1E293B', border: '#E8E0D5' },
                   'minimal': { bg: '#CFEBF7', text: '#1A202C', border: '#E2E8F0' }
                 };
@@ -231,6 +238,7 @@ export default function RootLayout({
                   'clean-light': { iconColor: '#E7CBA9', buttonBg: '#EFC7B1', buttonText: '#3B3B3B' },
                   'modern-dark': { iconColor: '#F0C6B1', buttonBg: '#E8B4A0', buttonText: '#0A0E12' },
                   'gold-luxury': { iconColor: '#FFD700', buttonBg: '#FFF8DC', buttonText: '#0F0B05' },
+                  'organic_botanical_paper': { iconColor: '#737A55', buttonBg: '#737A55', buttonText: '#FFF9EF' },
                   'vibrant-colors': { iconColor: '#FF6B6B', buttonBg: '#6b5e4f', buttonText: '#1E293B' },
                   'minimal': { iconColor: '#2D3748', buttonBg: '#4A5568', buttonText: '#CFEBF7' }
                 };
