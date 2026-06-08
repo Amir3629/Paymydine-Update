@@ -3166,7 +3166,6 @@ button[data-pmd-stripe-native-button="1"]::after {
 /* === /PMD FORCE REAL STRIPE BUTTON COLOR === */
 
 
-
 /* === PMD FORCE STRIPE FIELDS === */
 form[data-pmd-stripe-form="1"] label {
   color: #F8FAFC !important;
@@ -5417,8 +5416,6 @@ html[data-theme="clean-light"] button.pmd-v2-category-active * {
 }
 
 
-
-
 /* modern-dark: final ACTION/BACK/LANGUAGE controls */
 html[data-theme="modern-dark"] .pmd-v2-action-circle,
 html[data-theme="modern-dark"] button.pmd-v2-action-circle,
@@ -5516,8 +5513,6 @@ html[data-theme="modern-dark"] button.pmd-v2-category-active * {
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
 }
-
-
 
 
 /* gold-luxury: final ACTION/BACK/LANGUAGE controls */
@@ -5619,8 +5614,6 @@ html[data-theme="gold-luxury"] button.pmd-v2-category-active * {
 }
 
 
-
-
 /* vibrant-colors: final ACTION/BACK/LANGUAGE controls */
 html[data-theme="vibrant-colors"] .pmd-v2-action-circle,
 html[data-theme="vibrant-colors"] button.pmd-v2-action-circle,
@@ -5718,8 +5711,6 @@ html[data-theme="vibrant-colors"] button.pmd-v2-category-active * {
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
 }
-
-
 
 
 /* minimal: final ACTION/BACK/LANGUAGE controls */
@@ -8661,7 +8652,6 @@ html body [data-pmd-table-order-action="1"] .pmd-v2-badge * {
 }
 
 
-
 /* PMD REAL TABLE ORDER CSS ONLY END */
 
 /* Build-safe local font fallbacks replacing next/font Google network fetches. */
@@ -8709,7 +8699,6 @@ html body .pmd-split-slider::-moz-range-thumb {
   border: 3px solid #fffaf0;
   box-shadow: 0 2px 8px rgba(6, 47, 42, 0.22);
 }
-
 
 
 /* PMD FINAL CLEAN: Table order no green frame, hover controlled by Framer source */
@@ -11638,7 +11627,6 @@ html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real]:hove
 /* ========================================================= */
 
 
-
 /* =========================================================
    PMD_STABLE_MODAL_TEXT_NO_JUMP_FINAL
    Stop checkout/payment/split/status text from jumping.
@@ -14046,7 +14034,6 @@ html body [data-pmd-floating-eta-circle="1"] {
 }
 
 
-
 /* PMD_SPLIT_BILL_FIRST_PAINT_STABLE_20260603
    Keep Split bill as the secondary/outline button from the first paint.
    This prevents the green -> outline color flash during Order Status render.
@@ -14216,8 +14203,6 @@ button[data-pmd-split-bill-stable="1"] svg * {
   -webkit-text-fill-color: #FFFFFF !important;
   fill: none !important;
 }
-
-
 
 
 /* PMD_TINY_PLUS_VISIBLE_SIMPLE_WHITE_20260603
@@ -15865,3 +15850,44 @@ html body [data-pmd-final-card="1"] button[data-pmd-submit-review="1"] {
 html body button[data-pmd-submit-review="1"] {
   display: inline-flex !important;
 }
+
+
+/* PMD_ORGANIC_HIDE_MANUAL_DOCK_20260608
+   Organic Botanical uses the real PayMyDine bottom toolbar now.
+   Any old manual dock copies must not show or catch clicks. */
+[data-pmd-organic-native-dock="1"],
+[data-pmd-organic-dock-action] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+
+/* PMD_ORGANIC_REAL_TOOLBAR_FORCE_FIXED_20260608
+   Organic Botanical uses the real PayMyDine/Gold toolbar.
+   Hide old manual Organic docks completely. */
+[data-pmd-organic-native-dock="1"],
+[data-pmd-organic-native-dock="1"] *,
+[data-pmd-organic-dock-action],
+[data-pmd-organic-dock-action] * {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+[data-pmd-organic-real-toolbar="1"] {
+  --theme-surface: #fffaf0 !important;
+  --theme-border: #ded3bd !important;
+  --theme-text-primary: #343529 !important;
+  --theme-text-secondary: #716f5e !important;
+  --theme-primary: #b88940 !important;
+  --theme-accent: #b88940 !important;
+  --pmd-v2-page-bg: #fffaf0 !important;
+}
+
+[data-pmd-organic-real-toolbar="1"] [data-pmd-menu-cart-badge="1"] {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #b88940 !important;
+}
+
