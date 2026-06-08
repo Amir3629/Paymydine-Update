@@ -7026,6 +7026,220 @@ function LoadingSpinner() {
   )
 }
 
+
+// Organic Botanical Paper modal/card components are intentionally local to this menu page.
+// They avoid shared Dialog/global CSS so Gold Luxury and other themes keep their existing modal behavior.
+const organicModalCardStyle: React.CSSProperties = {
+  background: 'radial-gradient(circle at 18% 8%, rgba(255,255,255,.92), transparent 34%), radial-gradient(circle at 88% 14%, rgba(115,122,85,.12), transparent 30%), radial-gradient(circle at 22% 94%, rgba(184,134,75,.10), transparent 28%), #FFF9EF',
+  color: '#352F28',
+  borderColor: 'var(--pmd-line, #D8CBAF)',
+  boxShadow: '0 28px 80px rgba(66,55,35,0.24)',
+}
+
+const organicModalGrainStyle: React.CSSProperties = {
+  backgroundImage: 'radial-gradient(rgba(66,55,35,.10) 1px, transparent 1px), radial-gradient(rgba(255,255,255,.45) 1px, transparent 1px)',
+  backgroundPosition: '0 0, 10px 10px',
+  backgroundSize: '22px 22px',
+  opacity: 0.22,
+}
+
+const organicPrimaryButtonStyle: React.CSSProperties = {
+  background: 'var(--theme-primary, #737A55)',
+  borderColor: 'var(--theme-primary, #737A55)',
+  color: '#FFF9EF',
+}
+
+const organicSecondaryButtonStyle: React.CSSProperties = {
+  background: '#F3EBDD',
+  borderColor: 'var(--pmd-line, #D8CBAF)',
+  color: '#352F28',
+}
+
+const OrganicBotanicalModalShell = ({
+  isOpen,
+  modalName,
+  children,
+}: {
+  isOpen: boolean
+  modalName: string
+  children: React.ReactNode
+}) => (
+  <AnimatePresence initial={false}>
+    {isOpen && (
+      <motion.div
+        data-pmd-organic-modal={modalName}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.28 }}
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-[#2f2b1f]/45 px-4 py-8 backdrop-blur-sm"
+      >
+        <motion.div
+          initial={{ scale: 0.96, opacity: 0, y: 18 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.96, opacity: 0, y: 18 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+          className="pmd-organic-modal-card relative w-full max-w-[25rem] overflow-hidden rounded-[2rem] border p-7 text-center sm:p-8"
+          style={organicModalCardStyle}
+        >
+          <div className="pointer-events-none absolute inset-0" style={organicModalGrainStyle} />
+          <div className="pointer-events-none absolute -right-8 top-10 h-28 w-28 rounded-full border border-[#737A55]/20" />
+          <div className="pointer-events-none absolute -left-10 bottom-8 h-24 w-24 rounded-full border border-[#B8864B]/15" />
+          <div className="relative z-10">{children}</div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+)
+
+const OrganicBotanicalIconBadge = ({ children }: { children: React.ReactNode }) => (
+  <div
+    className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border shadow-inner"
+    style={{ background: '#F3EBDD', borderColor: 'var(--pmd-line, #D8CBAF)', color: '#737A55' }}
+  >
+    {children}
+  </div>
+)
+
+const OrganicBotanicalWaiterDialog = ({
+  isOpen,
+  onOpenChange,
+  tableId,
+}: {
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
+  tableId: string
+}) => {
+  const { t } = useLanguageStore()
+  const { toast } = useToast()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isConfirmed, setIsConfirmed] = useState(false)
+
+  const handleClose = () => {
+    if (isSubmitting) return
+    onOpenChange(false)
+    setIsConfirmed(false)
+  }
+
+  const handleConfirm = async () => {
+    if (isSubmitting) return
+    const msg = '.'
+    const resolvedTableId = tableId || 'delivery'
+    setIsSubmitting(true)
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[waiter-call] payload', { tableId: resolvedTableId, msg, source: tableId ? 'table' : 'delivery_menu' })
+    }
+    try {
+      await apiClient.callWaiter(String(resolvedTableId), msg)
+      toast({ title: 'Waiter Called', description: tableId ? 'We are on the way!' : 'We received your assistance request.' })
+      setIsConfirmed(true)
+      window.setTimeout(() => {
+        setIsConfirmed(false)
+        onOpenChange(false)
+      }, 1200)
+    } catch (e: any) {
+      toast({ title: 'Error', description: (e?.message || 'Failed to call waiter'), variant: 'destructive' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <OrganicBotanicalModalShell isOpen={isOpen} modalName="waiter">
+      {isConfirmed ? (
+        <>
+          <OrganicBotanicalIconBadge><CheckCircle className="h-8 w-8" /></OrganicBotanicalIconBadge>
+          <h3 className="mb-2 font-serif text-3xl font-bold text-[#352F28]">{t('waiterComing')}</h3>
+          <p className="text-base leading-relaxed text-[#7D7467]">{tableId ? 'We are on the way!' : 'We received your assistance request.'}</p>
+        </>
+      ) : (
+        <>
+          <OrganicBotanicalIconBadge><HandPlatter className="h-8 w-8" /></OrganicBotanicalIconBadge>
+          <h3 className="mb-3 font-serif text-3xl font-bold text-[#352F28]">{t('callWaiter')}</h3>
+          <p className="mx-auto mb-7 max-w-[18rem] text-base leading-relaxed text-[#7D7467]">{t('callWaiterConfirm')}</p>
+          <div className="flex gap-3">
+            <motion.button
+              type="button"
+              whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+              whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="flex-1 rounded-2xl border px-5 py-3 text-sm font-semibold transition-opacity disabled:opacity-60"
+              style={organicSecondaryButtonStyle}
+            >
+              {t('no')}
+            </motion.button>
+            <motion.button
+              type="button"
+              whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+              whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+              onClick={handleConfirm}
+              disabled={isSubmitting}
+              className="flex-1 rounded-2xl border px-5 py-3 text-sm font-semibold shadow-[0_12px_24px_rgba(115,122,85,0.22)] transition-opacity disabled:opacity-70"
+              style={organicPrimaryButtonStyle}
+            >
+              {isSubmitting ? 'Calling…' : t('yes')}
+            </motion.button>
+          </div>
+        </>
+      )}
+    </OrganicBotanicalModalShell>
+  )
+}
+
+const OrganicBotanicalNoteDialog = ({
+  isOpen,
+  onOpenChange,
+  note,
+  setNote,
+  onSend,
+}: {
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
+  note: string
+  setNote: (note: string) => void
+  onSend: () => void
+}) => {
+  const { t } = useLanguageStore()
+
+  return (
+    <OrganicBotanicalModalShell isOpen={isOpen} modalName="note">
+      <OrganicBotanicalIconBadge><NotebookPen className="h-8 w-8" /></OrganicBotanicalIconBadge>
+      <h3 className="mb-3 font-serif text-3xl font-bold text-[#352F28]">{t('leaveNoteTitle')}</h3>
+      <p className="mx-auto mb-5 max-w-[19rem] text-base leading-relaxed text-[#7D7467]">{t('leaveNoteDesc')}</p>
+      <Textarea
+        placeholder={t('notePlaceholder')}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        className="mb-5 min-h-[118px] w-full rounded-[1.35rem] border px-4 py-3 text-left text-base shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-[#737A55]/35"
+        style={{ background: '#FFFDF7', borderColor: 'var(--pmd-line, #D8CBAF)', color: '#352F28' }}
+      />
+      <div className="flex gap-3">
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => onOpenChange(false)}
+          className="flex-1 rounded-2xl border px-5 py-3 text-sm font-semibold"
+          style={organicSecondaryButtonStyle}
+        >
+          {t('cancel')}
+        </motion.button>
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onSend}
+          className="flex-1 rounded-2xl border px-5 py-3 text-sm font-semibold shadow-[0_12px_24px_rgba(115,122,85,0.22)]"
+          style={organicPrimaryButtonStyle}
+        >
+          {t('sendNote')}
+        </motion.button>
+      </div>
+    </OrganicBotanicalModalShell>
+  )
+}
+
 // Enhanced Waiter Dialog Component
 const EnhancedWaiterDialog = ({
   isOpen,
@@ -8345,21 +8559,18 @@ useEffect(() => {
           }}
         />
 
-        <EnhancedWaiterDialog
+        <OrganicBotanicalWaiterDialog
           isOpen={isWaiterConfirmOpen}
           onOpenChange={setWaiterConfirmOpen}
           tableId={tableIdString}
-          tableName={tableName}
         />
 
-        <EnhancedNoteDialog
+        <OrganicBotanicalNoteDialog
           isOpen={isNoteModalOpen}
           onOpenChange={setNoteModalOpen}
           note={note}
           setNote={setNote}
           onSend={handleSendNote}
-          tableId={tableIdString}
-          tableName={tableName}
         />
       </div>
     )
