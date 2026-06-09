@@ -33,7 +33,7 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
-import { GoldCheckoutButton } from "@/components/themes/gold-luxury/GoldThemeActions";
+import { GoldCheckoutButton, GoldNoteButton, GoldTableOrderButton, GoldWaiterButton } from "@/components/themes/gold-luxury/GoldThemeActions";
 import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
@@ -5699,7 +5699,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     el.style.setProperty("border", "1px solid #062F2A", "important")
                     el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.18)", "important")
 
-                    el.querySelectorAll("svg, svg *, path").forEach((node) => {
+                    el.querySelectorAll("svg, svg *, path").forEach((node: Element) => {
                       const iconNode = node as HTMLElement
                       iconNode.style.setProperty("color", "#FFFFFF", "important")
                       iconNode.style.setProperty("stroke", "#FFFFFF", "important")
@@ -6687,9 +6687,17 @@ function ExpandingBottomToolbar({
           }}
         >
           <ActionTooltip label="Call waiter">
-          <motion.button
-            whileTap={{ scale: waiterDisabled ? 1 : 0.92 }}
-            whileHover={{ scale: waiterDisabled ? 1 : 1.12 }}
+          <GoldWaiterButton
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
+            {...({ whileTap: { scale: waiterDisabled ? 1 : 0.92 }, whileHover: { scale: waiterDisabled ? 1 : 1.12 } })}
             className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             style={{
               background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -6698,17 +6706,24 @@ function ExpandingBottomToolbar({
               boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
             }}
-            onClick={waiterDisabled ? undefined : onWaiterClick}
             disabled={waiterDisabled}
             aria-label={t("callWaiter")}
           >
             <HandPlatter className="h-7 w-7" style={{ color: waiterDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </motion.button>
+          </GoldWaiterButton>
           </ActionTooltip>
           <ActionTooltip label="Add note">
-          <motion.button
-            whileTap={{ scale: noteDisabled ? 1 : 0.92 }}
-            whileHover={{ scale: noteDisabled ? 1 : 1.12 }}
+          <GoldNoteButton
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
+            {...({ whileTap: { scale: noteDisabled ? 1 : 0.92 }, whileHover: { scale: noteDisabled ? 1 : 1.12 } })}
             className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             style={{
               background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -6717,12 +6732,11 @@ function ExpandingBottomToolbar({
               boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
             }}
-            onClick={noteDisabled ? undefined : onNoteClick}
             disabled={noteDisabled}
             aria-label={t("leaveNote")}
           >
             <NotebookPen className="h-7 w-7" style={{ color: noteDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </motion.button>
+          </GoldNoteButton>
           </ActionTooltip>
 
           <ActionTooltip label="Checkout">
@@ -6813,8 +6827,17 @@ function ExpandingBottomToolbar({
           <AnimatePresence initial={false}>
           {showOrderAction && (
           <ActionTooltip label="Table order">
-          <motion.button
+          <GoldTableOrderButton
             key="table-order-action"
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
             initial={{ opacity: 0, scale: 0.8, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 8 }}
@@ -6822,7 +6845,7 @@ function ExpandingBottomToolbar({
             whileHover={{ scale: 1.12 }}
             className="h-12 w-12 flex items-center justify-center relative focus:outline-none transition-all"
             data-pmd-bottom-table-order="1"
-            ref={(el) => {
+            ref={(el: HTMLButtonElement | null) => {
               if (!el) return
 
               const cleanTableOrderButton = () => {
@@ -6844,7 +6867,7 @@ function ExpandingBottomToolbar({
                 el.style.setProperty("color", "#0D1B1E", "important")
                 el.style.setProperty("-webkit-text-fill-color", "#0D1B1E", "important")
 
-                el.querySelectorAll("svg, svg *, path").forEach((node) => {
+                el.querySelectorAll("svg, svg *, path").forEach((node: Element) => {
                   const svgNode = node as HTMLElement
                   svgNode.style.setProperty("color", "#0D1B1E", "important")
                   svgNode.style.setProperty("stroke", "#0D1B1E", "important")
@@ -6894,7 +6917,6 @@ function ExpandingBottomToolbar({
               WebkitTextFillColor: "#FFFFFF",
               boxShadow: "none",
             }}
-            onClick={onOrderClick}
             aria-label="Table order"
           >
             <ReceiptText
@@ -6920,7 +6942,7 @@ function ExpandingBottomToolbar({
                 {orderCount}
               </span>
             )}
-          </motion.button>
+          </GoldTableOrderButton>
           </ActionTooltip>
           )}
           </AnimatePresence>
