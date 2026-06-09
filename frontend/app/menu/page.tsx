@@ -8474,6 +8474,9 @@ useEffect(() => {
     }
   }
 
+  // Phase 3B: build a ThemeMenuActions object here and pass it to native theme UI components.
+  // Existing handlers remain the source of truth until theme components are migrated.
+
   // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
   useEffect(() => {
     if (typeof window === "undefined") return
