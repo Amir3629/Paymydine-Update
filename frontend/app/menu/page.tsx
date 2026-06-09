@@ -34,6 +34,7 @@ import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
+import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
   buildEvenSharePercents,
@@ -1188,7 +1189,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
   const hasPersonalItems = allItems.length > 0
   const [draftLoading, setDraftLoading] = useState(false)
-  const [submitDraftLoading, setSubmitDraftLoading] = useState(false)
 
   const [stripeConfig, setStripeConfig] = useState<{
     publishableKey: string
@@ -3110,11 +3110,12 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
   }
-  const getDraftContext = () => ({
-    table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
-    table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
-    qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("qr") : null),
-  })
+  const draftContext = useMemo(() => buildTableOrderDraftContext(
+    tableInfo,
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("qr") : null,
+  ), [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code])
+
+  const getDraftContext = () => draftContext
 
   const refreshTableDraft = async () => {
     const context = getDraftContext()
@@ -3150,6 +3151,17 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       setDraftLoading(false)
     }
   }
+
+
+  const {
+    isSubmittingDraft: submitDraftLoading,
+    confirmTableDraftItems: confirmTableDraftItemsAction,
+    submitTableDraft: submitTableDraftAction,
+  } = useTableOrderActions({
+    context: draftContext,
+    getGuestSessionId: ensureGuestSession,
+    refreshDraft: refreshTableDraft,
+  })
 
   useEffect(() => {
     if (!isOpen) return
@@ -3221,11 +3233,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
     setIsLoading(true)
     try {
-      const result = await apiClient.confirmTableDraftItems({
-        ...getDraftContext(),
-        guest_session_id: ensureGuestSession(),
-        items: draftItems,
-      })
+      const result = await confirmTableDraftItemsAction(draftItems)
       setTableDraft(result)
       clearCart()
       console.info("PMD_TABLE_DRAFT_CONFIRMED_ITEMS", { draft_id: result.draft_id ?? null, count: draftItems.length })
@@ -3241,9 +3249,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const handleSubmitTableDraft = async () => {
     if (!tableDraft?.draft_id && tableDraft?.status !== "draft") return
-    setSubmitDraftLoading(true)
     try {
-      const result = await apiClient.submitTableDraft({ ...getDraftContext(), draft_id: tableDraft?.draft_id ?? null, guest_session_id: ensureGuestSession() })
+      const result = await submitTableDraftAction({ draftId: tableDraft?.draft_id ?? null, refreshOnError: true })
       setTableDraft(result)
       clearCart()
       const submittedTableSnapshot = {
@@ -3263,17 +3270,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         payment: result.payment || "qr_pay_later",
       }
       setSubmittedSnapshot(submittedTableSnapshot)
-            // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: clear the old Sending state before showing Order Status.
-      setSubmitDraftLoading(false)
+            // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: action hook clears the old Sending state before showing Order Status.
       setCheckoutStep("submitted")
       console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
       toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
       onOpenOrderUpdate?.(submittedTableSnapshot)
     } catch (error) {
-      await refreshTableDraft()
       toast({ title: "Could not submit table order", description: error instanceof Error ? error.message : "Please refresh and try again.", variant: "destructive" })
-    } finally {
-      setSubmitDraftLoading(false)
     }
   }
 
@@ -4865,7 +4868,6 @@ useLayoutEffect(() => {
       createdAt: Date.now(),
     })
 
-    setSubmitDraftLoading(false)
     setCheckoutStep("submitted")
   }, [
     isOpen,
