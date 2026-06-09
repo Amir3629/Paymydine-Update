@@ -41,14 +41,24 @@ import {
   calculateCartPricingSummary,
   calculateCheckoutTax,
   calculateSplitSubtotal,
-  countUnassignedSplitItems,
   getOrderItemUnitAmount,
   groupOrderDisplayItems,
-  sumSharePercents,
   tableOrderTotalByCode,
   tableOrderVatPercentage,
   toPositiveAmount,
 } from "@/features/checkout/checkout-utils";
+import {
+  buildEqualSplitPeople,
+  buildItemSplitPeople,
+  buildShareSplitPeople,
+  buildSplitGuestProfiles,
+  calculateSplitConfirmationState,
+  getActiveSplitPeople,
+  getSelectedSplitPerson,
+  getSplitGuestAvatar as getSplitGuestAvatarFromProfiles,
+  normalizeSharePercentsForGuestCount,
+  pruneItemAssignmentsForGuestCount,
+} from "@/features/checkout/split-bill-utils";
 import {
   canRenderPaymentMethodDetail,
   findPaymentMethod,
@@ -1477,9 +1487,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const orderStatusTotal = Math.max(0, submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount)
 
   // Phase 2B: split bill state transitions should move behind a shared checkout hook without changing this UI.
-  const splitGuestProfiles = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => SPLIT_GUEST_PROFILES[idx] || { name: `Guest ${idx + 1}`, avatar: String(idx + 1) }), [splitGuestCount])
+  const splitGuestProfiles = useMemo(() => buildSplitGuestProfiles(splitGuestCount, SPLIT_GUEST_PROFILES), [splitGuestCount])
   const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
-  const getSplitGuestAvatar = (idx: number) => splitGuestProfiles[idx]?.avatar || String(idx + 1)
+  const getSplitGuestAvatar = (idx: number) => getSplitGuestAvatarFromProfiles(splitGuestProfiles, idx)
 
   const suggestedSplitGuestCount = useMemo(() => {
     const groupCount = Array.isArray(tableDraft?.groups)
@@ -1508,12 +1518,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   }
 
   useEffect(() => {
-    setSharePercents((prev) => {
-      const next = Array.from({ length: splitGuestCount }, (_, idx) => prev[idx] ?? 0)
-      if (next.every((value) => value === 0)) return buildEvenSharePercents(splitGuestCount)
-      return next
-    })
-    setItemAssignments((prev) => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, typeof value === "number" && value >= splitGuestCount ? null : value])))
+    setSharePercents((prev) => normalizeSharePercentsForGuestCount(prev, splitGuestCount, buildEvenSharePercents(splitGuestCount)))
+    setItemAssignments((prev) => pruneItemAssignmentsForGuestCount(prev, splitGuestCount))
   }, [splitGuestCount])
 
   const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
@@ -1543,86 +1549,51 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const splitGrandTotal = useMemo(() => submittedBaseTotal > 0 ? orderStatusTotal : finalTotal, [submittedBaseTotal, orderStatusTotal, finalTotal])
   const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
 
-  const buildSplitPerson = (idx: number, personSubtotal: number, items: SplitPerson["items"], percent?: number): SplitPerson => {
-    const ratio = splitSubtotal > 0 ? personSubtotal / splitSubtotal : (splitGuestCount > 0 ? 1 / splitGuestCount : 0)
-    const extra = splitExtraAmount * ratio
-    const discountShare = couponDiscount > 0 ? couponDiscount * ratio : 0
-    const total = Math.max(0, personSubtotal + extra - discountShare)
-    const id = `guest-${idx}`
-    return {
-      id,
-      name: splitGuestNames[idx] || `Guest ${idx + 1}`,
-      avatar: getSplitGuestAvatar(idx),
-      subtotal: personSubtotal,
-      tax: extra,
-      tip: 0,
-      discount: discountShare,
-      total,
-      items,
-      status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
-      percent,
-    }
-  }
+  const equalSplitPeople = useMemo(() => buildEqualSplitPeople({
+    splitGrandTotal,
+    splitGuestCount,
+    splitGuestNames,
+    splitGuestProfiles,
+    splitSubtotal,
+    splitExtraAmount,
+    paidSplitPeople,
+    selectedSplitPersonId,
+  }), [splitGrandTotal, splitGuestCount, splitGuestNames, splitGuestProfiles, splitSubtotal, splitExtraAmount, paidSplitPeople, selectedSplitPersonId])
 
-  const equalSplitPeople = useMemo(() => {
-    const totalCents = Math.round(splitGrandTotal * 100)
-    const baseCents = Math.floor(totalCents / splitGuestCount)
-    const remainder = totalCents - baseCents * splitGuestCount
-    return Array.from({ length: splitGuestCount }, (_, idx) => {
-      const cents = baseCents + (idx === 0 ? remainder : 0)
-      const total = cents / 100
-      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 1 / splitGuestCount
-      const id = `guest-${idx}`
-      return {
-        id,
-        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
-        avatar: getSplitGuestAvatar(idx),
-        subtotal: splitSubtotal * ratio,
-        tax: splitExtraAmount * ratio,
-        tip: 0,
-        discount: 0,
-        total,
-        items: [{ name: "Equal share", amount: total }],
-        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
-      } as SplitPerson
-    })
-  }, [splitGrandTotal, splitGuestCount, splitGuestNames, splitSubtotal, splitExtraAmount, paidSplitPeople, selectedSplitPersonId])
+  const itemSplitPeople = useMemo(() => buildItemSplitPeople({
+    splitGuestCount,
+    splitSourceItems,
+    itemAssignments,
+    splitSubtotal,
+    splitExtraAmount,
+    couponDiscount,
+    splitGuestNames,
+    splitGuestProfiles,
+    paidSplitPeople,
+    selectedSplitPersonId,
+  }), [splitGuestCount, splitSourceItems, itemAssignments, splitSubtotal, splitExtraAmount, couponDiscount, splitGuestNames, splitGuestProfiles, paidSplitPeople, selectedSplitPersonId])
 
-  const itemSplitPeople = useMemo(() => {
-    return Array.from({ length: splitGuestCount }, (_, idx) => {
-      const personItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === idx).map((item: SplitSourceItem) => ({ name: item.name, amount: item.amount, quantity: 1 }))
-      const personSubtotal = personItems.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0)
-      return buildSplitPerson(idx, personSubtotal, personItems)
-    })
-  }, [splitGuestCount, splitSourceItems, itemAssignments, splitSubtotal, splitExtraAmount, couponDiscount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
+  const shareSplitPeople = useMemo(() => buildShareSplitPeople({
+    splitGuestCount,
+    sharePercents,
+    splitGrandTotal,
+    splitSubtotal,
+    splitExtraAmount,
+    splitGuestNames,
+    splitGuestProfiles,
+    paidSplitPeople,
+    selectedSplitPersonId,
+  }), [splitGuestCount, sharePercents, splitGrandTotal, splitSubtotal, splitExtraAmount, splitGuestNames, splitGuestProfiles, paidSplitPeople, selectedSplitPersonId])
 
-  const shareSplitPeople = useMemo(() => {
-    return Array.from({ length: splitGuestCount }, (_, idx) => {
-      const percent = Number(sharePercents[idx] || 0)
-      const total = splitGrandTotal * (percent / 100)
-      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 0
-      const id = `guest-${idx}`
-      return {
-        id,
-        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
-        avatar: getSplitGuestAvatar(idx),
-        subtotal: splitSubtotal * ratio,
-        tax: splitExtraAmount * ratio,
-        tip: 0,
-        discount: 0,
-        total,
-        items: [{ name: `${percent}% share`, amount: total }],
-        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
-        percent,
-      } as SplitPerson
-    })
-  }, [splitGuestCount, sharePercents, splitGrandTotal, splitSubtotal, splitExtraAmount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
-
-  const activeSplitPeople = splitMethod === "items" ? itemSplitPeople : splitMethod === "shares" ? shareSplitPeople : equalSplitPeople
-  const selectedSplitPerson = selectedSplitPersonId ? activeSplitPeople.find((person) => person.id === selectedSplitPersonId) || null : null
-  const unassignedSplitItems = countUnassignedSplitItems(splitSourceItems, itemAssignments)
-  const sharePercentTotal = sumSharePercents(sharePercents, splitGuestCount)
-  const canConfirmSplitMethod = splitMethod === "items" ? unassignedSplitItems === 0 : splitMethod === "shares" ? sharePercentTotal === 100 : true
+  const activeSplitPeople = getActiveSplitPeople({ splitMethod, equalSplitPeople, itemSplitPeople, shareSplitPeople })
+  const selectedSplitPerson = getSelectedSplitPerson(activeSplitPeople, selectedSplitPersonId)
+  const { unassignedSplitItems, sharePercentTotal, canConfirmSplitMethod } = calculateSplitConfirmationState({
+    splitMethod,
+    splitSourceItems,
+    itemAssignments,
+    sharePercents,
+    splitGuestCount,
+  })
 
   const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
   const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
