@@ -48,6 +48,16 @@ import {
   toPositiveAmount,
 } from "@/features/checkout/checkout-utils";
 import {
+  calculateCouponDiscount,
+  calculateFinalTotal,
+  calculateOrderStatusTotal,
+  calculatePaidSnapshotTotals,
+  calculatePayableTotal,
+  calculatePaymentSummary,
+  calculateSubmittedBaseTotal,
+  calculateTipAmount,
+} from "@/features/checkout/payment-summary-utils";
+import {
   buildEqualSplitPeople,
   buildItemSplitPeople,
   buildShareSplitPeople,
@@ -1468,23 +1478,17 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     onCartPricingUpdate({ items: displayItems, subtotal, tax: taxAmount, total: subtotal + taxAmount })
   }, [allItems, personalReviewItems, selectedOptions, subtotal, taxAmount, onCartPricingUpdate, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
-  const submittedBaseTotal = useMemo(() => Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
+  const submittedBaseTotal = useMemo(() => calculateSubmittedBaseTotal(submittedSnapshot, pendingSummary), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
   const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
   const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
-  const tipAmount = customTip ? Number.parseFloat(customTip) || 0 : tipBaseAmount * (tipPercentage / 100)
+  const tipAmount = calculateTipAmount(tipBaseAmount, tipPercentage, customTip)
   const couponBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
 
   // Calculate coupon discount
-  const couponDiscount = useMemo(() => {
-    if (!appliedCoupon) return 0
-    if (appliedCoupon.type === 'F') {
-      return Math.min(appliedCoupon.discount, couponBaseAmount)
-    }
-    return couponBaseAmount * (appliedCoupon.discount_value / 100)
-  }, [appliedCoupon, couponBaseAmount])
+  const couponDiscount = useMemo(() => calculateCouponDiscount(appliedCoupon, couponBaseAmount), [appliedCoupon, couponBaseAmount])
 
-  const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
-  const orderStatusTotal = Math.max(0, submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount)
+  const finalTotal = calculateFinalTotal(subtotal, taxAmount, tipAmount, couponDiscount)
+  const orderStatusTotal = calculateOrderStatusTotal(submittedBaseTotal, subtotal, taxAmount)
 
   // Phase 2B: split bill state transitions should move behind a shared checkout hook without changing this UI.
   const splitGuestProfiles = useMemo(() => buildSplitGuestProfiles(splitGuestCount, SPLIT_GUEST_PROFILES), [splitGuestCount])
@@ -1598,22 +1602,34 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
   const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
   const paymentCustomTip = selectedSplitPerson ? splitPaymentTip.custom : customTip
-  const paymentBaseAmount = selectedSplitPerson?.total && selectedSplitPerson.total > 0
-    ? selectedSplitPerson.total
-    : (submittedBaseTotal > 0 ? submittedBaseTotal : finalTotal)
-  const paymentTipAmount = paymentCustomTip ? Number.parseFloat(paymentCustomTip) || 0 : paymentBaseAmount * (paymentTipPercentage / 100)
-  const paymentCouponDiscount = selectedSplitPerson ? 0 : couponDiscount
-  const paymentPayableTotal = Math.max(0, paymentBaseAmount + paymentTipAmount - paymentCouponDiscount)
-  const paymentSubtotalAmount = selectedSplitPerson
-    ? Number(selectedSplitPerson.subtotal || 0)
-    : Number(submittedSnapshot?.subtotal || 0)
-  const paymentVatAmount = selectedSplitPerson
-    ? Number(selectedSplitPerson.tax || 0)
-    : Number(submittedSnapshot?.vatAmount || 0)
-  const paymentVatPercentage = Number(submittedSnapshot?.vatPercentage ?? taxSettings?.percentage ?? 0)
-  const paidTipAmount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTipAmount ?? paymentTipAmount ?? tipAmount ?? 0) : paymentTipAmount
-  const paidCouponDiscount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidCouponDiscount ?? paymentCouponDiscount ?? couponDiscount ?? 0) : paymentCouponDiscount
-  const paidAmountTotal = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTotal ?? Math.max(0, orderStatusTotal + paidTipAmount - paidCouponDiscount)) : paymentPayableTotal
+  const {
+    paymentBaseAmount,
+    paymentTipAmount,
+    paymentCouponDiscount,
+    paymentPayableTotal,
+    paymentSubtotalAmount,
+    paymentVatAmount,
+    paymentVatPercentage,
+  } = calculatePaymentSummary({
+    selectedSplitPerson,
+    submittedBaseTotal,
+    finalTotal,
+    paymentCustomTip,
+    paymentTipPercentage,
+    couponDiscount,
+    submittedSnapshot,
+    taxPercentage: taxSettings?.percentage ?? 0,
+  })
+  const { paidTipAmount, paidCouponDiscount, paidAmountTotal } = calculatePaidSnapshotTotals({
+    checkoutStep,
+    submittedSnapshot,
+    paymentTipAmount,
+    tipAmount,
+    paymentCouponDiscount,
+    couponDiscount,
+    orderStatusTotal,
+    paymentPayableTotal,
+  })
 
   const updatePaymentTipPercentage = (percentage: number) => {
     if (selectedSplitPersonId) {
@@ -1641,12 +1657,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setCustomTip("")
   }
 
-  const payableTotal = useMemo(() => {
-    const reviewTotal = toPositiveAmount(finalTotal)
-    const orderTotal = toPositiveAmount(orderStatusTotal)
-    if (checkoutStep === "payment") return paymentPayableTotal
-    return orderTotal ?? reviewTotal ?? 0
-  }, [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
+  const payableTotal = useMemo(() => calculatePayableTotal({ checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal }), [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
   // PMD_PAYMENT_METHOD_SMOOTH_SCROLL_EFFECT
   useEffect(() => {
     if (checkoutStep !== "payment" || !selectedPaymentMethod) return
