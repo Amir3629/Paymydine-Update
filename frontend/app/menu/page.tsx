@@ -48,6 +48,17 @@ import {
   toPositiveAmount,
 } from "@/features/checkout/checkout-utils";
 import {
+  getCheckoutStepAfterBack,
+  getCheckoutStepAfterDraftSubmit,
+  getCheckoutStepAfterOrderSubmit,
+  getCheckoutStepAfterPaymentSuccess,
+  getCheckoutStepForSplitMethod,
+  getCheckoutStepOnOpen,
+  getInitialCheckoutStep,
+  isSplitCheckoutStep,
+  shouldForcePersonalReview,
+} from "@/features/checkout/checkout-state-utils";
+import {
   calculateCouponDiscount,
   calculateFinalTotal,
   calculateOrderStatusTotal,
@@ -1172,7 +1183,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     phone: "",
   })
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
-    initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
+    getInitialCheckoutStep(initialCheckoutStep, existingOrderId)
   )
 
 
@@ -1233,15 +1244,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   useEffect(() => {
     if (!isOpen) return
-    const nextStep = initialCheckoutStep && !(existingOrderId && initialCheckoutStep === 'review')
-      ? initialCheckoutStep
-      : existingOrderId
-        ? 'submitted'
-        : 'review'
-    setCheckoutStep((current) => {
-      if (!preferPersonalReview && !hasPersonalItems && (current === "submitted" || current === 'payment' || current === 'paid' || current === 'split' || current === 'split-items' || current === 'split-shares' || current === 'split-review') && nextStep === 'review') return current
-      return nextStep
-    })
+    setCheckoutStep((current) => getCheckoutStepOnOpen({
+      initialCheckoutStep,
+      existingOrderId,
+      hasPersonalItems,
+      preferPersonalReview,
+      currentStep: current,
+    }))
   }, [isOpen, existingOrderId, initialCheckoutStep, hasPersonalItems, preferPersonalReview])
 
   useEffect(() => {
@@ -3252,7 +3261,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       }
       setSubmittedSnapshot(submittedTableSnapshot)
             // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: action hook clears the old Sending state before showing Order Status.
-      setCheckoutStep("submitted")
+      setCheckoutStep(getCheckoutStepAfterDraftSubmit())
       console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
       toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
       onOpenOrderUpdate?.(submittedTableSnapshot)
@@ -3448,7 +3457,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
             resetPaymentAdjustmentsAfterSuccess()
           }
-          setCheckoutStep("paid")
+          setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
           setIsLoading(false)
           toast({
             title: t("paymentSuccessful"),
@@ -3527,7 +3536,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
             resetPaymentAdjustmentsAfterSuccess()
           }
-          setCheckoutStep("paid")
+          setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
           return
         }
       }
@@ -3609,9 +3618,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         if (checkoutStep === "payment") {
           markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
           resetPaymentAdjustmentsAfterSuccess()
-          setCheckoutStep("paid")
+          setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
         } else {
-          setCheckoutStep('submitted')
+          setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
         }
         return
       } else {
@@ -4763,7 +4772,7 @@ case "cod":
     // If the customer has just added new items and pressed Checkout,
     // the modal must show the personal review card first.
     // Existing table/order status must not steal this flow.
-    if (hasPersonalItems && initialCheckoutStep === "review" && checkoutStep !== "review") {
+    if (shouldForcePersonalReview({ hasPersonalItems, initialCheckoutStep, currentStep: checkoutStep })) {
       setCheckoutStep("review")
     }
   }, [isOpen, hasPersonalItems, initialCheckoutStep, checkoutStep])
@@ -4849,7 +4858,7 @@ useLayoutEffect(() => {
       createdAt: Date.now(),
     })
 
-    setCheckoutStep("submitted")
+    setCheckoutStep(getCheckoutStepAfterDraftSubmit())
   }, [
     isOpen,
     checkoutStep,
@@ -4875,9 +4884,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
     setSplitMethod(method)
     setSelectedPaymentMethod(null)
     setSelectedSplitPersonId(null)
-    if (method === "items") setCheckoutStep("split-items")
-    else if (method === "shares") setCheckoutStep("split-shares")
-    else setCheckoutStep("split")
+    setCheckoutStep(getCheckoutStepForSplitMethod(method))
   }
 
   const chooseSplitMethod = (method: SplitMethod) => {
@@ -4980,8 +4987,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (checkoutStep === "payment") setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")
-              else if (checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") setCheckoutStep("submitted")
+              const previousStep = getCheckoutStepAfterBack(checkoutStep, Boolean(selectedSplitPersonId))
+              if (previousStep) setCheckoutStep(previousStep)
               else onClose()
             }}
 
@@ -5321,7 +5328,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, subtotal: Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0), vatAmount: Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0), vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0), total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0, remainingAmount: tableDraft.totals?.remainingAmount || tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, subtotal: Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0), vatAmount: Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0), vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0), total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0, remainingAmount: tableDraft.totals?.remainingAmount || tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep(getCheckoutStepAfterDraftSubmit()) }} className={modalSecondaryBtn}>
                   View order status
                 </button>
               ) : null}
@@ -5395,7 +5402,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           </motion.div>)}
           </AnimatePresence>
 
-          {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
+          {isSplitCheckoutStep(checkoutStep) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div className="pmd-checkout-flat-section rounded-3xl p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
