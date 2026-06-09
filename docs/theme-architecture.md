@@ -155,3 +155,15 @@ After MVP:
 3. Migrate Organic v0 UI into the main frontend.
 4. Remove iframe dependency only after native Organic UI is feature-complete.
 5. Replace broad global CSS and MutationObserver style hacks with scoped theme CSS/components.
+
+## Final theme UI shell foundation
+
+The theme UI layer is now split from shared functionality:
+
+- `frontend/features/*` contains shared PayMyDine functionality: checkout calculations, checkout state helpers, split-bill helpers, payment-method helpers, payment summary helpers, table-order hooks/actions, valet request hooks, and menu action adapters.
+- `frontend/components/themes/*` contains visual theme UI: shell components, section slots, action slots, and theme-specific action buttons.
+- `frontend/components/themes/theme-renderer.tsx` maps normalized theme ids to visual component sets. The renderer uses `theme-registry` and must not use host/domain decisions.
+
+Theme components should receive `ThemeMenuActions`, `ThemeCheckoutActions`, and typed state props. They should render the restaurant-specific visual experience only. Checkout/payment/order/valet behavior should remain in shared feature hooks and controllers until a dedicated safe extraction phase moves controller logic into shared modules.
+
+For MVP, keep `frontend/app/menu/page.tsx` as the production orchestrator while moving non-payment visual sections into Gold and Organic slots one at a time. PaymentModal JSX, payment provider submit flows, final order submit, and split-payment submit should remain in `menu/page.tsx` until a separate payment controller phase.

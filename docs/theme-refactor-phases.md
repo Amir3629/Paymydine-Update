@@ -63,3 +63,25 @@ Theme components should own presentation only. They should not duplicate backend
 - Move theme-specific rules out of `frontend/app/globals.css` where practical.
 - Ensure each theme has a clear CSS scope root.
 - Add regression checks for Gold Luxury and Organic before removing old patches.
+
+## Fast final architecture pass
+
+The final Phase 3 foundation adds theme shell/slot files and a theme renderer map without forcing production UI through the new renderer yet.
+
+Completed foundation:
+
+- Shared shell primitives: `ThemeMenuShell`, `ThemeMenuSection`, and `ThemeActionSlot`.
+- Gold Luxury slots for header/hero, categories, item cards, bottom toolbar, action buttons, checkout trigger, waiter/note/table-order/valet actions.
+- Organic Botanical Paper slots for botanical top bar, categories, item cards, action buttons, checkout trigger, waiter/note/table-order/valet actions.
+- `theme-renderer.tsx` with `getThemeComponents(themeId)` and `ThemeMenuRenderer`, selected by normalized theme id/config only.
+
+Next phase:
+
+Start moving actual visual sections one by one into Gold/Organic theme components, beginning with non-payment visual sections only. Recommended order:
+
+1. Header/top-bar visual slots.
+2. Category navigation visual slots.
+3. Menu item card visual slots.
+4. Bottom toolbar shell/action visual slots.
+
+Keep PaymentModal, provider-specific payment submit flows, final order submit, and split-payment submit in `frontend/app/menu/page.tsx` until a dedicated payment controller phase is planned and tested.

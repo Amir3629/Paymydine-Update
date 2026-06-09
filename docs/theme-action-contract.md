@@ -94,3 +94,26 @@ A future theme-specific checkout card should receive `ThemeCheckoutActions` and 
 ## Rule for new themes
 
 New themes must connect to shared action contracts. They should not fork checkout/payment/order logic, add host/domain-based behavior, or introduce runtime DOM patches to force another theme's UI into shape.
+
+## Final shell and slot architecture
+
+The final theme foundation adds three shared slot primitives:
+
+- `frontend/components/themes/shared/ThemeMenuShell.tsx` for page-level theme wrappers.
+- `frontend/components/themes/shared/ThemeMenuSection.tsx` for visual menu sections such as headers, category areas, item-card regions, and toolbar regions.
+- `frontend/components/themes/shared/ThemeActionSlot.tsx` for action-only visual slots such as checkout, waiter, note, table-order, and valet entries.
+
+Gold and Organic now have their own shell/section files under `frontend/components/themes/gold-luxury/` and `frontend/components/themes/organic-botanical-paper/`. These files are visual slots only. They must receive state and actions from shared controllers and must not own API calls, payment provider submission, order finalization, split-payment submission, tenant/domain decisions, or runtime DOM patches.
+
+`frontend/components/themes/theme-renderer.tsx` exposes `getThemeComponents(themeId)` and `ThemeMenuRenderer`. The renderer selects components by normalized theme id through `theme-registry`, not host/domain. Production UI is not forced through this renderer yet; it is a migration boundary for future visual moves.
+
+## Current wired action buttons
+
+The bottom toolbar action path now proves the contract by routing low-risk menu actions through `ThemeMenuActions` while preserving existing markup and styles:
+
+- Waiter uses `onCallWaiter()`.
+- Note uses `onOpenNote()`.
+- Checkout/cart uses `onOpenCheckout()`.
+- Table order/open order uses `onOpenTableOrder()`.
+
+Future phases can move each visual button into theme-owned files as long as they preserve the same action contract and do not reimplement checkout/order/payment logic.
