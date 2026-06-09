@@ -345,6 +345,37 @@ html body [data-pmd-menu-cart-badge="1"] * {
           }}
         />
 
+      
+        <script
+          id="pmd-organic-prepaint-bootstrap"
+          dangerouslySetInnerHTML={{
+            __html: `
+              /* PMD_ORGANIC_PREPAINT_BOOTSTRAP_20260609 */
+              (function () {
+                try {
+                  var host = window.location.hostname || "";
+                  var sub = host.split(".")[0] || "";
+                  var keys = [
+                    sub + ":paymydine-theme",
+                    "mimoza:paymydine-theme",
+                    "paymydine-theme"
+                  ];
+                  var theme = "";
+                  for (var i = 0; i < keys.length; i++) {
+                    theme = window.localStorage.getItem(keys[i]) || theme;
+                    if (theme) break;
+                  }
+                  if (theme === "organic_botanical_paper") {
+                    document.documentElement.setAttribute("data-theme", "organic_botanical_paper");
+                    document.documentElement.setAttribute("data-pmd-organic-botanical-active", "1");
+                    document.documentElement.classList.add("pmd-organic-prepaint");
+                  }
+                } catch (error) {}
+              })();
+            `,
+          }}
+        />
+
       </head>
       <body className="text-theme">
         <CleanLightCustomerGuard />
