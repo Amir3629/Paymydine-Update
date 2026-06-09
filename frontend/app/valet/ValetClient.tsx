@@ -2,20 +2,17 @@
 
 import React, { useState } from "react"
 import { useLanguageStore } from "@/store/language-store"
-import { useCmsStore } from "@/store/cms-store"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Car, CheckCircle2 } from "lucide-react"
-import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { motion, AnimatePresence } from "framer-motion"
+import { useValetRequest } from "@/features/valet/use-valet-request"
 
 export default function ValetPage() {
   const { t } = useLanguageStore()
-  const { settings } = useCmsStore()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const { isSubmitting, isSuccess, errorMessage, submitValetRequest } = useValetRequest()
   const [formData, setFormData] = useState({
     name: "",
     car: "",
@@ -27,15 +24,42 @@ export default function ValetPage() {
     setFormData(prev => ({ ...prev, [id]: value }))
   }
 
+  const readTableContext = () => {
+    if (typeof window === "undefined") {
+      return { tableId: "delivery", tableNo: undefined, qr: undefined }
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    const clean = (value: string | null) => {
+      const trimmed = String(value || "").trim()
+      return trimmed && trimmed !== "undefined" && trimmed !== "null" ? trimmed : undefined
+    }
+
+    const tableId = clean(params.get("table_id"))
+    const tableNo = clean(params.get("table_no"))
+    const table = clean(params.get("table"))
+    const qr = clean(params.get("qr"))
+
+    return {
+      tableId: tableId || tableNo || table || qr || "delivery",
+      tableNo,
+      qr,
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const tableContext = readTableContext()
 
-    setIsSubmitting(false)
-    setIsSuccess(true)
+    await submitValetRequest({
+      name: formData.name,
+      license_plate: formData.plate,
+      car_make: formData.car,
+      table_id: tableContext.tableId,
+      table_no: tableContext.tableNo,
+      qr: tableContext.qr,
+    })
   }
 
   return (
@@ -120,6 +144,12 @@ export default function ValetPage() {
                   />
                 </motion.div>
                 
+                {errorMessage && (
+                  <p className="text-sm text-red-600" role="alert">
+                    {errorMessage}
+                  </p>
+                )}
+
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

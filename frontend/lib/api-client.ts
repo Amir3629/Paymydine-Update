@@ -643,25 +643,37 @@ export class ApiClient {
     }
   }
 
-  // Optional: valet  creates a notification too
+  // Optional: valet creates a notification too
   async createValetRequest(input: {
     name: string;
     license_plate: string;
     car_make?: string;
     table_id?: string;
-  }): Promise<{ ok?: boolean; success?: boolean; message: string; id?: number }> {
+    table_no?: string;
+    qr?: string;
+  }): Promise<{ ok?: boolean; success?: boolean; message: string; id?: number; notification_id?: number; created_at?: string }> {
     try {
       const endpoint = this.envConfig.getApiEndpoint('/valet-request');
+      const payload = {
+        ...input,
+        // Compatibility with the legacy /api/v1 valet route, which expects customer_name.
+        customer_name: input.name,
+        // The active guest-actions route accepts nullable car_make; the legacy route requires it.
+        car_make: input.car_make || 'Not provided',
+      };
       const body = safeJsonStringify(Object.fromEntries(
-        Object.entries(input).filter(([, v]) => v !== undefined)
+        Object.entries(payload).filter(([, v]) => v !== undefined && v !== '')
       ));
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body,
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return await response.json();
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success === false || data?.ok === false) {
+        throw new Error(data?.message || data?.error || `HTTP error! status: ${response.status}`);
+      }
+      return data;
     } catch (error) {
       console.error('Valet request failed:', error);
       throw error;

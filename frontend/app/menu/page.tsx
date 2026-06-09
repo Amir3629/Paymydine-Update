@@ -33,6 +33,73 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
+import { GoldCheckoutButton, GoldNoteButton, GoldTableOrderButton, GoldWaiterButton } from "@/components/themes/gold-luxury/GoldThemeActions";
+import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
+import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
+import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
+import { createThemeMenuActions } from "@/features/menu/theme-menu-actions";
+import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
+import {
+  buildEvenSharePercents,
+  calculateCartPricingSummary,
+  calculateCheckoutTax,
+  calculateSplitSubtotal,
+  getOrderItemUnitAmount,
+  groupOrderDisplayItems,
+  tableOrderTotalByCode,
+  tableOrderVatPercentage,
+  toPositiveAmount,
+} from "@/features/checkout/checkout-utils";
+import {
+  getCheckoutStepAfterBack,
+  getCheckoutStepAfterDraftSubmit,
+  getCheckoutStepAfterOrderSubmit,
+  getCheckoutStepAfterPaymentSuccess,
+  getCheckoutStepForSplitMethod,
+  getCheckoutStepOnOpen,
+  getInitialCheckoutStep,
+  isSplitCheckoutStep,
+  shouldForcePersonalReview,
+} from "@/features/checkout/checkout-state-utils";
+import {
+  calculateCouponDiscount,
+  calculateFinalTotal,
+  calculateOrderStatusTotal,
+  calculatePaidSnapshotTotals,
+  calculatePayableTotal,
+  calculatePaymentSummary,
+  calculateSubmittedBaseTotal,
+  calculateTipAmount,
+} from "@/features/checkout/payment-summary-utils";
+import {
+  buildEqualSplitPeople,
+  buildItemSplitPeople,
+  buildShareSplitPeople,
+  buildSplitGuestProfiles,
+  calculateSplitConfirmationState,
+  getActiveSplitPeople,
+  getSelectedSplitPerson,
+  getSplitGuestAvatar as getSplitGuestAvatarFromProfiles,
+  normalizeSharePercentsForGuestCount,
+  pruneItemAssignmentsForGuestCount,
+} from "@/features/checkout/split-bill-utils";
+import {
+  canRenderPaymentMethodDetail,
+  findPaymentMethod,
+  getPaymentMethodProviderCode,
+  getVisiblePaymentMethods,
+  isPaymentMethodAvailable,
+  isStripePaymentMethodForConfig,
+  mapPaymentMethodsByCode,
+} from "@/features/checkout/payment-method-utils";
+import type {
+  CheckoutStep,
+  PmdToolbarPricingSnapshot,
+  SplitBillItem,
+  SplitMethod,
+  SplitPerson,
+  SplitSourceItem,
+} from "@/features/checkout/types";
 
 import {
   Dialog,
@@ -82,23 +149,6 @@ function OrganicExactV0Frame() {
     </div>
   )
 }
-
-const tableOrderTotalByCode = (response: any, code: string): number => {
-  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
-  const found = rows.find((row: any) => String(row?.code || '').toLowerCase() === code.toLowerCase())
-  const amount = Number(found?.value ?? 0)
-  return Number.isFinite(amount) ? amount : 0
-}
-
-const tableOrderVatPercentage = (response: any, fallback = 0): number => {
-  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
-  const taxRow = rows.find((row: any) => String(row?.code || '').toLowerCase() === 'tax')
-  const title = String(taxRow?.title || '')
-  const match = title.match(/([0-9]+(?:\.[0-9]+)?)\s*%/)
-  const parsed = match ? Number(match[1]) : Number(fallback || 0)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
@@ -573,13 +623,6 @@ type PaymentFormData = {
   phone: string
 }
 
-type PmdToolbarPricingSnapshot = {
-  items: Array<CartItem & { __pmdDisplayName?: string; __pmdDisplayUnitPrice?: number; __pmdDisplaySubtotal?: number }>;
-  subtotal: number;
-  tax: number;
-  total: number;
-}
-
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -624,31 +667,6 @@ interface MenuItemModalProps {
   onClose: () => void;
 }
 
-type CheckoutStep = 'review' | 'submitted' | 'split' | 'split-items' | 'split-shares' | 'split-review' | 'payment' | 'paid'
-
-type SplitMethod = 'equal' | 'items' | 'shares'
-
-type SplitSourceItem = {
-  key: string;
-  name: string;
-  amount: number;
-  orderMenuId?: number;
-}
-
-type SplitPerson = {
-  id: string;
-  name: string;
-  avatar: string;
-  subtotal: number;
-  tax: number;
-  tip: number;
-  discount: number;
-  total: number;
-  items: Array<{ name: string; amount: number; quantity?: number }>;
-  status: 'Ready to pay' | 'Pending' | 'Paid';
-  percent?: number;
-}
-
 const SPLIT_GUEST_PROFILES = [
   { name: "Luna", avatar: "L" },
   { name: "Milo", avatar: "M" },
@@ -661,16 +679,6 @@ const SPLIT_GUEST_PROFILES = [
   { name: "Oscar", avatar: "O" },
   { name: "Bella", avatar: "B" },
 ]
-
-type SplitBillItem = {
-  cartIndex: number;
-  item: MenuItem;
-  price: number;
-  key: string;
-  quantity: number;
-  orderMenuId?: number;
-  menuId?: number;
-}
 
 function MenuRecommendationBadges({
   item,
@@ -974,6 +982,7 @@ function OrderItemWithOptions({
 }
 
 // PMD_FORCE_ALL_PLUS_MINUS_SOURCE_WHITE_20260601
+// Phase 2B: move PaymentModal orchestration into checkout feature components/hooks after pure helpers are stable.
 function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate }: PaymentModalProps) {
 
   // PMD_QUANTITY_ICON_FIRST_PAINT_FIX_20260601
@@ -1177,7 +1186,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     phone: "",
   })
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
-    initialCheckoutStep || (existingOrderId ? 'submitted' : 'review')
+    getInitialCheckoutStep(initialCheckoutStep, existingOrderId)
   )
 
 
@@ -1217,10 +1226,10 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     lockOrderStatusParent();
   }, [isOpen, checkoutStep]);
 const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  // Phase 2B: table draft/order fetching and submit handlers should move into a shared checkout feature hook.
   const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
   const hasPersonalItems = allItems.length > 0
   const [draftLoading, setDraftLoading] = useState(false)
-  const [submitDraftLoading, setSubmitDraftLoading] = useState(false)
 
   const [stripeConfig, setStripeConfig] = useState<{
     publishableKey: string
@@ -1238,15 +1247,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   useEffect(() => {
     if (!isOpen) return
-    const nextStep = initialCheckoutStep && !(existingOrderId && initialCheckoutStep === 'review')
-      ? initialCheckoutStep
-      : existingOrderId
-        ? 'submitted'
-        : 'review'
-    setCheckoutStep((current) => {
-      if (!preferPersonalReview && !hasPersonalItems && (current === "submitted" || current === 'payment' || current === 'paid' || current === 'split' || current === 'split-items' || current === 'split-shares' || current === 'split-review') && nextStep === 'review') return current
-      return nextStep
-    })
+    setCheckoutStep((current) => getCheckoutStepOnOpen({
+      initialCheckoutStep,
+      existingOrderId,
+      hasPersonalItems,
+      preferPersonalReview,
+      currentStep: current,
+    }))
   }, [isOpen, existingOrderId, initialCheckoutStep, hasPersonalItems, preferPersonalReview])
 
   useEffect(() => {
@@ -1302,34 +1309,21 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     [stripeConfig?.publishableKey]
   )
 
-  const visiblePaymentMethods = useMemo(() => {
-    const allowed = new Set(["card", "apple_pay", "google_pay", "wero", "paypal", "cod"])
-    return (paymentMethods || []).filter((method) => allowed.has(method.code))
-  }, [paymentMethods])
+  const visiblePaymentMethods = useMemo(() => getVisiblePaymentMethods(paymentMethods), [paymentMethods])
 
-  const methodByCode = useMemo(() => {
-    return new Map((visiblePaymentMethods || []).map((method) => [method.code, method]))
-  }, [visiblePaymentMethods])
+  const methodByCode = useMemo(() => mapPaymentMethodsByCode(visiblePaymentMethods), [visiblePaymentMethods])
 
   useEffect(() => {
     if (!selectedPaymentMethod) return
-    const exists = visiblePaymentMethods.some((method) => method.code === selectedPaymentMethod)
-    if (!exists) {
+    if (!isPaymentMethodAvailable(visiblePaymentMethods, selectedPaymentMethod)) {
       setSelectedPaymentMethod(null)
     }
   }, [selectedPaymentMethod, visiblePaymentMethods])
 
   useEffect(() => {
     const selected = selectedPaymentMethod ? methodByCode.get(selectedPaymentMethod) : null
-    const isStripe =
-      !!selected &&
-      (
-        selected.code === "apple_pay" ||
-        selected.code === "google_pay" ||
-        (selected.code === "card" && selected.provider_code === "stripe")
-      )
 
-    if (!isStripe) return
+    if (!isStripePaymentMethodForConfig(selected)) return
 
     let cancelled = false
     fetch("/api/v1/payments/stripe/config")
@@ -1459,12 +1453,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   )
   // Calculate VAT if enabled AND VAT should be applied on checkout (not already included in prices)
   // vat_menu_price: 0 = VAT included in menu price, 1 = apply VAT on checkout
-  const taxAmount = useMemo(() => {
-    if (!taxSettings.enabled || taxSettings.percentage === 0 || taxSettings.menuPrice === 0) {
-      return 0 // If VAT is included in menu price (menuPrice = 0), don't add VAT
-    }
-    return subtotal * (taxSettings.percentage / 100)
-  }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+  const taxAmount = useMemo(() => calculateCheckoutTax(subtotal, taxSettings), [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   useEffect(() => {
     if (!onCartPricingUpdate) return
     if (!Array.isArray(allItems) || allItems.length === 0) {
@@ -1501,27 +1490,22 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     onCartPricingUpdate({ items: displayItems, subtotal, tax: taxAmount, total: subtotal + taxAmount })
   }, [allItems, personalReviewItems, selectedOptions, subtotal, taxAmount, onCartPricingUpdate, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
-  const submittedBaseTotal = useMemo(() => Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.total ?? submittedSnapshot?.orderTotal ?? pendingSummary?.remainingAmount ?? 0), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
+  const submittedBaseTotal = useMemo(() => calculateSubmittedBaseTotal(submittedSnapshot, pendingSummary), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
   const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
   const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
-  const tipAmount = customTip ? Number.parseFloat(customTip) || 0 : tipBaseAmount * (tipPercentage / 100)
+  const tipAmount = calculateTipAmount(tipBaseAmount, tipPercentage, customTip)
   const couponBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
 
   // Calculate coupon discount
-  const couponDiscount = useMemo(() => {
-    if (!appliedCoupon) return 0
-    if (appliedCoupon.type === 'F') {
-      return Math.min(appliedCoupon.discount, couponBaseAmount)
-    }
-    return couponBaseAmount * (appliedCoupon.discount_value / 100)
-  }, [appliedCoupon, couponBaseAmount])
+  const couponDiscount = useMemo(() => calculateCouponDiscount(appliedCoupon, couponBaseAmount), [appliedCoupon, couponBaseAmount])
 
-  const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
-  const orderStatusTotal = Math.max(0, submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount)
+  const finalTotal = calculateFinalTotal(subtotal, taxAmount, tipAmount, couponDiscount)
+  const orderStatusTotal = calculateOrderStatusTotal(submittedBaseTotal, subtotal, taxAmount)
 
-  const splitGuestProfiles = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => SPLIT_GUEST_PROFILES[idx] || { name: `Guest ${idx + 1}`, avatar: String(idx + 1) }), [splitGuestCount])
+  // Phase 2B: split bill state transitions should move behind a shared checkout hook without changing this UI.
+  const splitGuestProfiles = useMemo(() => buildSplitGuestProfiles(splitGuestCount, SPLIT_GUEST_PROFILES), [splitGuestCount])
   const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
-  const getSplitGuestAvatar = (idx: number) => splitGuestProfiles[idx]?.avatar || String(idx + 1)
+  const getSplitGuestAvatar = (idx: number) => getSplitGuestAvatarFromProfiles(splitGuestProfiles, idx)
 
   const suggestedSplitGuestCount = useMemo(() => {
     const groupCount = Array.isArray(tableDraft?.groups)
@@ -1537,13 +1521,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     return Math.max(2, Math.min(10, groupCount || itemContributorCount || 2))
   }, [tableDraft?.groups, submittedSnapshot?.submittedItems])
 
-  const buildEvenSharePercents = (count: number) => {
-    const safeCount = Math.max(2, Math.min(10, count))
-    const base = Math.floor(100 / safeCount)
-    const remainder = 100 - base * safeCount
-    return Array.from({ length: safeCount }, (_, idx) => base + (idx === 0 ? remainder : 0))
-  }
-
   const addSplitGuest = () => {
     const nextCount = Math.min(10, splitGuestCount + 1)
     setSplitGuestCount(nextCount)
@@ -1557,49 +1534,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   }
 
   useEffect(() => {
-    setSharePercents((prev) => {
-      const next = Array.from({ length: splitGuestCount }, (_, idx) => prev[idx] ?? 0)
-      if (next.every((value) => value === 0)) return buildEvenSharePercents(splitGuestCount)
-      return next
-    })
-    setItemAssignments((prev) => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, typeof value === "number" && value >= splitGuestCount ? null : value])))
+    setSharePercents((prev) => normalizeSharePercentsForGuestCount(prev, splitGuestCount, buildEvenSharePercents(splitGuestCount)))
+    setItemAssignments((prev) => pruneItemAssignmentsForGuestCount(prev, splitGuestCount))
   }, [splitGuestCount])
-
-  const getOrderItemOptionsKey = (item: any) => {
-    const rawOptions = item?.options ?? item?.modifiers ?? item?.selected_options ?? null
-    if (!rawOptions) return ""
-    if (typeof rawOptions === "string") return rawOptions
-    if (Array.isArray(rawOptions)) return JSON.stringify(rawOptions.map((option) => typeof option === "object" ? Object.keys(option).sort().reduce((acc: any, key) => ({ ...acc, [key]: option[key] }), {}) : option))
-    if (typeof rawOptions === "object") return JSON.stringify(Object.keys(rawOptions).sort().reduce((acc: any, key) => ({ ...acc, [key]: rawOptions[key] }), {}))
-    return String(rawOptions)
-  }
-
-  const getOrderItemUnitAmount = (item: any) => {
-    const quantity = Math.max(1, Number(item?.quantity || 1))
-    const explicitPrice = Number(item?.price ?? item?.unit_price)
-    if (Number.isFinite(explicitPrice)) return explicitPrice
-    const subtotalAmount = Number(item?.subtotal ?? item?.total)
-    return Number.isFinite(subtotalAmount) ? subtotalAmount / quantity : 0
-  }
-
-  const groupOrderDisplayItems = (items: any[] = []) => {
-    const grouped = new Map<string, any>()
-    items.forEach((item, index) => {
-      const quantity = Math.max(1, Number(item?.quantity || 1))
-      const unitAmount = getOrderItemUnitAmount(item)
-      const name = String(item?.name || `Item ${index + 1}`)
-      const optionsKey = getOrderItemOptionsKey(item)
-      const key = `${item?.menu_id || item?.order_menu_id || item?.id || name}|${name}|${optionsKey}`
-      const existing = grouped.get(key)
-      if (existing) {
-        existing.quantity += quantity
-        existing.subtotal += unitAmount * quantity
-      } else {
-        grouped.set(key, { ...item, name, quantity, price: unitAmount, subtotal: unitAmount * quantity, optionsKey })
-      }
-    })
-    return Array.from(grouped.values())
-  }
 
   const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
     const submittedItems = groupOrderDisplayItems(Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : [])
@@ -1624,114 +1561,87 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }))
   }, [submittedSnapshot?.submittedItems, allItemInstances, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
-  const splitSubtotal = useMemo(() => splitSourceItems.reduce((sum: number, item: SplitSourceItem) => sum + Number(item.amount || 0), 0), [splitSourceItems])
+  const splitSubtotal = useMemo(() => calculateSplitSubtotal(splitSourceItems), [splitSourceItems])
   const splitGrandTotal = useMemo(() => submittedBaseTotal > 0 ? orderStatusTotal : finalTotal, [submittedBaseTotal, orderStatusTotal, finalTotal])
   const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
 
-  const buildSplitPerson = (idx: number, personSubtotal: number, items: SplitPerson["items"], percent?: number): SplitPerson => {
-    const ratio = splitSubtotal > 0 ? personSubtotal / splitSubtotal : (splitGuestCount > 0 ? 1 / splitGuestCount : 0)
-    const extra = splitExtraAmount * ratio
-    const discountShare = couponDiscount > 0 ? couponDiscount * ratio : 0
-    const total = Math.max(0, personSubtotal + extra - discountShare)
-    const id = `guest-${idx}`
-    return {
-      id,
-      name: splitGuestNames[idx] || `Guest ${idx + 1}`,
-      avatar: getSplitGuestAvatar(idx),
-      subtotal: personSubtotal,
-      tax: extra,
-      tip: 0,
-      discount: discountShare,
-      total,
-      items,
-      status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
-      percent,
-    }
-  }
+  const equalSplitPeople = useMemo(() => buildEqualSplitPeople({
+    splitGrandTotal,
+    splitGuestCount,
+    splitGuestNames,
+    splitGuestProfiles,
+    splitSubtotal,
+    splitExtraAmount,
+    paidSplitPeople,
+    selectedSplitPersonId,
+  }), [splitGrandTotal, splitGuestCount, splitGuestNames, splitGuestProfiles, splitSubtotal, splitExtraAmount, paidSplitPeople, selectedSplitPersonId])
 
-  const equalSplitPeople = useMemo(() => {
-    const totalCents = Math.round(splitGrandTotal * 100)
-    const baseCents = Math.floor(totalCents / splitGuestCount)
-    const remainder = totalCents - baseCents * splitGuestCount
-    return Array.from({ length: splitGuestCount }, (_, idx) => {
-      const cents = baseCents + (idx === 0 ? remainder : 0)
-      const total = cents / 100
-      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 1 / splitGuestCount
-      const id = `guest-${idx}`
-      return {
-        id,
-        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
-        avatar: getSplitGuestAvatar(idx),
-        subtotal: splitSubtotal * ratio,
-        tax: splitExtraAmount * ratio,
-        tip: 0,
-        discount: 0,
-        total,
-        items: [{ name: "Equal share", amount: total }],
-        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
-      } as SplitPerson
-    })
-  }, [splitGrandTotal, splitGuestCount, splitGuestNames, splitSubtotal, splitExtraAmount, paidSplitPeople, selectedSplitPersonId])
+  const itemSplitPeople = useMemo(() => buildItemSplitPeople({
+    splitGuestCount,
+    splitSourceItems,
+    itemAssignments,
+    splitSubtotal,
+    splitExtraAmount,
+    couponDiscount,
+    splitGuestNames,
+    splitGuestProfiles,
+    paidSplitPeople,
+    selectedSplitPersonId,
+  }), [splitGuestCount, splitSourceItems, itemAssignments, splitSubtotal, splitExtraAmount, couponDiscount, splitGuestNames, splitGuestProfiles, paidSplitPeople, selectedSplitPersonId])
 
-  const itemSplitPeople = useMemo(() => {
-    return Array.from({ length: splitGuestCount }, (_, idx) => {
-      const personItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === idx).map((item: SplitSourceItem) => ({ name: item.name, amount: item.amount, quantity: 1 }))
-      const personSubtotal = personItems.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0)
-      return buildSplitPerson(idx, personSubtotal, personItems)
-    })
-  }, [splitGuestCount, splitSourceItems, itemAssignments, splitSubtotal, splitExtraAmount, couponDiscount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
+  const shareSplitPeople = useMemo(() => buildShareSplitPeople({
+    splitGuestCount,
+    sharePercents,
+    splitGrandTotal,
+    splitSubtotal,
+    splitExtraAmount,
+    splitGuestNames,
+    splitGuestProfiles,
+    paidSplitPeople,
+    selectedSplitPersonId,
+  }), [splitGuestCount, sharePercents, splitGrandTotal, splitSubtotal, splitExtraAmount, splitGuestNames, splitGuestProfiles, paidSplitPeople, selectedSplitPersonId])
 
-  const shareSplitPeople = useMemo(() => {
-    return Array.from({ length: splitGuestCount }, (_, idx) => {
-      const percent = Number(sharePercents[idx] || 0)
-      const total = splitGrandTotal * (percent / 100)
-      const ratio = splitGrandTotal > 0 ? total / splitGrandTotal : 0
-      const id = `guest-${idx}`
-      return {
-        id,
-        name: splitGuestNames[idx] || `Guest ${idx + 1}`,
-        avatar: getSplitGuestAvatar(idx),
-        subtotal: splitSubtotal * ratio,
-        tax: splitExtraAmount * ratio,
-        tip: 0,
-        discount: 0,
-        total,
-        items: [{ name: `${percent}% share`, amount: total }],
-        status: paidSplitPeople[id] ? "Paid" : selectedSplitPersonId === id ? "Ready to pay" : "Pending",
-        percent,
-      } as SplitPerson
-    })
-  }, [splitGuestCount, sharePercents, splitGrandTotal, splitSubtotal, splitExtraAmount, splitGuestNames, paidSplitPeople, selectedSplitPersonId])
+  const activeSplitPeople = getActiveSplitPeople({ splitMethod, equalSplitPeople, itemSplitPeople, shareSplitPeople })
+  const selectedSplitPerson = getSelectedSplitPerson(activeSplitPeople, selectedSplitPersonId)
+  const { unassignedSplitItems, sharePercentTotal, canConfirmSplitMethod } = calculateSplitConfirmationState({
+    splitMethod,
+    splitSourceItems,
+    itemAssignments,
+    sharePercents,
+    splitGuestCount,
+  })
 
-  const activeSplitPeople = splitMethod === "items" ? itemSplitPeople : splitMethod === "shares" ? shareSplitPeople : equalSplitPeople
-  const selectedSplitPerson = selectedSplitPersonId ? activeSplitPeople.find((person) => person.id === selectedSplitPersonId) || null : null
-  const unassignedSplitItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === undefined || itemAssignments[item.key] === null).length
-  const sharePercentTotal = sharePercents.slice(0, splitGuestCount).reduce((sum: number, value: number) => sum + Number(value || 0), 0)
-  const canConfirmSplitMethod = splitMethod === "items" ? unassignedSplitItems === 0 : splitMethod === "shares" ? sharePercentTotal === 100 : true
-
-  const toPositiveAmount = (value: unknown): number | null => {
-    const amount = Number(value)
-    return Number.isFinite(amount) && amount > 0 ? amount : null
-  }
   const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
   const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
   const paymentCustomTip = selectedSplitPerson ? splitPaymentTip.custom : customTip
-  const paymentBaseAmount = selectedSplitPerson?.total && selectedSplitPerson.total > 0
-    ? selectedSplitPerson.total
-    : (submittedBaseTotal > 0 ? submittedBaseTotal : finalTotal)
-  const paymentTipAmount = paymentCustomTip ? Number.parseFloat(paymentCustomTip) || 0 : paymentBaseAmount * (paymentTipPercentage / 100)
-  const paymentCouponDiscount = selectedSplitPerson ? 0 : couponDiscount
-  const paymentPayableTotal = Math.max(0, paymentBaseAmount + paymentTipAmount - paymentCouponDiscount)
-  const paymentSubtotalAmount = selectedSplitPerson
-    ? Number(selectedSplitPerson.subtotal || 0)
-    : Number(submittedSnapshot?.subtotal || 0)
-  const paymentVatAmount = selectedSplitPerson
-    ? Number(selectedSplitPerson.tax || 0)
-    : Number(submittedSnapshot?.vatAmount || 0)
-  const paymentVatPercentage = Number(submittedSnapshot?.vatPercentage ?? taxSettings?.percentage ?? 0)
-  const paidTipAmount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTipAmount ?? paymentTipAmount ?? tipAmount ?? 0) : paymentTipAmount
-  const paidCouponDiscount = checkoutStep === "paid" ? Number(submittedSnapshot?.paidCouponDiscount ?? paymentCouponDiscount ?? couponDiscount ?? 0) : paymentCouponDiscount
-  const paidAmountTotal = checkoutStep === "paid" ? Number(submittedSnapshot?.paidTotal ?? Math.max(0, orderStatusTotal + paidTipAmount - paidCouponDiscount)) : paymentPayableTotal
+  const {
+    paymentBaseAmount,
+    paymentTipAmount,
+    paymentCouponDiscount,
+    paymentPayableTotal,
+    paymentSubtotalAmount,
+    paymentVatAmount,
+    paymentVatPercentage,
+  } = calculatePaymentSummary({
+    selectedSplitPerson,
+    submittedBaseTotal,
+    finalTotal,
+    paymentCustomTip,
+    paymentTipPercentage,
+    couponDiscount,
+    submittedSnapshot,
+    taxPercentage: taxSettings?.percentage ?? 0,
+  })
+  const { paidTipAmount, paidCouponDiscount, paidAmountTotal } = calculatePaidSnapshotTotals({
+    checkoutStep,
+    submittedSnapshot,
+    paymentTipAmount,
+    tipAmount,
+    paymentCouponDiscount,
+    couponDiscount,
+    orderStatusTotal,
+    paymentPayableTotal,
+  })
 
   const updatePaymentTipPercentage = (percentage: number) => {
     if (selectedSplitPersonId) {
@@ -1759,12 +1669,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setCustomTip("")
   }
 
-  const payableTotal = useMemo(() => {
-    const reviewTotal = toPositiveAmount(finalTotal)
-    const orderTotal = toPositiveAmount(orderStatusTotal)
-    if (checkoutStep === "payment") return paymentPayableTotal
-    return orderTotal ?? reviewTotal ?? 0
-  }, [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
+  const payableTotal = useMemo(() => calculatePayableTotal({ checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal }), [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
   // PMD_PAYMENT_METHOD_SMOOTH_SCROLL_EFFECT
   useEffect(() => {
     if (checkoutStep !== "payment" || !selectedPaymentMethod) return
@@ -3198,11 +3103,12 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
   }
-  const getDraftContext = () => ({
-    table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
-    table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
-    qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("qr") : null),
-  })
+  const draftContext = useMemo(() => buildTableOrderDraftContext(
+    tableInfo,
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("qr") : null,
+  ), [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code])
+
+  const getDraftContext = () => draftContext
 
   const refreshTableDraft = async () => {
     const context = getDraftContext()
@@ -3238,6 +3144,17 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       setDraftLoading(false)
     }
   }
+
+
+  const {
+    isSubmittingDraft: submitDraftLoading,
+    confirmTableDraftItems: confirmTableDraftItemsAction,
+    submitTableDraft: submitTableDraftAction,
+  } = useTableOrderActions({
+    context: draftContext,
+    getGuestSessionId: ensureGuestSession,
+    refreshDraft: refreshTableDraft,
+  })
 
   useEffect(() => {
     if (!isOpen) return
@@ -3309,11 +3226,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
     setIsLoading(true)
     try {
-      const result = await apiClient.confirmTableDraftItems({
-        ...getDraftContext(),
-        guest_session_id: ensureGuestSession(),
-        items: draftItems,
-      })
+      const result = await confirmTableDraftItemsAction(draftItems)
       setTableDraft(result)
       clearCart()
       console.info("PMD_TABLE_DRAFT_CONFIRMED_ITEMS", { draft_id: result.draft_id ?? null, count: draftItems.length })
@@ -3329,9 +3242,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const handleSubmitTableDraft = async () => {
     if (!tableDraft?.draft_id && tableDraft?.status !== "draft") return
-    setSubmitDraftLoading(true)
     try {
-      const result = await apiClient.submitTableDraft({ ...getDraftContext(), draft_id: tableDraft?.draft_id ?? null, guest_session_id: ensureGuestSession() })
+      const result = await submitTableDraftAction({ draftId: tableDraft?.draft_id ?? null, refreshOnError: true })
       setTableDraft(result)
       clearCart()
       const submittedTableSnapshot = {
@@ -3351,17 +3263,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         payment: result.payment || "qr_pay_later",
       }
       setSubmittedSnapshot(submittedTableSnapshot)
-            // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: clear the old Sending state before showing Order Status.
-      setSubmitDraftLoading(false)
-      setCheckoutStep("submitted")
+            // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: action hook clears the old Sending state before showing Order Status.
+      setCheckoutStep(getCheckoutStepAfterDraftSubmit())
       console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
       toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
       onOpenOrderUpdate?.(submittedTableSnapshot)
     } catch (error) {
-      await refreshTableDraft()
       toast({ title: "Could not submit table order", description: error instanceof Error ? error.message : "Please refresh and try again.", variant: "destructive" })
-    } finally {
-      setSubmitDraftLoading(false)
     }
   }
 
@@ -3552,7 +3460,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
             resetPaymentAdjustmentsAfterSuccess()
           }
-          setCheckoutStep("paid")
+          setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
           setIsLoading(false)
           toast({
             title: t("paymentSuccessful"),
@@ -3631,7 +3539,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
             resetPaymentAdjustmentsAfterSuccess()
           }
-          setCheckoutStep("paid")
+          setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
           return
         }
       }
@@ -3713,9 +3621,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         if (checkoutStep === "payment") {
           markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
           resetPaymentAdjustmentsAfterSuccess()
-          setCheckoutStep("paid")
+          setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
         } else {
-          setCheckoutStep('submitted')
+          setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
         }
         return
       } else {
@@ -3888,8 +3796,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     "default"
   )
 
-  const selectedMethod = visiblePaymentMethods.find(method => method.code === selectedPaymentMethod)
-  const selectedProviderCode = (selectedMethod as any)?.provider_code || null
+  const selectedMethod = findPaymentMethod(visiblePaymentMethods, selectedPaymentMethod)
+  const selectedProviderCode = getPaymentMethodProviderCode(selectedMethod)
 
   const stripePaymentData = {
     amount: payableTotal,
@@ -4867,7 +4775,7 @@ case "cod":
     // If the customer has just added new items and pressed Checkout,
     // the modal must show the personal review card first.
     // Existing table/order status must not steal this flow.
-    if (hasPersonalItems && initialCheckoutStep === "review" && checkoutStep !== "review") {
+    if (shouldForcePersonalReview({ hasPersonalItems, initialCheckoutStep, currentStep: checkoutStep })) {
       setCheckoutStep("review")
     }
   }, [isOpen, hasPersonalItems, initialCheckoutStep, checkoutStep])
@@ -4953,8 +4861,7 @@ useLayoutEffect(() => {
       createdAt: Date.now(),
     })
 
-    setSubmitDraftLoading(false)
-    setCheckoutStep("submitted")
+    setCheckoutStep(getCheckoutStepAfterDraftSubmit())
   }, [
     isOpen,
     checkoutStep,
@@ -4980,9 +4887,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
     setSplitMethod(method)
     setSelectedPaymentMethod(null)
     setSelectedSplitPersonId(null)
-    if (method === "items") setCheckoutStep("split-items")
-    else if (method === "shares") setCheckoutStep("split-shares")
-    else setCheckoutStep("split")
+    setCheckoutStep(getCheckoutStepForSplitMethod(method))
   }
 
   const chooseSplitMethod = (method: SplitMethod) => {
@@ -5085,8 +4990,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (checkoutStep === "payment") setCheckoutStep(selectedSplitPersonId ? "split-review" : "submitted")
-              else if (checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") setCheckoutStep("submitted")
+              const previousStep = getCheckoutStepAfterBack(checkoutStep, Boolean(selectedSplitPersonId))
+              if (previousStep) setCheckoutStep(previousStep)
               else onClose()
             }}
 
@@ -5426,7 +5331,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, subtotal: Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0), vatAmount: Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0), vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0), total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0, remainingAmount: tableDraft.totals?.remainingAmount || tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep("submitted") }} className={modalSecondaryBtn}>
+                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, subtotal: Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0), vatAmount: Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0), vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0), total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0, remainingAmount: tableDraft.totals?.remainingAmount || tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep(getCheckoutStepAfterDraftSubmit()) }} className={modalSecondaryBtn}>
                   View order status
                 </button>
               ) : null}
@@ -5500,7 +5405,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           </motion.div>)}
           </AnimatePresence>
 
-          {(checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares" || checkoutStep === "split-review") && (
+          {isSplitCheckoutStep(checkoutStep) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div className="pmd-checkout-flat-section rounded-3xl p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
@@ -5794,7 +5699,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     el.style.setProperty("border", "1px solid #062F2A", "important")
                     el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.18)", "important")
 
-                    el.querySelectorAll("svg, svg *, path").forEach((node) => {
+                    el.querySelectorAll("svg, svg *, path").forEach((node: Element) => {
                       const iconNode = node as HTMLElement
                       iconNode.style.setProperty("color", "#FFFFFF", "important")
                       iconNode.style.setProperty("stroke", "#FFFFFF", "important")
@@ -6304,7 +6209,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     ))
                   )}
                 </div>
-                {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
+                {canRenderPaymentMethodDetail(selectedPaymentMethod) && (
                   <div data-pmd-payment-selected-detail="1" className="pmd-checkout-payment-detail pt-2">
                     {renderPaymentForm()}
                   </div>
@@ -6467,6 +6372,7 @@ function ExpandingBottomToolbar({
   themeBackgroundColor,
 }: ExpandingBottomToolbarProps) {
   const { taxSettings } = useCmsStore()
+  const themeMenuActions = useThemeMenuActions()
   const toolbarVatLabel = taxPercentage > 0 ? `VAT ${Number(taxPercentage).toLocaleString(undefined, { maximumFractionDigits: 2 })}%` : "VAT"
 
   // Helper to adjust price if VAT is included
@@ -6781,9 +6687,17 @@ function ExpandingBottomToolbar({
           }}
         >
           <ActionTooltip label="Call waiter">
-          <motion.button
-            whileTap={{ scale: waiterDisabled ? 1 : 0.92 }}
-            whileHover={{ scale: waiterDisabled ? 1 : 1.12 }}
+          <GoldWaiterButton
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
+            {...({ whileTap: { scale: waiterDisabled ? 1 : 0.92 }, whileHover: { scale: waiterDisabled ? 1 : 1.12 } })}
             className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             style={{
               background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -6792,17 +6706,24 @@ function ExpandingBottomToolbar({
               boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
             }}
-            onClick={waiterDisabled ? undefined : onWaiterClick}
             disabled={waiterDisabled}
             aria-label={t("callWaiter")}
           >
             <HandPlatter className="h-7 w-7" style={{ color: waiterDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </motion.button>
+          </GoldWaiterButton>
           </ActionTooltip>
           <ActionTooltip label="Add note">
-          <motion.button
-            whileTap={{ scale: noteDisabled ? 1 : 0.92 }}
-            whileHover={{ scale: noteDisabled ? 1 : 1.12 }}
+          <GoldNoteButton
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
+            {...({ whileTap: { scale: noteDisabled ? 1 : 0.92 }, whileHover: { scale: noteDisabled ? 1 : 1.12 } })}
             className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             style={{
               background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -6811,18 +6732,25 @@ function ExpandingBottomToolbar({
               boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
             }}
-            onClick={noteDisabled ? undefined : onNoteClick}
             disabled={noteDisabled}
             aria-label={t("leaveNote")}
           >
             <NotebookPen className="h-7 w-7" style={{ color: noteDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </motion.button>
+          </GoldNoteButton>
           </ActionTooltip>
 
           <ActionTooltip label="Checkout">
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.12 }}
+          <GoldCheckoutButton
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
+            {...({ whileTap: { scale: 0.92 }, whileHover: { scale: 1.12 } })}
             className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
             style={{
               background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -6831,7 +6759,6 @@ function ExpandingBottomToolbar({
               boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
             }}
-            onClick={onCartClick}
             aria-label={t("viewCart")}
           >
             <ShoppingCart className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
@@ -6895,13 +6822,22 @@ function ExpandingBottomToolbar({
                 {totalItems}
               </span>
             )}
-          </motion.button>
+          </GoldCheckoutButton>
           </ActionTooltip>
           <AnimatePresence initial={false}>
           {showOrderAction && (
           <ActionTooltip label="Table order">
-          <motion.button
+          <GoldTableOrderButton
             key="table-order-action"
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
             initial={{ opacity: 0, scale: 0.8, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 8 }}
@@ -6909,7 +6845,7 @@ function ExpandingBottomToolbar({
             whileHover={{ scale: 1.12 }}
             className="h-12 w-12 flex items-center justify-center relative focus:outline-none transition-all"
             data-pmd-bottom-table-order="1"
-            ref={(el) => {
+            ref={(el: HTMLButtonElement | null) => {
               if (!el) return
 
               const cleanTableOrderButton = () => {
@@ -6931,7 +6867,7 @@ function ExpandingBottomToolbar({
                 el.style.setProperty("color", "#0D1B1E", "important")
                 el.style.setProperty("-webkit-text-fill-color", "#0D1B1E", "important")
 
-                el.querySelectorAll("svg, svg *, path").forEach((node) => {
+                el.querySelectorAll("svg, svg *, path").forEach((node: Element) => {
                   const svgNode = node as HTMLElement
                   svgNode.style.setProperty("color", "#0D1B1E", "important")
                   svgNode.style.setProperty("stroke", "#0D1B1E", "important")
@@ -6981,7 +6917,6 @@ function ExpandingBottomToolbar({
               WebkitTextFillColor: "#FFFFFF",
               boxShadow: "none",
             }}
-            onClick={onOrderClick}
             aria-label="Table order"
           >
             <ReceiptText
@@ -7007,7 +6942,7 @@ function ExpandingBottomToolbar({
                 {orderCount}
               </span>
             )}
-          </motion.button>
+          </GoldTableOrderButton>
           </ActionTooltip>
           )}
           </AnimatePresence>
@@ -8113,7 +8048,13 @@ function MenuContent() {
   const [toolbarPricingSnapshot, setToolbarPricingSnapshot] = useState<PmdToolbarPricingSnapshot | null>(null)
   const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
   const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
-  const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
+  const sharedTableOrderQr = searchParams?.get("qr") || null
+  const sharedTableOrderContext = useMemo(() => buildTableOrderDraftContext(tableInfo, sharedTableOrderQr), [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, sharedTableOrderQr])
+  const { tableDraft: sharedTableOrder, setTableDraft: setSharedTableOrder } = useTableOrderDraft({
+    context: sharedTableOrderContext,
+    enabled: Boolean(tableInfo?.table_id || tableInfo?.table_no),
+    pollIntervalMs: 12000,
+  })
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const isRecentPaidTableOrder = localOpenOrder?.paymentStatus === "paid" || localOpenOrder?.status === "paid"
   const activeExistingOrderId = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : existingOrderId
@@ -8122,52 +8063,20 @@ function MenuContent() {
   const shouldHideCartSheet = !!activeExistingOrderId
 
   useEffect(() => {
-    if (!tableInfo?.table_id && !tableInfo?.table_no) return
-    let cancelled = false
-    const loadSharedTableOrder = async () => {
-      const latest = await apiClient.getTableOrderDraft({
-        table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
-        table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
-        qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (searchParams?.get("qr") || null),
-      })
-      if (cancelled) return
-      if (latest?.success && latest.status && latest.status !== "empty") {
-        setSharedTableOrder(latest)
-        if (latest.order_id) {
-          setExistingOrderId(Number(latest.order_id))
-          setPendingSettlementSummary({
-            orderTotal: Number(latest.totals?.orderTotal || latest.totals?.total || 0),
-            settledAmount: Number(latest.totals?.settledAmount || 0),
-            remainingAmount: Number(latest.totals?.remainingAmount || latest.totals?.total || 0),
-          })
-          setLocalOpenOrder((prev: any) => {
-            const latestSnapshot = {
-              orderId: latest.order_id,
-              status: latest.status,
-              paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
-              tableNumber: latest.table_no || tableInfo?.table_no || null,
-              subtotal: Number(latest.totals?.subtotal ?? tableOrderTotalByCode(latest, 'subtotal') ?? 0),
-              vatAmount: Number(latest.totals?.tax ?? tableOrderTotalByCode(latest, 'tax') ?? 0),
-              vatPercentage: tableOrderVatPercentage(latest, 0),
-              total: latest.totals?.total || 0,
-              orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
-              remainingAmount: latest.totals?.remainingAmount || 0,
-              settledAmount: latest.totals?.settledAmount || 0,
-              submittedItems: latest.items || [],
-              payment: latest.payment || "qr_pay_later",
-            }
-            return !prev || String(prev?.orderId || "") !== String(latest.order_id || "") ? latestSnapshot : { ...prev, ...latestSnapshot }
-          })
-          setHasLocalOpenOrder(true)
-        }
-      } else {
-        setSharedTableOrder(null)
-      }
-    }
-    void loadSharedTableOrder()
-    const timer = window.setInterval(loadSharedTableOrder, 12000)
-return () => { cancelled = true; window.clearInterval(timer) }
-  }, [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, searchParams])
+    if (!isVisibleTableOrderDraft(sharedTableOrder) || !sharedTableOrder.order_id) return
+
+    setExistingOrderId(Number(sharedTableOrder.order_id))
+    setPendingSettlementSummary({
+      orderTotal: Number(sharedTableOrder.totals?.orderTotal || sharedTableOrder.totals?.total || 0),
+      settledAmount: Number(sharedTableOrder.totals?.settledAmount || 0),
+      remainingAmount: Number(sharedTableOrder.totals?.remainingAmount || sharedTableOrder.totals?.total || 0),
+    })
+    setLocalOpenOrder((prev: any) => {
+      const latestSnapshot = createSubmittedTableOrderSnapshot(sharedTableOrder, tableInfo, 0)
+      return !prev || String(prev?.orderId || "") !== String(sharedTableOrder.order_id || "") ? latestSnapshot : { ...prev, ...latestSnapshot }
+    })
+    setHasLocalOpenOrder(true)
+  }, [sharedTableOrder, tableInfo?.table_id, tableInfo?.table_no])
 
   // close side cart for pending QR
   useEffect(() => {
@@ -8520,11 +8429,10 @@ useEffect(() => {
   }, [apiMenuItems, selectedCategory]);
 
   // Calculate total items and price
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
-  const rawSubtotalPrice = items.reduce((acc, item) => acc + (item.item.price || 0) * item.quantity, 0)
-  const rawTaxAmount = taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1
-    ? rawSubtotalPrice * (taxSettings.percentage / 100)
-    : 0
+  const cartPricingSummary = calculateCartPricingSummary(items, taxSettings)
+  const totalItems = cartPricingSummary.totalItems
+  const rawSubtotalPrice = cartPricingSummary.subtotal
+  const rawTaxAmount = cartPricingSummary.tax
   const toolbarSubtotalPrice = toolbarPricingSnapshot?.subtotal ?? rawSubtotalPrice
   const toolbarTaxAmount = toolbarPricingSnapshot?.tax ?? rawTaxAmount
   const totalPrice = toolbarPricingSnapshot?.total ?? (rawSubtotalPrice + rawTaxAmount)
@@ -8598,6 +8506,32 @@ useEffect(() => {
       setPaymentModalOpen(true)
     }
   }
+
+  const themeMenuActions = createThemeMenuActions({
+    onAddItem: (item, quantity = 1) => {
+      addToCart(item, quantity)
+      handleFirstAdd(item)
+    },
+    onOpenCheckout: handleCartClick,
+    onOpenTableOrder: () => {
+      setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? "review" : (sharedTableOrder?.status === "paid" ? "paid" : "submitted"))
+      setPaymentModalOpen(true)
+    },
+    onCallWaiter: handleWaiterClick,
+    onOpenNote: handleNoteClick,
+    onOpenValet: () => {
+      const currentSearch = typeof window !== "undefined" ? window.location.search || "" : ""
+      if (tableIdString) {
+        window.location.href = `/table/${tableIdString}/valet${currentSearch}`
+      } else {
+        window.location.href = `/valet${currentSearch}`
+      }
+    },
+  })
+
+  // Phase 3C can begin moving low-risk native theme buttons (valet entry, waiter call, note,
+  // and checkout open) to consume ThemeMenuActions through the no-op boundary below.
+  // Existing handlers remain the source of truth until theme components are migrated.
 
   // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
   useEffect(() => {
@@ -9434,6 +9368,7 @@ useEffect(() => {
   // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
   if (isOrganicBotanicalTheme) {
     return (
+      <ThemeActionBoundary actions={themeMenuActions}>
       <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#f6efe2]">
         <OrganicExactV0Frame />
 
@@ -9467,11 +9402,11 @@ useEffect(() => {
                   noteDisabled={false}
                   totalItems={totalItems}
                   themeBackgroundColor={themeBackgroundColor}
-                  onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
+                  onOrderClick={isVisibleTableOrderDraft(sharedTableOrder) || hasLocalOpenOrder ? () => {
                     setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
                     setPaymentModalOpen(true)
                   } : undefined}
-                  orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
+                  orderCount={Number(tableOrderItemCount(sharedTableOrder) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
                 />
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
@@ -9527,10 +9462,12 @@ useEffect(() => {
           onSend={handleSendNote}
         />
       </div>
+      </ThemeActionBoundary>
     )
   }
 
   return (
+    <ThemeActionBoundary actions={themeMenuActions}>
         <div className={`${isOrganicBotanicalTheme ? 'pmd-organic-menu' : ''} relative min-h-screen w-full bg-theme-background pb-32`} style={isOrganicBotanicalTheme ? organicBotanicalVars() : undefined}>
       {isOrganicBotanicalTheme ? (
         <OrganicBotanicalHero restaurantName={restaurantDisplayName} tableNumber={displayTableNumber} heroItem={heroItem} />
@@ -9688,11 +9625,11 @@ useEffect(() => {
         noteDisabled={false}
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
-        onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
+        onOrderClick={isVisibleTableOrderDraft(sharedTableOrder) || hasLocalOpenOrder ? () => {
           setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
           setPaymentModalOpen(true)
         } : undefined}
-        orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
+        orderCount={Number(tableOrderItemCount(sharedTableOrder) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
       />
       {!shouldHideCartSheet && (
       <CartSheet />
@@ -9745,6 +9682,7 @@ useEffect(() => {
         tableName={tableName}
       />
     </div>
+    </ThemeActionBoundary>
   )
 }
 
