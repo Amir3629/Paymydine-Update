@@ -42,15 +42,22 @@ import {
   calculateCheckoutTax,
   calculateSplitSubtotal,
   countUnassignedSplitItems,
-  filterVisiblePaymentMethods,
   getOrderItemUnitAmount,
   groupOrderDisplayItems,
-  mapPaymentMethodsByCode,
   sumSharePercents,
   tableOrderTotalByCode,
   tableOrderVatPercentage,
   toPositiveAmount,
 } from "@/features/checkout/checkout-utils";
+import {
+  canRenderPaymentMethodDetail,
+  findPaymentMethod,
+  getPaymentMethodProviderCode,
+  getVisiblePaymentMethods,
+  isPaymentMethodAvailable,
+  isStripePaymentMethodForConfig,
+  mapPaymentMethodsByCode,
+} from "@/features/checkout/payment-method-utils";
 import type {
   CheckoutStep,
   PmdToolbarPricingSnapshot,
@@ -1270,29 +1277,21 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     [stripeConfig?.publishableKey]
   )
 
-  const visiblePaymentMethods = useMemo(() => filterVisiblePaymentMethods(paymentMethods), [paymentMethods])
+  const visiblePaymentMethods = useMemo(() => getVisiblePaymentMethods(paymentMethods), [paymentMethods])
 
   const methodByCode = useMemo(() => mapPaymentMethodsByCode(visiblePaymentMethods), [visiblePaymentMethods])
 
   useEffect(() => {
     if (!selectedPaymentMethod) return
-    const exists = visiblePaymentMethods.some((method) => method.code === selectedPaymentMethod)
-    if (!exists) {
+    if (!isPaymentMethodAvailable(visiblePaymentMethods, selectedPaymentMethod)) {
       setSelectedPaymentMethod(null)
     }
   }, [selectedPaymentMethod, visiblePaymentMethods])
 
   useEffect(() => {
     const selected = selectedPaymentMethod ? methodByCode.get(selectedPaymentMethod) : null
-    const isStripe =
-      !!selected &&
-      (
-        selected.code === "apple_pay" ||
-        selected.code === "google_pay" ||
-        (selected.code === "card" && selected.provider_code === "stripe")
-      )
 
-    if (!isStripe) return
+    if (!isStripePaymentMethodForConfig(selected)) return
 
     let cancelled = false
     fetch("/api/v1/payments/stripe/config")
@@ -3803,8 +3802,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     "default"
   )
 
-  const selectedMethod = visiblePaymentMethods.find(method => method.code === selectedPaymentMethod)
-  const selectedProviderCode = (selectedMethod as any)?.provider_code || null
+  const selectedMethod = findPaymentMethod(visiblePaymentMethods, selectedPaymentMethod)
+  const selectedProviderCode = getPaymentMethodProviderCode(selectedMethod)
 
   const stripePaymentData = {
     amount: payableTotal,
@@ -6218,7 +6217,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     ))
                   )}
                 </div>
-                {selectedPaymentMethod && ["card","apple_pay","google_pay","wero","paypal","cod"].includes(selectedPaymentMethod) && (
+                {canRenderPaymentMethodDetail(selectedPaymentMethod) && (
                   <div data-pmd-payment-selected-detail="1" className="pmd-checkout-payment-detail pt-2">
                     {renderPaymentForm()}
                   </div>
