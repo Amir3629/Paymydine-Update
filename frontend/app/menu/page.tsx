@@ -34,6 +34,13 @@ import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
 import { GoldCheckoutButton, GoldNoteButton, GoldTableOrderButton, GoldWaiterButton } from "@/components/themes/gold-luxury/GoldThemeActions";
+import {
+  OrganicCheckoutScopedStyles,
+  organicCheckoutBodyStyle,
+  organicCheckoutHeaderStyle,
+  organicCheckoutModalStyle,
+  organicCheckoutPrimaryButtonStyle,
+} from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
 import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
@@ -639,6 +646,7 @@ interface PaymentModalProps {
   preferPersonalReview?: boolean
   onOpenOrderUpdate?: (snapshot: any | null) => void;
   onCartPricingUpdate?: (snapshot: PmdToolbarPricingSnapshot | null) => void;
+  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper";
 }
 
 interface ExpandingBottomToolbarProps {
@@ -983,7 +991,7 @@ function OrderItemWithOptions({
 
 // PMD_FORCE_ALL_PLUS_MINUS_SOURCE_WHITE_20260601
 // Phase 2B: move PaymentModal orchestration into checkout feature components/hooks after pure helpers are stable.
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "gold-luxury" }: PaymentModalProps) {
 
   // PMD_QUANTITY_ICON_FIRST_PAINT_FIX_20260601
   // Prevent checkout quantity plus/minus icons from flashing black before legacy runtime styles settle.
@@ -1185,6 +1193,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     email: "",
     phone: "",
   })
+  const isOrganicCheckoutVisual = checkoutVisualTheme === ORGANIC_BOTANICAL_THEME_KEY
+
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
     getInitialCheckoutStep(initialCheckoutStep, existingOrderId)
   )
@@ -2970,12 +2980,14 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   }, [checkoutStep])
 
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
-  const modalPrimaryBtnStyle: React.CSSProperties = {
-    background: "#062F2A",
-    color: "#FFFFFF",
-    textShadow: "none",
-    border: "1px solid #062F2A",
-  }
+  const modalPrimaryBtnStyle: React.CSSProperties = isOrganicCheckoutVisual
+    ? organicCheckoutPrimaryButtonStyle
+    : {
+        background: "#062F2A",
+        color: "#FFFFFF",
+        textShadow: "none",
+        border: "1px solid #062F2A",
+      }
 
   // PMD_PERMANENT_CONSOLE_TIP_COUPON_FIX_20260605
   // Narrow runtime visual fix for tip custom field + coupon/apply only.
@@ -4955,7 +4967,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         type="button"
         onClick={handlePayment}
         disabled={isLoading || !isFormValid()}
-        className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
+        className={isOrganicCheckoutVisual ? modalPrimaryBtn : "w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"}
+        style={isOrganicCheckoutVisual ? modalPrimaryBtnStyle : undefined}
       >
         {isLoading ? (
           <div className="flex items-center gap-2">
@@ -4976,15 +4989,18 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      {isOrganicCheckoutVisual && <OrganicCheckoutScopedStyles />}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         data-pmd-checkout-design-system="1"
+        data-pmd-checkout-visual-theme={checkoutVisualTheme}
         className="pmd-checkout-modal w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+        style={isOrganicCheckoutVisual ? organicCheckoutModalStyle : undefined}
       >
         {/* Header with close button */}
-        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl">
+        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl" style={isOrganicCheckoutVisual ? organicCheckoutHeaderStyle : undefined}>
           <Button
               data-pmd-order-status-back="1"
             variant="ghost"
@@ -5013,7 +5029,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1">
+        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : undefined}>
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -9426,6 +9442,7 @@ useEffect(() => {
           initialSubmittedOrder={activeSubmittedOrder}
           initialCheckoutStep={paymentModalInitialStep}
           preferPersonalReview={paymentModalPreferPersonalReview}
+          checkoutVisualTheme="organic_botanical_paper"
           onCartPricingUpdate={setToolbarPricingSnapshot}
           onOpenOrderUpdate={(snapshot) => {
             if (snapshot?.status === "draft" || snapshot?.draft_id) {
@@ -9645,6 +9662,7 @@ useEffect(() => {
         initialSubmittedOrder={activeSubmittedOrder}
         initialCheckoutStep={paymentModalInitialStep}
         preferPersonalReview={paymentModalPreferPersonalReview}
+        checkoutVisualTheme={isOrganicBotanicalTheme ? "organic_botanical_paper" : "gold-luxury"}
         onCartPricingUpdate={setToolbarPricingSnapshot}
         onOpenOrderUpdate={(snapshot) => {
           if (snapshot?.status === "draft" || snapshot?.draft_id) {
