@@ -33,6 +33,29 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
+import {
+  buildEvenSharePercents,
+  calculateCartPricingSummary,
+  calculateCheckoutTax,
+  calculateSplitSubtotal,
+  countUnassignedSplitItems,
+  filterVisiblePaymentMethods,
+  getOrderItemUnitAmount,
+  groupOrderDisplayItems,
+  mapPaymentMethodsByCode,
+  sumSharePercents,
+  tableOrderTotalByCode,
+  tableOrderVatPercentage,
+  toPositiveAmount,
+} from "@/features/checkout/checkout-utils";
+import type {
+  CheckoutStep,
+  PmdToolbarPricingSnapshot,
+  SplitBillItem,
+  SplitMethod,
+  SplitPerson,
+  SplitSourceItem,
+} from "@/features/checkout/types";
 
 import {
   Dialog,
@@ -82,23 +105,6 @@ function OrganicExactV0Frame() {
     </div>
   )
 }
-
-const tableOrderTotalByCode = (response: any, code: string): number => {
-  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
-  const found = rows.find((row: any) => String(row?.code || '').toLowerCase() === code.toLowerCase())
-  const amount = Number(found?.value ?? 0)
-  return Number.isFinite(amount) ? amount : 0
-}
-
-const tableOrderVatPercentage = (response: any, fallback = 0): number => {
-  const rows = Array.isArray(response?.order_totals) ? response.order_totals : []
-  const taxRow = rows.find((row: any) => String(row?.code || '').toLowerCase() === 'tax')
-  const title = String(taxRow?.title || '')
-  const match = title.match(/([0-9]+(?:\.[0-9]+)?)\s*%/)
-  const parsed = match ? Number(match[1]) : Number(fallback || 0)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
@@ -573,13 +579,6 @@ type PaymentFormData = {
   phone: string
 }
 
-type PmdToolbarPricingSnapshot = {
-  items: Array<CartItem & { __pmdDisplayName?: string; __pmdDisplayUnitPrice?: number; __pmdDisplaySubtotal?: number }>;
-  subtotal: number;
-  tax: number;
-  total: number;
-}
-
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -624,31 +623,6 @@ interface MenuItemModalProps {
   onClose: () => void;
 }
 
-type CheckoutStep = 'review' | 'submitted' | 'split' | 'split-items' | 'split-shares' | 'split-review' | 'payment' | 'paid'
-
-type SplitMethod = 'equal' | 'items' | 'shares'
-
-type SplitSourceItem = {
-  key: string;
-  name: string;
-  amount: number;
-  orderMenuId?: number;
-}
-
-type SplitPerson = {
-  id: string;
-  name: string;
-  avatar: string;
-  subtotal: number;
-  tax: number;
-  tip: number;
-  discount: number;
-  total: number;
-  items: Array<{ name: string; amount: number; quantity?: number }>;
-  status: 'Ready to pay' | 'Pending' | 'Paid';
-  percent?: number;
-}
-
 const SPLIT_GUEST_PROFILES = [
   { name: "Luna", avatar: "L" },
   { name: "Milo", avatar: "M" },
@@ -661,16 +635,6 @@ const SPLIT_GUEST_PROFILES = [
   { name: "Oscar", avatar: "O" },
   { name: "Bella", avatar: "B" },
 ]
-
-type SplitBillItem = {
-  cartIndex: number;
-  item: MenuItem;
-  price: number;
-  key: string;
-  quantity: number;
-  orderMenuId?: number;
-  menuId?: number;
-}
 
 function MenuRecommendationBadges({
   item,
@@ -974,6 +938,7 @@ function OrderItemWithOptions({
 }
 
 // PMD_FORCE_ALL_PLUS_MINUS_SOURCE_WHITE_20260601
+// Phase 2B: move PaymentModal orchestration into checkout feature components/hooks after pure helpers are stable.
 function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate }: PaymentModalProps) {
 
   // PMD_QUANTITY_ICON_FIRST_PAINT_FIX_20260601
@@ -1217,6 +1182,7 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     lockOrderStatusParent();
   }, [isOpen, checkoutStep]);
 const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  // Phase 2B: table draft/order fetching and submit handlers should move into a shared checkout feature hook.
   const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
   const hasPersonalItems = allItems.length > 0
   const [draftLoading, setDraftLoading] = useState(false)
@@ -1302,14 +1268,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     [stripeConfig?.publishableKey]
   )
 
-  const visiblePaymentMethods = useMemo(() => {
-    const allowed = new Set(["card", "apple_pay", "google_pay", "wero", "paypal", "cod"])
-    return (paymentMethods || []).filter((method) => allowed.has(method.code))
-  }, [paymentMethods])
+  const visiblePaymentMethods = useMemo(() => filterVisiblePaymentMethods(paymentMethods), [paymentMethods])
 
-  const methodByCode = useMemo(() => {
-    return new Map((visiblePaymentMethods || []).map((method) => [method.code, method]))
-  }, [visiblePaymentMethods])
+  const methodByCode = useMemo(() => mapPaymentMethodsByCode(visiblePaymentMethods), [visiblePaymentMethods])
 
   useEffect(() => {
     if (!selectedPaymentMethod) return
@@ -1459,12 +1420,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   )
   // Calculate VAT if enabled AND VAT should be applied on checkout (not already included in prices)
   // vat_menu_price: 0 = VAT included in menu price, 1 = apply VAT on checkout
-  const taxAmount = useMemo(() => {
-    if (!taxSettings.enabled || taxSettings.percentage === 0 || taxSettings.menuPrice === 0) {
-      return 0 // If VAT is included in menu price (menuPrice = 0), don't add VAT
-    }
-    return subtotal * (taxSettings.percentage / 100)
-  }, [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+  const taxAmount = useMemo(() => calculateCheckoutTax(subtotal, taxSettings), [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
   useEffect(() => {
     if (!onCartPricingUpdate) return
     if (!Array.isArray(allItems) || allItems.length === 0) {
@@ -1519,6 +1475,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const finalTotal = Math.max(0, subtotal + taxAmount + tipAmount - couponDiscount)
   const orderStatusTotal = Math.max(0, submittedBaseTotal > 0 ? submittedBaseTotal : subtotal + taxAmount)
 
+  // Phase 2B: split bill state transitions should move behind a shared checkout hook without changing this UI.
   const splitGuestProfiles = useMemo(() => Array.from({ length: splitGuestCount }, (_, idx) => SPLIT_GUEST_PROFILES[idx] || { name: `Guest ${idx + 1}`, avatar: String(idx + 1) }), [splitGuestCount])
   const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
   const getSplitGuestAvatar = (idx: number) => splitGuestProfiles[idx]?.avatar || String(idx + 1)
@@ -1536,13 +1493,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     const itemContributorCount = contributorIds.size
     return Math.max(2, Math.min(10, groupCount || itemContributorCount || 2))
   }, [tableDraft?.groups, submittedSnapshot?.submittedItems])
-
-  const buildEvenSharePercents = (count: number) => {
-    const safeCount = Math.max(2, Math.min(10, count))
-    const base = Math.floor(100 / safeCount)
-    const remainder = 100 - base * safeCount
-    return Array.from({ length: safeCount }, (_, idx) => base + (idx === 0 ? remainder : 0))
-  }
 
   const addSplitGuest = () => {
     const nextCount = Math.min(10, splitGuestCount + 1)
@@ -1564,42 +1514,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     })
     setItemAssignments((prev) => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, typeof value === "number" && value >= splitGuestCount ? null : value])))
   }, [splitGuestCount])
-
-  const getOrderItemOptionsKey = (item: any) => {
-    const rawOptions = item?.options ?? item?.modifiers ?? item?.selected_options ?? null
-    if (!rawOptions) return ""
-    if (typeof rawOptions === "string") return rawOptions
-    if (Array.isArray(rawOptions)) return JSON.stringify(rawOptions.map((option) => typeof option === "object" ? Object.keys(option).sort().reduce((acc: any, key) => ({ ...acc, [key]: option[key] }), {}) : option))
-    if (typeof rawOptions === "object") return JSON.stringify(Object.keys(rawOptions).sort().reduce((acc: any, key) => ({ ...acc, [key]: rawOptions[key] }), {}))
-    return String(rawOptions)
-  }
-
-  const getOrderItemUnitAmount = (item: any) => {
-    const quantity = Math.max(1, Number(item?.quantity || 1))
-    const explicitPrice = Number(item?.price ?? item?.unit_price)
-    if (Number.isFinite(explicitPrice)) return explicitPrice
-    const subtotalAmount = Number(item?.subtotal ?? item?.total)
-    return Number.isFinite(subtotalAmount) ? subtotalAmount / quantity : 0
-  }
-
-  const groupOrderDisplayItems = (items: any[] = []) => {
-    const grouped = new Map<string, any>()
-    items.forEach((item, index) => {
-      const quantity = Math.max(1, Number(item?.quantity || 1))
-      const unitAmount = getOrderItemUnitAmount(item)
-      const name = String(item?.name || `Item ${index + 1}`)
-      const optionsKey = getOrderItemOptionsKey(item)
-      const key = `${item?.menu_id || item?.order_menu_id || item?.id || name}|${name}|${optionsKey}`
-      const existing = grouped.get(key)
-      if (existing) {
-        existing.quantity += quantity
-        existing.subtotal += unitAmount * quantity
-      } else {
-        grouped.set(key, { ...item, name, quantity, price: unitAmount, subtotal: unitAmount * quantity, optionsKey })
-      }
-    })
-    return Array.from(grouped.values())
-  }
 
   const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
     const submittedItems = groupOrderDisplayItems(Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : [])
@@ -1624,7 +1538,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }))
   }, [submittedSnapshot?.submittedItems, allItemInstances, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
-  const splitSubtotal = useMemo(() => splitSourceItems.reduce((sum: number, item: SplitSourceItem) => sum + Number(item.amount || 0), 0), [splitSourceItems])
+  const splitSubtotal = useMemo(() => calculateSplitSubtotal(splitSourceItems), [splitSourceItems])
   const splitGrandTotal = useMemo(() => submittedBaseTotal > 0 ? orderStatusTotal : finalTotal, [submittedBaseTotal, orderStatusTotal, finalTotal])
   const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
 
@@ -1705,14 +1619,10 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const activeSplitPeople = splitMethod === "items" ? itemSplitPeople : splitMethod === "shares" ? shareSplitPeople : equalSplitPeople
   const selectedSplitPerson = selectedSplitPersonId ? activeSplitPeople.find((person) => person.id === selectedSplitPersonId) || null : null
-  const unassignedSplitItems = splitSourceItems.filter((item: SplitSourceItem) => itemAssignments[item.key] === undefined || itemAssignments[item.key] === null).length
-  const sharePercentTotal = sharePercents.slice(0, splitGuestCount).reduce((sum: number, value: number) => sum + Number(value || 0), 0)
+  const unassignedSplitItems = countUnassignedSplitItems(splitSourceItems, itemAssignments)
+  const sharePercentTotal = sumSharePercents(sharePercents, splitGuestCount)
   const canConfirmSplitMethod = splitMethod === "items" ? unassignedSplitItems === 0 : splitMethod === "shares" ? sharePercentTotal === 100 : true
 
-  const toPositiveAmount = (value: unknown): number | null => {
-    const amount = Number(value)
-    return Number.isFinite(amount) && amount > 0 ? amount : null
-  }
   const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
   const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
   const paymentCustomTip = selectedSplitPerson ? splitPaymentTip.custom : customTip
@@ -8520,11 +8430,10 @@ useEffect(() => {
   }, [apiMenuItems, selectedCategory]);
 
   // Calculate total items and price
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
-  const rawSubtotalPrice = items.reduce((acc, item) => acc + (item.item.price || 0) * item.quantity, 0)
-  const rawTaxAmount = taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 1
-    ? rawSubtotalPrice * (taxSettings.percentage / 100)
-    : 0
+  const cartPricingSummary = calculateCartPricingSummary(items, taxSettings)
+  const totalItems = cartPricingSummary.totalItems
+  const rawSubtotalPrice = cartPricingSummary.subtotal
+  const rawTaxAmount = cartPricingSummary.tax
   const toolbarSubtotalPrice = toolbarPricingSnapshot?.subtotal ?? rawSubtotalPrice
   const toolbarTaxAmount = toolbarPricingSnapshot?.tax ?? rawTaxAmount
   const totalPrice = toolbarPricingSnapshot?.total ?? (rawSubtotalPrice + rawTaxAmount)
