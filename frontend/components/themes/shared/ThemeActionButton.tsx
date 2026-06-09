@@ -1,17 +1,20 @@
 "use client"
 
-import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react"
+import { createElement, type ButtonHTMLAttributes, type ElementType, type MouseEventHandler, type ReactNode } from "react"
 
-type ThemeActionButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className" | "disabled" | "onClick" | "type"> & {
+export type ThemeActionButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className" | "disabled" | "onClick" | "type"> & {
+  as?: ElementType
   children?: ReactNode
   onClick?: MouseEventHandler<HTMLButtonElement>
   "aria-label"?: string
   disabled?: boolean
   className?: string
   type?: "button" | "submit" | "reset"
+  [key: string]: any
 }
 
 export function ThemeActionButton({
+  as,
   children,
   onClick,
   "aria-label": ariaLabel,
@@ -20,16 +23,16 @@ export function ThemeActionButton({
   type = "button",
   ...buttonProps
 }: ThemeActionButtonProps) {
-  return (
-    <button
-      {...buttonProps}
-      type={type}
-      aria-label={ariaLabel}
-      disabled={disabled}
-      className={className}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+  return createElement(
+    as ?? "button",
+    {
+      ...buttonProps,
+      type,
+      "aria-label": ariaLabel,
+      disabled,
+      className,
+      onClick,
+    },
+    children,
   )
 }

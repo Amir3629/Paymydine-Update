@@ -33,7 +33,8 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
-import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBoundary";
+import { GoldCheckoutButton } from "@/components/themes/gold-luxury/GoldThemeActions";
+import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
 import { createThemeMenuActions } from "@/features/menu/theme-menu-actions";
@@ -6371,6 +6372,7 @@ function ExpandingBottomToolbar({
   themeBackgroundColor,
 }: ExpandingBottomToolbarProps) {
   const { taxSettings } = useCmsStore()
+  const themeMenuActions = useThemeMenuActions()
   const toolbarVatLabel = taxPercentage > 0 ? `VAT ${Number(taxPercentage).toLocaleString(undefined, { maximumFractionDigits: 2 })}%` : "VAT"
 
   // Helper to adjust price if VAT is included
@@ -6724,9 +6726,17 @@ function ExpandingBottomToolbar({
           </ActionTooltip>
 
           <ActionTooltip label="Checkout">
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.12 }}
+          <GoldCheckoutButton
+            actions={themeMenuActions ?? {
+              onAddItem: () => undefined,
+              onOpenCheckout: onCartClick,
+              onOpenTableOrder: onOrderClick ?? (() => undefined),
+              onCallWaiter: onWaiterClick ?? (() => undefined),
+              onOpenNote: onNoteClick ?? (() => undefined),
+              onOpenValet: () => undefined,
+            }}
+            as={motion.button}
+            {...({ whileTap: { scale: 0.92 }, whileHover: { scale: 1.12 } })}
             className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
             style={{
               background: "color-mix(in srgb, var(--theme-surface) 92%, #ffffff 8%)",
@@ -6735,7 +6745,6 @@ function ExpandingBottomToolbar({
               boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
             }}
-            onClick={onCartClick}
             aria-label={t("viewCart")}
           >
             <ShoppingCart className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
@@ -6799,7 +6808,7 @@ function ExpandingBottomToolbar({
                 {totalItems}
               </span>
             )}
-          </motion.button>
+          </GoldCheckoutButton>
           </ActionTooltip>
           <AnimatePresence initial={false}>
           {showOrderAction && (

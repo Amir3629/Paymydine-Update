@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import type { ThemeMenuActions } from "@/components/themes/types"
-import { ThemeActionButton } from "@/components/themes/shared/ThemeActionButton"
+import { ThemeActionButton, type ThemeActionButtonProps } from "@/components/themes/shared/ThemeActionButton"
 
 type GoldThemeActionButtonProps = {
   actions: ThemeMenuActions
@@ -11,6 +11,8 @@ type GoldThemeActionButtonProps = {
   "aria-label"?: string
   disabled?: boolean
 }
+
+type GoldCheckoutButtonProps = GoldThemeActionButtonProps & Omit<ThemeActionButtonProps, "children" | "className" | "disabled" | "onClick" | "aria-label">
 
 export function GoldValetButton({ actions, children, className, "aria-label": ariaLabel = "Open valet", disabled }: GoldThemeActionButtonProps) {
   return (
@@ -36,9 +38,9 @@ export function GoldNoteButton({ actions, children, className, "aria-label": ari
   )
 }
 
-export function GoldCheckoutButton({ actions, children, className, "aria-label": ariaLabel = "Open checkout", disabled }: GoldThemeActionButtonProps) {
+export function GoldCheckoutButton({ actions, children, className, "aria-label": ariaLabel = "Open checkout", disabled, ...buttonProps }: GoldCheckoutButtonProps) {
   return (
-    <ThemeActionButton className={className} aria-label={ariaLabel} disabled={disabled} onClick={() => void actions.onOpenCheckout()}>
+    <ThemeActionButton {...buttonProps} className={className} aria-label={ariaLabel} disabled={disabled} onClick={() => void actions.onOpenCheckout()}>
       {children ?? "Checkout"}
     </ThemeActionButton>
   )
