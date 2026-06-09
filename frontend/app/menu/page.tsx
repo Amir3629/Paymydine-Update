@@ -33,6 +33,8 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
+import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
+import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
   buildEvenSharePercents,
   calculateCartPricingSummary,
@@ -8023,7 +8025,13 @@ function MenuContent() {
   const [toolbarPricingSnapshot, setToolbarPricingSnapshot] = useState<PmdToolbarPricingSnapshot | null>(null)
   const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
   const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
-  const [sharedTableOrder, setSharedTableOrder] = useState<TableOrderDraftResponse | null>(null)
+  const sharedTableOrderQr = searchParams?.get("qr") || null
+  const sharedTableOrderContext = useMemo(() => buildTableOrderDraftContext(tableInfo, sharedTableOrderQr), [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, sharedTableOrderQr])
+  const { tableDraft: sharedTableOrder, setTableDraft: setSharedTableOrder } = useTableOrderDraft({
+    context: sharedTableOrderContext,
+    enabled: Boolean(tableInfo?.table_id || tableInfo?.table_no),
+    pollIntervalMs: 12000,
+  })
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const isRecentPaidTableOrder = localOpenOrder?.paymentStatus === "paid" || localOpenOrder?.status === "paid"
   const activeExistingOrderId = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : existingOrderId
@@ -8032,52 +8040,20 @@ function MenuContent() {
   const shouldHideCartSheet = !!activeExistingOrderId
 
   useEffect(() => {
-    if (!tableInfo?.table_id && !tableInfo?.table_no) return
-    let cancelled = false
-    const loadSharedTableOrder = async () => {
-      const latest = await apiClient.getTableOrderDraft({
-        table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
-        table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
-        qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : (searchParams?.get("qr") || null),
-      })
-      if (cancelled) return
-      if (latest?.success && latest.status && latest.status !== "empty") {
-        setSharedTableOrder(latest)
-        if (latest.order_id) {
-          setExistingOrderId(Number(latest.order_id))
-          setPendingSettlementSummary({
-            orderTotal: Number(latest.totals?.orderTotal || latest.totals?.total || 0),
-            settledAmount: Number(latest.totals?.settledAmount || 0),
-            remainingAmount: Number(latest.totals?.remainingAmount || latest.totals?.total || 0),
-          })
-          setLocalOpenOrder((prev: any) => {
-            const latestSnapshot = {
-              orderId: latest.order_id,
-              status: latest.status,
-              paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
-              tableNumber: latest.table_no || tableInfo?.table_no || null,
-              subtotal: Number(latest.totals?.subtotal ?? tableOrderTotalByCode(latest, 'subtotal') ?? 0),
-              vatAmount: Number(latest.totals?.tax ?? tableOrderTotalByCode(latest, 'tax') ?? 0),
-              vatPercentage: tableOrderVatPercentage(latest, 0),
-              total: latest.totals?.total || 0,
-              orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
-              remainingAmount: latest.totals?.remainingAmount || 0,
-              settledAmount: latest.totals?.settledAmount || 0,
-              submittedItems: latest.items || [],
-              payment: latest.payment || "qr_pay_later",
-            }
-            return !prev || String(prev?.orderId || "") !== String(latest.order_id || "") ? latestSnapshot : { ...prev, ...latestSnapshot }
-          })
-          setHasLocalOpenOrder(true)
-        }
-      } else {
-        setSharedTableOrder(null)
-      }
-    }
-    void loadSharedTableOrder()
-    const timer = window.setInterval(loadSharedTableOrder, 12000)
-return () => { cancelled = true; window.clearInterval(timer) }
-  }, [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, searchParams])
+    if (!isVisibleTableOrderDraft(sharedTableOrder) || !sharedTableOrder.order_id) return
+
+    setExistingOrderId(Number(sharedTableOrder.order_id))
+    setPendingSettlementSummary({
+      orderTotal: Number(sharedTableOrder.totals?.orderTotal || sharedTableOrder.totals?.total || 0),
+      settledAmount: Number(sharedTableOrder.totals?.settledAmount || 0),
+      remainingAmount: Number(sharedTableOrder.totals?.remainingAmount || sharedTableOrder.totals?.total || 0),
+    })
+    setLocalOpenOrder((prev: any) => {
+      const latestSnapshot = createSubmittedTableOrderSnapshot(sharedTableOrder, tableInfo, 0)
+      return !prev || String(prev?.orderId || "") !== String(sharedTableOrder.order_id || "") ? latestSnapshot : { ...prev, ...latestSnapshot }
+    })
+    setHasLocalOpenOrder(true)
+  }, [sharedTableOrder, tableInfo?.table_id, tableInfo?.table_no])
 
   // close side cart for pending QR
   useEffect(() => {
@@ -9376,11 +9352,11 @@ useEffect(() => {
                   noteDisabled={false}
                   totalItems={totalItems}
                   themeBackgroundColor={themeBackgroundColor}
-                  onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
+                  onOrderClick={isVisibleTableOrderDraft(sharedTableOrder) || hasLocalOpenOrder ? () => {
                     setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
                     setPaymentModalOpen(true)
                   } : undefined}
-                  orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
+                  orderCount={Number(tableOrderItemCount(sharedTableOrder) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
                 />
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
@@ -9597,11 +9573,11 @@ useEffect(() => {
         noteDisabled={false}
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
-        onOrderClick={(sharedTableOrder?.success && sharedTableOrder.status && sharedTableOrder.status !== "empty") || hasLocalOpenOrder ? () => {
+        onOrderClick={isVisibleTableOrderDraft(sharedTableOrder) || hasLocalOpenOrder ? () => {
           setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
           setPaymentModalOpen(true)
         } : undefined}
-        orderCount={Number(sharedTableOrder?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
+        orderCount={Number(tableOrderItemCount(sharedTableOrder) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
       />
       {!shouldHideCartSheet && (
       <CartSheet />
