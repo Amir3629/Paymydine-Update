@@ -1,6 +1,9 @@
 import type { ComponentType, ReactNode } from "react"
 import type { ThemeCanonicalId } from "@/lib/theme-registry"
 import { getThemeConfig } from "@/lib/theme-registry"
+import { ThemeActionSlot } from "@/components/themes/shared/ThemeActionSlot"
+import { ThemeMenuSection } from "@/components/themes/shared/ThemeMenuSection"
+import { ThemeMenuShell } from "@/components/themes/shared/ThemeMenuShell"
 import {
   GoldActionButtonsSlot,
   GoldBottomToolbarSlot,
@@ -78,6 +81,21 @@ const organicThemeComponents = {
   ValetAction: OrganicValetActionSlot,
 } satisfies ThemeMenuComponentSet
 
+const neutralThemeComponents = {
+  Shell: ThemeMenuShell,
+  Header: ThemeMenuSection,
+  Hero: ThemeMenuSection,
+  Category: ThemeMenuSection,
+  ItemCard: ThemeMenuSection,
+  BottomToolbar: ThemeMenuSection,
+  ActionButtons: ThemeActionSlot,
+  CheckoutTrigger: ThemeActionSlot,
+  WaiterAction: ThemeActionSlot,
+  NoteAction: ThemeActionSlot,
+  TableOrderAction: ThemeActionSlot,
+  ValetAction: ThemeActionSlot,
+} satisfies ThemeMenuComponentSet
+
 const themeComponentRegistry = {
   "gold-luxury": goldThemeComponents,
   organic_botanical_paper: organicThemeComponents,
@@ -86,7 +104,13 @@ const themeComponentRegistry = {
 export type ThemeMenuRendererSlot = keyof ThemeMenuComponentSet
 
 export function getThemeComponents(themeId: string | null | undefined): ThemeMenuComponentSet {
-  const config = getThemeConfig(themeId)
+  const rawThemeId = String(themeId ?? "").trim()
+
+  if (!rawThemeId) {
+    return neutralThemeComponents
+  }
+
+  const config = getThemeConfig(rawThemeId)
   return themeComponentRegistry[config.canonicalId] || goldThemeComponents
 }
 

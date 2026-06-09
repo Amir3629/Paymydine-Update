@@ -33,9 +33,13 @@ export default function RootLayout({
             var themeKey=tenant+":paymydine-theme";
             var ovKey=tenant+":paymydine-theme-overrides";
             var t=localStorage.getItem(themeKey);
-            if(t){ document.documentElement.setAttribute("data-theme",t); }
+            var useCachedTheme=!!(t && t !== "gold-luxury" && t !== "gold_luxury" && t !== "gold");
+            if(useCachedTheme){
+              document.documentElement.setAttribute("data-theme",t);
+            }
+            document.documentElement.removeAttribute("data-pmd-theme-resolved");
             var ov=null; try{ ov=JSON.parse(localStorage.getItem(ovKey)||"null"); }catch(e){}
-            if(ov && typeof ov==="object"){
+            if(useCachedTheme && ov && typeof ov==="object"){
               var r=document.documentElement.style;
               if(ov.primary)   r.setProperty("--theme-primary",ov.primary);
               if(ov.secondary) r.setProperty("--theme-secondary",ov.secondary);

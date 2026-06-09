@@ -287,23 +287,37 @@ function __pmdRemoteConsoleInstallOnce() {
   } catch {}
 }
 
-function useCurrentFrontendTheme() {
-  const [themeId, setThemeId] = useState('gold-luxury')
+type CurrentFrontendThemeState = {
+  themeId: string | null
+  isResolved: boolean
+}
+
+function useCurrentFrontendTheme(): CurrentFrontendThemeState {
+  const [themeState, setThemeState] = useState<CurrentFrontendThemeState>({
+    themeId: null,
+    isResolved: false,
+  })
 
   useEffect(() => {
     if (typeof document === 'undefined') return
     const readTheme = () => {
-      const nextTheme = document.documentElement.getAttribute('data-theme') || 'gold-luxury'
-      setThemeId(nextTheme)
+      const nextTheme = document.documentElement.getAttribute('data-theme')
+      const resolved = document.documentElement.getAttribute('data-pmd-theme-resolved') === '1'
 
+      setThemeState({
+        themeId: nextTheme || null,
+        // A cached Organic value is safe to use immediately because it prevents
+        // the legacy Gold fallback from rendering before the admin theme call completes.
+        isResolved: resolved || nextTheme === ORGANIC_BOTANICAL_THEME_KEY,
+      })
     }
     readTheme()
     const observer = new MutationObserver(readTheme)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-pmd-theme-resolved'] })
     return () => observer.disconnect()
   }, [])
 
-  return themeId
+  return themeState
 }
 
 function useThemeBackgroundColor() {
@@ -646,7 +660,7 @@ interface PaymentModalProps {
   preferPersonalReview?: boolean
   onOpenOrderUpdate?: (snapshot: any | null) => void;
   onCartPricingUpdate?: (snapshot: PmdToolbarPricingSnapshot | null) => void;
-  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper";
+  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper" | "neutral";
 }
 
 interface ExpandingBottomToolbarProps {
@@ -991,7 +1005,7 @@ function OrderItemWithOptions({
 
 // PMD_FORCE_ALL_PLUS_MINUS_SOURCE_WHITE_20260601
 // Phase 2B: move PaymentModal orchestration into checkout feature components/hooks after pure helpers are stable.
-function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "gold-luxury" }: PaymentModalProps) {
+function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "neutral" }: PaymentModalProps) {
 
   // PMD_QUANTITY_ICON_FIRST_PAINT_FIX_20260601
   // Prevent checkout quantity plus/minus icons from flashing black before legacy runtime styles settle.
@@ -8051,8 +8065,9 @@ function MenuContent() {
 
   const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
   const themeBackgroundColor = useThemeBackgroundColor()
-  const currentFrontendTheme = useCurrentFrontendTheme()
+  const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
   const isOrganicBotanicalTheme = currentFrontendTheme === ORGANIC_BOTANICAL_THEME_KEY
+  const shouldHoldThemeRender = !isFrontendThemeResolved
   const { t } = useLanguageStore()
   const { toast } = useToast()
   const [isNoteModalOpen, setNoteModalOpen] = useState(false)
@@ -9380,6 +9395,18 @@ useEffect(() => {
 
   const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
   const heroItem = highlightSourceItems.find((item) => item.image || (Array.isArray((item as any).images) && (item as any).images.length)) || highlightSourceItems[0] || null
+
+  if (shouldHoldThemeRender) {
+    return (
+      <div
+        className="pmd-customer-page page--menu relative min-h-screen w-full"
+        data-pmd-theme-loading="1"
+        style={{ background: "#fffaf0", color: "#343529" }}
+      >
+        <LoadingSpinner />
+      </div>
+    )
+  }
 
   // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
   if (isOrganicBotanicalTheme) {
