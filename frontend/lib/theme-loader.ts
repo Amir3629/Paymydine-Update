@@ -33,6 +33,9 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
 
     console.log(`✅ ThemeLoader: Applying admin theme "${themeId}"`, overrides);
     applyTheme(themeId, overrides);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-pmd-theme-resolved", "1");
+    }
 
     // Store in tenant-scoped localStorage
     if (typeof window !== "undefined") {
@@ -49,8 +52,11 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
     return { themeId, overrides };
   } catch (e) {
     console.error('❌ ThemeLoader: Failed to load admin theme:', e);
-    // Fallback to default theme
+    // Fallback to default theme only after the admin theme request has failed.
     applyTheme("gold-luxury");
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-pmd-theme-resolved", "1");
+    }
     return {};
   }
 }

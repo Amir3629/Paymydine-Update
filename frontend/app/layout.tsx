@@ -33,9 +33,13 @@ export default function RootLayout({
             var themeKey=tenant+":paymydine-theme";
             var ovKey=tenant+":paymydine-theme-overrides";
             var t=localStorage.getItem(themeKey);
-            if(t){ document.documentElement.setAttribute("data-theme",t); }
+            var useCachedTheme=!!(t && t !== "gold-luxury" && t !== "gold_luxury" && t !== "gold");
+            if(useCachedTheme){
+              document.documentElement.setAttribute("data-theme",t);
+            }
+            document.documentElement.removeAttribute("data-pmd-theme-resolved");
             var ov=null; try{ ov=JSON.parse(localStorage.getItem(ovKey)||"null"); }catch(e){}
-            if(ov && typeof ov==="object"){
+            if(useCachedTheme && ov && typeof ov==="object"){
               var r=document.documentElement.style;
               if(ov.primary)   r.setProperty("--theme-primary",ov.primary);
               if(ov.secondary) r.setProperty("--theme-secondary",ov.secondary);
@@ -386,6 +390,286 @@ html body [data-pmd-menu-cart-badge="1"] * {
             <Toaster />
           </ClientLayout>
         </ThemeProvider>
+      
+        <script
+          id="pmd-organic-checkout-runtime-bridge"
+          dangerouslySetInnerHTML={{
+            __html: `
+(function () {
+  if (window.__pmdOrganicCheckoutRuntimeBridge) return;
+  window.__pmdOrganicCheckoutRuntimeBridge = true;
+
+  var ORGANIC = {
+    ink: "#2f3028",
+    primary: "#78835c",
+    primaryDark: "#667249",
+    circle: "#78835c",
+    paper: "#fffaf0",
+    border: "#d9cdae",
+    borderStrong: "#cdbf9c",
+    disabledBg: "#d6dbc6",
+    disabledText: "#6b7253",
+    shadow: "0 10px 22px rgba(120, 131, 92, 0.22)",
+    softShadow: "0 8px 18px rgba(94, 82, 55, 0.08)"
+  };
+
+  function isOrganic() {
+    return document.documentElement.getAttribute("data-theme") === "organic_botanical_paper";
+  }
+
+  function visible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    var r = el.getBoundingClientRect();
+    var s = window.getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && s.display !== "none" && s.visibility !== "hidden";
+  }
+
+  function important(el, styles) {
+    Object.keys(styles).forEach(function (key) {
+      el.style.setProperty(key, styles[key], "important");
+    });
+  }
+
+  function setIconColor(btn, color) {
+    var icons = btn.querySelectorAll("svg, svg *, i");
+    icons.forEach(function (icon) {
+      important(icon, {
+        "color": color,
+        "stroke": color
+      });
+    });
+  }
+
+  function setTextColor(btn, color) {
+    important(btn, {
+      "color": color,
+      "-webkit-text-fill-color": color
+    });
+
+    btn.querySelectorAll("span, p, div, strong").forEach(function (child) {
+      important(child, {
+        "color": color,
+        "-webkit-text-fill-color": color
+      });
+    });
+  }
+
+  function cleanButton(btn) {
+    important(btn, {
+      "border-radius": "9999px",
+      "transform": "none",
+      "transition": "background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease",
+      "-webkit-tap-highlight-color": "transparent"
+    });
+  }
+
+  function primary(btn) {
+    cleanButton(btn);
+    important(btn, {
+      "background": ORGANIC.primary,
+      "background-image": "none",
+      "border": "1px solid " + ORGANIC.primary,
+      "box-shadow": ORGANIC.shadow,
+      "font-weight": "800"
+    });
+    setTextColor(btn, ORGANIC.paper);
+    setIconColor(btn, ORGANIC.paper);
+  }
+
+  function outline(btn) {
+    cleanButton(btn);
+    important(btn, {
+      "background": "rgba(255, 250, 240, 0.78)",
+      "background-image": "none",
+      "border": "1px solid " + ORGANIC.borderStrong,
+      "box-shadow": ORGANIC.softShadow,
+      "font-weight": "800"
+    });
+    setTextColor(btn, ORGANIC.ink);
+  }
+
+  function circle(btn) {
+    cleanButton(btn);
+    important(btn, {
+      "background": ORGANIC.circle,
+      "background-image": "none",
+      "border": "1px solid " + ORGANIC.circle,
+      "box-shadow": "0 8px 18px rgba(79, 91, 59, 0.22)",
+      "font-weight": "900"
+    });
+    setTextColor(btn, ORGANIC.paper);
+    setIconColor(btn, ORGANIC.paper);
+  }
+
+  function disabled(btn) {
+    cleanButton(btn);
+    important(btn, {
+      "background": ORGANIC.disabledBg,
+      "background-image": "none",
+      "border": "1px solid #c8ceb3",
+      "box-shadow": "none",
+      "opacity": "0.88",
+      "font-weight": "800"
+    });
+    setTextColor(btn, ORGANIC.disabledText);
+    setIconColor(btn, ORGANIC.disabledText);
+  }
+
+  function inputStyle(input) {
+    important(input, {
+      "border-radius": "9999px",
+      "border": "1px solid " + ORGANIC.border,
+      "background": "rgba(255, 250, 240, 0.72)",
+      "color": ORGANIC.ink,
+      "-webkit-text-fill-color": ORGANIC.ink,
+      "box-shadow": "inset 0 1px 0 rgba(255,255,255,.6)"
+    });
+  }
+
+  function findCheckoutRoots() {
+    var roots = [];
+    var selectors = [
+      "[role='dialog']",
+      "[aria-modal='true']",
+      "[class*='fixed']",
+      "[class*='checkout']",
+      "[class*='payment']",
+      "[class*='split']"
+    ];
+
+    document.querySelectorAll(selectors.join(",")).forEach(function (el) {
+      if (!visible(el)) return;
+      var txt = (el.innerText || "").toLowerCase();
+      if (
+        txt.indexOf("payment") !== -1 ||
+        txt.indexOf("split bill") !== -1 ||
+        txt.indexOf("order status") !== -1 ||
+        txt.indexOf("pay in full") !== -1 ||
+        txt.indexOf("review split") !== -1 ||
+        txt.indexOf("send to kitchen") !== -1
+      ) {
+        roots.push(el);
+      }
+    });
+
+    if (!roots.length) {
+      var bodyTxt = (document.body.innerText || "").toLowerCase();
+      if (
+        bodyTxt.indexOf("payment") !== -1 ||
+        bodyTxt.indexOf("split bill") !== -1 ||
+        bodyTxt.indexOf("order status") !== -1
+      ) {
+        roots.push(document.body);
+      }
+    }
+
+    return roots;
+  }
+
+  function classifyAndStyle(btn) {
+    if (!visible(btn)) return;
+
+    var rawText = (btn.innerText || btn.textContent || "");
+    var text = rawText.replace(/\\s+/g, " ").trim().toLowerCase();
+    var r = btn.getBoundingClientRect();
+
+    var isDisabled =
+      btn.disabled ||
+      btn.getAttribute("aria-disabled") === "true" ||
+      btn.className.toString().indexOf("disabled") !== -1;
+
+    if (isDisabled) {
+      disabled(btn);
+      return;
+    }
+
+    var looksCircle =
+      (text === "" || text === "+" || text === "-" || text === "−" || text.length <= 2) &&
+      r.width <= 76 &&
+      r.height <= 76;
+
+    if (looksCircle) {
+      circle(btn);
+      return;
+    }
+
+    if (
+      text.indexOf("pay") !== -1 ||
+      text.indexOf("review split") !== -1 ||
+      text.indexOf("send to kitchen") !== -1 ||
+      text.indexOf("apply") !== -1 ||
+      text.indexOf("split equally") !== -1 ||
+      text.indexOf("pay in full") !== -1
+    ) {
+      primary(btn);
+      return;
+    }
+
+    if (
+      text.indexOf("split bill") !== -1 ||
+      text.indexOf("continue ordering") !== -1 ||
+      text.indexOf("by order") !== -1 ||
+      text.indexOf("by shares") !== -1 ||
+      text.indexOf("0%") !== -1 ||
+      text.indexOf("5%") !== -1 ||
+      text.indexOf("10%") !== -1 ||
+      text.indexOf("custom") !== -1 ||
+      text.indexOf("card") !== -1 ||
+      text.indexOf("google") !== -1 ||
+      text.indexOf("apple") !== -1 ||
+      text.indexOf("wero") !== -1 ||
+      text.indexOf("paypal") !== -1 ||
+      text.indexOf("cash") !== -1
+    ) {
+      outline(btn);
+      return;
+    }
+
+    outline(btn);
+  }
+
+  function applyOrganicCheckoutBridge() {
+    if (!isOrganic()) return;
+
+    var roots = findCheckoutRoots();
+
+    roots.forEach(function (root) {
+      root.querySelectorAll("button, [role='button']").forEach(classifyAndStyle);
+      root.querySelectorAll("input, textarea, select").forEach(function (input) {
+        if (visible(input)) inputStyle(input);
+      });
+    });
+  }
+
+  var raf = 0;
+  function schedule() {
+    if (raf) return;
+    raf = window.requestAnimationFrame(function () {
+      raf = 0;
+      applyOrganicCheckoutBridge();
+    });
+  }
+
+  window.addEventListener("load", schedule);
+  document.addEventListener("click", function () {
+    schedule();
+    window.setTimeout(schedule, 80);
+    window.setTimeout(schedule, 240);
+  }, true);
+
+  new MutationObserver(schedule).observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["class", "style", "data-theme", "data-pmd-theme-resolved"]
+  });
+
+  schedule();
+})();
+            `,
+          }}
+        />
+
       </body>
     </html>
   )
