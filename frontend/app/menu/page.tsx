@@ -33,8 +33,10 @@ import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/component
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
+import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBoundary";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
+import { createThemeMenuActions } from "@/features/menu/theme-menu-actions";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
   buildEvenSharePercents,
@@ -8474,7 +8476,30 @@ useEffect(() => {
     }
   }
 
-  // Phase 3B: build a ThemeMenuActions object here and pass it to native theme UI components.
+  const themeMenuActions = createThemeMenuActions({
+    onAddItem: (item, quantity = 1) => {
+      addToCart(item, quantity)
+      handleFirstAdd(item)
+    },
+    onOpenCheckout: handleCartClick,
+    onOpenTableOrder: () => {
+      setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? "review" : (sharedTableOrder?.status === "paid" ? "paid" : "submitted"))
+      setPaymentModalOpen(true)
+    },
+    onCallWaiter: handleWaiterClick,
+    onOpenNote: handleNoteClick,
+    onOpenValet: () => {
+      const currentSearch = typeof window !== "undefined" ? window.location.search || "" : ""
+      if (tableIdString) {
+        window.location.href = `/table/${tableIdString}/valet${currentSearch}`
+      } else {
+        window.location.href = `/valet${currentSearch}`
+      }
+    },
+  })
+
+  // Phase 3C can begin moving low-risk native theme buttons (valet entry, waiter call, note,
+  // and checkout open) to consume ThemeMenuActions through the no-op boundary below.
   // Existing handlers remain the source of truth until theme components are migrated.
 
   // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
@@ -9312,6 +9337,7 @@ useEffect(() => {
   // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
   if (isOrganicBotanicalTheme) {
     return (
+      <ThemeActionBoundary actions={themeMenuActions}>
       <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#f6efe2]">
         <OrganicExactV0Frame />
 
@@ -9405,10 +9431,12 @@ useEffect(() => {
           onSend={handleSendNote}
         />
       </div>
+      </ThemeActionBoundary>
     )
   }
 
   return (
+    <ThemeActionBoundary actions={themeMenuActions}>
         <div className={`${isOrganicBotanicalTheme ? 'pmd-organic-menu' : ''} relative min-h-screen w-full bg-theme-background pb-32`} style={isOrganicBotanicalTheme ? organicBotanicalVars() : undefined}>
       {isOrganicBotanicalTheme ? (
         <OrganicBotanicalHero restaurantName={restaurantDisplayName} tableNumber={displayTableNumber} heroItem={heroItem} />
@@ -9623,6 +9651,7 @@ useEffect(() => {
         tableName={tableName}
       />
     </div>
+    </ThemeActionBoundary>
   )
 }
 
