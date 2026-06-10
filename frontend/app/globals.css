@@ -15891,3 +15891,29 @@ html body button[data-pmd-submit-review="1"] {
   border-color: #b88940 !important;
 }
 
+
+/* PMD_MG_WHOLE_MENU_BG_20260611_START */
+:root {
+  --pmd-mg-whole-menu-bg: radial-gradient(circle at 86% 0%, rgba(5, 54, 38, .30) 0%, rgba(2, 25, 17, .16) 22%, rgba(0, 6, 4, .96) 46%, rgba(0, 0, 0, 1) 78%, #000000 100%);
+  --pmd-mg-whole-menu-black: #000000;
+}
+
+/* Host page around the Modern Green iframe */
+html:has(#pmd-modern-green-frame),
+body:has(#pmd-modern-green-frame) {
+  background: #000000 !important;
+  background-color: #000000 !important;
+}
+
+.pmd-customer-page.page--menu:has(#pmd-modern-green-frame),
+.pmd-customer-page:has(#pmd-modern-green-frame),
+.page--menu:has(#pmd-modern-green-frame) {
+  background: var(--pmd-mg-whole-menu-bg) !important;
+  background-color: #000000 !important;
+}
+
+#pmd-modern-green-frame {
+  background: #000000 !important;
+  background-color: #000000 !important;
+}
+/* PMD_MG_WHOLE_MENU_BG_20260611_END */

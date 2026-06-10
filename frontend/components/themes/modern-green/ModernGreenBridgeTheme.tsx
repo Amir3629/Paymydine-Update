@@ -201,13 +201,13 @@ export function ModernGreenBridgeTheme({
   ])
 
   return (
-    <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#010302]">
+    <div data-pmd-mg-whole-menu-bg="1" className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#000000]" style={{ background: "radial-gradient(circle at 86% 0%, rgba(5, 54, 38, .30) 0%, rgba(2, 25, 17, .16) 22%, rgba(0, 6, 4, .96) 46%, rgba(0, 0, 0, 1) 78%, #000000 100%)", backgroundColor: "#000000" }}>
       <iframe
         id="pmd-modern-green-frame"
         title="Modern Green menu"
         src={src}
         className="block h-screen w-full border-0"
-        style={{ width: "100%", height: "100dvh", minHeight: "100vh", border: 0, display: "block", background: "#010302" }}
+        style={{ width: "100%", height: "100dvh", minHeight: "100vh", border: 0, display: "block", background: "#000000" }}
       />
       {children}
     </div>
