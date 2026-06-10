@@ -1,13 +1,14 @@
-export type ThemeCanonicalId = "gold-luxury" | "organic_botanical_paper"
+export type ThemeCanonicalId = "gold-luxury" | "organic_botanical_paper" | "modern_green"
 
 export type ThemeAliasId =
   | ThemeCanonicalId
   | "gold_luxury"
   | "gold"
+  | "modern-green"
 
 export type ThemeValetMode = "standalone-page" | "inline-card" | "hidden"
 export type ThemeMenuEntryMode = "dropdown" | "valet-button" | "none"
-export type ThemeCheckoutLayoutId = "gold-luxury" | "organic-botanical-paper"
+export type ThemeCheckoutLayoutId = "gold-luxury" | "organic-botanical-paper" | "modern-green"
 
 export interface ThemeConfig {
   canonicalId: ThemeCanonicalId
@@ -48,11 +49,26 @@ const organicBotanicalPaperThemeConfig = {
   cssScopeRoot: 'html[data-theme="organic_botanical_paper"]',
 } as const satisfies ThemeConfig
 
+const modernGreenThemeConfig = {
+  canonicalId: "modern_green",
+  aliases: ["modern_green", "modern-green"],
+  backendAdminIds: ["modern_green", "modern-green"],
+  displayName: "Modern Green",
+  valetMode: "inline-card",
+  menuEntryMode: "valet-button",
+  checkoutLayoutId: "modern-green",
+  usesIframePrototype: true,
+  usesNativeMainFrontendUi: false,
+  cssScopeRoot: 'html[data-theme="modern_green"]',
+} as const satisfies ThemeConfig
+
 export const themeRegistry = {
   gold_luxury: goldLuxuryThemeConfig,
   "gold-luxury": goldLuxuryThemeConfig,
   organic_botanical_paper: organicBotanicalPaperThemeConfig,
-} as const satisfies Record<"gold_luxury" | "gold-luxury" | "organic_botanical_paper", ThemeConfig>
+  modern_green: modernGreenThemeConfig,
+  "modern-green": modernGreenThemeConfig,
+} as const satisfies Record<"gold_luxury" | "gold-luxury" | "organic_botanical_paper" | "modern_green" | "modern-green", ThemeConfig>
 
 const themeAliasMap = new Map<string, ThemeConfig>()
 
@@ -77,4 +93,8 @@ export function isOrganicTheme(input: string | null | undefined): boolean {
 
 export function isGoldLuxuryTheme(input: string | null | undefined): boolean {
   return getThemeConfig(input).canonicalId === "gold-luxury"
+}
+
+export function isModernGreenTheme(input: string | null | undefined): boolean {
+  return getThemeConfig(input).canonicalId === "modern_green"
 }

@@ -181,4 +181,5 @@
   'Admin\\Widgets\\Table\\Source\\DataSource' => 'app/admin/widgets/table/source/DataSource.php',
   'Admin\\Models\\Menu_combos_model' => 'app/admin/models/Menu_combos_model.php',
   'Admin\\Controllers\\locations' => 'app/admin/controllers/Locations.php',
+  'System\\Requests\\GeneralSettings' => 'app/system/requests/GeneralSettings.php',
 );

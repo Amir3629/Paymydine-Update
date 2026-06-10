@@ -32,6 +32,7 @@
                     'gold_luxury' => 'gold-luxury',
                     'gold' => 'gold-luxury',
                     'organic_botanical_paper' => 'organic_botanical_paper',
+                    'modern_green' => 'modern_green',
                     'light' => 'gold-luxury',
                     'dark' => 'gold-luxury',
                     'colorful' => 'gold-luxury',
@@ -39,16 +40,17 @@
                 ];
                 $frontend = $map[$adminTheme] ?? 'gold-luxury';
                 $isOrganic = $frontend === 'organic_botanical_paper';
+                $isModernGreen = $frontend === 'modern_green';
                 return response()->json([
                     'success' => true,
                     'admin_theme' => $adminTheme,
                     'frontend_theme' => $frontend,
                     'data' => [
                         'theme_id' => $frontend,
-                        'primary_color' => $isOrganic ? ($data['primary_color'] ?? '#737A55') : '#062F2A',
-                        'secondary_color' => $isOrganic ? '#FFF9EF' : '#062F2A',
-                        'accent_color' => $isOrganic ? ($data['accent_color'] ?? '#B8864B') : '#C89B4A',
-                        'background_color' => $isOrganic ? '#F3EBDD' : '#FAF9F4',
+                        'primary_color' => $isModernGreen ? '#29BC7E' : ($isOrganic ? ($data['primary_color'] ?? '#737A55') : '#062F2A'),
+                        'secondary_color' => $isModernGreen ? '#07110D' : ($isOrganic ? '#FFF9EF' : '#062F2A'),
+                        'accent_color' => $isModernGreen ? '#29BC7E' : ($isOrganic ? ($data['accent_color'] ?? '#B8864B') : '#C89B4A'),
+                        'background_color' => $isModernGreen ? '#030504' : ($isOrganic ? '#F3EBDD' : '#FAF9F4'),
                     ],
                 ]);
             }

@@ -99,6 +99,7 @@ const neutralThemeComponents = {
 const themeComponentRegistry = {
   "gold-luxury": goldThemeComponents,
   organic_botanical_paper: organicThemeComponents,
+  modern_green: neutralThemeComponents,
 } satisfies Record<ThemeCanonicalId, ThemeMenuComponentSet>
 
 export type ThemeMenuRendererSlot = keyof ThemeMenuComponentSet

@@ -102,6 +102,7 @@ $config['form']['fields'] = [
         'options' => [
             'gold_luxury' => 'Gold Luxury',
             'organic_botanical_paper' => 'Organic Botanical Paper',
+            'modern_green' => 'Modern Green',
         ],
         'default' => 'gold_luxury',
     ],

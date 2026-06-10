@@ -210,6 +210,43 @@ export interface ThemeColors {
       }
     },
     
+
+    'modern_green': {
+      id: 'modern_green',
+      name: 'Modern Green',
+      description: 'Premium dark green glass restaurant theme',
+      colors: {
+        primary: '#29BC7E',
+        secondary: '#07110D',
+        accent: '#29BC7E',
+        background: '#030504',
+
+        textPrimary: '#F4F8F5',
+        textSecondary: '#B8C4BC',
+        textMuted: '#7C8B82',
+
+        border: '#20342A',
+        input: '#101A15',
+        button: '#29BC7E',
+        buttonHover: '#20A96E',
+
+        menuItemBackground: '#0D1712',
+        menuItemBorder: '#20342A',
+        categoryActive: '#29BC7E',
+        categoryInactive: '#7C8B82',
+        priceColor: '#F4F8F5',
+
+        cartBackground: '#101A15',
+        cartBorder: '#20342A',
+        paymentButton: '#29BC7E',
+        paymentButtonHover: '#20A96E',
+
+        success: '#29BC7E',
+        warning: '#FBBF24',
+        error: '#F87171',
+        info: '#60A5FA'
+      }
+    },
     'vibrant-colors': {
       id: 'vibrant-colors',
       name: 'Vibrant Colors',

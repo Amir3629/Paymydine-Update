@@ -1,4 +1,7 @@
 "use client"
+
+import { ModernGreenBridgeTheme } from "@/components/themes/modern-green/ModernGreenBridgeTheme"
+
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, Suspense } from "react";
 import { formatCurrency } from "@/lib/currency";
@@ -385,6 +388,7 @@ import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 // PMD_EMERGENCY_SPLITMETHOD_SCOPE_FALLBACK
 // Prevents legacy/out-of-scope injected UI code from crashing the menu page.
 // Real split state inside PaymentModal still shadows this fallback.
+const MODERN_GREEN_THEME_KEY = "modern_green"
 const splitMethod = "equal" as const
 
 
@@ -660,7 +664,7 @@ interface PaymentModalProps {
   preferPersonalReview?: boolean
   onOpenOrderUpdate?: (snapshot: any | null) => void;
   onCartPricingUpdate?: (snapshot: PmdToolbarPricingSnapshot | null) => void;
-  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper" | "neutral";
+  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper" | "modern_green" | "neutral";
 }
 
 interface ExpandingBottomToolbarProps {
@@ -1208,6 +1212,251 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     phone: "",
   })
   const isOrganicCheckoutVisual = checkoutVisualTheme === ORGANIC_BOTANICAL_THEME_KEY
+  const isModernGreenCheckoutVisual = checkoutVisualTheme === "modern_green"
+  const isThemedCheckoutVisual = isOrganicCheckoutVisual || isModernGreenCheckoutVisual
+
+
+  React.useEffect(() => {
+    if (!isModernGreenCheckoutVisual || typeof document === "undefined") return
+
+    const styleId = "pmd-modern-green-checkout-force-no-gold-style"
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style")
+      style.id = styleId
+      style.textContent = `
+        /* PMD_MODERN_GREEN_CHECKOUT_FORCE_NO_GOLD_20260610 */
+
+        [data-pmd-modern-green-checkout-force="1"],
+        [data-pmd-modern-green-checkout-force="1"] [role="dialog"],
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-modal,
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-gold-checkout-modal] {
+          background: #06130f !important;
+          background-color: #06130f !important;
+          background-image:
+            radial-gradient(circle at 18% 0%, rgba(49,201,139,.18), transparent 38%),
+            linear-gradient(180deg, #071812 0%, #04100c 100%) !important;
+          color: #f4fff8 !important;
+          border-color: rgba(49,201,139,.26) !important;
+          box-shadow: 0 28px 90px rgba(0,0,0,.62) !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-checkout-scroll="1"],
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-body {
+          background: transparent !important;
+          background-color: transparent !important;
+          color: #f4fff8 !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-item-card,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-item-row,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-flat-section,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-total-card,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-payment-card,
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-order-status-card="1"],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-payment-real-panel],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-payment-adjustment-card],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-payment-soft-bg],
+        [data-pmd-modern-green-checkout-force="1"] [class*="bg-paydine"],
+        [data-pmd-modern-green-checkout-force="1"] [class*="border-paydine"],
+        [data-pmd-modern-green-checkout-force="1"] [class*="shadow-paydine"],
+        [data-pmd-modern-green-checkout-force="1"] [class*="champagne"],
+        [data-pmd-modern-green-checkout-force="1"] [class*="gold"],
+        [data-pmd-modern-green-checkout-force="1"] [class*="rose-beige"] {
+          background: rgba(12, 34, 26, .92) !important;
+          background-color: rgba(12, 34, 26, .92) !important;
+          background-image: none !important;
+          border-color: rgba(49,201,139,.22) !important;
+          color: #f4fff8 !important;
+          box-shadow: 0 12px 32px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.04) !important;
+          text-shadow: none !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-item-card,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-flat-section,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-payment-card,
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-order-status-card="1"] {
+          border-radius: 24px !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-item-row {
+          border-radius: 18px !important;
+          min-height: 3rem !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] h1,
+        [data-pmd-modern-green-checkout-force="1"] h2,
+        [data-pmd-modern-green-checkout-force="1"] h3,
+        [data-pmd-modern-green-checkout-force="1"] p,
+        [data-pmd-modern-green-checkout-force="1"] span,
+        [data-pmd-modern-green-checkout-force="1"] div,
+        [data-pmd-modern-green-checkout-force="1"] label,
+        [data-pmd-modern-green-checkout-force="1"] strong {
+          color: #f4fff8 !important;
+          -webkit-text-fill-color: #f4fff8 !important;
+          text-shadow: none !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] .text-gray-400,
+        [data-pmd-modern-green-checkout-force="1"] .text-gray-500,
+        [data-pmd-modern-green-checkout-force="1"] .text-gray-600,
+        [data-pmd-modern-green-checkout-force="1"] .text-paydine-elegant-gray,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-item-price,
+        [data-pmd-modern-green-checkout-force="1"] .pmd-customer-price {
+          color: #d3f8e5 !important;
+          -webkit-text-fill-color: #d3f8e5 !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] input,
+        [data-pmd-modern-green-checkout-force="1"] textarea,
+        [data-pmd-modern-green-checkout-force="1"] select {
+          background: rgba(4,16,12,.96) !important;
+          background-color: rgba(4,16,12,.96) !important;
+          border-color: rgba(49,201,139,.25) !important;
+          color: #f4fff8 !important;
+          -webkit-text-fill-color: #f4fff8 !important;
+          border-radius: 16px !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] button {
+          border-radius: 999px !important;
+          text-shadow: none !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-confirm-btn],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-send-kitchen-btn],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-pay-full-btn],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-review-split-btn],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-send-kitchen-btn],
+        [data-pmd-modern-green-checkout-force="1"] button[class*="bg-paydine"],
+        [data-pmd-modern-green-checkout-force="1"] button[class*="paydine-champagne"] {
+          background: #31c98b !important;
+          background-color: #31c98b !important;
+          background-image: none !important;
+          border-color: #31c98b !important;
+          color: #02110c !important;
+          -webkit-text-fill-color: #02110c !important;
+          font-weight: 850 !important;
+          box-shadow: 0 14px 28px rgba(49,201,139,.20) !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-confirm-btn] *,
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-send-kitchen-btn] *,
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-pay-full-btn] *,
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-send-kitchen-btn] * {
+          color: #02110c !important;
+          -webkit-text-fill-color: #02110c !important;
+          stroke: #02110c !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-continue-btn],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-card-split-bill-btn],
+        [data-pmd-modern-green-checkout-force="1"] [data-pmd-table-order-continue-btn] {
+          background: transparent !important;
+          background-color: transparent !important;
+          background-image: none !important;
+          border: 1.5px solid rgba(49,201,139,.38) !important;
+          color: #dfffee !important;
+          -webkit-text-fill-color: #dfffee !important;
+          box-shadow: none !important;
+        }
+
+        [data-pmd-modern-green-checkout-force="1"] svg {
+          color: currentColor !important;
+          stroke: currentColor !important;
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    const setImportant = (el: Element | null, props: Record<string, string>) => {
+      if (!(el instanceof HTMLElement)) return
+      Object.entries(props).forEach(([key, value]) => {
+        el.style.setProperty(key, value, "important")
+      })
+    }
+
+    const paint = () => {
+      const modalRoots = Array.from(
+        document.querySelectorAll(
+          '[data-pmd-gold-checkout-modal], .pmd-checkout-modal, [data-pmd-checkout-scroll="1"], [role="dialog"]'
+        )
+      )
+
+      modalRoots.forEach((node) => {
+        const root =
+          node.closest('[role="dialog"]') ||
+          node.closest('[data-pmd-gold-checkout-modal]') ||
+          node
+
+        if (root instanceof HTMLElement) {
+          root.setAttribute("data-pmd-modern-green-checkout-force", "1")
+          setImportant(root, {
+            background: "#06130f",
+            backgroundColor: "#06130f",
+            color: "#f4fff8",
+            borderColor: "rgba(49,201,139,.26)",
+            boxShadow: "0 28px 90px rgba(0,0,0,.62)",
+          })
+        }
+      })
+
+      document
+        .querySelectorAll(
+          '[data-pmd-modern-green-checkout-force="1"] .pmd-checkout-item-card, [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-item-row, [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-flat-section, [data-pmd-modern-green-checkout-force="1"] .pmd-checkout-payment-card, [data-pmd-modern-green-checkout-force="1"] [class*="paydine"], [data-pmd-modern-green-checkout-force="1"] [class*="gold"], [data-pmd-modern-green-checkout-force="1"] [class*="champagne"], [data-pmd-modern-green-checkout-force="1"] [class*="rose-beige"]'
+        )
+        .forEach((el) => {
+          setImportant(el, {
+            background: "rgba(12,34,26,.92)",
+            backgroundColor: "rgba(12,34,26,.92)",
+            backgroundImage: "none",
+            borderColor: "rgba(49,201,139,.22)",
+            color: "#f4fff8",
+            boxShadow: "0 12px 32px rgba(0,0,0,.20)",
+            textShadow: "none",
+          })
+        })
+    }
+
+    paint()
+    const timers = [80, 220, 600, 1200, 2000].map((delay) => window.setTimeout(paint, delay))
+    const observer = new MutationObserver(() => window.requestAnimationFrame(paint))
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "data-pmd-active"],
+    })
+
+    return () => {
+      timers.forEach(window.clearTimeout)
+      observer.disconnect()
+    }
+  }, [isModernGreenCheckoutVisual])
+
+  const modernGreenCheckoutModalStyle: React.CSSProperties = isModernGreenCheckoutVisual ? {
+    background: "linear-gradient(180deg, rgba(5, 19, 14, 0.98), rgba(7, 28, 20, 0.98))",
+    color: "#F4F7F5",
+    border: "1px solid rgba(255,255,255,0.14)",
+    boxShadow: "0 30px 90px rgba(0,0,0,0.58)",
+  } : {}
+
+  const modernGreenCheckoutHeaderStyle: React.CSSProperties = isModernGreenCheckoutVisual ? {
+    background: "rgba(255,255,255,0.04)",
+    color: "#F4F7F5",
+    borderBottom: "1px solid rgba(255,255,255,0.10)",
+  } : {}
+
+  const modernGreenCheckoutBodyStyle: React.CSSProperties = isModernGreenCheckoutVisual ? {
+    background: "transparent",
+    color: "#F4F7F5",
+  } : {}
+
+  const modernGreenCheckoutPrimaryButtonStyle: React.CSSProperties = isModernGreenCheckoutVisual ? {
+    background: "#29BC7E",
+    color: "#04130c",
+    textShadow: "none",
+    border: "1px solid #29BC7E",
+  } : {}
 
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
     getInitialCheckoutStep(initialCheckoutStep, existingOrderId)
@@ -2996,12 +3245,14 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const modalPrimaryBtn = "min-h-12 w-full rounded-2xl px-5 py-3 text-sm font-semibold transition hover:brightness-105 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
   const modalPrimaryBtnStyle: React.CSSProperties = isOrganicCheckoutVisual
     ? organicCheckoutPrimaryButtonStyle
-    : {
-        background: "#062F2A",
-        color: "#FFFFFF",
-        textShadow: "none",
-        border: "1px solid #062F2A",
-      }
+    : isModernGreenCheckoutVisual
+      ? modernGreenCheckoutPrimaryButtonStyle
+      : {
+          background: "#062F2A",
+          color: "#FFFFFF",
+          textShadow: "none",
+          border: "1px solid #062F2A",
+        }
 
   // PMD_PERMANENT_CONSOLE_TIP_COUPON_FIX_20260605
   // Narrow runtime visual fix for tip custom field + coupon/apply only.
@@ -4981,8 +5232,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         type="button"
         onClick={handlePayment}
         disabled={isLoading || !isFormValid()}
-        className={isOrganicCheckoutVisual ? modalPrimaryBtn : "w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"}
-        style={isOrganicCheckoutVisual ? modalPrimaryBtnStyle : undefined}
+        className={isThemedCheckoutVisual ? modalPrimaryBtn : "w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"}
+        style={isThemedCheckoutVisual ? modalPrimaryBtnStyle : undefined}
       >
         {isLoading ? (
           <div className="flex items-center gap-2">
@@ -5002,8 +5253,185 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+    <div className={cn("fixed inset-0 z-50 flex items-center justify-center", isModernGreenCheckoutVisual ? "bg-transparent backdrop-blur-md" : "bg-black/30")}>
       {isOrganicCheckoutVisual && <OrganicCheckoutScopedStyles />}
+      {isModernGreenCheckoutVisual && (
+        <style jsx global>{`
+          [data-pmd-checkout-visual-theme="modern_green"] {
+            --theme-surface: rgba(255,255,255,0.055);
+            --theme-border: rgba(255,255,255,0.13);
+            --theme-text-primary: #f4f7f5;
+            --theme-text-secondary: #b8c7bf;
+            --theme-primary: #29bc7e;
+            --theme-secondary: #29bc7e;
+            --theme-accent: #29bc7e;
+            --theme-button: #29bc7e;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"].pmd-checkout-modal {
+            background: rgba(7, 24, 17, 0.96) !important;
+            color: #f4f7f5 !important;
+            border: 1px solid rgba(255,255,255,0.14) !important;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.45) !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-modal-title,
+          [data-pmd-checkout-visual-theme="modern_green"] h2,
+          [data-pmd-checkout-visual-theme="modern_green"] h3,
+          [data-pmd-checkout-visual-theme="modern_green"] .font-semibold,
+          [data-pmd-checkout-visual-theme="modern_green"] .font-bold {
+            color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .muted,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-helper-text,
+          [data-pmd-checkout-visual-theme="modern_green"] p,
+          [data-pmd-checkout-visual-theme="modern_green"] span {
+            color: inherit;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-body,
+          [data-pmd-checkout-visual-theme="modern_green"] [data-pmd-checkout-scroll="1"] {
+            background: transparent !important;
+            color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .surface,
+          [data-pmd-checkout-visual-theme="modern_green"] .surface-sub,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-flat-section,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-item-card,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-total-card,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-payment-card,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-meta-row {
+            background: rgba(255,255,255,0.055) !important;
+            border-color: rgba(255,255,255,0.13) !important;
+            color: #f4f7f5 !important;
+            box-shadow: none !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] input,
+          [data-pmd-checkout-visual-theme="modern_green"] textarea,
+          [data-pmd-checkout-visual-theme="modern_green"] select {
+            background: rgba(255,255,255,0.055) !important;
+            border-color: rgba(255,255,255,0.13) !important;
+            color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] button {
+            text-shadow: none !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] [class*="bg-white"],
+          [data-pmd-checkout-visual-theme="modern_green"] [class*="bg-\[\#fff"],
+          [data-pmd-checkout-visual-theme="modern_green"] [class*="bg-paydine"],
+          [data-pmd-checkout-visual-theme="modern_green"] [class*="to-paydine"],
+          [data-pmd-checkout-visual-theme="modern_green"] [class*="from-paydine"] {
+            background: rgba(255,255,255,0.055) !important;
+            background-image: none !important;
+            border-color: rgba(255,255,255,0.13) !important;
+            color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] [class*="text-paydine"],
+          [data-pmd-checkout-visual-theme="modern_green"] [class*="text-\[\#b88940"],
+          [data-pmd-checkout-visual-theme="modern_green"] [style*="184, 137, 64"],
+          [data-pmd-checkout-visual-theme="modern_green"] [style*="b88940"] {
+            color: #29bc7e !important;
+            -webkit-text-fill-color: #29bc7e !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .text-black,
+          [data-pmd-checkout-visual-theme="modern_green"] .text-gray-900,
+          [data-pmd-checkout-visual-theme="modern_green"] .text-gray-800,
+          [data-pmd-checkout-visual-theme="modern_green"] .text-gray-700 {
+            color: #f4f7f5 !important;
+            -webkit-text-fill-color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .text-gray-500,
+          [data-pmd-checkout-visual-theme="modern_green"] .text-gray-600 {
+            color: #b8c7bf !important;
+            -webkit-text-fill-color: #b8c7bf !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .border-yellow-500,
+          [data-pmd-checkout-visual-theme="modern_green"] .border-paydine-champagne {
+            border-color: rgba(41,188,126,0.55) !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .bg-yellow-500,
+          [data-pmd-checkout-visual-theme="modern_green"] .bg-paydine-champagne {
+            background: #29bc7e !important;
+            color: #04130c !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-modal-title {
+            color: #f4f7f5 !important;
+            -webkit-text-fill-color: #f4f7f5 !important;
+            font-weight: 800 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-item-card,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-item-row,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-table-order-item-row,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-flat-section,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-total-card,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-payment-card,
+          [data-pmd-checkout-visual-theme="modern_green"] .surface-sub,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-meta-row {
+            background: rgba(255,255,255,0.075) !important;
+            background-color: rgba(255,255,255,0.075) !important;
+            background-image: none !important;
+            border-color: rgba(255,255,255,0.14) !important;
+            color: #f4f7f5 !important;
+            -webkit-text-fill-color: #f4f7f5 !important;
+            box-shadow: none !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-item-row {
+            border-radius: 1rem !important;
+            padding: 0.65rem 0.75rem !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-item-row span,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-item-card span,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-flat-section span,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-meta-row span,
+          [data-pmd-checkout-visual-theme="modern_green"] .text-paydine-elegant-gray,
+          [data-pmd-checkout-visual-theme="modern_green"] .muted {
+            color: #f4f7f5 !important;
+            -webkit-text-fill-color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-item-price,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-total-card .font-bold,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-flat-section .font-bold,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-checkout-flat-section .text-base.font-bold {
+            color: #29bc7e !important;
+            -webkit-text-fill-color: #29bc7e !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] .quantity-btn,
+          [data-pmd-checkout-visual-theme="modern_green"] .pmd-v2-action-circle,
+          [data-pmd-checkout-visual-theme="modern_green"] button[aria-label*="Add"],
+          [data-pmd-checkout-visual-theme="modern_green"] button[aria-label*="Remove"] {
+            background: #0b3d34 !important;
+            background-color: #0b3d34 !important;
+            border: 1px solid rgba(41,188,126,0.45) !important;
+            color: #f4f7f5 !important;
+            -webkit-text-fill-color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] button[data-pmd-review-submit="true"],
+          [data-pmd-checkout-visual-theme="modern_green"] button[class*="bg-gradient"],
+          [data-pmd-checkout-visual-theme="modern_green"] button[class*="bg-paydine-champagne"],
+          [data-pmd-checkout-visual-theme="modern_green"] button[class*="from-paydine-champagne"] {
+            background: #29bc7e !important;
+            background-color: #29bc7e !important;
+            background-image: none !important;
+            border-color: #29bc7e !important;
+            color: #04130c !important;
+            -webkit-text-fill-color: #04130c !important;
+            box-shadow: 0 16px 32px -18px rgba(41,188,126,0.85) !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] button[class*="bg-paydine-rose-beige"],
+          [data-pmd-checkout-visual-theme="modern_green"] button[class*="border"]:not([data-pmd-review-submit="true"]) {
+            background: rgba(255,255,255,0.055) !important;
+            background-color: rgba(255,255,255,0.055) !important;
+            background-image: none !important;
+            border-color: rgba(255,255,255,0.16) !important;
+            color: #f4f7f5 !important;
+            -webkit-text-fill-color: #f4f7f5 !important;
+          }
+          [data-pmd-checkout-visual-theme="modern_green"] [style*="#D8B982"],
+          [data-pmd-checkout-visual-theme="modern_green"] [style*="#b88940"],
+          [data-pmd-checkout-visual-theme="modern_green"] [style*="#B88940"] {
+            color: #29bc7e !important;
+            -webkit-text-fill-color: #29bc7e !important;
+            border-color: rgba(41,188,126,0.45) !important;
+          }
+        `}</style>
+      )}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -5011,10 +5439,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         data-pmd-checkout-design-system="1"
         data-pmd-checkout-visual-theme={checkoutVisualTheme}
         className="pmd-checkout-modal w-full max-w-md surface rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
-        style={isOrganicCheckoutVisual ? organicCheckoutModalStyle : undefined}
+        style={isOrganicCheckoutVisual ? organicCheckoutModalStyle : (isModernGreenCheckoutVisual ? modernGreenCheckoutModalStyle : undefined)}
       >
         {/* Header with close button */}
-        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl" style={isOrganicCheckoutVisual ? organicCheckoutHeaderStyle : undefined}>
+        <div className="p-4 pb-2 surface-sub flex justify-between items-center rounded-2xl" style={isOrganicCheckoutVisual ? organicCheckoutHeaderStyle : (isModernGreenCheckoutVisual ? modernGreenCheckoutHeaderStyle : undefined)}>
           <Button
               data-pmd-order-status-back="1"
             variant="ghost"
@@ -5043,7 +5471,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : undefined}>
+        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : (isModernGreenCheckoutVisual ? modernGreenCheckoutBodyStyle : undefined)}>
           {false && checkoutStep === "payment" && pendingSummary && (
             <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
@@ -8066,8 +8494,10 @@ function MenuContent() {
   const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
   const themeBackgroundColor = useThemeBackgroundColor()
   const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
+  const [forceModernGreenTheme, setForceModernGreenTheme] = useState(false)
   const isOrganicBotanicalTheme = currentFrontendTheme === ORGANIC_BOTANICAL_THEME_KEY
-  const shouldHoldThemeRender = !isFrontendThemeResolved
+  const isModernGreenTheme = currentFrontendTheme === MODERN_GREEN_THEME_KEY || forceModernGreenTheme
+  const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
   const { t } = useLanguageStore()
   const { toast } = useToast()
   const [isNoteModalOpen, setNoteModalOpen] = useState(false)
@@ -8183,6 +8613,38 @@ function MenuContent() {
   }, [])
 
   // Read raw search params (Next app router)
+
+  // PMD_FORCE_MODERN_GREEN_FROM_SIMPLE_THEME_20260610
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    let cancelled = false
+
+    async function checkModernGreenTheme() {
+      try {
+        const res = await fetch(`/simple-theme?forceModernGreen=${Date.now()}`, {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        })
+        const data = await res.json()
+        const themeId = String(data?.frontend_theme || data?.data?.theme_id || data?.admin_theme || "").trim()
+
+        if (!cancelled) {
+          setForceModernGreenTheme(themeId === "modern_green")
+        }
+      } catch (error) {
+        if (!cancelled) setForceModernGreenTheme(false)
+      }
+    }
+
+    checkModernGreenTheme()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+
   const spTableNo = searchParams?.get('table_no') ?? null;
   const spTableId = searchParams?.get('table_id') ?? null;
   const isRootDeliveryMode = !spTableNo && !spTableId;
@@ -9375,7 +9837,8 @@ useEffect(() => {
   React.useEffect(() => {
     if (typeof document === "undefined") return
 
-    if (isOrganicBotanicalTheme) {
+  
+  if (isOrganicBotanicalTheme) {
       document.body.setAttribute("data-pmd-organic-botanical-active", "1")
       document.documentElement.setAttribute("data-pmd-organic-botanical-active", "1")
     } else {
@@ -9405,6 +9868,295 @@ useEffect(() => {
       >
         <LoadingSpinner />
       </div>
+    )
+  }
+
+
+
+  const normalizeModernGreenLogoUrl = (value: unknown) => {
+    const raw = String(value || "").trim()
+    if (!raw || raw === "undefined" || raw === "null") return ""
+
+    if (/^https?:\/\//i.test(raw)) return raw
+
+    const clean = raw.replace(/^\/+/, "")
+    const filename = clean.split("/").filter(Boolean).pop() || clean
+
+    if (clean.startsWith("assets/media/uploads/")) return `/${clean}`
+    if (clean.startsWith("/assets/media/uploads/")) return clean
+    if (clean.startsWith("uploads/")) return `/assets/media/${clean}`
+
+    // Backend sometimes sends only the uploaded file name.
+    if (!clean.includes("/")) return `/assets/media/uploads/${filename}`
+
+    // If it was saved as /assets/media/<file>, normalize to uploads because that is where the file exists.
+    if (clean.startsWith("assets/media/")) return `/assets/media/uploads/${filename}`
+
+    return `/${clean}`
+  }
+
+  // PMD_MODERN_GREEN_V0_ONLY_RETURN_FINAL_20260610
+  if (isModernGreenTheme) {
+    const modernGreenSrc =
+      typeof window !== "undefined"
+        ? `/newfrontend/?embedded=1&from=pmd&${window.location.search.replace(/^\?/, "")}`
+        : "/newfrontend/?embedded=1&from=pmd"
+
+    const modernGreenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+    const modernGreenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
+    const modernGreenLogoUrl = normalizeModernGreenLogoUrl(
+      (cmsSettings as any)?.logoUrl ||
+      (cmsSettings as any)?.logo ||
+      (cmsSettings as any)?.logo_url ||
+      (cmsSettings as any)?.site_logo ||
+      (cmsSettings as any)?.restaurant_logo ||
+      (merchantSettings as any)?.logoUrl ||
+      (merchantSettings as any)?.logo ||
+      (merchantSettings as any)?.logo_url ||
+      (merchantSettings as any)?.site_logo ||
+      (merchantSettings as any)?.restaurant_logo ||
+      ""
+    )
+
+    const handleModernGreenAdd = (item: MenuItem, quantity = 1) => {
+      let itemToAdd: MenuItem = { ...item }
+
+      if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+        itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
+        if (itemToAdd.options) {
+          itemToAdd.options = itemToAdd.options.map((option: any) => ({
+            ...option,
+            values: (option.values || []).map((value: any) => ({
+              ...value,
+              price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
+            })),
+          }))
+        }
+      }
+
+      for (let i = 0; i < Math.max(1, Number(quantity || 1)); i += 1) {
+        addToCart(itemToAdd)
+      }
+
+      handleFirstAdd(item)
+      toast({
+        title: "Added to order",
+        description: String((item as any).name || (item as any).menu_name || "Item added"),
+      })
+    }
+
+    const handleModernGreenWaiter = async () => {
+      const resolvedTableId = tableIdString || "delivery"
+      try {
+        await apiClient.callWaiter(String(resolvedTableId), ".")
+        toast({
+          title: "Waiter called",
+          description: tableIdString ? "We are on the way!" : "We received your assistance request.",
+        })
+      } catch (error: any) {
+        toast({
+          title: "Waiter call failed",
+          description: error?.message || "Failed to call waiter.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    const handleModernGreenNote = async (noteText = "") => {
+      const trimmedNote = String(noteText || "").trim()
+      if (!trimmedNote) {
+        toast({
+          title: "Note is empty",
+          description: "Please write a note before sending it.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const resolvedTableId = tableIdString || "delivery"
+      try {
+        await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString())
+        toast({
+          title: "Note sent",
+          description: "Your note has been sent to the staff.",
+        })
+      } catch (error: any) {
+        toast({
+          title: "Note failed",
+          description: error?.message || "Failed to send note.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    const handleModernGreenValet = async (values: any = {}) => {
+      const name = String(values?.name || "Guest").trim() || "Guest"
+      const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
+      const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
+
+      try {
+        await apiClient.createValetRequest({
+          name,
+          license_plate: licensePlate,
+          car_make: carModel,
+          table_id: tableIdString || undefined,
+          table_no: modernGreenTableNumber ? String(modernGreenTableNumber) : undefined,
+          qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : undefined,
+        })
+        toast({
+          title: "Valet requested",
+          description: "Your valet request has been sent.",
+        })
+      } catch (error: any) {
+        toast({
+          title: "Valet request failed",
+          description: error?.message || "Failed to submit valet request.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    return (
+      <ThemeActionBoundary actions={themeMenuActions}>
+        <ModernGreenBridgeTheme
+          src={modernGreenSrc}
+          sourceItems={modernGreenSourceItems}
+          cartItems={items}
+          totalItems={totalItems}
+          totalPrice={totalPrice}
+          lastInteractedItem={lastInteractedItem}
+          categories={allCategories}
+          restaurantName={restaurantDisplayName}
+          logoUrl={modernGreenLogoUrl}
+          tableNumber={modernGreenTableNumber}
+          onAddItem={handleModernGreenAdd}
+          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
+          onCheckout={handleCartClick}
+          onCallWaiter={handleModernGreenWaiter}
+          onOpenNote={handleModernGreenNote}
+          onOpenValet={handleModernGreenValet}
+        >
+          {!shouldHideCartSheet && (
+            <CartSheet />
+          )}
+
+          <style jsx global>{`
+          /* PMD_MODERN_GREEN_CHECKOUT_STRONG_SKIN_20260610 */
+          html[data-theme="modern_green"] [data-pmd-gold-checkout-modal],
+          html[data-theme="modern_green"] [data-pmd-checkout-design-system="1"],
+          html[data-theme="modern_green"] .pmd-checkout-modal {
+            background: rgba(5, 18, 14, 0.98) !important;
+            background-color: rgba(5, 18, 14, 0.98) !important;
+            color: #f4fff8 !important;
+            border: 1px solid rgba(59, 210, 137, 0.26) !important;
+            border-radius: 28px !important;
+            box-shadow: 0 28px 90px rgba(0,0,0,.58), 0 0 0 1px rgba(255,255,255,.04) inset !important;
+          }
+
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"],
+          html[data-theme="modern_green"] .pmd-checkout-body {
+            background: transparent !important;
+            color: #f4fff8 !important;
+          }
+
+          html[data-theme="modern_green"] .pmd-checkout-flat-section,
+          html[data-theme="modern_green"] .pmd-checkout-item-card,
+          html[data-theme="modern_green"] .pmd-checkout-total-card,
+          html[data-theme="modern_green"] .pmd-checkout-payment-card,
+          html[data-theme="modern_green"] [data-pmd-order-status-card="1"],
+          html[data-theme="modern_green"] [data-pmd-payment-real-panel],
+          html[data-theme="modern_green"] [data-pmd-payment-adjustment-card],
+          html[data-theme="modern_green"] [data-pmd-payment-soft-bg] {
+            background: rgba(13, 37, 28, 0.86) !important;
+            background-color: rgba(13, 37, 28, 0.86) !important;
+            background-image: none !important;
+            border-color: rgba(59, 210, 137, 0.18) !important;
+            color: #f4fff8 !important;
+            box-shadow: none !important;
+          }
+
+          html[data-theme="modern_green"] .pmd-checkout-item-row {
+            background: rgba(11, 31, 24, 0.94) !important;
+            background-color: rgba(11, 31, 24, 0.94) !important;
+            border-radius: 18px !important;
+            color: #f4fff8 !important;
+          }
+
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] *,
+          html[data-theme="modern_green"] .pmd-checkout-modal * {
+            text-shadow: none !important;
+          }
+
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] h1,
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] h2,
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] h3,
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] p,
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] span,
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] div {
+            color: inherit;
+          }
+
+          html[data-theme="modern_green"] [data-pmd-checkout-scroll="1"] button {
+            border-radius: 999px !important;
+          }
+
+          html[data-theme="modern_green"] [data-pmd-card-confirm-btn],
+          html[data-theme="modern_green"] [data-pmd-card-send-kitchen-btn],
+          html[data-theme="modern_green"] [data-pmd-card-pay-full-btn],
+          html[data-theme="modern_green"] [data-pmd-card-review-split-btn],
+          html[data-theme="modern_green"] [data-pmd-send-kitchen-btn] {
+            background: #31c98b !important;
+            background-color: #31c98b !important;
+            border-color: #31c98b !important;
+            color: #02110c !important;
+            -webkit-text-fill-color: #02110c !important;
+            font-weight: 800 !important;
+          }
+
+          html[data-theme="modern_green"] [data-pmd-card-continue-btn],
+          html[data-theme="modern_green"] [data-pmd-card-split-bill-btn],
+          html[data-theme="modern_green"] [data-pmd-table-order-continue-btn] {
+            background: transparent !important;
+            border-color: rgba(49, 201, 139, .42) !important;
+            color: #dfffee !important;
+            -webkit-text-fill-color: #dfffee !important;
+          }
+        `}</style>
+
+        <PaymentModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
+            items={items}
+            tableInfo={tableInfo}
+            existingOrderId={activeExistingOrderId}
+            pendingSummary={activePendingSummary}
+            initialSubmittedOrder={activeSubmittedOrder}
+            initialCheckoutStep={paymentModalInitialStep}
+            preferPersonalReview={paymentModalPreferPersonalReview}
+            checkoutVisualTheme="modern_green"
+            onCartPricingUpdate={setToolbarPricingSnapshot}
+            onOpenOrderUpdate={(snapshot) => {
+              if (snapshot?.status === "draft" || snapshot?.draft_id) {
+                setSharedTableOrder(snapshot)
+                return
+              }
+              if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+                const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+                setLocalOpenOrder(normalizedPaid)
+                setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+                setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
+                return
+              }
+              if (snapshot?.orderId || snapshot?.order_id) {
+                const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+                setLocalOpenOrder(normalized)
+                setHasLocalOpenOrder(true)
+                setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
+              }
+            }}
+          />
+        </ModernGreenBridgeTheme>
+      </ThemeActionBoundary>
     )
   }
 
