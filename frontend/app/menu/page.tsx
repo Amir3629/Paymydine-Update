@@ -34,7 +34,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
-import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
+import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
+import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection";
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
@@ -6543,52 +6544,22 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="space-y-3 overflow-hidden"
           >
-
-            <div className="mb-4">
-              <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
-            </div>
-
-            {stripeConfigError && (
-              <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3">
-                <p className="text-xs text-red-300">{stripeConfigError}</p>
-              </div>
-            )}
-
-            {!stripeConfigError && !stripePromise && (
-              <div className="py-2 text-xs text-paydine-elegant-gray/70">
-                Loading Stripe...
-              </div>
-            )}
-
-
-            {stripeConfig?.methods?.card !== false && stripePromise && (
-              <Elements stripe={stripePromise}>
-                <StripeCardForm
-                  paymentData={stripePaymentData as any}
-                  onPaymentComplete={(result: any) => {
-                    if (result?.success && result?.transactionId) {
-                      handlePayment(result.transactionId)
-                    }
-                  }}
-                  onPaymentError={(message: string) => {
-                    toast({
-                      title: "Payment Failed",
-                      description: message,
-                      variant: "destructive",
-                    })
-                  }}
-                />
-              </Elements>
-            )}
-
-            {stripeConfig?.methods?.card === false && (
-              <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
-                Stripe card checkout is not enabled for this restaurant.
-              </div>
-            )}
-
+            <StripeCardPaymentSection
+              methodName={selectedMethod?.name}
+              stripeConfigError={stripeConfigError}
+              stripePromise={stripePromise}
+              cardEnabled={stripeConfig?.methods?.card !== false}
+              paymentData={stripePaymentData}
+              onPaymentSuccess={handlePayment}
+              onPaymentError={(message: string) => {
+                toast({
+                  title: "Payment Failed",
+                  description: message,
+                  variant: "destructive",
+                })
+              }}
+            />
           </motion.div>
         )
 
