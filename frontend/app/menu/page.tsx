@@ -2744,6 +2744,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll('button')) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
         if (txt.includes("Send order to kitchen")) {
           btn.setAttribute("data-pmd-send-kitchen-btn", "1")
@@ -2864,6 +2993,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = normalize(btn.textContent)
 
         if (txt.includes("Send order to kitchen")) {
@@ -2978,6 +3236,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       ;[paymentHeader, summaryOnly, tipOnly, fullAdjustment].filter(Boolean).forEach((panel) => {
         const el = panel as HTMLElement
         el.querySelectorAll("input, textarea, select").forEach((input) => {
+          const pmdKazenInputSkipTarget = input as HTMLElement
+          if (pmdKazenInputSkipTarget.closest('[data-pmd-kazen-checkout-shell="1"] form[data-pmd-stripe-form="1"]')) return // PMD_SKIP_OLD_INPUT_STYLER_FOR_KAZEN_PAYMENT_20260612
           const inputEl = input as HTMLElement
           inputEl.style.setProperty("background", softCream, "important")
           inputEl.style.setProperty("background-color", softCream, "important")
@@ -3024,6 +3284,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const text = normalize(btn.textContent)
 
         if (!text.includes("Send order to kitchen")) return
@@ -3164,6 +3553,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
 
         if (txt === "Confirm") {
@@ -3267,6 +3785,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
 
         if (txt.includes("Pay in full")) {
@@ -3369,6 +4016,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
 
         if (
@@ -3489,6 +4265,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
         const aria = btn.getAttribute("aria-label") || ""
 
@@ -3616,6 +4521,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
         const aria = btn.getAttribute("aria-label") || ""
 
@@ -3654,6 +4688,135 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
 
       buttons.forEach((btn) => {
+        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
+          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
+
+          if (kazenShellRoot) {
+            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
+            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
+
+              if (fieldWrapper) {
+                fieldWrapper.removeAttribute("style")
+                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
+              }
+
+              stripeEl.removeAttribute("style")
+              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+            })
+
+            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
+              payBtn.removeAttribute("style")
+              payBtn.removeAttribute("data-pmd-render-safe-action")
+              payBtn.removeAttribute("data-pmd-no-observer-action")
+              payBtn.setAttribute("data-pmd-kazen-button", "primary")
+              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
+                node.remove()
+              })
+
+              payBtn.textContent = "Pay"
+            })
+          }
+          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
+            btn.removeAttribute("style")
+            btn.removeAttribute("data-pmd-render-safe-action")
+            btn.removeAttribute("data-pmd-no-observer-action")
+            btn.setAttribute("data-pmd-kazen-button", "primary")
+            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
+
+            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
+              ;(node as HTMLElement).removeAttribute("style")
+            })
+
+            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
+              node.remove()
+            })
+          }
+
+          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
+          if (kazenShellRoot) {
+            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
+              Object.entries(styles).forEach(([key, value]) => {
+                el.style.setProperty(key, value, "important")
+              })
+            }
+
+            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
+
+            if (cardForm) {
+              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
+                field.classList.add("pmd-kazen-card-payment-field")
+                applyKazenFieldStyle(field, {
+                  "width": "100%",
+                  "min-height": "3.55rem",
+                  "height": "auto",
+                  "max-height": "none",
+                  "padding": ".85rem 1rem",
+                  "border-radius": "0",
+                  "border": "1px solid rgba(35, 34, 31, .18)",
+                  "background": "rgba(255, 255, 255, .24)",
+                  "background-color": "rgba(255, 255, 255, .24)",
+                  "box-shadow": "none",
+                  "outline": "none",
+                  "color": "#242320",
+                  "-webkit-text-fill-color": "#242320",
+                  "caret-color": "#242320",
+                  "font-size": ".95rem",
+                  "font-weight": "520",
+                  "letter-spacing": "0",
+                  "box-sizing": "border-box",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
+                const wrapper = stripeEl.parentElement as HTMLElement | null
+                if (wrapper) {
+                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
+                  applyKazenFieldStyle(wrapper, {
+                    "width": "100%",
+                    "min-height": "3.55rem",
+                    "height": "auto",
+                    "max-height": "none",
+                    "padding": ".95rem 1rem",
+                    "margin-top": ".35rem",
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "center",
+                    "overflow": "hidden",
+                    "border-radius": "0",
+                    "border": "1px solid rgba(35, 34, 31, .18)",
+                    "background": "rgba(255, 255, 255, .24)",
+                    "background-color": "rgba(255, 255, 255, .24)",
+                    "box-shadow": "none",
+                    "box-sizing": "border-box",
+                  })
+                }
+
+                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
+                applyKazenFieldStyle(stripeEl, {
+                  "width": "100%",
+                  "background": "transparent",
+                  "background-color": "transparent",
+                  "transform": "none",
+                  "will-change": "auto",
+                })
+              })
+
+              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
+                const holder = frame.parentElement as HTMLElement | null
+                if (holder) {
+                  holder.style.setProperty("display", "none", "important")
+                  holder.style.setProperty("pointer-events", "none", "important")
+                  holder.setAttribute("aria-hidden", "true")
+                }
+              })
+            }
+          }
+
+          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
+        }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
 
         if (txt === "Select payer") {
@@ -5984,7 +7147,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
   if (!isOpen) return null
 
 
-  if (false && isKazenJapaneseCheckoutVisual) {
+  if (isKazenJapaneseCheckoutVisual) {
     return (
       <KazenJapaneseCheckoutShell
         checkoutStep={checkoutStep}
@@ -7106,6 +8269,30 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                         el.style.setProperty("background", "#062F2A", "important")
                         el.style.setProperty("background-color", "#062F2A", "important")
                         el.style.setProperty("border", "1px solid #062F2A", "important")
+                        if (
+                          el instanceof HTMLElement &&
+                          el.matches("input, textarea, select") &&
+                          el.closest('[data-pmd-kazen-checkout-shell="1"] form[data-pmd-stripe-form="1"]')
+                        ) {
+                          el.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-no-pill-field")
+                          el.classList.remove("rounded-2xl", "rounded-full")
+                          el.style.setProperty("box-sizing", "border-box", "important")
+                          el.style.setProperty("width", "100%", "important")
+                          el.style.setProperty("min-height", "54px", "important")
+                          el.style.setProperty("height", "54px", "important")
+                          el.style.setProperty("max-height", "54px", "important")
+                          el.style.setProperty("padding", "0 18px", "important")
+                          el.style.setProperty("border-radius", "0", "important")
+                          el.style.setProperty("background", "rgba(255, 255, 255, .24)", "important")
+                          el.style.setProperty("background-color", "rgba(255, 255, 255, .24)", "important")
+                          el.style.setProperty("border", "1px solid rgba(35, 34, 31, .18)", "important")
+                          el.style.setProperty("box-shadow", "none", "important")
+                          el.style.setProperty("outline", "none", "important")
+                          el.style.setProperty("color", "#242320", "important")
+                          el.style.setProperty("-webkit-text-fill-color", "#242320", "important")
+                          el.style.setProperty("caret-color", "#242320", "important")
+                          return // PMD_SKIP_BORDER_RADIUS_9999_FOR_KAZEN_PAYMENT_20260612
+                        }
                         el.style.setProperty("border-radius", "9999px", "important")
                         el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.18)", "important")
                         el.style.setProperty("color", "#FFFFFF", "important")

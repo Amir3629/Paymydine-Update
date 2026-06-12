@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { CheckCircle, CreditCard, Link2, Minus, Plus, QrCode } from "lucide-react"
+import { ArrowLeft, Check, CreditCard, Link2, Minus, Plus, QrCode, Users } from "lucide-react"
 
 import { formatCurrency } from "@/lib/currency"
 import { iconForPayment } from "@/lib/payment-icons"
@@ -11,167 +11,145 @@ type DisplayItem = {
   item?: { name?: string; nameKey?: string; price?: number }
   name?: string
   quantity?: number
+  qty?: number
   price?: number
+  unit_price?: number
   amount?: number
   total?: number
   subtotal?: number
+  menu_name?: string
+  item_name?: string
+  key?: string
   __pmdDisplayName?: string
   __pmdDisplaySubtotal?: number
 }
 
+type SplitPerson = {
+  id: string
+  name: string
+  avatar?: string
+  total?: number
+  status?: string
+  items?: Array<{ name: string; amount: number }>
+  tax?: number
+}
+
 type KazenJapaneseCheckoutShellProps = any
 
-const INK = "#242320"
-const MUTED = "#77716a"
-const PAPER = "#f7f3ec"
-const PAPER_DEEP = "#f1ece2"
-const LINE = "rgba(35, 34, 31, .18)"
-const RED = "#b85d59"
-const RED_SOFT = "rgba(184, 93, 89, .42)"
+const money = (value: number | string | null | undefined) => {
+  const numeric = Number(value ?? 0)
+  return formatCurrency(Number.isFinite(numeric) ? numeric : 0)
+}
 
-const getItemName = (item: any, fallback = "Item") =>
+const getQuantity = (item: DisplayItem) => Math.max(1, Number(item?.quantity || item?.qty || 1))
+
+const getItemName = (item: DisplayItem, fallback = "Item") =>
   String(item?.__pmdDisplayName || item?.name || item?.item?.name || item?.menu_name || item?.item_name || fallback)
 
-const getQuantity = (item: any) => Math.max(1, Number(item?.quantity || item?.qty || 1))
-
-const getAmount = (item: any) => {
-  const quantity = getQuantity(item)
+const getAmount = (item: DisplayItem) => {
   const explicitTotal = Number(item?.__pmdDisplaySubtotal ?? item?.subtotal ?? item?.total ?? item?.amount)
   if (Number.isFinite(explicitTotal) && explicitTotal > 0) return explicitTotal
+
   const unit = Number(item?.price ?? item?.unit_price ?? item?.item?.price ?? 0)
-  return Number.isFinite(unit) ? unit * quantity : 0
+  return Number.isFinite(unit) ? unit * getQuantity(item) : 0
 }
 
-const methodIconSize = (code: string) => ({
-  width: code === "wero" || code === "apple_pay" || code === "google_pay" ? 50 : code === "cod" || code === "paypal" ? 30 : 42,
-  height: code === "wero" ? 29 : code === "apple_pay" || code === "google_pay" ? 28 : 24,
-})
-
-function money(value: number) {
-  return formatCurrency(Number.isFinite(value) ? value : 0)
+const getPaymentIconSize = (code: string) => {
+  const normalized = String(code || "").toLowerCase()
+  if (normalized === "wero") return { width: 58, height: 28 }
+  if (normalized === "apple_pay" || normalized === "google_pay") return { width: 62, height: 32 }
+  if (normalized === "paypal") return { width: 44, height: 44 }
+  if (normalized === "cod") return { width: 42, height: 42 }
+  return { width: 48, height: 34 }
 }
 
-function PrimaryButton({ className = "", style, children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+function ModalHead({ title, eyebrow, onBack }: { title: string; eyebrow?: string; onBack: () => void }) {
   return (
-    <button
-      {...props}
-      data-pmd-kazen-button="primary"
-      data-pmd-no-observer-action="kazen-primary"
-      data-pmd-render-safe-action="kazen-primary"
-      style={{
-        minHeight: "3.7rem",
-        width: "100%",
-        borderRadius: 0,
-        border: `1px solid ${RED_SOFT}`,
-        background: "transparent",
-        color: RED,
-        fontFamily: "Georgia, 'Times New Roman', serif",
-        fontSize: "0.84rem",
-        fontWeight: 700,
-        letterSpacing: "0.34em",
-        textTransform: "uppercase",
-        boxShadow: "none",
-        ...style,
-      }}
-      className={`flex items-center justify-center px-5 py-3 transition hover:bg-[#fff8f2] disabled:opacity-50 ${className}`}
-    >
-      <span style={{ color: RED, WebkitTextFillColor: RED, opacity: 1 }}>{children}</span>
-    </button>
-  )
-}
-
-function SecondaryButton({ className = "", style, children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      data-pmd-kazen-button="secondary"
-      data-pmd-no-observer-action="kazen-secondary"
-      data-pmd-render-safe-action="kazen-secondary"
-      style={{
-        minHeight: "3.35rem",
-        width: "100%",
-        borderRadius: 0,
-        border: `1px solid ${LINE}`,
-        background: "rgba(255,255,255,.18)",
-        color: INK,
-        fontFamily: "Georgia, 'Times New Roman', serif",
-        fontSize: "0.78rem",
-        fontWeight: 650,
-        letterSpacing: "0.22em",
-        textTransform: "uppercase",
-        boxShadow: "none",
-        ...style,
-      }}
-      className={`flex items-center justify-center px-5 py-3 transition hover:bg-white/45 disabled:opacity-50 ${className}`}
-    >
-      <span style={{ color: INK, WebkitTextFillColor: INK, opacity: 1 }}>{children}</span>
-    </button>
+    <div className="kazen-solid-modal-head pmd-kazen-checkout-head">
+      <div>
+        {eyebrow ? <div className="kazen-solid-eyebrow">{eyebrow}</div> : null}
+        <h2>{title}</h2>
+      </div>
+      <button type="button" data-pmd-kazen-back="1" className="pmd-kazen-waiter-back" onClick={onBack} aria-label="Back">
+        <ArrowLeft className="h-5 w-5 pmd-kazen-back-icon" strokeWidth={1.9} />
+      </button>
+    </div>
   )
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <section className={`pmd-kazen-checkout-card ${className}`}>{children}</section>
+}
+
+function Line({ label, value, strong = false }: { label: string; value: number; strong?: boolean }) {
   return (
-    <section
-      data-pmd-kazen-card="1"
-      className={`border p-5 backdrop-blur-xl ${className}`}
-      style={{
-        background: "linear-gradient(180deg, rgba(247,243,236,.97), rgba(242,237,228,.97))",
-        borderColor: "rgba(35,34,31,.16)",
-        color: INK,
-        borderRadius: "1.7rem",
-        boxShadow: "0 24px 70px rgba(36, 30, 24, .16), inset 0 1px 0 rgba(255,255,255,.72)",
-      }}
-    >
-      {children}
-    </section>
+    <div className={strong ? "pmd-kazen-line pmd-kazen-line-strong" : "pmd-kazen-line"}>
+      <span>{label}</span>
+      <strong>{money(value)}</strong>
+    </div>
   )
 }
 
-function Title({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      style={{
-        color: INK,
-        fontFamily: "Georgia, 'Times New Roman', serif",
-        fontSize: "1.55rem",
-        fontWeight: 500,
-        letterSpacing: "0.18em",
-        textTransform: "uppercase",
-      }}
-    >
-      {children}
-    </h2>
-  )
-}
+function ItemRows({ items }: { items: DisplayItem[] }) {
+  const safeItems = Array.isArray(items) ? items : []
 
-function Rows({ items }: { items: DisplayItem[] }) {
+  if (safeItems.length === 0) {
+    return (
+      <Card>
+        <span className="pmd-kazen-muted">No items yet</span>
+      </Card>
+    )
+  }
+
   return (
-    <div className="space-y-2">
-      {(items || []).map((item, index) => (
-        <div
-          key={`${getItemName(item)}-${index}`}
-          className="flex items-center justify-between gap-3 border px-4 py-3"
-          style={{ borderColor: LINE, background: "rgba(255,255,255,.26)", color: INK }}
-        >
-          <span className="min-w-0 truncate" style={{ color: INK, fontWeight: 650 }}>{getQuantity(item)}x {getItemName(item, `Item ${index + 1}`)}</span>
-          <span className="shrink-0" style={{ color: INK, fontWeight: 800 }}>{money(getAmount(item))}</span>
+    <div className="pmd-kazen-list">
+      {safeItems.map((item, index) => (
+        <div className="pmd-kazen-cart-line" key={`${getItemName(item)}-${index}`}>
+          <span>{getQuantity(item)}x {getItemName(item, `Item ${index + 1}`)}</span>
+          <strong>{money(getAmount(item))}</strong>
         </div>
       ))}
     </div>
   )
 }
 
-function SplitMethodTabs({ splitMethod, chooseSplitMethod }: any) {
-  const methods = [["equal", "Split equally"], ["items", "By order items"], ["shares", "By shares"]]
+function Actions({ children, two = false }: { children: React.ReactNode; two?: boolean }) {
+  return <div className={two ? "pmd-kazen-actions pmd-kazen-actions-two" : "pmd-kazen-actions"}>{children}</div>
+}
+
+function KazenButton({
+  variant = "secondary",
+  children,
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {methods.map(([method, label]) => (
+    <button
+      {...props}
+      data-pmd-kazen-button={variant}
+      className={`pmd-kazen-waiter-btn pmd-kazen-waiter-btn-${variant} ${variant === "primary" ? "pmd-kazen-waiter-primary" : "pmd-kazen-waiter-secondary"} ${className}`.trim()}
+    >
+      {children}
+    </button>
+  )
+}
+
+function SplitTabs({ splitMethod, chooseSplitMethod }: any) {
+  const tabs: Array<[string, React.ReactNode]> = [
+    ["equal", "Split equally"],
+    ["items", <>By order<br />items</>],
+    ["shares", "By shares"],
+  ]
+
+  return (
+    <div className="pmd-kazen-tabs">
+      {tabs.map(([method, label]) => (
         <button
           key={method}
           type="button"
-          onClick={() => chooseSplitMethod(method)}
-          className="border px-2 py-3 text-center text-[11px] font-bold uppercase tracking-[0.12em]"
-          style={{ borderColor: splitMethod === method ? RED_SOFT : LINE, color: splitMethod === method ? RED : INK, background: splitMethod === method ? "rgba(184,93,89,.08)" : "transparent" }}
+          data-pmd-kazen-button={splitMethod === method ? "primary" : "secondary"}
+          onClick={() => chooseSplitMethod?.(method)}
+          className={splitMethod === method ? "pmd-kazen-waiter-secondary pmd-kazen-tab pmd-kazen-tab-active" : "pmd-kazen-waiter-secondary pmd-kazen-tab"}
         >
           {label}
         </button>
@@ -180,20 +158,80 @@ function SplitMethodTabs({ splitMethod, chooseSplitMethod }: any) {
   )
 }
 
-function PeopleStepper({ splitGuestCount, addSplitGuest, removeSplitGuest }: any) {
+function PeopleControls({ splitGuestCount = 2, addSplitGuest, removeSplitGuest }: any) {
   return (
-    <div className="flex items-center justify-between border px-4 py-3" style={{ borderColor: LINE, background: "rgba(255,255,255,.24)" }}>
-      <span style={{ color: INK, fontFamily: "Georgia, serif", letterSpacing: ".12em", textTransform: "uppercase" }}>People</span>
-      <div className="flex items-center gap-4">
-        <button type="button" aria-label="Remove guest" disabled={splitGuestCount <= 2} onClick={removeSplitGuest} className="flex h-9 w-9 items-center justify-center border" style={{ borderColor: LINE, color: INK }}><Minus className="h-4 w-4" /></button>
-        <span className="min-w-6 text-center text-lg font-bold" style={{ color: INK }}>{splitGuestCount}</span>
-        <button type="button" aria-label="Add guest" disabled={splitGuestCount >= 10} onClick={addSplitGuest} className="flex h-9 w-9 items-center justify-center border" style={{ borderColor: LINE, color: INK }}><Plus className="h-4 w-4" /></button>
-      </div>
+    <div className="pmd-kazen-qty kazen-qty">
+      <button type="button" aria-label="Remove guest" disabled={splitGuestCount <= 2} onClick={removeSplitGuest}>
+        <Minus className="h-4 w-4" />
+      </button>
+      <strong>{splitGuestCount} people</strong>
+      <button type="button" aria-label="Add guest" disabled={splitGuestCount >= 10} onClick={addSplitGuest}>
+        <Plus className="h-4 w-4" />
+      </button>
     </div>
   )
 }
 
+function GuestChips({ guests = [] }: { guests?: SplitPerson[] }) {
+  if (!Array.isArray(guests) || guests.length === 0) return null
+
+  return (
+    <div className="pmd-kazen-chip-row">
+      {guests.map((guest, index) => (
+        <span key={`${guest.name}-${index}`} className="pmd-kazen-chip">
+          <b>{guest.avatar || guest.name?.slice(0, 1) || index + 1}</b>
+          {guest.name}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function PaymentMethods({ loadingPayments, visiblePaymentMethods, selectedPaymentMethod, onPaymentMethodSelect, isDarkTheme }: any) {
+  const methods = Array.isArray(visiblePaymentMethods) ? visiblePaymentMethods : []
+
+  return (
+    <Card>
+      <h3 className="pmd-kazen-section-title">Payment Methods</h3>
+      {loadingPayments ? (
+        <p className="pmd-kazen-muted">Loading payment methods...</p>
+      ) : methods.length === 0 ? (
+        <p className="pmd-kazen-muted">No payment methods available</p>
+      ) : (
+        <div className="pmd-kazen-method-grid">
+          {methods.map((method: any) => {
+            const code = String(method.code || "")
+            const size = getPaymentIconSize(code)
+            const active = selectedPaymentMethod === method.code
+            const src =
+              code === "card"
+                ? (isDarkTheme ? "/images/payments/card-dark.svg" : "/images/payments/card-light.svg")
+                : code === "paypal"
+                  ? "/images/payments/paypal.png"
+                  : code === "google_pay"
+                    ? "/images/payments/google_pay.png"
+                    : iconForPayment(code)
+
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => onPaymentMethodSelect?.(code)}
+                className={active ? "pmd-kazen-method pmd-kazen-method-active" : "pmd-kazen-method"}
+                aria-pressed={active}
+              >
+                <img src={src} alt={method.name || code} width={size.width} height={size.height} />
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProps) {
+  // PMD_KAZEN_CHECKOUT_MATCH_WAITER_CARD_20260612
   const {
     checkoutStep,
     onClose,
@@ -234,10 +272,11 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     startSplitFlow,
     chooseSplitMethod,
     goToSplitReview,
-    splitGuestCount,
+    canConfirmSplitMethod = true,
+    splitGuestCount = 2,
     addSplitGuest,
     removeSplitGuest,
-    splitMethod,
+    splitMethod = "equal",
     splitGuestProfiles = [],
     equalSplitPeople = [],
     activeSplitPeople = [],
@@ -250,7 +289,6 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     sharePercents = [],
     setSharePercents,
     sharePercentTotal = 0,
-    canConfirmSplitMethod,
     splitGrandTotal = 0,
     updatePaymentTipPercentage,
     updatePaymentCustomTip,
@@ -260,172 +298,984 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
   } = props
 
   const orderTotal = Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.orderTotal ?? submittedSnapshot?.total ?? tableDraftTotal ?? finalTotal ?? 0)
-  const safeEqualSplitPeople = Array.isArray(equalSplitPeople) ? equalSplitPeople : []
-
+  const people = Array.isArray(splitGuestProfiles) ? splitGuestProfiles : []
+  const equalPeople = Array.isArray(equalSplitPeople) ? equalSplitPeople : []
+  const reviewPeople = Array.isArray(activeSplitPeople) ? activeSplitPeople : []
   const paymentHeader = selectedSplitPerson ? `${selectedSplitPerson.name}'s share` : "Order total"
 
+  const goBack = () => {
+    if (checkoutStep === "payment") {
+      setCheckoutStep?.(selectedSplitPerson ? "split-review" : "submitted")
+      return
+    }
+    if (checkoutStep === "split-review") {
+      setCheckoutStep?.("split")
+      return
+    }
+    if (checkoutStep === "split-items" || checkoutStep === "split-shares") {
+      setCheckoutStep?.("split")
+      return
+    }
+    if (checkoutStep === "split") {
+      setCheckoutStep?.("submitted")
+      return
+    }
+    onClose?.()
+  }
+
+  let title = "Checkout"
+  let eyebrow: string | undefined = undefined
   let content: React.ReactNode = null
 
   if (checkoutStep === "review" && hasPersonalItems) {
+    title = "My order"
     content = (
-      <Card className="space-y-5">
-        <Title>My Order</Title>
-        <Rows items={personalItems} />
-        <div className="space-y-3 border-t pt-4" style={{ borderColor: LINE }}>
-          <div className="flex justify-between" style={{ color: MUTED }}><span>Subtotal</span><span>{money(subtotal)}</span></div>
-          <div className="flex justify-between text-lg font-bold" style={{ color: INK }}><span>Total</span><span>{money(finalTotal)}</span></div>
-        </div>
-        <div className="space-y-3">
-          <PrimaryButton onClick={handleConfirmMyItems}>Call to order</PrimaryButton>
-          <SecondaryButton onClick={onClose}>Continue ordering</SecondaryButton>
-        </div>
-      </Card>
+      <>
+        <ItemRows items={personalItems} />
+        <Card>
+          <Line label="Subtotal" value={subtotal} />
+          <Line label="Total" value={finalTotal} strong />
+        </Card>
+        <Actions two>
+          <KazenButton variant="secondary" onClick={onClose}>Continue ordering</KazenButton>
+          <KazenButton variant="primary" onClick={handleConfirmMyItems}>Confirm</KazenButton>
+        </Actions>
+      </>
     )
   } else if (checkoutStep === "review" && tableDraft) {
+    title = "Table order"
     content = (
-      <Card className="space-y-5">
-        <Title>Table Order</Title>
-        <Rows items={tableDraftItems} />
-        <div className="flex justify-between border-t pt-4 text-lg font-bold" style={{ borderColor: LINE, color: INK }}><span>Order Total</span><span>{money(tableDraftTotal)}</span></div>
-        <div className="space-y-3">
-          <PrimaryButton onClick={handleSubmitTableDraft}>Send to kitchen</PrimaryButton>
-          <SecondaryButton onClick={onClose}>Continue ordering</SecondaryButton>
-        </div>
-      </Card>
+      <>
+        <ItemRows items={tableDraftItems} />
+        <Card>
+          <Line label="Order total" value={tableDraftTotal} strong />
+        </Card>
+        <Actions two>
+          <KazenButton variant="secondary" onClick={onClose}>Continue ordering</KazenButton>
+          <KazenButton variant="primary" onClick={handleSubmitTableDraft}>Send to kitchen</KazenButton>
+        </Actions>
+      </>
     )
   } else if (checkoutStep === "submitted") {
+    title = "Order status"
+    eyebrow = `${estimatedMinutes} min`
     content = (
-      <Card className="space-y-5 text-center">
-        <div className="mx-auto flex h-20 w-20 flex-col items-center justify-center rounded-full border" style={{ borderColor: LINE, color: INK }}>
-          <span className="text-2xl font-bold">{estimatedMinutes}</span>
-          <span className="text-[10px] uppercase tracking-[0.22em]">min</span>
+      <>
+        <div className="pmd-kazen-status-copy">
+          <span className="pmd-kazen-status-icon"><Check className="h-5 w-5" /></span>
+          <p>We received your order.</p>
         </div>
+        <Card>
+          <Line label="Order total" value={orderTotal} strong />
+        </Card>
         <div>
-          <CheckCircle className="mx-auto mb-3 h-7 w-7" style={{ color: RED }} />
-          <Title>Order Received</Title>
+          <h3 className="pmd-kazen-section-title">Order Summary</h3>
+          <ItemRows items={submittedItems} />
         </div>
-        <div className="flex justify-between border px-4 py-3 text-lg font-bold" style={{ borderColor: LINE, color: INK }}><span>Total</span><span>{money(orderTotal)}</span></div>
-        <Rows items={submittedItems} />
-        <div className="space-y-3">
-          <PrimaryButton onClick={() => setCheckoutStep("payment")}>Pay in full</PrimaryButton>
-          <SecondaryButton onClick={() => startSplitFlow("equal")}>Split bill</SecondaryButton>
-          <SecondaryButton onClick={onClose}>Continue ordering</SecondaryButton>
-        </div>
-      </Card>
+        <Actions>
+          <KazenButton variant="primary" onClick={() => setCheckoutStep?.("payment")}>Pay in full</KazenButton>
+          <KazenButton onClick={() => startSplitFlow?.("equal")}><Users className="h-4 w-4" /> Split bill</KazenButton>
+          <KazenButton onClick={onClose}>Continue ordering</KazenButton>
+        </Actions>
+      </>
     )
   } else if (checkoutStep === "payment") {
+    title = "Payment"
+    eyebrow = "Ready to pay"
     content = (
-      <div className="space-y-4">
-        <Card className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border" style={{ borderColor: RED_SOFT, color: RED }}><CreditCard className="h-5 w-5" /></div>
-            <div><Title>Payment</Title><p style={{ color: MUTED }}>Ready to pay?</p></div>
+      <>
+        <Card>
+          <div className="pmd-kazen-payment-intro">
+            <span><CreditCard className="h-5 w-5" /></span>
+            <div>
+              <strong>{paymentHeader}</strong>
+              <p>{money(paymentPayableTotal)}</p>
+            </div>
           </div>
-          <div className="flex justify-between border px-4 py-3 text-lg font-bold" style={{ borderColor: LINE, color: INK }}><span>{paymentHeader}</span><span>{money(paymentPayableTotal)}</span></div>
-          <div className="space-y-2 border p-4" style={{ borderColor: LINE }}>
-            <div className="flex justify-between" style={{ color: MUTED }}><span>{selectedSplitPerson ? "Share amount" : "Items total"}</span><span>{money(paymentBaseAmount)}</span></div>
-            {paymentTipAmount > 0 && <div className="flex justify-between" style={{ color: MUTED }}><span>Tip</span><span>{money(paymentTipAmount)}</span></div>}
-            {paymentCouponDiscount > 0 && <div className="flex justify-between" style={{ color: RED }}><span>Coupon</span><span>-{money(paymentCouponDiscount)}</span></div>}
-            <div className="flex justify-between border-t pt-3 text-lg font-bold" style={{ borderColor: LINE, color: INK }}><span>Payable total</span><span>{money(paymentPayableTotal)}</span></div>
-          </div>
-          {tipEnabled && (
-            <div className="space-y-2">
-              <div className="text-sm font-bold" style={{ color: INK }}>{selectedSplitPerson ? `${selectedSplitPerson.name}'s tip` : "Add tip"}</div>
-              <div className="flex flex-wrap gap-2">
-                {[0, ...tipPercentages.filter((p: number) => p !== 0)].map((percentage: number) => (
-                  <button key={percentage} type="button" onClick={() => updatePaymentTipPercentage(percentage)} className="border px-4 py-2 text-sm font-bold" style={{ borderColor: paymentTipPercentage === percentage && !paymentCustomTip ? RED_SOFT : LINE, color: paymentTipPercentage === percentage && !paymentCustomTip ? RED : INK }}>{percentage}%</button>
-                ))}
-                <input type="number" min="0" step="0.01" value={paymentCustomTip} onChange={(event) => updatePaymentCustomTip(event.target.value)} placeholder="Custom" className="min-w-[110px] flex-1 border px-4 py-2 outline-none" style={{ borderColor: LINE, background: "rgba(255,255,255,.26)", color: INK }} />
-              </div>
+        </Card>
+        <Card>
+          <Line label={selectedSplitPerson ? "Share amount" : "Items total"} value={paymentBaseAmount} />
+          {paymentTipAmount > 0 && <Line label="Tip" value={paymentTipAmount} />}
+          {paymentCouponDiscount > 0 && <div className="pmd-kazen-line pmd-kazen-discount"><span>Coupon</span><strong>-{money(paymentCouponDiscount)}</strong></div>}
+          <Line label="Payable total" value={paymentPayableTotal} strong />
+        </Card>
+        {tipEnabled && (
+          <Card>
+            <h3 className="pmd-kazen-section-title">Add tip</h3>
+            <div className="pmd-kazen-tip-grid">
+              {[0, ...tipPercentages.filter((percentage: number) => Number(percentage) !== 0)].map((percentage: number) => (
+                <button
+                  key={percentage}
+                  type="button"
+                  onClick={() => updatePaymentTipPercentage?.(percentage)}
+                  className={paymentTipPercentage === percentage && !paymentCustomTip ? "pmd-kazen-waiter-secondary pmd-kazen-choice-active" : "kazen-secondary"}
+                >
+                  {percentage}%
+                </button>
+              ))}
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={paymentCustomTip ?? ""}
+                onChange={(event) => updatePaymentCustomTip?.(event.target.value)}
+                placeholder="Custom"
+                className="kazen-field"
+              />
+            </div>
+          </Card>
+        )}
+        <Card>
+          {!appliedCoupon || selectedSplitPerson ? (
+            <div className="pmd-kazen-coupon-row">
+              <input
+                type="text"
+                value={couponCode || ""}
+                onChange={(event) => setCouponCode?.(event.target.value.toUpperCase())}
+                placeholder="Coupon code"
+                disabled={couponLoading}
+                className="kazen-field"
+              />
+              <button type="button" disabled={couponLoading || !String(couponCode || "").trim()} onClick={onApplyCoupon} className="pmd-kazen-waiter-secondary pmd-kazen-apply">
+                {couponLoading ? "Checking" : "Apply"}
+              </button>
+            </div>
+          ) : (
+            <div className="pmd-kazen-applied-coupon">
+              <span>{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
+              <button type="button" onClick={onRemoveCoupon} className="pmd-kazen-waiter-secondary">Remove</button>
             </div>
           )}
-          <div className="space-y-2">
-            {!appliedCoupon || selectedSplitPerson ? (
-              <div className="flex gap-2">
-                <input type="text" value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} placeholder="Coupon code" disabled={couponLoading} className="min-w-0 flex-1 border px-4 py-2 outline-none" style={{ borderColor: LINE, background: "rgba(255,255,255,.26)", color: INK }} />
-                <button type="button" disabled={couponLoading || !String(couponCode || "").trim()} onClick={onApplyCoupon} className="border px-4 text-sm font-bold uppercase tracking-[0.12em]" style={{ borderColor: RED_SOFT, color: RED }}>{couponLoading ? "Checking" : "Apply"}</button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between border px-4 py-2 text-sm" style={{ borderColor: LINE, color: INK }}>
-                <span>{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
-                <button type="button" onClick={onRemoveCoupon} style={{ color: RED }}>Remove</button>
-              </div>
-            )}
-            {couponError && <p className="text-xs" style={{ color: RED }}>{couponError}</p>}
-          </div>
+          {couponError && <p className="pmd-kazen-error">{couponError}</p>}
         </Card>
-        <Card className="space-y-4">
-          <h3 className="text-center font-serif text-lg uppercase tracking-[0.28em]" style={{ color: INK }}>Payment methods</h3>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {loadingPayments ? <p style={{ color: MUTED }}>Loading payment methods...</p> : visiblePaymentMethods.length === 0 ? <p style={{ color: MUTED }}>No payment methods available</p> : visiblePaymentMethods.map((method: any) => {
-              const size = methodIconSize(method.code)
-              return (
-                <button key={method.code} type="button" onClick={() => onPaymentMethodSelect(method.code)} className="flex h-16 w-24 items-center justify-center border" style={{ borderColor: selectedPaymentMethod === method.code ? RED_SOFT : LINE, background: selectedPaymentMethod === method.code ? "rgba(184,93,89,.08)" : "rgba(255,255,255,.22)" }}>
-                  <img src={method.code === "card" ? (isDarkTheme ? "/images/payments/card-dark.svg" : "/images/payments/card-light.svg") : method.code === "paypal" ? "/images/payments/paypal.png" : method.code === "google_pay" ? "/images/payments/google_pay.png" : iconForPayment(method.code)} alt={method.name} width={size.width} height={size.height} className="object-contain" />
-                </button>
-              )
-            })}
-          </div>
-          {canRenderPaymentMethodDetail(selectedPaymentMethod) && <div className="pt-2">{renderPaymentForm?.()}</div>}
+        <PaymentMethods
+          loadingPayments={loadingPayments}
+          visiblePaymentMethods={visiblePaymentMethods}
+          selectedPaymentMethod={selectedPaymentMethod}
+          onPaymentMethodSelect={onPaymentMethodSelect}
+          isDarkTheme={isDarkTheme}
+        />
+        {canRenderPaymentMethodDetail(selectedPaymentMethod) && (
+          <Card>
+            {renderPaymentForm?.()}
+          </Card>
+        )}
+        <div className="pmd-kazen-payment-action">
           {renderPaymentButton?.()}
-        </Card>
-      </div>
+        </div>
+      </>
     )
   } else if (checkoutStep === "split" || checkoutStep === "split-items" || checkoutStep === "split-shares") {
+    title = checkoutStep === "split-items" ? "Assign items" : checkoutStep === "split-shares" ? "Set shares" : "Split bill"
+    eyebrow = `Share ${money(splitGrandTotal)}`
     content = (
-      <Card className="space-y-5">
-        <div><Title>{checkoutStep === "split-items" ? "Assign Items" : checkoutStep === "split-shares" ? "Set Shares" : "Split Bill"}</Title><p style={{ color: MUTED }}>Share {money(splitGrandTotal)} your way.</p></div>
-        <SplitMethodTabs splitMethod={splitMethod} chooseSplitMethod={chooseSplitMethod} />
-        <PeopleStepper splitGuestCount={splitGuestCount} addSplitGuest={addSplitGuest} removeSplitGuest={removeSplitGuest} />
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {splitGuestProfiles.map((guest: any, index: number) => <span key={`${guest.name}-${index}`} className="inline-flex shrink-0 items-center gap-2 border px-3 py-1 text-sm" style={{ borderColor: LINE, color: INK }}>{guest.avatar} {guest.name}</span>)}
-        </div>
-        {splitMethod === "equal" && <div className="grid gap-2">{safeEqualSplitPeople.map((person: any) => <div key={person.id} className="flex justify-between border px-4 py-3 font-bold" style={{ borderColor: LINE, color: INK }}><span>{person.name}</span><span>{money(person.total)}</span></div>)}</div>}
-        <PrimaryButton disabled={!canConfirmSplitMethod} onClick={goToSplitReview}>Review split</PrimaryButton>
-      </Card>
+      <>
+        <SplitTabs splitMethod={splitMethod} chooseSplitMethod={chooseSplitMethod} />
+        <PeopleControls splitGuestCount={splitGuestCount} addSplitGuest={addSplitGuest} removeSplitGuest={removeSplitGuest} />
+        <GuestChips guests={people} />
+        {splitMethod === "equal" && (
+          <div className="pmd-kazen-list">
+            {equalPeople.map((person: SplitPerson, index: number) => (
+              <div className="pmd-kazen-cart-line" key={person.id || index}>
+                <span>{person.name}</span>
+                <strong>{money(person.total)}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+        {splitMethod === "items" && (
+          <Card>
+            <p className="pmd-kazen-muted">Tap an item to assign it to guests.</p>
+            <div className="pmd-kazen-list">
+              {(splitSourceItems || []).map((item: any, index: number) => {
+                const assignedIndex = itemAssignments?.[item.key]
+                const guestName = assignedIndex === undefined || assignedIndex === null ? "Unassigned" : (people[assignedIndex]?.name || `Guest ${Number(assignedIndex) + 1}`)
+                return (
+                  <button
+                    key={item.key || index}
+                    type="button"
+                    className="pmd-kazen-assign-row"
+                    onClick={() => setItemAssignments?.((prev: Record<string, number | null | undefined>) => {
+                      const current = prev?.[item.key]
+                      const next = current === undefined || current === null ? 0 : current >= splitGuestCount - 1 ? null : Number(current) + 1
+                      return { ...(prev || {}), [item.key]: next }
+                    })}
+                  >
+                    <span>{item.name}</span>
+                    <strong>{money(item.amount)}</strong>
+                    <em>{guestName}</em>
+                  </button>
+                )
+              })}
+            </div>
+          </Card>
+        )}
+        {splitMethod === "shares" && (
+          <Card>
+            <div className={sharePercentTotal === 100 ? "pmd-kazen-share-total" : "pmd-kazen-share-total pmd-kazen-share-total-bad"}>
+              {sharePercentTotal === 100 ? "100% ready" : sharePercentTotal < 100 ? `${100 - sharePercentTotal}% remaining` : `Over by ${sharePercentTotal - 100}%`}
+            </div>
+            <div className="pmd-kazen-list">
+              {(sharePercents || []).slice(0, splitGuestCount).map((percent: number, index: number) => (
+                <div className="pmd-kazen-share-row" key={index}>
+                  <span>{people[index]?.name || `Guest ${index + 1}`}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(Number(percent || 0))}
+                    onChange={(event) => {
+                      const nextPercent = Math.max(0, Math.min(100, Number(event.target.value || 0)))
+                      setSharePercents?.((prev: number[]) => (prev || []).map((value, valueIndex) => valueIndex === index ? nextPercent : value))
+                    }}
+                    className="kazen-field pmd-kazen-share-input"
+                  />
+                  <strong>%</strong>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+        <KazenButton variant="primary" disabled={!canConfirmSplitMethod} onClick={goToSplitReview}>Review split</KazenButton>
+      </>
     )
   } else if (checkoutStep === "split-review") {
+    title = "Review split"
+    eyebrow = "Choose payer"
     content = (
-      <Card className="space-y-5">
-        <div><Title>Review Split</Title><p style={{ color: MUTED }}>Choose a payer and continue to payment.</p></div>
-        {activeSplitPeople.map((person: any) => (
-          <div key={person.id} className="space-y-3 border p-4" style={{ borderColor: selectedSplitPersonId === person.id ? RED_SOFT : LINE, background: selectedSplitPersonId === person.id ? "rgba(184,93,89,.06)" : "transparent" }}>
-            <div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: LINE }}>{person.avatar}</span><span className="font-bold" style={{ color: INK }}>{person.name}</span></div><span className="text-xs uppercase tracking-[0.12em]" style={{ color: MUTED }}>{person.status}</span></div>
-            <div className="flex justify-between border-t pt-3 text-lg font-bold" style={{ borderColor: LINE, color: INK }}><span>Total</span><span>{money(person.total)}</span></div>
-            {selectedSplitPersonId === person.id ? <PrimaryButton onClick={() => setCheckoutStep("payment")}>Pay my share</PrimaryButton> : <SecondaryButton onClick={() => setSelectedSplitPersonId(person.id)}>Select payer</SecondaryButton>}
-          </div>
-        ))}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <SecondaryButton onClick={onPaymentLinks} className="gap-2"><Link2 className="h-4 w-4" /> Send payment link</SecondaryButton>
-          <SecondaryButton onClick={onQrShare} className="gap-2"><QrCode className="h-4 w-4" /> Show QR/share link</SecondaryButton>
+      <>
+        <div className="pmd-kazen-list">
+          {reviewPeople.map((person: SplitPerson) => {
+            const selected = selectedSplitPersonId === person.id
+            return (
+              <Card key={person.id} className={selected ? "pmd-kazen-person-selected" : ""}>
+                <div className="pmd-kazen-person-head">
+                  <span><b>{person.avatar || person.name?.slice(0, 1)}</b>{person.name}</span>
+                  <em>{person.status || "Pending"}</em>
+                </div>
+                <Line label="Total" value={Number(person.total || 0)} strong />
+                {selected ? (
+                  <KazenButton variant="primary" onClick={() => setCheckoutStep?.("payment")}>Pay my share</KazenButton>
+                ) : (
+                  <KazenButton onClick={() => setSelectedSplitPersonId?.(person.id)}>Select payer</KazenButton>
+                )}
+              </Card>
+            )
+          })}
         </div>
-      </Card>
+        <Actions two>
+          <KazenButton onClick={onPaymentLinks}><Link2 className="h-4 w-4" /> Link</KazenButton>
+          <KazenButton onClick={onQrShare}><QrCode className="h-4 w-4" /> QR</KazenButton>
+        </Actions>
+      </>
     )
   }
 
   return (
-    <div
-      data-pmd-kazen-checkout-shell="1"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
-      style={{ background: "rgba(35, 31, 27, .22)" }}
-    >
-      <style>{`
-        [data-pmd-kazen-checkout-shell="1"],
-        [data-pmd-kazen-checkout-shell="1"] * { text-shadow: none !important; }
-        [data-pmd-kazen-checkout-shell="1"] input::placeholder { color: rgba(36,35,32,.48) !important; opacity: 1 !important; }
-        [data-pmd-kazen-checkout-shell="1"] button:disabled { opacity: .48 !important; }
-      `}</style>
-      <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-3 top-3 z-20 border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]"
-          style={{ borderColor: LINE, background: "rgba(247,243,236,.9)", color: INK }}
-        >
-          Close
-        </button>
-        {content}
+    <div data-pmd-kazen-checkout-shell="1" className="kazen-solid-modal-overlay pmd-kazen-checkout-waiter" role="dialog" aria-modal="true">
+      <div className="kazen-solid-modal-panel pmd-kazen-checkout-panel" data-kazen-solid-panel="1">
+        <div className="kazen-solid-modal-sheet" aria-hidden="true" />
+        <div className="kazen-solid-modal-content pmd-kazen-checkout-content">
+          <ModalHead title={title} eyebrow={eyebrow} onBack={goBack} />
+          <div className="pmd-kazen-checkout-body">
+            {content}
+          </div>
+        </div>
       </div>
+      <style>{`
+        html body .pmd-kazen-checkout-waiter {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 9999999 !important;
+          display: grid !important;
+          place-items: center !important;
+          padding: 1rem !important;
+          background: rgba(36, 32, 28, .42) !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          filter: none !important;
+          opacity: 1 !important;
+          isolation: isolate !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter,
+        html body .pmd-kazen-checkout-waiter * {
+          box-sizing: border-box !important;
+          text-shadow: none !important;
+        }
+
+        html body .pmd-kazen-checkout-panel {
+          position: relative !important;
+          z-index: 1 !important;
+          width: min(100%, 430px) !important;
+          max-height: min(88dvh, 740px) !important;
+          overflow: auto !important;
+          padding: 1.15rem !important;
+          background: #fbf8f2 !important;
+          background-color: #fbf8f2 !important;
+          background-image: none !important;
+          border: 1px solid rgba(35, 34, 31, .24) !important;
+          box-shadow: 0 28px 78px rgba(36, 30, 24, .34) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          opacity: 1 !important;
+          filter: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          mix-blend-mode: normal !important;
+          isolation: isolate !important;
+          transform: translateZ(0) !important;
+          border-radius: 0 !important;
+        }
+
+        html body .pmd-kazen-checkout-panel .kazen-solid-modal-sheet {
+          position: absolute !important;
+          inset: 0 !important;
+          z-index: 0 !important;
+          display: block !important;
+          background: #fbf8f2 !important;
+          background-color: #fbf8f2 !important;
+          background-image:
+            radial-gradient(circle at 92% 0%, rgba(184,93,89,.035), transparent 30%),
+            linear-gradient(180deg, #fbf8f2 0%, #f7f3ec 100%) !important;
+          opacity: 1 !important;
+          pointer-events: none !important;
+          filter: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          mix-blend-mode: normal !important;
+        }
+
+        html body .pmd-kazen-checkout-content {
+          position: relative !important;
+          z-index: 2 !important;
+          background: transparent !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          opacity: 1 !important;
+          filter: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          mix-blend-mode: normal !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-modal-head {
+          position: relative !important;
+          z-index: 3 !important;
+          display: flex !important;
+          align-items: flex-start !important;
+          justify-content: space-between !important;
+          gap: 1rem !important;
+          padding-bottom: 1rem !important;
+          margin-bottom: 1rem !important;
+          border-bottom: 1px solid rgba(35,34,31,.14) !important;
+          background: transparent !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-modal-head h2 {
+          margin: 0 !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-family: Georgia, "Times New Roman", serif !important;
+          font-size: 1.32rem !important;
+          line-height: 1.12 !important;
+          letter-spacing: .18em !important;
+          text-transform: uppercase !important;
+          opacity: 1 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-eyebrow {
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          font-size: .62rem !important;
+          letter-spacing: .22em !important;
+          text-transform: uppercase !important;
+          margin-bottom: .4rem !important;
+          opacity: 1 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close {
+          width: 2.5rem !important;
+          height: 2.5rem !important;
+          min-width: 2.5rem !important;
+          min-height: 2.5rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: #f7f3ec !important;
+          background-color: #f7f3ec !important;
+          border: 1px solid rgba(35,34,31,.24) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          opacity: 1 !important;
+          filter: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          padding: 0 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close svg,
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close path,
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close line {
+          color: #242320 !important;
+          stroke: #242320 !important;
+          fill: none !important;
+          opacity: 1 !important;
+        }
+
+        html body .pmd-kazen-checkout-body {
+          display: grid !important;
+          gap: 1rem !important;
+        }
+
+        html body .pmd-kazen-checkout-card {
+          position: relative !important;
+          z-index: 2 !important;
+          border: 1px solid rgba(35,34,31,.14) !important;
+          background: rgba(255,255,255,.24) !important;
+          border-radius: 0 !important;
+          padding: .9rem !important;
+          box-shadow: none !important;
+        }
+
+        html body .pmd-kazen-list {
+          display: grid !important;
+          gap: .75rem !important;
+        }
+
+        html body .pmd-kazen-cart-line {
+          display: grid !important;
+          grid-template-columns: 1fr auto !important;
+          align-items: center !important;
+          gap: .75rem !important;
+          border: 1px solid rgba(35,34,31,.14) !important;
+          background: rgba(255,255,255,.18) !important;
+          padding: .78rem .9rem !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+        }
+
+        html body .pmd-kazen-cart-line span,
+        html body .pmd-kazen-cart-line strong,
+        html body .pmd-kazen-line span,
+        html body .pmd-kazen-line strong {
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          opacity: 1 !important;
+        }
+
+        html body .pmd-kazen-cart-line span {
+          font-weight: 650 !important;
+        }
+
+        html body .pmd-kazen-cart-line strong {
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          white-space: nowrap !important;
+        }
+
+        html body .pmd-kazen-line {
+          display: flex !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          gap: 1rem !important;
+          padding: .32rem 0 !important;
+          color: #6b655c !important;
+        }
+
+        html body .pmd-kazen-line span,
+        html body .pmd-kazen-line strong {
+          font-weight: 600 !important;
+        }
+
+        html body .pmd-kazen-line:not(.pmd-kazen-line-strong) span,
+        html body .pmd-kazen-line:not(.pmd-kazen-line-strong) strong {
+          color: #6b655c !important;
+          -webkit-text-fill-color: #6b655c !important;
+        }
+
+        html body .pmd-kazen-line-strong span,
+        html body .pmd-kazen-line-strong strong {
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-weight: 760 !important;
+        }
+
+        html body .pmd-kazen-actions {
+          display: grid !important;
+          gap: .75rem !important;
+        }
+
+        html body .pmd-kazen-actions-two {
+          grid-template-columns: 1fr 1fr !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-primary,
+        html body .pmd-kazen-checkout-waiter .kazen-secondary,
+        html body .pmd-kazen-payment-action button,
+        html body .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          width: 100% !important;
+          min-height: 3.45rem !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          font-family: Georgia, "Times New Roman", serif !important;
+          text-transform: uppercase !important;
+          line-height: 1.1 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-primary,
+        html body .pmd-kazen-payment-action button,
+        html body .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          border: 1px solid rgba(184,93,89,.42) !important;
+          background: rgba(184,93,89,.08) !important;
+          background-color: rgba(184,93,89,.08) !important;
+          background-image: none !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          letter-spacing: .22em !important;
+          font-weight: 700 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-secondary {
+          border: 1px solid rgba(35,34,31,.16) !important;
+          background: rgba(255,255,255,.24) !important;
+          background-color: rgba(255,255,255,.24) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          letter-spacing: .18em !important;
+          font-weight: 650 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-primary *,
+        html body .pmd-kazen-checkout-waiter .kazen-secondary *,
+        html body .pmd-kazen-payment-action button *,
+        html body .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] * {
+          color: inherit !important;
+          -webkit-text-fill-color: inherit !important;
+          stroke: currentColor !important;
+        }
+
+        html body .pmd-kazen-section-title {
+          margin: 0 0 .75rem !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-family: Georgia, "Times New Roman", serif !important;
+          font-size: 1.02rem !important;
+          letter-spacing: .14em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .pmd-kazen-muted,
+        html body .pmd-kazen-status-copy p {
+          color: #6b655c !important;
+          -webkit-text-fill-color: #6b655c !important;
+          margin: 0 !important;
+        }
+
+        html body .pmd-kazen-status-copy {
+          display: grid !important;
+          grid-template-columns: 2.5rem 1fr !important;
+          gap: .85rem !important;
+          align-items: center !important;
+        }
+
+        html body .pmd-kazen-status-icon,
+        html body .pmd-kazen-payment-intro > span {
+          width: 2.5rem !important;
+          height: 2.5rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border: 1px solid rgba(184,93,89,.38) !important;
+          background: rgba(184,93,89,.08) !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          border-radius: 0 !important;
+        }
+
+        html body .pmd-kazen-status-icon svg,
+        html body .pmd-kazen-payment-intro svg {
+          stroke: #b85d59 !important;
+        }
+
+        html body .pmd-kazen-payment-intro {
+          display: grid !important;
+          grid-template-columns: 2.5rem 1fr !important;
+          gap: .85rem !important;
+          align-items: center !important;
+        }
+
+        html body .pmd-kazen-payment-intro strong,
+        html body .pmd-kazen-payment-intro p {
+          margin: 0 !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+        }
+
+        html body .pmd-kazen-tip-grid {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: .65rem !important;
+        }
+
+        html body .pmd-kazen-tip-grid .kazen-field {
+          grid-column: 1 / -1 !important;
+        }
+
+        html body .pmd-kazen-coupon-row {
+          display: grid !important;
+          grid-template-columns: 1fr auto !important;
+          gap: .65rem !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-field,
+        html body .pmd-kazen-checkout-waiter input:not(.__PrivateStripeElement-input),
+        html body .pmd-kazen-checkout-waiter textarea,
+        html body .pmd-kazen-checkout-waiter select,
+        html body .pmd-kazen-checkout-waiter .StripeElement {
+          border-radius: 0 !important;
+          width: 100% !important;
+          border: 1px solid rgba(35,34,31,.16) !important;
+          background: rgba(255,255,255,.30) !important;
+          padding: .82rem .9rem !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          outline: none !important;
+          box-shadow: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter input::placeholder,
+        html body .pmd-kazen-checkout-waiter textarea::placeholder {
+          color: rgba(36,35,32,.42) !important;
+          -webkit-text-fill-color: rgba(36,35,32,.42) !important;
+          opacity: 1 !important;
+        }
+
+        html body .pmd-kazen-method-grid,
+        html body .pmd-kazen-tabs {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: .65rem !important;
+        }
+
+        html body .pmd-kazen-method,
+        html body .pmd-kazen-tab {
+          min-height: 4rem !important;
+          display: grid !important;
+          place-items: center !important;
+          border: 1px solid rgba(35,34,31,.16) !important;
+          background: rgba(255,255,255,.24) !important;
+          border-radius: 0 !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+        }
+
+        html body .pmd-kazen-method-active,
+        html body .pmd-kazen-tab-active,
+        html body .pmd-kazen-choice-active {
+          border-color: rgba(184,93,89,.42) !important;
+          background: rgba(184,93,89,.08) !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+        }
+
+        html body .pmd-kazen-qty.kazen-qty {
+          display: grid !important;
+          grid-template-columns: 2.8rem 1fr 2.8rem !important;
+          align-items: center !important;
+          border: 1px solid rgba(35,34,31,.14) !important;
+          background: #fbf8f2 !important;
+          margin: 0 !important;
+        }
+
+        html body .pmd-kazen-qty button {
+          height: 2.8rem !important;
+          display: grid !important;
+          place-items: center !important;
+          color: #242320 !important;
+        }
+
+        html body .pmd-kazen-qty strong {
+          text-align: center !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+        }
+
+        html body .pmd-kazen-chip-row {
+          display: flex !important;
+          gap: .5rem !important;
+          overflow-x: auto !important;
+        }
+
+        html body .pmd-kazen-chip,
+        html body .pmd-kazen-person-head,
+        html body .pmd-kazen-assign-row,
+        html body .pmd-kazen-share-row,
+        html body .pmd-kazen-share-total {
+          border: 1px solid rgba(35,34,31,.14) !important;
+          background: rgba(255,255,255,.24) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          padding: .65rem .75rem !important;
+          border-radius: 0 !important;
+        }
+
+        html body .pmd-kazen-chip {
+          display: inline-flex !important;
+          gap: .4rem !important;
+          white-space: nowrap !important;
+        }
+
+        html body .pmd-kazen-person-head {
+          display: flex !important;
+          justify-content: space-between !important;
+          gap: .75rem !important;
+          margin-bottom: .75rem !important;
+        }
+
+        html body .pmd-kazen-person-head em,
+        html body .pmd-kazen-discount strong,
+        html body .pmd-kazen-error {
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+        }
+
+        html body .pmd-kazen-person-selected {
+          border-color: rgba(184,93,89,.42) !important;
+          background: rgba(184,93,89,.04) !important;
+        }
+
+        html body .pmd-kazen-assign-row {
+          display: grid !important;
+          grid-template-columns: 1fr auto !important;
+          gap: .25rem .75rem !important;
+          text-align: left !important;
+          width: 100% !important;
+        }
+
+        html body .pmd-kazen-assign-row em {
+          grid-column: 1 / -1 !important;
+          color: #b85d59 !important;
+          font-style: normal !important;
+        }
+
+        html body .pmd-kazen-share-row {
+          display: grid !important;
+          grid-template-columns: 1fr 5rem auto !important;
+          align-items: center !important;
+          gap: .5rem !important;
+        }
+
+        html body .pmd-kazen-share-total-bad {
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+        }
+
+        html body .pmd-kazen-payment-action button,
+        html body .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          min-height: 3.45rem !important;
+        }
+
+        @media (max-width: 560px) {
+          html body .pmd-kazen-checkout-waiter {
+            padding: .85rem !important;
+          }
+
+          html body .pmd-kazen-checkout-panel {
+            width: min(100%, 410px) !important;
+            padding: 1rem !important;
+          }
+
+          html body .pmd-kazen-actions-two,
+          html body .pmd-kazen-coupon-row {
+            grid-template-columns: 1fr !important;
+          }
+
+          html body .pmd-kazen-method-grid,
+          html body .pmd-kazen-tabs {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
+
+        /* PMD_KAZEN_UNIQUE_WAITER_BUTTONS_20260612
+           Real checkout buttons now use unique classes to avoid old global green/pill styles.
+        */
+
+        html body .pmd-kazen-checkout-waiter button.pmd-kazen-waiter-primary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary {
+          width: 100% !important;
+          min-height: 3.6rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .55rem !important;
+          padding: .9rem 1rem !important;
+          border-radius: 0 !important;
+          border: 1px solid rgba(184, 93, 89, .42) !important;
+          background: rgba(184, 93, 89, .08) !important;
+          background-color: rgba(184, 93, 89, .08) !important;
+          background-image: none !important;
+          box-shadow: none !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          font-family: Georgia, "Times New Roman", serif !important;
+          font-size: .86rem !important;
+          font-weight: 760 !important;
+          letter-spacing: .22em !important;
+          line-height: 1.08 !important;
+          text-transform: uppercase !important;
+          text-align: center !important;
+          text-shadow: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button.pmd-kazen-waiter-secondary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-secondary {
+          width: 100% !important;
+          min-height: 3.6rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .55rem !important;
+          padding: .9rem 1rem !important;
+          border-radius: 0 !important;
+          border: 1px solid rgba(35, 34, 31, .16) !important;
+          background: rgba(255, 255, 255, .24) !important;
+          background-color: rgba(255, 255, 255, .24) !important;
+          background-image: none !important;
+          box-shadow: none !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-family: Georgia, "Times New Roman", serif !important;
+          font-size: .84rem !important;
+          font-weight: 700 !important;
+          letter-spacing: .18em !important;
+          line-height: 1.08 !important;
+          text-transform: uppercase !important;
+          text-align: center !important;
+          text-shadow: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-secondary *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-secondary svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary svg *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-secondary svg * {
+          color: inherit !important;
+          -webkit-text-fill-color: inherit !important;
+          stroke: currentColor !important;
+          fill: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button.pmd-kazen-waiter-primary:disabled,
+        html body .pmd-kazen-checkout-waiter button.pmd-kazen-waiter-secondary:disabled {
+          opacity: .45 !important;
+          cursor: not-allowed !important;
+        }
+
+        /* Split tabs / tip choices / apply button must also use waiter-card frame */
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-apply,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-choice-active {
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          background-image: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab-active,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-choice-active {
+          border-color: rgba(184, 93, 89, .42) !important;
+          background: rgba(184, 93, 89, .08) !important;
+          background-color: rgba(184, 93, 89, .08) !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+        }
+
+        /* Payment provider button from shared payment renderer */
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action button,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          width: 100% !important;
+          min-height: 3.6rem !important;
+          border-radius: 0 !important;
+          border: 1px solid rgba(184, 93, 89, .42) !important;
+          background: rgba(184, 93, 89, .08) !important;
+          background-color: rgba(184, 93, 89, .08) !important;
+          background-image: none !important;
+          box-shadow: none !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          font-family: Georgia, "Times New Roman", serif !important;
+          font-weight: 760 !important;
+          letter-spacing: .20em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action button *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] * {
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          stroke: #b85d59 !important;
+        }
+
+        /* Back button / icon: waiter-card style, correct visible arrow */
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back {
+          width: 2.65rem !important;
+          height: 2.65rem !important;
+          min-width: 2.65rem !important;
+          min-height: 2.65rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 !important;
+          border-radius: 0 !important;
+          border: 1px solid rgba(35, 34, 31, .22) !important;
+          background: rgba(255, 255, 255, .28) !important;
+          background-color: rgba(255, 255, 255, .28) !important;
+          background-image: none !important;
+          box-shadow: none !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg * {
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          stroke: #242320 !important;
+          fill: none !important;
+          opacity: 1 !important;
+        }
+
+        /* Kill old pill styles if some old class still sneaks in */
+        html body .pmd-kazen-checkout-waiter .kazen-primary,
+        html body .pmd-kazen-checkout-waiter .kazen-button-primary,
+        html body .pmd-kazen-checkout-waiter .kazen-btn-primary {
+          border-radius: 0 !important;
+          background: rgba(184, 93, 89, .08) !important;
+          background-color: rgba(184, 93, 89, .08) !important;
+          border: 1px solid rgba(184, 93, 89, .42) !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          box-shadow: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-secondary,
+        html body .pmd-kazen-checkout-waiter .kazen-button-secondary,
+        html body .pmd-kazen-checkout-waiter .kazen-btn-secondary {
+          border-radius: 0 !important;
+          background: rgba(255,255,255,.24) !important;
+          background-color: rgba(255,255,255,.24) !important;
+          border: 1px solid rgba(35,34,31,.16) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          box-shadow: none !important;
+        }
+
+      `}</style>
     </div>
   )
 }
