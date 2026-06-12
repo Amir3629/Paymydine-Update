@@ -103,6 +103,7 @@ $config['form']['fields'] = [
             'gold_luxury' => 'Gold Luxury',
             'organic_botanical_paper' => 'Organic Botanical Paper',
             'modern_green' => 'Modern Green',
+    'kazen_japanese' => 'Kazen Japanese Minimal',
         ],
         'default' => 'gold_luxury',
     ],

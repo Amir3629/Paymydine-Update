@@ -1,3 +1,4 @@
+import React from "react"
 import { ThemeActionSlot, type ThemeActionSlotProps } from "@/components/themes/shared/ThemeActionSlot"
 import { ThemeMenuSection, type ThemeMenuSectionProps } from "@/components/themes/shared/ThemeMenuSection"
 

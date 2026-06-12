@@ -1,3 +1,4 @@
+import React from "react"
 import { ThemeCardFrame, type ThemeCardFrameProps } from "@/components/themes/shared/ThemeCardFrame"
 
 export function OrganicSplitBillMethodCard(props: ThemeCardFrameProps) {

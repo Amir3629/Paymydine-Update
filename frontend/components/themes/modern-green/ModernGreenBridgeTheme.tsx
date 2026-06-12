@@ -85,37 +85,68 @@ export function ModernGreenBridgeTheme({
   useEffect(() => {
     if (typeof window === "undefined") return
 
-    const sendSync = () => {
-      const frame = document.getElementById("pmd-modern-green-frame") as HTMLIFrameElement | null
-      if (!frame?.contentWindow) return
+    // PMD_MODERN_GREEN_BRIDGE_STRONG_SYNC_20260611
+    const buildPayload = () => {
+      const safeSourceItems = Array.isArray(sourceItems) ? sourceItems : []
+      const safeCartItems = Array.isArray(cartItems) ? cartItems : []
+      const lastItem = lastInteractedItem?.item || safeCartItems?.[safeCartItems.length - 1]?.item || null
 
-      const lastItem = lastInteractedItem?.item || cartItems?.[cartItems.length - 1]?.item || null
+      const mappedItems = safeSourceItems.map((item) => ({
+        id: itemId(item),
+        name: itemName(item),
+        description: itemDescription(item),
+        price: Number(item?.price || 0),
+        category: String(item?.category || item?.category_name || "Menu"),
+        image: itemImage(item),
+        imageUrl: itemImage(item),
+        images: Array.isArray(item?.images) ? item.images : [],
+        is_bestseller: Boolean(item?.is_bestseller),
+        is_recommended: Boolean(item?.is_recommended || item?.is_featured || item?.is_popular || item?.is_chef_recommended),
+      }))
 
-      frame.contentWindow.postMessage({
+      return {
         type: "PMD_MODERN_GREEN_SYNC",
         restaurantName,
         logoUrl,
         tableNumber,
         categories,
-        items: sourceItems.map((item) => ({
-          id: itemId(item),
-          name: itemName(item),
-          description: itemDescription(item),
-          price: Number(item?.price || 0),
-          category: String(item?.category || item?.category_name || "Menu"),
-          image: itemImage(item),
-          images: Array.isArray(item?.images) ? item.images : [],
-          is_bestseller: Boolean(item?.is_bestseller),
-          is_recommended: Boolean(item?.is_recommended || item?.is_featured || item?.is_popular || item?.is_chef_recommended),
-        })),
+        items: mappedItems,
+        menuItems: mappedItems,
+        sourceItems: mappedItems,
         cart: {
           count: totalItems,
           total: totalPrice,
           lastItemName: lastItem ? itemName(lastItem) : "",
           lastItemPrice: lastItem ? Number(lastItem?.price || 0) : 0,
-          lines: Array.isArray(cartItems) ? cartItems.map(cartLineFrom) : [],
+          lines: safeCartItems.map(cartLineFrom),
         },
-      }, window.location.origin)
+      }
+    }
+
+    const sendSync = (reason = "sync") => {
+      const frame = document.getElementById("pmd-modern-green-frame") as HTMLIFrameElement | null
+      if (!frame?.contentWindow) return
+
+      const payload = buildPayload()
+
+      try {
+        console.info("PMD_MODERN_GREEN_BRIDGE_SEND", {
+          reason,
+          items: Array.isArray(payload.items) ? payload.items.length : 0,
+          src: frame.getAttribute("src"),
+        })
+      } catch {}
+
+      try {
+        frame.contentWindow.postMessage(payload, window.location.origin)
+        frame.contentWindow.postMessage({ ...payload, type: "PAYMYDINE_MENU_SYNC" }, window.location.origin)
+        frame.contentWindow.postMessage({ ...payload, type: "PMD_MENU_SYNC" }, window.location.origin)
+      } catch {}
+
+      // fallback in case proxy/origin handling is weird
+      try {
+        frame.contentWindow.postMessage(payload, "*")
+      } catch {}
     }
 
     const findItem = (rawId: unknown) => {
@@ -124,21 +155,26 @@ export function ModernGreenBridgeTheme({
     }
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
       const msg = event.data
       if (!msg || typeof msg !== "object") return
 
       const type = String((msg as any).type || "")
 
-      if (type === "PMD_MODERN_GREEN_READY") {
-        sendSync()
+      if (
+        type === "PMD_MODERN_GREEN_READY" ||
+        type === "PAYMYDINE_MENU_READY" ||
+        type === "PMD_MENU_READY"
+      ) {
+        sendSync(type)
+        window.setTimeout(() => sendSync(type + "_250"), 250)
+        window.setTimeout(() => sendSync(type + "_900"), 900)
         return
       }
 
       if (type === "PMD_MODERN_GREEN_ADD_ITEM") {
         const found = findItem((msg as any).itemId)
         if (found) onAddItem(found, Math.max(1, Number((msg as any).quantity || 1)))
-        window.setTimeout(sendSync, 100)
+        window.setTimeout(() => sendSync("after_add"), 100)
         return
       }
 
@@ -169,17 +205,30 @@ export function ModernGreenBridgeTheme({
       }
     }
 
-    sendSync()
-    const timers = [
-      window.setTimeout(sendSync, 250),
-      window.setTimeout(sendSync, 900),
-      window.setTimeout(sendSync, 1600),
-    ]
+    const frame = document.getElementById("pmd-modern-green-frame") as HTMLIFrameElement | null
+    const handleFrameLoad = () => {
+      sendSync("iframe_load")
+      window.setTimeout(() => sendSync("iframe_load_250"), 250)
+      window.setTimeout(() => sendSync("iframe_load_1000"), 1000)
+    }
 
+    frame?.addEventListener("load", handleFrameLoad)
     window.addEventListener("message", handleMessage)
+
+    sendSync("initial")
+
+    const timers = [100, 250, 500, 900, 1500, 2500, 4000, 6500, 10000, 15000].map((ms) =>
+      window.setTimeout(() => sendSync("timer_" + ms), ms)
+    )
+
+    const interval = window.setInterval(() => sendSync("interval"), 1000)
+    const stopInterval = window.setTimeout(() => window.clearInterval(interval), 30000)
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer))
+      window.clearTimeout(stopInterval)
+      window.clearInterval(interval)
+      frame?.removeEventListener("load", handleFrameLoad)
       window.removeEventListener("message", handleMessage)
     }
   }, [

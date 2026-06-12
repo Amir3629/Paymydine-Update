@@ -1,3 +1,4 @@
+import React from "react"
 import type { CSSProperties } from "react"
 import { ThemeCheckoutSlot, type ThemeCheckoutSlotProps } from "@/components/themes/shared/ThemeCheckoutSlot"
 

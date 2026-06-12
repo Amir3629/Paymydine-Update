@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import type { ReactNode } from "react"
 import type { ThemeMenuActions } from "@/components/themes/types"
 import { ThemeActionButton } from "@/components/themes/shared/ThemeActionButton"

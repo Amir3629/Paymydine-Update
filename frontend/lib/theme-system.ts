@@ -247,6 +247,44 @@ export interface ThemeColors {
         info: '#60A5FA'
       }
     },
+
+
+    'kazen_japanese': {
+      id: 'kazen_japanese',
+      name: 'Kazen Japanese Minimal',
+      description: 'Quiet Japanese editorial menu with ink, paper, seasonal mist, and muted red accents',
+      colors: {
+        primary: '#242320',
+        secondary: '#F7F3EC',
+        accent: '#B85D59',
+        background: '#F7F3EC',
+
+        textPrimary: '#242320',
+        textSecondary: '#77716A',
+        textMuted: '#9B948B',
+
+        border: '#D8D1C6',
+        input: '#FBF8F2',
+        button: '#B85D59',
+        buttonHover: '#9F4F4B',
+
+        menuItemBackground: '#FBF8F2',
+        menuItemBorder: '#D8D1C6',
+        categoryActive: '#B85D59',
+        categoryInactive: '#77716A',
+        priceColor: '#242320',
+
+        cartBackground: '#FBF8F2',
+        cartBorder: '#D8D1C6',
+        paymentButton: '#242320',
+        paymentButtonHover: '#11100E',
+
+        success: '#6F7651',
+        warning: '#B8864B',
+        error: '#B85D59',
+        info: '#6A7477'
+      }
+    },
     'vibrant-colors': {
       id: 'vibrant-colors',
       name: 'Vibrant Colors',

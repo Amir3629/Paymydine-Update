@@ -1,14 +1,15 @@
-export type ThemeCanonicalId = "gold-luxury" | "organic_botanical_paper" | "modern_green"
+export type ThemeCanonicalId = "gold-luxury" | "organic_botanical_paper" | "modern_green" | "kazen_japanese"
 
 export type ThemeAliasId =
   | ThemeCanonicalId
   | "gold_luxury"
   | "gold"
   | "modern-green"
+  | "kazen-japanese"
 
 export type ThemeValetMode = "standalone-page" | "inline-card" | "hidden"
 export type ThemeMenuEntryMode = "dropdown" | "valet-button" | "none"
-export type ThemeCheckoutLayoutId = "gold-luxury" | "organic-botanical-paper" | "modern-green"
+export type ThemeCheckoutLayoutId = "gold-luxury" | "organic-botanical-paper" | "modern-green" | "kazen-japanese"
 
 export interface ThemeConfig {
   canonicalId: ThemeCanonicalId
@@ -62,13 +63,28 @@ const modernGreenThemeConfig = {
   cssScopeRoot: 'html[data-theme="modern_green"]',
 } as const satisfies ThemeConfig
 
+const kazenJapaneseThemeConfig = {
+  canonicalId: "kazen_japanese",
+  aliases: ["kazen_japanese", "kazen-japanese"],
+  backendAdminIds: ["kazen_japanese", "kazen-japanese", "kazen"],
+  displayName: "Kazen Japanese Minimal",
+  valetMode: "inline-card",
+  menuEntryMode: "valet-button",
+  checkoutLayoutId: "kazen-japanese",
+  usesIframePrototype: true,
+  usesNativeMainFrontendUi: false,
+  cssScopeRoot: 'html[data-theme="kazen_japanese"]',
+} as const satisfies ThemeConfig
+
 export const themeRegistry = {
   gold_luxury: goldLuxuryThemeConfig,
   "gold-luxury": goldLuxuryThemeConfig,
   organic_botanical_paper: organicBotanicalPaperThemeConfig,
   modern_green: modernGreenThemeConfig,
   "modern-green": modernGreenThemeConfig,
-} as const satisfies Record<"gold_luxury" | "gold-luxury" | "organic_botanical_paper" | "modern_green" | "modern-green", ThemeConfig>
+  kazen_japanese: kazenJapaneseThemeConfig,
+  "kazen-japanese": kazenJapaneseThemeConfig,
+} as const satisfies Record<"gold_luxury" | "gold-luxury" | "organic_botanical_paper" | "modern_green" | "modern-green" | "kazen_japanese" | "kazen-japanese", ThemeConfig>
 
 const themeAliasMap = new Map<string, ThemeConfig>()
 
@@ -97,4 +113,9 @@ export function isGoldLuxuryTheme(input: string | null | undefined): boolean {
 
 export function isModernGreenTheme(input: string | null | undefined): boolean {
   return getThemeConfig(input).canonicalId === "modern_green"
+}
+
+
+export function isKazenJapaneseTheme(input: string | null | undefined): boolean {
+  return getThemeConfig(input).canonicalId === "kazen_japanese"
 }
