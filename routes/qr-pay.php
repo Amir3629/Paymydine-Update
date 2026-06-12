@@ -1,5 +1,56 @@
 <?php
 
+// PMD_RESTORE_SPLIT_ALLOCATION_HELPER_20260612
+if (!function_exists('pmdResolveSplitAllocationColumn')) {
+    function pmdResolveSplitAllocationColumn(): array
+    {
+        try {
+            $connection = \Illuminate\Support\Facades\DB::connection();
+            $tableName = $connection->getTablePrefix().'order_payment_transaction_items';
+
+            $tableExists = false;
+            try {
+                $tableExists = count($connection->select("SHOW TABLES LIKE ?", [$tableName])) > 0;
+            } catch (\Throwable $e) {
+                $tableExists = false;
+            }
+
+            if (!$tableExists) {
+                return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+            }
+
+            $columns = collect($connection->select("SHOW COLUMNS FROM `{$tableName}`"))
+                ->map(function ($row) {
+                    return (string)($row->Field ?? '');
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            if (in_array('order_item_id', $columns, true)) {
+                return ['column' => 'order_item_id', 'mode' => 'order_menu_id'];
+            }
+
+            if (in_array('order_menu_id', $columns, true)) {
+                return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+            }
+
+            if (in_array('menu_id', $columns, true)) {
+                return ['column' => 'menu_id', 'mode' => 'menu_id_legacy'];
+            }
+
+            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+        } catch (\Throwable $e) {
+            \Log::warning('pmdResolveSplitAllocationColumn fallback used', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return ['column' => 'order_menu_id', 'mode' => 'order_menu_id'];
+        }
+    }
+}
+
+
 use Admin\Controllers\QrRedirectController;
 use Admin\Controllers\SuperAdminController;
 use Admin\Controllers\StaffAuthController;
@@ -614,6 +665,12 @@ Route::group([
     });
 
     Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) {
+        \Log::info('PMD_PAY_EXISTING_DEBUG_20260612 incoming', [
+            'host' => $request->getHost(),
+            'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
+            'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
+            'payload' => $request->all(),
+        ]);
         $request->validate([
             'order_id' => 'required|integer',
             'payment_method' => 'required|string|max:50',

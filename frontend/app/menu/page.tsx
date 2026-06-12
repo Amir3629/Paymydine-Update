@@ -34,7 +34,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
-import { StripeCardForm, PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
+import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
+import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection";
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
@@ -2153,6 +2154,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
     lockOrderStatusParent();
   }, [isOpen, checkoutStep]);
 const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  // PMD_USE_LATEST_SUBMITTED_ORDER_ID_FOR_PAYMENT_20260612
+  const pmdLatestSubmittedPaymentOrderIdRef = useRef<number | null>(null)
   // Phase 2B: table draft/order fetching and submit handlers should move into a shared checkout feature hook.
   const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
   const hasPersonalItems = allItems.length > 0
@@ -2185,8 +2188,15 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   useEffect(() => {
     if (!initialSubmittedOrder) return
+    if ((tableDraft as any)?.draft_id && !(tableDraft as any)?.order_id && !(tableDraft as any)?.orderId) return
     setSubmittedSnapshot(initialSubmittedOrder)
-  }, [initialSubmittedOrder])
+  }, [initialSubmittedOrder, (tableDraft as any)?.draft_id, (tableDraft as any)?.order_id, (tableDraft as any)?.orderId])
+
+  useEffect(() => {
+    if (!(tableDraft as any)?.draft_id) return
+    if ((tableDraft as any)?.order_id || (tableDraft as any)?.orderId) return
+    setSubmittedSnapshot(null)
+  }, [(tableDraft as any)?.draft_id, (tableDraft as any)?.order_id, (tableDraft as any)?.orderId])
 
   const getTenantKey = () => {
     if (typeof window === 'undefined') return 'tenant'
@@ -2755,132 +2765,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
@@ -3007,132 +2891,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = normalize(btn.textContent)
@@ -3298,132 +3056,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const text = normalize(btn.textContent)
@@ -3569,132 +3201,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
@@ -3803,132 +3309,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
@@ -4036,132 +3416,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
@@ -4287,132 +3541,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
@@ -4543,132 +3671,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
@@ -4712,132 +3714,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
       buttons.forEach((btn) => {
         if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          const kazenShellRoot = btn.closest('[data-pmd-kazen-checkout-shell="1"]') as HTMLElement | null
-
-          if (kazenShellRoot) {
-            // PMD_KAZEN_POLISH_STRIPE_FIELD_AND_PAY_20260612
-            kazenShellRoot.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-              const fieldWrapper = stripeEl.parentElement as HTMLElement | null
-
-              if (fieldWrapper) {
-                fieldWrapper.removeAttribute("style")
-                fieldWrapper.classList.add("pmd-kazen-stripe-field-clean")
-              }
-
-              stripeEl.removeAttribute("style")
-              stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-            })
-
-            kazenShellRoot.querySelectorAll<HTMLButtonElement>('button[data-pmd-stripe-native-button="1"]').forEach((payBtn) => {
-              payBtn.removeAttribute("style")
-              payBtn.removeAttribute("data-pmd-render-safe-action")
-              payBtn.removeAttribute("data-pmd-no-observer-action")
-              payBtn.setAttribute("data-pmd-kazen-button", "primary")
-              payBtn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-              payBtn.querySelectorAll('span[aria-hidden="true"], svg').forEach((node) => {
-                node.remove()
-              })
-
-              payBtn.textContent = "Pay"
-            })
-          }
-          if (btn.matches('[data-pmd-stripe-native-button="1"]')) {
-            btn.removeAttribute("style")
-            btn.removeAttribute("data-pmd-render-safe-action")
-            btn.removeAttribute("data-pmd-no-observer-action")
-            btn.setAttribute("data-pmd-kazen-button", "primary")
-            btn.classList.add("pmd-kazen-waiter-btn", "pmd-kazen-waiter-btn-primary", "pmd-kazen-stripe-pay-clean")
-
-            Array.from(btn.querySelectorAll("[style]")).forEach((node) => {
-              ;(node as HTMLElement).removeAttribute("style")
-            })
-
-            Array.from(btn.querySelectorAll('span[aria-hidden="true"]')).forEach((node) => {
-              node.remove()
-            })
-          }
-
-          // PMD_KAZEN_CARD_PAYMENT_FIELD_FRAMES_ONLY_20260612
-          if (kazenShellRoot) {
-            const applyKazenFieldStyle = (el: HTMLElement, styles: Record<string, string>) => {
-              Object.entries(styles).forEach(([key, value]) => {
-                el.style.setProperty(key, value, "important")
-              })
-            }
-
-            const cardForm = kazenShellRoot.querySelector('form[data-pmd-stripe-form="1"]') as HTMLElement | null
-
-            if (cardForm) {
-              cardForm.querySelectorAll<HTMLInputElement>('input:not(.__PrivateStripeElement-input)').forEach((field) => {
-                field.classList.add("pmd-kazen-card-payment-field")
-                applyKazenFieldStyle(field, {
-                  "width": "100%",
-                  "min-height": "3.55rem",
-                  "height": "auto",
-                  "max-height": "none",
-                  "padding": ".85rem 1rem",
-                  "border-radius": "0",
-                  "border": "1px solid rgba(35, 34, 31, .18)",
-                  "background": "rgba(255, 255, 255, .24)",
-                  "background-color": "rgba(255, 255, 255, .24)",
-                  "box-shadow": "none",
-                  "outline": "none",
-                  "color": "#242320",
-                  "-webkit-text-fill-color": "#242320",
-                  "caret-color": "#242320",
-                  "font-size": ".95rem",
-                  "font-weight": "520",
-                  "letter-spacing": "0",
-                  "box-sizing": "border-box",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLElement>('.StripeElement').forEach((stripeEl) => {
-                const wrapper = stripeEl.parentElement as HTMLElement | null
-                if (wrapper) {
-                  wrapper.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-stripe-field-clean")
-                  applyKazenFieldStyle(wrapper, {
-                    "width": "100%",
-                    "min-height": "3.55rem",
-                    "height": "auto",
-                    "max-height": "none",
-                    "padding": ".95rem 1rem",
-                    "margin-top": ".35rem",
-                    "display": "flex",
-                    "align-items": "center",
-                    "justify-content": "center",
-                    "overflow": "hidden",
-                    "border-radius": "0",
-                    "border": "1px solid rgba(35, 34, 31, .18)",
-                    "background": "rgba(255, 255, 255, .24)",
-                    "background-color": "rgba(255, 255, 255, .24)",
-                    "box-shadow": "none",
-                    "box-sizing": "border-box",
-                  })
-                }
-
-                stripeEl.classList.add("pmd-kazen-stripe-element-clean")
-                applyKazenFieldStyle(stripeEl, {
-                  "width": "100%",
-                  "background": "transparent",
-                  "background-color": "transparent",
-                  "transform": "none",
-                  "will-change": "auto",
-                })
-              })
-
-              cardForm.querySelectorAll<HTMLIFrameElement>('iframe[name^="cardButton"]').forEach((frame) => {
-                const holder = frame.parentElement as HTMLElement | null
-                if (holder) {
-                  holder.style.setProperty("display", "none", "important")
-                  holder.style.setProperty("pointer-events", "none", "important")
-                  holder.setAttribute("aria-hidden", "true")
-                }
-              })
-            }
-          }
-
           return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
         }
         const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
@@ -5361,6 +4237,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     try {
       const result = await confirmTableDraftItemsAction(draftItems)
       setTableDraft(result)
+      setSubmittedSnapshot(null)
       clearCart()
       console.info("PMD_TABLE_DRAFT_CONFIRMED_ITEMS", { draft_id: result.draft_id ?? null, count: draftItems.length })
       toast({ title: "Items confirmed", description: "Your items were added to the table order. Submit the table order when everyone is ready." })
@@ -5377,6 +4254,14 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     if (!tableDraft?.draft_id && tableDraft?.status !== "draft") return
     try {
       const result = await submitTableDraftAction({ draftId: tableDraft?.draft_id ?? null, refreshOnError: true })
+      const pmdSubmittedOrderId = Number((result as any)?.order_id || (result as any)?.orderId || 0)
+      if (Number.isFinite(pmdSubmittedOrderId) && pmdSubmittedOrderId > 0) {
+        pmdLatestSubmittedPaymentOrderIdRef.current = pmdSubmittedOrderId
+        try {
+          sessionStorage.setItem("pmd:latest-submitted-payment-order-id", String(pmdSubmittedOrderId))
+          localStorage.setItem("pmd:latest-submitted-payment-order-id", String(pmdSubmittedOrderId))
+        } catch {}
+      }
       setTableDraft(result)
       clearCart()
       const submittedTableSnapshot = {
@@ -5426,6 +4311,163 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       localStorage.setItem(sessionKey, JSON.stringify(parsed))
       onOpenOrderUpdate?.(parsed)
     } catch {}
+  }
+
+
+  // PMD_BLOCK_DRAFT_ID_AS_ORDER_ID_20260612
+  // PMD_IGNORE_STALE_EXISTING_ORDER_ID_20260612
+  const resolveSubmittedPaymentOrderId = (): number | null => {
+    const draftIdRaw = Number((tableDraft as any)?.draft_id || 0)
+    const draftId = Number.isFinite(draftIdRaw) && draftIdRaw > 0 ? draftIdRaw : null
+
+    const tableDraftOrderIdRaw = Number((tableDraft as any)?.order_id || (tableDraft as any)?.orderId || 0)
+    const tableDraftOrderId = Number.isFinite(tableDraftOrderIdRaw) && tableDraftOrderIdRaw > 0 ? tableDraftOrderIdRaw : null
+
+    // PMD_FIX_PAYMENT_REQUIRES_REAL_ORDER_ID_20260612
+    // A confirmed table draft is not payable until it is submitted and the backend returns a real order_id.
+    if (draftId && !tableDraftOrderId) {
+      return null
+    }
+
+    let storedLatestSubmittedOrderId: number | null = null
+    try {
+      const storedRaw =
+        (typeof window !== "undefined" && (
+          sessionStorage.getItem("pmd:latest-submitted-payment-order-id") ||
+          localStorage.getItem("pmd:latest-submitted-payment-order-id")
+        )) ||
+        ""
+      const storedValue = Number(storedRaw || 0)
+      storedLatestSubmittedOrderId =
+        Number.isFinite(storedValue) && storedValue > 0 ? storedValue : null
+    } catch {}
+
+    const currentSubmittedOrderIdRaw = Number(
+      pmdLatestSubmittedPaymentOrderIdRef.current ||
+      storedLatestSubmittedOrderId ||
+      tableDraftOrderId ||
+      (submittedSnapshot as any)?.orderId ||
+      (submittedSnapshot as any)?.order_id ||
+      0
+    )
+    const currentSubmittedOrderId =
+      Number.isFinite(currentSubmittedOrderIdRaw) && currentSubmittedOrderIdRaw > 0
+        ? currentSubmittedOrderIdRaw
+        : null
+
+    const existingOrderIdRaw = Number(existingOrderId || 0)
+    const trustedExistingOrderId =
+      Number.isFinite(existingOrderIdRaw) &&
+      existingOrderIdRaw > 0 &&
+      currentSubmittedOrderId &&
+      existingOrderIdRaw === currentSubmittedOrderId
+        ? existingOrderIdRaw
+        : null
+
+    const candidates = [
+      currentSubmittedOrderId,
+      tableDraftOrderId,
+      trustedExistingOrderId,
+    ]
+
+    for (const raw of candidates) {
+      const value = Number(raw || 0)
+      if (!Number.isFinite(value) || value <= 0) continue
+
+      // A table draft id is not a payable order id. Only allow the same number
+      // if the backend explicitly returned it as tableDraft.order_id too.
+      if (draftId && value === draftId && tableDraftOrderId !== value) continue
+
+      return value
+    }
+
+    return null
+  }
+
+  const hasUnsubmittedPaymentDraft = (): boolean => {
+    return Boolean((tableDraft as any)?.draft_id && !resolveSubmittedPaymentOrderId())
+  }
+
+  // PMD_USE_SUBMITTED_ORDER_AMOUNT_FOR_PAYMENT_20260612
+  const pmdPositiveMoney = (value: any): number | null => {
+    const amount = Number(value || 0)
+    if (!Number.isFinite(amount) || amount <= 0) return null
+    return Number(amount.toFixed(2))
+  }
+
+  const pmdSubmittedItemsSubtotal = (): number | null => {
+    const rows =
+      Array.isArray((submittedSnapshot as any)?.submittedItems) && (submittedSnapshot as any).submittedItems.length > 0
+        ? (submittedSnapshot as any).submittedItems
+        : (Array.isArray((tableDraft as any)?.items) ? (tableDraft as any).items : [])
+
+    const total = rows.reduce((sum: number, row: any) => {
+      const qty = Number(row?.quantity || row?.qty || 1)
+      const direct =
+        pmdPositiveMoney(row?.total) ??
+        pmdPositiveMoney(row?.line_total) ??
+        pmdPositiveMoney(row?.subtotal) ??
+        null
+
+      if (direct !== null) return sum + direct
+
+      const price =
+        pmdPositiveMoney(row?.price) ??
+        pmdPositiveMoney(row?.unit_price) ??
+        pmdPositiveMoney(row?.menu_price) ??
+        pmdPositiveMoney(row?.item?.price) ??
+        0
+
+      return sum + (price * (Number.isFinite(qty) && qty > 0 ? qty : 1))
+    }, 0)
+
+    return pmdPositiveMoney(total)
+  }
+
+  const resolveSubmittedPaymentAmount = (): number => {
+    const snapshot: any = submittedSnapshot || {}
+    const draft: any = tableDraft || {}
+    const draftTotals: any = draft?.totals || {}
+    const initial: any = initialSubmittedOrder || {}
+    const initialTotals: any = initial?.totals || {}
+
+    if (selectedSplitPersonId || isSplitting) {
+      return (
+        pmdPositiveMoney(selectedSplitPerson?.total) ??
+        pmdPositiveMoney(paymentPayableTotal) ??
+        pmdPositiveMoney(payableTotal) ??
+        0
+      )
+    }
+
+    const candidates = [
+      snapshot.remainingAmount,
+      snapshot.orderTotal,
+      snapshot.total,
+      draftTotals.remainingAmount,
+      draftTotals.orderTotal,
+      draftTotals.total,
+      pmdSubmittedItemsSubtotal(),
+      initial.remainingAmount,
+      initial.orderTotal,
+      initial.total,
+      initialTotals.remainingAmount,
+      initialTotals.orderTotal,
+      initialTotals.total,
+      pendingSummary?.remainingAmount,
+      pendingSummary?.orderTotal,
+      pendingSummary?.total,
+      paymentPayableTotal,
+      payableTotal,
+      finalTotal,
+    ]
+
+    for (const value of candidates) {
+      const amount = pmdPositiveMoney(value)
+      if (amount !== null) return amount
+    }
+
+    return 0
   }
 
 
@@ -5543,23 +4585,30 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         special_instructions: "",
       }
 
-      const existingLocalOrder = initialSubmittedOrder?.paymentStatus !== "paid" ? initialSubmittedOrder : null
+      const existingLocalOrder = !hasUnsubmittedPaymentDraft() && initialSubmittedOrder?.paymentStatus !== "paid" ? initialSubmittedOrder : null
       if (existingLocalOrder?.orderId) {
         ;(orderData as any).existing_order_id = Number(existingLocalOrder.orderId)
         ;(orderData as any).append_to_order = true
       }
-      const paymentOrderIdCandidate = existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null
+      const paymentOrderIdCandidate = resolveSubmittedPaymentOrderId()
+      console.info("PMD_PAYMENT_ORDER_ID_RESOLVED", {
+        paymentOrderIdCandidate,
+        latestRef: pmdLatestSubmittedPaymentOrderIdRef.current,
+        submittedSnapshotOrderId: (submittedSnapshot as any)?.orderId || (submittedSnapshot as any)?.order_id || null,
+        tableDraftOrderId: (tableDraft as any)?.order_id || (tableDraft as any)?.orderId || null,
+        existingOrderId,
+      })
       if (checkoutStep === "payment" && !paymentOrderIdCandidate) {
         setIsLoading(false)
         toast({
           title: "Order not found",
-          description: "Order not found. Please reopen your order.",
+          description: hasUnsubmittedPaymentDraft() ? "Please submit the table order first, then start payment." : "Order not found. Please reopen your order.",
           variant: "destructive",
         })
         return
       }
       const isQrPayLaterSubmittedOrder = String(tableDraft?.payment || submittedSnapshot?.payment || "").toLowerCase() === "qr_pay_later"
-      const shouldUsePayExisting = !!(checkoutStep === "payment" && paymentOrderIdCandidate && (pendingSummary || isQrPayLaterSubmittedOrder) && (!existingOrderId || Number(existingOrderId) === Number(paymentOrderIdCandidate)))
+      const shouldUsePayExisting = !!(checkoutStep === "payment" && paymentOrderIdCandidate && (pendingSummary || isQrPayLaterSubmittedOrder))
       if (checkoutStep === "payment" && paymentOrderIdCandidate && !shouldUsePayExisting) {
         try {
           const started = await apiClient.startExistingOrderPayment({
@@ -5627,12 +4676,23 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           : undefined
 
         const existingOrderAmount = checkoutStep === "payment"
-          ? Number(payableTotal.toFixed(2))
+          ? resolveSubmittedPaymentAmount()
           : (selectedSplitPerson?.total
             ? Number(selectedSplitPerson.total.toFixed(2))
             : (isSplitting
               ? null
               : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)))
+
+        console.info("PMD_PAYMENT_AMOUNT_RESOLVED", {
+          order_id: paymentOrderIdCandidate,
+          amount: existingOrderAmount,
+          payableTotal,
+          paymentPayableTotal,
+          submittedSnapshotTotal: (submittedSnapshot as any)?.total ?? null,
+          submittedSnapshotRemaining: (submittedSnapshot as any)?.remainingAmount ?? null,
+          tableDraftTotal: (tableDraft as any)?.totals?.total ?? null,
+          submittedItemsSubtotal: pmdSubmittedItemsSubtotal(),
+        })
 
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
           payment_method: String(paidMethod),
@@ -5933,7 +4993,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const selectedProviderCode = getPaymentMethodProviderCode(selectedMethod)
 
   const stripePaymentData = {
-    amount: payableTotal,
+    amount: resolveSubmittedPaymentAmount(),
     currency: (stripeConfig?.currency || merchantSettings?.currency || "EUR"),
     items: itemsToPay.map((item: any) => ({
       id: String(item.item.id),
@@ -5953,7 +5013,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const startHostedRedirectCheckout = async () => {
     if (!selectedMethod || !["card", "wero", "paypal", "apple_pay", "google_pay"].includes(selectedMethod.code)) return
-    if (!(payableTotal > 0)) {
+    if (!(resolveSubmittedPaymentAmount() > 0)) {
       setProviderInlineError("Order total is still updating. Please reopen My Order.")
       toast({
         title: "Order total unavailable",
@@ -5962,6 +5022,21 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       })
       return
     }
+    const existingSubmittedOrderIdForGuard =
+      checkoutStep === "payment" && !pendingSummary
+        ? resolveSubmittedPaymentOrderId()
+        : null
+
+    if (checkoutStep === "payment" && !pendingSummary && !existingSubmittedOrderIdForGuard && hasUnsubmittedPaymentDraft()) {
+      setProviderInlineError("Please submit the table order first, then start payment.")
+      toast({
+        title: "Submit order first",
+        description: "Please submit the table order first, then start payment.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setProviderInlineError(null)
     setIsLoading(true)
     let shouldFallbackFromWero = false
@@ -5969,7 +5044,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       let existingOrderStart: any = null
       const existingSubmittedOrderId =
         checkoutStep === "payment" && !pendingSummary
-          ? (existingOrderId || Number(submittedSnapshot?.orderId || initialSubmittedOrder?.orderId || 0) || null)
+          ? resolveSubmittedPaymentOrderId()
           : null
       if (existingSubmittedOrderId) {
         existingOrderStart = await apiClient.startExistingOrderPayment({
@@ -6021,7 +5096,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: Number(existingOrderStart?.amount || payableTotal),
+          amount: Number(existingOrderStart?.amount || resolveSubmittedPaymentAmount()),
           currency: String(existingOrderStart?.currency || merchantSettings?.currency || "EUR"),
           return_url: returnUrl,
           cancel_url: cancelUrl,
@@ -6081,7 +5156,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                amount: payableTotal,
+                amount: resolveSubmittedPaymentAmount(),
                 currency: (merchantSettings?.currency || "EUR"),
                 return_url: fallbackReturnUrl,
                 cancel_url: cancelUrl,
@@ -6350,6 +5425,22 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
     if (!selectedMethod) return null
 
+    if (checkoutStep === "payment" && hasUnsubmittedPaymentDraft()) {
+      return (
+        <div className="rounded-2xl border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="font-semibold">Submit order first</div>
+          <div className="mt-1">Please send the table order to the kitchen first. Payment starts only after the backend creates a real order ID.</div>
+          <Button
+            type="button"
+            onClick={() => setCheckoutStep("review")}
+            className="mt-3 w-full rounded-xl bg-amber-700 text-white hover:bg-amber-800"
+          >
+            Back to order review
+          </Button>
+        </div>
+      )
+    }
+
     switch (selectedMethod.code) {
       case "card":
         if (selectedProviderCode === "paypal") {
@@ -6391,7 +5482,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
                   <PayPalForm
                     paypalFundingSource="card"
                     paymentData={{
-                      amount: payableTotal,
+                      amount: resolveSubmittedPaymentAmount(),
                       payment_method: "card",
                       currency: effectivePayPalCurrency.toLowerCase(),
                       items: itemsToPay.map((item: any) => ({
@@ -6442,7 +5533,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
                 </div>
                 <WorldlineInlineCardForm
                   paymentData={{
-                    amount: payableTotal,
+                    amount: resolveSubmittedPaymentAmount(),
                     payment_method: "card",
                     currency: (merchantSettings?.currency || "EUR"),
                     items: itemsToPay.map((item: any) => ({
@@ -6543,52 +5634,22 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="space-y-3 overflow-hidden"
           >
-
-            <div className="mb-4">
-              <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
-            </div>
-
-            {stripeConfigError && (
-              <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3">
-                <p className="text-xs text-red-300">{stripeConfigError}</p>
-              </div>
-            )}
-
-            {!stripeConfigError && !stripePromise && (
-              <div className="py-2 text-xs text-paydine-elegant-gray/70">
-                Loading Stripe...
-              </div>
-            )}
-
-
-            {stripeConfig?.methods?.card !== false && stripePromise && (
-              <Elements stripe={stripePromise}>
-                <StripeCardForm
-                  paymentData={stripePaymentData as any}
-                  onPaymentComplete={(result: any) => {
-                    if (result?.success && result?.transactionId) {
-                      handlePayment(result.transactionId)
-                    }
-                  }}
-                  onPaymentError={(message: string) => {
-                    toast({
-                      title: "Payment Failed",
-                      description: message,
-                      variant: "destructive",
-                    })
-                  }}
-                />
-              </Elements>
-            )}
-
-            {stripeConfig?.methods?.card === false && (
-              <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
-                Stripe card checkout is not enabled for this restaurant.
-              </div>
-            )}
-
+            <StripeCardPaymentSection
+              methodName={selectedMethod?.name}
+              stripeConfigError={stripeConfigError}
+              stripePromise={stripePromise}
+              cardEnabled={stripeConfig?.methods?.card !== false}
+              paymentData={stripePaymentData}
+              onPaymentSuccess={handlePayment}
+              onPaymentError={(message: string) => {
+                toast({
+                  title: "Payment Failed",
+                  description: message,
+                  variant: "destructive",
+                })
+              }}
+            />
           </motion.div>
         )
 
@@ -6642,7 +5703,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
                   <PayPalForm
                     paypalFundingSource="paypal"
                     paymentData={{
-                      amount: payableTotal,
+                      amount: resolveSubmittedPaymentAmount(),
                       payment_method: "paypal",
                       currency: effectivePayPalCurrency.toLowerCase(),
                     items: itemsToPay.map((item: any) => ({
@@ -10298,13 +9359,35 @@ function MenuContent() {
   })
   const hydratedPendingOrderRef = useRef<number | null>(null)
   const isRecentPaidTableOrder = localOpenOrder?.paymentStatus === "paid" || localOpenOrder?.status === "paid"
-  const activeExistingOrderId = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : existingOrderId
-  const activePendingSummary = isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : pendingSettlementSummary
-  const activeSubmittedOrder = isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder
+  const hasDraftTableOrderWithoutRealOrder = Boolean(
+    isVisibleTableOrderDraft(sharedTableOrder) &&
+    (sharedTableOrder as any)?.draft_id &&
+    !(sharedTableOrder as any)?.order_id &&
+    !(sharedTableOrder as any)?.orderId
+  )
+  const activeExistingOrderId = hasDraftTableOrderWithoutRealOrder
+    ? null
+    : (isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : existingOrderId)
+  const activePendingSummary = hasDraftTableOrderWithoutRealOrder
+    ? null
+    : (isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : pendingSettlementSummary)
+  const activeSubmittedOrder = hasDraftTableOrderWithoutRealOrder
+    ? null
+    : (isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder)
   const shouldHideCartSheet = !!activeExistingOrderId
 
   useEffect(() => {
-    if (!isVisibleTableOrderDraft(sharedTableOrder) || !sharedTableOrder.order_id) return
+    if (!isVisibleTableOrderDraft(sharedTableOrder)) return
+
+    if ((sharedTableOrder as any)?.draft_id && !(sharedTableOrder as any)?.order_id && !(sharedTableOrder as any)?.orderId) {
+      setExistingOrderId(null)
+      setPendingSettlementSummary(null)
+      setLocalOpenOrder(null)
+      setHasLocalOpenOrder(false)
+      return
+    }
+
+    if (!sharedTableOrder.order_id) return
 
     setExistingOrderId(Number(sharedTableOrder.order_id))
     setPendingSettlementSummary({
@@ -10988,6 +10071,12 @@ useEffect(() => {
 
   useEffect(() => {
     if (typeof window === "undefined") return
+    if (hasDraftTableOrderWithoutRealOrder) {
+      setExistingOrderId(null)
+      setHasLocalOpenOrder(false)
+      setLocalOpenOrder(null)
+      return
+    }
     const tenant = window.location.host
     const tableKey = String(tableInfo?.table_id || tableInfo?.table_no || searchParams?.get("table") || searchParams?.get("table_id") || searchParams?.get("table_no") || (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? "delivery"))
     const guestSessionId = localStorage.getItem('pmd_guest_session_id') || `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`
@@ -11039,7 +10128,7 @@ useEffect(() => {
       setLocalOpenOrder(parsed)
       if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
     } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
-  }, [tableInfo, searchParams, existingOrderId])
+  }, [tableInfo, searchParams, existingOrderId, hasDraftTableOrderWithoutRealOrder])
 
 
 

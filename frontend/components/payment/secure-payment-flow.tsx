@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Elements } from "@stripe/react-stripe-js"
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import { loadStripe } from "@stripe/stripe-js"
@@ -57,6 +57,12 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
   const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
   const [paypalConfig, setPaypalConfig] = useState<{ enabled: boolean; clientId: string; currency: string; countryCode: string } | null>(null)
   const [worldlineEnabled, setWorldlineEnabled] = useState(false)
+
+
+  const stripePromise = useMemo(
+    () => (stripeConfig?.publishableKey ? loadStripe(stripeConfig.publishableKey) : null),
+    [stripeConfig?.publishableKey],
+  )
 
   // Fetch Stripe config from Laravel (tenant keys from DB)
 
@@ -276,7 +282,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
 
       case "stripe":
       case "authorizenetaim":
-        if (stripeConfigError || (stripeConfig && !stripeConfig.publishableKey)) {
+        if (stripeConfigError || (stripeConfig && !stripePromise)) {
           return (
             <div className="rounded-xl p-4 bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm flex items-center gap-2">
               <AlertCircle className="h-5 w-5 shrink-0" />
@@ -292,7 +298,7 @@ export function SecurePaymentFlow({ isOpen, onOpenChange }: SecurePaymentFlowPro
           )
         }
         return (
-          <Elements stripe={loadStripe(stripeConfig.publishableKey)}>
+          <Elements stripe={stripePromise}>
             <StripeCardForm {...commonProps} />
           </Elements>
         )
