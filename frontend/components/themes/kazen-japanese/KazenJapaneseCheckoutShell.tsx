@@ -6,6 +6,7 @@ import { ArrowLeft, Check, CreditCard, Link2, Minus, Plus, QrCode, Users } from 
 import { formatCurrency } from "@/lib/currency"
 import { iconForPayment } from "@/lib/payment-icons"
 import { canRenderPaymentMethodDetail } from "@/features/checkout/payment-method-utils"
+import { PaymentMethodTile } from "@/components/theme-ui"
 
 type DisplayItem = {
   item?: { name?: string; nameKey?: string; price?: number }
@@ -213,15 +214,15 @@ function PaymentMethods({ loadingPayments, visiblePaymentMethods, selectedPaymen
                     : iconForPayment(code)
 
             return (
-              <button
+              <PaymentMethodTile
                 key={code}
-                type="button"
+                label={method.name || code}
+                selected={active}
                 onClick={() => onPaymentMethodSelect?.(code)}
                 className={active ? "pmd-kazen-method pmd-kazen-method-active" : "pmd-kazen-method"}
-                aria-pressed={active}
               >
                 <img src={src} alt={method.name || code} width={size.width} height={size.height} />
-              </button>
+              </PaymentMethodTile>
             )
           })}
         </div>
@@ -573,7 +574,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
   }
 
   return (
-    <div data-pmd-kazen-checkout-shell="1" className="kazen-solid-modal-overlay pmd-kazen-checkout-waiter" role="dialog" aria-modal="true">
+    <div data-pmd-checkout-theme-root="1" data-pmd-checkout-theme="kazen_japanese" data-pmd-kazen-checkout-shell="1" className="kazen-solid-modal-overlay pmd-kazen-checkout-waiter" role="dialog" aria-modal="true">
       <div className="kazen-solid-modal-panel pmd-kazen-checkout-panel" data-kazen-solid-panel="1">
         <div className="kazen-solid-modal-sheet" aria-hidden="true" />
         <div className="kazen-solid-modal-content pmd-kazen-checkout-content">

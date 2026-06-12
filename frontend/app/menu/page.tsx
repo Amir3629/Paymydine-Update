@@ -47,6 +47,7 @@ import {
   organicCheckoutPrimaryButtonStyle,
 } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
 import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
+import { PaymentMethodTile, ThemedButton } from "@/components/theme-ui";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
 import { createThemeMenuActions } from "@/features/menu/theme-menu-actions";
@@ -131,6 +132,9 @@ const organicBotanicalVars = (): React.CSSProperties => ({})
 const OrganicBotanicalHero = (_props: any) => <OrganicExactV0Frame />
 const OrganicBotanicalCategoryNav = (_props: any) => null
 const OrganicBotanicalMenuCard = (_props: any) => null
+
+const hasCheckoutThemeRoot = () =>
+  typeof document !== "undefined" && Boolean(document.querySelector('[data-pmd-checkout-theme-root="1"]'))
 
 // PMD_ORGANIC_EXACT_FRAME_COMPONENT_20260607
 function OrganicExactV0Frame() {
@@ -1903,6 +1907,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrd
   // Prevent checkout quantity plus/minus icons from flashing black before legacy runtime styles settle.
   useEffect(() => {
     if (typeof document === "undefined") return
+    if (hasCheckoutThemeRoot()) return
 
     const fixQuantityIcons = () => {
       document
@@ -1937,6 +1942,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrd
   // Hide duplicate "Base amount" row in payment UI when Payable total is already shown.
   useEffect(() => {
     if (typeof document === "undefined") return
+    if (hasCheckoutThemeRoot()) return
 
     const hideBaseAmountRows = () => {
       const roots = document.querySelectorAll("[data-pmd-checkout-scroll], [role='dialog']")
@@ -1983,6 +1989,7 @@ function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrd
   // This exact scoped fixer wins by setting active split text with inline !important.
   useEffect(() => {
     if (typeof document === "undefined") return
+    if (hasCheckoutThemeRoot()) return
 
     const applySplitMethodTextFix = () => {
       document
@@ -2651,6 +2658,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_MARK_REAL_PAYMENT_PANELS_EFFECT
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
     if (checkoutStep !== "payment") return
 
     const markRealPaymentPanels = () => {
@@ -2739,6 +2747,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_SEND_KITCHEN_BUTTON_MARKER_EFFECT
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
+
     const apply = () => {
       const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
       const buttons = Array.from(root.querySelectorAll('button')) as HTMLElement[]
@@ -2911,6 +2921,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_MARK_REAL_PAYMENT_PANELS_BG_EFFECT
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
     if (checkoutStep !== "payment") return
 
     const markPanels = () => {
@@ -2975,6 +2986,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_COMPACT_ACTIONS_REAL_PAYMENT_BG_EFFECT
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
+
     const softCream = "#FAF9F3"
 
     const normalize = (value: string | null | undefined) =>
@@ -3484,6 +3497,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_CARD_ACTION_BUTTONS_CONFIRM_SEND_CONTINUE_EFFECT
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
+
     const primaryBg = "#062F2A"
     const primaryHover = "#021F1C"
     const secondaryText = "#0D1B1E"
@@ -3717,6 +3732,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_PAY_SPLIT_REVIEW_BUTTONS_EFFECT
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
+
     const primaryBg = "#062F2A"
     const primaryHover = "#021F1C"
     const secondaryText = "#0D1B1E"
@@ -3949,6 +3966,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_NO_OBSERVER_BUTTON_STYLE_FINAL
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
+
     const primaryBg = "#062F2A"
     const primaryHover = "#021F1C"
     const secondaryText = "#0D1B1E"
@@ -4176,6 +4195,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   // PMD_RENDER_SAFE_PLUS_CONFIRM_SEND_SPLIT_FIX
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
+
     const primaryBg = "#062F2A"
     const primaryHover = "#021F1C"
     const secondaryText = "#0D1B1E"
@@ -4683,6 +4704,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
 // PMD_SELECT_PAYER_BUTTON_FRAME_FIX
   useEffect(() => {
+    if (hasCheckoutThemeRoot()) return
+
     const applySelectPayerStyle = () => {
       const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
       const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
@@ -4888,6 +4911,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   // No payment logic, no coupon logic, no cart logic, no plus/minus logic.
   useLayoutEffect(() => {
     if (typeof window === "undefined") return
+    if (hasCheckoutThemeRoot()) return
 
     const clearTipCouponPanelBackground = () => {
       if (checkoutStep !== "payment") return
@@ -4940,6 +4964,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   // Does NOT touch buttons, inputs, Pay, Send to kitchen, Split bill, quantity controls, or payment/order logic.
   useLayoutEffect(() => {
     if (typeof window === "undefined") return
+    if (hasCheckoutThemeRoot()) return
 
     const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
     if (!root) return
@@ -5087,6 +5112,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   // This intentionally does NOT touch plus/minus buttons, cart buttons, Pay in full, Split bill, or payment logic.
   useLayoutEffect(() => {
     if (typeof window === "undefined") return
+    if (hasCheckoutThemeRoot()) return
 
     const forceStyle = (el: HTMLElement | null | undefined, styles: Record<string, string>) => {
       if (!el) return
@@ -6329,9 +6355,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         if (selectedProviderCode === "paypal") {
           return (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="space-y-3 overflow-hidden"
             >
               <div className="flex items-center gap-2 mb-4">
@@ -6406,9 +6432,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           if (selectedProviderCode === "worldline") {
             return (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="space-y-3 overflow-hidden"
               >
                 <div className="mb-2">
@@ -6459,9 +6485,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
             const sumupCancelUrl = typeof window !== "undefined" ? window.location.href : "/menu"
             return (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="space-y-3 overflow-hidden"
               >
                 <SumUpHostedCheckout
@@ -6482,9 +6508,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           }
           return (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="space-y-3 overflow-hidden"
             >
               <div className="mb-2">
@@ -6514,9 +6540,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="space-y-3 overflow-hidden"
           >
 
@@ -6569,9 +6595,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       case "paypal":
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="space-y-3 overflow-hidden"
           >
 
@@ -6657,9 +6683,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         if (!selectedPaymentMethod) return null
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="space-y-3 overflow-hidden"
           >
 
@@ -6727,9 +6753,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       case "wero":
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="space-y-3 overflow-hidden"
           >
 
@@ -6759,9 +6785,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 case "cod":
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="space-y-3 overflow-hidden"
           >
 
@@ -7059,12 +7085,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
     }
 
     return (
-      <Button
+      <ThemedButton
         type="button"
         onClick={handlePayment}
         disabled={isLoading || !isFormValid()}
-        className={isThemedCheckoutVisual ? modalPrimaryBtn : "w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"}
-        style={isThemedCheckoutVisual ? modalPrimaryBtnStyle : undefined}
+        variant="primary"
+        fullWidth
       >
         {isLoading ? (
           <div className="flex items-center gap-2">
@@ -7077,7 +7103,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             {getButtonText()}
           </div>
         )}
-      </Button>
+      </ThemedButton>
     )
   }
 
@@ -7295,9 +7321,11 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
       {/* PMD_KAZEN_INLINE_CHECKOUT_SKINS_DISABLED_20260612 */}
       {isOrganicCheckoutVisual && <OrganicCheckoutScopedStyles />}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        data-pmd-checkout-theme-root="1"
+        data-pmd-checkout-theme={checkoutVisualTheme}
         data-pmd-checkout-design-system="1"
         data-pmd-checkout-visual-theme={checkoutVisualTheme}
         data-pmd-checkout-kazen-skin={isKazenJapaneseCheckoutVisual ? "1" : undefined}
@@ -8263,7 +8291,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 >
                   <div
                     ref={(el) => {
-                      if (!el) return
+                      if (!el || hasCheckoutThemeRoot()) return
 
                       const applyPaymentHeaderIcon = () => {
                         el.style.setProperty("background", "#062F2A", "important")
@@ -8327,7 +8355,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       }
                     }}
                     data-pmd-payment-header-icon="1"
-                    className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center"
+                    className="pmd-checkout-theme-icon h-10 w-10 shrink-0 rounded-full flex items-center justify-center"
                     style={{
                       background: "#062F2A",
                       backgroundColor: "#062F2A",
@@ -8480,9 +8508,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             {checkoutStep === "payment" ? (
               <motion.div
                 key="payment-methods"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="space-y-3 pt-2"
               >
                 <h3 className="text-center text-sm">{t("paymentMethods")}</h3>
@@ -8493,10 +8521,10 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     <div className="text-sm muted">No payment methods available</div>
                   ) : (
                     visiblePaymentMethods.map((method) => (
-                      <motion.div key={method.code} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button
-                          variant="outline"
-                          className="h-14 w-20 surface-sub hover:opacity-90 rounded-2xl shadow-sm flex items-center justify-center rounded-full"
+                      <motion.div key={method.code}>
+                        <PaymentMethodTile
+                          label={method.name}
+                          selected={selectedPaymentMethod === method.code}
                           onClick={() => {
                             try {
                               if (typeof window !== "undefined" && (window as any).__PMD_WALLET_POST) {
@@ -8549,7 +8577,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                               className="object-contain"
                             />
                           )}
-                        </Button>
+                        </PaymentMethodTile>
                       </motion.div>
                     ))
                   )}
