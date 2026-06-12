@@ -47,7 +47,7 @@ import {
   organicCheckoutPrimaryButtonStyle,
 } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
 import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
-import { PaymentMethodTile, ThemedButton } from "@/components/theme-ui";
+import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
 import { createThemeMenuActions } from "@/features/menu/theme-menu-actions";
@@ -7756,7 +7756,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
           {isSplitCheckoutStep(checkoutStep) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-              <div className="pmd-checkout-flat-section rounded-3xl p-3 space-y-3">
+              <SplitBillPanel className="pmd-checkout-flat-section rounded-3xl">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs muted">Share {formatCurrency(splitGrandTotal)} your way.</p>
                 </div>
@@ -7792,7 +7792,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     </button>
                   ))}
                 </div>
-              </div>
+              </SplitBillPanel>
 
               {checkoutStep !== "split-review" && (
                 <div className="pmd-checkout-flat-section rounded-3xl p-3 space-y-3">
@@ -7952,9 +7952,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     </div>
                   )}
 
-                  <button type="button" disabled={!canConfirmSplitMethod} onClick={goToSplitReview} className={cn(modalPrimaryBtn, !canConfirmSplitMethod && "cursor-not-allowed")} style={canConfirmSplitMethod ? modalPrimaryBtnStyle : { background: "color-mix(in srgb, var(--theme-border) 50%, var(--theme-surface) 50%)", color: "var(--theme-text-muted)", border: "1px solid var(--theme-border)" }}>
+                  <ThemedButton type="button" disabled={!canConfirmSplitMethod} onClick={goToSplitReview} variant="primary" fullWidth className={cn(!canConfirmSplitMethod && "cursor-not-allowed")}>
                     Review split
-                  </button>
+                  </ThemedButton>
                 </div>
               )}
 
@@ -7975,9 +7975,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       </div>
                       <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--theme-border)" }}><span className="font-semibold">Total</span><span className="font-bold">{formatCurrency(person.total)}</span></div>
                       {selectedSplitPersonId === person.id ? (
-                        <button type="button" onClick={() => setCheckoutStep("payment")} className={modalPrimaryBtn} style={modalPrimaryBtnStyle}>Pay my share</button>
+                        <ThemedButton type="button" onClick={() => setCheckoutStep("payment")} variant="primary" fullWidth>Pay my share</ThemedButton>
                       ) : (
-                        <button type="button" onClick={() => setSelectedSplitPersonId(person.id)} className="w-full rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>Select payer</button>
+                        <ThemedButton type="button" onClick={() => setSelectedSplitPersonId(person.id)} variant="secondary" fullWidth>Select payer</ThemedButton>
                       )}
                     </div>
                   ))}
@@ -7993,8 +7993,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
           {(checkoutStep === "submitted" || checkoutStep === "paid") && submittedSnapshot && (
             <motion.div
               data-pmd-order-status-card="1"
-              className="relative mt-7 p-1 pt-7 space-y-3"
+              className="relative mt-7 space-y-3"
             >
+              <OrderStatusCard className="pt-7 space-y-3">
               {(submittedSnapshot?.showCustomerEta ?? true) && (
                 <div
                   data-pmd-floating-eta-circle="1"
@@ -8036,69 +8037,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 </div>
               )}
               <div className="flex items-center gap-3">
-                <div
-                ref={(el) => {
-                  if (!el) return
-
-                  const applyOrderReceivedIcon = () => {
-                    el.style.setProperty("background", "#062F2A", "important")
-                    el.style.setProperty("background-color", "#062F2A", "important")
-                    el.style.setProperty("color", "#FFFFFF", "important")
-                    el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                    el.style.setProperty("border", "1px solid #062F2A", "important")
-                    el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.18)", "important")
-
-                    el.querySelectorAll("svg, svg *, path").forEach((node: Element) => {
-                      const iconNode = node as HTMLElement
-                      iconNode.style.setProperty("color", "#FFFFFF", "important")
-                      iconNode.style.setProperty("stroke", "#FFFFFF", "important")
-                      iconNode.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                      iconNode.style.setProperty("background", "transparent", "important")
-                      iconNode.style.setProperty("background-color", "transparent", "important")
-                    })
-                  }
-
-                  applyOrderReceivedIcon()
-
-                  if (el.dataset.pmdOrderReceivedIconLock !== "1") {
-                    el.dataset.pmdOrderReceivedIconLock = "1"
-
-                    const observer = new MutationObserver(() => {
-                      requestAnimationFrame(applyOrderReceivedIcon)
-                    })
-
-                    observer.observe(el, {
-                      attributes: true,
-                      attributeFilter: ["style", "class"],
-                      subtree: true,
-                    })
-
-                    ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                      window.setTimeout(applyOrderReceivedIcon, delay)
-                    })
-                  }
-                }}
-                data-pmd-order-received-icon="1"
-                className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center pmd-order-received-icon"
-                style={{
-                  background: "#062F2A",
-                  backgroundColor: "#062F2A",
-                  color: "#FFFFFF",
-                  WebkitTextFillColor: "#FFFFFF",
-                  border: "1px solid #062F2A",
-                  boxShadow: "0 8px 18px rgba(6, 47, 42, 0.18)",
-                }}
-              >
-                <Check
-                  className="h-5 w-5"
-                  strokeWidth={3}
-                  style={{
-                    color: "#FFFFFF",
-                    stroke: "#FFFFFF",
-                    WebkitTextFillColor: "#FFFFFF",
-                  }}
-                />
-              </div>
+                <CheckoutIconFrame
+                  data-pmd-order-received-icon="1"
+                  className="pmd-order-received-icon rounded-full"
+                >
+                  <Check className="h-5 w-5" strokeWidth={3} />
+                </CheckoutIconFrame>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="pmd-checkout-status-title text-base font-semibold">{checkoutStep === "paid" ? "Payment confirmed" : "We received your order"}</p>
@@ -8274,12 +8218,14 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   <button type="button" onClick={onClose} className={modalSecondaryBtn}>Back to menu</button>
                 </div>
               )}
+              </OrderStatusCard>
             </motion.div>
           )}
 
           {checkoutStep === "payment" && (
             <>
-              <motion.div key="payment-card-header" layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="pmd-checkout-payment-card surface-sub rounded-2xl p-3 space-y-3">
+              <motion.div key="payment-card-header" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="space-y-3">
+                <PaymentCardFrame className="pmd-checkout-payment-card surface-sub">
                 <div
                   data-pmd-payment-header-copy-row="1"
                   className="flex items-center gap-3 rounded-2xl p-4"
@@ -8289,92 +8235,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     border: "1px solid var(--theme-border)",
                   }}
                 >
-                  <div
-                    ref={(el) => {
-                      if (!el || hasCheckoutThemeRoot()) return
-
-                      const applyPaymentHeaderIcon = () => {
-                        el.style.setProperty("background", "#062F2A", "important")
-                        el.style.setProperty("background-color", "#062F2A", "important")
-                        el.style.setProperty("border", "1px solid #062F2A", "important")
-                        if (
-                          el instanceof HTMLElement &&
-                          el.matches("input, textarea, select") &&
-                          el.closest('[data-pmd-kazen-checkout-shell="1"] form[data-pmd-stripe-form="1"]')
-                        ) {
-                          el.classList.add("pmd-kazen-card-payment-field", "pmd-kazen-no-pill-field")
-                          el.classList.remove("rounded-2xl", "rounded-full")
-                          el.style.setProperty("box-sizing", "border-box", "important")
-                          el.style.setProperty("width", "100%", "important")
-                          el.style.setProperty("min-height", "54px", "important")
-                          el.style.setProperty("height", "54px", "important")
-                          el.style.setProperty("max-height", "54px", "important")
-                          el.style.setProperty("padding", "0 18px", "important")
-                          el.style.setProperty("border-radius", "0", "important")
-                          el.style.setProperty("background", "rgba(255, 255, 255, .24)", "important")
-                          el.style.setProperty("background-color", "rgba(255, 255, 255, .24)", "important")
-                          el.style.setProperty("border", "1px solid rgba(35, 34, 31, .18)", "important")
-                          el.style.setProperty("box-shadow", "none", "important")
-                          el.style.setProperty("outline", "none", "important")
-                          el.style.setProperty("color", "#242320", "important")
-                          el.style.setProperty("-webkit-text-fill-color", "#242320", "important")
-                          el.style.setProperty("caret-color", "#242320", "important")
-                          return // PMD_SKIP_BORDER_RADIUS_9999_FOR_KAZEN_PAYMENT_20260612
-                        }
-                        el.style.setProperty("border-radius", "9999px", "important")
-                        el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.18)", "important")
-                        el.style.setProperty("color", "#FFFFFF", "important")
-                        el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-
-                        el.querySelectorAll("svg, svg *, path, rect, line").forEach((node) => {
-                          const iconNode = node as HTMLElement
-                          iconNode.style.setProperty("color", "#FFFFFF", "important")
-                          iconNode.style.setProperty("stroke", "#FFFFFF", "important")
-                          iconNode.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                        })
-                      }
-
-                      applyPaymentHeaderIcon()
-
-                      if (el.dataset.pmdPaymentHeaderIconLock !== "1") {
-                        el.dataset.pmdPaymentHeaderIconLock = "1"
-
-                        const observer = new MutationObserver(() => {
-                          requestAnimationFrame(applyPaymentHeaderIcon)
-                        })
-
-                        observer.observe(el, {
-                          attributes: true,
-                          attributeFilter: ["style", "class"],
-                          subtree: true,
-                        })
-
-                        ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                          window.setTimeout(applyPaymentHeaderIcon, delay)
-                        })
-                      }
-                    }}
+                  <CheckoutIconFrame
                     data-pmd-payment-header-icon="1"
-                    className="pmd-checkout-theme-icon h-10 w-10 shrink-0 rounded-full flex items-center justify-center"
-                    style={{
-                      background: "#062F2A",
-                      backgroundColor: "#062F2A",
-                      border: "1px solid #062F2A",
-                      borderRadius: "9999px",
-                      boxShadow: "0 8px 18px rgba(6, 47, 42, 0.18)",
-                      color: "#FFFFFF",
-                      WebkitTextFillColor: "#FFFFFF",
-                    }}
+                    className="rounded-full"
                   >
-                    <CreditCard
-                      className="h-5 w-5"
-                      style={{
-                        color: "#FFFFFF",
-                        stroke: "#FFFFFF",
-                        WebkitTextFillColor: "#FFFFFF",
-                      }}
-                    />
-                  </div>
+                    <CreditCard className="h-5 w-5" />
+                  </CheckoutIconFrame>
                   <p
                     className="text-sm font-semibold leading-snug"
                     style={{
@@ -8386,11 +8252,12 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </p>
                 </div>
                 {selectedSplitPerson && (
-                  <div className="flex items-center justify-between p-3 surface rounded-2xl">
-                    <div className="flex items-center space-x-2"><span className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: "color-mix(in srgb, #b88940 18%, var(--theme-surface) 82%)", color: "#062F2A", border: "1px solid color-mix(in srgb, #b88940 35%, var(--theme-border) 65%)" }}>{selectedSplitPerson.avatar}</span><span className="text-xs font-semibold">{selectedSplitPerson.name}'s share</span></div>
+                  <CheckoutStepCard variant="subtle" className="flex items-center justify-between p-3">
+                    <div className="flex items-center space-x-2"><span className="pmd-checkout-avatar-frame inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold">{selectedSplitPerson.avatar}</span><span className="text-xs font-semibold">{selectedSplitPerson.name}'s share</span></div>
                     <span className="text-sm font-bold">{formatCurrency(selectedSplitPerson.total)}</span>
-                  </div>
+                  </CheckoutStepCard>
                 )}
+                </PaymentCardFrame>
               </motion.div>
               {pendingSummary && (
                 <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
@@ -8399,7 +8266,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
                 </div>
               )}
-              <motion.div layout className="pmd-checkout-total-card rounded-2xl border p-3 space-y-3" style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}>
+              <motion.div className="space-y-3">
+                <CheckoutSummaryCard className="pmd-checkout-total-card space-y-3">
                 <div className="pmd-checkout-meta-row flex items-center justify-between rounded-2xl border px-3 py-2 text-xs" style={{ borderColor: "var(--theme-border)",
                     background: "transparent",
                     backgroundColor: "transparent",
@@ -8442,37 +8310,30 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
                 {tipSettings.enabled && (
-                  <div data-pmd-payment-real-panel="tip-coupon" className="space-y-2"
-                  style={{
-                    background: "transparent",
-                    backgroundColor: "transparent",
-                    backgroundImage: "none",
-                    borderColor: "transparent",
-                    boxShadow: "none",
-                  }}>
+                  <TipCouponPanel data-pmd-payment-real-panel="tip-coupon">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold">{selectedSplitPerson ? `${selectedSplitPerson.name}'s tip` : "Add tip"}</span>
                       {paymentTipAmount > 0 && <span className="text-xs font-semibold" style={{ color: "#b88940" }}>{formatCurrency(paymentTipAmount)}</span>}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {(tipSettings.percentages || []).map((p) => (
-                        <button key={p} type="button" onClick={() => updatePaymentTipPercentage(p)} className="rounded-full border px-3 py-1.5 text-xs font-semibold transition" style={paymentTipPercentage === p && !paymentCustomTip ? { background: "#062F2A", borderColor: "#062F2A", color: "#FFFFFF" } : { borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "transparent" }}>{p}%</button>
+                        <SplitMethodButton key={p} selected={paymentTipPercentage === p && !paymentCustomTip} onClick={() => updatePaymentTipPercentage(p)}>{p}%</SplitMethodButton>
                       ))}
                       <div className="relative min-w-[96px] flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs muted">€</span>
-                        <input
+                        <ThemedInput
                     data-pmd-custom-tip-shows-selected-amount="1"
                     step="0.01"
-                    value={customTip || (Number(tipAmount) > 0 ? Number(tipAmount).toFixed(2) : "")} type="number" min="0" onChange={(event) => updatePaymentCustomTip(event.target.value)} placeholder="Custom" className="h-9 w-full rounded-full border bg-transparent pl-7 pr-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} />
+                    value={customTip || (Number(tipAmount) > 0 ? Number(tipAmount).toFixed(2) : "")} type="number" min="0" onChange={(event) => updatePaymentCustomTip(event.target.value)} placeholder="Custom" className="h-9 w-full pl-7 pr-3 text-xs font-semibold" />
                       </div>
                     </div>
-                  </div>
+                  </TipCouponPanel>
                 )}
-                <div className="space-y-2">
+                <TipCouponPanel>
                   {!appliedCoupon || selectedSplitPerson ? (
                     <div className="flex gap-2">
-                      <input type="text" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponError(null) }} placeholder="Coupon code" className="h-9 min-w-0 flex-1 rounded-full border bg-transparent px-3 text-xs font-semibold outline-none" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)" }} disabled={couponLoading} />
-                      <button type="button" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
+                      <ThemedInput type="text" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponError(null) }} placeholder="Coupon code" className="h-9 min-w-0 flex-1 px-3 text-xs font-semibold" disabled={couponLoading} />
+                      <ThemedButton type="button" disabled={couponLoading || !couponCode.trim()} onClick={async () => {
                         if (!couponCode.trim()) return
                         if (selectedSplitPerson) {
                           setCouponError("Coupon validation for split payments is coming soon.")
@@ -8492,7 +8353,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                         } finally {
                           setCouponLoading(false)
                         }
-                      }} className="h-9 rounded-full border px-4 text-xs font-semibold transition disabled:opacity-50" style={{ borderColor: "color-mix(in srgb, #b88940 45%, var(--theme-border) 55%)", color: "#062F2A", background: "transparent" }}>{couponLoading ? "Checking..." : "Apply"}</button>
+                      }} className="h-9 px-4 text-xs font-semibold disabled:opacity-50" variant="secondary">{couponLoading ? "Checking..." : "Apply"}</ThemedButton>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-2 rounded-full px-3 py-2 text-xs" style={{ background: "color-mix(in srgb, #062F2A 10%, var(--theme-surface) 90%)" }}>
@@ -8501,7 +8362,8 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     </div>
                   )}
                   {couponError && <p className="text-xs text-red-700">{couponError}</p>}
-                </div>
+                </TipCouponPanel>
+                </CheckoutSummaryCard>
               </motion.div>
           {/* Payment Methods */}
           <AnimatePresence initial={false} mode="wait">
@@ -8513,6 +8375,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                 exit={{ opacity: 0 }}
                 className="space-y-3 pt-2"
               >
+                <PaymentCardFrame className="pmd-checkout-payment-methods-card">
                 <h3 className="text-center text-sm">{t("paymentMethods")}</h3>
                 <div className="flex justify-center items-center gap-3 flex-wrap">
                   {loadingPayments ? (
@@ -8587,6 +8450,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                     {renderPaymentForm()}
                   </div>
                 )}
+                </PaymentCardFrame>
               </motion.div>
             ) : null}
           </AnimatePresence>
@@ -11204,6 +11068,7 @@ useEffect(() => {
   useLayoutEffect(() => {
     if (typeof document === "undefined") return
     if (!isOrganicBotanicalTheme) return
+    if (hasCheckoutThemeRoot()) return
 
     document.documentElement.setAttribute("data-pmd-organic-botanical-active", "1")
     document.body.setAttribute("data-pmd-organic-botanical-active", "1")
@@ -11350,6 +11215,7 @@ useEffect(() => {
   useLayoutEffect(() => {
     if (typeof document === "undefined") return
     if (!isOrganicBotanicalTheme) return
+    if (hasCheckoutThemeRoot()) return
 
     const parseMoney = (text: string | null | undefined) => {
       const raw = String(text || "").replace(/[^\d,.-]/g, "").replace(",", ".")
@@ -11425,6 +11291,7 @@ useEffect(() => {
   useLayoutEffect(() => {
     if (typeof document === "undefined") return
     if (!isOrganicBotanicalTheme) return
+    if (hasCheckoutThemeRoot()) return
 
     const GREEN = "#747d55"
     const GREEN_DARK = "#5f6746"
