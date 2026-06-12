@@ -12,9 +12,11 @@ export type TableOrderLikeInfo = {
 
 export type SubmittedTableOrderSnapshot = {
   orderId?: number | string | null
+  order_id?: number | string | null
   orderNumber?: number | string | null
   status?: string | null
   paymentStatus?: string | null
+  tableId?: string | number | null
   tableNumber?: string | number | null
   subtotal: number
   vatAmount: number
@@ -24,6 +26,7 @@ export type SubmittedTableOrderSnapshot = {
   settledAmount?: number
   remainingAmount: number
   settlementStatus?: string | null
+  settlement_status?: string | null
   submittedItems: NonNullable<TableOrderDraftResponse["items"]>
   payment?: string | null
 }
