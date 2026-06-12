@@ -417,7 +417,7 @@ export function ModernGreenCheckoutShell(props: ModernGreenCheckoutShellProps) {
   }
 
   return (
-    <div data-pmd-modern-green-checkout-shell="1" className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ background: "radial-gradient(circle at 82% 8%, rgba(6,62,43,.26) 0%, rgba(2,26,17,.13) 24%, rgba(0,4,3,.94) 54%, rgba(0,0,0,.98) 100%)" }}>
+    <div data-pmd-checkout-theme-root="1" data-pmd-checkout-theme="modern_green" data-pmd-modern-green-checkout-shell="1" className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ background: "radial-gradient(circle at 82% 8%, rgba(6,62,43,.26) 0%, rgba(2,26,17,.13) 24%, rgba(0,4,3,.94) 54%, rgba(0,0,0,.98) 100%)" }}>
         <style>{`
           [data-pmd-modern-green-checkout-shell="1"] {
             --mg-bg: #000000;

@@ -8,6 +8,7 @@ import { Session, PaymentRequest } from "onlinepayments-sdk-client-js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ThemedButton, ThemedInput } from "@/components/theme-ui"
 import { PaymentSecurity, PaymentData, PaymentResult } from "@/lib/payment-service"
 import { Lock, CreditCard, AlertCircle, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -53,6 +54,8 @@ export function StripeCardForm({
   const stripeCardWrapRef = useRef<HTMLDivElement | null>(null)
   const stripeFormRef = useRef<HTMLFormElement | null>(null)
 
+  const isInsideCheckoutThemeRoot = () => Boolean(stripeFormRef.current?.closest('[data-pmd-checkout-theme-root="1"]'))
+
   const fieldTheme = useMemo(() => {
     if (typeof window === "undefined") {
       return {
@@ -65,6 +68,40 @@ export function StripeCardForm({
     }
 
     try {
+      const checkoutTheme = document
+        .querySelector('[data-pmd-checkout-theme-root="1"]')
+        ?.getAttribute("data-pmd-checkout-theme")
+
+      if (checkoutTheme === "kazen_japanese" || checkoutTheme === "kazen-japanese") {
+        return {
+          text: "#242320",
+          muted: "rgba(36, 35, 32, 0.52)",
+          border: "rgba(35, 34, 31, 0.18)",
+          bg: "rgba(255, 255, 255, 0.24)",
+          label: "#242320",
+        }
+      }
+
+      if (checkoutTheme === "gold-luxury") {
+        return {
+          text: "#FFF8DC",
+          muted: "rgba(255, 248, 220, 0.58)",
+          border: "rgba(198, 164, 93, 0.38)",
+          bg: "rgba(255, 248, 220, 0.08)",
+          label: "#FFF8DC",
+        }
+      }
+
+      if (checkoutTheme === "modern_green" || checkoutTheme === "modern-green") {
+        return {
+          text: "#F5FFF8",
+          muted: "#92c7ac",
+          border: "rgba(38, 128, 88, 0.44)",
+          bg: "#010b07",
+          label: "#F5FFF8",
+        }
+      }
+
       const bodyBg = window.getComputedStyle(document.body).backgroundColor || ""
       const m = bodyBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i)
       const r = m ? Number(m[1]) : 255
@@ -392,6 +429,8 @@ export function StripeCardForm({
   }
 
   useLayoutEffect(() => {
+    if (isInsideCheckoutThemeRoot()) return
+
     applyForcedStripeFieldStyles()
     cleanupStripeDuplicateFooter()
 
@@ -432,6 +471,8 @@ export function StripeCardForm({
 
 
   useEffect(() => {
+    if (isInsideCheckoutThemeRoot()) return
+
     const el = stripeSubmitButtonRef.current
     if (!el) return
 
@@ -563,97 +604,55 @@ export function StripeCardForm({
     <form ref={stripeFormRef} data-pmd-stripe-form="1" onSubmit={handleSubmit} className={cn("space-y-4 bg-transparent w-full", className)}>
       <div className="space-y-3">
         <div>
-          <Label htmlFor="cardholderName" className="text-sm font-medium" style={{ color: fieldTheme.label }}>
+          <Label htmlFor="cardholderName" className="pmd-themed-label text-sm font-medium">
             Cardholder Name
           </Label>
-          <Input
+          <ThemedInput
             id="cardholderName"
             ref={cardholderInputRef}
             type="text"
             placeholder="John Doe"
             value={formData.cardholderName}
             onChange={(e) => setFormData(prev => ({ ...prev, cardholderName: e.target.value }))}
-            className="mt-1 rounded-2xl"
-            style={{
-              background: fieldTheme.bg,
-              color: fieldTheme.text,
-              borderColor: fieldTheme.border,
-            }}
-            style={{
-              background: fieldTheme.bg,
-              color: fieldTheme.text,
-              borderColor: fieldTheme.border,
-            }}
+            className="mt-1"
           />
         </div>
 
         <div>
-          <Label htmlFor="email" className="text-sm font-medium" style={{ color: fieldTheme.label }}>
+          <Label htmlFor="email" className="pmd-themed-label text-sm font-medium">
             Email Address
           </Label>
-          <Input
+          <ThemedInput
             id="email"
             ref={emailInputRef}
             type="email"
             placeholder="john@example.com"
             value={formData.email}
             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            className="mt-1 rounded-2xl"
-            style={{
-              background: fieldTheme.bg,
-              color: fieldTheme.text,
-              borderColor: fieldTheme.border,
-            }}
-            style={{
-              background: fieldTheme.bg,
-              color: fieldTheme.text,
-              borderColor: fieldTheme.border,
-            }}
+            className="mt-1"
           />
         </div>
 
         <div>
-          <Label htmlFor="phone" className="text-sm font-medium" style={{ color: fieldTheme.label }}>
+          <Label htmlFor="phone" className="pmd-themed-label text-sm font-medium">
             Phone Number (Optional)
           </Label>
-          <Input
+          <ThemedInput
             id="phone"
             ref={phoneInputRef}
             type="tel"
             placeholder="+1 (555) 123-4567"
             value={formData.phone}
             onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            className="mt-1 rounded-2xl"
-            style={{
-              background: fieldTheme.bg,
-              color: fieldTheme.text,
-              borderColor: fieldTheme.border,
-            }}
-            style={{
-              background: fieldTheme.bg,
-              color: fieldTheme.text,
-              borderColor: fieldTheme.border,
-            }}
+            className="mt-1"
           />
         </div>
 
         <div>
-          <Label className="text-sm font-medium" style={{ color: fieldTheme.label }}>
+          <Label className="pmd-themed-label text-sm font-medium">
             Card Information
           </Label>
-          <div ref={stripeCardWrapRef} className="mt-1 p-3 border rounded-2xl w-full" style={{
-              background: fieldTheme.bg,
-              borderColor: fieldTheme.border,
-              boxSizing: "border-box",
-              height: "54px",
-              minHeight: "54px",
-              maxHeight: "54px",
-              padding: "0 18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}>
+          <div ref={stripeCardWrapRef} className="pmd-stripe-card-frame mt-1">
             <CardElement
               options={{
                 style: {
@@ -685,97 +684,26 @@ export function StripeCardForm({
       {footerSlot ? <div className="pt-3 pb-2 flex items-center gap-2">{footerSlot}</div> : null}
 
 
-      <button
+      <ThemedButton
         type="submit"
         disabled={!stripe || isProcessing}
         data-pmd-stripe-native-button="1"
         ref={stripeSubmitButtonRef}
-        style={{
-          width: "100%",
-          minWidth: "100%",
-          maxWidth: "100%",
-          height: "54px",
-          borderRadius: "9999px",
-          border: "0",
-          outline: "none",
-          appearance: "none",
-          WebkitAppearance: "none",
-          background: "transparent",
-          backgroundColor: "transparent",
-          backgroundImage: "none",
-          boxShadow: "none",
-          padding: "0 18px",
-          margin: "0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          overflow: "hidden",
-          isolation: "isolate",
-          cursor: (!stripe || isProcessing) ? "not-allowed" : "pointer",
-          opacity: (!stripe || isProcessing) ? 0.6 : 1,
-        }}
+        variant="primary"
+        fullWidth
       >
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 0,
-            borderRadius: "9999px",
-            background: "linear-gradient(135deg, #063F2F 0%, #062F2A 100%)",
-            boxShadow: "0 8px 22px rgba(6, 47, 42, 0.24)",
-            pointerEvents: "none",
-          }}
-        />
         {isProcessing ? (
-          <span
-            style={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              color: "#FFFFFF",
-              fontSize: "16px",
-              fontWeight: 700,
-              width: "100%",
-            }}
-          >
-            <span
-              className="animate-spin"
-              style={{
-                width: "16px",
-                height: "16px",
-                border: "2px solid rgba(255,255,255,0.35)",
-                borderTopColor: "#FFFFFF",
-                borderRadius: "9999px",
-                flex: "0 0 auto",
-              }}
-            />
-            <span style={{ color: "#FFFFFF", fontWeight: 700 }}>Processing...</span>
+          <span className="flex w-full items-center justify-center gap-2">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/35 border-t-current" />
+            <span>Processing...</span>
           </span>
         ) : (
-          <span
-            style={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              color: "#FFFFFF",
-              fontSize: "16px",
-              fontWeight: 700,
-              width: "100%",
-            }}
-          >
-            <Lock className="h-4 w-4" style={{ color: "#FFFFFF", flex: "0 0 auto" }} />
-            <span style={{ color: "#FFFFFF", fontWeight: 700 }}>Pay</span>
+          <span className="flex w-full items-center justify-center gap-2">
+            <Lock className="h-4 w-4 flex-none" />
+            <span>Pay</span>
           </span>
         )}
-      </button>
+      </ThemedButton>
     </form>
   )
 }
