@@ -47,7 +47,10 @@ export function StripeCardForm({
     phone: "",
   })
   const isSubmittingRef = useRef(false)
+  const cardMountedRef = useRef(false)
+  const [cardMounted, setCardMounted] = useState(false)
   const [cardReady, setCardReady] = useState(false)
+  const [cardComplete, setCardComplete] = useState(false)
 
   const fieldTheme = useMemo(() => {
     if (typeof window === "undefined") {
@@ -103,9 +106,24 @@ export function StripeCardForm({
     },
   }), [fieldTheme])
 
-  const canSubmitCardPayment = Boolean(stripe && elements && cardReady && !isProcessing)
+  const canSubmitCardPayment = Boolean(
+    stripe &&
+    elements &&
+    cardMounted &&
+    cardReady &&
+    cardComplete &&
+    !isProcessing &&
+    !isSubmittingRef.current,
+  )
+
+  useEffect(() => {
+    return () => {
+      cardMountedRef.current = false
+    }
+  }, [])
 
   const handleCardChange = (event: any) => {
+    setCardComplete(Boolean(event?.complete))
     setCardError(event.error ? event.error.message : null)
   }
 
@@ -128,7 +146,7 @@ export function StripeCardForm({
     }
 
     const cardElement = elements.getElement(CardElement)
-    if (!cardElement || !cardReady) {
+    if (!cardElement || !cardReady || !cardMountedRef.current) {
       const msg = "Secure card field is not ready yet. Please wait a moment and try again."
       setCardError(msg)
       onPaymentError(msg)
@@ -264,6 +282,8 @@ export function StripeCardForm({
             <CardElement
               options={cardElementOptions}
               onReady={() => {
+                cardMountedRef.current = true
+                setCardMounted(true)
                 setCardReady(true)
                 setCardError(null)
               }}

@@ -1,15 +1,17 @@
 "use client"
 
 import { Elements } from "@stripe/react-stripe-js"
+import type { Stripe } from "@stripe/stripe-js"
 import { AlertCircle } from "lucide-react"
 import { StripeCardForm } from "@/components/payment/secure-payment-form"
+import type { PaymentData, PaymentResult } from "@/lib/payment-service"
 
 type StripeCardPaymentSectionProps = {
   methodName?: string | null
   stripeConfigError?: string | null
-  stripePromise: PromiseLike<unknown> | null
+  stripePromise: PromiseLike<Stripe | null> | null
   cardEnabled: boolean
-  paymentData: unknown
+  paymentData: PaymentData
   onPaymentSuccess: (transactionId: string) => void
   onPaymentError: (message: string) => void
 }
@@ -42,10 +44,10 @@ export function StripeCardPaymentSection({
       )}
 
       {cardEnabled && stripePromise && (
-        <Elements stripe={stripePromise as any}>
+        <Elements stripe={stripePromise}>
           <StripeCardForm
-            paymentData={paymentData as any}
-            onPaymentComplete={(result: any) => {
+            paymentData={paymentData}
+            onPaymentComplete={(result: PaymentResult) => {
               if (result?.success && result?.transactionId) {
                 onPaymentSuccess(result.transactionId)
               }
