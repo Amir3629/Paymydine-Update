@@ -22,7 +22,7 @@ export type UseThemeMenuActionsInput = {
   language?: string
 }
 
-export function useThemeMenuActions({
+export function useCustomerThemeActions({
   addToCart,
   handleFirstAdd,
   handleCartClick,
