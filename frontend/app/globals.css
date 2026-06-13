@@ -17119,3 +17119,259 @@ html body [data-pmd-kazen-checkout-shell="1"] form[data-pmd-stripe-form="1"] inp
 [data-pmd-checkout-theme-root="1"] [data-pmd-payment-method-tile="1"] {
   transform: none !important;
 }
+
+
+/* PMD_FIX_KAZEN_EMPTY_MENU_ROWS_20260612
+   Some Kazen menu rows had real DOM content but looked empty because the old
+   header-control button used inline display: contents. Force a real row layout. */
+.kazen-item {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 104px !important;
+  overflow: visible !important;
+}
+
+.kazen-item > button[data-pmd-kazen-old-header-control="1"] {
+  display: grid !important;
+  grid-template-columns: 72px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 16px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #242320 !important;
+}
+
+.kazen-item .kazen-item-image {
+  display: block !important;
+  width: 72px !important;
+  height: 72px !important;
+  min-width: 72px !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.kazen-item .kazen-item-name,
+.kazen-item .kazen-item-description,
+.kazen-item .kazen-item-price {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  min-width: 0 !important;
+}
+
+.kazen-item .kazen-item-name {
+  color: #242320 !important;
+  font-weight: 700 !important;
+}
+
+.kazen-item .kazen-item-description {
+  color: rgba(36, 35, 32, 0.68) !important;
+}
+
+.kazen-item .kazen-item-price {
+  color: #b16461 !important;
+  font-weight: 700 !important;
+}
+
+.kazen-item .kazen-add {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+
+/* PMD_FIX_KAZEN_CLIPPED_LAST_ITEM_20260612
+   Fix half-visible food item frame at the end of the ALL section.
+   The item exists in DOM, but a parent menu/category wrapper clips the content. */
+.kazen-menu,
+.kazen-menu-list,
+.kazen-category,
+.kazen-category-panel,
+.kazen-category-content,
+.kazen-category-items,
+.kazen-items,
+.kazen-section,
+.kazen-section-content {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.kazen-category-content[hidden],
+.kazen-category-items[hidden],
+.kazen-section-content[hidden] {
+  display: none !important;
+}
+
+/* Give the opened menu list enough breathing room before the next category title. */
+.kazen-item:last-child {
+  margin-bottom: 18px !important;
+}
+
+/* Prevent tiny clipped ghost frames when an item is not supposed to be visible. */
+.kazen-item:empty {
+  display: none !important;
+}
+
+/* Keep every visible Kazen item fully rendered. */
+.kazen-item {
+  min-height: 104px !important;
+  height: auto !important;
+  contain: none !important;
+}
+
+
+/* PMD_FIX_KAZEN_BAD_MARKER_AND_LAST_ITEM_CSS_20260612
+   Food rows must never be treated like old Kazen header controls.
+   Also prevents the last item in ALL from appearing as a tiny clipped frame. */
+.kazen-page .kazen-shell,
+.kazen-page .kazen-menu,
+.kazen-page .kazen-menu-list,
+.kazen-page .kazen-items,
+.kazen-page .kazen-category,
+.kazen-page .kazen-category-panel,
+.kazen-page .kazen-category-content,
+.kazen-page .kazen-category-items,
+.kazen-page .kazen-section,
+.kazen-page .kazen-section-content {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+  contain: none !important;
+}
+
+.kazen-page .overflow-hidden:not(.kazen-modal):not(.kazen-modal-card):not(.kazen-solid-modal-overlay):not(.kazen-solid-modal-panel):not(.pmd-checkout-modal):not([data-pmd-checkout-theme-root="1"]) {
+  overflow: visible !important;
+}
+
+.kazen-page .kazen-items {
+  display: grid !important;
+  gap: 0.85rem !important;
+  padding-bottom: 2.25rem !important;
+}
+
+.kazen-page .kazen-items > .kazen-item,
+.kazen-page .kazen-item {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 104px !important;
+  height: auto !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.kazen-page .kazen-item > button:first-child,
+.kazen-page .kazen-item > button[data-pmd-kazen-old-header-control="1"] {
+  display: grid !important;
+  grid-template-columns: 72px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 16px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #242320 !important;
+}
+
+.kazen-page .kazen-item .kazen-item-image {
+  display: block !important;
+  width: 72px !important;
+  height: 72px !important;
+  min-width: 72px !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.kazen-page .kazen-item .kazen-item-name,
+.kazen-page .kazen-item .kazen-item-description,
+.kazen-page .kazen-item .kazen-item-price {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.kazen-page .kazen-item:last-child {
+  margin-bottom: 24px !important;
+}
+
+
+/* PMD_FIX_KAZEN_HAS_ITEM_OVERFLOW_WRAPPERS_20260612
+   Any visible wrapper that contains Kazen food items must not clip its children.
+   This fixes the half-visible next food row after the ALL section. */
+.kazen-page [class~="overflow-hidden"]:has(.kazen-item),
+.kazen-page [style*="overflow"]:has(.kazen-item),
+.kazen-page [style*="max-height"]:has(.kazen-item),
+.kazen-page [style*="height"]:has(.kazen-item) {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+  contain: none !important;
+}
+
+.kazen-page .kazen-items:has(.kazen-item),
+.kazen-page .kazen-menu-list:has(.kazen-item),
+.kazen-page .kazen-category-content:has(.kazen-item),
+.kazen-page .kazen-category-items:has(.kazen-item),
+.kazen-page .kazen-section-content:has(.kazen-item) {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+  padding-bottom: 2rem !important;
+  contain: none !important;
+}
+
+
+/* PMD_FIX_KAZEN_EMPTY_TAIL_STRIP_AFTER_ITEMS_20260612
+   Remove the small empty frame/strip after the last visible Kazen food item. */
+.kazen-page .kazen-items,
+.kazen-page .kazen-menu-list:has(.kazen-item),
+.kazen-page .kazen-category-content:has(.kazen-item),
+.kazen-page .kazen-category-items:has(.kazen-item),
+.kazen-page .kazen-section-content:has(.kazen-item) {
+  padding-bottom: 0 !important;
+}
+
+.kazen-page .kazen-item:last-child {
+  margin-bottom: 0 !important;
+}
+
+.kazen-page .kazen-items::after,
+.kazen-page .kazen-menu-list::after,
+.kazen-page .kazen-category-content::after,
+.kazen-page .kazen-category-items::after,
+.kazen-page .kazen-section-content::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Hide real ghost/blank item wrappers, but keep real food rows. */
+.kazen-page .kazen-item:not(:has(.kazen-item-name)) {
+  display: none !important;
+}
+
+/* Put spacing outside the item list, not as an empty bordered area inside it. */
+.kazen-page .kazen-items:has(.kazen-item) {
+  margin-bottom: 22px !important;
+}
+
+
+/* PMD_HIDE_KAZEN_CALL_BUTTON_20260613
+   Remove the old Kazen “Call to order” CTA from this theme. */
+.kazen-call {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

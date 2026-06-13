@@ -71,7 +71,7 @@ const sampleItems: KazenItem[] = [
 const defaultState: KazenState = {
   restaurantName: "Kazen",
   tableNumber: null,
-  categories: [ALL_CATEGORY, "Omakase", "Sushi", "Grill", "Desserts"],
+  categories: [ALL_CATEGORY],
   items: sampleItems,
   cart: { count: 0, total: 0, lines: [] },
 }
@@ -89,7 +89,7 @@ function post(type: string, payload: Record<string, unknown> = {}) {
   window.parent?.postMessage({ type, ...payload }, window.location.origin)
 }
 
-function normalizeCategories(items: KazenItem[], rawCategories: string[]) {
+function pmdKazenNormalizeCategoriesBase(items: KazenItem[], rawCategories: string[]) {
   const fromItems = items.map((item) => item.category).filter(Boolean)
   const seen = new Set<string>()
   const result: string[] = []
@@ -113,6 +113,122 @@ function normalizeCategories(items: KazenItem[], rawCategories: string[]) {
 
   return result.length ? result : defaultState.categories
 }
+
+// PMD_FIX_KAZEN_NORMALIZE_CATEGORIES_STABLE_WRAP_20260613
+// Later iframe sync/scroll refreshes must never shrink the Kazen category list.
+// The first full real restaurant category list wins; later updates may add categories only.
+let pmdKazenStableCategoryCache: string[] = []
+
+function pmdKazenStableCategoryKey(value: unknown) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
+}
+
+// PMD_FIX_KAZEN_CATEGORY_ORDER_HARD_20260613
+
+function pmdKazenKnownCategoryRank(value: unknown) {
+  const order = [
+    "all",
+    "appetizer",
+    "breakfast & brunch",
+    "test",
+    "appetizers",
+    "specials",
+    "desserts",
+    "main course",
+    "drinks",
+  ]
+
+  const key = String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
+  const index = order.indexOf(key)
+  return index >= 0 ? index : 1000
+}
+
+// PMD_FIX_KAZEN_FORCE_EXPECTED_CATEGORIES_20260613
+function pmdKazenExpectedCategoryLabels() {
+  // PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
+  // No hardcoded Kazen categories. Categories must come from backend/admin only.
+  return [] as string[]
+}
+
+function pmdKazenSortKnownCategories(categories: string[]) {
+  // PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
+  // Preserve backend/admin order. Do not force Japanese demo categories.
+  const incoming = Array.isArray(categories)
+    ? categories.map((cat) => String(cat || "").trim()).filter(Boolean)
+    : []
+
+  const demoFallbackKeys = new Set(["omakase", "sushi", "grill"])
+  const hasRealBackendCategories = incoming.some((cat) => {
+    const key = pmdKazenStableCategoryKey(cat)
+    return key && key !== "all" && !demoFallbackKeys.has(key)
+  })
+
+  const seen = new Set<string>()
+  const next: string[] = []
+
+  incoming.forEach((cat) => {
+    const label = String(cat || "").trim()
+    const key = pmdKazenStableCategoryKey(label)
+    if (!key || seen.has(key)) return
+
+    // When real backend categories exist, never keep demo fallback labels.
+    if (hasRealBackendCategories && demoFallbackKeys.has(key)) return
+
+    seen.add(key)
+    next.push(label)
+  })
+
+  return next
+}
+
+
+function normalizeCategories(...args: Parameters<typeof pmdKazenNormalizeCategoriesBase>) {
+  const baseCategories = pmdKazenNormalizeCategoriesBase(...args)
+  const items = Array.isArray(args[0]) ? args[0] : []
+  const rawCategories = Array.isArray(args[1]) ? args[1] : []
+
+  const itemCategories = items
+    .map((item: any) => String(item?.category || item?.category_name || item?.menu_category || "").trim())
+    .filter(Boolean)
+
+  const incoming = [
+    ...baseCategories,
+    ...rawCategories.map((value: any) => String(value || "").trim()).filter(Boolean),
+    ...itemCategories,
+  ]
+
+  const demoOnly = new Set(["omakase", "sushi", "grill"])
+  const hasRealCategories = incoming.some((cat) => {
+    const key = pmdKazenStableCategoryKey(cat)
+    return key && key !== "all" && !demoOnly.has(key)
+  })
+
+  const previous = hasRealCategories
+    ? pmdKazenStableCategoryCache.filter((cat) => {
+        const key = pmdKazenStableCategoryKey(cat)
+        return key === "all" || !demoOnly.has(key)
+      })
+    : pmdKazenStableCategoryCache
+
+  const merged = [...previous, ...incoming]
+  const seen = new Set<string>()
+  const next: string[] = []
+
+  merged.forEach((cat) => {
+    const label = String(cat || "").trim()
+    const key = pmdKazenStableCategoryKey(label)
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    next.push(label)
+  })
+
+  if (next.length >= pmdKazenStableCategoryCache.length) {
+    pmdKazenStableCategoryCache = pmdKazenSortKnownCategories(next)
+  }
+
+  return pmdKazenSortKnownCategories(pmdKazenStableCategoryCache.length ? pmdKazenStableCategoryCache : next)
+}
+
 
 function resolveMediaUrl(raw: any): string {
   let value = raw
@@ -397,6 +513,139 @@ function pmdInstallKazenFinalDarkMode() {
 
       html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-paymydine-footer-logo-text {
         display: none !important;
+      }
+
+
+
+      /* PMD_FIX_KAZEN_WAITER_NOTE_CHECKOUT_DARK_CARDS_20260612
+         Force waiter, note and checkout action cards/modals to follow Kazen dark mode. */
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock {
+        background:
+          linear-gradient(180deg, rgba(13, 10, 7, .98), rgba(4, 3, 2, .98)) !important;
+        border-color: rgba(198, 164, 93, .42) !important;
+        box-shadow:
+          0 -18px 54px rgba(0, 0, 0, .72),
+          inset 0 1px 0 rgba(255, 240, 204, .08) !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button {
+        background:
+          linear-gradient(180deg, rgba(22, 17, 11, .96), rgba(8, 6, 4, .96)) !important;
+        border: 1px solid rgba(198, 164, 93, .38) !important;
+        color: #f6e8c8 !important;
+        -webkit-text-fill-color: #f6e8c8 !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 204, .08),
+          0 10px 26px rgba(0,0,0,.34) !important;
+        opacity: 1 !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button *,
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button svg,
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button path,
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button line,
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button rect,
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button circle {
+        color: #f6e8c8 !important;
+        stroke: #f6e8c8 !important;
+        -webkit-text-fill-color: #f6e8c8 !important;
+        opacity: 1 !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button[data-primary="true"],
+      html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-dock button[data-primary="true"] * {
+        background:
+          linear-gradient(180deg, rgba(223, 104, 93, .16), rgba(72, 23, 18, .24)) !important;
+        border-color: rgba(223, 104, 93, .64) !important;
+        color: #df685d !important;
+        stroke: #df685d !important;
+        -webkit-text-fill-color: #df685d !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay {
+        background: rgba(2, 2, 2, .76) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-panel,
+      html[data-pmd-kazen-mode="dark"] body [data-kazen-solid-panel="1"] {
+        background:
+          radial-gradient(circle at 85% 0%, rgba(111, 34, 26, .20), transparent 28%),
+          linear-gradient(180deg, #14100b 0%, #090705 100%) !important;
+        background-color: #090705 !important;
+        border: 1px solid rgba(198, 164, 93, .42) !important;
+        color: #f6e8c8 !important;
+        box-shadow:
+          0 32px 90px rgba(0,0,0,.78),
+          inset 0 1px 0 rgba(255, 240, 204, .08) !important;
+        opacity: 1 !important;
+        filter: none !important;
+        mix-blend-mode: normal !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-sheet {
+        background:
+          linear-gradient(180deg, rgba(255, 240, 204, .05), rgba(198, 164, 93, .03)) !important;
+        border-color: rgba(198, 164, 93, .24) !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-head {
+        color: #f6e8c8 !important;
+        -webkit-text-fill-color: initial !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-head h2,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-head h3,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content label,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content p,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content span {
+        color: #f6e8c8 !important;
+        -webkit-text-fill-color: #f6e8c8 !important;
+        opacity: 1 !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-eyebrow {
+        color: #df685d !important;
+        -webkit-text-fill-color: #df685d !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-close,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content button,
+      html[data-pmd-kazen-mode="dark"] body .kazen-primary,
+      html[data-pmd-kazen-mode="dark"] body .kazen-secondary {
+        background: rgba(12, 9, 6, .92) !important;
+        border: 1px solid rgba(198, 164, 93, .40) !important;
+        color: #f6e8c8 !important;
+        -webkit-text-fill-color: #f6e8c8 !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-close svg,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-close path,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-close line,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content button svg,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content button path,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content button line {
+        color: #f6e8c8 !important;
+        stroke: #f6e8c8 !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content input,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content textarea,
+      html[data-pmd-kazen-mode="dark"] body .kazen-field {
+        background: rgba(5, 4, 3, .88) !important;
+        border: 1px solid rgba(198, 164, 93, .34) !important;
+        color: #f6e8c8 !important;
+        -webkit-text-fill-color: #f6e8c8 !important;
+        caret-color: #df685d !important;
+      }
+
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content input::placeholder,
+      html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-content textarea::placeholder {
+        color: rgba(246, 232, 200, .56) !important;
+        -webkit-text-fill-color: rgba(246, 232, 200, .56) !important;
       }
 
       [data-pmd-kazen-dark-toggle] {
@@ -812,7 +1061,7 @@ function pmdInstallKazenPremiumMotion() {
       }
 
       .kazen-category {
-        overflow: hidden;
+        overflow: visible;
       }
 
       .kazen-category.is-open {
@@ -852,7 +1101,10 @@ function pmdInstallKazenPremiumMotion() {
       }
 
       .kazen-accordion.is-open {
-        max-height: calc(9.3rem * var(--kazen-item-count, 6) + 8rem);
+        /* PMD_FIX_KAZEN_IFRAME_ACCORDION_ALL_ITEMS_20260612 */
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
         opacity: 1;
         transform: translate3d(0, 0, 0);
         pointer-events: auto;
@@ -1059,7 +1311,10 @@ export default function KazenJapaneseThemePage() {
         },
       })
 
-      if (openCategory && !categories.includes(openCategory)) {
+      if (
+        openCategory &&
+        !categories.some((category) => pmdKazenStableCategoryKey(category) === pmdKazenStableCategoryKey(openCategory))
+      ) {
         setOpenCategory("")
       }
     }
@@ -1081,20 +1336,138 @@ export default function KazenJapaneseThemePage() {
 
   const itemsByCategory = useMemo(() => {
     const map = new Map<string, KazenItem[]>()
-    categories.forEach((category) => map.set(category, []))
+    categories.forEach((category) => map.set(pmdKazenStableCategoryKey(category), []))
 
     state.items.forEach((item) => {
-      const key = item.category || "Menu"
+      const key = pmdKazenStableCategoryKey(item.category || "Menu")
       if (!map.has(key)) map.set(key, [])
       map.get(key)?.push(item)
     })
 
-    map.set(ALL_CATEGORY, state.items)
+    map.set(pmdKazenStableCategoryKey(ALL_CATEGORY), state.items)
     return map
   }, [categories, state.items])
 
   const tableLabel = state.tableNumber && /\d/.test(String(state.tableNumber)) ? `Table ${String(state.tableNumber).match(/\d+/)?.[0]}` : "Table"
   const cartLines = Array.isArray(state.cart.lines) ? state.cart.lines : []
+
+
+  // PMD_FIX_KAZEN_CATEGORY_HEADER_VISIBILITY_WATCHDOG_20260613
+  // DOM/style safety only: keep category HEADER rows visible after scroll/sync.
+  // It does NOT force accordion content open.
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return
+
+    let cancelled = false
+    let raf = 0
+
+    const keepHeadersVisible = () => {
+      if (cancelled) return
+
+      document.querySelectorAll<HTMLElement>(".kazen-category").forEach((category) => {
+        const button = category.querySelector<HTMLElement>(".kazen-category-btn")
+        const title = category.querySelector<HTMLElement>(".kazen-category-title")
+        const icon = category.querySelector<HTMLElement>(".kazen-category-icon-shell")
+        const accordion = category.querySelector<HTMLElement>(".kazen-accordion")
+
+        category.style.setProperty("display", "block", "important")
+        category.style.setProperty("visibility", "visible", "important")
+        category.style.setProperty("opacity", "1", "important")
+        category.style.setProperty("height", "auto", "important")
+        category.style.setProperty("min-height", "4.55rem", "important")
+        category.style.setProperty("max-height", "none", "important")
+        category.style.setProperty("overflow", "visible", "important")
+        category.style.setProperty("position", "relative", "important")
+        category.style.setProperty("clip", "auto", "important")
+        category.style.setProperty("clip-path", "none", "important")
+        category.removeAttribute("hidden")
+        category.removeAttribute("aria-hidden")
+
+        if (button) {
+          button.style.setProperty("display", "grid", "important")
+          button.style.setProperty("grid-template-columns", "1fr auto", "important")
+          button.style.setProperty("align-items", "center", "important")
+          button.style.setProperty("visibility", "visible", "important")
+          button.style.setProperty("opacity", "1", "important")
+          button.style.setProperty("height", "auto", "important")
+          button.style.setProperty("min-height", "4.55rem", "important")
+          button.style.setProperty("max-height", "none", "important")
+          button.style.setProperty("overflow", "visible", "important")
+          button.style.setProperty("pointer-events", "auto", "important")
+          button.style.setProperty("clip", "auto", "important")
+          button.style.setProperty("clip-path", "none", "important")
+          button.removeAttribute("hidden")
+          button.removeAttribute("aria-hidden")
+        }
+
+        if (title) {
+          title.style.setProperty("display", "inline", "important")
+          title.style.setProperty("visibility", "visible", "important")
+          title.style.setProperty("opacity", "1", "important")
+          title.style.setProperty("overflow", "visible", "important")
+          title.style.setProperty("clip", "auto", "important")
+          title.style.setProperty("clip-path", "none", "important")
+          title.style.setProperty("white-space", "normal", "important")
+          title.removeAttribute("hidden")
+          title.removeAttribute("aria-hidden")
+        }
+
+        if (icon) {
+          icon.style.setProperty("display", "inline-flex", "important")
+          icon.style.setProperty("visibility", "visible", "important")
+          icon.style.setProperty("opacity", "1", "important")
+        }
+
+        // Keep accordion behavior controlled by React class only.
+        if (accordion && !category.classList.contains("is-open")) {
+          accordion.style.setProperty("max-height", "0", "important")
+          accordion.style.setProperty("overflow", "hidden", "important")
+          accordion.style.setProperty("opacity", "0", "important")
+          accordion.style.setProperty("pointer-events", "none", "important")
+        }
+
+        if (accordion && category.classList.contains("is-open")) {
+          accordion.style.setProperty("max-height", "none", "important")
+          accordion.style.setProperty("height", "auto", "important")
+          accordion.style.setProperty("overflow", "visible", "important")
+          accordion.style.setProperty("opacity", "1", "important")
+          accordion.style.setProperty("pointer-events", "auto", "important")
+        }
+      })
+    }
+
+    const schedule = () => {
+      window.cancelAnimationFrame(raf)
+      raf = window.requestAnimationFrame(keepHeadersVisible)
+    }
+
+    keepHeadersVisible()
+
+    const timers = [0, 50, 150, 350, 700, 1200, 2000].map((ms) =>
+      window.setTimeout(keepHeadersVisible, ms)
+    )
+
+    window.addEventListener("scroll", schedule, true)
+    window.addEventListener("resize", schedule)
+
+    const observer = new MutationObserver(schedule)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "hidden", "aria-hidden", "aria-expanded"],
+    })
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(raf)
+      timers.forEach((timer) => window.clearTimeout(timer))
+      window.removeEventListener("scroll", schedule, true)
+      window.removeEventListener("resize", schedule)
+      observer.disconnect()
+    }
+  }, [categories.length, openCategory])
+
 
   const openItem = (item: KazenItem) => {
     setSelectedItem(item)
@@ -2550,6 +2923,79 @@ export default function KazenJapaneseThemePage() {
           display: none !important;
         }
 
+
+
+        /* PMD_FIX_KAZEN_IFRAME_ACCORDION_ALL_ITEMS_20260612_FINAL_OVERRIDE */
+        .kazen-category.is-open,
+        .kazen-category.is-open .kazen-accordion,
+        .kazen-category.is-open .kazen-items {
+          max-height: none !important;
+          height: auto !important;
+          overflow: visible !important;
+          contain: none !important;
+        }
+
+        .kazen-category.is-open .kazen-items {
+          padding-bottom: 0 !important;
+          margin-bottom: 1.35rem !important;
+        }
+
+
+        /* PMD_FIX_KAZEN_MOBILE_DOCK_SAFE_AREA_20260613
+           iPhone/Safari fix: keep bottom action bar above home indicator and clickable. */
+
+        .kazen-page {
+          padding-bottom: calc(7.8rem + env(safe-area-inset-bottom, 0px)) !important;
+        }
+
+        .kazen-page .kazen-dock,
+        .kazen-page .kazen-bottom,
+        .kazen-page .kazen-actions,
+        .kazen-page footer {
+          bottom: calc(.85rem + env(safe-area-inset-bottom, 0px)) !important;
+          z-index: 9999 !important;
+          pointer-events: auto !important;
+          transform: translateZ(0) !important;
+          -webkit-transform: translateZ(0) !important;
+        }
+
+        .kazen-page .kazen-dock button,
+        .kazen-page .kazen-bottom button,
+        .kazen-page .kazen-actions button,
+        .kazen-page footer button {
+          pointer-events: auto !important;
+          touch-action: manipulation !important;
+          -webkit-tap-highlight-color: rgba(198, 93, 87, .16) !important;
+        }
+
+        @supports (padding: max(0px)) {
+          .kazen-page {
+            padding-bottom: max(7.8rem, calc(7.8rem + env(safe-area-inset-bottom))) !important;
+          }
+
+          .kazen-page .kazen-dock,
+          .kazen-page .kazen-bottom,
+          .kazen-page .kazen-actions,
+          .kazen-page footer {
+            bottom: max(.85rem, calc(.85rem + env(safe-area-inset-bottom))) !important;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .kazen-page {
+            padding-bottom: calc(8.6rem + env(safe-area-inset-bottom, 0px)) !important;
+          }
+
+          .kazen-page .kazen-dock,
+          .kazen-page .kazen-bottom,
+          .kazen-page .kazen-actions,
+          .kazen-page footer {
+            bottom: calc(1.05rem + env(safe-area-inset-bottom, 0px)) !important;
+            left: .55rem !important;
+            right: .55rem !important;
+          }
+        }
+
       `}</style>
 
       <div className="kazen-shell">
@@ -2597,12 +3043,13 @@ export default function KazenJapaneseThemePage() {
 
         <section className="mt-9" aria-label="Menu categories">
           {categories.map((category, index) => {
-            const open = openCategory === category
-            const categoryItems = category === ALL_CATEGORY ? state.items : itemsByCategory.get(category) || []
+            const categoryKey = pmdKazenStableCategoryKey(category)
+            const open = pmdKazenStableCategoryKey(openCategory) === categoryKey
+            const categoryItems = categoryKey === pmdKazenStableCategoryKey(ALL_CATEGORY) ? state.items : itemsByCategory.get(categoryKey) || []
 
             return (
-              <article key={category} className={`kazen-category ${open ? "is-open" : "is-closed"}`}>
-                <button type="button" className="kazen-category-btn" aria-expanded={open} onClick={() => setOpenCategory(open ? "" : category)}>
+              <article key={categoryKey || category} className={`kazen-category ${open ? "is-open" : "is-closed"}`}>
+                <button type="button" className="kazen-category-btn" aria-expanded={open} onClick={() => setOpenCategory(open ? "" : categoryKey)}>
                   <span className="kazen-category-label">
                     <span className="kazen-category-icon-shell" aria-hidden="true">
                       <img src={kazenCategoryIcon(index)} alt="" className="kazen-category-icon" />
@@ -2802,3 +3249,13 @@ export default function KazenJapaneseThemePage() {
     </main>
   )
 }
+
+// PMD_FIX_KAZEN_CATEGORY_ORDER_HARD_20260613
+
+// PMD_FIX_KAZEN_CATEGORY_NORMALIZED_KEYS_20260613
+
+// PMD_FIX_KAZEN_CATEGORY_HEADER_VISIBILITY_WATCHDOG_20260613
+
+// PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
+
+// PMD_FIX_KAZEN_MOBILE_DOCK_SAFE_AREA_20260613

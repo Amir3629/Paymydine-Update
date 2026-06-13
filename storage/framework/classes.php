@@ -174,4 +174,10 @@
   'Main\\Classes\\MediaLibrary' => 'app/main/classes/MediaLibrary.php',
   'Admin\\Models\\Menu_images_model' => 'app/admin/models/Menu_images_model.php',
   'Admin\\Models\\Menu_options_model' => 'app/admin/models/Menu_options_model.php',
+  'Admin\\Controllers\\tables' => 'app/admin/controllers/Tables.php',
+  'Admin\\Models\\Tables_model' => 'app/admin/models/Tables_model.php',
+  'Admin\\Controllers\\SuperAdminController' => 'app/admin/controllers/SuperAdminController.php',
+  'Admin\\Controllers\\categories' => 'app/admin/controllers/Categories.php',
+  'Admin\\Requests\\Category' => 'app/admin/requests/Category.php',
+  'Admin\\Requests\\Menu' => 'app/admin/requests/Menu.php',
 );

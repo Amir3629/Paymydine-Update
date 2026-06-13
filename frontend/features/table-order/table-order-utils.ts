@@ -21,11 +21,44 @@ export function hasTableOrderDraftContext(context: TableOrderContext | null | un
 }
 
 export function isVisibleTableOrderDraft(draft: TableOrderDraftResponse | null | undefined): draft is TableOrderDraftResponse {
-  return Boolean(draft?.success && draft.status && draft.status !== "empty")
+  if (!draft?.success || !draft.status) return false
+
+  // PMD_FIX_TABLE_ORDER_VISIBILITY_ACTIVE_ONLY_20260613
+  // Visible means: draft/submitted/unpaid table order only.
+  // Paid/completed/delivered/cancelled orders must not keep the Table Order icon alive.
+  const status = String((draft as any)?.status || "").toLowerCase()
+  const paymentStatus = String((draft as any)?.paymentStatus || (draft as any)?.payment_status || (draft as any)?.totals?.paymentStatus || "").toLowerCase()
+  const remainingRaw = Number(
+    (draft as any)?.remainingAmount ??
+    (draft as any)?.remaining_amount ??
+    (draft as any)?.totals?.remainingAmount ??
+    (draft as any)?.totals?.remaining_amount ??
+    Number.NaN
+  )
+
+  if (status === "empty") return false
+  if (["paid", "completed", "complete", "delivered", "cancelled", "canceled"].includes(status)) return false
+  if (["paid", "settled"].includes(paymentStatus)) return false
+  if (Number.isFinite(remainingRaw) && remainingRaw <= 0 && status !== "draft") return false
+
+  return true
 }
 
 export function tableOrderItemCount(draft: TableOrderDraftResponse | null | undefined): number {
   return Number(draft?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const amount = Number(value)
+  return Number.isFinite(amount) ? amount : fallback
+}
+
+function firstPositiveAmount(...values: unknown[]): number {
+  for (const value of values) {
+    const amount = toFiniteNumber(value, 0)
+    if (amount > 0) return amount
+  }
+  return 0
 }
 
 export function createSubmittedTableOrderSnapshot(
@@ -34,23 +67,37 @@ export function createSubmittedTableOrderSnapshot(
   fallbackVatPercentage = 0,
 ): SubmittedTableOrderSnapshot {
   const totals = draft.totals || { subtotal: 0, tax: 0, total: 0, orderTotal: 0, settledAmount: 0, remainingAmount: 0 }
-  const total = Number(totals.total ?? draft.total ?? 0)
+  const orderId = draft.order_id ?? draft.orderId ?? null
+  const submittedItems = Array.isArray(draft.items) ? draft.items : []
+  const itemSubtotal = submittedItems.reduce((sum, item: any) => {
+    const quantity = Math.max(1, toFiniteNumber(item?.quantity ?? item?.qty, 1))
+    const lineAmount = firstPositiveAmount(item?.subtotal, item?.line_total, item?.total)
+    if (lineAmount > 0) return sum + lineAmount
+    return sum + (toFiniteNumber(item?.price ?? item?.unit_price ?? item?.menu_price, 0) * quantity)
+  }, 0)
+  const orderTotal = firstPositiveAmount(totals.orderTotal, totals.total, draft.total, itemSubtotal)
+  const total = firstPositiveAmount(totals.total, draft.total, orderTotal)
+  const settledAmount = toFiniteNumber(totals.settledAmount ?? draft.settlement?.settledAmount, 0)
+  const remainingAmount = firstPositiveAmount(totals.remainingAmount, draft.settlement?.remainingAmount, total - settledAmount, orderTotal - settledAmount, total)
 
   return {
-    orderId: draft.order_id ?? draft.orderId ?? null,
+    orderId,
+    order_id: orderId,
     orderNumber: draft.orderNumber ?? draft.order_id ?? draft.orderId ?? null,
     status: draft.status || "submitted_unpaid",
-    paymentStatus: draft.status === "paid" ? "paid" : (draft.paymentStatus || "unpaid"),
-    tableNumber: draft.table_no || tableInfo?.table_no || null,
-    subtotal: Number(totals.subtotal ?? tableOrderTotalByCode(draft, "subtotal") ?? 0),
-    vatAmount: Number(totals.tax ?? tableOrderTotalByCode(draft, "tax") ?? 0),
+    paymentStatus: draft.status === "paid" ? "paid" : (draft.paymentStatus || draft.settlement?.settlementStatus || "unpaid"),
+    tableId: draft.table_id || tableInfo?.table_id || null,
+    tableNumber: draft.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
+    subtotal: firstPositiveAmount(totals.subtotal, tableOrderTotalByCode(draft, "subtotal"), itemSubtotal),
+    vatAmount: toFiniteNumber(totals.tax ?? tableOrderTotalByCode(draft, "tax"), 0),
     vatPercentage: tableOrderVatPercentage(draft, fallbackVatPercentage),
     total,
-    orderTotal: Number(totals.orderTotal ?? totals.total ?? draft.total ?? 0),
-    settledAmount: Number(totals.settledAmount ?? draft.settlement?.settledAmount ?? 0),
-    remainingAmount: Number(totals.remainingAmount || 0),
-    settlementStatus: draft.settlement?.settlementStatus || "unpaid",
-    submittedItems: draft.items || [],
+    orderTotal,
+    settledAmount,
+    remainingAmount,
+    settlementStatus: draft.settlement?.settlementStatus || draft.paymentStatus || "unpaid",
+    settlement_status: draft.settlement?.settlementStatus || draft.paymentStatus || "unpaid",
+    submittedItems,
     payment: draft.payment || "qr_pay_later",
-  }
+  } as SubmittedTableOrderSnapshot
 }

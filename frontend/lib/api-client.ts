@@ -994,7 +994,7 @@ export class ApiClient {
       tip_amount?: number | null;
       coupon_discount?: number | null;
       coupon_code?: string | null;
-      selected_items?: Array<{ order_menu_id: number; quantity: number }>;
+      selected_items?: Array<{ order_menu_id: number; quantity: number }> | null;
       payer_label?: string | null;
       table_id?: string | null;
       table_no?: string | null;
@@ -1016,7 +1016,7 @@ export class ApiClient {
         tip_amount: payload.tip_amount ?? 0,
         coupon_discount: payload.coupon_discount ?? 0,
         coupon_code: payload.coupon_code ?? null,
-        selected_items: payload.selected_items ?? [],
+        selected_items: payload.selected_items ?? null,
         payer_label: payload.payer_label ?? null,
         table_id: payload.table_id ?? null,
         table_no: payload.table_no ?? null,

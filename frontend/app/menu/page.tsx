@@ -650,6 +650,280 @@ function pmdForceKazenFrontendThemePayload(payload: any) {
 // Real split state inside PaymentModal still shadows this fallback.
 const MODERN_GREEN_THEME_KEY = "modern_green"
 const KAZEN_JAPANESE_THEME_KEY = "kazen_japanese"
+
+
+// PMD_FIX_KAZEN_PARENT_STABLE_CATEGORIES_20260613
+// Kazen iframe must receive the full admin category list.
+// Never let later cache refresh/scroll sync shrink categories.
+let pmdKazenParentStableCategories: string[] = []
+
+function pmdKazenParentCategoryKey(value: unknown) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
+}
+
+// PMD_FIX_KAZEN_CATEGORY_ORDER_HARD_20260613
+
+function pmdKazenKnownCategoryRank(value: unknown) {
+  const order = [
+    "all",
+    "appetizer",
+    "breakfast & brunch",
+    "test",
+    "appetizers",
+    "specials",
+    "desserts",
+    "main course",
+    "drinks",
+  ]
+
+  const key = String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
+  const index = order.indexOf(key)
+  return index >= 0 ? index : 1000
+}
+
+// PMD_FIX_KAZEN_FORCE_EXPECTED_CATEGORIES_20260613
+function pmdKazenExpectedCategoryLabels() {
+  // PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
+  // No hardcoded Kazen categories. Categories must come from backend/admin only.
+  return [] as string[]
+}
+
+function pmdKazenSortKnownCategories(categories: string[]) {
+  // PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
+  // Preserve backend/admin order. Do not force Japanese demo categories.
+  const incoming = Array.isArray(categories)
+    ? categories.map((cat) => String(cat || "").trim()).filter(Boolean)
+    : []
+
+  const demoFallbackKeys = new Set(["omakase", "sushi", "grill"])
+  const hasRealBackendCategories = incoming.some((cat) => {
+    const key = pmdKazenParentCategoryKey(cat)
+    return key && key !== "all" && !demoFallbackKeys.has(key)
+  })
+
+  const seen = new Set<string>()
+  const next: string[] = []
+
+  incoming.forEach((cat) => {
+    const label = String(cat || "").trim()
+    const key = pmdKazenParentCategoryKey(label)
+    if (!key || seen.has(key)) return
+
+    // When real backend categories exist, never keep demo fallback labels.
+    if (hasRealBackendCategories && demoFallbackKeys.has(key)) return
+
+    seen.add(key)
+    next.push(label)
+  })
+
+  return next
+}
+
+
+// PMD_FIX_KAZEN_PARENT_DEEP_CATEGORY_EXTRACT_20260613
+function pmdKazenCategoryLabelFromAny(value: any): string {
+  if (value == null) return ""
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value || "").trim()
+  }
+
+  if (typeof value === "object") {
+    const direct =
+      value.name ??
+      value.title ??
+      value.label ??
+      value.category ??
+      value.category_name ??
+      value.categoryName ??
+      value.menu_category ??
+      value.menuCategory ??
+      value.group ??
+      value.group_name ??
+      value.display_name ??
+      ""
+
+    if (direct && typeof direct !== "object") return String(direct).trim()
+
+    if (direct && typeof direct === "object") {
+      return pmdKazenCategoryLabelFromAny(direct)
+    }
+  }
+
+  return ""
+}
+
+function pmdKazenPushUniqueCategory(target: string[], value: any) {
+  const label = pmdKazenCategoryLabelFromAny(value)
+  if (!label || label === "[object Object]") return
+
+  const key = pmdKazenParentCategoryKey(label)
+  if (!key) return
+  if (target.some((existing) => pmdKazenParentCategoryKey(existing) === key)) return
+
+  target.push(label)
+}
+
+function pmdKazenExtractCategoryList(value: any): string[] {
+  const found: string[] = []
+
+  if (Array.isArray(value)) {
+    value.forEach((entry) => pmdKazenPushUniqueCategory(found, entry))
+  } else {
+    pmdKazenPushUniqueCategory(found, value)
+  }
+
+  return found
+}
+
+function pmdKazenExtractCategoriesFromItem(item: any): string[] {
+  const found: string[] = []
+  if (!item || typeof item !== "object") return found
+
+  const candidates = [
+    item.category,
+    item.category_name,
+    item.categoryName,
+    item.menu_category,
+    item.menuCategory,
+    item.category_title,
+    item.categoryTitle,
+    item.group,
+    item.group_name,
+    item.department,
+    item.section,
+    item.menu?.category,
+    item.menu?.category_name,
+    item.meta?.category,
+    item.metadata?.category,
+  ]
+
+  candidates.forEach((value) => {
+    pmdKazenExtractCategoryList(value).forEach((cat) => pmdKazenPushUniqueCategory(found, cat))
+  })
+
+  if (Array.isArray(item.categories)) {
+    item.categories.forEach((value: any) => {
+      pmdKazenExtractCategoryList(value).forEach((cat) => pmdKazenPushUniqueCategory(found, cat))
+    })
+  }
+
+  return found
+}
+
+function pmdKazenExtractCategoriesFromItems(items: unknown[]): string[] {
+  const found: string[] = []
+
+  if (!Array.isArray(items)) return found
+
+  items.forEach((item: any) => {
+    pmdKazenExtractCategoriesFromItem(item).forEach((cat) => pmdKazenPushUniqueCategory(found, cat))
+  })
+
+  return found
+}
+
+
+function pmdReadKazenCachedCategoriesFromStorage() {
+  if (typeof window === "undefined") return [] as string[]
+
+  const found: string[] = []
+
+  const scanStorage = (storage: Storage) => {
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i) || ""
+      if (!/pmd-menu-cache|menu-cache|categories|paymydine|cms/i.test(key)) continue
+
+      const raw = storage.getItem(key)
+      if (!raw) continue
+
+      try {
+        const parsed = JSON.parse(raw)
+
+        const categoryCandidates = [
+          parsed?.categories,
+          parsed?.categoryNames,
+          parsed?.data?.categories,
+          parsed?.data?.categoryNames,
+          parsed?.state?.categories,
+          parsed?.state?.categoryNames,
+          parsed?.settings?.categories,
+          parsed?.state?.settings?.categories,
+        ]
+
+        categoryCandidates.forEach((value) => {
+          pmdKazenExtractCategoryList(value).forEach((cat) => pmdKazenPushUniqueCategory(found, cat))
+        })
+
+        const itemCandidates = [
+          parsed?.items,
+          parsed?.menuItems,
+          parsed?.products,
+          parsed?.data?.items,
+          parsed?.data?.menuItems,
+          parsed?.data?.products,
+          parsed?.state?.items,
+          parsed?.state?.menuItems,
+          parsed?.state?.products,
+          parsed?.menu?.items,
+          parsed?.menu?.menuItems,
+        ]
+
+        itemCandidates.forEach((value) => {
+          if (!Array.isArray(value)) return
+          pmdKazenExtractCategoriesFromItems(value).forEach((cat) => pmdKazenPushUniqueCategory(found, cat))
+        })
+      } catch {}
+    }
+  }
+
+  try { scanStorage(window.localStorage) } catch {}
+  try { scanStorage(window.sessionStorage) } catch {}
+
+  return found
+}
+
+function pmdBuildKazenParentCategories(baseCategories: unknown, items: unknown[]) {
+  const base = pmdKazenExtractCategoryList(baseCategories)
+
+  const fromItems = pmdKazenExtractCategoriesFromItems(Array.isArray(items) ? items : [])
+
+  const fromStorage = pmdReadKazenCachedCategoriesFromStorage()
+
+  // PMD_FIX_KAZEN_PARENT_CATEGORY_ORDER_20260613
+  // Preserve the live/admin category order first.
+  // Use previous/storage/items only to append missing categories, never to reorder the list.
+  const preferredOrder = base.length ? base : fromItems
+  const appendOnly = [
+    ...preferredOrder,
+    ...pmdKazenParentStableCategories,
+    ...fromStorage,
+    ...fromItems,
+  ]
+
+  const seen = new Set<string>()
+  const next: string[] = []
+
+  appendOnly.forEach((cat) => {
+    const label = String(cat || "").trim()
+    const key = pmdKazenParentCategoryKey(label)
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    next.push(label)
+  })
+
+  // Never shrink. If incoming list is shorter, keep old list order.
+  // But if incoming base has same/more categories, it becomes the new preferred order.
+  if (
+    next.length > pmdKazenParentStableCategories.length ||
+    (base.length && next.length === pmdKazenParentStableCategories.length)
+  ) {
+    pmdKazenParentStableCategories = pmdKazenSortKnownCategories(next)
+  }
+
+  return pmdKazenSortKnownCategories(pmdKazenParentStableCategories.length ? pmdKazenParentStableCategories : next)
+}
+
 const splitMethod = "equal" as const
 
 
@@ -2189,7 +2463,14 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   useEffect(() => {
     if (!initialSubmittedOrder) return
     if ((tableDraft as any)?.draft_id && !(tableDraft as any)?.order_id && !(tableDraft as any)?.orderId) return
-    setSubmittedSnapshot(initialSubmittedOrder)
+    const tableDraftOrderId = Number((tableDraft as any)?.order_id || (tableDraft as any)?.orderId || 0)
+    const initialOrderId = Number((initialSubmittedOrder as any)?.orderId || (initialSubmittedOrder as any)?.order_id || 0)
+    if (tableDraftOrderId > 0 && initialOrderId > 0 && tableDraftOrderId !== initialOrderId) return
+    setSubmittedSnapshot((prev: any) => {
+      const prevOrderId = Number(prev?.orderId || prev?.order_id || 0)
+      if (prevOrderId > 0 && tableDraftOrderId > 0 && prevOrderId === tableDraftOrderId && initialOrderId !== tableDraftOrderId) return prev
+      return initialSubmittedOrder
+    })
   }, [initialSubmittedOrder, (tableDraft as any)?.draft_id, (tableDraft as any)?.order_id, (tableDraft as any)?.orderId])
 
   useEffect(() => {
@@ -4129,21 +4410,11 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         setTableDraft(latest)
         console.info("PMD_TABLE_DRAFT_LOADED", { status: latest.status, draft_id: latest.draft_id ?? null, order_id: latest.order_id ?? null })
         if (latest.order_id && latest.status && latest.status !== "draft" && latest.status !== "empty") {
-          setSubmittedSnapshot((prev: any) => prev || {
-            orderId: latest.order_id,
-            status: latest.status,
-            paymentStatus: latest.status === "paid" ? "paid" : "unpaid",
-            tableNumber: latest.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
-            subtotal: Number(latest.totals?.subtotal ?? tableOrderTotalByCode(latest, 'subtotal') ?? 0),
-            vatAmount: Number(latest.totals?.tax ?? tableOrderTotalByCode(latest, 'tax') ?? 0),
-            vatPercentage: tableOrderVatPercentage(latest, taxSettings?.percentage || 0),
-            total: latest.totals?.total || 0,
-            orderTotal: latest.totals?.orderTotal || latest.totals?.total || 0,
-            settledAmount: latest.totals?.settledAmount || 0,
-            remainingAmount: latest.totals?.remainingAmount || latest.totals?.total || 0,
-            settlementStatus: latest.settlement?.settlementStatus || "unpaid",
-            submittedItems: latest.items || [],
-            payment: latest.payment || "qr_pay_later",
+          const normalizedLatestSnapshot = createSubmittedTableOrderSnapshot(latest, tableInfo, taxSettings?.percentage || 0)
+          setSubmittedSnapshot((prev: any) => {
+            const prevOrderId = Number(prev?.orderId || prev?.order_id || 0)
+            const latestOrderId = Number(normalizedLatestSnapshot.orderId || 0)
+            return !prev || prevOrderId !== latestOrderId ? normalizedLatestSnapshot : { ...prev, ...normalizedLatestSnapshot }
           })
           console.info("PMD_TABLE_ORDER_PAYMENT_READY", { order_id: latest.order_id, status: latest.status })
         }
@@ -4264,22 +4535,18 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       }
       setTableDraft(result)
       clearCart()
-      const submittedTableSnapshot = {
-        orderId: result.order_id,
-        status: result.status || "submitted_unpaid",
-        paymentStatus: result.status === "paid" ? "paid" : "unpaid",
-        tableNumber: result.table_no || tableInfo?.table_no || tableInfo?.table_id || null,
-        subtotal: Number(result.totals?.subtotal ?? tableOrderTotalByCode(result, 'subtotal') ?? 0),
-        vatAmount: Number(result.totals?.tax ?? tableOrderTotalByCode(result, 'tax') ?? 0),
-        vatPercentage: tableOrderVatPercentage(result, taxSettings?.percentage || 0),
-        total: result.totals?.total || 0,
-        orderTotal: result.totals?.orderTotal || result.totals?.total || 0,
-        settledAmount: result.totals?.settledAmount || 0,
-        remainingAmount: result.totals?.remainingAmount || result.totals?.total || 0,
-        settlementStatus: result.settlement?.settlementStatus || "unpaid",
-        submittedItems: result.items || [],
-        payment: result.payment || "qr_pay_later",
-      }
+      const submittedTableSnapshot = createSubmittedTableOrderSnapshot(result, tableInfo, taxSettings?.percentage || 0)
+      try {
+        const { sessionKey, legacyKey } = buildOpenOrderStorageKeys()
+        localStorage.removeItem(legacyKey)
+        localStorage.setItem(sessionKey, JSON.stringify({ ...submittedTableSnapshot, tenant: getTenantKey(), tableKey: getTableKey(), guestSessionId: ensureGuestSession() }))
+      } catch {}
+      console.info("PMD_SUBMITTED_ORDER_SNAPSHOT_NORMALIZED", {
+        order_id: submittedTableSnapshot.orderId,
+        total: submittedTableSnapshot.total,
+        remainingAmount: submittedTableSnapshot.remainingAmount,
+        itemCount: Array.isArray(submittedTableSnapshot.submittedItems) ? submittedTableSnapshot.submittedItems.length : 0,
+      })
       setSubmittedSnapshot(submittedTableSnapshot)
             // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: action hook clears the old Sending state before showing Order Status.
       setCheckoutStep(getCheckoutStepAfterDraftSubmit())
@@ -4342,17 +4609,13 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         Number.isFinite(storedValue) && storedValue > 0 ? storedValue : null
     } catch {}
 
-    const currentSubmittedOrderIdRaw = Number(
-      pmdLatestSubmittedPaymentOrderIdRef.current ||
-      storedLatestSubmittedOrderId ||
-      tableDraftOrderId ||
-      (submittedSnapshot as any)?.orderId ||
-      (submittedSnapshot as any)?.order_id ||
-      0
-    )
-    const currentSubmittedOrderId =
-      Number.isFinite(currentSubmittedOrderIdRaw) && currentSubmittedOrderIdRaw > 0
-        ? currentSubmittedOrderIdRaw
+    const snapshotOrderIdRaw = Number((submittedSnapshot as any)?.orderId || (submittedSnapshot as any)?.order_id || 0)
+    const snapshotOrderId = Number.isFinite(snapshotOrderIdRaw) && snapshotOrderIdRaw > 0 ? snapshotOrderIdRaw : null
+    const latestRefOrderId = pmdLatestSubmittedPaymentOrderIdRef.current
+    const currentSubmittedOrderId = tableDraftOrderId || snapshotOrderId || latestRefOrderId || null
+    const validatedStoredLatestOrderId =
+      storedLatestSubmittedOrderId && (!currentSubmittedOrderId || storedLatestSubmittedOrderId === currentSubmittedOrderId)
+        ? storedLatestSubmittedOrderId
         : null
 
     const existingOrderIdRaw = Number(existingOrderId || 0)
@@ -4367,6 +4630,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     const candidates = [
       currentSubmittedOrderId,
       tableDraftOrderId,
+      snapshotOrderId,
+      latestRefOrderId,
+      validatedStoredLatestOrderId,
       trustedExistingOrderId,
     ]
 
@@ -4431,11 +4697,10 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     const initial: any = initialSubmittedOrder || {}
     const initialTotals: any = initial?.totals || {}
 
-    if (selectedSplitPersonId || isSplitting) {
+    if (selectedSplitPersonId && selectedSplitPerson) {
       return (
-        pmdPositiveMoney(selectedSplitPerson?.total) ??
+        pmdPositiveMoney(selectedSplitPerson.total) ??
         pmdPositiveMoney(paymentPayableTotal) ??
-        pmdPositiveMoney(payableTotal) ??
         0
       )
     }
@@ -4602,7 +4867,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         setIsLoading(false)
         toast({
           title: "Order not found",
-          description: hasUnsubmittedPaymentDraft() ? "Please submit the table order first, then start payment." : "Order not found. Please reopen your order.",
+          description: "Please send the table order to the kitchen first.",
           variant: "destructive",
         })
         return
@@ -4661,16 +4926,15 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       }
       if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
-        const selectedItemsPayload = isSplitting
-          ? Object.values(selectedItems).reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, instance) => {
-              const orderMenuId = Number(instance.orderMenuId || 0)
+        const selectedItemsPayload = selectedSplitPersonId && splitMethod === "items"
+          ? splitSourceItems.reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, item) => {
+              const guestIndex = Number(String(selectedSplitPersonId).replace("guest-", ""))
+              if (itemAssignments[item.key] !== guestIndex) return acc
+              const orderMenuId = Number(item.orderMenuId || 0)
               if (!orderMenuId) return acc
               const existing = acc.find((row) => row.order_menu_id === orderMenuId)
-              if (existing) {
-                existing.quantity += Number(instance.quantity || 1)
-              } else {
-                acc.push({ order_menu_id: orderMenuId, quantity: Number(instance.quantity || 1) })
-              }
+              if (existing) existing.quantity += 1
+              else acc.push({ order_menu_id: orderMenuId, quantity: 1 })
               return acc
             }, [])
           : undefined
@@ -4694,7 +4958,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           submittedItemsSubtotal: pmdSubmittedItemsSubtotal(),
         })
 
-        const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, {
+        const payExistingPayload = {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
           amount: existingOrderAmount,
@@ -4705,7 +4969,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
           table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
           qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : null,
-        })
+        }
+        console.info("PMD_PAY_EXISTING_PAYLOAD", { order_id: paymentOrderIdCandidate, ...payExistingPayload })
+        const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, payExistingPayload)
 
         if (paidResponse?.success) {
           setIsLoading(false)
@@ -6039,22 +6305,14 @@ useLayoutEffect(() => {
     if (hasPersonalItems || preferPersonalReview) return
     if (!isSubmittedTableDraftForStatus) return
 
-    setSubmittedSnapshot((prev: any) => prev || {
-      orderId: tableDraft?.order_id ?? tableDraft?.orderId ?? null,
-      orderNumber: tableDraft?.orderNumber ?? tableDraft?.order_id ?? tableDraft?.orderId ?? null,
-      subtotal: Number(tableDraft?.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0),
-      vatAmount: Number(tableDraft?.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0),
-      vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0),
-      total: tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
-      orderTotal: tableDraft?.totals?.orderTotal ?? tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
-      remainingAmount: tableDraft?.settlement?.remainingAmount ?? tableDraft?.totals?.remainingAmount ?? tableDraft?.totals?.total ?? tableDraft?.total ?? 0,
-      submittedItems: tableDraft?.items || [],
-      tableNumber: tableDraft?.table_no || tableDraft?.table_id || tableInfo?.table_no || tableInfo?.table_id || null,
-      payment: tableDraft?.payment || "qr_pay_later",
-      paymentStatus: tableDraft?.paymentStatus || "unpaid",
-      status: tableDraft?.status || "submitted_unpaid",
-      createdAt: Date.now(),
-    })
+    if (tableDraft) {
+      const normalizedTableDraftSnapshot = createSubmittedTableOrderSnapshot(tableDraft, tableInfo, taxSettings?.percentage || 0)
+      setSubmittedSnapshot((prev: any) => {
+        const prevOrderId = Number(prev?.orderId || prev?.order_id || 0)
+        const nextOrderId = Number(normalizedTableDraftSnapshot.orderId || 0)
+        return !prev || prevOrderId !== nextOrderId ? normalizedTableDraftSnapshot : { ...prev, ...normalizedTableDraftSnapshot }
+      })
+    }
 
     setCheckoutStep(getCheckoutStepAfterDraftSubmit())
   }, [
@@ -6741,7 +6999,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                   </div>
                 </div>
               ) : tableDraft.order_id ? (
-                <button type="button" onClick={() => { setSubmittedSnapshot((prev: any) => prev || { orderId: tableDraft.order_id, subtotal: Number(tableDraft.totals?.subtotal ?? tableOrderTotalByCode(tableDraft, 'subtotal') ?? 0), vatAmount: Number(tableDraft.totals?.tax ?? tableOrderTotalByCode(tableDraft, 'tax') ?? 0), vatPercentage: tableOrderVatPercentage(tableDraft, taxSettings?.percentage || 0), total: tableDraft.totals?.total || 0, orderTotal: tableDraft.totals?.orderTotal || tableDraft.totals?.total || 0, remainingAmount: tableDraft.totals?.remainingAmount || tableDraft.totals?.total || 0, submittedItems: tableDraft.items || [], tableNumber: tableDraft.table_no || tableInfo?.table_no || null, payment: tableDraft.payment || "qr_pay_later" }); setCheckoutStep(getCheckoutStepAfterDraftSubmit()) }} className={modalSecondaryBtn}>
+                <button type="button" onClick={() => { setSubmittedSnapshot(createSubmittedTableOrderSnapshot(tableDraft, tableInfo, taxSettings?.percentage || 0)); setCheckoutStep(getCheckoutStepAfterDraftSubmit()) }} className={modalSecondaryBtn}>
                   View order status
                 </button>
               ) : null}
@@ -9338,6 +9596,112 @@ function MenuContent() {
   const isOrganicBotanicalTheme = currentFrontendTheme === ORGANIC_BOTANICAL_THEME_KEY
   const isModernGreenTheme = currentFrontendTheme === MODERN_GREEN_THEME_KEY || forceModernGreenTheme
   const isKazenJapaneseTheme = currentFrontendTheme === KAZEN_JAPANESE_THEME_KEY
+
+  // PMD_FIX_KAZEN_REMOVE_BAD_HEADER_MARKER_FROM_ITEMS_20260612
+  useEffect(() => {
+    if (!isKazenJapaneseTheme || typeof document === "undefined" || typeof window === "undefined") return
+
+    const cleanupKazenItemMarkers = () => {
+      document.querySelectorAll<HTMLElement>('.kazen-item [data-pmd-kazen-old-header-control="1"]').forEach((el) => {
+        el.removeAttribute("data-pmd-kazen-old-header-control")
+        el.style.setProperty("opacity", "1", "important")
+        el.style.setProperty("visibility", "visible", "important")
+      })
+
+      document.querySelectorAll<HTMLElement>(".kazen-items, .kazen-menu-list, .kazen-category-content, .kazen-category-items, .kazen-section-content").forEach((el) => {
+        el.style.setProperty("overflow", "visible", "important")
+        el.style.setProperty("max-height", "none", "important")
+        el.style.setProperty("height", "auto", "important")
+      })
+    }
+
+    cleanupKazenItemMarkers()
+
+    const events = ["scroll", "click", "resize", "touchend"]
+    const scheduleCleanup = () => window.setTimeout(cleanupKazenItemMarkers, 0)
+
+    events.forEach((eventName) => {
+      window.addEventListener(eventName, scheduleCleanup, { passive: true })
+    })
+
+    const timer = window.setInterval(cleanupKazenItemMarkers, 900)
+
+    return () => {
+      window.clearInterval(timer)
+      events.forEach((eventName) => {
+        window.removeEventListener(eventName, scheduleCleanup)
+      })
+    }
+  }, [isKazenJapaneseTheme])
+
+  // PMD_FIX_KAZEN_EXPAND_VISIBLE_ITEM_ANCESTORS_20260612
+  useEffect(() => {
+    if (!isKazenJapaneseTheme || typeof document === "undefined" || typeof window === "undefined") return
+
+    const expandVisibleKazenItemAncestors = () => {
+      document.querySelectorAll<HTMLElement>(".kazen-item").forEach((item) => {
+        const rect = item.getBoundingClientRect()
+        if (!(rect.width > 0 && rect.height > 0)) return
+
+        item.style.setProperty("overflow", "visible", "important")
+        item.style.setProperty("max-height", "none", "important")
+        item.style.setProperty("height", "auto", "important")
+        item.style.setProperty("contain", "none", "important")
+
+        let el = item.parentElement
+        let depth = 0
+
+        while (el && depth < 8) {
+          if (
+            el.matches("[data-pmd-checkout-theme-root='1']") ||
+            el.classList.contains("kazen-modal") ||
+            el.classList.contains("kazen-solid-modal-overlay") ||
+            el.classList.contains("kazen-solid-modal-panel") ||
+            el.classList.contains("pmd-checkout-modal")
+          ) {
+            break
+          }
+
+          const className = String(el.className || "")
+
+          if (
+            className.includes("kazen") ||
+            className.includes("overflow-hidden") ||
+            el.style.maxHeight ||
+            el.style.height ||
+            el.style.overflow
+          ) {
+            el.style.setProperty("overflow", "visible", "important")
+            el.style.setProperty("max-height", "none", "important")
+            el.style.setProperty("height", "auto", "important")
+            el.style.setProperty("contain", "none", "important")
+          }
+
+          el = el.parentElement
+          depth += 1
+        }
+      })
+    }
+
+    expandVisibleKazenItemAncestors()
+
+    const schedule = () => window.setTimeout(expandVisibleKazenItemAncestors, 0)
+    const events = ["load", "scroll", "click", "resize", "touchend"]
+
+    events.forEach((eventName) => {
+      window.addEventListener(eventName, schedule, { passive: true })
+    })
+
+    const timer = window.setInterval(expandVisibleKazenItemAncestors, 700)
+
+    return () => {
+      window.clearInterval(timer)
+      events.forEach((eventName) => {
+        window.removeEventListener(eventName, schedule)
+      })
+    }
+  }, [isKazenJapaneseTheme])
+
   const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
   const { t } = useLanguageStore()
   const { toast } = useToast()
@@ -9801,6 +10165,40 @@ useEffect(() => {
   }, [items.length, toolbarPricingSnapshot])
 
   const showBillArrow = totalItems > 0 && toolbarState !== "collapsed"
+  // PMD_TABLE_ORDER_ACTIVE_DERIVED_STATE_20260613
+  const localOpenOrderStatusForAction = String(localOpenOrder?.status || "").toLowerCase()
+  const localOpenOrderPaymentStatusForAction = String(localOpenOrder?.paymentStatus || localOpenOrder?.payment_status || "").toLowerCase()
+  const localOpenOrderRemainingForAction = Number(
+    localOpenOrder?.remainingAmount ??
+    localOpenOrder?.remaining_amount ??
+    localOpenOrder?.totals?.remainingAmount ??
+    Number.NaN
+  )
+  const localOpenOrderTotalForAction = Number(localOpenOrder?.orderTotal ?? localOpenOrder?.total ?? localOpenOrder?.subtotal ?? 0)
+
+  const hasActiveLocalOpenOrder = Boolean(
+    hasLocalOpenOrder &&
+    localOpenOrder &&
+    !["paid", "completed", "complete", "delivered", "cancelled", "canceled"].includes(localOpenOrderStatusForAction) &&
+    !["paid", "settled"].includes(localOpenOrderPaymentStatusForAction) &&
+    (
+      (Number.isFinite(localOpenOrderRemainingForAction) && localOpenOrderRemainingForAction > 0) ||
+      (!Number.isFinite(localOpenOrderRemainingForAction) && localOpenOrderTotalForAction > 0)
+    )
+  )
+
+  const shouldShowTableOrderAction = isVisibleTableOrderDraft(sharedTableOrder) || hasActiveLocalOpenOrder
+
+  const tableOrderActionCount = Number(
+    tableOrderItemCount(sharedTableOrder) ||
+    (
+      hasActiveLocalOpenOrder
+        ? localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0)
+        : 0
+    ) ||
+    0
+  )
+
 
   // Get display items for the toolbar
   const getDisplayItems = () => {
@@ -10601,6 +10999,7 @@ useEffect(() => {
       }
 
       if (type === "pmd:table-order") {
+        if (!shouldShowTableOrderAction) return
         setPaymentModalInitialStep(
           sharedTableOrder?.status === "draft"
             ? "review"
@@ -10667,6 +11066,7 @@ useEffect(() => {
       }
 
       if (action === "table-order") {
+        if (!shouldShowTableOrderAction) return
         setPaymentModalInitialStep(
           sharedTableOrder?.status === "draft"
             ? "review"
@@ -10778,6 +11178,7 @@ useEffect(() => {
         : "/themes/kazen-japanese/?embedded=1&from=pmd"
 
     const kazenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+    const kazenBridgeCategories = pmdBuildKazenParentCategories(allCategories, kazenSourceItems)
     const kazenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
     // PMD_KAZEN_ADMIN_LOGO_SAME_AS_HOMEPAGE_20260611
     const kazenLogoCandidates = [
@@ -10892,7 +11293,7 @@ useEffect(() => {
           totalItems={totalItems}
           totalPrice={totalPrice}
           lastInteractedItem={lastInteractedItem}
-          categories={allCategories}
+          categories={kazenBridgeCategories}
           restaurantName={restaurantDisplayName}
           logoUrl={kazenLogoUrl}
           tableNumber={kazenTableNumber}
@@ -10902,6 +11303,20 @@ useEffect(() => {
           onCallWaiter={handleKazenWaiter}
           onOpenNote={handleKazenNote}
           onOpenValet={handleKazenValet}
+          onTableOrder={() => {
+            if (!shouldShowTableOrderAction) return
+            setPaymentModalInitialStep(
+              sharedTableOrder?.status === "draft"
+                ? "review"
+                : sharedTableOrder?.status === "paid"
+                  ? "paid"
+                  : "submitted"
+            )
+            setPaymentModalPreferPersonalReview(false)
+            setPaymentModalOpen(true)
+          }}
+          showTableOrder={shouldShowTableOrderAction}
+          tableOrderCount={tableOrderActionCount}
         >
           <PaymentModal
             isOpen={isPaymentModalOpen}
@@ -11080,6 +11495,20 @@ useEffect(() => {
           onCallWaiter={handleModernGreenWaiter}
           onOpenNote={handleModernGreenNote}
           onOpenValet={handleModernGreenValet}
+          onTableOrder={() => {
+            if (!shouldShowTableOrderAction) return
+            setPaymentModalInitialStep(
+              sharedTableOrder?.status === "draft"
+                ? "review"
+                : sharedTableOrder?.status === "paid"
+                  ? "paid"
+                  : "submitted"
+            )
+            setPaymentModalPreferPersonalReview(false)
+            setPaymentModalOpen(true)
+          }}
+          showTableOrder={shouldShowTableOrderAction}
+          tableOrderCount={tableOrderActionCount}
         >
           {/* Modern Green iframe already owns the cart surface; keep only the native checkout modal here. */}
         <PaymentModal
@@ -11156,11 +11585,11 @@ useEffect(() => {
                   noteDisabled={false}
                   totalItems={totalItems}
                   themeBackgroundColor={themeBackgroundColor}
-                  onOrderClick={isVisibleTableOrderDraft(sharedTableOrder) || hasLocalOpenOrder ? () => {
+                  onOrderClick={shouldShowTableOrderAction ? () => {
                     setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
                     setPaymentModalOpen(true)
                   } : undefined}
-                  orderCount={Number(tableOrderItemCount(sharedTableOrder) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
+                  orderCount={tableOrderActionCount}
                 />
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
@@ -11380,11 +11809,11 @@ useEffect(() => {
         noteDisabled={false}
         totalItems={totalItems}
         themeBackgroundColor={themeBackgroundColor}
-        onOrderClick={isVisibleTableOrderDraft(sharedTableOrder) || hasLocalOpenOrder ? () => {
+        onOrderClick={shouldShowTableOrderAction ? () => {
           setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
           setPaymentModalOpen(true)
         } : undefined}
-        orderCount={Number(tableOrderItemCount(sharedTableOrder) || localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)}
+        orderCount={tableOrderActionCount}
       />
       {!shouldHideCartSheet && (
       <CartSheet />
@@ -11457,3 +11886,11 @@ export default function ExpandingBottomToolbarMenu() {
     </div>
   )
 }
+
+// PMD_ADD_KAZEN_TABLE_ORDER_BOTTOM_BUTTON_FIXED_20260613 menu patched
+
+// PMD_FIX_KAZEN_PARENT_DEEP_CATEGORY_EXTRACT_20260613
+
+// PMD_FIX_KAZEN_CATEGORY_ORDER_HARD_20260613
+
+// PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
