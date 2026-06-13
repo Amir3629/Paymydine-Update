@@ -11534,7 +11534,7 @@ useEffect(() => {
           tableOrderCount={tableOrderActionCount}
         >
           <ModernGreenBottomDock {...themeMenuActions} />
-        <PaymentModal
+          <PaymentModal
             isOpen={isPaymentModalOpen}
             onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
             items={items}
@@ -11591,7 +11591,7 @@ useEffect(() => {
             "--pmd-v2-page-bg": "#f5fff8af0",
           } as React.CSSProperties}
         >
-<OrganicBottomDock {...themeMenuActions} />
+          <OrganicBottomDock {...themeMenuActions} />
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
 
