@@ -1,19 +1,23 @@
-<?php /* PMD_SAFE_REVIEWS_EDIT_20260606 */ ?>
+<?php
+/*
+|--------------------------------------------------------------------------
+| PMD_REVIEWS_SAFE_ADMIN_EDIT_NO_WIDGET_RENDER_20260606
+|--------------------------------------------------------------------------
+| Safe fallback view. Avoids null form widget render errors.
+|--------------------------------------------------------------------------
+*/
+?>
 
-<div class="page-wrapper">
-    <div class="page-content">
-        <?php
-            try {
-                echo $this->formRender();
-            } catch (\Throwable $e) {
-                \Log::error('[PMD Reviews edit failed]', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ]);
-
-                echo '<div class="alert alert-warning">Review form could not load. Check system log.</div>';
-            }
-        ?>
+<div class="container-fluid">
+    <div class="page-header">
+        <h1>Customer Review</h1>
     </div>
+
+    <div class="alert alert-info">
+        Review details are available from <strong>Restaurant → Customer Reviews</strong>.
+    </div>
+
+    <a href="<?= admin_url('reviews') ?>" class="btn btn-default">
+        Back to Customer Reviews
+    </a>
 </div>

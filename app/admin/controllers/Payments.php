@@ -867,6 +867,8 @@ class Payments extends \Admin\Classes\AdminController
                 'api_key_id' => ['label' => 'API Key ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Public API key identifier from Worldline portal.'],
                 'secret_api_key' => ['label' => 'Secret API Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
                 'webhook_secret' => ['label' => 'Webhook Secret (optional)', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
+                'terminal_id' => ['label' => 'Terminal Device ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Required for terminal/POS payments. Does not enable fake charges; certified terminal API mapping is still required.'],
+                'terminal_environment' => ['label' => 'Terminal Environment', 'type' => 'select', 'span' => 'left', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
             ],
             'vr_payment' => [
                 'mode' => ['label' => 'Mode', 'type' => 'select', 'span' => 'left', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
@@ -876,6 +878,9 @@ class Payments extends \Admin\Classes\AdminController
                 'auth_key' => ['label' => 'Auth Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
                 'webhook_signing_key' => ['label' => 'Webhook Signing Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
                 'preferred_integration_mode' => ['label' => 'Preferred Integration', 'type' => 'select', 'span' => 'right', 'default' => 'payment_page', 'options' => ['payment_page' => 'Hosted Payment Page']],
+                'api_endpoint' => ['label' => 'Terminal API Endpoint', 'type' => 'text', 'span' => 'left', 'comment' => 'VR Payment / VR Bank terminal API base URL when provided.'],
+                'merchant_id' => ['label' => 'Terminal Merchant ID', 'type' => 'text', 'span' => 'right'],
+                'terminal_id' => ['label' => 'Terminal Device ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Required for terminal/POS payments. Does not enable fake charges; certified terminal API mapping is still required.'],
             ],
         ];
 

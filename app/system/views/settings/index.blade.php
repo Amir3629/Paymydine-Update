@@ -1,3 +1,23 @@
+<?php
+/*
+|--------------------------------------------------------------------------
+| PMD_REVIEW_SOCIAL_SETTINGS_VIEW_BYPASS_20260606
+|--------------------------------------------------------------------------
+| The normal System Settings form widget is null for review_social on this
+| install, so bypass only this URL and render the safe manual settings view.
+|--------------------------------------------------------------------------
+*/
+if (preg_match('#(^|/)settings/edit/menu_highlights$#', request()->path())) {
+    include base_path('app/admin/views/settings/menu_highlights_direct.blade.php');
+    return;
+}
+
+if (preg_match('#(^|/)settings/edit/review_social$#', request()->path())) {
+    include base_path('app/admin/views/settings/review_social_safe.blade.php');
+    return;
+}
+?>
+
 @php
     $pmdSettingGroups = [
         'restaurant' => [
@@ -88,6 +108,16 @@
 <div class="container-fluid pt-4 pmd-settings-page" data-pmd-settings-page>
     <div class="pmd-settings-intro" aria-label="Settings overview">
         Manage and customize your restaurant system.
+    </div>
+    <div class="pmd-settings-grid mb-4">
+        <a class="pmd-settings-card settings-card-link pmd-settings-card--priority" href="{{ admin_url('settings/edit/menu_highlights') }}" role="button" data-pmd-settings-card data-pmd-settings-search-text="menu highlights chef recommendations best sellers badges customer menu">
+            <span class="pmd-settings-card__icon" aria-hidden="true"><i class="fa fa-star fa-fw"></i></span>
+            <span class="pmd-settings-card__content">
+                <span class="pmd-settings-card__title">Menu Highlights</span>
+                <span class="pmd-settings-card__description">Chef’s Recommendations, Best Sellers, badge labels, and highlight section display.</span>
+            </span>
+            <span class="pmd-settings-card__badge pmd-settings-card__badge--system">Menu</span>
+        </a>
     </div>
 <div class="pmd-settings-empty d-none" data-pmd-settings-empty>
         <i class="fa fa-search" aria-hidden="true"></i>

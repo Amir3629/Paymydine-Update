@@ -42,6 +42,45 @@ export type MenuItem = {
   available?: boolean
   options?: MenuItemOption[]
   prep_time_minutes?: number
+  is_chef_recommended?: boolean
+  is_bestseller?: boolean
+  bestseller_source?: 'manual' | 'auto' | null
+  popularity_count?: number
+}
+
+
+export type MenuHighlightSettings = {
+  chef_section_enabled: boolean
+  bestseller_section_enabled: boolean
+  show_card_badges: boolean
+  show_modal_badges: boolean
+  chef_label: string
+  bestseller_label: string
+  max_chef_items: number
+  max_bestseller_items: number
+  badge_display_mode: 'priority_only' | 'show_all'
+  badge_style: 'minimal_circle' | 'corner_ribbon' | 'soft_pill' | 'luxury_label'
+  badge_position: 'image_top_left' | 'image_top_right' | 'title_inline' | 'hidden'
+  show_badge_text_on_cards: boolean
+  show_badge_text_in_modal: boolean
+  section_placement: 'top' | 'after_categories' | 'hidden'
+}
+
+export const defaultMenuHighlightSettings: MenuHighlightSettings = {
+  chef_section_enabled: false,
+  bestseller_section_enabled: false,
+  show_card_badges: true,
+  show_modal_badges: true,
+  chef_label: "Chef’s Choice",
+  bestseller_label: 'Best Seller',
+  max_chef_items: 8,
+  max_bestseller_items: 8,
+  badge_display_mode: 'priority_only',
+  badge_style: 'corner_ribbon',
+  badge_position: 'image_top_left',
+  show_badge_text_on_cards: false,
+  show_badge_text_in_modal: true,
+  section_placement: 'hidden',
 }
 
 export interface MenuItemOption {
@@ -167,12 +206,65 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     minimum_qty: apiItem.minimum_qty || 1,
     available: apiItem.available !== false && (apiItem.stock_qty === null || (apiItem.stock_qty ?? 0) > 0),
     options: apiItem.options || [],
-    prep_time_minutes: Number((apiItem as any).prep_time_minutes || 15)
+    prep_time_minutes: Number((apiItem as any).prep_time_minutes || 15),
+    is_chef_recommended: toBoolean((apiItem as any).is_chef_recommended),
+    is_bestseller: toBoolean((apiItem as any).is_bestseller),
+    bestseller_source: (apiItem as any).bestseller_source || null,
+    popularity_count: Number((apiItem as any).popularity_count || 0)
+  }
+}
+
+
+const normalizeMenuHighlightSettings = (value: any): MenuHighlightSettings => {
+  const raw = value && typeof value === 'object' ? value : {}
+  const firstValue = (keys: string[], fallback: any) => {
+    for (const key of keys) {
+      const v = raw[key]
+      if (v !== undefined && v !== null && v !== '') return v
+    }
+    return fallback
+  }
+  const boolValue = (keys: string[], fallback: boolean): boolean => {
+    const v = firstValue(keys, fallback)
+    if (typeof v === 'boolean') return v
+    const normalized = String(v).trim().toLowerCase()
+    if (['1', 'true', 'yes', 'on', 'enabled'].includes(normalized)) return true
+    if (['0', 'false', 'no', 'off', 'disabled'].includes(normalized)) return false
+    return fallback
+  }
+  const intValue = (keys: string[], fallback: number): number => {
+    const parsed = Number(firstValue(keys, fallback))
+    return Number.isFinite(parsed) ? Math.max(1, Math.min(24, Math.round(parsed))) : fallback
+  }
+  const textValue = (keys: string[], fallback: string): string => {
+    const text = String(firstValue(keys, fallback) ?? '').trim()
+    return text || fallback
+  }
+  const enumValue = <T extends string>(keys: string[], fallback: T, allowed: readonly T[]): T => {
+    const value = textValue(keys, fallback) as T
+    return allowed.includes(value) ? value : fallback
+  }
+
+  return {
+    chef_section_enabled: boolValue(['enable_chef_recommendations_section', 'chef_section_enabled'], false),
+    bestseller_section_enabled: boolValue(['enable_best_sellers_section', 'bestseller_section_enabled'], false),
+    show_card_badges: boolValue(['show_badges_on_cards', 'show_card_badges'], true),
+    show_modal_badges: boolValue(['show_badges_in_modal', 'show_modal_badges'], true),
+    chef_label: textValue(['chef_recommendation_label', 'chef_label'], defaultMenuHighlightSettings.chef_label),
+    bestseller_label: textValue(['best_seller_label', 'bestseller_label'], defaultMenuHighlightSettings.bestseller_label),
+    max_chef_items: intValue(['max_chef_recommendation_items', 'max_chef_items'], 8),
+    max_bestseller_items: intValue(['max_best_seller_items', 'max_bestseller_items'], 8),
+    badge_display_mode: enumValue(['badge_display_mode'], 'priority_only', ['priority_only', 'show_all'] as const),
+    badge_style: enumValue(['badge_style'], 'corner_ribbon', ['minimal_circle', 'corner_ribbon', 'soft_pill', 'luxury_label'] as const),
+    badge_position: enumValue(['badge_position'], 'image_top_left', ['image_top_left', 'image_top_right', 'title_inline', 'hidden'] as const),
+    show_badge_text_on_cards: boolValue(['show_badge_text_on_cards'], false),
+    show_badge_text_in_modal: boolValue(['show_badge_text_in_modal'], true),
+    section_placement: enumValue(['section_placement'], 'hidden', ['top', 'after_categories', 'hidden'] as const),
   }
 }
 
 // FIXED: Update getMenuData to return categoryNames from API
-export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[], isFrontendConfigured: boolean }> {
+export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[], isFrontendConfigured: boolean, menuHighlightSettings: MenuHighlightSettings, menuCacheVersion: string }> {
   try {
     const menuResponse = await apiClient.getMenu()
     
@@ -199,10 +291,10 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
     
     const categories = Object.values(categoryGroups)
     
-    return { categories, menuItems, categoryNames, isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false }
+    return { categories, menuItems, categoryNames, isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false, menuHighlightSettings: normalizeMenuHighlightSettings((menuResponse?.data as any)?.menu_highlight_settings), menuCacheVersion: String((menuResponse?.data as any)?.menu_cache_version || 'default') }
   } catch (error) {
     console.error('Failed to fetch menu data from API:', error)
-    return { categories: [], menuItems: [], categoryNames: [], isFrontendConfigured: true }
+    return { categories: [], menuItems: [], categoryNames: [], isFrontendConfigured: true, menuHighlightSettings: defaultMenuHighlightSettings, menuCacheVersion: 'fallback' }
   }
 }
 

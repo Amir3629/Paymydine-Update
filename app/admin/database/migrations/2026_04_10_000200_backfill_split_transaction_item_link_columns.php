@@ -22,35 +22,35 @@ return new class extends Migration
             }
         });
 
-        // Keep legacy menu_id populated from order_menus where possible
-        if (Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
-            && Schema::hasColumn('order_payment_transaction_items', 'menu_id')) {
-            DB::statement("
-                UPDATE order_payment_transaction_items ti
-                JOIN order_menus om ON om.order_menu_id = ti.order_menu_id
-                SET ti.menu_id = om.menu_id
-                WHERE ti.menu_id IS NULL
-            ");
+        $requiredItemsColumns = ['transaction_id', 'order_menu_id', 'menu_id'];
+        foreach ($requiredItemsColumns as $column) {
+            if (!Schema::hasColumn('order_payment_transaction_items', $column)) {
+                return;
+            }
         }
 
-        // Backfill missing order_menu_id safely only where a transaction's order has a single matching menu row
-        if (Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
-            && Schema::hasColumn('order_payment_transaction_items', 'menu_id')
-            && Schema::hasTable('order_payment_transactions')) {
-            DB::statement("
-                UPDATE order_payment_transaction_items ti
-                JOIN order_payment_transactions t ON t.id = ti.transaction_id
-                JOIN (
-                    SELECT order_id, menu_id, MIN(order_menu_id) AS order_menu_id, COUNT(*) AS cnt
-                    FROM order_menus
-                    GROUP BY order_id, menu_id
-                ) map ON map.order_id = t.order_id AND map.menu_id = ti.menu_id
-                SET ti.order_menu_id = map.order_menu_id
-                WHERE ti.order_menu_id IS NULL
-                  AND ti.menu_id IS NOT NULL
-                  AND map.cnt = 1
-            ");
+        $prefix = DB::getTablePrefix();
+        $itemsTable = $prefix.'order_payment_transaction_items';
+        $transactionsTable = $prefix.'order_payment_transactions';
+        $orderMenusTable = $prefix.'order_menus';
+
+        if (Schema::hasTable('order_menus')
+            && Schema::hasColumn('order_menus', 'order_menu_id')
+            && Schema::hasColumn('order_menus', 'menu_id')) {
+            DB::statement("\n                UPDATE `{$itemsTable}` opti\n                JOIN `{$orderMenusTable}` om ON om.order_menu_id = opti.order_menu_id\n                SET opti.menu_id = om.menu_id\n                WHERE opti.menu_id IS NULL\n                  AND opti.order_menu_id IS NOT NULL\n            ");
         }
+
+        if (!Schema::hasTable('order_payment_transactions')
+            || !Schema::hasTable('order_menus')
+            || !Schema::hasColumn('order_payment_transactions', 'id')
+            || !Schema::hasColumn('order_payment_transactions', 'order_id')
+            || !Schema::hasColumn('order_menus', 'order_id')
+            || !Schema::hasColumn('order_menus', 'menu_id')
+            || !Schema::hasColumn('order_menus', 'order_menu_id')) {
+            return;
+        }
+
+        DB::statement("\n            UPDATE `{$itemsTable}` opti\n            JOIN `{$transactionsTable}` opt ON opt.id = opti.transaction_id\n            JOIN (\n                SELECT order_id, menu_id, MIN(order_menu_id) AS order_menu_id, COUNT(*) AS cnt\n                FROM `{$orderMenusTable}`\n                GROUP BY order_id, menu_id\n            ) map ON map.order_id = opt.order_id AND map.menu_id = opti.menu_id\n            SET opti.order_menu_id = map.order_menu_id\n            WHERE opti.order_menu_id IS NULL\n              AND opti.menu_id IS NOT NULL\n              AND map.cnt = 1\n        ");
     }
 
     public function down(): void

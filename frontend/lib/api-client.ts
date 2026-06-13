@@ -44,6 +44,10 @@ export interface MenuItem {
   minimum_qty?: number;
   available?: boolean;
   options?: MenuItemOption[];
+  is_chef_recommended?: boolean;
+  is_bestseller?: boolean;
+  bestseller_source?: 'manual' | 'auto' | null;
+  popularity_count?: number;
 }
 
 export interface MenuItemOption {
@@ -73,6 +77,8 @@ export interface MenuResponse {
   data: {
     items?: MenuItem[];
     categories?: Category[];
+    menu_highlight_settings?: any;
+    menu_cache_version?: string;
     is_frontend_configured?: boolean;
     setup_status?: {
       has_categories: boolean;
@@ -637,25 +643,37 @@ export class ApiClient {
     }
   }
 
-  // Optional: valet  creates a notification too
+  // Optional: valet creates a notification too
   async createValetRequest(input: {
     name: string;
     license_plate: string;
     car_make?: string;
     table_id?: string;
-  }): Promise<{ ok?: boolean; success?: boolean; message: string; id?: number }> {
+    table_no?: string;
+    qr?: string;
+  }): Promise<{ ok?: boolean; success?: boolean; message: string; id?: number; notification_id?: number; created_at?: string }> {
     try {
       const endpoint = this.envConfig.getApiEndpoint('/valet-request');
+      const payload = {
+        ...input,
+        // Compatibility with the legacy /api/v1 valet route, which expects customer_name.
+        customer_name: input.name,
+        // The active guest-actions route accepts nullable car_make; the legacy route requires it.
+        car_make: input.car_make || 'Not provided',
+      };
       const body = safeJsonStringify(Object.fromEntries(
-        Object.entries(input).filter(([, v]) => v !== undefined)
+        Object.entries(payload).filter(([, v]) => v !== undefined && v !== '')
       ));
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body,
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return await response.json();
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success === false || data?.ok === false) {
+        throw new Error(data?.message || data?.error || `HTTP error! status: ${response.status}`);
+      }
+      return data;
     } catch (error) {
       console.error('Valet request failed:', error);
       throw error;
@@ -976,7 +994,7 @@ export class ApiClient {
       tip_amount?: number | null;
       coupon_discount?: number | null;
       coupon_code?: string | null;
-      selected_items?: Array<{ order_menu_id: number; quantity: number }>;
+      selected_items?: Array<{ order_menu_id: number; quantity: number }> | null;
       payer_label?: string | null;
       table_id?: string | null;
       table_no?: string | null;
@@ -998,7 +1016,7 @@ export class ApiClient {
         tip_amount: payload.tip_amount ?? 0,
         coupon_discount: payload.coupon_discount ?? 0,
         coupon_code: payload.coupon_code ?? null,
-        selected_items: payload.selected_items ?? [],
+        selected_items: payload.selected_items ?? null,
         payer_label: payload.payer_label ?? null,
         table_id: payload.table_id ?? null,
         table_no: payload.table_no ?? null,
@@ -1069,11 +1087,11 @@ export class ApiClient {
       return {
         success: true,
         data: {
-          theme_id: 'clean-light',
-          primary_color: '#E7CBA9',
-          secondary_color: '#EFC7B1',
-          accent_color: '#3B3B3B',
-          background_color: '#fdf7f4'
+          theme_id: 'gold-luxury',
+          primary_color: '#062F2A',
+          secondary_color: '#062F2A',
+          accent_color: '#C89B4A',
+          background_color: '#FAF9F4'
         }
       };
     }

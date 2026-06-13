@@ -172,7 +172,119 @@ export interface ThemeColors {
         info: '#0E7490'
       }
     },
+
+    'organic_botanical_paper': {
+      id: 'organic_botanical_paper',
+      name: 'Organic Botanical Paper',
+      description: 'Warm handcrafted paper theme with sage botanical accents',
+      colors: {
+        primary: '#737A55',
+        secondary: '#FFF9EF',
+        accent: '#B8864B',
+        background: '#F3EBDD',
+
+        textPrimary: '#352F28',
+        textSecondary: '#7D7467',
+        textMuted: '#9A907F',
+
+        border: '#D8CBAF',
+        input: '#FFF9EF',
+        button: '#737A55',
+        buttonHover: '#5F6747',
+
+        menuItemBackground: '#FFF9EF',
+        menuItemBorder: '#E0D3B8',
+        categoryActive: '#737A55',
+        categoryInactive: '#A69A83',
+        priceColor: '#B8864B',
+
+        cartBackground: '#FFF9EF',
+        cartBorder: '#D8CBAF',
+        paymentButton: '#737A55',
+        paymentButtonHover: '#5F6747',
+
+        success: '#537A4D',
+        warning: '#B8864B',
+        error: '#A65748',
+        info: '#6F7651'
+      }
+    },
     
+
+    'modern_green': {
+      id: 'modern_green',
+      name: 'Modern Green',
+      description: 'Premium dark green glass restaurant theme',
+      colors: {
+        primary: '#29BC7E',
+        secondary: '#07110D',
+        accent: '#29BC7E',
+        background: '#030504',
+
+        textPrimary: '#F4F8F5',
+        textSecondary: '#B8C4BC',
+        textMuted: '#7C8B82',
+
+        border: '#20342A',
+        input: '#101A15',
+        button: '#29BC7E',
+        buttonHover: '#20A96E',
+
+        menuItemBackground: '#0D1712',
+        menuItemBorder: '#20342A',
+        categoryActive: '#29BC7E',
+        categoryInactive: '#7C8B82',
+        priceColor: '#F4F8F5',
+
+        cartBackground: '#101A15',
+        cartBorder: '#20342A',
+        paymentButton: '#29BC7E',
+        paymentButtonHover: '#20A96E',
+
+        success: '#29BC7E',
+        warning: '#FBBF24',
+        error: '#F87171',
+        info: '#60A5FA'
+      }
+    },
+
+
+    'kazen_japanese': {
+      id: 'kazen_japanese',
+      name: 'Kazen Japanese Minimal',
+      description: 'Quiet Japanese editorial menu with ink, paper, seasonal mist, and muted red accents',
+      colors: {
+        primary: '#242320',
+        secondary: '#F7F3EC',
+        accent: '#B85D59',
+        background: '#F7F3EC',
+
+        textPrimary: '#242320',
+        textSecondary: '#77716A',
+        textMuted: '#9B948B',
+
+        border: '#D8D1C6',
+        input: '#FBF8F2',
+        button: '#B85D59',
+        buttonHover: '#9F4F4B',
+
+        menuItemBackground: '#FBF8F2',
+        menuItemBorder: '#D8D1C6',
+        categoryActive: '#B85D59',
+        categoryInactive: '#77716A',
+        priceColor: '#242320',
+
+        cartBackground: '#FBF8F2',
+        cartBorder: '#D8D1C6',
+        paymentButton: '#242320',
+        paymentButtonHover: '#11100E',
+
+        success: '#6F7651',
+        warning: '#B8864B',
+        error: '#B85D59',
+        info: '#6A7477'
+      }
+    },
     'vibrant-colors': {
       id: 'vibrant-colors',
       name: 'Vibrant Colors',
@@ -322,8 +434,8 @@ export interface ThemeColors {
   export function applyTheme(themeId: string, overrides?: Partial<ThemeColors>): void {
     const theme = themes[themeId];
     if (!theme) {
-      console.warn(`Theme ${themeId} not found, falling back to clean-light`);
-      applyTheme('clean-light', overrides);
+      console.warn(`Theme ${themeId} not found, falling back to gold-luxury`);
+      applyTheme('gold-luxury', overrides);
       return;
     }
     
@@ -360,9 +472,9 @@ export interface ThemeColors {
   // Get current theme from localStorage (SSR safe)
   export function getCurrentTheme(): string {
     if (typeof window === 'undefined') {
-      return 'clean-light'; // Default for SSR
+      return 'gold-luxury'; // Default for SSR
     }
-    return localStorage.getItem('paymydine-theme') || 'clean-light';
+    return localStorage.getItem('paymydine-theme') || 'gold-luxury';
   }
   
   // Initialize theme on app load

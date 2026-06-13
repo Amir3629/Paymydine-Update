@@ -2,6 +2,35 @@ import { apiClient } from "@/lib/api-client";
 import { applyTheme } from "@/lib/theme-system";
 import { themes } from "@/lib/theme-system";
 
+function pmdForceKazenFrontendThemePayload(payload: any) {
+  if (!payload || typeof payload !== "object") return payload
+
+  const normalize = (value: any) => String(value || "").trim().replace(/-/g, "_").toLowerCase()
+  const topAdmin = normalize(payload.admin_theme)
+  const nestedAdmin = normalize(payload.data?.admin_theme)
+  const topFrontend = normalize(payload.frontend_theme)
+  const nestedFrontend = normalize(payload.data?.frontend_theme)
+
+  const hasKazen =
+    topAdmin === "kazen_japanese" ||
+    nestedAdmin === "kazen_japanese" ||
+    topFrontend === "kazen_japanese" ||
+    nestedFrontend === "kazen_japanese"
+
+  if (hasKazen) {
+    payload.admin_theme = "kazen_japanese"
+    payload.frontend_theme = "kazen_japanese"
+    payload.theme_id = "kazen_japanese"
+    if (payload.data && typeof payload.data === "object") {
+      payload.data.admin_theme = "kazen_japanese"
+      payload.data.frontend_theme = "kazen_japanese"
+      payload.data.theme_id = "kazen_japanese"
+    }
+  }
+
+  return payload
+}
+
 /**
  * Get tenant ID from hostname for localStorage scoping
  */
@@ -27,12 +56,17 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
   try {
     const res = await apiClient.getThemeSettings(); // hits /simple-theme
     const data = res?.data || {};
-    const themeId: string = data.theme_id || res?.frontend_theme || "clean-light";
+    const normalizedThemePayload = pmdForceKazenFrontendThemePayload(res)
+    const normalizedThemeData = pmdForceKazenFrontendThemePayload(data)
+    const themeId: string = normalizedThemeData?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "gold-luxury";
 
     const overrides = buildSafeThemeOverrides(themeId, data);
 
     console.log(`✅ ThemeLoader: Applying admin theme "${themeId}"`, overrides);
     applyTheme(themeId, overrides);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-pmd-theme-resolved", "1");
+    }
 
     // Store in tenant-scoped localStorage
     if (typeof window !== "undefined") {
@@ -49,8 +83,11 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
     return { themeId, overrides };
   } catch (e) {
     console.error('❌ ThemeLoader: Failed to load admin theme:', e);
-    // Fallback to default theme
-    applyTheme("clean-light");
+    // Fallback to default theme only after the admin theme request has failed.
+    applyTheme("gold-luxury");
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-pmd-theme-resolved", "1");
+    }
     return {};
   }
 }

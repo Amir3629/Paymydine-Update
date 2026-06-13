@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\CategoryController;
 
 // Apply CORS middleware to all API routes
 Route::middleware(['cors'])->group(function () {
+
 
     // Health check endpoint
     Route::get('/health', function () {
@@ -216,8 +218,13 @@ Route::middleware(['cors'])->group(function () {
     // API v1 routes
     Route::prefix('v1')->middleware(['web', 'detect.tenant'])->group(function () {
 
+        Route::post('/reviews', [ReviewController::class, 'store']);
+
         // Menu endpoints
-        Route::get('/menu', [MenuController::class, 'index']);
+        Route::get('/menu', function () {
+            require_once base_path('app/main/routes/menu-highlight-response.php');
+            return pmd_menu_highlights_response_20260607();
+        });
         Route::get('/menu/categories', [CategoryController::class, 'index']);
         Route::get('/menu/items', [MenuController::class, 'items']);
         Route::get('/menu/categories/{categoryId}/items', [MenuController::class, 'itemsByCategory']);
@@ -344,6 +351,20 @@ Route::middleware(['cors'])->group(function () {
                 'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
                 'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
                 'pmd_social_reviews_url' => $settings['pmd_social_reviews_url']->value ?? '',
+                'pmd_menu_highlights_enable_chef_recommendations_section' => $settings['pmd_menu_highlights_enable_chef_recommendations_section']->value ?? ($settings['pmd_menu_highlights_chef_section_enabled']->value ?? '0'),
+                'pmd_menu_highlights_enable_best_sellers_section' => $settings['pmd_menu_highlights_enable_best_sellers_section']->value ?? ($settings['pmd_menu_highlights_bestseller_section_enabled']->value ?? '0'),
+                'pmd_menu_highlights_show_badges_on_cards' => $settings['pmd_menu_highlights_show_badges_on_cards']->value ?? ($settings['pmd_menu_highlights_show_card_badges']->value ?? '1'),
+                'pmd_menu_highlights_show_badges_in_modal' => $settings['pmd_menu_highlights_show_badges_in_modal']->value ?? ($settings['pmd_menu_highlights_show_modal_badges']->value ?? '1'),
+                'pmd_menu_highlights_chef_recommendation_label' => $settings['pmd_menu_highlights_chef_recommendation_label']->value ?? ($settings['pmd_menu_highlights_chef_label']->value ?? 'Chef’s Choice'),
+                'pmd_menu_highlights_best_seller_label' => $settings['pmd_menu_highlights_best_seller_label']->value ?? ($settings['pmd_menu_highlights_bestseller_label']->value ?? 'Best Seller'),
+                'pmd_menu_highlights_max_chef_recommendation_items' => $settings['pmd_menu_highlights_max_chef_recommendation_items']->value ?? ($settings['pmd_menu_highlights_max_chef_items']->value ?? '8'),
+                'pmd_menu_highlights_max_best_seller_items' => $settings['pmd_menu_highlights_max_best_seller_items']->value ?? ($settings['pmd_menu_highlights_max_bestseller_items']->value ?? '8'),
+                'pmd_menu_highlights_badge_display_mode' => $settings['pmd_menu_highlights_badge_display_mode']->value ?? 'priority_only',
+                'pmd_menu_highlights_badge_style' => $settings['pmd_menu_highlights_badge_style']->value ?? 'corner_ribbon',
+                'pmd_menu_highlights_badge_position' => $settings['pmd_menu_highlights_badge_position']->value ?? 'image_top_left',
+                'pmd_menu_highlights_show_badge_text_on_cards' => $settings['pmd_menu_highlights_show_badge_text_on_cards']->value ?? '0',
+                'pmd_menu_highlights_show_badge_text_in_modal' => $settings['pmd_menu_highlights_show_badge_text_in_modal']->value ?? '1',
+                'pmd_menu_highlights_section_placement' => $settings['pmd_menu_highlights_section_placement']->value ?? 'hidden',
             ]);
         });
 
@@ -430,42 +451,45 @@ Route::middleware(['cors'])->group(function () {
 
         // Valet request endpoint
         Route::post('/valet-request', function (Request $request) {
-            $request->validate([
-                'table_id' => 'required|string',
-                'customer_name' => 'required|string|max:255',
-                'car_make' => 'required|string|max:255',
-                'license_plate' => 'required|string|max:20'
+            $data = $request->validate([
+                'table_id' => 'nullable|string',
+                'table_no' => 'nullable|string',
+                'qr' => 'nullable|string',
+                'name' => 'nullable|string|max:255',
+                'customer_name' => 'nullable|string|max:255',
+                'car_make' => 'nullable|string|max:255',
+                'license_plate' => 'required|string|max:60'
             ]);
 
+            $customerName = trim((string)($data['name'] ?? $data['customer_name'] ?? ''));
+            if ($customerName === '') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Name is required'
+                ], 422);
+            }
+
             try {
-                // Get tenant context from middleware
+                // Get tenant context from middleware when available, but do not block direct valet use.
                 $tenant = $request->attributes->get('tenant');
-                if (!$tenant) {
-                    return response()->json(['success' => false, 'error' => 'Tenant not found'], 400);
-                }
+                $tableId = (string)($data['table_id'] ?? $data['table_no'] ?? $data['qr'] ?? 'delivery');
 
-                // Validate table exists
-                if (!\App\Helpers\TableHelper::validateTable($request->table_id)) {
-                    return response()->json(['success' => false, 'error' => 'Table not found'], 404);
-                }
+                // Match guest-actions behavior: create a staff notification even for direct /valet.
+                return DB::transaction(function() use ($data, $customerName, $tableId) {
+                    $tableInfo = \App\Helpers\TableHelper::getTableInfo($tableId);
+                    $tableName = $tableInfo ? $tableInfo['table_name'] : ($tableId === 'delivery' ? 'Delivery' : "Table {$tableId}");
+                    $carMake = trim((string)($data['car_make'] ?? ''));
 
-                // Use transaction for data consistency (simplified to match app/main/routes.php)
-                return DB::transaction(function() use ($request, $tenant) {
-                    // Get table info
-                    $tableInfo = \App\Helpers\TableHelper::getTableInfo($request->table_id);
-                    $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$request->table_id}";
-
-                    // Create notification directly (same as waiter-call & table-notes)
                     $id = DB::table('notifications')->insertGetId([
                         'type'       => 'valet_request',
                         'title'      => "Valet Request from {$tableName}",
-                        'table_id'   => (string)$request->table_id,
+                        'table_id'   => $tableId,
                         'table_name' => $tableName,
                         'payload'    => json_encode([
-                            'name'          => $request->customer_name,
-                            'license_plate' => $request->license_plate,
-                            'car_make'      => $request->car_make,
-                            'details'       => $tableName . ' · ' . $request->license_plate . ' · ' . $request->car_make,
+                            'name'          => $customerName,
+                            'license_plate' => $data['license_plate'],
+                            'car_make'      => $carMake !== '' ? $carMake : null,
+                            'details'       => $tableName . ' · ' . $data['license_plate'] . ($carMake !== '' ? ' · ' . $carMake : ''),
                         ], JSON_UNESCAPED_UNICODE),
                         'status'     => 'new',
                         'created_at' => now(),
@@ -483,7 +507,7 @@ Route::middleware(['cors'])->group(function () {
             } catch (\Exception $e) {
                 \Log::error('Valet request failed', [
                     'error' => $e->getMessage(),
-                    'table_id' => $request->table_id,
+                    'table_id' => $data['table_id'] ?? $data['table_no'] ?? $data['qr'] ?? 'delivery',
                     'tenant' => $tenant->id ?? 'unknown'
                 ]);
 

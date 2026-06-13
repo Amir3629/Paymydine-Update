@@ -4,6 +4,35 @@ import { apiClient } from '@/lib/api-client'
 import { themes, applyTheme, getCurrentTheme, type Theme } from '@/lib/theme-system'
 import { buildSafeThemeOverrides } from '@/lib/theme-loader'
 
+function pmdForceKazenFrontendThemePayload(payload: any) {
+  if (!payload || typeof payload !== "object") return payload
+
+  const normalize = (value: any) => String(value || "").trim().replace(/-/g, "_").toLowerCase()
+  const topAdmin = normalize(payload.admin_theme)
+  const nestedAdmin = normalize(payload.data?.admin_theme)
+  const topFrontend = normalize(payload.frontend_theme)
+  const nestedFrontend = normalize(payload.data?.frontend_theme)
+
+  const hasKazen =
+    topAdmin === "kazen_japanese" ||
+    nestedAdmin === "kazen_japanese" ||
+    topFrontend === "kazen_japanese" ||
+    nestedFrontend === "kazen_japanese"
+
+  if (hasKazen) {
+    payload.admin_theme = "kazen_japanese"
+    payload.frontend_theme = "kazen_japanese"
+    payload.theme_id = "kazen_japanese"
+    if (payload.data && typeof payload.data === "object") {
+      payload.data.admin_theme = "kazen_japanese"
+      payload.data.frontend_theme = "kazen_japanese"
+      payload.data.theme_id = "kazen_japanese"
+    }
+  }
+
+  return payload
+}
+
 export interface ThemeSettings {
   theme_id: string
   primary_color: string
@@ -28,17 +57,17 @@ interface ThemeStore {
 }
 
 const defaultSettings: ThemeSettings = {
-  theme_id: 'clean-light',
-  primary_color: '#E7CBA9',
-  secondary_color: '#EFC7B1',
-  accent_color: '#3B3B3B',
-  background_color: '#fdf7f4'
+  theme_id: 'gold-luxury',
+  primary_color: '#062F2A',
+  secondary_color: '#062F2A',
+  accent_color: '#C89B4A',
+  background_color: '#FAF9F4'
 }
 
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
-      currentTheme: 'clean-light', // Default, will be updated on client
+      currentTheme: 'gold-luxury', // Default, will be updated on client
       availableThemes: themes,
       settings: defaultSettings,
       isLoading: false,
@@ -66,7 +95,8 @@ export const useThemeStore = create<ThemeStore>()(
           console.log('📡 ThemeStore: API response:', response)
           
           if (response.success && response.data) {
-            const adminThemeId = response.data.theme_id || response.frontend_theme || 'clean-light'
+            const normalizedThemeResponse = pmdForceKazenFrontendThemePayload(response)
+            const adminThemeId = normalizedThemeResponse?.data?.theme_id || normalizedThemeResponse?.theme_id || normalizedThemeResponse?.frontend_theme || normalizedThemeResponse?.admin_theme || 'gold-luxury'
             
             const overrides = buildSafeThemeOverrides(adminThemeId, response.data)
 
