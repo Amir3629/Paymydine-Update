@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronUp, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare, ChefHat, Trophy } from "lucide-react";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare, ChefHat, Trophy } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,7 +39,6 @@ import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCard
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
-import { GoldCheckoutButton, GoldNoteButton, GoldTableOrderButton, GoldWaiterButton } from "@/components/themes/gold-luxury/GoldThemeActions";
 import {
   OrganicCheckoutScopedStyles,
   organicCheckoutBodyStyle,
@@ -47,7 +46,7 @@ import {
   organicCheckoutModalStyle,
   organicCheckoutPrimaryButtonStyle,
 } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
-import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
+import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBoundary";
 import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomDock";
 import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock";
 import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/OrganicBottomDock";
@@ -55,7 +54,8 @@ import { GoldBottomDock } from "@/components/themes/gold-luxury/GoldBottomDock";
 import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
-import { createThemeMenuActions } from "@/features/menu/theme-menu-actions";
+import { useThemeMenuActions } from "@/features/menu/use-theme-menu-actions";
+import { useMenuThemeFlags } from "@/features/menu/use-menu-theme-flags";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
   buildEvenSharePercents,
@@ -334,65 +334,9 @@ function useCurrentFrontendTheme(): CurrentFrontendThemeState {
   return themeState
 }
 
-function useThemeBackgroundColor() {
-  const [color, setColor] = useState('#fdf7f4');
-  const [themeId, setThemeId] = useState('clean-light');
-
-  // __PMD_CALL_LMS__
-  const callLoadMerchantSettings = () => {
-    try {
-      // Prefer destructured function (reactive)
-      if (typeof loadMerchantSettings === "function") return loadMerchantSettings()
-      // Fallback: zustand getState (should always exist client-side)
-      const st: any = (useCmsStore as any)?.getState?.()
-      if (typeof st?.loadMerchantSettings === "function") return st.loadMerchantSettings()
-      console.warn("[PMD] loadMerchantSettings is missing from store")
-    } catch (e) {
-      console.error("[PMD] callLoadMerchantSettings failed:", e)
-    }
-  }
-
-
-
-  useEffect(() => {
-    // Load merchant settings (includes PayPal Client ID) from backend
-    callLoadMerchantSettings()
-  }, [])
-
-  useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined') return;
-
-    const updateColor = () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme') || 'clean-light';
-      const themeBg = getComputedStyle(document.documentElement).getPropertyValue('--theme-background').trim();
-
-      // Special case: Clean Light theme uses black text
-      if (currentTheme === 'clean-light') {
-        setColor('#000000');
-      } else if (currentTheme === 'minimal') {
-        setColor('#CFEBF7'); // Light Blue
-      } else {
-        setColor(themeBg || '#fdf7f4');
-      }
-      setThemeId(currentTheme);
-    };
-
-    updateColor();
-
-    // Watch for theme changes
-    const observer = new MutationObserver(updateColor);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-    return () => observer.disconnect();
-  }, []);
-
-  return color;
-}
 import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
 import { wsClient } from '@/lib/websocket-client'
-import { ActionTooltip } from "@/components/action-tooltip"
 import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
 import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 
@@ -1175,7 +1119,6 @@ function WalletStripePay(props: {
   );
 }
 
-type ToolbarState = "collapsed" | "preview" | "expanded"
 
 type PayPalPublicConfig = {
   enabled: boolean
@@ -1207,26 +1150,6 @@ interface PaymentModalProps {
   checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper" | "modern_green" | "kazen_japanese" | "neutral";
 }
 
-interface ExpandingBottomToolbarProps {
-  toolbarState: ToolbarState;
-  setToolbarState: (state: ToolbarState) => void;
-  showBillArrow: boolean;
-  items: CartItem[];
-  totalPrice: number;
-  subtotalPrice?: number;
-  taxAmount?: number;
-  taxPercentage?: number;
-  t: (key: TranslationKey) => string;
-  onCartClick: () => void;
-  onWaiterClick?: () => void;
-  onNoteClick?: () => void;
-  onOrderClick?: () => void;
-  orderCount?: number;
-  waiterDisabled?: boolean;
-  noteDisabled?: boolean;
-  totalItems: number;
-  themeBackgroundColor: string;
-}
 
 interface MenuItemModalProps {
   item: MenuItem | null;
@@ -7911,620 +7834,6 @@ function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prioritizeIm
   )
 }
 
-function ExpandingBottomToolbar({
-  toolbarState,
-  setToolbarState,
-  showBillArrow,
-  items,
-  totalPrice,
-  subtotalPrice = 0,
-  taxAmount = 0,
-  taxPercentage = 0,
-  t,
-  onCartClick,
-  onWaiterClick,
-  onNoteClick,
-  onOrderClick,
-  orderCount = 0,
-  waiterDisabled = false,
-  noteDisabled = false,
-  totalItems,
-  themeBackgroundColor,
-}: ExpandingBottomToolbarProps) {
-  const { taxSettings } = useCmsStore()
-  const themeMenuActions = useThemeMenuActions()
-  const toolbarVatLabel = taxPercentage > 0 ? `VAT ${Number(taxPercentage).toLocaleString(undefined, { maximumFractionDigits: 2 })}%` : "VAT"
-
-  // Helper to adjust price if VAT is included
-  const adjustPrice = (price: number): number => {
-    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      return price * (1 + taxSettings.percentage / 100)
-    }
-    return price
-  }
-  // Heights for each state
-  const collapsedHeight = 76
-  const previewHeight = 180
-  const expandedHeight = 420
-  const hasToolbarContent = items.length > 0
-  const showOrderAction = typeof onOrderClick === "function"
-  const toolbarIconBtnStyle: React.CSSProperties = {
-    background: "color-mix(in srgb, var(--theme-surface) 92%, #f5fff8 8%)",
-    border: "1px solid var(--theme-border)",
-    color: "var(--theme-text-primary)",
-    boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-    borderRadius: "9999px",
-  }
-  const effectiveToolbarState = hasToolbarContent ? toolbarState : "collapsed"
-
-  let height = collapsedHeight
-  if (effectiveToolbarState === "preview") height = previewHeight
-  if (effectiveToolbarState === "expanded") height = expandedHeight
-
-  // Safety net: Ensure toolbar background is applied correctly
-  useEffect(() => {
-    const applyToolbarBackground = () => {
-      const toolbarElement = document.querySelector('.toolbar-inner-fixed') ||
-                            document.querySelector('div[class*=""][class*="rounded-[2.5rem]"]')
-
-      if (toolbarElement) {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'clean-light'
-        const themeColors = {
-          'clean-light': 'var(--theme-background, #FAFAFA)',
-          'modern-dark': 'var(--theme-background, #0A0E12)',
-          'gold-luxury': 'var(--theme-background, #FAF9F4)',
-          'vibrant-colors': 'var(--theme-background, #E2CEB1)',
-          'minimal': 'var(--theme-background, #CFEBF7)'
-        }
-
-        const bgColor = themeColors[currentTheme as keyof typeof themeColors] || themeColors['clean-light']
-
-        // Apply theme-aware background
-        const htmlElement = toolbarElement as HTMLElement
-        htmlElement.style.background = bgColor
-        htmlElement.style.backgroundColor = bgColor
-        htmlElement.style.opacity = '1'
-
-        // Add ID for future targeting
-        toolbarElement.id = 'toolbar-inner-fixed'
-      }
-    }
-
-    // Apply immediately
-    applyToolbarBackground()
-
-    // Watch for theme changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-          setTimeout(applyToolbarBackground, 100)
-        }
-      })
-    })
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme']
-    })
-
-    // Cleanup
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
-  return (
-    <motion.div
-      className="fixed bottom-[1.35rem] left-1/2 -translate-x-1/2 w-full max-w-[23.04rem] z-40 px-2"
-      animate={
-        toolbarState === "expanded"
-          ? { height: "auto" }
-          : { height }
-      }
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      style={{ pointerEvents: "auto" }}
-    >
-      <div
-        className="
-          relative flex flex-col w-full h-full
-
-          rounded-[2.5rem] shadow-2xl border border-white/30 ring-1 ring-paydine-champagne/10
-        "
-        style={{
-          minHeight: 76,
-          height: "100%",
-          background: "var(--pmd-v2-page-bg, var(--theme-background))",
-          backgroundColor: "var(--pmd-v2-page-bg, var(--theme-background))",
-          opacity: 1
-        }}
-      >
-        {/* Arrow for expanding/collapsing bill */}
-        {showBillArrow && (
-          <button
-            type="button"
-            data-pmd-show-bill-toggle="1"
-            ref={(el) => {
-              if (!el) return
-
-              const applyPmdShowBillToggle = () => {
-                el.style.setProperty("width", "36px", "important")
-                el.style.setProperty("height", "36px", "important")
-                el.style.setProperty("min-width", "36px", "important")
-                el.style.setProperty("min-height", "36px", "important")
-                el.style.setProperty("background", "#062F2A", "important")
-                el.style.setProperty("background-color", "#062F2A", "important")
-                el.style.setProperty("background-image", "none", "important")
-                el.style.setProperty("color", "#FFFFFF", "important")
-                el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                el.style.setProperty("border", "1px solid #062F2A", "important")
-                el.style.setProperty("border-color", "#062F2A", "important")
-                el.style.setProperty("outline-color", "#062F2A", "important")
-                el.style.setProperty("box-shadow", "0 8px 18px rgba(6, 47, 42, 0.22)", "important")
-                el.style.setProperty("opacity", "1", "important")
-                el.style.setProperty("filter", "none", "important")
-                el.style.setProperty("transform", "translateX(-50%)", "important")
-
-                el.querySelectorAll("svg, svg *").forEach((node) => {
-                  const svgEl = node as HTMLElement
-                  svgEl.style.setProperty("width", "16px", "important")
-                  svgEl.style.setProperty("height", "16px", "important")
-                  svgEl.style.setProperty("color", "#FFFFFF", "important")
-                  svgEl.style.setProperty("stroke", "#FFFFFF", "important")
-                  svgEl.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                  svgEl.style.setProperty("fill", "none", "important")
-                })
-              }
-
-              applyPmdShowBillToggle()
-
-              if (el.dataset.pmdShowBillToggleLock !== "1") {
-                el.dataset.pmdShowBillToggleLock = "1"
-
-                let busy = false
-                const observer = new MutationObserver(() => {
-                  if (busy) return
-                  busy = true
-                  requestAnimationFrame(() => {
-                    applyPmdShowBillToggle()
-                    busy = false
-                  })
-                })
-
-                observer.observe(el, {
-                  attributes: true,
-                  childList: true,
-                  subtree: true,
-                  attributeFilter: ["style", "class", "aria-label"],
-                })
-
-                ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                  window.setTimeout(applyPmdShowBillToggle, delay)
-                })
-              }
-            }}
-            onClick={() => setToolbarState(toolbarState === "expanded" ? "preview" : "expanded")}
-            className="absolute left-1/2 -top-4 z-10 flex items-center justify-center rounded-full shadow border transition-all pmd-show-bill-toggle-button"
-            aria-label={toolbarState === "expanded" ? "Hide bill" : "Show bill"}
-          >
-            {toolbarState === "expanded" ? (
-              <ChevronDown className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
-            ) : (
-              <ChevronUp className="w-4 h-4 text-white pmd-show-bill-toggle-icon" />
-            )}
-          </button>
-        )}
-
-        {/* Bill preview/expanded */}
-        <AnimatePresence initial={false} mode="popLayout">
-          {hasToolbarContent && (effectiveToolbarState === "preview" || effectiveToolbarState === "expanded") && (
-            <motion.div
-              key="bill"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full px-6 pt-8 pb-2 scrollbar-hide"
-              style={{
-                maxHeight: effectiveToolbarState === "expanded" ? 320 : 90,
-                overflowY: effectiveToolbarState === "expanded" ? "auto" : "visible",
-                height: effectiveToolbarState === "expanded" ? "auto" : undefined,
-                msOverflowStyle: "none",
-                scrollbarWidth: "none",
-              }}
-            >
-              <div className="flex flex-col">
-                <div className="space-y-2">
-                  <AnimatePresence initial={false} mode="popLayout">
-                    {items.slice(effectiveToolbarState === "preview" ? -1 : 0).map((item: CartItem) => (
-                      <motion.div
-                        key={item.item.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{
-                          opacity: 1,
-                          scale: 1,
-                          transition: { duration: 0.25 }
-                        }}
-                        exit={{
-                          opacity: 0,
-                          scale: 0.95,
-                          transition: { duration: 0.18 }
-                        }}
-                        className="flex items-center justify-between py-2 bottom-toolbar-item-border"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <motion.div
-                            className="relative w-12 h-12"
-                            initial={{ scale: 0.8 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0.8 }}
-                          >
-                <OptimizedImage
-                              src={item.item.image || "/placeholder.svg"}
-                              alt={item.item.name}
-                              fill
-                              className="rounded-xl object-cover"
-                            />
-                          </motion.div>
-                          <div>
-                            <motion.div
-                              className="font-medium text-paydine-elegant-gray text-base"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                            >
-                              {(item as any).__pmdDisplayName || item.item.name}
-                            </motion.div>
-                            <motion.div
-                              className="text-sm text-gray-500"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                            >
-          {formatCurrency(Number((item as any).__pmdDisplayUnitPrice ?? adjustPrice(item.item.price || 0)))} × {item.quantity}
-                            </motion.div>
-                          </div>
-                        </div>
-                        <motion.div
-                          className="font-semibold menu-item-price pmd-customer-price text-lg"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                        >
-          {formatCurrency(Number((item as any).__pmdDisplaySubtotal ?? (adjustPrice(item.item.price || 0) * item.quantity)))}
-                        </motion.div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-                {/* Show total only in expanded */}
-                {effectiveToolbarState === "expanded" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="mt-4 rounded-2xl p-4"
-                    style={{ background: "color-mix(in srgb, var(--theme-surface) 88%, #f5fff8af0 12%)", border: "1px solid color-mix(in srgb, #b88940 22%, var(--theme-border) 78%)", boxShadow: "0 8px 18px rgba(6, 47, 42, 0.06)" }}
-                  >
-                    {taxAmount > 0 && (
-                      <div className="mb-2 space-y-1 text-sm">
-                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">Subtotal</span><span className="font-semibold">{formatCurrency(subtotalPrice)}</span></div>
-                        <div className="flex justify-between"><span className="text-paydine-elegant-gray/70">{toolbarVatLabel}</span><span className="font-semibold">{formatCurrency(taxAmount)}</span></div>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center">
-                      <motion.span
-                        className="font-bold text-paydine-elegant-gray text-lg"
-                        initial={{ x: -10, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                      >
-                        Total
-                      </motion.span>
-                      <motion.span
-                        className="font-bold text-2xl pmd-customer-price"
-                        initial={{ x: 10, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                      >
-        {formatCurrency(totalPrice)}
-                      </motion.span>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Toolbar buttons (always visible at the bottom) */}
-        <div
-          className="flex items-center justify-between gap-5 px-6 py-4"
-          style={{
-            minHeight: 76,
-            borderBottomLeftRadius: "2.5rem",
-            borderBottomRightRadius: "2.5rem",
-            background: "transparent",
-            marginTop: "auto",
-          }}
-        >
-          <ActionTooltip label="Call waiter">
-          <GoldWaiterButton
-            actions={themeMenuActions ?? {
-              onAddItem: () => undefined,
-              onOpenCheckout: onCartClick,
-              onOpenTableOrder: onOrderClick ?? (() => undefined),
-              onCallWaiter: onWaiterClick ?? (() => undefined),
-              onOpenNote: onNoteClick ?? (() => undefined),
-              onOpenValet: () => undefined,
-              cartCount: totalItems,
-              tableOrderCount: orderCount || 0,
-              showTableOrder: Boolean(onOrderClick),
-            }}
-            as={motion.button}
-            {...({ whileTap: { scale: waiterDisabled ? 1 : 0.92 }, whileHover: { scale: waiterDisabled ? 1 : 1.12 } })}
-            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${waiterDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{
-              background: "color-mix(in srgb, var(--theme-surface) 92%, #f5fff8 8%)",
-              border: "1px solid var(--theme-border)",
-              color: "var(--theme-text-primary)",
-              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-              borderRadius: "9999px",
-            }}
-            disabled={waiterDisabled}
-            aria-label={t("callWaiter")}
-          >
-            <HandPlatter className="h-7 w-7" style={{ color: waiterDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </GoldWaiterButton>
-          </ActionTooltip>
-          <ActionTooltip label="Add note">
-          <GoldNoteButton
-            actions={themeMenuActions ?? {
-              onAddItem: () => undefined,
-              onOpenCheckout: onCartClick,
-              onOpenTableOrder: onOrderClick ?? (() => undefined),
-              onCallWaiter: onWaiterClick ?? (() => undefined),
-              onOpenNote: onNoteClick ?? (() => undefined),
-              onOpenValet: () => undefined,
-              cartCount: totalItems,
-              tableOrderCount: orderCount || 0,
-              showTableOrder: Boolean(onOrderClick),
-            }}
-            as={motion.button}
-            {...({ whileTap: { scale: noteDisabled ? 1 : 0.92 }, whileHover: { scale: noteDisabled ? 1 : 1.12 } })}
-            className={`h-12 w-12 rounded-full flex items-center justify-center focus:outline-none transition-all ${noteDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            style={{
-              background: "color-mix(in srgb, var(--theme-surface) 92%, #f5fff8 8%)",
-              border: "1px solid var(--theme-border)",
-              color: "var(--theme-text-primary)",
-              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-              borderRadius: "9999px",
-            }}
-            disabled={noteDisabled}
-            aria-label={t("leaveNote")}
-          >
-            <NotebookPen className="h-7 w-7" style={{ color: noteDisabled ? "#9CA3AF" : "var(--theme-text-primary)" }} />
-          </GoldNoteButton>
-          </ActionTooltip>
-
-          <ActionTooltip label="Checkout">
-          <GoldCheckoutButton
-            actions={themeMenuActions ?? {
-              onAddItem: () => undefined,
-              onOpenCheckout: onCartClick,
-              onOpenTableOrder: onOrderClick ?? (() => undefined),
-              onCallWaiter: onWaiterClick ?? (() => undefined),
-              onOpenNote: onNoteClick ?? (() => undefined),
-              onOpenValet: () => undefined,
-              cartCount: totalItems,
-              tableOrderCount: orderCount || 0,
-              showTableOrder: Boolean(onOrderClick),
-            }}
-            as={motion.button}
-            {...({ whileTap: { scale: 0.92 }, whileHover: { scale: 1.12 } })}
-            className="h-12 w-12 rounded-full flex items-center justify-center relative focus:outline-none transition-all"
-            style={{
-              background: "color-mix(in srgb, var(--theme-surface) 92%, #f5fff8 8%)",
-              border: "1px solid var(--theme-border)",
-              color: "var(--theme-text-primary)",
-              boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-              borderRadius: "9999px",
-            }}
-            aria-label={t("viewCart")}
-          >
-            <ShoppingCart className="h-7 w-7" style={{ color: "#FFFFFF", stroke: "#FFFFFF", WebkitTextFillColor: "#FFFFFF" }} />
-            {totalItems > 0 && (
-              <span
-                data-pmd-menu-cart-badge="1"
-                ref={(el) => {
-                  if (!el) return
-
-                  const applyPmdBadgeColor = () => {
-                    el.style.setProperty("background", "#b88940", "important")
-                    el.style.setProperty("background-color", "#b88940", "important")
-                    el.style.setProperty("background-image", "none", "important")
-                    el.style.setProperty("color", "#FFFFFF", "important")
-                    el.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                    el.style.setProperty("border", "1px solid #b88940", "important")
-                    el.style.setProperty("border-color", "#b88940", "important")
-                    el.style.setProperty("outline-color", "#b88940", "important")
-                    el.style.setProperty("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.15)", "important")
-                    el.style.setProperty("filter", "none", "important")
-                    el.style.setProperty("text-shadow", "none", "important")
-                  }
-
-                  applyPmdBadgeColor()
-
-                  if (el.dataset.pmdBadgeColorLock !== "1") {
-                    el.dataset.pmdBadgeColorLock = "1"
-
-                    let busy = false
-                    const observer = new MutationObserver(() => {
-                      if (busy) return
-                      busy = true
-                      requestAnimationFrame(() => {
-                        applyPmdBadgeColor()
-                        busy = false
-                      })
-                    })
-
-                    observer.observe(el, {
-                      attributes: true,
-                      attributeFilter: ["style", "class"],
-                    })
-
-                    ;[0, 16, 80, 220, 650, 1200].forEach((delay) => {
-                      window.setTimeout(applyPmdBadgeColor, delay)
-                    })
-                  }
-                }}
-                className="cart-badge pmd-v2-badge absolute -top-2 -right-2 font-bold rounded-full h-7 w-7 flex items-center justify-center shadow-md"
-                style={{
-                  background: "#b88940",
-                  backgroundColor: "#b88940",
-                  backgroundImage: "none",
-                  color: "#FFFFFF",
-                  WebkitTextFillColor: "#FFFFFF",
-                  border: "1px solid #b88940",
-                  borderColor: "#b88940",
-                  outlineColor: "#b88940",
-                  zIndex: 9999999,
-                }}>
-                {totalItems}
-              </span>
-            )}
-          </GoldCheckoutButton>
-          </ActionTooltip>
-          <AnimatePresence initial={false}>
-          {showOrderAction && (
-          <ActionTooltip label="Table order">
-          <GoldTableOrderButton
-            key="table-order-action"
-            actions={themeMenuActions ?? {
-              onAddItem: () => undefined,
-              onOpenCheckout: onCartClick,
-              onOpenTableOrder: onOrderClick ?? (() => undefined),
-              onCallWaiter: onWaiterClick ?? (() => undefined),
-              onOpenNote: onNoteClick ?? (() => undefined),
-              onOpenValet: () => undefined,
-              cartCount: totalItems,
-              tableOrderCount: orderCount || 0,
-              showTableOrder: Boolean(onOrderClick),
-            }}
-            as={motion.button}
-            initial={{ opacity: 0, scale: 0.8, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 8 }}
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.12 }}
-            className="h-12 w-12 flex items-center justify-center relative focus:outline-none transition-all"
-            data-pmd-bottom-table-order="1"
-            ref={(el: HTMLButtonElement | null) => {
-              if (!el) return
-
-              const cleanTableOrderButton = () => {
-                /*
-                 * Keep this button visually like the other bottom actions:
-                 * - no green active circle
-                 * - no inner text
-                 * - dark icon
-                 * - gold badge
-                 * IMPORTANT: do NOT touch transform, so Framer hover still works.
-                 */
-                el.style.setProperty("background", "transparent", "important")
-                el.style.setProperty("background-color", "transparent", "important")
-                el.style.setProperty("background-image", "none", "important")
-                el.style.setProperty("border", "1px solid transparent", "important")
-                el.style.setProperty("border-color", "transparent", "important")
-                el.style.setProperty("box-shadow", "none", "important")
-                el.style.setProperty("outline", "0", "important")
-                el.style.setProperty("color", "#0D1B1E", "important")
-                el.style.setProperty("-webkit-text-fill-color", "#0D1B1E", "important")
-
-                el.querySelectorAll("svg, svg *, path").forEach((node: Element) => {
-                  const svgNode = node as HTMLElement
-                  svgNode.style.setProperty("color", "#0D1B1E", "important")
-                  svgNode.style.setProperty("stroke", "#0D1B1E", "important")
-                  svgNode.style.setProperty("-webkit-text-fill-color", "#0D1B1E", "important")
-                  svgNode.style.setProperty("background", "transparent", "important")
-                  svgNode.style.setProperty("background-color", "transparent", "important")
-                  svgNode.style.setProperty("box-shadow", "none", "important")
-                })
-
-                const badge = el.querySelector("span.absolute") as HTMLElement | null
-                if (badge) {
-                  badge.style.setProperty("background", "#b88940", "important")
-                  badge.style.setProperty("background-color", "#b88940", "important")
-                  badge.style.setProperty("color", "#FFFFFF", "important")
-                  badge.style.setProperty("-webkit-text-fill-color", "#FFFFFF", "important")
-                  badge.style.setProperty("border", "1px solid #b88940", "important")
-                  badge.style.setProperty("border-radius", "9999px", "important")
-                }
-              }
-
-              cleanTableOrderButton()
-
-              if (el.dataset.pmdTableOrderCleanLock !== "1") {
-                el.dataset.pmdTableOrderCleanLock = "1"
-
-                const observer = new MutationObserver(() => {
-                  requestAnimationFrame(cleanTableOrderButton)
-                })
-
-                observer.observe(el, {
-                  attributes: true,
-                  attributeFilter: ["style", "class"],
-                  subtree: true,
-                })
-
-                ;[0, 16, 80, 180, 400, 900, 1600].forEach((delay) => {
-                  window.setTimeout(cleanTableOrderButton, delay)
-                })
-              }
-            }}
-            style={{
-              background: "transparent",
-              backgroundColor: "transparent",
-              backgroundImage: "none",
-              border: "1px solid transparent",
-              color: "#FFFFFF",
-              WebkitTextFillColor: "#FFFFFF",
-              boxShadow: "none",
-            }}
-            aria-label="Table order"
-          >
-            <ReceiptText
-              className="h-7 w-7"
-              style={{
-                color: "#FFFFFF",
-                stroke: "#0D1B1E",
-                WebkitTextFillColor: "#FFFFFF",
-              }}
-            />
-            {orderCount > 0 && (
-              <span
-                className="absolute -top-1 -right-1 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full text-[10px] leading-none font-semibold inline-flex items-center justify-center shadow-md"
-                style={{
-                  background: "#b88940",
-                  backgroundColor: "#b88940",
-                  color: "#FFFFFF",
-                  WebkitTextFillColor: "#FFFFFF",
-                  border: "1px solid #b88940",
-                  borderRadius: "9999px",
-                }}
-              >
-                {orderCount}
-              </span>
-            )}
-          </GoldTableOrderButton>
-          </ActionTooltip>
-          )}
-          </AnimatePresence>
-
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
 function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -9552,7 +8861,6 @@ function MenuContent() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string>("All") // Initialize with "All"
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
-  const [toolbarState, setToolbarState] = useState<ToolbarState>("collapsed")
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
   const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<CheckoutStep>('review')
@@ -9569,10 +8877,7 @@ function MenuContent() {
 
       const txt = (button.textContent || "").replace(/\s+/g, " ").trim().toLowerCase()
       const aria = (button.getAttribute("aria-label") || "").toLowerCase()
-      const tableMarker = button.getAttribute("data-pmd-bottom-table-order") === "1"
-
       const isTableOrderButton =
-        tableMarker ||
         aria.includes("table order") ||
         txt.includes("table order")
 
@@ -9606,12 +8911,9 @@ function MenuContent() {
   const { menuItems, taxSettings, loadVATSettings, settings: cmsSettings, merchantSettings } = useCmsStore()
 
   const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
-  const themeBackgroundColor = useThemeBackgroundColor()
   const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
   const [forceModernGreenTheme, setForceModernGreenTheme] = useState(false)
-  const isOrganicBotanicalTheme = currentFrontendTheme === ORGANIC_BOTANICAL_THEME_KEY
-  const isModernGreenTheme = currentFrontendTheme === MODERN_GREEN_THEME_KEY || forceModernGreenTheme
-  const isKazenJapaneseTheme = currentFrontendTheme === KAZEN_JAPANESE_THEME_KEY
+  const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme } = useMenuThemeFlags(currentFrontendTheme, forceModernGreenTheme)
 
   // PMD_FIX_KAZEN_REMOVE_BAD_HEADER_MARKER_FROM_ITEMS_20260612
   useEffect(() => {
@@ -10171,8 +9473,6 @@ useEffect(() => {
   const totalItems = cartPricingSummary.totalItems
   const rawSubtotalPrice = cartPricingSummary.subtotal
   const rawTaxAmount = cartPricingSummary.tax
-  const toolbarSubtotalPrice = toolbarPricingSnapshot?.subtotal ?? rawSubtotalPrice
-  const toolbarTaxAmount = toolbarPricingSnapshot?.tax ?? rawTaxAmount
   const totalPrice = toolbarPricingSnapshot?.total ?? (rawSubtotalPrice + rawTaxAmount)
 
   // Show arrow if at least one item and not collapsed
@@ -10180,7 +9480,6 @@ useEffect(() => {
     if (items.length === 0 && toolbarPricingSnapshot) setToolbarPricingSnapshot(null)
   }, [items.length, toolbarPricingSnapshot])
 
-  const showBillArrow = totalItems > 0 && toolbarState !== "collapsed"
   // PMD_TABLE_ORDER_ACTIVE_DERIVED_STATE_20260613
   const localOpenOrderStatusForAction = String(localOpenOrder?.status || "").toLowerCase()
   const localOpenOrderPaymentStatusForAction = String(localOpenOrder?.paymentStatus || localOpenOrder?.payment_status || "").toLowerCase()
@@ -10215,32 +9514,6 @@ useEffect(() => {
     0
   )
 
-
-  // Get display items for the toolbar
-  const getDisplayItems = () => {
-    const pricedItems = toolbarPricingSnapshot?.items ?? items
-    if (toolbarState === "preview" && lastInteractedItem) {
-      const pricedLast = pricedItems.find((candidate: any) => candidate.item.id === lastInteractedItem.item.id)
-      return [pricedLast || lastInteractedItem]
-    }
-    return pricedItems
-  }
-
-  // Update last interacted item whenever an item is added or selected
-  const handleItemInteraction = (item: MenuItem) => {
-    const cartItem = items.find(i => i.item.id === item.id)
-    if (cartItem) {
-      setLastInteractedItem(cartItem)
-    }
-  }
-
-  // On first add, if toolbar is collapsed, go to preview
-  const handleFirstAdd = (item: MenuItem) => {
-    if (toolbarState === "collapsed") setToolbarState("preview")
-    // Always set lastInteractedItem to the just-added item
-    const cartItem = items.find(i => i.item.id === item.id)
-    if (cartItem) setLastInteractedItem(cartItem)
-  }
 
   const handleOrganicAdd = (item: MenuItem, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -10279,37 +9552,23 @@ useEffect(() => {
     }
   }
 
-  const themeMenuActions = createThemeMenuActions({
-    onAddItem: (item, quantity = 1) => {
-      addToCart(item, quantity)
-      handleFirstAdd(item)
-    },
-    onOpenCheckout: handleCartClick,
-    onOpenTableOrder: () => {
-      setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? "review" : (sharedTableOrder?.status === "paid" ? "paid" : "submitted"))
-      setPaymentModalOpen(true)
-    },
-    onCallWaiter: handleWaiterClick,
-    onOpenNote: handleNoteClick,
-    onOpenValet: () => {
-      const currentSearch = typeof window !== "undefined" ? window.location.search || "" : ""
-      if (tableIdString) {
-        window.location.href = `/table/${tableIdString}/valet${currentSearch}`
-      } else {
-        window.location.href = `/valet${currentSearch}`
-      }
-    },
-    cartCount: totalItems,
-    tableOrderCount: tableOrderActionCount,
-    showTableOrder: shouldShowTableOrderAction,
-    tableNumber: displayTableNumber,
-    currentLocale: language,
+  const themeMenuActions = useThemeMenuActions({
+    addToCart,
+    handleFirstAdd,
+    handleCartClick,
+    setPaymentModalInitialStep,
+    setPaymentModalOpen,
+    sharedTableOrder,
+    handleWaiterClick,
+    handleNoteClick,
+    tableIdString,
+    totalItems,
+    tableOrderActionCount,
+    shouldShowTableOrderAction,
+    displayTableNumber,
     language,
   })
 
-  // Phase 3C can begin moving low-risk native theme buttons (valet entry, waiter call, note,
-  // and checkout open) to consume ThemeMenuActions through the no-op boundary below.
-  // Existing handlers remain the source of truth until theme components are migrated.
 
   // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
   useEffect(() => {
@@ -10671,7 +9930,7 @@ useEffect(() => {
         root.querySelectorAll("button").forEach((btn) => {
           const label = `${btn.textContent || ""} ${btn.getAttribute("aria-label") || ""}`.toLowerCase()
           const isCircle =
-            btn.matches(".pmd-v2-action-circle, .quantity-btn, [data-pmd-show-bill-toggle='1'], [data-pmd-order-status-back='1']")
+            btn.matches(".pmd-v2-action-circle, .quantity-btn, [data-pmd-order-status-back='1']")
           const isSecondary = /continue ordering|cancel/.test(label)
           const isPrimary = /confirm|send to kitchen|pay|pay in full|review split|view order|yes|apply/.test(label)
 
@@ -10938,7 +10197,7 @@ useEffect(() => {
           const label = `${btn.textContent || ""} ${btn.getAttribute("aria-label") || ""}`.trim().toLowerCase()
 
           const isCircle =
-            btn.matches(".pmd-v2-action-circle, .quantity-btn, [data-pmd-show-bill-toggle='1'], [data-pmd-order-status-back='1']")
+            btn.matches(".pmd-v2-action-circle, .quantity-btn, [data-pmd-order-status-back='1']")
 
           const isPrimary =
             /^(confirm|send to kitchen|pay|pay in full|review split|view order|apply|yes)$/.test(label)
@@ -11770,13 +11029,6 @@ useEffect(() => {
           border-radius: 50%;
           background: radial-gradient(ellipse at center, rgba(115,122,85,.16), transparent 68%);
         }
-        .pmd-organic-menu .toolbar-inner-fixed,
-        .pmd-organic-menu .fixed.bottom-\[1\.35rem\] > div {
-          border-color: rgba(115, 122, 85, 0.20) !important;
-          background: color-mix(in srgb, var(--organic-surface) 92%, transparent) !important;
-          box-shadow: 0 18px 45px rgba(66,55,35,0.16) !important;
-          border-radius: 1.75rem !important;
-        }
         @keyframes btn-bounce {
           0% { transform: scale(1); }
           40% { transform: scale(1.2); }
@@ -11851,7 +11103,7 @@ useEffect(() => {
 }
 
 // Main component with Suspense wrapper
-export default function ExpandingBottomToolbarMenu() {
+export default function PayMyDineMenuPage() {
   // PMD_MENU_FOOTER_LOGO_RUNTIME_CALL_FINAL_20260611
   useEffect(() => {
     return pmdInstallMenuPayMyDineFooterLogo()
